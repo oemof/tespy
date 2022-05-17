@@ -316,7 +316,7 @@ class AdiabaticConstPressureReactor(Component):
         )
 
         out_id = self.outl[0].conn_loc
-        for i in range(len(self.inl[0].fluid.val())):
+        for i in range(len(self.inl[0].fluid.val)):
             deriv[i, out_id, 3 + i] = 1
 
         return deriv

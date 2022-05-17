@@ -26,6 +26,11 @@ from tespy.tools.helpers import molar_mass_flow
 from tespy.tools.helpers import newton
 from tespy.tools.helpers import single_fluid
 
+import pyromat as pm
+pm.config["unit_pressure"] = "Pa"
+pm.config["unit_temperature"] = "K"
+pm.config["unit_molar"] = "mol"
+pm.config["unit_energy"] = "J"
 
 class Memorise:
     r"""Memorization of fluid properties."""
@@ -93,6 +98,10 @@ class Memorise:
             logging.debug(msg)
 
         Memorise.water = None
+
+        if not hasattr(Memorise, 'h_corr'):
+            Memorise.h_corr = dict()
+
         for f, back_end in fluids.items():
 
             # save name for water in memorise
@@ -113,6 +122,20 @@ class Memorise:
                 )
                 logging.warning(msg)
                 continue
+
+            # enthalpy correction
+            Memorise.state[f].update(CP.PT_INPUTS, 1e5, 298.15)
+            h0 = Memorise.state[f].hmass()
+            if f == Memorise.water:
+                mph2o = pm.get("mp.H2O")
+                Memorise.h_corr["H2O_l"] = -h0 - 285830 / mph2o.mw()
+                Memorise.h_corr["H2O_g"] = -h0 + pm.get("ig.H2O").h(T=298.15)[0]
+                Memorise.h_corr[f] = Memorise.h_corr["H2O_l"]
+            else:
+                try:
+                    Memorise.h_corr[f] = -h0 + pm.get("ig."+f).h(T=298.15)[0]
+                except pm.utility.PMParamError:
+                    Memorise.h_corr[f] = 0
 
             msg = (
                 'Created CoolProp.AbstractState object for fluid ' +
@@ -298,6 +321,7 @@ def T_ph(p, h, fluid):
     T : float
         Temperature T / K.
     """
+    h = h - Memorise.h_corr[fluid]
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'T')
     else:
@@ -552,9 +576,9 @@ def h_mix_pT(flow, T, force_gas=False):
             if y > err:
                 if fluid == water and y_water_liq > 0:
                     Memorise.state[fluid].update(CP.QT_INPUTS, 0, T)
-                    h += Memorise.state[fluid].hmass() * y_water_liq
+                    h += (Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]) * y_water_liq
                     Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
-                    h += Memorise.state[fluid].hmass() * y * (1 - y_water_liq)
+                    h += (Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]) * y * (1 - y_water_liq)
 
                 else:
                     h += h_pT(
@@ -590,13 +614,13 @@ def h_pT(p, T, fluid, force_gas=False):
     if force_gas:
         if T < get_T_crit(fluid):
             Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-            h = Memorise.state[fluid].hmass()
+            h = Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]
             Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
-            h_sat = Memorise.state[fluid].hmass()
+            h_sat = Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]
             return max(h, h_sat)
 
     Memorise.state[fluid].update(CP.PT_INPUTS, p, T)
-    return Memorise.state[fluid].hmass()
+    return Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]
 
 
 def dh_mix_pdT(flow, T):
@@ -676,7 +700,7 @@ def h_ps(p, s, fluid):
         Specific enthalpy h / (J/kg).
     """
     Memorise.state[fluid].update(CP.PSmass_INPUTS, p, s)
-    return Memorise.state[fluid].hmass()
+    return Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]
 
 
 def h_ps_IF97(params, s):
@@ -700,7 +724,7 @@ def h_ps_IF97(params, s):
         Specific enthalpy h / (J/kg).
     """
     Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s)
-    return Memorise.state[params[0]].hmass()
+    return Memorise.state[params[0]].hmass() + Memorise.h_corr[params[0]]
 
 
 def dh_pds_IF97(params, s):
@@ -727,10 +751,10 @@ def dh_pds_IF97(params, s):
     """
     d = 1e-2
     Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s + d)
-    h_upper = Memorise.state[params[0]].hmass()
+    h_upper = Memorise.state[params[0]].hmass() + Memorise.h_corr[params[0]]
 
     Memorise.state[params[0]].update(CP.PSmass_INPUTS, params[1], s - d)
-    h_lower = Memorise.state[params[0]].hmass()
+    h_lower = Memorise.state[params[0]].hmass() + Memorise.h_corr[params[0]]
 
     return (h_upper - h_lower) / (2 * d)
 
@@ -774,7 +798,7 @@ def h_mix_pQ(flow, Q):
         p_crit = get_p_crit(fluid)
         Memorise.state[fluid].update(CP.PQ_INPUTS, p_crit * 0.99, Q)
 
-    return Memorise.state[fluid].hmass()
+    return Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]
 
 
 def dh_mix_dpQ(flow, Q):
@@ -1046,6 +1070,7 @@ def d_ph(p, h, fluid):
     d : float
         Density d / (kg/:math:`\mathrm{m}^3`).
     """
+    h = h - Memorise.h_corr[fluid]
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'rho')
     else:
@@ -1073,6 +1098,7 @@ def Q_ph(p, h, fluid):
     x : float
         Vapor mass fraction.
     """
+    h = h - Memorise.h_corr[fluid]
     try:
         Memorise.state[fluid].update(CP.HmassP_INPUTS, h, p)
         return Memorise.state[fluid].Q()
@@ -1306,6 +1332,7 @@ def visc_ph(p, h, fluid):
     visc : float
         Viscosity visc / Pa s.
     """
+    h = h - Memorise.h_corr[fluid]
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 'visc')
     else:
@@ -1460,6 +1487,7 @@ def s_ph(p, h, fluid):
     s : float
         Specific entropy s / (J/(kgK)).
     """
+    h = h - Memorise.h_corr[fluid]
     if Memorise.back_end[fluid] == 'IF97':
         return entropy_iteration_IF97(p, h, fluid, 's')
     else:

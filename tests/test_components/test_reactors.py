@@ -11,19 +11,17 @@ SPDX-License-Identifier: MIT
 """
 
 import shutil
+from collections import OrderedDict
 
 import numpy as np
 
-from tespy.components import (
-    Sink,
-    Source,
-    WaterElectrolyzer,
-    AdiabaticConstPressureReactor,
-)
+from tespy.components import AdiabaticConstPressureReactor
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import WaterElectrolyzer
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
-from collections import OrderedDict
 
 
 def convergence_check(lin_dep):

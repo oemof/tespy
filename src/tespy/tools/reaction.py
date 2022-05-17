@@ -11,8 +11,8 @@ tespy/components/reactors/water_electrolyzer.py
 SPDX-License-Identifier: MIT
 """
 
-from pyvalem.reaction import Reaction
 import pyromat as pm
+from pyvalem.reaction import Reaction
 
 
 def get_reactant_coefficients(self):

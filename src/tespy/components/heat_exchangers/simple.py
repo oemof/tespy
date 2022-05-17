@@ -22,10 +22,10 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 

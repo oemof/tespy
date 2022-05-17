@@ -35,9 +35,9 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data as fpd
-from tespy.tools.fluid_properties import h_mix_pT
 
 # Only require cupy if Cuda shall be used
 try:

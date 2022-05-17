@@ -16,6 +16,7 @@ import logging
 
 import CoolProp as CP
 import numpy as np
+import pyromat as pm
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
@@ -26,7 +27,6 @@ from tespy.tools.helpers import molar_mass_flow
 from tespy.tools.helpers import newton
 from tespy.tools.helpers import single_fluid
 
-import pyromat as pm
 pm.config["unit_pressure"] = "Pa"
 pm.config["unit_temperature"] = "K"
 pm.config["unit_molar"] = "mol"

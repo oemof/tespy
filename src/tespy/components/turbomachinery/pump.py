@@ -18,9 +18,9 @@ from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.fluid_properties import h_mix_pT
 
 
 class Pump(Turbomachine):

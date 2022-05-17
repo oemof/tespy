@@ -23,6 +23,7 @@ from CoolProp.CoolProp import get_aliases
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses
+from tespy.tools.helpers import coolprop_name_to_sum_formula
 from tespy.tools.helpers import molar_mass_flow
 from tespy.tools.helpers import newton
 from tespy.tools.helpers import single_fluid
@@ -133,11 +134,25 @@ class Memorise:
                 Memorise.h_corr["H2O_g"] = \
                     -h0 + pm.get("ig.H2O").h(T=298.15)[0]
                 Memorise.h_corr[f] = Memorise.h_corr["H2O_l"]
+
+            # other substances than water
             else:
-                try:
-                    Memorise.h_corr[f] = -h0 + pm.get("ig."+f).h(T=298.15)[0]
-                except pm.utility.PMParamError:
-                    Memorise.h_corr[f] = 0
+                # check if substance is in pyromat data
+                if ("ig." + f) in pm.dat.data:
+                    Memorise.h_corr[f] = -h0 + pm.get("ig." + f).h(T=298.15)[0]
+                else:
+                    # try fixing the name and check again
+                    try:
+                        fixed_name = "ig." + coolprop_name_to_sum_formula(f)
+                        if fixed_name in pm.dat.data:
+                            Memorise.h_corr[f] = \
+                                -h0 + pm.get(fixed_name).h(T=298.15)[0]
+                        else:
+                            # default enthalpy correction
+                            Memorise.h_corr[f] = 0
+                    except RuntimeError:
+                        # default enthalpy correction
+                        Memorise.h_corr[f] = 0
 
             msg = (
                 'Created CoolProp.AbstractState object for fluid ' +

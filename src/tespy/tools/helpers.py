@@ -991,3 +991,10 @@ def extend_basic_path(subfolder):
     if not os.path.isdir(extended_path):
         os.mkdir(extended_path)
     return extended_path
+
+
+def coolprop_name_to_sum_formula(cp_name):
+    return CP.CoolProp.get_fluid_param_string(cp_name, "formula").\
+        replace("{","").\
+        replace("}","").\
+        replace("_","")

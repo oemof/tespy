@@ -136,11 +136,11 @@ class Drum(DropletSeparator):
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
-    322.7
+    -4067.1
     >>> round(dr_erp.h.val, 1)
-    364.9
+    -4025.0
     >>> round(ev_dr.h.val, 1)
-    687.2
+    -3702.7
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)

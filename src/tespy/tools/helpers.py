@@ -995,6 +995,6 @@ def extend_basic_path(subfolder):
 
 def coolprop_name_to_sum_formula(cp_name):
     return CP.CoolProp.get_fluid_param_string(cp_name, "formula").\
-        replace("{","").\
-        replace("}","").\
-        replace("_","")
+        replace("{", "").\
+        replace("}", "").\
+        replace("_", "")

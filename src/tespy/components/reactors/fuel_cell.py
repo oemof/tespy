@@ -110,7 +110,7 @@ class FuelCell(Component):
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> import shutil
-    >>> fluid_list = ['O2', 'H2O', 'H2']
+    >>> fluid_list = ['H2O', 'O2', 'H2']
     >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
     ... v_unit='l / s', iterinfo=False)
     >>> fc = FuelCell('fuel cell')

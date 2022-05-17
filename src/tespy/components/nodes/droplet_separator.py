@@ -106,7 +106,7 @@ class DropletSeparator(NodeBase):
         \dot{m}_\mathrm{out,2} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
         \dot{m}_\mathrm{in}
 
-    >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
+    >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=-14471, m=10)
     >>> nw.solve('design')
     >>> Q_in = Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water')
     >>> round(Q_in * so_ds.m.val_SI, 6) == round(ds_sig.m.val_SI, 6)
@@ -114,9 +114,9 @@ class DropletSeparator(NodeBase):
     >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
     True
     >>> Q_ph(ds_sig.p.val_SI, ds_sig.h.val_SI, 'water')
-    1.0
+    1.0000000000000002
     >>> Q_ph(ds_sil.p.val_SI, ds_sil.h.val_SI, 'water')
-    0.0
+    4.472728133161605e-17
 
     In a different setup, we unset pressure and enthalpy and specify gas
     temperature and mass flow instead. The temperature specification must yield

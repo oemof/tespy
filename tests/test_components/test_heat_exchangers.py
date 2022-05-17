@@ -435,10 +435,10 @@ class TestHeatExchangers:
 
         # trigger negative upper terminal temperature difference as result
         self.c4.set_attr(T=100)
-        self.c2.set_attr(h=200e3, T=np.nan)
+        self.c2.set_attr(h=-15.5e6, T=np.nan)
         instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=np.nan,
                           design=['pr1', 'pr2'])
-        self.c1.set_attr(h=150e3, T=np.nan)
+        self.c1.set_attr(h=-15.8e6, T=np.nan)
         self.c3.set_attr(T=40)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

@@ -196,7 +196,7 @@ class TestFluidPropertyBackEnds:
         # %% parametrization of connections
 
         fs_in.set_attr(p=100, T=500, m=100, fluid={self.nw.fluids[0]: 1})
-        fw.set_attr(h=200e3)
+        fw.set_attr(h=-15.86e6)
         cw_in.set_attr(T=20, p=5, fluid={self.nw.fluids[0]: 1})
         cw_out.set_attr(T=30)
 

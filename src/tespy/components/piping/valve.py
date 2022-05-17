@@ -18,6 +18,7 @@ from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.fluid_properties import h_mix_pT
 
 
 class Valve(Component):
@@ -277,7 +278,7 @@ class Valve(Component):
         if key == 'p':
             return 4e5
         elif key == 'h':
-            return 5e5
+            return h_mix_pT(c.get_flow(), T=20+273.15)
 
     def initialise_target(self, c, key):
         r"""
@@ -306,7 +307,7 @@ class Valve(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 5e5
+            return h_mix_pT(c.get_flow(), T=15+273.15)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

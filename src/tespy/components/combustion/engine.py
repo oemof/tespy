@@ -1436,7 +1436,7 @@ class CombustionEngine(CombustionChamber):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 10e5
+            return h_mix_pT(c.get_flow(), T=150+273.15)
 
     @staticmethod
     def initialise_target(c, key):
@@ -1466,7 +1466,7 @@ class CombustionEngine(CombustionChamber):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            return 5e5
+            return h_mix_pT(c.get_flow(), T=160+273.15)
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

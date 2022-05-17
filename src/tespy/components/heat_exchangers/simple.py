@@ -25,6 +25,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import visc_mix_ph
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 
@@ -800,12 +801,7 @@ class HeatExchangerSimple(Component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0 and self.Q.is_set:
-                return 1e5
-            elif self.Q.val > 0 and self.Q.is_set:
-                return 5e5
-            else:
-                return 3e5
+            return h_mix_pT(c.get_flow(), T=20 + 273.15)
 
     def initialise_target(self, c, key):
         r"""
@@ -838,12 +834,7 @@ class HeatExchangerSimple(Component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            if self.Q.val < 0 and self.Q.is_set:
-                return 5e5
-            elif self.Q.val > 0 and self.Q.is_set:
-                return 1e5
-            else:
-                return 3e5
+            return h_mix_pT(c.get_flow(), T=20 + 273.15)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

@@ -766,11 +766,9 @@ class HeatExchanger(Component):
             return 50e5
         elif key == 'h':
             if c.source_id == 'out1':
-                T = 200 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+                return h_mix_pT(c.get_flow(), T=200 + 273.15)
             else:
-                T = 250 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+                return h_mix_pT(c.get_flow(), T=250 + 273.15)
 
     def initialise_target(self, c, key):
         r"""
@@ -801,11 +799,9 @@ class HeatExchanger(Component):
             return 50e5
         elif key == 'h':
             if c.target_id == 'in1':
-                T = 300 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+                return h_mix_pT(c.get_flow(), T=300 + 273.15)
             else:
-                T = 220 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+                return h_mix_pT(c.get_flow(), T=220 + 273.15)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

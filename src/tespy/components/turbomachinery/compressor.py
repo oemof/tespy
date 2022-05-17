@@ -24,6 +24,7 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import h_mix_pT
 
 
 class Compressor(Turbomachine):
@@ -577,7 +578,7 @@ class Compressor(Turbomachine):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            return 6e5
+            return h_mix_pT(c.get_flow(), T=200+273.15)
 
     @staticmethod
     def initialise_target(c, key):
@@ -607,7 +608,7 @@ class Compressor(Turbomachine):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            return 4e5
+            return h_mix_pT(c.get_flow(), T=150+273.15)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

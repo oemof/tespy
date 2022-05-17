@@ -21,6 +21,7 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.fluid_properties import h_mix_pT
 
 
 class Turbine(Turbomachine):
@@ -391,11 +392,11 @@ class Turbine(Turbomachine):
             if i.p.val_SI <= 1e5 and not i.p.val_set:
                 i.p.val_SI = 1e5
 
-            if i.h.val_SI < 10e5 and not i.h.val_set:
-                i.h.val_SI = 10e5
+            if i.h.val_SI < o.h.val_SI and not i.h.val_set:
+                i.h.val_SI = i.h.val_SI * 1.1
 
-            if o.h.val_SI < 5e5 and not o.h.val_set:
-                o.h.val_SI = 5e5
+            if o.h.val_SI > i.h.val_SI and not o.h.val_set:
+                o.h.val_SI = o.h.val_SI * 0.9
 
         if i.h.val_SI <= o.h.val_SI and not o.h.val_set:
             o.h.val_SI = i.h.val_SI * 0.9
@@ -431,7 +432,7 @@ class Turbine(Turbomachine):
         if key == 'p':
             return 0.5e5
         elif key == 'h':
-            return 1.5e6
+            return h_mix_pT(c.get_flow(), T=200+273.15)
 
     @staticmethod
     def initialise_target(c, key):
@@ -461,7 +462,7 @@ class Turbine(Turbomachine):
         if key == 'p':
             return 2.5e6
         elif key == 'h':
-            return 2e6
+            return h_mix_pT(c.get_flow(), T=150+273.15)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

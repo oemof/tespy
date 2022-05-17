@@ -14,6 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.fluid_properties import h_mix_pT
 
 
 class NodeBase(Component):
@@ -172,7 +173,7 @@ class NodeBase(Component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            return 5e5
+            return h_mix_pT(c.get_flow(), T=20+273.15)
 
     @staticmethod
     def initialise_target(c, key):
@@ -202,4 +203,4 @@ class NodeBase(Component):
         if key == 'p':
             return 1e5
         elif key == 'h':
-            return 5e5
+            return h_mix_pT(c.get_flow(), T=30+273.15)

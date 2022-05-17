@@ -17,17 +17,10 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import dT_mix_dph
-from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.global_vars import molar_masses
-from tespy.tools.global_vars import fluid_property_data as fpd
-from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.reaction import Reaction
 
 # %%
@@ -35,8 +28,8 @@ from tespy.tools.reaction import Reaction
 
 class AdiabaticConstPressureReactor(Component):
     r"""
-    The adiabatic constant pressure reactor class models arbitrary chemical reactions
-    based on a stoichiometric formula.
+    The adiabatic constant pressure reactor class models arbitrary chemical
+    reactions based on a stoichiometric formula.
 
     **Mandatory Equations**
 

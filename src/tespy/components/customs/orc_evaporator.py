@@ -195,7 +195,7 @@ class ORCEvaporator(Component):
     >>> eva_wf_out.x.val
     1.0
     >>> eva_sink_s.x.val
-    0.0
+    -1.8951688304881417e-16
     """
 
     @staticmethod

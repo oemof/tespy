@@ -22,6 +22,7 @@ from .nodes.splitter import Splitter  # noqa: F401
 from .piping.pipe import Pipe  # noqa: F401
 from .piping.valve import Valve  # noqa: F401
 from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
+from .reactors.adiabatic_const_pressure_reactor import AdiabaticConstPressureReactor
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401

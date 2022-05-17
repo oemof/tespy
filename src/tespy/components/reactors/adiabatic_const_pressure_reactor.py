@@ -69,79 +69,88 @@ class AdiabaticConstPressureReactor(Component):
 
     @staticmethod
     def component():
-        return 'AdiabaticConstPressureReactor'
+        return "AdiabaticConstPressureReactor"
 
     def get_variables(self):
         return {
-            'X': dc_cp(min_val=0, max_val=1),
-            'formula': dc_simple(),
+            "X": dc_cp(min_val=0, max_val=1),
+            "formula": dc_simple(),
         }
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func,
-                'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,
-                'latex': self.mass_flow_func_doc,
-                'num_eq': 1
+            "mass_flow_constraints": {
+                "func": self.mass_flow_func,
+                "deriv": self.mass_flow_deriv,
+                "constant_deriv": True,
+                "latex": self.mass_flow_func_doc,
+                "num_eq": 1,
             },
-            'fluid_constraints': {
-                'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
-                'constant_deriv': True,
-                'latex': self.fluid_func_doc,
-                'num_eq': len(self.outl[0].fluid.val)
+            "fluid_constraints": {
+                "func": self.fluid_func,
+                "deriv": self.fluid_deriv,
+                "constant_deriv": True,
+                "latex": self.fluid_func_doc,
+                "num_eq": len(self.outl[0].fluid.val),
             },
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False,
-                'latex': self.energy_balance_func_doc,
-                'num_eq': 1
+            "energy_balance_constraints": {
+                "func": self.energy_balance_func,
+                "deriv": self.energy_balance_deriv,
+                "constant_deriv": False,
+                "latex": self.energy_balance_func_doc,
+                "num_eq": 1,
             },
-            'reactor_pressure_constraints': {
-                'func': self.reactor_pressure_func,
-                'deriv': self.reactor_pressure_deriv,
-                'constant_deriv': True,
-                'latex': self.reactor_pressure_func_doc,
-                'num_eq': 1
+            "reactor_pressure_constraints": {
+                "func": self.reactor_pressure_func,
+                "deriv": self.reactor_pressure_deriv,
+                "constant_deriv": True,
+                "latex": self.reactor_pressure_func_doc,
+                "num_eq": 1,
             },
         }
 
     @staticmethod
     def inlets():
-        return ['in1']
+        return ["in1"]
 
     @staticmethod
     def outlets():
-        return ['out1']
+        return ["out1"]
 
     def comp_init(self, nw):
 
         if not self.X.is_set:
-            msg = ('The conversion yield (X) of must be set!')
+            msg = "The conversion yield (X) of must be set!"
             logging.error(msg)
 
         if not self.formula.is_set:
-            msg = ('The reaction formula of must be set!')
+            msg = "The reaction formula of must be set!"
             logging.error(msg)
 
         # parse reaction equation
         self.reac = Reaction(self.formula.val)
 
         # calculate outlet composition
-        m = self.inl[0].m.val_SI # kg/s
-        molar_masses = {k: CP.PropsSI("M", k) for k in self.reac.get_stoich_coefficients().keys()}  # kg/mol
-        self.n_in = {k: m*x/molar_masses[k] for k, x in self.inl[0].fluid.val.items()} # mol/s
-        n_out = self.reac.calculate_composition(self.n_in, self.X.val) # mol/s
-        m_out = {k: n * molar_masses[k] for k, n in n_out.items()} # kg/s
-        self.x_out = {k: m_i/sum(m_out.values()) for k, m_i in m_out.items()} # mass fractions
+        m = self.inl[0].m.val_SI  # kg/s
+        molar_masses = {
+            k: CP.PropsSI("M", k)
+            for k in self.reac.get_stoich_coefficients().keys()
+        }  # kg/mol
+        self.n_in = {
+            k: m * x / molar_masses[k]
+            for k, x in self.inl[0].fluid.val.items()
+        }  # mol/s
+        n_out = self.reac.calculate_composition(self.n_in, self.X.val)  # mol/s
+        m_out = {k: n * molar_masses[k] for k, n in n_out.items()}  # kg/s
+        self.x_out = {
+            k: m_i / sum(m_out.values()) for k, m_i in m_out.items()
+        }  # mass fractions
 
         # calculate reaction enthalpy
         T_in = self.inl[0].T.val_SI
-        self.reaction_enthalpy_SI = -55.6e6*0.1
-        self.reaction_enthalpy_SI = self.reac.calculate_reaction_enthalpy(n0=self.n_in, X=self.X.val, T0=T_in) # J/s
+        self.reaction_enthalpy_SI = self.reac.calculate_reaction_enthalpy(
+            n0=self.n_in, X=self.X.val, T0=T_in
+        )  # J/s
 
         Component.comp_init(self, nw)
 
@@ -170,9 +179,10 @@ class AdiabaticConstPressureReactor(Component):
             - Reference temperature: 298.15 K.
             - Reference pressure: 1 bar.
         """
-        return self.outl[0].m.val_SI * self.outl[0].h.val_SI - \
-               self.inl[0].m.val_SI * self.inl[0].h.val_SI
-
+        return (
+            self.outl[0].m.val_SI * self.outl[0].h.val_SI
+            - self.inl[0].m.val_SI * self.inl[0].h.val_SI
+        )
 
     def energy_balance_func_doc(self, label):
         r"""
@@ -189,18 +199,18 @@ class AdiabaticConstPressureReactor(Component):
             LaTeX code of equations applied.
         """
         latex = (
-            r'\begin{split}' + '\n'
-            r'0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-'
-            r'h_\mathrm{in,2,ref}\right)\\' + '\n'
-            r'&-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -'
-            r'h_\mathrm{in,1} \right)\\' + '\n'
-            r'& - \dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -'
-            r'h_\mathrm{out,2,ref} \right)\\' + '\n'
-            r'& + \dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -'
-            r'h_\mathrm{out,3,ref} + e_0\right)\\' + '\n'
-            r'&p_\mathrm{ref}=\unit[1]{bar},'
-            r'\;T_\mathrm{ref}=\unit[25]{^\circ C}\\' + '\n'
-            r'\end{split}'
+            r"\begin{split}" + "\n"
+            r"0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-"
+            r"h_\mathrm{in,2,ref}\right)\\" + "\n"
+            r"&-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -"
+            r"h_\mathrm{in,1} \right)\\" + "\n"
+            r"& - \dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -"
+            r"h_\mathrm{out,2,ref} \right)\\" + "\n"
+            r"& + \dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -"
+            r"h_\mathrm{out,3,ref} + e_0\right)\\" + "\n"
+            r"&p_\mathrm{ref}=\unit[1]{bar},"
+            r"\;T_\mathrm{ref}=\unit[25]{^\circ C}\\" + "\n"
+            r"\end{split}"
         )
         return generate_latex_eq(self, latex, label)
 
@@ -217,29 +227,12 @@ class AdiabaticConstPressureReactor(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         # inlet
-        # self.jacobian[k, 0, 0] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
         self.jacobian[k, 0, 0] = -self.inl[0].h.val_SI
         self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
 
         # outlet
         self.jacobian[k, 1, 0] = self.outl[0].h.val_SI
         self.jacobian[k, 1, 2] = self.outl[0].m.val_SI
-
-    # def energy_balance_deriv(self):
-    #     r"""
-    #     Partial derivatives for reactor energy balance.
-    #     """
-    #
-    #     deriv = np.zeros((1, len(self.conn_loc) + self.num_vars, self.num_nw_vars))
-    #     # inlet
-    #     deriv[0, 0, 0] = self.inl[0].h.val_SI
-    #     deriv[0, 0, 2] = self.inl[0].m.val_SI
-    #     # outlet
-    #     deriv[0, 1, 0] = -self.outl[0].h.val_SI
-    #     deriv[0, 1, 2] = -self.outl[0].m.val_SI
-    #
-    #     return deriv
-
 
     def fluid_func(self):
         r"""
@@ -292,22 +285,23 @@ class AdiabaticConstPressureReactor(Component):
             LaTeX code of equations applied.
         """
         latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &x_\mathrm{i,in,1} - x_\mathrm{i,out,1}\\' + '\n'
-            r'0 = &\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\' + '\n'
-            r'x_\mathrm{i,in2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\' + '\n'
-            r'x_\mathrm{i,out,2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\' + '\n'
-            r'x_\mathrm{i,out,3} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'&\forall i \in \text{network fluids}' + '\n'
-            r'\end{split}')
+            r"\begin{split}" + "\n"
+            r"0 = &x_\mathrm{i,in,1} - x_\mathrm{i,out,1}\\" + "\n"
+            r"0 = &\begin{cases}" + "\n"
+            r"1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\" + "\n"
+            r"x_\mathrm{i,in2} & \text{else}\\" + "\n"
+            r"\end{cases}\\" + "\n"
+            r"0 =&\begin{cases}" + "\n"
+            r"1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\" + "\n"
+            r"x_\mathrm{i,out,2} & \text{else}\\" + "\n"
+            r"\end{cases}\\" + "\n"
+            r"0 =&\begin{cases}" + "\n"
+            r"1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\" + "\n"
+            r"x_\mathrm{i,out,3} & \text{else}\\" + "\n"
+            r"\end{cases}\\" + "\n"
+            r"&\forall i \in \text{network fluids}" + "\n"
+            r"\end{split}"
+        )
         return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self):
@@ -320,13 +314,16 @@ class AdiabaticConstPressureReactor(Component):
             Matrix with partial derivatives for the fluid equations.
         """
 
-        deriv = np.zeros((
-            len(self.inl[0].fluid.val),
-            len(self.conn_loc) + self.num_vars,
-            self.num_nw_vars))
+        deriv = np.zeros(
+            (
+                len(self.inl[0].fluid.val),
+                len(self.conn_loc) + self.num_vars,
+                self.num_nw_vars,
+            )
+        )
 
         out_id = self.outl[0].conn_loc
-        for i, (fluid, x) in enumerate(self.inl[0].fluid.val.items()):
+        for i in range(len(self.inl[0].fluid.val())):
             deriv[i, out_id, 3 + i] = 1
 
         return deriv
@@ -360,7 +357,7 @@ class AdiabaticConstPressureReactor(Component):
         latex : str
             LaTeX code of equations applied.
         """
-        latex = r'0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}'
+        latex = r"0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}"
         return generate_latex_eq(self, latex, label)
 
     def mass_flow_deriv(self):
@@ -373,7 +370,9 @@ class AdiabaticConstPressureReactor(Component):
             Matrix with partial derivatives for the mass flow equations.
         """
         # deritatives for mass flow balance in the heat exchanger
-        deriv = np.zeros((1, len(self.conn_loc) + self.num_vars, self.num_nw_vars))
+        deriv = np.zeros(
+            (1, len(self.conn_loc) + self.num_vars, self.num_nw_vars)
+        )
         deriv[0, 0, 0] = 1
         deriv[0, 1, 0] = -1
 
@@ -408,7 +407,7 @@ class AdiabaticConstPressureReactor(Component):
         latex : str
             LaTeX code of equations applied.
         """
-        latex = r'0 = p_\mathrm{in,1} - p_\mathrm{out,1}'
+        latex = r"0 = p_\mathrm{in,1} - p_\mathrm{out,1}"
         return generate_latex_eq(self, latex, label)
 
     def reactor_pressure_deriv(self):
@@ -420,7 +419,9 @@ class AdiabaticConstPressureReactor(Component):
         deriv : ndarray
             Matrix with partial derivatives for the pressure equations.
         """
-        deriv = np.zeros((1, len(self.conn_loc) + self.num_vars, self.num_nw_vars))
+        deriv = np.zeros(
+            (1, len(self.conn_loc) + self.num_vars, self.num_nw_vars)
+        )
         deriv[0, 0, 1] = 1
         deriv[0, 1, 1] = -1
 
@@ -453,24 +454,29 @@ class AdiabaticConstPressureReactor(Component):
         """
         ######################################################################
         # equations for power on bus
-        if bus['param'] == 'P':
+        if bus["param"] == "P":
             val = 0
 
         ######################################################################
         # equations for heat on bus
 
-        elif bus['param'] == 'Q':
+        elif bus["param"] == "Q":
             val = -self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            )
 
         ######################################################################
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + str(bus['param']) + ' is not a valid '
-                   'parameter for a component of type ' + self.component() +
-                   '. Please specify a bus parameter (P/Q) for component ' +
-                   self.label + '.')
+            msg = (
+                "The parameter " + str(bus["param"]) + " is not a valid "
+                "parameter for a component of type "
+                + self.component()
+                + ". Please specify a bus parameter (P/Q) for component "
+                + self.label
+                + "."
+            )
             logging.error(msg)
             raise ValueError(msg)
 
@@ -490,12 +496,13 @@ class AdiabaticConstPressureReactor(Component):
         latex : str
             LaTeX string of bus function.
         """
-        if bus['param'] == 'P':
-            return r'P_\mathrm{el}'
-        elif bus['param'] == 'Q':
+        if bus["param"] == "P":
+            return r"P_\mathrm{el}"
+        elif bus["param"] == "Q":
             return (
-                r'-\dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - '
-                r'h_\mathrm{in,1} \right)')
+                r"-\dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - "
+                r"h_\mathrm{in,1} \right)"
+            )
 
     def bus_deriv(self, bus):
         r"""
@@ -511,35 +518,41 @@ class AdiabaticConstPressureReactor(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, len(self.conn_loc) + self.num_vars, self.num_nw_vars))
+        deriv = np.zeros(
+            (1, len(self.conn_loc) + self.num_vars, self.num_nw_vars)
+        )
         f = self.calc_bus_value
         b = bus.comps.loc[self]
 
         ######################################################################
         # derivatives for power on bus
-        if b['param'] == 'P':
-            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+        if b["param"] == "P":
+            deriv[0, 0, 0] = self.numeric_deriv(f, "m", 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, "h", 0, bus=bus)
 
-            deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
+            deriv[0, 1, 0] = self.numeric_deriv(f, "m", 1, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(f, "h", 1, bus=bus)
 
         ######################################################################
         # derivatives for heat on bus
-        elif b['param'] == 'Q':
+        elif b["param"] == "Q":
 
-            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
+            deriv[0, 0, 0] = self.numeric_deriv(f, "m", 0, bus=bus)
+            deriv[0, 0, 2] = self.numeric_deriv(f, "h", 0, bus=bus)
+            deriv[0, 1, 2] = self.numeric_deriv(f, "h", 1, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + str(b['param']) + ' is not a valid '
-                   'parameter for a component of type ' + self.component() +
-                   '. Please specify a bus parameter (P/Q) for component ' +
-                   self.label + '.')
+            msg = (
+                "The parameter " + str(b["param"]) + " is not a valid "
+                "parameter for a component of type "
+                + self.component()
+                + ". Please specify a bus parameter (P/Q) for component "
+                + self.label
+                + "."
+            )
             logging.error(msg)
             raise ValueError(msg)
 
@@ -575,9 +588,9 @@ class AdiabaticConstPressureReactor(Component):
                 h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
-        if key == 'p':
+        if key == "p":
             return 5e5
-        elif key == 'h':
+        elif key == "h":
             flow = c.get_flow()
             T = 50 + 273.15
             return h_mix_pT(flow, T)
@@ -606,9 +619,9 @@ class AdiabaticConstPressureReactor(Component):
                 h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
                 \end{cases}
         """
-        if key == 'p':
+        if key == "p":
             return 5e5
-        elif key == 'h':
+        elif key == "h":
             flow = c.get_flow()
             T = 20 + 273.15
             return h_mix_pT(flow, T)
@@ -630,8 +643,10 @@ class AdiabaticConstPressureReactor(Component):
             outconn = self.outl[0]
 
             for fluid, x in inconn.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
+                if (
+                    outconn.fluid.val_set[fluid] is False
+                    and outconn.good_starting_values is False
+                ):
                     outconn.fluid.val[fluid] = x
 
             outconn.target.propagate_fluid_to_target(outconn, start)
@@ -653,8 +668,10 @@ class AdiabaticConstPressureReactor(Component):
             inconn = self.inl[0]
 
             for fluid, x in outconn.fluid.val.items():
-                if (inconn.fluid.val_set[fluid] is False and
-                        inconn.good_starting_values is False):
+                if (
+                    inconn.fluid.val_set[fluid] is False
+                    and inconn.good_starting_values is False
+                ):
                     inconn.fluid.val[fluid] = x
 
             inconn.source.propagate_fluid_to_source(inconn, start)

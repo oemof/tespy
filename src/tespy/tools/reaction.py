@@ -14,29 +14,45 @@ SPDX-License-Identifier: MIT
 from pyvalem.reaction import Reaction
 import pyromat as pm
 
+
 def get_reactant_coefficients(self):
-    return {k:-v for k,v in self.reactants_text_count_map.items()}
+    return {k: -v for k, v in self.reactants_text_count_map.items()}
+
+
 Reaction.get_reactant_coefficients = get_reactant_coefficients
+
 
 def get_stoich_coefficients(self):
     d = self.get_reactant_coefficients().copy()
     d.update(self.products_text_count_map)
     return d
+
+
 Reaction.get_stoich_coefficients = get_stoich_coefficients
+
 
 def get_limiting_component(self, n0):
     stoich = self.reactants_text_count_map
-    stoich_norm = {k:v/max(stoich.values()) for k,v in stoich.items()}
-    X_max = {c: n0[c]/stoich_norm[c] for c in stoich.keys()}
+    stoich_norm = {k: v / max(stoich.values()) for k, v in stoich.items()}
+    X_max = {c: n0[c] / stoich_norm[c] for c in stoich.keys()}
     return min(X_max, key=X_max.get)
+
+
 Reaction.get_limiting_component = get_limiting_component
+
 
 def calculate_composition(self, n0, X=1):
     stoich = self.get_stoich_coefficients()
     lim_comp = self.get_limiting_component(n0)
-    stoich_norm = {k: -v/stoich[lim_comp] for k, v in stoich.items()}
-    return {c: n0[c] + X * stoich_norm[c] * n0[lim_comp] for c in stoich_norm.keys()}
+    stoich_norm = {k: -v / stoich[lim_comp] for k, v in stoich.items()}
+    return {
+        c: n0[c] + X * stoich_norm[c] * n0[lim_comp]
+        for c in stoich_norm.keys()
+    }
+
+
 Reaction.calculate_composition = calculate_composition
+
 
 def get_formation_enthalpy(name, per_mole=True, T0=298.15):
     r"""
@@ -46,44 +62,28 @@ def get_formation_enthalpy(name, per_mole=True, T0=298.15):
     :param T0: reference temperature in K (default: 298.15 K)
     :return: enthalpy of formation
     """
-    ig = pm.get("ig."+name)
-    h0 = ig.h(T0)[0] # J/g
+    ig = pm.get("ig." + name)
+    h0 = ig.h(T0)[0]  # J/g
     if per_mole is True:
-        h0 = h0 * ig.mw() # J/mol
+        h0 = h0 * ig.mw()  # J/mol
     return h0
+
 
 def calculate_reaction_enthalpy(self, n0=None, X=1, T0=298.15):
     # assumes that all substances are in gas phase!
     stoich = self.get_stoich_coefficients()
-    form_enthalpies = {k:get_formation_enthalpy(k, per_mole=True, T0=T0) for k in stoich.keys()}
-    delta_h0 = sum([stoich[k]*form_enthalpies[k] for k in stoich.keys()]) # J/mol
+    form_enthalpies = {
+        k: get_formation_enthalpy(k, per_mole=True, T0=T0)
+        for k in stoich.keys()
+    }
+    delta_h0 = sum(
+        [stoich[k] * form_enthalpies[k] for k in stoich.keys()]
+    )  # J/mol
     # calculate absolute enthalpy change if initial composition and yield are given
     if n0 is not None and X is not None:
         lim_comp = self.get_limiting_component(n0)
-        delta_h0 = X * n0[lim_comp] / -stoich[lim_comp] * delta_h0 # J
+        delta_h0 = X * n0[lim_comp] / -stoich[lim_comp] * delta_h0  # J
     return delta_h0
+
+
 Reaction.calculate_reaction_enthalpy = calculate_reaction_enthalpy
-
-
-mp_h2o = pm.get("mp.H2O")
-ig_h2o = pm.get("ig.H2O")
-
-
-def h_mix_pT(comp, p, T):
-
-    h_i0 = []
-    for name in comp.keys():
-        if name == "H2O" and T < mp_h2o.data["Tlim"][1] and T > mp_h2o.data["Tlim"][0]:
-            h_i = (
-                mp_h2o.h(T=T, p=p)[0]
-                - mp_h2o.h(T=25 + 273.15, p=1)[0]
-                - 285.830 / mp_h2o.mw() * 1000  # kJ/kg
-            )
-        else:
-            s = pm.get("ig." + name)
-            h_i = s.h(T=T, p=p)[0]
-
-        h_i0.append(h_i)
-
-    h_mix = [h_i * w_i for h_i, w_i in zip(h_i0, comp.values())]
-    return sum(h_mix)

@@ -34,7 +34,9 @@ def convergence_check(lin_dep):
 
 def check_ordered_dict(d_exp, d_is, rtol=1e-2):
     b_keys = d_exp.keys() == d_is.keys()
-    b_values = np.isclose(list(d_exp.values()), list(d_is.values()), rtol=rtol).all()
+    b_values = np.isclose(
+        list(d_exp.values()), list(d_is.values()), rtol=rtol
+    ).all()
     return b_keys and b_values
 
 
@@ -96,7 +98,11 @@ class TestElectrolyzer:
         # effieciency was set to 100 % with inlet and outlet states of the
         # reaction educts and products beeing identical to reference state
         # therefore Q must be equal to 0
-        msg = "Value of heat output must be 0.0, is " + str(self.instance.Q.val) + "."
+        msg = (
+            "Value of heat output must be 0.0, is "
+            + str(self.instance.Q.val)
+            + "."
+        )
         assert round(self.instance.Q.val, 4) == 0.0, msg
 
         # reset power, change efficiency value and specify heat bus value
@@ -235,7 +241,11 @@ class TestElectrolyzer:
         self.nw.solve("offdesign", design_path="tmp")
         convergence_check(self.nw.lin_dep)
         msg = (
-            "Value of heat must be " + str(Q) + ", is " + str(self.instance.Q.val) + "."
+            "Value of heat must be "
+            + str(Q)
+            + ", is "
+            + str(self.instance.Q.val)
+            + "."
         )
         assert round(Q, 0) == round(self.instance.Q.val, 0), msg
         shutil.rmtree("./tmp", ignore_errors=True)
@@ -299,5 +309,6 @@ class TestAdiabaticConstPressureReactor:
             ]
         )
         x_is = self.instance.outl[0].fluid.val
-        msg = f"Value of reactor outlet composition must be {x_expected}, is {x_is}."
+        msg = "Value of reactor outlet composition must " \
+              f"be {x_expected}, is {x_is}."
         assert check_ordered_dict(x_expected, x_is, rtol=rtol), msg

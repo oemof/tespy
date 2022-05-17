@@ -1383,14 +1383,16 @@ class Network:
                     not c.h.val_set):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
                         (c.state.val == 'g' and c.state.is_set)):
-                    c.h.val_SI = fp.get_vapor_enthalpy_close_to_two_phase_region(
-                        c.get_flow()
-                    )
+                    c.h.val_SI = \
+                        fp.get_vapor_enthalpy_close_to_two_phase_region(
+                            c.get_flow()
+                        )
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
                       (c.state.val == 'l' and c.state.is_set)):
-                    c.h.val_SI = fp.get_liquid_enthalpy_close_to_two_phase_region(
-                        c.get_flow()
-                    )
+                    c.h.val_SI = \
+                        fp.get_liquid_enthalpy_close_to_two_phase_region(
+                            c.get_flow()
+                        )
 
         msg = 'Generic fluid property specification complete.'
         logging.debug(msg)

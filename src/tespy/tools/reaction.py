@@ -79,7 +79,8 @@ def calculate_reaction_enthalpy(self, n0=None, X=1, T0=298.15):
     delta_h0 = sum(
         [stoich[k] * form_enthalpies[k] for k in stoich.keys()]
     )  # J/mol
-    # calculate absolute enthalpy change if initial composition and yield are given
+    # calculate absolute enthalpy change if initial composition and
+    # yield are given
     if n0 is not None and X is not None:
         lim_comp = self.get_limiting_component(n0)
         delta_h0 = X * n0[lim_comp] / -stoich[lim_comp] * delta_h0  # J

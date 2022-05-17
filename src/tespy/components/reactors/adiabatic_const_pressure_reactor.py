@@ -35,8 +35,8 @@ from tespy.tools.reaction import Reaction
 
 class AdiabaticConstPressureReactor(Component):
     r"""
-    The adiabatic constant pressure reactor class models arbitrary chemical reactions based on a stoichiometric
-    formula.
+    The adiabatic constant pressure reactor class models arbitrary chemical reactions
+    based on a stoichiometric formula.
 
     **Mandatory Equations**
 
@@ -677,14 +677,5 @@ class AdiabaticConstPressureReactor(Component):
             inconn.source.propagate_fluid_to_source(inconn, start)
 
     def calc_parameters(self):
-        # r"""Postprocessing parameter calculation."""
-        # self.Q.val = - self.inl[0].m.val_SI * (
-        #     self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        # self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        #
-        # i = self.inl[0].get_flow()
-        # o = self.outl[0].get_flow()
-        # self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-        #     4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-        #     ))
+        r"""Postprocessing parameter calculation."""
         pass

@@ -129,7 +129,8 @@ class Memorise:
             if f == Memorise.water:
                 mph2o = pm.get("mp.H2O")
                 Memorise.h_corr["H2O_l"] = -h0 - 285830 / mph2o.mw()
-                Memorise.h_corr["H2O_g"] = -h0 + pm.get("ig.H2O").h(T=298.15)[0]
+                Memorise.h_corr["H2O_g"] = \
+                    -h0 + pm.get("ig.H2O").h(T=298.15)[0]
                 Memorise.h_corr[f] = Memorise.h_corr["H2O_l"]
             else:
                 try:
@@ -576,9 +577,11 @@ def h_mix_pT(flow, T, force_gas=False):
             if y > err:
                 if fluid == water and y_water_liq > 0:
                     Memorise.state[fluid].update(CP.QT_INPUTS, 0, T)
-                    h += (Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]) * y_water_liq
+                    h += (Memorise.state[fluid].hmass() +
+                          Memorise.h_corr[fluid]) * y_water_liq
                     Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
-                    h += (Memorise.state[fluid].hmass() + Memorise.h_corr[fluid]) * y * (1 - y_water_liq)
+                    h += (Memorise.state[fluid].hmass() +
+                          Memorise.h_corr[fluid]) * y * (1 - y_water_liq)
 
                 else:
                     h += h_pT(
@@ -1779,7 +1782,8 @@ def entropy_iteration_IF97(p, h, fluid, output):
 
 def get_liquid_enthalpy_close_to_two_phase_region(flow, tol=1e-3):
     """
-    Get an enthalpy that corresponds to liquid state but is close to two-phase region.
+    Get an enthalpy that corresponds to liquid state but is close to
+    two-phase region.
 
     Parameters
     ----------
@@ -1801,9 +1805,11 @@ def get_liquid_enthalpy_close_to_two_phase_region(flow, tol=1e-3):
     else:
         return h * (1+tol)
 
+
 def get_vapor_enthalpy_close_to_two_phase_region(flow, tol=1e-3):
     """
-    Get an enthalpy that corresponds to gaseous state but is close to two-phase region.
+    Get an enthalpy that corresponds to gaseous state but is close to
+    two-phase region.
 
     Parameters
     ----------

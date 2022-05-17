@@ -174,7 +174,7 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
     ... offdesign=['zeta2', 'kA_char'])
-    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
+    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=-13271, m=1)
     >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')

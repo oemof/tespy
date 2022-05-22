@@ -1,9 +1,9 @@
 Components
 ==========
 
-In this section we will introduce you into the details of component
+In this section we will introduce you to the details of component
 parametrisation and component characteristics. At the end of the section we
-show you, how to create custom components.
+show you how to create custom components.
 
 List of components
 ------------------
@@ -70,9 +70,9 @@ Component parametrisation
 -------------------------
 
 All parameters of components are objects of a :code:`DataContainer` class. The
-data container for component parameters it is called
+data container for component parameters is called
 :code:`ComponentProperties`, :code:`ComponentCharacteristics` for component
-characteristics and :code:`ComponentCharacteristicMaps` for characteristic
+characteristics, and :code:`ComponentCharacteristicMaps` for characteristic
 maps. The main purpose of having a data container for the parameters (instead
 of pure numbers), is added flexibility for the user. There are different ways
 for you to specify and access component parameters.

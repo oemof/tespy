@@ -18,7 +18,7 @@ from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine
-from tespy.components.turbomachinery.turbomachine import Turbomachine
+from tespy.components.turbomachinery.base import Turbomachine
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
@@ -261,7 +261,7 @@ class TestTurbomachinery:
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
               'NH3': 0}
         self.c1.set_attr(fluid=fl, m=15, p=10)
-        self.c2.set_attr(p=1, T=20)
+        self.c2.set_attr(p=1, T=25)
         instance.set_attr(eta_s=0.85)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

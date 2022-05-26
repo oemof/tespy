@@ -8,7 +8,7 @@ New Features
   exergy sankey diagrams. For example, the diagram of the solar thermal power
   plant presented in the thermodynamic analyses section
 
-  .. figure:: api/_images/SEGS_sankey.png
+  .. figure:: /api/_images/SEGS_sankey.png
       :align: center
       :alt: Example of the sankey diagram
 

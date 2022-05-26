@@ -312,6 +312,7 @@ class ExergyAnalysis:
         self.component_data = pd.DataFrame(
             columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64')
         self.bus_data = self.component_data.copy()
+        self.bus_data['base'] = np.nan
         self.connection_data = pd.DataFrame(
             columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M'],
             dtype='float64')
@@ -353,6 +354,30 @@ class ExergyAnalysis:
 
             self.evaluate_busses(cp)
 
+        # create a table that includes exergy destruction attributed to the
+        # components
+        bus_based = self.bus_data[self.bus_data['base'] == 'bus'].index
+        component_based = self.bus_data[
+            self.bus_data['base'] == 'component'
+        ].index
+
+        # add aggregated components with respective buses data
+        self.aggregation_data = self.component_data.copy()
+        # E_D is sum of both E_D
+        self.aggregation_data.loc[self.bus_data.index, 'E_D'] = (
+            self.component_data.loc[self.bus_data.index, 'E_D'] +
+            self.bus_data['E_D']
+        )
+        # E_F for bus based components is higher by E_D of bus
+        self.aggregation_data.loc[bus_based, 'E_F'] += (
+            self.bus_data.loc[bus_based, 'E_D']
+        )
+        # E_P of component based components is lower by E_D of bus
+        self.aggregation_data.loc[component_based, 'E_P'] -= (
+            self.bus_data.loc[component_based, 'E_D']
+        )
+
+        # calculate network results
         self.network_data.loc['E_D'] = (
             self.component_data['E_D'].sum() + self.bus_data['E_D'].sum())
         self.network_data.loc['E_F'] = abs(self.network_data.loc['E_F'])
@@ -364,14 +389,16 @@ class ExergyAnalysis:
         # calculate exergy destruction ratios for components/busses
         E_F = self.network_data.loc['E_F']
         E_D = self.network_data.loc['E_D']
-        self.component_data['y_Dk'] = self.component_data['E_D'] / E_F
-        self.component_data['y*_Dk'] = self.component_data['E_D'] / E_D
-        self.bus_data['y_Dk'] = self.bus_data['E_D'] / E_F
-        self.bus_data['y*_Dk'] = self.bus_data['E_D'] / E_D
+
+        for d in [self.component_data, self.bus_data, self.aggregation_data]:
+            d['y_Dk'] = d['E_D'] / E_F
+            d['y*_Dk'] = d['E_D'] / E_D
+            d['epsilon'] = d['E_P'] / d['E_F']
 
         residual = abs(
             self.network_data.loc['E_F'] - self.network_data.loc['E_P'] -
-            self.network_data.loc['E_D'] - self.network_data.loc['E_L'])
+            self.network_data.loc['E_D'] - self.network_data.loc['E_L']
+        )
 
         if residual >= err ** 0.5:
             msg = (
@@ -447,19 +474,19 @@ class ExergyAnalysis:
                     else:
                         self.sankey_data[cp.fkt_group].loc[b.label] = [E_P, cat]
 
+                self.bus_data.loc[cp.label, 'base'] = b.comps.loc[cp, 'base']
                 self.bus_data.loc[cp.label, 'group'] = cp.fkt_group
 
                 cp_on_num_busses += 1
 
         self.bus_data['E_D'] = self.bus_data['E_F'] - self.bus_data['E_P']
-        self.bus_data['epsilon'] = self.bus_data['E_P'] / self.bus_data['E_F']
 
     def create_group_data(self):
         """Collect the component group exergy data."""
         for group in self.sankey_data.keys():
-            E_D = 0
-            for df in [self.component_data, self.bus_data]:
-                E_D += df[df['group'] == group]['E_D'].sum()
+            E_D = self.aggregation_data[
+                self.aggregation_data['group'] == group
+            ]['E_D'].sum()
             self.sankey_data[group].loc['E_D'] = [E_D, 'E_D']
 
         # establish connections for fuel exergy via bus balance
@@ -503,18 +530,16 @@ class ExergyAnalysis:
 
         # create overview of component groups
         self.group_data = pd.DataFrame(
-            columns=['E_F', 'E_P', 'E_D'], dtype='float64')
+            columns=['E_in', 'E_out', 'E_D'], dtype='float64')
         for fkt_group in self.component_data['group'].unique():
-            self.group_data.loc[fkt_group, 'E_F'] = (
+            self.group_data.loc[fkt_group, 'E_in'] = (
                 self.calculate_group_input_value(fkt_group))
             self.group_data.loc[fkt_group, 'E_D'] = (
                 self.sankey_data[fkt_group].loc['E_D', 'value'])
 
         # calculate missing values
-        self.group_data['E_P'] = (
-            self.group_data['E_F'] - self.group_data['E_D'])
-        self.group_data['epsilon'] = (
-            self.group_data['E_P'] / self.group_data['E_F'])
+        self.group_data['E_out'] = (
+            self.group_data['E_in'] - self.group_data['E_D'])
         self.group_data['y_Dk'] = (
             self.group_data['E_D'] / self.network_data.loc['E_F'])
         self.group_data['y*_Dk'] = (
@@ -681,7 +706,7 @@ class ExergyAnalysis:
     def print_results(
             self, sort_desc=True,
             busses=True, components=True, connections=True, groups=True,
-            network=True):
+            network=True, aggregation=True):
         r"""Print the results of the exergy analysis to prompt.
 
         - The results are sorted beginning with the component having the
@@ -705,6 +730,9 @@ class ExergyAnalysis:
 
         network : boolean
             Print network results, default value :code:`True`.
+
+        aggregation : boolean
+            Print aggregated component results, default value :code:`True`.
         """
         if connections:
             print('##### RESULTS: Connection specific physical exergy and ' +
@@ -725,7 +753,7 @@ class ExergyAnalysis:
 
         if busses:
             df = self.bus_data.copy()
-            df = df.loc[:, df.columns != 'group']
+            df = df.loc[:, (df.columns != 'group') & (df.columns != 'base')]
             if sort_desc:
                 df.sort_values(by=['E_D'], ascending=False, inplace=True)
 
@@ -733,12 +761,13 @@ class ExergyAnalysis:
             print(tabulate(
                 df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
-        if groups:
-            df = self.group_data.copy()
+        if aggregation:
+            df = self.aggregation_data.copy()
+            df = df.loc[:, df.columns != 'group']
             if sort_desc:
                 df.sort_values(by=['E_D'], ascending=False, inplace=True)
 
-            print('##### RESULTS: Component group exergy analysis #####')
+            print('##### RESULTS: Aggregation of components and busses #####')
             print(tabulate(
                 df, headers='keys', tablefmt='psql', floatfmt='.3e'))
 
@@ -748,3 +777,12 @@ class ExergyAnalysis:
                 self.network_data.to_frame().transpose(),
                 headers='keys', tablefmt='psql', floatfmt='.3e',
                 showindex=False))
+
+        if groups:
+            df = self.group_data.copy()
+            if sort_desc:
+                df.sort_values(by=['E_D'], ascending=False, inplace=True)
+
+            print('##### RESULTS: Functional groups exergy flows #####')
+            print(tabulate(
+                df, headers='keys', tablefmt='psql', floatfmt='.3e'))

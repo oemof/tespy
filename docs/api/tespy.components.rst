@@ -54,26 +54,26 @@ tespy.components.basics.subsystem_interface module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.combustion.combustion_chamber module
------------------------------------------------------
+tespy.components.combustion.base module
+---------------------------------------
 
-.. automodule:: tespy.components.combustion.combustion_chamber
+.. automodule:: tespy.components.combustion.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.combustion.combustion_chamber_stoich module
-------------------------------------------------------------
+tespy.components.combustion.diabatic module
+-------------------------------------------
 
-.. automodule:: tespy.components.combustion.combustion_chamber_stoich
+.. automodule:: tespy.components.combustion.diabatic
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.combustion.combustion_engine module
------------------------------------------------------
+tespy.components.combustion.engine module
+-----------------------------------------
 
-.. automodule:: tespy.components.combustion.combustion_engine
+.. automodule:: tespy.components.combustion.engine
     :members:
     :undoc-members:
     :show-inheritance:
@@ -102,18 +102,18 @@ tespy.components.heat_exchangers.desuperheater module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.heat_exchanger module
-------------------------------------------------------
+tespy.components.heat_exchangers.base module
+--------------------------------------------
 
-.. automodule:: tespy.components.heat_exchangers.heat_exchanger
+.. automodule:: tespy.components.heat_exchangers.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.heat_exchanger_simple module
--------------------------------------------------------------
+tespy.components.heat_exchangers.simple module
+----------------------------------------------
 
-.. automodule:: tespy.components.heat_exchangers.heat_exchanger_simple
+.. automodule:: tespy.components.heat_exchangers.simple
     :members:
     :undoc-members:
     :show-inheritance:
@@ -135,7 +135,7 @@ tespy.components.heat_exchangers.solar_collector module
     :show-inheritance:
 
 tespy.components.nodes.base module
---------------------------------------
+----------------------------------
 
 .. automodule:: tespy.components.nodes.base
     :members:
@@ -232,10 +232,10 @@ tespy.components.turbomachinery.turbine module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery.turbomachine module
----------------------------------------------------
+tespy.components.turbomachinery.base module
+-------------------------------------------
 
-.. automodule:: tespy.components.turbomachinery.turbomachine
+.. automodule:: tespy.components.turbomachinery.base
     :members:
     :undoc-members:
     :show-inheritance:

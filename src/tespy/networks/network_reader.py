@@ -20,7 +20,6 @@ import os
 import pandas as pd
 
 from tespy.components import CombustionChamber
-from tespy.components import CombustionChamberStoich
 from tespy.components import CombustionEngine
 from tespy.components import Compressor
 from tespy.components import Condenser
@@ -69,7 +68,6 @@ comp_target_classes = {
     'Source': Source,
     'SubsystemInterface': SubsystemInterface,
     'CombustionChamber': CombustionChamber,
-    'CombustionChamberStoich': CombustionChamberStoich,
     'CombustionEngine': CombustionEngine,
     'ORCEvaporator': ORCEvaporator,
     'Condenser': Condenser,
@@ -307,7 +305,7 @@ def load_network(path):
 
             # create components
             df['instance'] = df.apply(
-                construct_comps, axis=1,  args=(char_lines, char_maps))
+                construct_components, axis=1,  args=(char_lines, char_maps))
 
             cols = [
                 'instance', 'label', 'busses', 'bus_param', 'bus_P_ref',
@@ -335,7 +333,8 @@ def load_network(path):
     logging.debug(msg)
 
     # create connections
-    conns['instance'] = conns.apply(construct_conns, axis=1, args=(comps, nw,))
+    conns['instance'] = conns.apply(
+        construct_connections, axis=1, args=(comps, nw,))
     conns.apply(conns_set_ref, axis=1, args=(conns,))
     conns = conns.set_index('id')
 
@@ -383,7 +382,7 @@ def load_network(path):
 # %% create components
 
 
-def construct_comps(c, *args):
+def construct_components(c, *args):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -404,7 +403,7 @@ def construct_comps(c, *args):
         TESPy component object.
     """
     target_class = comp_target_classes[c['comp_type']]
-    instance = target_class(c['label'])
+    instance = target_class(str(c['label']))
     kwargs = {}
 
     # basic properties
@@ -521,7 +520,7 @@ def construct_network(path):
 # %% create connections
 
 
-def construct_conns(c, *args):
+def construct_connections(c, *args):
     r"""
     Create TESPy connection from data in the .csv-file and its parameters.
 
@@ -539,12 +538,14 @@ def construct_conns(c, *args):
         TESPy connection object.
     """
     # create connection
-    conn = Connection(args[0].instance[c.source], c.source_id,
-                      args[0].instance[c.target], c.target_id)
+    conn = Connection(
+        args[0].instance[c.source], c.source_id,
+        args[0].instance[c.target], c.target_id, label=str(c.label)
+    )
 
     # read basic properties
     for key in ['design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign', 'label']:
+                'local_offdesign']:
         if key in c:
             if isinstance(c[key], float):
                 setattr(conn, key, None)
@@ -625,7 +626,7 @@ def construct_busses(c, *args):
         TESPy bus object.
     """
     # set up bus with label and specify value for power
-    b = Bus(c.label, P=c.P)
+    b = Bus(str(c.label), P=c.P)
     b.P.is_set = c.P_set
     return b
 

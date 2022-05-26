@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.5.1.dev0',
+    version='0.6.0',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -34,7 +34,7 @@ setup(
         )
     ),
     author='Francesco Witte',
-    author_email='francesco.witte@hs-flensburg.de',
+    author_email='francesco.witte@dlr.de',
     url='https://github.com/oemof/tespy',
     packages=find_packages('src'),
     package_dir={'': 'src'},
@@ -67,7 +67,6 @@ setup(
         'matplotlib>=3.2.1,<4',
         'numpy>=1.13.3,<2',
         'pandas>=1.3.0,<2',
-        'scipy>=0.19.1,<2',
         'tabulate>=0.8.2,<0.9'
     ],
     extras_require={

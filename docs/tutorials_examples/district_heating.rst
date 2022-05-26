@@ -5,12 +5,12 @@ The district heating system is a great example for the usage of flexible
 user-defined subsystems. The example system and data are based on the district
 heating system Hamburg Wilhelmsburg :cite:`Lorenzen2014`. The source code for
 this example can be found
-`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/district_heating>`_.
+`here <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/district_heating>`__.
 Although the structure of the system (see the Figure below) does not seem very
 complex, it has more than 120 components. But we can easily determine repeating
 structures for the consumers and this is, where the subsystems come in place.
 
-.. figure:: api/_images/dhs.svg
+.. figure:: /api/_images/dhs.svg
     :align: center
 
     Figure: Topology of the heating system.
@@ -22,17 +22,17 @@ closed) or is open to connect to another part of the grid (industrial area,
 see subsystem open). Additionally, each branch of the main grid is connected to
 the upstream part with the fork subsystem (Ki, see subsystem fork).
 
-.. figure:: api/_images/dhs_closed.svg
+.. figure:: /api/_images/dhs_closed.svg
     :align: center
 
     Figure: Generic topology of the dead end subsystem.
 
-.. figure:: api/_images/dhs_open.svg
+.. figure:: /api/_images/dhs_open.svg
     :align: center
 
     Figure: Generic topology of the open subsystem.
 
-.. figure:: api/_images/dhs_forks.svg
+.. figure:: /api/_images/dhs_forks.svg
     :align: center
 
     Figure: Generic topology of the forks (variable number of branches).

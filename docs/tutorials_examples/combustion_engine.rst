@@ -9,7 +9,7 @@ input of the combustion engine by characteristic lines, which usually are
 provided by the manufacturer. TESPy provides a set of predefined
 characteristics (documented in the :py:class:`<tespy.data>` module).
 
-.. figure:: api/_images/CombustionEngine.svg
+.. figure:: /api/_images/CombustionEngine.svg
     :align: center
 
     Figure: Topology of the combustion engine.
@@ -29,7 +29,7 @@ which are accessible by specifying the corresponding bus parameter:
 - QLOSS (heat losses) and
 - P (power output).
 
-If you want to add a bus to the example from the tespy_examples repository,
+If you want to add a bus to the example from the TESPy examples repository,
 your code could look like this:
 
 .. code-block:: python

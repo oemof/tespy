@@ -16,7 +16,7 @@ import logging
 import numpy as np
 
 from tespy.components.component import Component
-from tespy.components.turbomachinery.turbomachine import Turbomachine
+from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -38,7 +38,7 @@ class Compressor(Turbomachine):
     **Optional Equations**
 
     - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.turbomachine.Turbomachine.energy_balance_func`
+    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`

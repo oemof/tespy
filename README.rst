@@ -154,7 +154,7 @@ of each meeting accordingly, **please send an e-mail to**
 **francesco.witte(at)dlr.de for registration**.
 
 You can download the meeting series here:
-:download:`regular_meeting.ics </regular_meeting.ics>`.
+https://github.com/oemof/tespy/blob/dev/docs/regular_meeting.ics.
 
 We are looking forward to meeting you!
 

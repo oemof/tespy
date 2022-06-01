@@ -77,18 +77,13 @@ using pip. We recommend you installing the package in a virtual environment.
 You can use virtualenv (:ref:`see here for instructions <virtualenv_label>`)
 or a virtual environment e.g. in :ref:`Anaconda <anaconda_label>`.
 
-TESPy requires the CoolProp python package, which will be installed
-automatically. As it is build from C++, you need to have Microsoft Visual
-Studio C++ Build Tools 14.0 installed. Try installing TESPy with the following
-code in the command window of your python environment:
-
 .. code:: console
 
   pip install tespy
 
-If you get an error within the installation of the CoolProp package, install
-the C++ Build Tools first and then restart the installation. Also, if pip is
-not part of your python environment, you have to install the pypi package.
+If you encounter any errors within the installation of the package, please let
+us know by opening an issue on our GitHub repository. Also, if pip is not part
+of your python environment, you have to install the pypi package.
 
 .. _anaconda_label:
 
@@ -107,8 +102,6 @@ Using Anaconda
        activate yourenvname
 
  4. In the active Anaconda Prompt type: :code:`pip install tespy`
- 5. If the installation of CoolProp fails, make sure, you have
-    Microsoft Visual Stuido C++ Build Tools 14.0 installed on your computer.
 
 
 Mac OSX

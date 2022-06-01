@@ -12,6 +12,7 @@ Contents
     introduction
     installation
     first_steps
+    regular_meeting
     tutorials_examples
     tespy_modules
     tespy_analyses

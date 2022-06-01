@@ -1,6 +1,5 @@
 Thermal Engineering Systems in Python
 =====================================
-
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as power
 plants, district heating systems or heat pumps. It is an external extension
@@ -97,7 +96,6 @@ Key Features
 
 Documentation
 =============
-
 You can find the full documentation at
 `readthedocs <http://tespy.readthedocs.org>`_. Use the
 `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to
@@ -109,7 +107,6 @@ To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 
 Installing TESPy
 ================
-
 If you have a working Python3 environment, use pypi to install the latest
 tespy version:
 
@@ -163,7 +160,6 @@ We are looking forward to meeting you!
 
 User forum
 ----------
-
 We have implemented a
 `discussion room on GitHub <https://github.com/oemof/tespy/discussions>`__ as
 user forum. If you have issues with setting up your model or any other question
@@ -182,17 +178,12 @@ repository.
 
 Citation
 ========
-
 The scope and functionalities of TESPy have been documented in a paper
 published in the Journal of Open Source Software with an OpenAccess license.
 Download the paper from https://doi.org/10.21105/joss.02178. As TESPy is a free
 software, we kindly ask that you add a reference to TESPy if you use the
 software for your scientific work. Please cite the article with the BibTeX
 citation below.
-
-Additionally, you have the possibility to cite a specific version of TESPy to
-make your work reproducible. The source code of every version is published on
-zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 BibTeX citation::
 
@@ -208,9 +199,33 @@ BibTeX citation::
         journal = {Journal of Open Source Software}
     }
 
+Furthermore, a paper on the exergy analysis feature has been published in
+the mdpi journal energies. You can download the pdf at
+https://doi.org/10.3390/en15114087. If you are using this feature specifically,
+you can reference it with the following BibTeX citation:
+
+BibTeX citation::
+
+    @article{Witte2022,
+        doi = {10.3390/en15114087},
+        year = {2022},
+        publisher = {The Open Journal},
+        volume = {15},
+        number = {11},
+        article-number = {4087},
+        issn = {1996-1073},
+        author = {Witte, Francesco and Hofmann, Mathias and Meier, Julius and Tuschy, Ilja and Tsatsaronis, George},
+        title = {Generic and Open-Source Exergy Analysis&mdash;Extending the Simulation Framework TESPy},
+        journal = {Energies}
+    }
+
+
+Additionally, you have the possibility to cite a specific version of TESPy to
+make your work reproducible. The source code of every version is published on
+zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
+
 License
 =======
-
 Copyright (c) 2017-2022 oemof developer group
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

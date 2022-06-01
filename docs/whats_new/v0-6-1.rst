@@ -1,0 +1,12 @@
+v0.6.1 - Upcoming features
+++++++++++++++++++++++++++
+
+Documentation
+#############
+- Fix some typos in the online documentation
+  (`PR #342 <https://github.com/oemof/tespy/pull/341>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@NicholasFry <https://github.com/NicholasFry>`_

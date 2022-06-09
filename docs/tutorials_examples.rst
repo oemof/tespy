@@ -69,6 +69,8 @@ with respect to the extraction pressure levels.
 
 .. _heat_pump_tutorial_label:
 .. include:: tutorials_examples/tutorial_heat_pump.rst
+.. _starting_values_tutorial_label:
+.. include:: tutorials_examples/tutorial_starting_values.rst
 .. _combustion_chamber_tutorial_label:
 .. include:: tutorials_examples/tutorial_combustion_chamber.rst
 .. _pygmo_tutorial_label:

@@ -6,26 +6,31 @@ Starting value tutorial
     :local:
     :backlinks: top
 
-Subjekt
+Subject
 ^^^^^^^
-
-In numerical and iterative methods, a start value is a certain value of a
-variable with which a calculation is started. With more complex TESPy models
-it can happen that the simulation does not convert. The numerics of the solver
-is vulnerable if the specified variables are not primary variables. These are
-variables that can be solved after one iteration. For example, pressures,
-temperatures and enthalpies are among to them. Because of that it is
-recommended to give these parameter for your simulation.
+Applying numerical algorithms and methods, the starting value of a variable
+is the value used for the first iteration. With more complex TESPy models
+it can happen that the simulation does not converge easily due to a combination
+of "bad" starting values. The solver is especially vulnerable if the specified
+parameters trigger complex equations with respect to the primary variables.
+The primary variables of TESPy are mass flow, pressure, enthalpy and fluid
+composition. If such a value is directly specified by the user, the solver has
+a solution for this value before starting the first iteration. Therefore,
+specifying a set of parameters largely including primary variables will improve
+the convergence significantly. Based on the converged solution of a initial
+simulation, it is then possible to adjust the parameters, for example, unsetting
+pressure values and specifying efficiencies instead. We provide an example for
+you to better understand, how this process could look like.
 
 Task
 ^^^^
-
 After learning to create simple heat pump with TESPy, the goal is to model
-more complex systems. After the successful creation of the network,
-components, connections and parameterization, it is often the problem that the
-simulation does not convert.
+more complex systems. After the successful creation of the network, components,
+connections and parameterization, it is often the problem that the simulation
+does not converge on the first try, you might know the following error message:
 
 .. error::
+
     Singularity in jacobian matrix, calculation aborted! Make sure
     your network does not have any linear dependencies in the parametrisation.
     Other reasons might be
@@ -46,22 +51,22 @@ This is used to have suitable starting values for the actual calculation.
 
 Application
 ^^^^^^^^^^^
-
-Following the first tutorial a heat pumps with internal heat exchangers is
-considered. You can see the plant topology in the figure.
+Following the first tutorial a heat pump with internal heat exchangers is
+considered instead of dumping the heat to the ambient. You can see the plant
+topology in the figure below.
 
 .. figure:: api/_images/tutorial_sv_heat_pump_intheatex.svg
     :align: center
 
     Figure: Topology of heat pump with internal heat exchanger
 
-It consists of a consumer system, a valve, an evaporator system, a compressor
-and additionally of an internal heat exchanger.
-In order to simulate this heat pump, the TESPy model has to be built up.
-First, the network has to be initialized and the refrigerants used have to be
-specified. In this example the heat pump work with ammonia (NH\ :sub:`3`\) and
-water (H\ :sub:`2`\O). Furthermore, it is recommended to define the unit
-system not to work with variables set to SI-Units.
+The system consists of a consumer system, a valve, an evaporator system, a
+compressor and additionally an internal heat exchanger. In order to simulate
+this heat pump, the TESPy model has to be built up. First, the network has to
+be initialized and the refrigerants used have to be specified. In this example
+the heat pump works with ammonia (NH\ :sub:`3`\) and water (H\ :sub:`2`\O).
+
+First, we set up the Network object.
 
 .. code-block:: python
 
@@ -73,7 +78,7 @@ system not to work with variables set to SI-Units.
         T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s'
         )
 
-After that the required components have to be created.
+After that, the required components are created.
 
 .. code-block:: python
 
@@ -109,10 +114,12 @@ After that the required components have to be created.
 .. note::
 
     If the heat pump operates in a supercritical range, the condenser has to
-    be replaced with a heat exchanger.
+    be replaced with a heat exchanger, as the condenser imposes a boundary
+    condition, which cannot be true for supercritical fluids: The outlet of the
+    condensing fluid is in saturated state.
 
-Now the connections according to the topology have to be linked. For a better
-overview of the results it is recommended to label the connections.
+Now the connections are set up. For a better overview of the results we
+recommend labeling the connections individually.
 
 .. code-block:: python
 
@@ -166,7 +173,7 @@ overview of the results it is recommended to label the connections.
     nw.add_conns(int_heatex2valve, valve2cc)
 
 After the initialization of the network and the creation of the components and
-connections, a stable parameterization is built up to have suitable initial
+connections, a stable parameterization is set up to have suitable initial
 values for the actual simulation.
 
 .. note::
@@ -181,7 +188,8 @@ values for the actual simulation.
     recommended to specify the pressure in order to clearly determine the
     point. On the other hand the point behind the condenser is fixed, too.
     At these point the ammonia has a vapor content of 0% (x=0). As before, the
-    pressure value has also to be set.
+    pressure value has also to be set. Obviously, this should be a higher value
+    than the evaporation pressure.
 
 .. figure:: api/_images/tutorial_sv_logph.svg
     :align: center
@@ -193,8 +201,8 @@ used, the feedflow and backflow temperatures of the consumer and heat source
 as well as the enthalpy between internal heat exchanger and valve have to be
 defined.
 
-To correctly determine the enthalpies and pressures, CoolProp is to be
-imported. It is important to note that the PropertySI function (PropsSI) works
+To correctly determine the enthalpies and pressures, we can import CoolProp
+directly. It is important to note that the PropertySI function (PropsSI) uses
 with SI unit. These may differ from the units defined in the network.
 
 .. code-block:: python
@@ -229,10 +237,10 @@ with SI unit. These may differ from the units defined in the network.
     hs_feed2hs_pump.set_attr(T=T_hs_ff, p=1, fluid={'water': 1, 'NH3': 0})
     hs_eva2hs_back.set_attr(T=T_hs_bf, p=1)
 
-Some components have to be parameterized. For the heat source and heat sink
-recirculation pump as well as the conedenser the isentropic efficiency is to
-be set. Further we set the pressure ratios on hot and cold side for the
-condenser, evaporator and internal heat exchanger. The consumer will have
+Some components have to be parameterized. For example, the heat source and heat
+sink recirculation pump as well as the compressor isentropic efficiency values
+are typically set. Further we set the pressure ratios on hot and cold side for
+the condenser, evaporator and internal heat exchanger. The consumer will have
 pressure losses, too.
 
 .. code-block:: python
@@ -249,9 +257,12 @@ pressure losses, too.
     cons_heatsink.set_attr(pr=0.99)
     int_heatex.set_attr(pr1=0.99, pr2=0.99)
 
-The most important parameter is the consumers heat demand setting as
-“key parameter”. After that the network can be solved and a stable simulation
-can be used for further simulations.
+A key design value of a heat pump is of course the heat transferred to the
+heat consumer. Especially for more complex systems (e.g. if heat is not
+transferred in a single heat exchanger, but by multiple parallel or in line
+heat exchangers), instead of setting the total heat provided, we can set the
+district heating mass flow. Since the mass flow is a primary variable in TESPy
+this improves the convergence significantly.
 
 .. code-block:: python
 
@@ -260,18 +271,12 @@ can be used for further simulations.
 
     # solve the network
     nw.solve('design')
-    nw.print_results()
 
-    # calculate and print COP
-    cop = abs(
-        cons_heatsink.P.val
-        / (cons_pump.P.val + heatsource_pump.P.val + compressor.P.val)
-        )
-    print(f'COP = {cop:.4}')
-
-After that, enthalpies and pressures can be set as "None" and the desired
-values for the upper or lower terminal temperature differences, references or
-other unstable values can be set for the actual simulation.
+After having generated a stable solution of the model, parameters which have
+been set for convergence support can be unset and replaced by the actual target
+parameters. For example, the desired values for the upper or lower terminal
+temperature differences of heat exchangers, referenced values or the heat
+demand.
 
 .. code-block:: python
 
@@ -295,3 +300,8 @@ other unstable values can be set for the actual simulation.
         / (cons_pump.P.val + heatsource_pump.P.val + compressor.P.val)
         )
     print(f'COP = {cop:.4}')
+
+You can use this strategy as well, in case you solve a network instance
+multiple times with changing input parameters: If a simulation does not converge
+reload the stable starting values by providing the :code:`init_path` to the
+:code:`solve` command.

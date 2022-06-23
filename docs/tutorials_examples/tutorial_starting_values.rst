@@ -280,14 +280,14 @@ other unstable values can be set for the actual simulation.
     heatsource_evaporator.set_attr(ttd_l=5)
 
     cond2int_heatex.set_attr(p=None)
-    condenserset_attr(ttd_u=5)
+    condenser.set_attr(ttd_u=5)
 
     int_heatex2valve.set_attr(h=None)
-    int_heatex2comp.set_attr(T=Ref(hs_eva2int_heatex, 1, deltaT_int_heatex))
+    int_heatex2comp.set_attr(T=Ref(hs_eva2int_heatex, 1, 10))
 
     # solve the actual network
-    hp.nw.solve('design')
-    hp.nw.print_results()
+    nw.solve('design')
+    nw.print_results()
 
     # calculate and print the actual COP
     cop = abs(

@@ -126,51 +126,34 @@ recommend labeling the connections individually.
     from tespy.connections import Connection
 
     # connections
+    # main cycle
+    cc2hs_eva = Connection(cycle_closer, 'out1', heatsource_evaporator, 'in2', label='0')
+    hs_eva2int_heatex = Connection(heatsource_evaporator, 'out2', int_heatex, 'in2', label='1')
+    int_heatex2comp = Connection(int_heatex, 'out2', compressor, 'in1', label='2')
+    comp2cond = Connection(compressor, 'out1', condenser, 'in1', label='3')
+    cond2int_heatex = Connection(condenser, 'out1', int_heatex, 'in1', label='4')
+    int_heatex2valve = Connection(int_heatex, 'out1', valve, 'in1', label='5')
+    valve2cc = Connection(valve, 'out1', cycle_closer, 'in1', label='6')
+
+    nw.add_conns(
+        cc2hs_eva, hs_eva2int_heatex, int_heatex2comp, comp2cond, cond2int_heatex,
+        int_heatex2valve, valve2cc
+        )
+
     # heat source
-    cc2hs_eva = Connection(cycle_closer, 'out1', heatsource_evaporator, 'in2', label='cc2hs_eva')
-    hs_feed2hs_pump = Connection(heatsource_feedflow, 'out1', heatsource_pump, 'in1', label='hs_feed2hs_pump')
-    hs_pump2hs_eva = Connection(heatsource_pump, 'out1', heatsource_evaporator, 'in1', label='hs_pump2hs_eva')
-    hs_eva2hs_back = Connection(
-        heatsource_evaporator, 'out1', heatsource_backflow, 'in1', label='hs_eva2hs_back'
-        )
+    hs_feed2hs_pump = Connection(heatsource_feedflow, 'out1', heatsource_pump, 'in1', label='11')
+    hs_pump2hs_eva = Connection(heatsource_pump, 'out1', heatsource_evaporator, 'in1', label='12')
+    hs_eva2hs_back = Connection(heatsource_evaporator, 'out1', heatsource_backflow, 'in1', label='13')
 
-    nw.add_conns(cc2hs_eva, hs_feed2hs_pump, hs_pump2hs_eva, hs_eva2hs_back)
-
-    # internal heat exchange cold side
-    hs_eva2int_heatex = Connection(
-        heatsource_evaporator, 'out2', int_heatex, 'in2', label='hs_eva2int_heatex'
-        )
-
-    nw.add_conns(hs_eva2int_heatex)
-
-    # compression
-    int_heatex2comp = Connection(int_heatex, 'out2', compressor, 'in1', label='int_heatex2comp')
-    comp2cond = Connection(compressor, 'out1', condenser, 'in1', label='comp2cond')
-
-    nw.add_conns(int_heatex2comp, comp2cond)
+    nw.add_conns(hs_feed2hs_pump, hs_pump2hs_eva, hs_eva2hs_back)
 
     # heat sink
-    cons_back2cons_pump = Connection(
-    cons_cycle_closer, 'out1', cons_pump, 'in1', label='cons_back2cons_pump'
-        )
-    cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='cons_pump2cond')
-    cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='cond2cons_hs')
-    cons_hs2cons_feed = Connection(
-        cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='cons_hs2cons_feed'
-        )
+    cons_back2cons_pump = Connection(cons_cycle_closer, 'out1', cons_pump, 'in1', label='21')
+    cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='22')
+    cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='23')
+    cons_hs2cons_feed = Connection(cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='24')
 
     nw.add_conns(cons_back2cons_pump, cons_pump2cond, cond2cons_hs, cons_hs2cons_feed)
-
-    # internal heat exchange hot side
-    cond2int_heatex = Connection(condenser, 'out1', int_heatex, 'in1', label='cond2int_heatex')
-
-    nw.add_conns(cond2int_heatex)
-
-    # expansion
-    int_heatex2valve = Connection(int_heatex, 'out1', valve, 'in1', label='int_heatex2valve')
-    valve2cc = Connection(valve, 'out1', cycle_closer, 'in1', label='valve2cc')
-
-    nw.add_conns(int_heatex2valve, valve2cc)
 
 After the initialization of the network and the creation of the components and
 connections, a stable parameterization is set up to have suitable initial
@@ -202,8 +185,8 @@ as well as the enthalpy between internal heat exchanger and valve have to be
 defined.
 
 To correctly determine the enthalpies and pressures, we can import CoolProp
-directly. It is important to note that the PropertySI function (PropsSI) uses
-with SI unit. These may differ from the units defined in the network.
+directly. It is important to note that the PropertySI function (PropsSI) is
+used with SI unit. These may differ from the units defined in the network.
 
 .. code-block:: python
 
@@ -217,14 +200,13 @@ with SI unit. These may differ from the units defined in the network.
     T_cons_ff = 90
 
     # evaporation point
-    h_eva = CP.PropsSI('H', 'Q', 1, 'T', T_hs_bf - 5 + 273, 'NH3') * 1e-3
     p_eva = CP.PropsSI('P', 'Q', 1, 'T', T_hs_bf - 5 + 273, 'NH3') * 1e-5
     hs_eva2int_heatex.set_attr(x=1, p=p_eva)
 
     # condensation point
-    h_cond = CP.PropsSI('H', 'Q', 0, 'T', T_cons_ff + 5 + 273, 'NH3') * 1e-3
     p_cond = CP.PropsSI('P', 'Q', 0, 'T', T_cons_ff + 5 + 273, 'NH3') * 1e-5
     cond2int_heatex.set_attr(p=p_cond)
+    h_cond = CP.PropsSI('H', 'Q', 0, 'T', T_cons_ff + 5 + 273, 'NH3') * 1e-3
 
     # internal heat exchanger to valve
     int_heatex2valve.set_attr(h=h_cond * 0.99, fluid={'water': 0, 'NH3': 1})
@@ -252,10 +234,10 @@ pressure losses, too.
     compressor.set_attr(eta_s=0.85)
 
     # pressure ratios
-    condenser.set_attr(pr1=0.99, pr2=0.99)
+    condenser.set_attr(pr1=0.98, pr2=0.98)
     heatsource_evaporator.set_attr(pr1=0.98, pr2=0.98)
     cons_heatsink.set_attr(pr=0.99)
-    int_heatex.set_attr(pr1=0.99, pr2=0.99)
+    int_heatex.set_attr(pr1=0.98, pr2=0.98)
 
 A key design value of a heat pump is of course the heat transferred to the
 heat consumer. Especially for more complex systems (e.g. if heat is not
@@ -302,6 +284,6 @@ demand.
     print(f'COP = {cop:.4}')
 
 You can use this strategy as well, in case you solve a network instance
-multiple times with changing input parameters: If a simulation does not converge
-reload the stable starting values by providing the :code:`init_path` to the
-:code:`solve` command.
+multiple times with changing input parameters: If a simulation does not
+converge reload the stable starting values by providing the
+:code:`init_path` to the :code:`solve` command.

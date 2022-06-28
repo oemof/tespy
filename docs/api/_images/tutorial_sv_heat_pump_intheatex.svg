@@ -26,15 +26,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4142136"
-     inkscape:cx="159.14984"
-     inkscape:cy="291.2912"
+     inkscape:cx="628.89809"
+     inkscape:cy="224.99126"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1009"
-     inkscape:window-x="1912"
-     inkscape:window-y="185"
+     inkscape:window-width="3840"
+     inkscape:window-height="2054"
+     inkscape:window-x="3829"
+     inkscape:window-y="7"
      inkscape:window-maximized="1"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -55,7 +55,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -442,20 +442,7 @@
            height="15.118111"
            x="536.12317"
            y="299.52753" /></flowRegion><flowPara
-         id="flowPara1543-13">23</flowPara></flowRoot>    <circle
-       style="fill:none;stroke:#00000e;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="path977-1-0-02"
-       cx="235.57715"
-       cy="-76.149742"
-       r="7.5"
-       transform="rotate(90)" />
-    <path
-       inkscape:connector-curvature="0"
-       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 83.650293,235.57719 -7.499998,-6.99999 -7.500001,6.99999"
-       id="path979-02-5-8"
-       sodipodi:nodetypes="ccc" />
-    <path
+         id="flowPara1543-13">23</flowPara></flowRoot>    <path
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc"
        style="fill:none;stroke:#000000;stroke-width:0.49999997;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -478,7 +465,25 @@
            height="15.118111"
            x="536.12317"
            y="299.52753" /></flowRegion><flowPara
-         id="flowPara1543-9-0">3</flowPara></flowRoot>  </g>
+         id="flowPara1543-9-0">3</flowPara></flowRoot>    <ellipse
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:0.66666667;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="path4405-2-2"
+       cx="237.183"
+       cy="-71.67173"
+       transform="rotate(88.97042)"
+       rx="7.7354536"
+       ry="7.7354012" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 77.723569,228.47452 2.18374,13.88682"
+       id="path4585-2"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 72.173139,242.50033 1.68336,-13.95631"
+       id="path4587-8"
+       inkscape:connector-curvature="0" />
+  </g>
   <g
      id="g1138"
      inkscape:label="Node"

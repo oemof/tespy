@@ -37,7 +37,8 @@ extensions = [
     'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.bibtex'
+    'sphinxcontrib.bibtex',
+    'nbsphinx'
 ]
 
 bibtex_bibfiles = ['references.bib']

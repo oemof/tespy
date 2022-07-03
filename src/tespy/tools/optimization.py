@@ -143,10 +143,15 @@ class OptimizationProblem:
         self.bounds = [[], []]
         for obj, data in self.variables.items():
             for label, params in data.items():
-                for param in params:
-                    self.bounds[0] += [self.variables[obj][label][param]['min']]
-                    self.bounds[1] += [self.variables[obj][label][param]['max']]
-                    self.variable_list += [obj + '-' + label + '-' + param]
+                if obj in ["Connections", "Components"]:
+                    for param in params:
+                        self.bounds[0] += [self.variables[obj][label][param]['min']]
+                        self.bounds[1] += [self.variables[obj][label][param]['max']]
+                        self.variable_list += [obj + '-' + label + '-' + param]
+                else:
+                    self.bounds[0] += [self.variables[obj][label]['min']]
+                    self.bounds[1] += [self.variables[obj][label]['max']]
+                    self.variable_list += [obj + '-' + label]
 
         self.input_dict = self.variables.copy()
 
@@ -186,8 +191,12 @@ class OptimizationProblem:
         i = 0
         for obj, data in self.variables.items():
             for label, params in data.items():
-                for param in params:
-                    self.input_dict[obj][label][param] = x[i]
+                if obj in ["Connections", "Components"]:
+                    for param in params:
+                        self.input_dict[obj][label][param] = x[i]
+                        i += 1
+                else:
+                    self.input_dict[obj][label] = x[i]
                     i += 1
 
         self.model.solve_model(**self.input_dict)

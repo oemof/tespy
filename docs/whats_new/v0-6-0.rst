@@ -1,9 +1,9 @@
-v0.6.0 - Colored Chemicals (March, 12, 2022)
-++++++++++++++++++++++++++++++++++++++++++++
+v0.6.0 - Colored Chemicals (May, 15, 2022)
+++++++++++++++++++++++++++++++++++++++++++
 
 We have created a place for users of TESPy to exchange ideas and share their
 models and experience. Everyone is invited to get in touch and tune in on our
-`GitHub discussions page<https://github.com/oemof/tespy/discussions>`_.
+`GitHub discussions page <https://github.com/oemof/tespy/discussions>`__.
 
 New Features
 ############
@@ -14,17 +14,15 @@ New Features
   of the class linked above
   (`PR #301 <https://github.com/oemof/tespy/pull/301>`_).
 - Gaseous mixtures now check for condensation of water in enthalpy and entropy
-  are functions (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
-- A new component FuelCell is available:
-  :py:class:`tespy.components.reactors.fuel_cell.FuelCell`. It is analogously
-  defined to the WaterElectrolyzer
-  :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
-  (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
+  functions (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
+
 
 Documentation
 #############
 - Add tutorial for the :code:`DiabaticCombustionChamber`
   (`PR #321 <https://github.com/oemof/tespy/pull/321>`_).
+- Fix a lot of bugs in the docs
+  (`PR #337 <https://github.com/oemof/tespy/pull/337>`_).
 
 Bug Fixes
 #########
@@ -39,6 +37,9 @@ Bug Fixes
 - Fix some typos in the documentation of the class
   :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
   (`PR #335 <https://github.com/oemof/tespy/pull/335>`_).
+- Fix an error in the aggregated results of components and busses in the exergy
+  analysis in case the temperature at turbomachinery is less than or equal to
+  ambient temperature (`PR #340 <https://github.com/oemof/tespy/pull/340>`_).
 
 Other Changes
 #############

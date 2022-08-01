@@ -34,7 +34,7 @@ We create a subsystem for the usage of a waste heat steam generator. The
 subsystem is built up of a superheater, an evaporator, a drum and an economizer
 as seen in the figure below.
 
-.. figure:: api/_images/subsystem_waste_heat_generator.svg
+.. figure:: /api/_images/subsystem_waste_heat_generator.svg
     :align: center
 
     Figure: Topology of the waste heat steam generator.

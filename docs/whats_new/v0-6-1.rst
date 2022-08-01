@@ -1,0 +1,21 @@
+v0.6.1 - Upcoming features
+++++++++++++++++++++++++++
+
+New Features
+############
+- A new component FuelCell is available:
+  :py:class:`tespy.components.reactors.fuel_cell.FuelCell`. It is analogously
+  defined to the WaterElectrolyzer
+  :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
+  (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
+
+Documentation
+#############
+- Fix some typos in the online documentation
+  (`PR #342 <https://github.com/oemof/tespy/pull/341>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@NicholasFry <https://github.com/NicholasFry>`_
+- Matthias Bock (`@matbock <https://github.com/matbock>`_)

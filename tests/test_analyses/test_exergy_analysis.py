@@ -470,3 +470,162 @@ class TestCompressedAirOut:
             ' for this test but is ' + str(round(ean.network_data.E_L, 4)) +
             '.')
         assert round(ean.network_data.E_L, 4) == round(c.Ex_physical, 4), msg
+
+
+class TestCompression:
+
+    def setup(self):
+        self.Tamb = 20
+        self.pamb = 1
+        fluids = ['Air']
+
+        # turbine part
+        self.nw = Network(fluids=fluids)
+        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+
+        # components
+        so = Source('inlet')
+        cp = Compressor('compressor')
+        si = Sink('outlet')
+
+        # fuel exergy bus
+        self.exergy_fuel = Bus('fuel exergy')
+        self.exergy_fuel.add_comps({'comp': cp, 'char': 0.9, 'base': 'bus'})
+        # product exergy bus
+        self.exergy_prod = Bus('product exergy')
+        self.exergy_prod.add_comps({'comp': si}, {'comp': so, 'base': 'bus'})
+
+        # create connections
+        c1 = Connection(so, 'out1', cp, 'in1', '1')
+        c2 = Connection(cp, 'out1', si, 'in1', '2')
+        self.nw.add_conns(c1, c2)
+
+        # component parameters
+        cp.set_attr(eta_s=0.85, pr=5)
+
+        # connection parameters
+        c1.set_attr(m=2, T=self.Tamb, p=self.pamb, fluid={'Air': 1})
+
+        # solve network
+        self.nw.solve('design')
+
+    def test_larger_T0(self):
+        self.nw.get_conn('1').set_attr(T=self.Tamb + 10)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def test_T0_cross(self):
+        self.nw.get_conn('1').set_attr(T=self.Tamb - 30)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def test_smaller_T0(self):
+
+        self.nw.get_conn('1').set_attr(T=None)
+        self.nw.get_conn('2').set_attr(T=self.Tamb - 10)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def run_analysis(self):
+
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.exergy_prod], E_F=[self.exergy_fuel])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + '.')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+        E_D_agg = ean.aggregation_data['E_D'].sum()
+        E_D_nw = ean.network_data.loc['E_D']
+        msg = (
+            'The exergy destruction of the aggregated components and '
+            'respective busses (' + str(round(E_D_agg)) + ') must be equal to '
+            'the exergy destruction of the network (' + str(round(E_D_nw)) +
+            ').')
+        assert E_D_agg == E_D_nw, msg
+
+
+class TestExpansion:
+
+    def setup(self):
+        self.Tamb = 20
+        self.pamb = 1
+        fluids = ['Air']
+
+        # turbine part
+        self.nw = Network(fluids=fluids)
+        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+
+        # components
+        so = Source('inlet')
+        tu = Turbine('compressor')
+        si = Sink('outlet')
+
+        # fuel exergy bus
+        self.exergy_fuel = Bus('fuel exergy')
+        self.exergy_fuel.add_comps({'comp': si}, {'comp': so, 'base': 'bus'})
+        # product exergy bus
+        self.exergy_prod = Bus('product exergy')
+        self.exergy_prod.add_comps({'comp': tu, 'char': 0.9})
+
+        # create connections
+        c1 = Connection(so, 'out1', tu, 'in1', '1')
+        c2 = Connection(tu, 'out1', si, 'in1', '2')
+        self.nw.add_conns(c1, c2)
+
+        # component parameters
+        tu.set_attr(eta_s=0.85, pr=1 / 5)
+
+        # connection parameters
+        c1.set_attr(m=2, p=10, fluid={'Air': 1})
+        c2.set_attr(T=self.Tamb)
+
+        # solve network
+        self.nw.solve('design')
+
+    def test_larger_T0(self):
+        self.nw.get_conn('2').set_attr(T=self.Tamb + 10)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def test_T0_cross(self):
+        self.nw.get_conn('2').set_attr(T=self.Tamb - 30)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def test_smaller_T0(self):
+
+        self.nw.get_conn('1').set_attr(T=self.Tamb - 10)
+        self.nw.get_conn('2').set_attr(T=None)
+        self.nw.solve('design')
+        self.run_analysis()
+
+    def run_analysis(self):
+
+        ean = ExergyAnalysis(
+            self.nw, E_P=[self.exergy_prod], E_F=[self.exergy_fuel])
+        ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
+        exergy_balance = (
+            ean.network_data.E_F - ean.network_data.E_P -
+            ean.network_data.E_L - ean.network_data.E_D)
+        msg = (
+            'Exergy balance must be closed (residual value smaller than ' +
+            str(err ** 0.5) + ') for this test but is ' +
+            str(round(abs(exergy_balance), 4)) + '.')
+        assert abs(exergy_balance) <= err ** 0.5, msg
+
+        E_D_agg = ean.aggregation_data['E_D'].sum()
+        E_D_nw = ean.network_data.loc['E_D']
+        msg = (
+            'The exergy destruction of the aggregated components and '
+            'respective busses (' + str(round(E_D_agg)) + ') must be equal to '
+            'the exergy destruction of the network (' + str(round(E_D_nw)) +
+            ').')
+        assert E_D_agg == E_D_nw, msg

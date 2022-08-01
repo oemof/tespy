@@ -70,14 +70,6 @@ tespy.components.combustion.diabatic module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.combustion.stoichiometric module
--------------------------------------------------
-
-.. automodule:: tespy.components.combustion.stoichiometric
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 tespy.components.combustion.engine module
 -----------------------------------------
 

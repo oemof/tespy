@@ -26,8 +26,8 @@ The combustion chamber is an important component within thermal power plants,
 but unfortunately is the reason for many issues, as the solving algorithm is
 very sensitive to small changes e.g. the fluid composition. We will
 demonstrate how to handle the combustion chamber in a very small, simple
-example. You can download the full code from the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber.py>`_.
+example. You can download the full code from the TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/combustion_chamber.py>`__.
 
 First of all you need to define the network containing all fluid components
 used for the combustion chamber. **These are at least the fuel, oxygen,
@@ -162,9 +162,9 @@ hydrogen to the fuel mixture.
 DiabaticCombustionChamber
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The example for the diabatic combustion chamber can as well be taken from
-the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/diabatic_combustion_chamber.py>`_.
+The example for the diabatic combustion chamber can as well be taken from the
+TESPy
+`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/combustion/diabatic_combustion_chamber.py>`__.
 
 The setup of the network, connections and components is identical to the
 first setup, therefore we skip over that part in this section. Note, that

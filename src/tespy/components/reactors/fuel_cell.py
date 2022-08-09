@@ -31,11 +31,11 @@ class FuelCell(Component):
 
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.specific_energy_consumption_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.specific_energy_func`
 
     Inlets/Outlets
 
-    - in1 (cooling inlet), in2 (hydrogen inlet), in3 (oxygen inlet)
+    - in1 (cooling inlet), in2 (oxygen inlet), in3 (hydrogen inlet)
     - out1 (cooling outlet), out2 (water outlet)
 
     //TODO: add image
@@ -103,7 +103,7 @@ class FuelCell(Component):
 
     Example
     -------
-    Some initial description.
+    The example shows a simple adaptation of the fuel cell. It works with water as cooling fluid.
 
     >>> from tespy.components import (Sink, Source, FuelCell)
     >>> from tespy.connections import Connection
@@ -116,8 +116,33 @@ class FuelCell(Component):
     >>> fc = FuelCell('fuel cell')
     >>> fc.component()
     'fuel cell'
+    >>> oxygen_source = Source('oxygen_source')
+    >>> hydrogen_source = Source('hydrogen_source')
+    >>> cw_source = Source('cw_source')
+    >>> cw_sink = Sink('cw_sink')
+    >>> water_sink = Sink('water_sink')
+    >>> cw_in = Connection(cw_source, 'out1', FC, 'in1')
+    >>> cw_out = Connection(FC, 'out1', cw_sink, 'in1')
+    >>> oxygen_in = Connection(oxygen_source, 'out1', FC, 'in2')
+    >>> hydrogen_in = Connection(hydrogen_source, 'out1', FC, 'in3')
+    >>> water_out = Connection(FC, 'out2', water_sink, 'in1')
+    >>> nw.add_conns(cw_in, cw_out, oxygen_in, hydrogen_in, water_out)
 
-    Maybe some words in between
+    The fuel cell shall produce 200kW of electrical power and 200kW of heat with an efficiency of 0.45. The
+    thermodynamic parameters of the input oxygen and hydrogen are given, the mass flow rates are calculated out of
+    the given power output. The cooling fluid is pure water.
+
+    >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9, design=['eta', 'P', 'Q', 'pr'])
+    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1, 'O2': 0, 'H2': 0}, design=['T', 'p', 'm'])
+    >>> oxygen_in.set_attr(T=25, p=1, design=['T', 'p'])
+    >>> hydrogen_in.set_attr(T=25, design=['T'])
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> P_design = fc.P.val / 1e03
+    >>> round(P_design, 1)
+    -200
+    >>> round(fc.eta.val, 2)
+    0.45
 
     """
     @staticmethod
@@ -146,9 +171,9 @@ class FuelCell(Component):
                 deriv=self.eta_deriv, func=self.eta_func),
             'e': dc_cp(
                 max_val=0, num_eq=1,
-                deriv=self.specific_energy_consumption_deriv,
-                func=self.specific_energy_consumption_func,
-                latex=self.specific_energy_consumption_func_doc)
+                deriv=self.specific_energy_deriv,
+                func=self.specific_energy_func,
+                latex=self.specific_energy_func_doc)
         }
 
 # %% Mandatory constraints
@@ -347,9 +372,9 @@ class FuelCell(Component):
         self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
         self.jacobian[k, 3, 2] = self.inl[0].m.val_SI
 
-    def specific_energy_consumption_func(self):
+    def specific_energy_func(self):
         r"""
-        Equation for specific energy consumption.
+        Equation for specific energy output.
 
         Returns
         -------
@@ -362,9 +387,9 @@ class FuelCell(Component):
         """
         return self.P.val - self.inl[2].m.val_SI * self.e.val
 
-    def specific_energy_consumption_func_doc(self, label):
+    def specific_energy_func_doc(self, label):
         r"""
-        Equation for specific energy consumption.
+        Equation for specific energy output.
 
         Parameters
         ----------
@@ -379,9 +404,9 @@ class FuelCell(Component):
         latex = r'0=P - \dot{m}_\mathrm{H_2,in} \cdot e'
         return generate_latex_eq(self, latex, label)
 
-    def specific_energy_consumption_deriv(self, increment_filter, k):
+    def specific_energy_deriv(self, increment_filter, k):
         r"""
-        Partial derivatives for specific energy consumption function.
+        Partial derivatives for specific energy function.
 
         Parameters
         ----------
@@ -525,7 +550,7 @@ class FuelCell(Component):
                 \end{cases} \forall i \in \text{network fluids}
         """
         residual = []
-        # equations for fluid composition in cooling water
+        # equations for fluid composition in cooling loop
         for fluid, x in self.inl[0].fluid.val.items():
             residual += [x - self.outl[0].fluid.val[fluid]]
 
@@ -587,7 +612,7 @@ class FuelCell(Component):
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        # derivatives for cooling liquid composition
+        # derivatives for cooling fluid composition
         deriv = np.zeros((
             self.num_nw_fluids * 4,
             5 + self.num_vars,
@@ -689,7 +714,7 @@ class FuelCell(Component):
         deriv : ndarray
             Matrix with partial derivatives for the mass flow equations.
         """
-        # deritatives for mass flow balance in the heat exchanger
+        # derivatives for mass flow balance in the heat exchanger
         deriv = np.zeros((3, 5 + self.num_vars, self.num_nw_vars))
         deriv[0, 0, 0] = 1
         deriv[0, 3, 0] = -1
@@ -764,12 +789,12 @@ class FuelCell(Component):
 
     def calc_P(self):
         r"""
-        Calculate fuel cell power input.
+        Calculate fuel cell power output.
 
         Returns
         -------
         P : float
-            Value of power input.
+            Value of power output.
 
             .. math::
 
@@ -786,8 +811,8 @@ class FuelCell(Component):
         Note
         ----
         The temperature for the reference state is set to 25 °C, thus
-        the feed water must be liquid as proposed in the calculation of
-        the minimum specific energy consumption for oxidation:
+        the produced water must be liquid as proposed in the calculation of
+        the minimum specific energy for oxidation:
         :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.calc_e0`.
         The part of the equation regarding the cooling water is implemented
         with negative sign as the energy for cooling is extracted from the
@@ -817,7 +842,7 @@ class FuelCell(Component):
         return val
 
     def initialise_fluids(self):
-        #Set values to pure fluid on gas inlets and water outlet.
+        # Set values to pure fluid on gas inlets and water outlet.
         self.inl[1].fluid.val[self.O2] = 1
         self.inl[2].fluid.val[self.H2] = 1
         self.outl[1].fluid.val[self.H2O] = 1
@@ -829,37 +854,6 @@ class FuelCell(Component):
             self.outl[1], self.outl[1].target)
 
     def initialise_source(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5  \cdot 10^5 & \text{key = 'p'}\\
-                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 5e5
-        elif key == 'h':
-            flow = c.get_flow()
-            T = 50 + 273.15
-            return h_mix_pT(flow, T)
-
-    def initialise_target(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at inlet.
 
@@ -888,6 +882,37 @@ class FuelCell(Component):
         elif key == 'h':
             flow = c.get_flow()
             T = 20 + 273.15
+            return h_mix_pT(flow, T)
+
+    def initialise_target(self, c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+
+            .. math::
+
+                val = \begin{cases}
+                5  \cdot 10^5 & \text{key = 'p'}\\
+                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
+                \end{cases}
+        """
+        if key == 'p':
+            return 5e5
+        elif key == 'h':
+            flow = c.get_flow()
+            T = 50 + 273.15
             return h_mix_pT(flow, T)
 
     def propagate_fluid_to_target(self, inconn, start):

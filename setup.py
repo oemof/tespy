@@ -41,8 +41,7 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     include_package_data=True,
     zip_safe=False,
-    data_files=[('src/tespy/data', [
-        'src/tespy/data/char_lines.json', 'src/tespy/data/char_maps.json'])],
+    package_data={'src': ['*.json']},
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Education',
@@ -54,6 +53,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Topic :: Scientific/Engineering',
     ],
     project_urls={
@@ -61,7 +62,7 @@ setup(
         'Changelog': 'https://tespy.readthedocs.io/en/main/whats_new.html',
         'Issue Tracker': 'https://github.com/oemof/tespy/issues',
     },
-    python_requires='>=3.7, <3.9',
+    python_requires='>=3.7',
     install_requires=[
         'CoolProp>=6.4,<7',
         'matplotlib>=3.2.1,<4',

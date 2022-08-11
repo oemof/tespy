@@ -21,8 +21,8 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-from tespy.tools.helpers import extend_basic_path
 from tespy import __datapath__
+from tespy.tools.helpers import extend_basic_path
 
 # %%
 

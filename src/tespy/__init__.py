@@ -1,7 +1,6 @@
 # -*- coding: utf-8
 from pkg_resources import resource_filename
 
-
 __datapath__ = resource_filename('tespy', 'data/')
 __version__ = '0.6.1 - dev'
 

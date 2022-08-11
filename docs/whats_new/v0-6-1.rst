@@ -1,10 +1,15 @@
 v0.6.1 - Upcoming features
 ++++++++++++++++++++++++++
 
+New Features
+############
+- Remove upper python version limit
+  (`PR #343 <https://github.com/oemof/tespy/pull/343>`_).
+
 Documentation
 #############
 - Fix some typos in the online documentation
-  (`PR #342 <https://github.com/oemof/tespy/pull/341>`_).
+  (`PR #342 <https://github.com/oemof/tespy/pull/342>`_).
 
 Contributors
 ############

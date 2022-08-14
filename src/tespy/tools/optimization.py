@@ -25,8 +25,8 @@ class OptimizationProblem:
     ----------
     model : custom class
         Object of some class, which provides all the methods required by the
-        optimization suite, see the
-        :py:class:`tespy.tools.optimization.SamplePlant` for a template.
+        optimization suite, see the Example section for a downloadable
+        template of the implementation.
 
     variables : dict
         Dictionary containing the decision variables and their respective
@@ -53,12 +53,13 @@ class OptimizationProblem:
     This example shows the optimization of the thermal efficiency of the
     `SamplePlant` with respect to the pressure value at the intermediate
     extration of the turbine. You can find the example code on the GitHub page
-    of TESPy: .
+    of TESPy:
+    :download:`example implementation </../tutorial/optimization_example.py>`.
 
     To use the API, you need to define a class holding a TESPy network. You
     create an instance of your plant class, i.e. :code:`plant = SamplePlant()`.
     Then create an instance of the class
-    :py:class:`tespy.tools.optimize.OptimizationProblem` and pass
+    :py:class:`tespy.tools.optimization.OptimizationProblem` and pass
 
     - the plant instance,
     - the variables,
@@ -81,13 +82,6 @@ class OptimizationProblem:
     variables as well. Just provide them in the same structure as in this
     example.
 
-    >>> from tespy.tools.optimization import OptimizationProblem
-    >>> # import your SamplePlant and pygmo here
-
-    >>> plant = SamplePlant()
-    >>> variables = {"Connections": {"2": {"p": {"min": 0.4, "max": 50}}}}
-    >>> optimize = OptimizationProblem(plant, variables)
-
     .. note::
 
         Please note, that the sense of optimization is always minimization,
@@ -100,22 +94,15 @@ class OptimizationProblem:
     individual specifications please refer to the respective section in their
     online documentation:
     `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
-    Specify the number of individuals (10), the number of generations (15) and
-    call the :py:meth:`tespy.tools.optimize.OptimizationProblem.run` method of
-    your :code:`OptimizationProblem` instance passing the algorithm and the
-    number of individials and generations.
-
-    >>> num_ind = 10
-    >>> num_gen = 15
-
-    >>> algo = pg.de()
-    >>> ();optimize.run(algo, num_ind, num_gen);() # doctest: +ELLIPSIS
-    (...)
+    Specify the number of individuals, the number of generations and call the
+    :py:meth:`tespy.tools.optimization.OptimizationProblem.run` method of your
+    :code:`OptimizationProblem` instance passing the algorithm and the number
+    of individials and generations.
 
     In our sample run, we found an optimal value for the extraction pressure of
-    about 4.45 bar. The results for every individual in each generation are
-    stored in the :code:`individuals` attribute of the
-    :code:`OptimizationProblem`.
+    about 4.45 bar for a thermal efficiency of 38.7 %. The results for every
+    individual in each generation are stored in the :code:`individuals`
+    attribute of the :code:`OptimizationProblem`.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective="objective"):

@@ -20,8 +20,8 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
-from pkg_resources import resource_filename
 
+from tespy import __datapath__
 from tespy.tools.helpers import extend_basic_path
 
 # %%
@@ -486,9 +486,9 @@ def load_default_char(component, parameter, function_name, char_type):
         The characteristics (CharLine, CharMap) object.
     """
     if char_type == CharLine:
-        path = resource_filename('tespy.data', 'char_lines.json')
+        path = __datapath__ + 'char_lines.json'
     else:
-        path = resource_filename('tespy.data', 'char_maps.json')
+        path = __datapath__ + 'char_maps.json'
 
     with open(path) as f:
         data = json.loads(f.read())

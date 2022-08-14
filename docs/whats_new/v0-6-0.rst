@@ -16,6 +16,7 @@ New Features
 - Gaseous mixtures now check for condensation of water in enthalpy and entropy
   functions (`PR #318 <https://github.com/oemof/tespy/pull/318>`_).
 
+
 Documentation
 #############
 - Add tutorial for the :code:`DiabaticCombustionChamber`
@@ -53,3 +54,4 @@ Contributors
 - `@tub-hofmann <https://github.com/tub-hofmann>`_
 - `@nkawerau <https://github.com/nkawerau>`_
 - `@BenPortner <https://github.com/BenPortner>`_
+- `@matbock <https://github.com/matbock>`_

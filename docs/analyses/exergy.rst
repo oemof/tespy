@@ -1,5 +1,8 @@
 Exergy analysis
 ===============
+We have published a paper with the features described in this section. The
+publication is licensed under an open-access license, download the pdf
+at https://doi.org/10.3390/en15114087, also see :cite:`Witte2022`.
 
 Fundamentals of exergy analysis
 -------------------------------

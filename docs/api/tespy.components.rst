@@ -200,6 +200,15 @@ tespy.components.piping.valve module
     :show-inheritance:
 
 
+tespy.components.reactors.fuel_cell module
+---------------------------------------------------
+
+.. automodule:: tespy.components.reactors.fuel_cell
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 tespy.components.reactors.water_electrolyzer module
 ---------------------------------------------------
 

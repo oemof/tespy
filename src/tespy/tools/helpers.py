@@ -38,10 +38,12 @@ def merge_dicts(dict1, dict2):
 
 def nested_OrderedDict(dictionary):
     """Create a nested OrderedDict from a nested dict.
+
     Parameters
     ----------
     dictionary : dict
         Nested dict.
+
     Returns
     -------
     dictionary : collections.OrderedDict

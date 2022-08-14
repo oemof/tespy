@@ -61,3 +61,11 @@ tespy.tools.logger module
     :members:
     :undoc-members:
     :show-inheritance:
+
+tespy.tools.optimization module
+-------------------------------
+
+.. automodule:: tespy.tools.optimization
+    :members:
+    :undoc-members:
+    :show-inheritance:

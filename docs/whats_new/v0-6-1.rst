@@ -15,9 +15,12 @@ Documentation
 #############
 - Fix some typos in the online documentation
   (`PR #342 <https://github.com/oemof/tespy/pull/342>`_).
+- New tutorial on starting values for a subcritical heat pump setup
+  (`PR #346 <https://github.com/oemof/tespy/pull/346>`_).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
 - `@NicholasFry <https://github.com/NicholasFry>`_
 - Matthias Bock (`@matbock <https://github.com/matbock>`_)
+- `@maltefritz <https://github.com/maltefritz>`_

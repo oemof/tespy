@@ -74,7 +74,7 @@ Other changes
   case of subsystems, have a look at the :ref:`district heating example <dh_example_label>`.
 - Change the specification of set value for :py:class:`dc_simple <tespy.tools.data_containers.dc_simple>`
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
-- Move the default characteristic function plots to the :py:mod:`tespy.data <tespy.data>` module documentation
+- Move the default characteristic function plots to the :ref:`tespy_data_label` documentation
   (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 
 Contributors

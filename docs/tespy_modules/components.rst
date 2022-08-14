@@ -195,7 +195,7 @@ Component characteristics
 
 Several components integrate parameters using a characteristic function. These
 parameters come with default characteristics. The default characteristics
-available can be found in the :py:mod:`<tespy.data>` module. Of course, it is
+available can be found in the :ref:`tespy_data_label`. Of course, it is
 possible to specify your own characteristic functions.
 
 .. note::

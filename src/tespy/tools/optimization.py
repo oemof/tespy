@@ -42,7 +42,7 @@ class OptimizationProblem:
     Note
     ----
     For the required structure of the input dictionaries see the example in
-    the :py:class:`tespy.tools.optimization.SamplePlant`.
+    below.
 
     Installation of pygmo via pip is not available for Windows and OSX users
     currently. Please use conda instead or refer to their

@@ -1,13 +1,7 @@
+.. _tespy_data_label:
+
 tespy.data module
 =================
-
-Module contents
----------------
-
-.. automodule:: tespy.data
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 Default characteristics
 -----------------------

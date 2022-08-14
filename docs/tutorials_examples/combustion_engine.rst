@@ -7,7 +7,7 @@ as well as two heating outlets and heat losses can be taken into account, too.
 Power output, heat production and heat losses are all linked to the thermal
 input of the combustion engine by characteristic lines, which usually are
 provided by the manufacturer. TESPy provides a set of predefined
-characteristics (documented in the :py:class:`<tespy.data>` module).
+characteristics (documented in the :ref:`tespy_data_label`).
 
 .. figure:: /api/_images/CombustionEngine.svg
     :align: center

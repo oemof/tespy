@@ -1,5 +1,8 @@
 Exergy analysis
 ===============
+We have published a paper with the features described in this section. The
+publication is licensed under an open-access license, download the pdf
+at https://doi.org/10.3390/en15114087, also see :cite:`Witte2022`.
 
 Fundamentals of exergy analysis
 -------------------------------
@@ -113,7 +116,7 @@ Two other full code examples are to be found at:
 - Refrigeration machine: https://github.com/fwitte/refrigeration_cycle_exergy
 
 SEGS consists of three main systems, the solar field, the steam cycle and the
-cooling water system. In the solar field Therminol VP1 is used as heat transfer
+cooling water system. In the solar field Therminol VP1 (TVP1) is used as heat transfer
 fluid. In the steam generator and reheater the TVP1 is cooled down to evaporate
 and overheat/reheat the water of the steam cycle. The turbine is divided in a
 high pressure turbine and a low pressure turbine, which are further subdivided
@@ -174,7 +177,7 @@ these values in the script provided.
 For the exact values of the component parameters please see in the referenced
 python script.
 
-Due to the complexity of the plant, the solver sometimes struggles given bad
+Due to the complexity of the plant, the solver sometimes struggles when given bad
 starting values. Therefore, the TESPy model is built in two steps. After
 solving the initial setup without both of the high pressure preheater
 subcoolers, the missing connections and components are added in a second step
@@ -317,7 +320,7 @@ deselect the tables, e.g. by passing :code:`groups=False` to the method call.
     ean.print_results(groups=False, connections=False)
 
 For the component related tables, i.e. busses, components, aggregation and
-groups, the data are sorted descending regarding the exergy destruction value
+groups, the data are sorted in descending order for the given exergy destruction value
 of the individual entry. The component data contain fuel exergy, product exergy
 and exergy destruction values related to the component itself ignoring losses
 that might occur on the busses, for example, mechanical or electrical

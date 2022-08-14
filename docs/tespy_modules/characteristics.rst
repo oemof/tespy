@@ -6,7 +6,7 @@ implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`)
 and maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`).
 The default characteristics available are to be found in the
-:py:mod:`tespy.data` module documentation.
+:ref:`tespy_data_label` module documentation.
 
 Characteristic lines
 --------------------
@@ -94,7 +94,7 @@ Your custom definitions of characteristic lines go into the
 The :code:`char_lines.json` should have names for identification of the
 characteristic lines on the first level. On the second level the x and y data
 are assigned to the name of the characteristic line. The x and y data must be
-stated as list.
+stated as lists.
 
 .. code-block:: json
 

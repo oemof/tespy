@@ -51,12 +51,13 @@ on github. Additional small examples can be found in the API-documentation.
 Tutorials
 =========
 
-We provide two different tutorials for you to better understand how to work
+We provide tutorials for you to better understand how to work
 with TESPy. You will learn how to create basic models and get the idea of
 designing a plant and simulating the offdesign behavior in the heat pump
-tutorial. On top of that, we created a tutorial for the usage of the combustion
-chamber: It is an important component for thermal power plants while being a
-source for many errors in the calculation.
+tutorial. Furthermore, the starting values tutorial will help you to get a 
+stable simulation and faster solutions. On top of that, we created a tutorial 
+for the usage of the combustion chamber: It is an important component for 
+thermal power plants while being a source for many errors in the calculation.
 
 The last tutorial is a plant design optimization tutorial. A thermal power
 plant with two extraction stages is optimized in regard of thermal efficiency
@@ -69,6 +70,8 @@ with respect to the extraction pressure levels.
 
 .. _heat_pump_tutorial_label:
 .. include:: tutorials_examples/tutorial_heat_pump.rst
+.. _starting_values_tutorial_label:
+.. include:: tutorials_examples/tutorial_starting_values.rst
 .. _combustion_chamber_tutorial_label:
 .. include:: tutorials_examples/tutorial_combustion_chamber.rst
 .. _pygmo_tutorial_label:

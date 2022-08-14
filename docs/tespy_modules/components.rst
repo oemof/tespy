@@ -1,9 +1,9 @@
 Components
 ==========
 
-In this section we will introduce you into the details of component
+In this section we will introduce you to the details of component
 parametrisation and component characteristics. At the end of the section we
-show you, how to create custom components.
+show you how to create custom components.
 
 List of components
 ------------------
@@ -50,6 +50,7 @@ well as the equations.
 
 - Reactors
 
+    * :py:class:`Fuel cell <tespy.components.reactors.fuel_cell.FuelCell>`
     * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
 
 - Turbomachinery
@@ -70,9 +71,9 @@ Component parametrisation
 -------------------------
 
 All parameters of components are objects of a :code:`DataContainer` class. The
-data container for component parameters it is called
+data container for component parameters is called
 :code:`ComponentProperties`, :code:`ComponentCharacteristics` for component
-characteristics and :code:`ComponentCharacteristicMaps` for characteristic
+characteristics, and :code:`ComponentCharacteristicMaps` for characteristic
 maps. The main purpose of having a data container for the parameters (instead
 of pure numbers), is added flexibility for the user. There are different ways
 for you to specify and access component parameters.
@@ -194,7 +195,7 @@ Component characteristics
 
 Several components integrate parameters using a characteristic function. These
 parameters come with default characteristics. The default characteristics
-available can be found in the :py:mod:`<tespy.data>` module. Of course, it is
+available can be found in the :ref:`tespy_data_label`. Of course, it is
 possible to specify your own characteristic functions.
 
 .. note::
@@ -230,26 +231,27 @@ For example, :code:`kA_char` specification for heat exchangers:
     he = HeatExchanger('evaporator')
 
     # the characteristic function requires the design value of the property,
-    # therefore the design value of kA must be set and additonally we set
+    # therefore the design value of kA must be set and additionally we set
     # the kA_char method. This is performed automatically, if you specify the
     # kA_char as offdesign parameter (usual case).
     he.set_attr(kA={'design': 1e5}, kA_char={'is_set': True})
 
     # use a characteristic line from the defaults: specify the component, the
-    # parameter and the name of the characteristic function. Also, specify, what
-    # type of characteristic function you want to use.
+    # parameter and the name of the characteristic function. Also, specify,
+    # what type of characteristic function you want to use.
     kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
     kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
     he.set_attr(kA_char2=kA_char2)
 
     # specification of a data container yields the same result. It is
-    # aditionally possible to specify the characteristics parameter, e.g. mass flow
-    # for kA_char1 and volumetric flow for kA_char2
+    # additionally possible to specify the characteristics parameter, e.g. mass
+    # flow for kA_char1 and volumetric flow for kA_char2
     he.set_attr(
         kA_char1={'char_func': kA_char1, 'param': 'm'},
         kA_char2={'char_func': kA_char2, 'param': 'v'})
 
-    # or use custom values for the characteristic line e.g. kA vs volumetric flow
+    # or use custom values for the characteristic line e.g. kA vs volumetric
+    # flow
     x = np.array([0, 0.5, 1, 2])
     y = np.array([0, 0.8, 1, 1.2])
     kA_char1 = CharLine(x, y)

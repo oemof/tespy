@@ -10,7 +10,6 @@ SPDX-License-Identifier: MIT
 """
 import logging
 import os
-
 from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy

@@ -10,6 +10,9 @@ New Features
   defined to the WaterElectrolyzer
   :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
   (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
+- Integration of an optimization suite using pygmo :cite:`Biscani2020` to apply
+  a variety of state of the art optimization algorithms to your TESPy model
+  (`PR #296 <https://github.com/oemof/tespy/pull/296>`_).
 
 Documentation
 #############

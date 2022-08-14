@@ -5,7 +5,8 @@ except ImportError:
 
 import pandas as pd
 
-from tespy.tools.helpers import merge_dicts, nested_OrderedDict
+from tespy.tools.helpers import merge_dicts
+from tespy.tools.helpers import nested_OrderedDict
 
 
 class OptimizationProblem:
@@ -51,30 +52,37 @@ class OptimizationProblem:
     -------
     This example shows the optimization of the thermal efficiency of the
     `SamplePlant` with respect to the pressure value at the intermediate
-    extration of the turbine.
+    extration of the turbine. You can find the example code on the GitHub page
+    of TESPy: .
 
-    >>> from tespy.tools.optimization import OptimizationProblem
-    >>> from tespy.tools._optimization_example import SamplePlant
-    >>> import pygmo as pg
+    To use the API, you need to define a class holding a TESPy network. You
+    create an instance of your plant class, i.e. :code:`plant = SamplePlant()`.
+    Then create an instance of the class
+    :py:class:`tespy.tools.optimize.OptimizationProblem` and pass
 
-    Create an instance of your plant class, i.e. :code:`plant = SamplePlant()`
-    and the instance of :code:`OptimizationProblem` by passing the plant
-    instance, the variables, the constraints and the objective.
+    - the plant instance,
+    - the variables,
+    - the constraints and
+    - the objective function name.
 
-    As the optimization problem can be formulated as unconstrained problem by
-    defining the lower and the upper limits for the variable values, the
-    constraints parameter can be left to its default value. The objective
-    function (:py:meth:`tespy.tools.optimzite.SamplePlant.get_objective`), which
-    returns the same evaluation for any kind of objective (there is only the
-    thermal efficiency in this case), the :code:`objective` keyword does not
-    need to be defined in this example (you could think of defining several
-    objectives here and returning them according to the selected objective).
+    For the optimization problem in this example, it can be formulated as
+    unconstrained problem by defining the lower and the upper limits for the
+    variable values, the constraints parameter can be left out. The objective
+    function of your plant (:code:`get_objective`), should return the
+    evaluation of the objective function. You can define multiple objective
+    functions, which can be accessed by the name of the objective. In the
+    example code only the thermal efficiency is defined, therefore the
+    :code:`objective` keyword does not need to be defined. The keywod is mainly
+    of use, if you want to quickly change the evaluation.
 
-    As described, the variable in this example is the extraction pressure at the
+    The only variable in this example is the extraction pressure at the
     turbine. The upper limit is 50 bar and the lower limit 0.4 bar. Of course,
     it is possible to use multiple variables and component parameters as
     variables as well. Just provide them in the same structure as in this
     example.
+
+    >>> from tespy.tools.optimization import OptimizationProblem
+    >>> # import your SamplePlant and pygmo here
 
     >>> plant = SamplePlant()
     >>> variables = {"Connections": {"2": {"p": {"min": 0.4, "max": 50}}}}
@@ -83,15 +91,15 @@ class OptimizationProblem:
     .. note::
 
         Please note, that the sense of optimization is always minimization,
-        therefore you need to define your objective functions in the appropriate
-        way.
+        therefore you need to define your objective functions in the
+        appropriate way.
 
     After selection of an appropriate algorithm (differential evolution is a
     good fit for this application) we can start the optimization run. For more
     information on algorithms available in the PyGMO framework and their
     individual specifications please refer to the respective section in their
     online documentation:
-    `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`_.
+    `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
     Specify the number of individuals (10), the number of generations (15) and
     call the :py:meth:`tespy.tools.optimize.OptimizationProblem.run` method of
     your :code:`OptimizationProblem` instance passing the algorithm and the
@@ -105,7 +113,9 @@ class OptimizationProblem:
     (...)
 
     In our sample run, we found an optimal value for the extraction pressure of
-    about 4.45 bar.
+    about 4.45 bar. The results for every individual in each generation are
+    stored in the :code:`individuals` attribute of the
+    :code:`OptimizationProblem`.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective="objective"):
@@ -113,8 +123,7 @@ class OptimizationProblem:
             msg = (
                 "For this function of TESPy pygmo has to be installed. Either use "
                 "pip (Linux users only) or conda to install the latest pygmo "
-                "version. It is also possible to install tespy using the [opt] "
-                "option: pip install tespy[opt]."
+                "version."
             )
             raise ImportError(msg)
 
@@ -296,9 +305,17 @@ class OptimizationProblem:
 
             print('Evolution: {}'.format(gen))
             for i in range(len(self.objective_list)):
-                print(self.objective_list[i] + ': {}'.format(round(pop.champion_f[i], 4)))
+                print(
+                    self.objective_list[i] + ': {}'.format(
+                        round(pop.champion_f[i], 4)
+                    )
+                )
             for i in range(len(self.variable_list)):
-                print(self.variable_list[i] + ': {}'.format(round(pop.champion_x[i], 4)))
+                print(
+                    self.variable_list[i] + ': {}'.format(
+                        round(pop.champion_x[i], 4)
+                    )
+                )
             pop = algo.evolve(pop)
 
         gen += 1
@@ -306,6 +323,14 @@ class OptimizationProblem:
 
         print('Final evolution: {}'.format(gen))
         for i in range(len(self.objective_list)):
-            print(self.objective_list[i] + ': {}'.format(round(pop.champion_f[i], 4)))
+            print(
+                self.objective_list[i] + ': {}'.format(
+                    round(pop.champion_f[i], 4)
+                )
+            )
         for i in range(len(self.variable_list)):
-            print(self.variable_list[i] + ': {}'.format(round(pop.champion_x[i], 4)))
+            print(
+                self.variable_list[i] + ': {}'.format(
+                    round(pop.champion_x[i], 4)
+                )
+            )

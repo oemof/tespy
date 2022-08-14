@@ -1,4 +1,5 @@
 import numpy as np
+import pygmo as pg
 
 from tespy.components.basics.cycle_closer import CycleCloser
 from tespy.components.heat_exchangers.condenser import Condenser
@@ -11,6 +12,7 @@ from tespy.components.turbomachinery.turbine import Turbine
 from tespy.connections.bus import Bus
 from tespy.connections.connection import Connection
 from tespy.networks.network import Network
+from tespy.tools.optimization import OptimizationProblem
 
 
 class SamplePlant:
@@ -163,9 +165,6 @@ class SamplePlant:
             return np.nan
 
 
-from tespy.tools.optimization import OptimizationProblem
-import pygmo as pg
-
 plant = SamplePlant()
 variables = {"Connections": {"2": {"p": {"min": 0.4, "max": 50}}}}
 optimize = OptimizationProblem(plant, variables)
@@ -174,4 +173,4 @@ num_ind = 10
 num_gen = 15
 
 algo = pg.de()
-optimize.run(algo, num_ind, num_gen) # doctest: +ELLIPSIS
+optimize.run(algo, num_ind, num_gen)

@@ -108,9 +108,9 @@ class OptimizationProblem:
     def __init__(self, model, variables={}, constraints={}, objective="objective"):
         if pg is None:
             msg = (
-                "For this function of TESPy pygmo has to be installed. Either use "
-                "pip (Linux users only) or conda to install the latest pygmo "
-                "version."
+                "For this function of TESPy pygmo has to be installed. Either"
+                " use pip (Linux users only) or conda to install the latest"
+                " pygmo version."
             )
             raise ImportError(msg)
 
@@ -118,7 +118,7 @@ class OptimizationProblem:
         default_variables = {"Connections": {}, "Components": {}}
         default_constraints = {
             "lower limits": {"Connections": {}, "Components": {}},
-            "upper limits": { "Connections": {}, "Components": {}}
+            "upper limits": {"Connections": {}, "Components": {}}
         }
         # merge the passed values into the default dictionary structure
         variables = merge_dicts(variables, default_variables)
@@ -141,8 +141,12 @@ class OptimizationProblem:
             for label, params in data.items():
                 if obj in ["Connections", "Components"]:
                     for param in params:
-                        self.bounds[0] += [self.variables[obj][label][param]['min']]
-                        self.bounds[1] += [self.variables[obj][label][param]['max']]
+                        self.bounds[0] += [
+                            self.variables[obj][label][param]['min']
+                        ]
+                        self.bounds[1] += [
+                            self.variables[obj][label][param]['max']
+                        ]
                         self.variable_list += [obj + '-' + label + '-' + param]
                 else:
                     self.bounds[0] += [self.variables[obj][label]['min']]

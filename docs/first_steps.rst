@@ -6,7 +6,7 @@ using TESPy. The model used in this introduction is shown the figure. It
 consists of a central heating plant and a consumer, represented by a heat
 exchanger with a control valve.
 
-.. figure:: api/_images/intro_district_heating_scheme.svg
+.. figure:: /api/_images/intro_district_heating_scheme.svg
     :align: center
 
     Figure: Topology of the simplest district heating system.
@@ -171,7 +171,7 @@ We highly recommend to check our step-by-step
 figure below) in TESPy. You will learn, how to set up and design a plant as
 well as calculate offdesign/partload performance.
 
-.. figure:: api/_images/tutorial_heat_pump.svg
+.. figure:: /api/_images/tutorial_heat_pump.svg
     :align: center
 
     Figure: Topology of a heat pump

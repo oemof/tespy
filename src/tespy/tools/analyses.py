@@ -356,6 +356,30 @@ class ExergyAnalysis:
 
             self.evaluate_busses(cp)
 
+        # create a table that includes exergy destruction attributed to the
+        # components
+        bus_based = self.bus_data[self.bus_data['base'] == 'bus'].index
+        component_based = self.bus_data[
+            self.bus_data['base'] == 'component'
+        ].index
+
+        # add aggregated components with respective buses data
+        self.aggregation_data = self.component_data.copy()
+        # E_D is sum of both E_D
+        self.aggregation_data.loc[self.bus_data.index, 'E_D'] = (
+            self.component_data.loc[self.bus_data.index, 'E_D'] +
+            self.bus_data['E_D']
+        )
+        # E_F for bus based components is higher by E_D of bus
+        self.aggregation_data.loc[bus_based, 'E_F'] += (
+            self.bus_data.loc[bus_based, 'E_D']
+        )
+        # E_P of component based components is lower by E_D of bus
+        self.aggregation_data.loc[component_based, 'E_P'] -= (
+            self.bus_data.loc[component_based, 'E_D']
+        )
+
+        # calculate network results
         self.network_data.loc['E_D'] = (
             self.component_data['E_D'].sum() + self.bus_data['E_D'].sum())
         self.network_data.loc['E_F'] = abs(self.network_data.loc['E_F'])
@@ -458,27 +482,6 @@ class ExergyAnalysis:
                 cp_on_num_busses += 1
 
         self.bus_data['E_D'] = self.bus_data['E_F'] - self.bus_data['E_P']
-
-        # create a table that includes exergy destruction attributed to the
-        # components
-        self.aggregation_data = self.component_data.copy()
-        bus_based = self.bus_data[self.bus_data['base'] == 'bus'].index
-        component_based = self.bus_data[self.bus_data['base'] == 'component'].index
-
-        self.aggregation_data.loc[bus_based, 'E_F'] = (
-            self.bus_data.loc[bus_based, 'E_F']
-        )
-        self.aggregation_data.loc[component_based, 'E_P'] = (
-            self.bus_data.loc[component_based, 'E_P']
-        )
-
-        E_P_notna = self.aggregation_data[
-            ~np.isnan(self.aggregation_data['E_P'])
-        ].index
-        self.aggregation_data.loc[E_P_notna, 'E_D'] = (
-            self.aggregation_data.loc[E_P_notna, 'E_F'] -
-            self.aggregation_data.loc[E_P_notna, 'E_P']
-        )
 
     def create_group_data(self):
         """Collect the component group exergy data."""

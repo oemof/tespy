@@ -3,10 +3,10 @@ Solar collector
 
 This example shows how you can use a solarthermal collector in TESPy.
 The process flow diagram is shown in the image below, the source code can be
-found at the `tespy_examples repository
-<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/solar_collector>`_.
+found at the TESPy `examples repository
+<https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/solar_collector>`__.
 
-.. figure:: api/_images/SolarCollector.svg
+.. figure:: /api/_images/SolarCollector.svg
     :align: center
 
     Figure: Topology of the solar collector.

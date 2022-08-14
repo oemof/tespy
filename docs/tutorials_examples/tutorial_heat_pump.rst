@@ -298,7 +298,7 @@ heat transfer coefficient as its offdesign parameters.
 On top of that, the characteristic function of the evaporator should follow the
 default characteristic line of 'EVAPORATING FLUID' on the cold side and the
 default line 'DEFAULT' on the hot side. These lines are defined in the
-:py:mod:`tespy.data` module. If you want to learn more about handling
+:ref:`tespy_data_label`. If you want to learn more about handling
 characteristic functions you should have a glance at the
 :ref:`TESPy components section <using_tespy_components_label>`. The superheater
 will also use the pressure ratios on hot and cold side. Further we set a value

@@ -24,7 +24,7 @@ Here we provide a short tutorial for you to better understand, how this process
 could look like at the example of a subcritical heat pump with different working
 fluids.
 
-.. info::
+.. note::
 
     If the heat pump operates in trans- or supercritical range, some
     modifications have to be made on this setup. We plan to include respective
@@ -197,28 +197,33 @@ solution can be found. We might run in some error, like
 
 .. error::
 
-    ERROR:root:Singularity in jacobian matrix, calculation aborted! Make sure
-    your network does not have any linear dependencies in the parametrisation.
-    Other reasons might be
+    .. code-block:: bash
 
-    -> given temperature with given pressure in two phase region, try setting
-    enthalpy instead or provide accurate starting value for pressure.
+        ERROR:root:Singularity in jacobian matrix, calculation aborted! Make
+        sure your network does not have any linear dependencies in the
+        parametrisation. Other reasons might be
 
-    -> given logarithmic temperature differences or kA-values for heat
-    exchangers,
+        -> given temperature with given pressure in two phase region, try
+        setting enthalpy instead or provide accurate starting value for
+        pressure.
 
-    -> support better starting values.
+        -> given logarithmic temperature differences or kA-values for heat
+        exchangers,
 
-    -> bad starting value for fuel mass flow of combustion chamber, provide
-    small (near to zero, but not zero) starting value.
+        -> support better starting values.
+
+        -> bad starting value for fuel mass flow of combustion chamber, provide
+        small (near to zero, but not zero) starting value.
 
 or simply not making progress in the convergence
 
 .. error::
 
-    WARNING:root:The solver does not seem to make any progress, aborting
-    calculation. Residual value is 7.43e+05. This frequently happens, if the
-    solver pushes the fluid properties out of their feasible range.
+    .. code-block:: bash
+
+        WARNING:root:The solver does not seem to make any progress, aborting
+        calculation. Residual value is 7.43e+05. This frequently happens, if
+        the solver pushes the fluid properties out of their feasible range.
 
 Fixing the errors
 ^^^^^^^^^^^^^^^^^
@@ -289,17 +294,11 @@ simulation. For example, the COP is then calculated.
     # solve the network again
     nw.solve('design')
 
-    # calculate and print the actual COP
+    # calculate the COP
     cop = abs(
         cons_heatsink.Q.val
         / (cons_pump.P.val + heatsource_pump.P.val + compressor.P.val)
-        )
-    print(f'COP = {cop:.4}')
-
-
-.. code-block:: bash
-
-    COP = 2.584
+    )
 
 Expand fix to any working fluids
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -377,10 +376,10 @@ building a network, that works with a variety of working fluids.
         nw.add_conns(hs_feed2hs_pump, hs_pump2hs_eva, hs_eva2hs_back)
 
         # heat sink
-        cons_back2cons_pump = Connection(cons_cycle_closer, 'out1', cons_pump, 'in1', label='21')
-        cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='22')
-        cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='23')
-        cons_hs2cons_feed = Connection(cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='24')
+        cons_back2cons_pump = Connection(cons_cycle_closer, 'out1', cons_pump, 'in1', label='20')
+        cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='21')
+        cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='22')
+        cons_hs2cons_feed = Connection(cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='23')
 
         nw.add_conns(cons_back2cons_pump, cons_pump2cond, cond2cons_hs, cons_hs2cons_feed)
 

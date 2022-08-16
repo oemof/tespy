@@ -5,12 +5,12 @@ Heat Pump
 
 .. figure:: /_static/images/basics/heat_pump.svg
     :align: center
+    :alt: Topology of the heat pump
     :class: only-light
-
-    Figure: Topology of the basic heat pump
 
 .. figure:: /_static/images/basics/heat_pump_darkmode.svg
     :align: center
+    :alt: Topology of the heat pump
     :class: only-dark
 
-    Figure: Topology of the basic heat pump
+    Figure: Topology of the heat pump

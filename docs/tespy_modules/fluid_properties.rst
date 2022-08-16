@@ -1,3 +1,5 @@
+.. _tespy_fluid_properties_label:
+
 Fluid properties
 ================
 The basic fluid properties are handled by
@@ -32,14 +34,14 @@ If you use pure fluids, TESPy directly uses CoolProp functions to gather all
 fluid properties. CoolProp covers the most important fluids such as water, air
 as a pseudo-pure fluid as well as its components, several fuels and
 refrigerants etc.. Look for the aliases in the list of
-`fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html>`_.
+`fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html>`__.
 All fluids provided in this list cover liquid and gaseous state and the
 two-phase region.
 
 Incompressible fluids
 ---------------------
 If you are looking for heat transfer fluids, the list of incompressible
-`fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`_
+`fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`__
 might be interesting for you. In contrast to the pure fluids, the properties
 cover liquid state only.
 

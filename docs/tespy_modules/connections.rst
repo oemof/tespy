@@ -1,3 +1,5 @@
+.. _tespy_modules_connections_label:
+
 Connections
 ===========
 
@@ -345,4 +347,4 @@ definitions the value of the bus power will differ in part load.
 
 As mentioned in the component section: It is also possible to import your
 custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
-about this :ref:`here <using_tespy_characteristics_label>`.
+about this :ref:`here <tespy_modules_characteristics_label>`.

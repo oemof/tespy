@@ -1,4 +1,4 @@
-.. _using_tespy_networks_label:
+.. _tespy_modules_networks_label:
 
 Networks
 ========
@@ -396,7 +396,7 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
     \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
-.. _using_tespy_convergence_check_label:
+.. _tespy_modules_convergence_check_label:
 
 Convergence stability
 +++++++++++++++++++++

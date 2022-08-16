@@ -1,3 +1,5 @@
+.. _tespy_other_label:
+
 User defined equations
 ======================
 User defined functions provide a powerful tool to the user as they enable
@@ -281,19 +283,6 @@ Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
         latex={
             'equation': latex,
             'lines': [charline1, charline2],
-            'maps': [map1]})
-
-How can TESPy contribute to your energy system calculations?
-============================================================
-
-In this part you learn how you can use TESPy for your energy system
-calculations: In energy system calculations, for instance in oemof-solph,
-plants are usually modeled as abstract components on a much lower level of
-detail. In order to represent a plant within an abstract component it is
-possible to supply characteristics establishing a connection between your
-energy system model and a specific plant model. Thus the characteristics are a
-representation of a specific plant layout in terms of topology and process
-parameters. In the examples section we have an example of a heat pump COP at
-different loads and ambient temperatures as well as a CHP unit with
-backpressure turbine operating at different loads and varying feed flow
-temperatures of a heating system.
+            'maps': [map1]
+        }
+    )

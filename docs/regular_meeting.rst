@@ -1,13 +1,8 @@
 .. _installation_and_setup_label:
 
-###############################
-Get in touch with the community
-###############################
-
-.. contents::
-    :depth: 1
-    :local:
-    :backlinks: top
+###############
+TESPy community
+###############
 
 Online "Stammtisch"
 ===================

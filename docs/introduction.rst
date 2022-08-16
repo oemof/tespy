@@ -8,8 +8,14 @@ plants, district heating systems or heat pumps. It is an external extension
 module within the `Open Energy Modeling Framework <https://oemof.org/>`_ and
 can be used as a standalone package.
 
-.. figure:: /api/_images/logo_tespy_big.svg
-    :align: center
+.. image:: /_static/images/logo_tespy_big.svg
+   :align: center
+   :class: only-light
+
+
+.. image:: /_static/images/logo_tespy_big_darkmode.svg
+   :align: center
+   :class: only-dark
 
 With the TESPy package you are able to calculate stationary operation in order
 to design the process of your plant. From that point it is possible to
@@ -35,11 +41,6 @@ Key Features
 * **Extendable** framework for the implementation of custom components and
   component groups
 * **Postprocessing** features like exergy analysis and fluid property plotting
-
-.. contents::
-    :depth: 1
-    :local:
-    :backlinks: top
 
 Quick installation
 ==================
@@ -79,7 +80,9 @@ As TESPy is a free software, we kindly ask that you add a reference to TESPy
 if you use the software for your scientific work. Please cite the article with
 the BibTeX citation below.
 
-BibTeX citation::
+BibTeX citation
+
+.. code::
 
     @article{Witte2020,
         doi = {10.21105/joss.02178},
@@ -100,22 +103,4 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 License
 =======
 
-Copyright (c) 2017-2021 oemof developer group
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+.. include:: ../LICENSE

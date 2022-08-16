@@ -46,7 +46,7 @@ Set up components
 -----------------
 
 The list of components available can be found
-:ref:`here <using_tespy_components_label>`. If you set up a component you have
+:ref:`here <tespy_modules_components_label>`. If you set up a component you have
 to specify a (within one network) unique label. Moreover, it is possible to
 specify parameters for the component, for example power :math:`P` for a turbine
 or upper terminal temperature difference :math:`ttd_\mathrm{u}` of a heat
@@ -119,7 +119,7 @@ way as parameters are set for components. The basic specification options are:
 .. note::
 
     There are more specification options available. Please refer to
-    the :ref:`connections section <using_tespy_connections_label>` in the TESPy
+    the :ref:`connections section <tespy_modules_connections_label>` in the TESPy
     modules chapter for detailed information. The specification options are
     stated in the
     connection class documentation, too:

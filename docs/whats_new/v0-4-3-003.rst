@@ -11,7 +11,7 @@ Other Changes
 - Remove Python3.6 support.
 - Make it possible to include results in automatic model report, for more
   information see the corresponding section in the documentation:
-  :ref:`TESPy Networks Postprocessing <tespy_modules_network_label>`
+  :ref:`TESPy Networks Postprocessing <tespy_modules_networks_label>`
   (`PR #267 <https://github.com/oemof/tespy/pull/267>`_).
 
 Contributors

@@ -1,3 +1,5 @@
+.. _tespy_modules_components_label:
+
 Components
 ==========
 
@@ -65,7 +67,7 @@ Here we list the components integrated in the customs module.
 
 - :py:class:`Evaporator for two-phase geothermal organic rankine cycle <tespy.components.customs.orc_evaporator.ORCEvaporator>`
 
-.. _using_tespy_components_parametrisation_label:
+.. _tespy_modules_components_parametrisation_label:
 
 Component parametrisation
 -------------------------
@@ -310,7 +312,7 @@ Instead of writing your custom characteristic line information directly into
 your Python script, TESPy provides a second method of implementation: It is
 possible to store your data in the :code:`HOME/.tespy/data` folder and import
 from there. For additional information on formatting and usage, look into
-:ref:`this part <using_tespy_characteristics_label>`.
+:ref:`this part <tespy_modules_characteristics_label>`.
 
 .. code-block:: python
 
@@ -376,7 +378,7 @@ Characteristics are available for the following components and parameters:
     * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
 For more information on how the characteristic functions work
-:ref:`click here <using_tespy_characteristics_label>`.
+:ref:`click here <tespy_modules_characteristics_label>`.
 
 Extend components with new equations
 ------------------------------------
@@ -523,7 +525,7 @@ characteristic lines or characteristic maps are loaded automatically by the
 component initialisation method of class
 :py:class:`tespy.components.component.Component`. For more information on the
 default characteristics consider this
-:ref:`chapter <using_tespy_characteristics_label>`.
+:ref:`chapter <tespy_modules_characteristics_label>`.
 
 The structure is very similar to the mandatory constraints, using
 DataContainers instead of dictionaries, e.g. for the Valve:

@@ -10,7 +10,7 @@ New Features
   e.g. when designing an extraction turbine, where the district heating condenser is designed for maximum extraction and the backpressure turbine is designed
   for minimum extraction (`PR #92 <https://github.com/oemof/tespy/pull/92>`_).
 - Implement warning messages for all components, if the component's properties are out of physical bounds. The bounds can be customized when specifying a property
-  by data containers (read more at :ref:`component parameter specification <using_tespy_components_parametrisation_label>`), (`PR #85 <https://github.com/oemof/tespy/pull/85>`_).
+  by data containers (read more at :ref:`component parameter specification <tespy_modules_components_parametrisation_label>`), (`PR #85 <https://github.com/oemof/tespy/pull/85>`_).
 
 Documentation
 #############

@@ -6,11 +6,13 @@ Rankine Cycle
 .. figure:: /_static/images/basics/rankine_cycle.svg
     :align: center
     :alt: Topology of the rankine cycle
-    :class: only-light
+    :figclass: only-light
+
+    Figure: Topology of the rankine cycle
 
 .. figure:: /_static/images/basics/rankine_cycle_darkmode.svg
     :align: center
     :alt: Topology of the rankine cycle
-    :class: only-dark
+    :figclass: only-dark
 
     Figure: Topology of the rankine cycle

@@ -5,12 +5,14 @@ Gas Turbine
 
 .. figure:: /_static/images/basics/gas_turbine.svg
     :align: center
-    :class: only-light
+    :alt: Topology of the gas turbine
+    :figclass: only-light
 
     Figure: Topology of the gas turbine
 
 .. figure:: /_static/images/basics/gas_turbine_darkmode.svg
     :align: center
-    :class: only-dark
+    :alt: Topology of the gas turbine
+    :figclass: only-dark
 
     Figure: Topology of the gas turbine

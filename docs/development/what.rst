@@ -1,7 +1,7 @@
 .. __tespy_development_what_label:
 
-What can I contribute
-=====================
+What can I contribute?
+======================
 TESPy has been developed mainly by Francesco Witte at the University of Applied
 Sciences Flensburg - and a lot of free time. We hope that many people can make
 use of this project and that it will be a community driven project in the

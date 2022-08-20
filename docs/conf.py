@@ -22,12 +22,11 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.extlinks',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx_copybutton',
-    'sphinx_inline_tabs',
+    'sphinx_design',
     'sphinxcontrib.bibtex',
 ]
 

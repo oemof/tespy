@@ -76,7 +76,7 @@ setup(
             'pytest',
             'sphinx',
             'sphinx-copybutton',
-            'sphinx-inline-tabs',
+            'sphinx-design',
             'sphinxcontrib.bibtex',
             'tox',
         ],

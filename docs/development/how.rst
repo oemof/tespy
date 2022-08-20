@@ -1,7 +1,7 @@
 .. _tespy_development_how_label:
 
-How to contribute
-=================
+How can I contribute?
+=====================
 
 You will find the most important information concerning the development process
 in the following sections. If you have any further questions feel free to

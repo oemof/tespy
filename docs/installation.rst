@@ -8,62 +8,64 @@ Following you find guidelines for the installation process for linux and
 windows. TESPy is a Python package, thus it requires you to have Python 3
 installed.
 
-.. tab:: Linux
+.. tab-set::
 
-   **Installing Python 3**
+   .. tab-item:: Linux
 
-   Most Linux distributions will have Python 3 in their repository. Use the
-   specific software management to install it, if it is not yet installed. If
-   you are using Ubuntu/Debian try executing the following code in your
-   terminal:
+      **Installing Python 3**
 
-   .. code:: console
+      Most Linux distributions will have Python 3 in their repository. Use the
+      specific software management to install it, if it is not yet installed. If
+      you are using Ubuntu/Debian try executing the following code in your
+      terminal:
 
-      sudo apt-get install python3
+      .. code:: console
 
-   You can also download different versions of Python via
-   https://www.python.org/downloads/.
+         sudo apt-get install python3
 
-   **Having Python 3 installed**
+      You can also download different versions of Python via
+      https://www.python.org/downloads/.
 
-   We recommend installting TESPy within a virtual Python enviroment an not
-   into the base, system wide Python installation. On Linux you can use
-   virtualenv to do so.
+      **Having Python 3 installed**
 
-   1. Install virtualenv using the package management of your Linux distribution,
-      pip install or install it from source
-      (`see virtualenv documentation <https://virtualenv.pypa.io/en/stable/installation.html>`_)
-   2. Open terminal to create and activate a virtual environment by typing:
+      We recommend installting TESPy within a virtual Python enviroment an not
+      into the base, system wide Python installation. On Linux you can use
+      virtualenv to do so.
 
-      .. code-block:: console
+      1. Install virtualenv using the package management of your Linux distribution,
+         pip install or install it from source
+         (`see virtualenv documentation <https://virtualenv.pypa.io/en/stable/installation.html>`_)
+      2. Open terminal to create and activate a virtual environment by typing:
 
-         virtualenv -p /usr/bin/python3 your_env_name
-         source your_env_name/bin/activate
+         .. code-block:: console
 
-   3. In terminal type: :code:`pip install tespy`
+            virtualenv -p /usr/bin/python3 your_env_name
+            source your_env_name/bin/activate
 
-   Warning: If you have an older version of virtualenv you should update pip
-   :code:`pip install --upgrade pip`.
+      3. In terminal type: :code:`pip install tespy`
 
-   **Using Conda**
+      Warning: If you have an older version of virtualenv you should update pip
+      :code:`pip install --upgrade pip`.
 
-   Alternatively you can use conda for enviroment and package management. You
-   can follow the installation instructions for windows users.
+      **Using Conda**
 
-.. tab:: Windows
+      Alternatively you can use conda for enviroment and package management. You
+      can follow the installation instructions for windows users.
 
-   For windows we recommend using conda as package manager. You can download a
-   light weight open source variant of conda: "miniforge3".
+   .. tab-item:: Windows
 
-   1. Download latest `miniforge3 <https://github.com/conda-forge/miniforge>`__
-      for Python 3.x (64 or 32 bit).
-   2. Install miniforge3
-   3. Open "miniforge prompt" to manage your virtual environments. You can
-      create a new environment and acivate it by
+      For windows we recommend using conda as package manager. You can download a
+      light weight open source variant of conda: "miniforge3".
 
-      .. code-block:: console
+      1. Download latest `miniforge3 <https://github.com/conda-forge/miniforge>`__
+         for Python 3.x (64 or 32 bit).
+      2. Install miniforge3
+      3. Open "miniforge prompt" to manage your virtual environments. You can
+         create a new environment and acivate it by
 
-         conda create -n tespy-env python=3.9
-         activate tespy-env
+         .. code-block:: console
 
-   4. In the active prompt type: :code:`pip install tespy`
+            conda create -n tespy-env python=3.9
+            activate tespy-env
+
+      4. In the active prompt type: :code:`pip install tespy`

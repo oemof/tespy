@@ -1,5 +1,5 @@
-Basics
-~~~~~~
+Modeling Basic Systems
+~~~~~~~~~~~~~~~~~~~~~~
 
 * :py:mod:`Components <tespy.components>`
 * :py:mod:`Connections and Busses <tespy.connections>`

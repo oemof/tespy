@@ -1,4 +1,4 @@
-.. _tespy_basics_district_heating:
+.. _tespy_basics_district_heating_label:
 
 District Heating Network
 ========================

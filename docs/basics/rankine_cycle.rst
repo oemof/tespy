@@ -1,4 +1,4 @@
-.. _tespy_basics_rankine_cycle:
+.. _tespy_basics_rankine_cycle_label:
 
 Rankine Cycle
 =============

@@ -1,3 +1,5 @@
+.. _tespy_basics_intro_label:
+
 First steps
 ===========
 

@@ -1,4 +1,4 @@
-.. _tespy_basics_heat_pump:
+.. _tespy_basics_heat_pump_label:
 
 Heat Pump
 =========

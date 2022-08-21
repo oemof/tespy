@@ -215,7 +215,7 @@ class CombustionEngine(CombustionChamber):
     ... design=['pr1'], offdesign=['zeta1'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(m0=0.1, T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
+    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 0, 'CH4': 1})
     >>> cw_sp.set_attr(p=3, T=60, m=50, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
     ... 'O2': 0, 'H2O': 1, 'CH4': 0})

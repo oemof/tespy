@@ -2381,6 +2381,26 @@ class Network:
                     fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
                 k += 1
 
+            # referenced volumetric flow
+            if c.v.ref_set:
+                ref = c.v.ref
+                flow_ref = ref.obj.get_flow()
+                ref_col = ref.obj.conn_loc * self.num_conn_vars
+                self.residual[k] = fp.v_mix_ph(flow, T0=c.T.val_SI) - (
+                    fp.v_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
+                    ref.factor + ref.delta_SI)
+
+                self.jacobian[k, col + 1] = (
+                    fp.dv_mix_dph(flow, T0=c.T.val_SI))
+                self.jacobian[k, col + 2] = (
+                    fp.dv_mix_pdh(flow, T0=c.T.val_SI))
+
+                self.jacobian[k, ref_col + 1] = -(
+                    fp.dv_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
+                self.jacobian[k, ref_col + 2] = -(
+                    fp.dv_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
+                k += 1
+
             # temperature difference to boiling point
             if c.Td_bp.val_set:
                 if (np.absolute(self.residual[k]) > err ** 2 or

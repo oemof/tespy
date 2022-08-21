@@ -9,13 +9,9 @@ tests/test_busses.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
-
-import numpy as np
 
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network

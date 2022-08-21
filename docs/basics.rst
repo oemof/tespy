@@ -29,58 +29,48 @@ online meetings as well as a discussion forum on github.
 
     Learn the basic modeling concept of TESPy
 
-
-.. grid:: 1 1 2 2
+.. grid:: 2
     :gutter: 1
 
-    .. grid-item::
-        :child-align: center
+    .. grid-item-card::  Heat Pump
+        :link: tespy_basics_heat_pump_label
+        :link-type: ref
 
-        .. grid:: 1 1 1 1
-            :gutter: 1
+        .. image:: /_static/images/basics/heat_pump.svg
+            :class: only-light
 
-            .. grid-item-card::  Heat Pump
-                :link: tespy_basics_heat_pump_label
-                :link-type: ref
+        .. image:: /_static/images/basics/heat_pump_darkmode.svg
+            :class: only-dark
 
-                .. image:: /_static/images/basics/heat_pump.svg
-                    :class: only-light
+    .. grid-item-card::  Clausius Rankine Cycle
+        :link: tespy_basics_rankine_cycle_label
+        :link-type: ref
 
-                .. image:: /_static/images/basics/heat_pump_darkmode.svg
-                    :class: only-dark
+        .. image:: /_static/images/basics/rankine_cycle.svg
+            :class: only-light
 
-            .. grid-item-card::  Clausius Rankine Cycle
-                :link: tespy_basics_rankine_cycle_label
-                :link-type: ref
+        .. image:: /_static/images/basics/rankine_cycle_darkmode.svg
+            :class: only-dark
 
-                .. image:: /_static/images/basics/rankine_cycle.svg
-                    :class: only-light
+.. grid:: 2
+    :gutter: 1
 
-                .. image:: /_static/images/basics/rankine_cycle_darkmode.svg
-                    :class: only-dark
+    .. grid-item-card::  Gas Turbine
+        :link: tespy_basics_gas_turbine_label
+        :link-type: ref
 
-    .. grid-item::
-        :child-align: center
+        .. image:: /_static/images/basics/gas_turbine.svg
+            :class: only-light
 
-        .. grid:: 1 1 1 1
-            :gutter: 1
+        .. image:: /_static/images/basics/gas_turbine_darkmode.svg
+            :class: only-dark
 
-            .. grid-item-card::  Gas Turbine
-                :link: tespy_basics_gas_turbine_label
-                :link-type: ref
+    .. grid-item-card::  District Heating System
+        :link: tespy_basics_district_heating_label
+        :link-type: ref
 
-                .. image:: /_static/images/basics/gas_turbine.svg
-                    :class: only-light
+        .. image:: /_static/images/basics/district_heating.svg
+            :class: only-light
 
-                .. image:: /_static/images/basics/gas_turbine_darkmode.svg
-                    :class: only-dark
-
-            .. grid-item-card::  District Heating System
-                :link: tespy_basics_district_heating_label
-                :link-type: ref
-
-                .. image:: /_static/images/basics/district_heating.svg
-                    :class: only-light
-
-                .. image:: /_static/images/basics/district_heating_darkmode.svg
-                    :class: only-dark
+        .. image:: /_static/images/basics/district_heating_darkmode.svg
+            :class: only-dark

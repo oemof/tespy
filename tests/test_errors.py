@@ -129,6 +129,7 @@ def test_set_attr_errors():
 
     # NotImplementedError
     set_attr_NotImplementedError(conn, Td_bp=Ref(conn, 1, 0))
+    set_attr_NotImplementedError(conn, x=Ref(conn, 1, 0))
 
 
 def test_get_attr_errors():

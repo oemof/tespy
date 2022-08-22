@@ -140,10 +140,10 @@ we do not need to pass the components to the network.
     .. math::
 
         \dot{m}_1 = \text{5 kg/s}\\
-        \dot{m}_1 = \dot_{m}_2\\
-        \dot{m}_2 = \dot_{m}_3\\
-        \dot{m}_3 = \dot_{m}_4\\
-        \dot{m}_4 = \dot_{m}_1
+        \dot{m}_1 = \dot{m}_2\\
+        \dot{m}_2 = \dot{m}_3\\
+        \dot{m}_3 = \dot{m}_4\\
+        \dot{m}_4 = \dot{m}_1
 
     Similarly, this applies to the fluid composition.
 

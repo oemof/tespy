@@ -19,9 +19,10 @@ with respect to the extraction pressure levels.
 .. toctree::
     :maxdepth: 1
     :glob:
+    :hidden:
 
-    tutorials/tutorial_heat_pump.rst
-    tutorials/tutorial_starting_values.rst
-    tutorials/tutorial_combustion_chamber.rst
-    tutorials/tutorial_pygmo_optimization.rst
-    tutorials/tutorial_heat_pump_exergy.rst
+    tutorials/heat_pump_steps.rst
+    tutorials/starting_values.rst
+    tutorials/combustion_chamber.rst
+    tutorials/pygmo_optimization.rst
+    tutorials/heat_pump_exergy.rst

@@ -1,4 +1,4 @@
-.. _installation_and_setup_label:
+.. _tespy_community_label:
 
 ###############
 TESPy community
@@ -26,3 +26,5 @@ In-person meetings
 ==================
 Currently, no in-person meetings are scheduled. We will update this section, as
 soon as a meeting is planned.
+
+TODO: INSERT SCREENSHOT OF MEETING HERE

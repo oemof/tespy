@@ -8,9 +8,10 @@ applications.
 
 If you want to learn more about the details of the different parts of the
 software, you should also have a look at the
-:ref:`Documentation section <>` after the first steps. If you have any
-questions please reach out to the :ref:`TESPy community <>`. There are regular
-online meetings as well as a discussion forum on github.
+:ref:`Documentation section <tespy_modules_label>` after the first steps. If
+you have any questions please reach out to the
+:ref:`TESPy community <tespy_community_label>`. There are regular online
+meetings as well as a discussion forum on GitHub.
 
 .. toctree::
     :maxdepth: 1

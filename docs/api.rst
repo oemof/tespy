@@ -12,5 +12,8 @@ sources are cited individually.
 .. toctree::
     :maxdepth: 1
     :glob:
+    :hidden:
 
     api/*
+
+TODO: NICE CARDS HERE AS WELL

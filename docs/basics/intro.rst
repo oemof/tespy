@@ -1,41 +1,40 @@
 .. _tespy_basics_intro_label:
 
-First steps
-===========
+Introduction
+============
 
-In this section we provide you with a very simple example as firsts steps in
-using TESPy. The model used in this introduction is shown the figure. It
-consists of a central heating plant and a consumer, represented by a heat
-exchanger with a control valve.
+In this section we provide you with the basics of the TESPy's modeling concept.
+TESPy builds up on **components** that are connected using **connections** to
+form a topological **network**. The figure below highlights these three core
+components of the software at the example of a small heat pump.
 
-.. figure:: /api/_images/intro_district_heating_scheme.svg
+.. figure:: /_static/images/basics/modeling_concept.svg
     :align: center
+    :alt: TESPy's modeling concept
 
-    Figure: Topology of the simplest district heating system.
+    Figure: TESPy's modeling concept.
 
 Set up a plant
 --------------
 
-In order to simulate a plant we start by creating a network
+In order to simulate a plant we start by creating the network
 (:py:class:`tespy.networks.network.Network`). The network is the main container
 for the model. You need to specify a list of the fluids you require for the
 calculation in your plant. For more information on the fluid properties go to
-the :ref:`corresponding section <tespy_fluid_properties_label>` in TESPy
-modules.
+the :ref:`corresponding section <tespy_fluid_properties_label>` in the
+documentation.
 
 .. code-block:: python
 
     from tespy.networks import Network
 
-    # create a network object with water as fluid
-    fluid_list = ['water']
+    # create a network object with R134a as fluid
+    fluid_list = ['R134a']
     my_plant = Network(fluids=fluid_list)
 
 On top of that, it is possible to specify a unit system and value ranges for
 the network's variables. If you do not specify these, TESPy will use SI-units.
-The specification of the **value range** is used to **improve convergence**
-**stability**, in case you are dealing with **fluid mixtures**, e.g. using
-combustion. We will thus only specify the unit systems, in this case.
+We will thus only specify the unit systems, in this case.
 
 .. code-block:: python
 
@@ -48,17 +47,13 @@ Set up components
 -----------------
 
 The list of components available can be found
-:ref:`here <tespy_modules_components_label>`. If you set up a component you have
-to specify a (within one network) unique label. Moreover, it is possible to
-specify parameters for the component, for example power :math:`P` for a turbine
+:ref:`here <tespy_modules_components_label>`. If you set up a component you
+have to specify a (within one network) unique label. Moreover, it is possible
+to specify parameters for the component, for example power :math:`P` for a pump
 or upper terminal temperature difference :math:`ttd_\mathrm{u}` of a heat
 exchanger. The full list of parameters for a specific component is stated in
-the respective class documentation. The example uses pipes, a control valve and
-a heat exchanger. The definition of the parameters available can be found here:
-
-- :py:class:`tespy.components.piping.pipe.Pipe`
-- :py:class:`tespy.components.piping.valve.Valve`
-- :py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
+the respective class documentation. This example uses a compressor, a control
+valve two (simple) heat exchangers and a so called cycle closer.
 
 .. note::
 
@@ -66,38 +61,25 @@ a heat exchanger. The definition of the parameters available can be found here:
     label is mandatory. If an optional parameter is not specified by the user,
     it will be a result of the plant's simulation. This way, the set of
     equations a component returns is determined by which parameters you
-    specify. You can find all equations in the components documentation as
+    specify. You can find all equations in each component's documentation as
     well.
 
 .. code-block:: python
 
     from tespy.components import (
-        Sink, Source, Pipe, Valve, HeatExchangerSimple)
+        CycleCloser, Compressor, Valve, HeatExchangerSimple
+    )
 
-    # sources & sinks (central heating plant)
-    so = Source('heat source output')
-    si = Sink('heat source input')
+    cc = CycleCloser('cycle closer')
 
-    # consumer
-    cons = HeatExchangerSimple('consumer')
-    cons.set_attr(Q=-10000, pr=0.98)  # Q in W
-    val = Valve('valve')
-    val.set_attr(pr=1)  # pr - pressure ratio (output/input pressure)
+    # heat sink
+    co = HeatExchangerSimple('condenser')
+    # heat source
+    ev = HeatExchangerSimple('evaporator')
 
-    # pipes
-    pipe_feed = Pipe('pipe_feed')
-    pipe_back = Pipe('pipe_back')
+    va = Valve('expansion valve')
+    cp = Compressor('compressor')
 
-    pipe_feed.set_attr(ks=0.0005,  # pipe's roughness in meters
-                       L=100,  # length in m
-                       D=0.06,  # diameter in m
-                       kA=10,  # area independent heat transfer coefficient kA in W/K
-                       Tamb=10)  # ambient temperature of the pipe environment (ground temperature)
-    pipe_back.set_attr(ks=0.0005,
-                       L=100,
-                       D=0.06,
-                       kA=10,
-                       Tamb=10)
 
 After creating the components the next step is to connect them in order to form
 your topological network.
@@ -111,75 +93,110 @@ the fluid properties at the source will be equal to the properties at the
 target. It is possible to set the properties on each connection in a similar
 way as parameters are set for components. The basic specification options are:
 
- * mass flow (m)
- * volumetric flow (v)
- * pressure (p)
- * enthalpy (h)
- * temperature (T)
- * a fluid vector (fluid)
+* mass flow (m)
+* volumetric flow (v)
+* pressure (p)
+* enthalpy (h)
+* temperature (T)
+* a fluid vector (fluid)
 
-.. note::
+.. seealso::
 
     There are more specification options available. Please refer to
-    the :ref:`connections section <tespy_modules_connections_label>` in the TESPy
-    modules chapter for detailed information. The specification options are
-    stated in the
-    connection class documentation, too:
+    the :ref:`connections section <tespy_modules_connections_label>` in the
+    TESPy modules documentation for detailed information. The specification
+    options are stated in the connection class documentation, too:
     :py:class:`tespy.connections.connection.Connection`.
 
 After creating the connections, we need to add them to the network. As the
 connections hold the information, which components are connected in which way,
 we do not need to pass the components to the network.
 
-The connection parameters specified in the example case, are inlet and outlet
-temperature of the system as well as the inlet pressure. The pressure losses in
-the pipes, the consumer and the control valve determine the pressure at all
-other points of the network. The enthalpy is calculated from given temperature
-and heat losses in the pipes. Additionally we have to specify the fluid vector
-at one point in our network.
-
 .. code-block:: python
 
     from tespy.connections import Connection
 
     # connections of the disctrict heating system
-    so_pif = Connection(so, 'out1', pipe_feed, 'in1')
-
-    pif_cons = Connection(pipe_feed, 'out1', cons, 'in1')
-    cons_val = Connection(cons, 'out1', val, 'in1')
-
-    val_pib = Connection(val, 'out1', pipe_back, 'in1')
-    pib_si = Connection(pipe_back, 'out1', si, 'in1')
+    c1 = Connection(cc, 'out1', ev, 'in1', label='1')
+    c2 = Connection(ev, 'out1', cp, 'in1', label='2')
+    c3 = Connection(cp, 'out1', co, 'in1', label='3')
+    c4 = Connection(co, 'out1', va, 'in1', label='4')
+    c0 = Connection(va, 'out1', cc, 'in1', label='0')
 
     # this line is crutial: you have to add all connections to your network
-    my_plant.add_conns(so_pif, pif_cons, cons_val, val_pib, pib_si)
+    my_plant.add_conns(c1, c2, c3, c4, c0)
 
-    so_pif.set_attr(T=90, p=15, fluid={'water': 1})
-    cons_val.set_attr(T=60)
+.. note::
+
+    The :code:`CycleCloser` is a necessary component when working with closed
+    cycles, because a system would always be overdetermined, if, for example,
+    a mass flow is specified at some point within the cycle. It would propagate
+    through all of the components, since they have an equality constraint for
+    the mass flow at their inlet and their outlet. With the example here, that
+    would mean: **Without the cycle closer** specification of massflow at an
+    connection would lead to the following set of equations for massflow, which
+    is an overdetermination:
+
+    .. math::
+
+        \dot{m}_1 = \text{5 kg/s}\\
+        \dot{m}_1 = \dot_{m}_2\\
+        \dot{m}_2 = \dot_{m}_3\\
+        \dot{m}_3 = \dot_{m}_4\\
+        \dot{m}_4 = \dot_{m}_1
+
+    Similarly, this applies to the fluid composition.
+
+    The cycle closer will prompt a warning, if the mass flow and fluid
+    composition are not equal at its inlet and outlet.
+
+We can set the component and connection parameters. In this example, we specify
+the pressure losses (by outlet to inlet pressure ratio :code:`pr`) in the
+condenser and the evaporator as well as the efficiency :code:`eta_s` of the
+compressor. On top of that, the heat production of the heat pump can be set
+with :code:`Q` for the condenser. Since we are working in **subcritical**
+regime in this tutorial, we set the state of the fluid at the evaporator's
+outlet to fully saturated steam (:code:`x=1`) and at the condenser's outlet to
+fully saturated liqud (:code:`x=0`). On top of that, we want to impose the
+condensation and the evaporation temperature levels. Last, we have to specify
+the fluid vector at one point in our network.
+
+.. code-block:: python
+
+    co.set_attr(pr=0.98, Q=-1e6)
+    ev.set_attr(pr=0.98)
+    cp.set_attr(eta_s=0.9)
+
+    c2.set_attr(T=20, x=1, fluid={'R134a': 1})
+    c4.set_attr(T=75, x=0)
 
 Start your calculation
 ----------------------
 
 After building your network, the components and the connections, add the
-following line at the end of your script and run it:
+following line at the end of your script and run it. You can calculate the COP
+with the respective component parameters.
 
 .. code-block:: python
 
     my_plant.solve(mode='design')
     my_plant.print_results()
 
-We highly recommend to check our step-by-step
-:ref:`tutorial <heat_pump_tutorial_label>` on how to set up a heat pump (see
-figure below) in TESPy. You will learn, how to set up and design a plant as
-well as calculate offdesign/partload performance.
+    print(f'COP = {abs(co.Q.val) / cp.P.val}')
 
-.. figure:: /api/_images/tutorial_heat_pump.svg
-    :align: center
+Next steps
+----------
 
-    Figure: Topology of a heat pump
+We highly recommend to check our other basic model examples on how to set up
+different standard thermodynamic cycles in TESPy. The heat pump cycle in that
+section builds on this heat pump. We will introduce couple of different inputs
+and change the working fluid. The other tutorials show the usage of more
+components, for example the combustion chamber and the turbine or a condenser
+including the cooling water side of the system.
 
-Additional examples are provided in the
-:ref:`examples section <tespy_examples_label>`.
+In the more advanced tutorials, you will learn, how to set up more complex
+plants ste by step, make a design calculation of the plant as well as calculate
+offdesign/partload performance.
 
 In order to get a good overview of the TESPy functionalities, the sections on
 the :ref:`TESPy modules <tespy_modules_label>` will guide you in detail.

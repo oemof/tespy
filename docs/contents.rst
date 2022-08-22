@@ -2,18 +2,16 @@
 
 .. include:: introduction.rst
 
-
-Contents
-========
-
 ..  toctree::
     :maxdepth: 2
+    :hidden:
 
     introduction
 
 ..  toctree::
     :maxdepth: 2
     :caption: User Guide
+    :hidden:
 
     installation
     basics
@@ -24,6 +22,7 @@ Contents
 ..  toctree::
     :maxdepth: 2
     :caption: Documentation
+    :hidden:
 
     modules
     benchmarks
@@ -34,6 +33,7 @@ Contents
 ..  toctree::
     :maxdepth: 2
     :caption: Advanced Features
+    :hidden:
 
     advanced/exergy
     advanced/optimization
@@ -41,13 +41,7 @@ Contents
 ..  toctree::
     :maxdepth: 2
     :caption: Contribute to TESPy
+    :hidden:
 
     development/what
     development/how
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

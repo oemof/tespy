@@ -36,6 +36,15 @@ ambient. You can see the plant topology in the figure below.
 
 .. figure:: /_static/images/tutorials/heat_pump_starting_values/flowsheet.svg
     :align: center
+    :alt: Topology of heat pump with internal heat exchanger
+    :figclass: only-light
+
+    Figure: Topology of heat pump with internal heat exchanger
+
+.. figure:: /_static/images/tutorials/heat_pump_starting_values/flowsheet_darkmode.svg
+    :align: center
+    :alt: Topology of heat pump with internal heat exchanger
+    :figclass: only-dark
 
     Figure: Topology of heat pump with internal heat exchanger
 
@@ -303,185 +312,188 @@ Expand fix to any working fluids
 Finally, using this strategy, it is possible to build a generic function,
 building a network, that works with a variety of working fluids.
 
-.. code-block:: python
+.. dropdown:: Display source code of the full code
 
-    import matplotlib.pyplot as plt
-    import pandas as pd
+    .. code-block:: python
 
-    from tespy.networks import Network
-    from tespy.components import (
-        Condenser, Compressor, CycleCloser,  HeatExchanger,
-        HeatExchangerSimple, Pump, Sink, Source, Valve
-        )
-    from tespy.connections import Connection, Ref, Bus
-    import CoolProp.CoolProp as CP
+        import matplotlib.pyplot as plt
+        import pandas as pd
+
+        from tespy.networks import Network
+        from tespy.components import (
+            Condenser, Compressor, CycleCloser,  HeatExchanger,
+            HeatExchangerSimple, Pump, Sink, Source, Valve
+            )
+        from tespy.connections import Connection, Ref, Bus
+        import CoolProp.CoolProp as CP
 
 
-    def generate_starting_values(wf):
+        def generate_starting_values(wf):
 
-        # network
-        nw = Network(
-            fluids=['water', wf],
-            T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-            iterinfo=False
-        )
-
-        # components
-        cycle_closer = CycleCloser('Refrigerant Cycle Closer')
-
-        # heat source
-        heatsource_feedflow = Source('Heat Source Feed Flow')
-        heatsource_pump = Pump('Heat Source Recirculation Pump')
-        heatsource_evaporator = HeatExchanger('Heat Source Evaporator')
-        heatsource_backflow = Sink('Heat Source Back Flow')
-
-        # compression
-        compressor = Compressor('Compressor')
-
-        # heat sink
-        cons_pump = Pump('Heat Sink Recirculation Pump')
-        condenser = Condenser('Heat Sink Condenser')
-        cons_heatsink = HeatExchangerSimple('Heat Consumer')
-        cons_cycle_closer = CycleCloser('Consumer Feed Flow')
-
-        # internal heat exchange
-        int_heatex = HeatExchanger('Internal Heat Exchanger')
-
-        # expansion
-        valve = Valve('Expansion Valve')
-
-        # connections
-        # main cycle
-        cc2hs_eva = Connection(cycle_closer, 'out1', heatsource_evaporator, 'in2', label='0')
-        hs_eva2int_heatex = Connection(heatsource_evaporator, 'out2', int_heatex, 'in2', label='1')
-        int_heatex2comp = Connection(int_heatex, 'out2', compressor, 'in1', label='2')
-        comp2cond = Connection(compressor, 'out1', condenser, 'in1', label='3')
-        cond2int_heatex = Connection(condenser, 'out1', int_heatex, 'in1', label='4')
-        int_heatex2valve = Connection(int_heatex, 'out1', valve, 'in1', label='5')
-        valve2cc = Connection(valve, 'out1', cycle_closer, 'in1', label='6')
-
-        nw.add_conns(
-            cc2hs_eva, hs_eva2int_heatex, int_heatex2comp, comp2cond, cond2int_heatex,
-            int_heatex2valve, valve2cc
+            # network
+            nw = Network(
+                fluids=['water', wf],
+                T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
+                iterinfo=False
             )
 
-        # heat source
-        hs_feed2hs_pump = Connection(heatsource_feedflow, 'out1', heatsource_pump, 'in1', label='11')
-        hs_pump2hs_eva = Connection(heatsource_pump, 'out1', heatsource_evaporator, 'in1', label='12')
-        hs_eva2hs_back = Connection(heatsource_evaporator, 'out1', heatsource_backflow, 'in1', label='13')
+            # components
+            cycle_closer = CycleCloser('Refrigerant Cycle Closer')
 
-        nw.add_conns(hs_feed2hs_pump, hs_pump2hs_eva, hs_eva2hs_back)
+            # heat source
+            heatsource_feedflow = Source('Heat Source Feed Flow')
+            heatsource_pump = Pump('Heat Source Recirculation Pump')
+            heatsource_evaporator = HeatExchanger('Heat Source Evaporator')
+            heatsource_backflow = Sink('Heat Source Back Flow')
 
-        # heat sink
-        cons_back2cons_pump = Connection(cons_cycle_closer, 'out1', cons_pump, 'in1', label='20')
-        cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='21')
-        cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='22')
-        cons_hs2cons_feed = Connection(cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='23')
+            # compression
+            compressor = Compressor('Compressor')
 
-        nw.add_conns(cons_back2cons_pump, cons_pump2cond, cond2cons_hs, cons_hs2cons_feed)
+            # heat sink
+            cons_pump = Pump('Heat Sink Recirculation Pump')
+            condenser = Condenser('Heat Sink Condenser')
+            cons_heatsink = HeatExchangerSimple('Heat Consumer')
+            cons_cycle_closer = CycleCloser('Consumer Feed Flow')
 
-        # set feedflow and backflow temperature of heat source and consumer
-        T_hs_bf = 10
-        T_hs_ff = 15
-        T_cons_bf = 50
-        T_cons_ff = 90
+            # internal heat exchange
+            int_heatex = HeatExchanger('Internal Heat Exchanger')
 
-        # consumer cycle
-        cond2cons_hs.set_attr(T=T_cons_ff, p=10, fluid={'water': 1, wf: 0})
-        cons_hs2cons_feed.set_attr(T=T_cons_bf)
+            # expansion
+            valve = Valve('Expansion Valve')
 
-        # heat source cycle
-        hs_feed2hs_pump.set_attr(T=T_hs_ff, p=1, fluid={'water': 1, wf: 0})
-        hs_eva2hs_back.set_attr(T=T_hs_bf, p=1)
+            # connections
+            # main cycle
+            cc2hs_eva = Connection(cycle_closer, 'out1', heatsource_evaporator, 'in2', label='0')
+            hs_eva2int_heatex = Connection(heatsource_evaporator, 'out2', int_heatex, 'in2', label='1')
+            int_heatex2comp = Connection(int_heatex, 'out2', compressor, 'in1', label='2')
+            comp2cond = Connection(compressor, 'out1', condenser, 'in1', label='3')
+            cond2int_heatex = Connection(condenser, 'out1', int_heatex, 'in1', label='4')
+            int_heatex2valve = Connection(int_heatex, 'out1', valve, 'in1', label='5')
+            valve2cc = Connection(valve, 'out1', cycle_closer, 'in1', label='6')
 
-        # evaporation to fully saturated gas
-        hs_eva2int_heatex.set_attr(x=1, fluid={'water': 0, wf: 1})
+            nw.add_conns(
+                cc2hs_eva, hs_eva2int_heatex, int_heatex2comp, comp2cond, cond2int_heatex,
+                int_heatex2valve, valve2cc
+                )
 
-        # parametrization components
-        # isentropic efficiency
-        cons_pump.set_attr(eta_s=0.8)
-        heatsource_pump.set_attr(eta_s=0.8)
-        compressor.set_attr(eta_s=0.85)
+            # heat source
+            hs_feed2hs_pump = Connection(heatsource_feedflow, 'out1', heatsource_pump, 'in1', label='11')
+            hs_pump2hs_eva = Connection(heatsource_pump, 'out1', heatsource_evaporator, 'in1', label='12')
+            hs_eva2hs_back = Connection(heatsource_evaporator, 'out1', heatsource_backflow, 'in1', label='13')
 
-        # pressure ratios
-        condenser.set_attr(pr1=0.98, pr2=0.98)
-        heatsource_evaporator.set_attr(pr1=0.98, pr2=0.98)
-        cons_heatsink.set_attr(pr=0.99)
-        int_heatex.set_attr(pr1=0.98, pr2=0.98)
+            nw.add_conns(hs_feed2hs_pump, hs_pump2hs_eva, hs_eva2hs_back)
 
-        # evaporation point
-        p_eva = CP.PropsSI('P', 'Q', 1, 'T', T_hs_bf - 5 + 273.15, wf) * 1e-5
-        hs_eva2int_heatex.set_attr(p=p_eva)
+            # heat sink
+            cons_back2cons_pump = Connection(cons_cycle_closer, 'out1', cons_pump, 'in1', label='20')
+            cons_pump2cond = Connection(cons_pump, 'out1', condenser, 'in2', label='21')
+            cond2cons_hs = Connection(condenser, 'out2', cons_heatsink, 'in1', label='22')
+            cons_hs2cons_feed = Connection(cons_heatsink, 'out1', cons_cycle_closer, 'in1', label='23')
 
-        # condensation point
-        p_cond = CP.PropsSI('P', 'Q', 0, 'T', T_cons_ff + 5 + 273.15, wf) * 1e-5
-        cond2int_heatex.set_attr(p=p_cond)
+            nw.add_conns(cons_back2cons_pump, cons_pump2cond, cond2cons_hs, cons_hs2cons_feed)
 
-        # internal heat exchanger to compressor enthalpy
-        h_evap = CP.PropsSI('H', 'Q', 1, 'T', T_hs_bf - 5 + 273.15, wf) * 1e-3
-        int_heatex2comp.set_attr(h=h_evap * 1.01)
+            # set feedflow and backflow temperature of heat source and consumer
+            T_hs_bf = 10
+            T_hs_ff = 15
+            T_cons_bf = 50
+            T_cons_ff = 90
 
-        # consumer heat demand
-        cons_heatsink.set_attr(Q=-1e6)
+            # consumer cycle
+            cond2cons_hs.set_attr(T=T_cons_ff, p=10, fluid={'water': 1, wf: 0})
+            cons_hs2cons_feed.set_attr(T=T_cons_bf)
 
-        power_bus = Bus('Total power input')
-        heat_bus = Bus('Total heat production')
-        power_bus.add_comps(
-            {'comp': compressor, 'base': 'bus'},
-            {'comp': cons_pump, 'base': 'bus'},
-            {'comp': heatsource_pump, 'base': 'bus'},
-        )
-        heat_bus.add_comps({'comp': cons_heatsink})
+            # heat source cycle
+            hs_feed2hs_pump.set_attr(T=T_hs_ff, p=1, fluid={'water': 1, wf: 0})
+            hs_eva2hs_back.set_attr(T=T_hs_bf, p=1)
 
-        nw.add_busses(power_bus, heat_bus)
+            # evaporation to fully saturated gas
+            hs_eva2int_heatex.set_attr(x=1, fluid={'water': 0, wf: 1})
 
-        nw.solve('design')
+            # parametrization components
+            # isentropic efficiency
+            cons_pump.set_attr(eta_s=0.8)
+            heatsource_pump.set_attr(eta_s=0.8)
+            compressor.set_attr(eta_s=0.85)
+
+            # pressure ratios
+            condenser.set_attr(pr1=0.98, pr2=0.98)
+            heatsource_evaporator.set_attr(pr1=0.98, pr2=0.98)
+            cons_heatsink.set_attr(pr=0.99)
+            int_heatex.set_attr(pr1=0.98, pr2=0.98)
 
             # evaporation point
-        hs_eva2int_heatex.set_attr(p=None)
-        heatsource_evaporator.set_attr(ttd_l=5)
+            p_eva = CP.PropsSI('P', 'Q', 1, 'T', T_hs_bf - 5 + 273.15, wf) * 1e-5
+            hs_eva2int_heatex.set_attr(p=p_eva)
 
-        # condensation point
-        cond2int_heatex.set_attr(p=None)
-        condenser.set_attr(ttd_u=5)
+            # condensation point
+            p_cond = CP.PropsSI('P', 'Q', 0, 'T', T_cons_ff + 5 + 273.15, wf) * 1e-5
+            cond2int_heatex.set_attr(p=p_cond)
 
-        # internal heat exchanger superheating
-        int_heatex2comp.set_attr(Td_bp=5, h=None)
+            # internal heat exchanger to compressor enthalpy
+            h_evap = CP.PropsSI('H', 'Q', 1, 'T', T_hs_bf - 5 + 273.15, wf) * 1e-3
+            int_heatex2comp.set_attr(h=h_evap * 1.01)
 
-        # solve the network again
-        nw.solve('design')
+            # consumer heat demand
+            cons_heatsink.set_attr(Q=-1e6)
 
-        return nw
+            power_bus = Bus('Total power input')
+            heat_bus = Bus('Total heat production')
+            power_bus.add_comps(
+                {'comp': compressor, 'base': 'bus'},
+                {'comp': cons_pump, 'base': 'bus'},
+                {'comp': heatsource_pump, 'base': 'bus'},
+            )
+            heat_bus.add_comps({'comp': cons_heatsink})
+
+            nw.add_busses(power_bus, heat_bus)
+
+            nw.solve('design')
+
+                # evaporation point
+            hs_eva2int_heatex.set_attr(p=None)
+            heatsource_evaporator.set_attr(ttd_l=5)
+
+            # condensation point
+            cond2int_heatex.set_attr(p=None)
+            condenser.set_attr(ttd_u=5)
+
+            # internal heat exchanger superheating
+            int_heatex2comp.set_attr(Td_bp=5, h=None)
+
+            # solve the network again
+            nw.solve('design')
+
+            return nw
 
 
-    cop = pd.DataFrame(columns=["COP"])
+        cop = pd.DataFrame(columns=["COP"])
 
-    for wf in ['NH3', 'R22', 'R134a', 'R152a', 'R290', 'R718']:
-        nw = generate_starting_values(wf)
+        for wf in ['NH3', 'R22', 'R134a', 'R152a', 'R290', 'R718']:
+            nw = generate_starting_values(wf)
 
-        power = nw.busses['Total power input'].P.val
-        heat = abs(nw.busses['Total heat production'].P.val)
-        cop.loc[wf] = heat / power
-
-
-    fig, ax = plt.subplots(1)
-
-    cop.plot.bar(ax=ax, legend=False)
-
-    ax.set_axisbelow(True)
-    ax.yaxis.grid(linestyle='dashed')
-    ax.set_xlabel('Name of working fluid')
-    ax.set_ylabel('Coefficicent of performance')
-    ax.set_title('Coefficicent of performance for different working fluids')
-    plt.tight_layout()
-
-    fig.savefig('COP_by_wf.svg')
+            power = nw.busses['Total power input'].P.val
+            heat = abs(nw.busses['Total heat production'].P.val)
+            cop.loc[wf] = heat / power
 
 
-.. figure:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
-    :align: center
+        fig, ax = plt.subplots(1)
 
-    Figure: Topology of heat pump with internal heat exchanger
+        cop.plot.bar(ax=ax, legend=False)
+
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(linestyle='dashed')
+        ax.set_xlabel('Name of working fluid')
+        ax.set_ylabel('Coefficicent of performance')
+        ax.set_title('Coefficicent of performance for different working fluids')
+        plt.tight_layout()
+
+        fig.savefig('COP_by_wf.svg')
+
+
+    .. figure:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
+        :align: center
+        :alit: Analysis of the COP using different working fluids
+
+        Figure: Analysis of the COP using different working fluids
 
 Of course, there are different strategies, which include building the plant
 step by step and successively adding more and more components.

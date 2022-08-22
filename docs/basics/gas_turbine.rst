@@ -1,4 +1,4 @@
-.. _tespy_basics_gas_turbine:
+.. _tespy_basics_gas_turbine_label:
 
 Gas Turbine
 ===========

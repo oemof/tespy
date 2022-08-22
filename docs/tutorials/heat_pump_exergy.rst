@@ -48,6 +48,14 @@ compressor.
 .. figure:: /_static/images/tutorials/heat_pump_exergy/flowsheet.svg
     :align: center
     :alt: Topology of the Ground-Couped Heat Pump (GCHP)
+    :figclass: only-light
+
+    Figure: Topology of the Ground-Couped Heat Pump (GCHP).
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/flowsheet_darkmode.svg
+    :align: center
+    :alt: Topology of the Ground-Couped Heat Pump (GCHP)
+    :figclass: only-dark
 
     Figure: Topology of the Ground-Couped Heat Pump (GCHP).
 
@@ -104,8 +112,10 @@ The units used and the ambient state are defined as follows:
 
 .. code-block:: python
 
-    nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
-             h_unit='kJ / kg', m_unit='kg / s')
+    nw = Network(
+        fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
+        h_unit='kJ / kg', m_unit='kg / s'
+    )
 
     pamb = 1.013
     Tamb = 2.8

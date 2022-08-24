@@ -16,3 +16,14 @@ Rankine Cycle
     :figclass: only-dark
 
     Figure: Topology of the rankine cycle
+
+Setting up the Cycle
+^^^^^^^^^^^^^^^^^^^^
+
+
+Analyze Efficiency and Powergeneration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Partload Simulation
+^^^^^^^^^^^^^^^^^^^

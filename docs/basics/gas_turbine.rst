@@ -16,3 +16,15 @@ Gas Turbine
     :figclass: only-dark
 
     Figure: Topology of the gas turbine
+
+
+Setting up the Combustion Chamber
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Setting up the Full System
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Fluid Composition Specifications
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

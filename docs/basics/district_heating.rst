@@ -16,3 +16,15 @@ District Heating Network
     :figclass: only-dark
 
     Figure: Topology of the district heating network
+
+
+Setting up the System
+^^^^^^^^^^^^^^^^^^^^^
+
+
+Calculate Heat Losses
+^^^^^^^^^^^^^^^^^^^^^
+
+
+Calculate Pipe Characteristics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

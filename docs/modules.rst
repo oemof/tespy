@@ -70,8 +70,9 @@ as the underlying functionalities of the software.
         :link: tespy_ude_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/fluid_properties.svg
-            :class: only-light
+        .. math::
 
-        .. image:: /_static/images/modules/fluid_properties_darkmode.svg
-            :class: only-dark
+            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
+            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
+            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
+            \dot{m}_2 = f\left(\frac{X}{X_0}\right)

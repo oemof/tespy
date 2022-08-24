@@ -13,10 +13,10 @@ The TESPy network contains all data of your plant, which in terms of the
 calculation is represented by a nonlinear system of equations. The system
 variables of your TESPy network are:
 
- * mass flow,
- * pressure,
- * enthalpy and
- * the mass fractions of the network's fluids.
+* mass flow,
+* pressure,
+* enthalpy and
+* the mass fractions of the network's fluids.
 
 The solver will solve for these variables. As stated in the introduction the
 list of fluids is passed to your network on creation. If your **system**
@@ -257,19 +257,19 @@ The initialisation is performed in the following steps.
 
 **General preprocessing:**
 
- * check network consistency and initialise components (if network topology is
-   changed to a prior calculation only).
- * perform design/offdesign switch (for offdesign calculations only).
- * preprocessing of offdesign case using the information from the
-   :code:`design_path` argument.
+* check network consistency and initialise components (if network topology is
+  changed to a prior calculation only).
+* perform design/offdesign switch (for offdesign calculations only).
+* preprocessing of offdesign case using the information from the
+  :code:`design_path` argument.
 
 **Finding starting values:**
 
- * fluid propagation.
- * fluid property initialisation.
- * initialisation from previous simulation run (:code:`ìnit_previous`).
- * initialisation from .csv (setting starting values from :code:`init_path`
-   argument).
+* fluid propagation.
+* fluid property initialisation.
+* initialisation from previous simulation run (:code:`ìnit_previous`).
+* initialisation from .csv (setting starting values from :code:`init_path`
+  argument).
 
 The network check is used to find errors in the network topology, the
 calculation can not start without a successful check. For components, a
@@ -413,29 +413,27 @@ added a convergence check.
 **has been added**. This manipulation has four steps, the first two are always
 applied:
 
- * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-   mass fraction of a single fluid components never exceeds these boundaries.
- * Check, whether the fluid properties of pure fluids are within the available
-   ranges of CoolProp and readjust the values if not.
+* Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
+  mass fraction of a single fluid components never exceeds these boundaries.
+* Check, whether the fluid properties of pure fluids are within the available
+  ranges of CoolProp and readjust the values if not.
 
 The next two steps are applied, if the user did not specify an
 :code:`init_path` and the iteration count is lower than 3, thus in the first
 three iteration steps of the algorithm only. In other cases this convergence
 check is skipped.
 
- * Fox mixtures: check, if the fluid properties (pressure, enthalpy and
-   mass flow) are within the user specified boundaries
-   (:code:`p_range, h_range, m_range`) and if not, cut off higher/lower
-   values.
- * Check the fluid properties of the connections based on the components they
-   are connecting. For example, check if the pressure at the outlet of a
-   turbine is lower than the pressure at the inlet or if the flue gas
-   composition at a combustion chamber's outlet is within the range of a
-   "typical" flue gas composition. If there are any violations, the
-   corresponding variables are manipulated. If you want to look up, what
-   exactly the convergence check for a specific component does, look out for
-   the :code:`convergence_check` methods in the
-   :py:mod:`tespy.components module <tespy.components>`.
+* Fox mixtures: check, if the fluid properties (pressure, enthalpy and mass
+  flow) are within the user specified boundaries
+  (:code:`p_range, h_range, m_range`) and if not, cut off higher/lower values.
+* Check the fluid properties of the connections based on the components they
+  are connecting. For example, check if the pressure at the outlet of a turbine
+  is lower than the pressure at the inlet or if the flue gas composition at a
+  combustion chamber's outlet is within the range of a "typical" flue gas
+  composition. If there are any violations, the corresponding variables are
+  manipulated. If you want to look up, what exactly the convergence check for a
+  specific component does, look out for the :code:`convergence_check` methods
+  in the :py:mod:`tespy.components module <tespy.components>`.
 
 In a lot of different tests the algorithm has found a near enough solution
 after the third iteration, further checks are usually not required.
@@ -628,14 +626,14 @@ After having exported the LaTeX code, you can simply use :code:`\input{}`
 in your main LaTeX document to include the documentation of your model. In
 order to compile correctly you need to load the following LaTeX packages:
 
-   -  graphicx
-   -  float
-   -  hyperref
-   -  booktabs
-   -  amsmath
-   -  units
-   -  cleveref
-   -  longtable
+* graphicx
+* float
+* hyperref
+* booktabs
+* amsmath
+* units
+* cleveref
+* longtable
 
 For generating different file formats, like markdown, html or
 restructuredtext, you could try the `pandoc <https://pandoc.org/>`_ library.
@@ -653,9 +651,9 @@ To print the results in your console use the :code:`print_results()` method.
 It will print tables containing the component, connection and bus properties.
 Some of the results will be colored, the colored results indicate
 
- * if a parameter was specified as value before calculation.
- * if a parameter is out of its predefined value bounds (e.g. efficiency > 1).
- * if a component parameter was set to :code:`'var'` in your calculation.
+* if a parameter was specified as value before calculation.
+* if a parameter is out of its predefined value bounds (e.g. efficiency > 1).
+* if a component parameter was set to :code:`'var'` in your calculation.
 
 The color for each of those categories is different and might depend on the
 console settings of your machine. If you do not want the results to be colored

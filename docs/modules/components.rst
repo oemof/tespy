@@ -15,51 +15,51 @@ well as the equations.
 
 - Basics
 
-    * :py:class:`Cycle closer<tespy.components.basics.cycle_closer.CycleCloser>`
-    * :py:class:`Sink <tespy.components.basics.sink.Sink>`
-    * :py:class:`Source <tespy.components.basics.source.Source>`
-    * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface.SubsystemInterface>`
+  * :py:class:`Cycle closer<tespy.components.basics.cycle_closer.CycleCloser>`
+  * :py:class:`Sink <tespy.components.basics.sink.Sink>`
+  * :py:class:`Source <tespy.components.basics.source.Source>`
+  * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface.SubsystemInterface>`
 
 - Combustion
 
-    * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
-    * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
-      (Advanced version of combustion chamber, featuring heat losses and
-      pressure drop)
-    * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
+  * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
+  * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
+    (Advanced version of combustion chamber, featuring heat losses and pressure
+    drop)
+  * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
 
 - Heat exchangers
 
-    * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.HeatExchangerSimple>`
-    * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
-    * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
-    * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
-    * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
-    * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
+  * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.HeatExchangerSimple>`
+  * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
+  * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
+  * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
+  * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
+  * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
 
 - Nodes
 
-    * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator.DropletSeparator>`
-    * :py:class:`Drum <tespy.components.nodes.drum.Drum>`
-    * :py:class:`Merge <tespy.components.nodes.merge.Merge>`
-    * :py:class:`Separator <tespy.components.nodes.separator.Separator>`
-    * :py:class:`Splitter <tespy.components.nodes.splitter.Splitter>`
+  * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator.DropletSeparator>`
+  * :py:class:`Drum <tespy.components.nodes.drum.Drum>`
+  * :py:class:`Merge <tespy.components.nodes.merge.Merge>`
+  * :py:class:`Separator <tespy.components.nodes.separator.Separator>`
+  * :py:class:`Splitter <tespy.components.nodes.splitter.Splitter>`
 
 - Piping
 
-    * :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
-    * :py:class:`Valve <tespy.components.piping.valve.Valve>`
+  * :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
+  * :py:class:`Valve <tespy.components.piping.valve.Valve>`
 
 - Reactors
 
-    * :py:class:`Fuel cell <tespy.components.reactors.fuel_cell.FuelCell>`
-    * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
+  * :py:class:`Fuel cell <tespy.components.reactors.fuel_cell.FuelCell>`
+  * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
 
 - Turbomachinery
 
-    * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
-    * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
-    * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
+  * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
+  * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
+  * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
 
 List of custom components
 -------------------------
@@ -133,21 +133,28 @@ not be implemented by the solver.
 There are several components using parameter groups:
 
 - heat_exchanger_simple and pipe
-    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
-    * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
-    * :code:`kA_char_group` (:code:`kA_char`, :code:`Tamb`)
+
+  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
+  * :code:`kA_char_group` (:code:`kA_char`, :code:`Tamb`)
+
 - solar_collector
-    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
-    * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
-      :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
+
+  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
+    :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
+
 - parabolic_trough
-    * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
-    * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`aoi`,
-      :code:`doc`, :code:`c_1`, :code:`c_2`, :code:`iam_1`, :code:`iam_2`,
-      :code:`A`, :code:`Tamb`)
+
+  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`aoi`,
+    :code:`doc`, :code:`c_1`, :code:`c_2`, :code:`iam_1`, :code:`iam_2`,
+    :code:`A`, :code:`Tamb`)
+
 - compressor
-    * :code:`char_map_eta_s_group` (:code:`char_map_eta_s`, :code:`igva`)
-    * :code:`char_map_pr_group` (:code:`char_map_pr`, :code:`igva`)
+
+  * :code:`char_map_eta_s_group` (:code:`char_map_eta_s`, :code:`igva`)
+  * :code:`char_map_pr_group` (:code:`char_map_pr`, :code:`igva`)
 
 Custom variables
 ^^^^^^^^^^^^^^^^
@@ -341,41 +348,41 @@ Characteristics are available for the following components and parameters:
 
 - combustion engine
 
-    * :py:meth:`tiP_char <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
-    * :py:meth:`Q1_char <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
-    * :py:meth:`Q2_char <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
-    * :py:meth:`Qloss_char <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
+  * :py:meth:`tiP_char <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
+  * :py:meth:`Q1_char <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
+  * :py:meth:`Q2_char <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
+  * :py:meth:`Qloss_char <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
 
 - compressor
 
-    * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: pressure ratio vs. non-dimensional mass flow.
-    * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: isentropic efficiency vs. non-dimensional mass flow.
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`: isentropic efficiency.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: pressure ratio vs. non-dimensional mass flow.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: isentropic efficiency vs. non-dimensional mass flow.
+  * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`: isentropic efficiency.
 
 - heat exchangers:
 
-    * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`: heat transfer coefficient.
+  * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`: heat transfer coefficient.
 
 - pump
 
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.Pump.eta_s_char_func>`: isentropic efficiency.
-    * :py:meth:`flow_char <tespy.components.turbomachinery.pump.Pump.flow_char_func>`: absolute pressure change.
+  * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.Pump.eta_s_char_func>`: isentropic efficiency.
+  * :py:meth:`flow_char <tespy.components.turbomachinery.pump.Pump.flow_char_func>`: absolute pressure change.
 
 - simple heat exchangers
 
-    * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func>`: heat transfer coefficient.
+  * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func>`: heat transfer coefficient.
 
 - turbine
 
-    * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func>`: isentropic efficiency.
+  * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func>`: isentropic efficiency.
 
 - valve
 
-    * :py:meth:`dp_char <tespy.components.piping.valve.Valve.dp_char_func>`: absolute pressure change.
+  * :py:meth:`dp_char <tespy.components.piping.valve.Valve.dp_char_func>`: absolute pressure change.
 
 - water electrolyzer
 
-    * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
+  * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
 For more information on how the characteristic functions work
 :ref:`click here <tespy_modules_characteristics_label>`.

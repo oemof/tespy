@@ -56,8 +56,8 @@ We provide more detailed
 :ref:`installation instructions <installation_and_setup_label>`, too.
 
 If you want to use the latest features, you might want to install the
-**developer version**. See section
-:ref:`Developing TESPy <developing_tespy_label>` for more information.
+**developer version**. See
+:ref:`this section <tespy_development_how_label>` for more information.
 
 Getting into TESPy
 ==================

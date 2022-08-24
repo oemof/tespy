@@ -1,4 +1,4 @@
-.. __tespy_development_what_label:
+.. _tespy_development_what_label:
 
 What can I contribute?
 ======================

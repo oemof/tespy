@@ -172,6 +172,12 @@ the fluid vector at one point in our network.
     c2.set_attr(T=20, x=1, fluid={'R134a': 1})
     c4.set_attr(T=75, x=0)
 
+.. note::
+
+    The sign convention for energy transfer by components is always from the
+    perspective of the component. Energy entering the component means positive
+    sign, energy leaving the component's system boundary means negative sign.
+
 Start your calculation
 ----------------------
 

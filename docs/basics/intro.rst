@@ -116,7 +116,7 @@ we do not need to pass the components to the network.
 
     from tespy.connections import Connection
 
-    # connections of the disctrict heating system
+    # connections of the network
     c1 = Connection(cc, 'out1', ev, 'in1', label='1')
     c2 = Connection(ev, 'out1', cp, 'in1', label='2')
     c3 = Connection(cp, 'out1', co, 'in1', label='3')
@@ -167,7 +167,7 @@ the fluid vector at one point in our network.
 
     co.set_attr(pr=0.98, Q=-1e6)
     ev.set_attr(pr=0.98)
-    cp.set_attr(eta_s=0.9)
+    cp.set_attr(eta_s=0.85)
 
     c2.set_attr(T=20, x=1, fluid={'R134a': 1})
     c4.set_attr(T=75, x=0)
@@ -192,9 +192,9 @@ Next steps
 We highly recommend to check our other basic model examples on how to set up
 different standard thermodynamic cycles in TESPy. The heat pump cycle in that
 section builds on this heat pump. We will introduce couple of different inputs
-and change the working fluid. The other tutorials show the usage of more
-components, for example the combustion chamber and the turbine or a condenser
-including the cooling water side of the system.
+and show, how to change the working fluid. The other tutorials show the usage
+of more components, for example the combustion chamber and the turbine or a
+condenser including the cooling water side of the system.
 
 In the more advanced tutorials, you will learn, how to set up more complex
 plants ste by step, make a design calculation of the plant as well as calculate

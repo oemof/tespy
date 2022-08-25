@@ -3,18 +3,23 @@
 ~~~~~~~~~~~~~~~~~~
 Advanced Tutorials
 ~~~~~~~~~~~~~~~~~~
+We provide more advanced tutorials for you to better understand how to work
+with more complex systems in TESPy.
 
-We provide tutorials for you to better understand how to work
-with TESPy. You will learn how to create basic models and get the idea of
-designing a plant and simulating the offdesign behavior in the heat pump
-tutorial. Furthermore, the starting values tutorial will help you to get a
-stable simulation and faster solutions. On top of that, we created a tutorial
-for the usage of the combustion chamber: It is an important component for
-thermal power plants while being a source for many errors in the calculation.
+At the example of different heat pump topologies, you will learn to
 
-The last tutorial is a plant design optimization tutorial. A thermal power
-plant with two extraction stages is optimized in regard of thermal efficiency
-with respect to the extraction pressure levels.
+- create a more complex model *step by step* and get the idea of designing a
+  plant and calculating the offdesign behavior.
+- set up a code structure, which allows you to generate stable starting values
+  flexibly, helping you to make faster analyses.
+- use the inbuilt exergy analysis method in a simple geothermal heat pump
+  setting.
+
+Furthermore, we introduce the coupling of TESPy with pygmo in order to create
+an optimization problem, which optimizes thermal efficiency of a clausius
+rankine power plant.
+
+- CGAM!
 
 .. toctree::
     :maxdepth: 1
@@ -23,6 +28,6 @@ with respect to the extraction pressure levels.
 
     tutorials/heat_pump_steps.rst
     tutorials/starting_values.rst
-    tutorials/combustion_chamber.rst
-    tutorials/pygmo_optimization.rst
     tutorials/heat_pump_exergy.rst
+    tutorials/pygmo_optimization.rst
+    tutorials/combustion_chamber.rst

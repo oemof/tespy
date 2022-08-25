@@ -33,7 +33,7 @@ Share your projects
 ^^^^^^^^^^^^^^^^^^^
 You have used the software in your research paper or project, maybe even in a
 real world application? We would love to feature your project on our
-:ref:`Real World Application <tespy_examples_label>` page. Please reach out to
+:ref:`Example Applications <tespy_examples_label>` page. Please reach out to
 us by opening a new issue on our github page.
 
 Add new component equations

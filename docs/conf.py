@@ -63,9 +63,11 @@ pygments_style = 'trac'
 bibtex_bibfiles = ['references.bib']
 
 # links to github
+github_repo_url = "https://github.com/oemof/tespy/"
 extlinks = {
-    'issue': ('https://github.com/oemof/tespy/issues/%s', '#'),
-    'pr': ('https://github.com/oemof/tespy/pull/%s', 'PR #'),
+    "issue": (f"{github_repo_url}/issues/%s", "#%s"),  # noqa: WPS323
+    "pr": (f"{github_repo_url}/pull/%s", "PR #%s"),  # noqa: WPS323
+    "commit": (f"{github_repo_url}/commit/%s", "%s"),  # noqa: WPS323
 }
 
 # -- Options for HTML output ----------------------------------------------

@@ -237,7 +237,7 @@ have a look at the step by step
 | water     |                           | value and set volumetric flow |
 +-----------+---------------------------+-------------------------------+
 
-With these specifications, the following phyics are applied to the model:
+With these specifications, the following physics are applied to the model:
 
 - Due to the constant volumetric flow of water, the temperature of the cooling
   water returning from the condenser will react to the total heat transferred
@@ -246,10 +246,12 @@ With these specifications, the following phyics are applied to the model:
 - The constant heat transfer coefficient of the condenser will calculate the
   condensation temperature (and therefore pressure) based on the temperature
   regime in the cooling water side:
+
   - Increase in temperature for the cooling water leads to increased
     condensation temperature (at constant heat transfer).
   - Increase in heat transfer means increase in necessary temperature
     difference at the condenser (at constant cooling water inlet temperature).
+
 - The cone law is a mathematical model to predict the pressure at the turbine's
   inlet based on the deviation from the design conditions. Generally,
   increased mass flow leads to higher inlet pressure (at constant inlet

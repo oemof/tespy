@@ -90,7 +90,7 @@ pressure.
     fp.set_attr(eta_s=0.75)
 
     c11.set_attr(T=20, p=1.2, fluid={'water': 1})
-    c12.set_attr(T=35)
+    c12.set_attr(T=30)
     c1.set_attr(T=600, p=150, m=10, fluid={'water': 1})
     c2.set_attr(p=0.1)
 
@@ -111,7 +111,7 @@ water return flow temperature.
 
 .. code-block:: python
 
-    mc.set_attr(pr1=1, pr2=0.98, ttd_u=4)
+    mc.set_attr(ttd_u=4)
     c2.set_attr(p=None)
 
     my_plant.solve(mode='design')
@@ -187,27 +187,86 @@ of the cycle, given constant steam mass flow and with varying values for the
 - cooling water temperature level.
 
 To do that, we are using a very similar setup as has been used in the
-:ref:`heat pump tutorial <tespy_basics_heat_pump_label>`.
+:ref:`heat pump tutorial <tespy_basics_heat_pump_label>`. For the feed water
+temperature level we want to set the change in temperature at the condenser
+to a constant value. Also, we have to unset the power generation specification
+again and use a constant mass flow instead. With :code:`iterinfo=False` we
+can disable the printout of the convergence history.
 
 .. dropdown:: Click to expand to code section
 
     .. code-block:: python
 
+        my_plant.set_attr(iterinfo=False)
+        c1.set_attr(m=20)
+        powergen.set_attr(P=None)
+
         import matplotlib.pyplot as plt
         import numpy as np
 
+        data = {
+            'T_livesteam': np.linspace(450, 750, 7),
+            'T_cooling': np.linspace(15, 45, 7),
+            'p_livesteam': np.linspace(75, 225, 7)
+        }
+        eta = {
+            'T_livesteam': [],
+            'T_cooling': [],
+            'p_livesteam': []
+        }
+        power = {
+            'T_livesteam': [],
+            'T_cooling': [],
+            'p_livesteam': []
+        }
+
+        for T in data['T_livesteam']:
+            c1.set_attr(T=T)
+            my_plant.solve('design')
+            eta['T_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
+            power['T_livesteam'] += [abs(powergen.P.val) / 1e6]
+
+        # reset to base temperature
+        c1.set_attr(T=600)
+
+        for T in data['T_cooling']:
+            c12.set_attr(T=T)
+            c11.set_attr(T=T - 10)
+            my_plant.solve('design')
+            eta['T_cooling'] += [abs(powergen.P.val) / sg.Q.val * 100]
+            power['T_cooling'] += [abs(powergen.P.val) / 1e6]
+
+        # reset to base temperature
+        c12.set_attr(T=30)
+        c11.set_attr(T=20)
+
+        for p in data['p_livesteam']:
+            c1.set_attr(p=p)
+            my_plant.solve('design')
+            eta['p_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
+            power['p_livesteam'] += [abs(powergen.P.val) / 1e6]
 
 
-        fig, ax = plt.subplots(2, 3, sharey=True, sharex=True, figsize=(16, 8))
+        fig, ax = plt.subplots(2, 3, figsize=(16, 8), sharex='col', sharey='row')
 
-        [a.grid() for a in ax]
+        ax = ax.flatten()
+        [a.grid() for a in ax.flatten()]
+
+        i = 0
+        for key in data:
+            ax[i].scatter(data[key], eta[key])
+            ax[i + 3].scatter(data[key], power[key])
+            i += 1
 
         ax[0].set_ylabel('Efficiency of the rankine cycle in %')
-        ax[3].set_ylabel('Power of the rankine cycle in %')
+        ax[3].set_ylabel('Power of the rankine cycle in MW')
+        ax[3].set_xlabel('Live steam temperature in °C')
+        ax[4].set_xlabel('Feed water temperature in °C')
+        ax[5].set_xlabel('Live steam pressure in bar')
         plt.tight_layout()
-        fig.savefig('eta_power_parametric.svg')
+        fig.savefig('rankine_parametric.svg')
 
-.. figure:: /_static/images/basics/eta_power_parametric.svg
+.. figure:: /_static/images/basics/rankine_parametric.svg
     :align: center
     :alt: Parametric analysis of the efficiency and power output
 

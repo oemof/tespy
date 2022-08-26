@@ -491,7 +491,7 @@ building a network, that works with a variety of working fluids.
 
     .. figure:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
         :align: center
-        :alit: Analysis of the COP using different working fluids
+        :alt: Analysis of the COP using different working fluids
 
         Figure: Analysis of the COP using different working fluids
 

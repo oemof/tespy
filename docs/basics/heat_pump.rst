@@ -204,13 +204,13 @@ plot using matplotlib.
 
         ax[0].set_ylabel('COP of the heat pump')
         plt.tight_layout()
-        fig.savefig('COP_parametric.svg')
+        fig.savefig('heat_pump_parametric.svg')
 
-.. figure:: /_static/images/basics/COP_parametric.svg
+.. figure:: /_static/images/basics/heat_pump_parametric.svg
     :align: center
-    :alt: Parametric analysis of the COP
+    :alt: Parametric analysis of the heat pump's COP
 
-    Figure: Parametric analysis of the COP
+    Figure: Parametric analysis of the heat pump's COP
 
 The figure shows the results of the COP analysis. The base case is at an
 evaporation temperature of 20 °C, the condensation temperature at 80 °C and the

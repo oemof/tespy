@@ -17,14 +17,20 @@ District Heating Network
 
     Figure: Topology of the district heating network
 
+In this section we provide you with a very simple example as firsts steps in
+using TESPy. The model used in this introduction is shown the figure. It
+consists of a central heating plant and a consumer, represented by a heat
+exchanger with a control valve.
 
 Setting up the System
 ^^^^^^^^^^^^^^^^^^^^^
 
 
-Calculate Heat Losses
+Fixed Pipe Dimensions
 ^^^^^^^^^^^^^^^^^^^^^
+- Set pipe parameters, calculate heat loss and pressure loss
 
-
-Calculate Pipe Characteristics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Calculate Pipe Dimensions
+^^^^^^^^^^^^^^^^^^^^^^^^^
+- Set pipe length, pressure loss, calculate diameter
+- Set max temperature change per length, calculate kA -> data for insulation

@@ -22,14 +22,10 @@ Setting up the Cycle
 We will model the cycle including the cooling water of the condenser. For this
 start with the :code:`Network` set up we already know.
 
-.. code-block:: python
-
-    from tespy.networks import Network
-
-    # create a network object with R134a as fluid
-    fluid_list = ['water']
-    my_plant = Network(fluids=fluid_list)
-    my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_1]
+    :end-before: [sec_2]
 
 Following, we create the components and connect them. The :code:`Condenser` has
 a hot side inlet and outlet as well as a cold side inlet and outlet. The hot
@@ -40,35 +36,10 @@ Again, for the closed thermodynamic cycle we have to insert a cycle closer. The
 cooling water inlet and the cooling water outlet of the condenser are directly
 connected to a :code:`Source` and a :code:`Sink` respectively.
 
-.. code-block:: python
-
-    from tespy.components import (
-        CycleCloser, Pump, Condenser, Turbine, HeatExchangerSimple, Source, Sink
-    )
-
-    cc = CycleCloser('cycle closer')
-    sg = HeatExchangerSimple('steam generator')
-    mc = Condenser('main condenser')
-    tu = Turbine('steam turbine')
-    fp = Pump('feed pump')
-
-    cwso = Source('cooling water source')
-    cwsi = Sink('cooling water sink')
-
-    from tespy.connections import Connection
-
-    c1 = Connection(cc, 'out1', tu, 'in1', label='1')
-    c2 = Connection(tu, 'out1', mc, 'in1', label='2')
-    c3 = Connection(mc, 'out1', fp, 'in1', label='3')
-    c4 = Connection(fp, 'out1', sg, 'in1', label='4')
-    c0 = Connection(sg, 'out1', cc, 'in1', label='0')
-
-    my_plant.add_conns(c1, c2, c3, c4, c0)
-
-    c11 = Connection(cwso, 'out1', mc, 'in2', label='11')
-    c12 = Connection(mc, 'out2', cwsi, 'in1', label='12')
-
-    my_plant.add_conns(c11, c12)
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_2]
+    :end-before: [sec_3]
 
 For the parameters, we predefine the pressure losses in the heat exchangers.
 For the condenser, the hot side pressure losses are neglected :code:`pr1=1`,
@@ -82,20 +53,10 @@ and mass flow are set. Lastly, we set the condensation pressure level and the
 feed and return flow temperature of the cooling water as well as its feed
 pressure.
 
-.. code-block:: python
-
-    mc.set_attr(pr1=1, pr2=0.98)
-    sg.set_attr(pr=0.9)
-    tu.set_attr(eta_s=0.9)
-    fp.set_attr(eta_s=0.75)
-
-    c11.set_attr(T=20, p=1.2, fluid={'water': 1})
-    c12.set_attr(T=30)
-    c1.set_attr(T=600, p=150, m=10, fluid={'water': 1})
-    c2.set_attr(p=0.1)
-
-    my_plant.solve(mode='design')
-    my_plant.print_results()
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_3]
+    :end-before: [sec_4]
 
 After running the simulation, for example, we can observe the temperature
 differences at the condenser. Instead of directly setting a pressure value for
@@ -109,13 +70,10 @@ water return flow temperature.
     respective seciton of the API documentation. For example, the condenser
     :py:class:`tespy.components.heat_exchangers.condenser.Condenser`.
 
-.. code-block:: python
-
-    mc.set_attr(ttd_u=4)
-    c2.set_attr(p=None)
-
-    my_plant.solve(mode='design')
-    my_plant.print_results()
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_4]
+    :end-before: [sec_5]
 
 After rerunning, we will see that the condensation temperature and pressure
 are both automatically calculated by the specified terminal temperature value.
@@ -129,21 +87,10 @@ possible to include both of the component's power values in a single electrical
 :py:class:`tespy.connections.bus.Bus` class, creating an instance and adding
 both components to the bus.
 
-.. code-block:: python
-
-    from tespy.connections import Bus
-
-    powergen = Bus("electrical power output")
-
-    powergen.add_comps(
-        {"comp": tu, "char": 0.97, "base": "component"},
-        {"comp": fp, "char": 0.97, "base": "bus"},
-    )
-
-    my_plant.add_busses(powergen)
-
-    my_plant.solve(mode='design')
-    my_plant.print_results()
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_5]
+    :end-before: [sec_6]
 
 .. note::
 
@@ -169,13 +116,10 @@ turbine's electrical power production (:code:`bus value`) is lower than the
 You can also set the total desired power production of the system, for example
 replacing the mass flow specification at connection 1:
 
-.. code-block:: python
-
-    powergen.set_attr(P=-10e6)
-    c1.set_attr(m=None)
-
-    my_plant.solve(mode='design')
-    my_plant.print_results()
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_6]
+    :end-before: [sec_7]
 
 Analyze Efficiency and Powergeneration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -195,76 +139,10 @@ can disable the printout of the convergence history.
 
 .. dropdown:: Click to expand to code section
 
-    .. code-block:: python
-
-        my_plant.set_attr(iterinfo=False)
-        c1.set_attr(m=20)
-        powergen.set_attr(P=None)
-
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        data = {
-            'T_livesteam': np.linspace(450, 750, 7),
-            'T_cooling': np.linspace(15, 45, 7),
-            'p_livesteam': np.linspace(75, 225, 7)
-        }
-        eta = {
-            'T_livesteam': [],
-            'T_cooling': [],
-            'p_livesteam': []
-        }
-        power = {
-            'T_livesteam': [],
-            'T_cooling': [],
-            'p_livesteam': []
-        }
-
-        for T in data['T_livesteam']:
-            c1.set_attr(T=T)
-            my_plant.solve('design')
-            eta['T_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
-            power['T_livesteam'] += [abs(powergen.P.val) / 1e6]
-
-        # reset to base temperature
-        c1.set_attr(T=600)
-
-        for T in data['T_cooling']:
-            c12.set_attr(T=T)
-            c11.set_attr(T=T - 10)
-            my_plant.solve('design')
-            eta['T_cooling'] += [abs(powergen.P.val) / sg.Q.val * 100]
-            power['T_cooling'] += [abs(powergen.P.val) / 1e6]
-
-        # reset to base temperature
-        c12.set_attr(T=30)
-        c11.set_attr(T=20)
-
-        for p in data['p_livesteam']:
-            c1.set_attr(p=p)
-            my_plant.solve('design')
-            eta['p_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
-            power['p_livesteam'] += [abs(powergen.P.val) / 1e6]
-
-
-        fig, ax = plt.subplots(2, 3, figsize=(16, 8), sharex='col', sharey='row')
-
-        ax = ax.flatten()
-        [a.grid() for a in ax.flatten()]
-
-        i = 0
-        for key in data:
-            ax[i].scatter(data[key], eta[key])
-            ax[i + 3].scatter(data[key], power[key])
-            i += 1
-
-        ax[0].set_ylabel('Efficiency of the rankine cycle in %')
-        ax[3].set_ylabel('Power of the rankine cycle in MW')
-        ax[3].set_xlabel('Live steam temperature in °C')
-        ax[4].set_xlabel('Feed water temperature in °C')
-        ax[5].set_xlabel('Live steam pressure in bar')
-        plt.tight_layout()
-        fig.savefig('rankine_parametric.svg')
+    .. literalinclude:: /../tutorial/basics/rankine.py
+        :language: python
+        :start-after: [sec_7]
+        :end-before: [sec_8]
 
 .. figure:: /_static/images/basics/rankine_parametric.svg
     :align: center
@@ -318,6 +196,38 @@ With these specifications, the following physics are applied to the model:
   complex, since a lot more parameters are involved compared to the other
   equations applied.
 
-.. code-block:: python
+In order to apply these specifications, we can use the :code:`design` and
+:code:`offdesign` keywords. The keyword :code:`design` unsets the specified
+data in the list in an offdesign calculation. The keyword :code:`offdesign`
+automatically sets the respective parameter for the offdesign calculation. In
+case the specification refers to a value, the value is taken from the design
+mode calculation. In the example, the main condenser's kA value is calculated
+in the design simulation and its value will be kept constant through the
+offdesign simulations.
 
-    some code
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_8]
+    :end-before: [sec_9]
+
+We have to save the design state of the network and run the :code:`solve`
+method with the :code:`design_path` specified.
+
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_9]
+    :end-before: [sec_10]
+
+Finally, we can alter the mass flow from its design value of 20 kg/s to only
+50 % of its value. In this example, we calculate the efficiency and plot it.
+
+.. literalinclude:: /../tutorial/basics/rankine.py
+    :language: python
+    :start-after: [sec_10]
+    :end-before: [sec_11]
+
+.. figure:: /_static/images/basics/rankine_partload.svg
+    :align: center
+    :alt: Partload electric efficiency of the rankine cycle
+
+    Figure: Partload electric efficiency of the rankine cycle

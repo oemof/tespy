@@ -189,7 +189,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
                 latex=self.energy_balance_func_doc, num_eq=1),
-            'Q_loss': dc_cp(max_val=0)
+            'Q_loss': dc_cp(max_val=0, is_result=True)
         }
 
     def get_mandatory_constraints(self):

@@ -171,7 +171,12 @@ the combustion chamber change the total power generated:
     :start-after: [sec_11]
     :end-before: [sec_12]
 
+.. figure:: /_static/images/basics/gas_turbine_power.svg
+    :align: center
+    :alt: Gas turbine performance at different pressure losses and efficiency of the combustion chamber.
 
+    Figure: Gas turbine performance at different pressure losses and
+    efficiency of the combustion chamber.
 
 Fluid Composition Specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

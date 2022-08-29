@@ -133,7 +133,7 @@ c1.set_attr(p=150)
 fig, ax = plt.subplots(2, 3, figsize=(16, 8), sharex='col', sharey='row')
 
 ax = ax.flatten()
-[a.grid() for a in ax.flatten()]
+[a.grid() for a in ax]
 
 i = 0
 for key in data:

@@ -69,10 +69,22 @@ combustion chamber is directly connected to the flue gas sink.
 
 There are many different specifications possible. For the combustion chamber
 we will specify its air to stoichiometric air ratio lamb and the thermal input
-(:math:`LHV \cdot \dot{m}_{f}`). The ambient conditions as well as the fuel
-gas inlet temperature are defined in the next step. The air and the fuel gas
-composition are fully be stated, the component combustion chamber can not
-handle "Air" as input fluid. Then, we can run the code.
+(:math:`LHV \cdot \dot{m}_{f}`).
+
+Furthermore, we specify the efficiency :code:`eta` of the component, which
+determines the heat loss as ratio of the thermal input. :code:`eta=1` means,
+no heat losses, thus adiabatic behavior.
+
+The pressure ratio :code:`pr` describes the ratio of the pressure at the
+outlet to the pressure at **the inlet 1**. The pressure value at the inlet 2
+is detached from the other pressure values, it must be a result of a different
+parameter specification. In this example, we set it directly. Initially, we
+assume adiabatic behavior :code:`eta=1` and no pressure losses :code:`pr=1`.
+
+The ambient conditions as well as the fuel gas inlet temperature are defined
+in the next step. The full vector for the air and the fuel gas composition
+have to be defined. The component can not handle "Air" as input fluid. We can
+run the code after the specifications.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
@@ -95,60 +107,71 @@ gas temperature.
     :start-after: [sec_5]
     :end-before: [sec_6]
 
-It is also possible to make modifications on the fluid
-composition, for example stating the oxygen content in the flue gas or to
-change the fuel composition. Make sure, all desired fuels of your fuel mixture
-are also within the fluid_list of the network. For the example below we added
-hydrogen to the fuel mixture.
+It is also possible to make modifications on the fluid composition, for
+example, we can add hydrogen to the fuel mixture.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
     :start-after: [sec_6]
     :end-before: [sec_7]
 
-
-.. note::
-
-    A warning message is prompted at the end of the simulation, if the pressure
-    of the inlet 2 is lower or equal to the pressure of inlet 1.
-
-Furthermore, we specify the efficiency
-:code:`eta` of the component, which determines the heat loss as ratio of the
-thermal input. :code:`eta=1` means, no heat losses, thus adiabatic behavior.
-On top of that, we set the pressure ratio :code:`pr`, which describes the
-ratio of the pressure at the outlet to the pressure at **the inlet 1**. The
-pressure value at the inlet 2 is detached from the other pressure values, it
-must be a result of a different parameter specification. In this example, we
-set it directly. To match the inputs of the first tutorial, we set
-:code:`pr=1` and :code:`p=1` for connection :code:`sf_comb`.
-
-Now, consider heat loss of the surface of the component. This is simply done by
-specifying the value for :code:`eta`. We assume 4 % of thermal input as heat
-loss and set that value accordingly. Furthermore, the pressure of the fuel is
-set to 1.5 bar. The air inlet pressure will be the result of the specified
-pressure ratio and the outlet pressure assuming 2 % pressure losses. All
-other parameters stay untouched.
+The most convenient way to access the fluid composition is to access the
+results dataframe for the connections.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
     :start-after: [sec_7]
     :end-before: [sec_8]
 
+.. note::
+
+    All component and connection results are available in the :code:`results`
+    dict of the :code:`Network` instance. The keys of the dictionary are the
+    respective class names.
+
 Setting up the Full System
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-- Add remaining parts (del_conns/add_conns)
+After learning more about the component, we are going to add the remaining
+components: The turbine, the compressor and the generator. To do that, remove
+the existing connections from the network, create the new connections and
+add them to the network again. We also add a :code:`Bus` representing the
+generator, assuming 98 % mechanical-electrical efficiency.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
     :start-after: [sec_8]
     :end-before: [sec_9]
 
-- Run full model
+Since we deleted the connection 2 and 3, all specifications for those
+connections have to be added again. The air fluid composition is specified on
+connection 1 with ambient pressure and temperature. The pressure after the
+compressor is set to 10 bar, the turbine inlet temperature to 1400 °C. Finally,
+set the gas turbine outlet pressure to ambient pressure as well as the
+compressor's and turbine's efficiency.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
     :start-after: [sec_9]
     :end-before: [sec_10]
+
+Note, that the pressure of the fuel is lower than the pressure of the air at
+the combustion chamber as we did not change the pressure of connection 5. A
+respective warning is printed after the calculation. We can fix it like so:
+
+.. literalinclude:: /../tutorial/basics/gas_turbine.py
+    :language: python
+    :start-after: [sec_10]
+    :end-before: [sec_11]
+
+Now, we can investigate, how the efficiency value and the pressure loss at
+the combustion chamber change the total power generated:
+
+.. literalinclude:: /../tutorial/basics/gas_turbine.py
+    :language: python
+    :start-after: [sec_11]
+    :end-before: [sec_12]
+
+
 
 Fluid Composition Specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

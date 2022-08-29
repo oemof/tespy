@@ -20,6 +20,7 @@ an optimization problem, which optimizes thermal efficiency of a clausius
 rankine power plant.
 
 - CGAM!
+- Larger dh system
 
 .. toctree::
     :maxdepth: 1

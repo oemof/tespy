@@ -52,5 +52,5 @@ coefficients etc..
 The component characteristics represent large added value for your calculation.
 If you have detailed information on components offdesign behavior - even for
 specific cases - it will improve the results. Every user can benefit from this
-knowlegde and thus we are very happy to discuss about the implementation of new
+knowledge and thus we are very happy to discuss about the implementation of new
 characteristics.

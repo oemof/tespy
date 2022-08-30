@@ -17,7 +17,7 @@ repository and install development requirements with pip.
 
 .. code:: bash
 
-	  git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
+    git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
     cd tespy
     pip install -e .[dev]
 

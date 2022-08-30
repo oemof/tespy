@@ -144,9 +144,9 @@ generator, assuming 98 % mechanical-electrical efficiency.
 
 Since we deleted the connection 2 and 3, all specifications for those
 connections have to be added again. The air fluid composition is specified on
-connection 1 with ambient pressure and temperature. The pressure after the
-compressor is set to 10 bar, the turbine inlet temperature to 1400 °C. Finally,
-set the gas turbine outlet pressure to ambient pressure as well as the
+connection 1 with ambient pressure and temperature. The compressor pressure
+ratio is set to 15 bar, the turbine inlet temperature to 1200 °C. Finally, set
+the gas turbine outlet pressure to ambient pressure as well as the
 compressor's and turbine's efficiency.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
@@ -163,33 +163,73 @@ respective warning is printed after the calculation. We can fix it like so:
     :start-after: [sec_10]
     :end-before: [sec_11]
 
-Now, we can investigate, how the efficiency value and the pressure loss at
-the combustion chamber change the total power generated:
+We can investigate, how the turbine inlet temperature and the compressor
+pressure ratio affect thermal efficiency and power generation. Also, we
+assume 2 % heat losses and 3 % pressure losses in the combustion chamber.
 
-.. literalinclude:: /../tutorial/basics/gas_turbine.py
-    :language: python
-    :start-after: [sec_11]
-    :end-before: [sec_12]
+.. dropdown:: Click to expand to code section
 
-.. figure:: /_static/images/basics/gas_turbine_power.svg
+    .. literalinclude:: /../tutorial/basics/gas_turbine.py
+        :language: python
+        :start-after: [sec_11]
+        :end-before: [sec_12]
+
+.. figure:: /_static/images/basics/gas_turbine_parametric.svg
     :align: center
-    :alt: Gas turbine performance at different pressure losses and efficiency of the combustion chamber.
+    :alt: Gas turbine performance at different compressor pressure ratios and turbine inlet temperatures
 
-    Figure: Gas turbine performance at different pressure losses and
-    efficiency of the combustion chamber.
+    Figure: Gas turbine performance at different compressor pressure ratios
+    and turbine inlet temperatures.
 
 Fluid Composition Specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- O2 in flue gas fraction
+In this section you will learn how the fluid composition can be used as a
+variable in such systems. To begin, we can impose the oxygen mass fraction on
+the flue gas instead of the turbine inlet pressure, since it determines the
+share of oxygen that is not required in the combustion. We can see, how the
+turbine inlet temperature correlates with the oxygen mass fraction.
 
-.. literalinclude:: /../tutorial/basics/gas_turbine.py
-    :language: python
-    :start-after: [sec_10]
-    :end-before: [sec_11]
+.. dropdown:: Click to expand to code section
 
-- CO2, CH4, H2 mixture, make it flexible
+    .. literalinclude:: /../tutorial/basics/gas_turbine.py
+        :language: python
+        :start-after: [sec_12]
+        :end-before: [sec_13]
 
-.. literalinclude:: /../tutorial/basics/gas_turbine.py
-    :language: python
-    :start-after: [sec_11]
-    :end-before: [sec_12]
+.. figure:: /_static/images/basics/gas_turbine_oxygen.svg
+    :align: center
+    :alt: Turbine inlet temperature at different levels of oxygen in the flue gas
+
+    Figure: Turbine inlet temperature at different levels of oxygen in the
+    flue gas.
+
+Let us now assume, we do have an unknown shares of hydrogen and methane within
+our fuel mixture. With the known mass flow of the fuel and an overall thermal
+input, we can calculate both fractions by removing their respective values
+from the input parameters and using the :code:`fluid_balance` keyword instead,
+which automatically calculates the sum of all fluid mass fractions to be 1.
+
+Investigate how changing the thermal input requires a different mixture of
+hydrogen and methane.
+
+.. attention::
+
+    With this setup, a thermal input below the lower heating value of methane
+    or above the lower heating value of hydrogen (each multiplied with the
+    mass flow of 1 kg/s) does not make sense as input specification. This is
+    individual of every fluid you use as fuel and you cannot easily abstract
+    the values to any other combination.
+
+.. dropdown:: Click to expand to code section
+
+    .. literalinclude:: /../tutorial/basics/gas_turbine.py
+        :language: python
+        :start-after: [sec_13]
+        :end-before: [sec_14]
+
+.. figure:: /_static/images/basics/gas_turbine_fuel_composition.svg
+    :align: center
+    :alt: Mass fractions of H2 and CH4 in fuel mixture at different thermal input
+
+    Figure: Mass fractions of H2 and CH4 in fuel mixture at varying thermal
+    input and constant fuel mass flow.

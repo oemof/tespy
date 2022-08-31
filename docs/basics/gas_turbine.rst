@@ -179,7 +179,7 @@ assume 2 % heat losses and 3 % pressure losses in the combustion chamber.
     :alt: Gas turbine performance at different compressor pressure ratios and turbine inlet temperatures
 
     Figure: Gas turbine performance at different compressor pressure ratios
-    and turbine inlet temperatures.
+    and turbine inlet temperatures
 
 Fluid Composition Specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,7 +201,7 @@ turbine inlet temperature correlates with the oxygen mass fraction.
     :alt: Turbine inlet temperature at different levels of oxygen in the flue gas
 
     Figure: Turbine inlet temperature at different levels of oxygen in the
-    flue gas.
+    flue gas
 
 Let us now assume, we do have an unknown shares of hydrogen and methane within
 our fuel mixture. With the known mass flow of the fuel and an overall thermal
@@ -232,4 +232,4 @@ hydrogen and methane.
     :alt: Mass fractions of H2 and CH4 in fuel mixture at different thermal input
 
     Figure: Mass fractions of H2 and CH4 in fuel mixture at varying thermal
-    input and constant fuel mass flow.
+    input and constant fuel mass flow

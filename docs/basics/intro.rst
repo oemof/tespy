@@ -24,22 +24,19 @@ calculation in your plant. For more information on the fluid properties go to
 the :ref:`corresponding section <tespy_fluid_properties_label>` in the
 documentation.
 
-.. code-block:: python
-
-    from tespy.networks import Network
-
-    # create a network object with R134a as fluid
-    fluid_list = ['R134a']
-    my_plant = Network(fluids=fluid_list)
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_1]
+    :end-before: [sec_2]
 
 On top of that, it is possible to specify a unit system and value ranges for
 the network's variables. If you do not specify these, TESPy will use SI-units.
 We will thus only specify the unit systems, in this case.
 
-.. code-block:: python
-
-    # set the unitsystem for temperatures to °C and for pressure to bar
-    my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_2]
+    :end-before: [sec_3]
 
 Now you can start to create the components of the network.
 
@@ -64,21 +61,10 @@ valve two (simple) heat exchangers and a so called cycle closer.
     specify. You can find all equations in each component's documentation as
     well.
 
-.. code-block:: python
-
-    from tespy.components import (
-        CycleCloser, Compressor, Valve, HeatExchangerSimple
-    )
-
-    cc = CycleCloser('cycle closer')
-
-    # heat sink
-    co = HeatExchangerSimple('condenser')
-    # heat source
-    ev = HeatExchangerSimple('evaporator')
-
-    va = Valve('expansion valve')
-    cp = Compressor('compressor')
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_3]
+    :end-before: [sec_4]
 
 
 After creating the components the next step is to connect them in order to form
@@ -112,19 +98,10 @@ After creating the connections, we need to add them to the network. As the
 connections hold the information, which components are connected in which way,
 we do not need to pass the components to the network.
 
-.. code-block:: python
-
-    from tespy.connections import Connection
-
-    # connections of the network
-    c1 = Connection(cc, 'out1', ev, 'in1', label='1')
-    c2 = Connection(ev, 'out1', cp, 'in1', label='2')
-    c3 = Connection(cp, 'out1', co, 'in1', label='3')
-    c4 = Connection(co, 'out1', va, 'in1', label='4')
-    c0 = Connection(va, 'out1', cc, 'in1', label='0')
-
-    # this line is crutial: you have to add all connections to your network
-    my_plant.add_conns(c1, c2, c3, c4, c0)
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_4]
+    :end-before: [sec_5]
 
 .. note::
 
@@ -163,14 +140,10 @@ fully saturated liqud (:code:`x=0`). On top of that, we want to impose the
 condensation and the evaporation temperature levels. Last, we have to specify
 the fluid vector at one point in our network.
 
-.. code-block:: python
-
-    co.set_attr(pr=0.98, Q=-1e6)
-    ev.set_attr(pr=0.98)
-    cp.set_attr(eta_s=0.85)
-
-    c2.set_attr(T=20, x=1, fluid={'R134a': 1})
-    c4.set_attr(T=75, x=0)
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_5]
+    :end-before: [sec_6]
 
 .. note::
 
@@ -185,12 +158,10 @@ After building your network, the components and the connections, add the
 following line at the end of your script and run it. You can calculate the COP
 with the respective component parameters.
 
-.. code-block:: python
-
-    my_plant.solve(mode='design')
-    my_plant.print_results()
-
-    print(f'COP = {abs(co.Q.val) / cp.P.val}')
+.. literalinclude:: /../tutorial/basics/heat_pump.py
+    :language: python
+    :start-after: [sec_6]
+    :end-before: [sec_7]
 
 Next steps
 ----------

@@ -1,14 +1,13 @@
-
-
+# %%[sec_1]
 from tespy.networks import Network
 
 # create a network object with R134a as fluid
 fluid_list = ['R134a']
 my_plant = Network(fluids=fluid_list)
-
+# %%[sec_2]
 # set the unitsystem for temperatures to °C and for pressure to bar
 my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-
+# %%[sec_3]
 from tespy.components import (
     CycleCloser, Compressor, Valve, HeatExchangerSimple
 )
@@ -22,7 +21,7 @@ ev = HeatExchangerSimple('evaporator')
 
 va = Valve('expansion valve')
 cp = Compressor('compressor')
-
+# %%[sec_4]
 from tespy.connections import Connection
 
 # connections of heat pump
@@ -34,21 +33,50 @@ c0 = Connection(va, 'out1', cc, 'in1', label='0')
 
 # this line is crutial: you have to add all connections to your network
 my_plant.add_conns(c1, c2, c3, c4, c0)
-
+# %%[sec_5]
 co.set_attr(pr=0.98, Q=-1e6)
 ev.set_attr(pr=0.98)
 cp.set_attr(eta_s=0.85)
 
 c2.set_attr(T=20, x=1, fluid={'R134a': 1})
 c4.set_attr(T=80, x=0)
-
+# %%[sec_6]
 my_plant.solve(mode='design')
 my_plant.print_results()
-print(f'COP = {abs(co.Q.val) / cp.P.val}')
 
+print(f'COP = {abs(co.Q.val) / cp.P.val}')
+# %%[sec_7]
+co.set_attr(Q=None)
+c1.set_attr(m=5)
+
+my_plant.solve('design')
+my_plant.print_results()
+# %%[sec_8]
+cp.set_attr(pr=4)
+c4.set_attr(T=None)
+
+my_plant.solve('design')
+my_plant.print_results()
+# %%[sec_9]
+cp.set_attr(pr=None, eta_s=None)
+c3.set_attr(T=97.3)
+c4.set_attr(T=80)
+
+my_plant.solve('design')
+my_plant.print_results()
+# %%[sec_10]
+# first go back to the original state of the specifications
+co.set_attr(Q=-1e6)
+cp.set_attr(pr=None, eta_s=0.85)
+c1.set_attr(m=None)
+c3.set_attr(T=None)
+c4.set_attr(T=80)
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+# make text reasonably sized
+plt.rc('font', **{'size': 18})
 
 
 data = {
@@ -94,7 +122,7 @@ fig, ax = plt.subplots(1, 3, sharey=True, figsize=(16, 8))
 
 i = 0
 for key in data:
-    ax[i].scatter(data[key], COP[key])
+    ax[i].scatter(data[key], COP[key], s=100, color="#1f567d")
     ax[i].set_xlabel(description[key])
     i += 1
 
@@ -102,4 +130,5 @@ ax[0].set_ylabel('COP of the heat pump')
 
 plt.tight_layout()
 
-fig.savefig('COP_parametric.svg')
+fig.savefig('heat_pump_parametric.svg')
+# %%[sec_11]

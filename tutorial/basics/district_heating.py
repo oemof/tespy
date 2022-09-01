@@ -1,4 +1,4 @@
-# [sec_1]
+# %%[sec_1]
 from tespy.components.basics.cycle_closer import CycleCloser
 from tespy.networks import Network
 from tespy.components import (
@@ -32,7 +32,7 @@ c4 = Connection(cons, "out1", val, "in1", label="4")
 c5 = Connection(val, "out1", pipe_return, "in1", label="5")
 c6 = Connection(pipe_return, "out1", cc, "in1", label="6")
 nw.add_conns(c0, c1, c2, c3, c4, c5, c6)
-# [sec_2]
+# %%[sec_2]
 cons.set_attr(Q=-10000, pr=0.98)
 hs.set_attr(pr=1)
 pu.set_attr(eta_s=0.75)
@@ -45,7 +45,7 @@ c4.set_attr(T=65)
 
 nw.solve(mode="design")
 nw.print_results()
-# [sec_3]
+# %%[sec_3]
 pipe_feed.set_attr(
     ks=0.0005,  # pipe's roughness in meters
     L=100,  # length in m
@@ -58,7 +58,7 @@ pipe_return.set_attr(
 )
 nw.solve(mode="design")
 nw.print_results()
-# [sec_4]
+# %%[sec_4]
 pipe_feed.set_attr(D=pipe_feed.D.val, pr=None)
 pipe_return.set_attr(D=pipe_return.D.val, pr=None)
 pipe_feed.set_attr(
@@ -71,7 +71,7 @@ pipe_return.set_attr(
 )
 nw.solve(mode="design")
 nw.print_results()
-# [sec_5]
+# %%[sec_5]
 nw.set_attr(iterinfo=False)
 pipe_feed.set_attr(Tamb=0, kA=pipe_feed.kA.val, Q=None)
 pipe_return.set_attr(Tamb=0, kA=pipe_return.kA.val, Q=None)
@@ -144,4 +144,4 @@ ax[5].set_xlabel('District heating temperature level in °C')
 plt.tight_layout()
 fig.savefig('district_heating_partload.svg')
 plt.close()
-# [sec_6]
+# %%[sec_6]

@@ -1,4 +1,4 @@
-# [sec_1]
+# %%[sec_1]
 from tespy.networks import Network
 from tespy.components import (
     DiabaticCombustionChamber, Turbine, Source, Sink, Compressor
@@ -15,12 +15,12 @@ tu = Turbine("turbine")
 air = Source("air source")
 fuel = Source("fuel source")
 fg = Sink("flue gas sink")
-# [sec_2]
+# %%[sec_2]
 c2 = Connection(air, "out1", cc, "in1", label="2")
 c3 = Connection(cc, "out1", fg, "in1", label="3")
 c5 = Connection(fuel, "out1", cc, "in2", label="5")
 nw.add_conns(c2, c3, c5)
-# [sec_3]
+# %%[sec_3]
 cc.set_attr(pr=1, eta=1, lamb=1.5, ti=10e6)
 
 c2.set_attr(
@@ -40,15 +40,15 @@ c5.set_attr(
 
 nw.solve(mode="design")
 nw.print_results()
-# [sec_4]
+# %%[sec_4]
 cc.set_attr(ti=None)
 c5.set_attr(m=1)
 nw.solve(mode="design")
-# [sec_5]
+# %%[sec_5]
 cc.set_attr(lamb=None)
 c3.set_attr(T=1400)
 nw.solve(mode="design")
-# [sec_6]
+# %%[sec_6]
 c5.set_attr(
     fluid={
         "CO2": 0.03, "Ar": 0, "N2": 0, "O2": 0,
@@ -56,9 +56,9 @@ c5.set_attr(
     }
 )
 nw.solve(mode="design")
-# [sec_7]
+# %%[sec_7]
 print(nw.results["Connection"])
-# [sec_8]
+# %%[sec_8]
 nw.del_conns(c2, c3)
 c1 = Connection(air, "out1", cp, "in1", label="1")
 c2 = Connection(cp, "out1", cc, "in1", label="2")
@@ -72,7 +72,7 @@ generator.add_comps(
     {"comp": cp, "char": 0.98, "base": "bus"},
 )
 nw.add_busses(generator)
-# [sec_9]
+# %%[sec_9]
 cp.set_attr(eta_s=0.85, pr=15)
 tu.set_attr(eta_s=0.90)
 c1.set_attr(
@@ -86,12 +86,12 @@ c3.set_attr(T=1200)
 c4.set_attr(p=Ref(c1, 1, 0))
 nw.solve("design")
 nw.print_results()
-# [sec_10]
+# %%[sec_10]
 # unset the value, impose Referenced value instead
 c5.set_attr(p=None)
 c5.set_attr(p=Ref(c2, 1.05, 0))
 nw.solve("design")
-# [sec_11]
+# %%[sec_11]
 cc.set_attr(pr=0.97, eta=0.98)
 nw.set_attr(iterinfo=False)
 import matplotlib.pyplot as plt
@@ -150,7 +150,7 @@ ax[3].set_xlabel('Compressure pressure ratio')
 plt.tight_layout()
 fig.savefig('gas_turbine_parametric.svg')
 plt.close()
-# [sec_12]
+# %%[sec_12]
 c3.set_attr(T=None)
 
 
@@ -178,7 +178,7 @@ ax.set_xlabel('Oxygen mass fraction in flue gas in %')
 plt.tight_layout()
 fig.savefig('gas_turbine_oxygen.svg')
 plt.close()
-# [sec_13]
+# %%[sec_13]
 # retain starting values for CH4 and H2 with this variant
 c5.fluid.val_set["CH4"] = False
 c5.fluid.val_set["H2"] = False
@@ -209,4 +209,4 @@ ax.set_ybound([0, 100])
 plt.tight_layout()
 fig.savefig('gas_turbine_fuel_composition.svg')
 plt.close()
-# [sec_14]
+# %%[sec_14]

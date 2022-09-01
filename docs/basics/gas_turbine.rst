@@ -24,6 +24,9 @@ pressurized flue gas expands in the turbine, which drives the compressor and
 the generator. You will also learn, how to use the fluid compositon as a
 variable in your simulation.
 
+Download the full script here:
+:download:`gas_turbine.py </../tutorial/basics/gas_turbine.py>`
+
 Setting up the Combustion Chamber
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We are setting up our system step by step. Especially for larger systems, it

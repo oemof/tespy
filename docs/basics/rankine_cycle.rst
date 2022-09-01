@@ -17,6 +17,9 @@ Rankine Cycle
 
     Figure: Topology of the rankine cycle
 
+Download the full script here:
+:download:`rankine.py </../tutorial/basics/rankine.py>`
+
 Setting up the Cycle
 ^^^^^^^^^^^^^^^^^^^^
 We will model the cycle including the cooling water of the condenser. For this

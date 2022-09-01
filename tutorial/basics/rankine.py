@@ -1,11 +1,11 @@
-# [sec_1]
+# %%[sec_1]
 from tespy.networks import Network
 
 # create a network object with R134a as fluid
 fluid_list = ['water']
 my_plant = Network(fluids=fluid_list)
 my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
-# [sec_2]
+# %%[sec_2]
 from tespy.components import (
     CycleCloser, Pump, Condenser, Turbine, HeatExchangerSimple, Source, Sink
 )
@@ -33,7 +33,7 @@ c11 = Connection(cwso, 'out1', mc, 'in2', label='11')
 c12 = Connection(mc, 'out2', cwsi, 'in1', label='12')
 
 my_plant.add_conns(c11, c12)
-# [sec_3]
+# %%[sec_3]
 mc.set_attr(pr1=1, pr2=0.98)
 sg.set_attr(pr=0.9)
 tu.set_attr(eta_s=0.9)
@@ -46,13 +46,13 @@ c2.set_attr(p=0.1)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# [sec_4]
+# %%[sec_4]
 mc.set_attr(ttd_u=4)
 c2.set_attr(p=None)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# [sec_5]
+# %%[sec_5]
 from tespy.connections import Bus
 
 powergen = Bus("electrical power output")
@@ -66,13 +66,13 @@ my_plant.add_busses(powergen)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# [sec_6]
+# %%[sec_6]
 powergen.set_attr(P=-10e6)
 c1.set_attr(m=None)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# [sec_7]
+# %%[sec_7]
 my_plant.set_attr(iterinfo=False)
 c1.set_attr(m=20)
 powergen.set_attr(P=None)
@@ -147,16 +147,16 @@ ax[5].set_xlabel('Live steam pressure in bar')
 plt.tight_layout()
 fig.savefig('rankine_parametric.svg')
 plt.close()
-# [sec_8]
+# %%[sec_8]
 mc.set_attr(design=["ttd_u"], offdesign=["kA"])
 c11.set_attr(offdesign=["v"])
 c12.set_attr(design=["T"])
 c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
-# [sec_9]
+# %%[sec_9]
 my_plant.solve("design")
 my_plant.save("rankine_design")
-# [sec_10]
+# %%[sec_10]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
@@ -175,4 +175,4 @@ ax.set_ylabel("Plant electrical efficiency in %")
 plt.tight_layout()
 fig.savefig('rankine_partload.svg')
 plt.close()
-# [sec_11]
+# %%[sec_11]

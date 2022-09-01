@@ -22,6 +22,9 @@ heating plant and a consumer, represented by a heat exchanger with a control
 valve. A much more complex district heating system is included in the
 advanced tutorials section.
 
+Download the full script here:
+:download:`district_heating.py </../tutorial/basics/district_heating.py>`
+
 Setting up the System
 ^^^^^^^^^^^^^^^^^^^^^
 For this model we have to import the :code:`Network` and :code:`Connection`

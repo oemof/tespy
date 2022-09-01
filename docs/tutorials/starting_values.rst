@@ -1,7 +1,7 @@
 .. _tespy_tutorial_starting_values_label:
 
-Stable starting values for subcritical heat pumps
--------------------------------------------------
+How to Generate Stable Starting Values
+--------------------------------------
 
 Applying numerical algorithms and methods, the starting value of a variable
 is the value used for the first iteration. With more complex TESPy models

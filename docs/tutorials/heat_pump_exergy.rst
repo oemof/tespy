@@ -31,11 +31,16 @@ the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
 
-- GCHP with NH3 (the model only): :download:`NH3 </../tutorial/NH3.py>`
-- GCHP with R410A (the model only): :download:`R410A </../tutorial/R410A.py>`
-- GCHP with NH3 (model and post-processing): :download:`NH3_calculations </../tutorial/NH3_calculations.py>`
-- GCHP with R410A (model and post-processing): :download:`R410A_calculations </../tutorial/R410A_calculations.py>`
-- Plots of the results of the parameter variations: :download:`plots </../tutorial/plots.py>`
+- GCHP with NH3 (the model only):
+  :download:`NH3.py </../tutorial/heat_pump_exergy/NH3.py>`
+- GCHP with R410A (the model only):
+  :download:`R410A.py </../tutorialheat_pump_exergy/R410A.py>`
+- GCHP with NH3 (model and post-processing):
+  :download:`NH3_calculations.py </../tutorial/heat_pump_exergy/NH3_calculations.py>`
+- GCHP with R410A (model and post-processing):
+  :download:`R410A_calculations.py </../tutorial/heat_pump_exergy/R410A_calculations.py>`
+- Plots of the results of the parameter variations:
+  :download:`plots.py </../tutorial/heat_pump_exergy/plots.py>`
 
 The figure below shows the topology of the GCHP. In this model, a
 ground-coupled heat pump is modeled, which is for instance connected to a

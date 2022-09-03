@@ -27,6 +27,9 @@ different working fluids.
     modifications have to be made on this setup. We plan to include respective
     examples here in the future.
 
+You can download the full code of this example here:
+:download:`starting_values.py </../tutorial/advanced/starting_values.py>`
+
 Topology of the heat pump
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Following the first tutorial a slightly different topology for a heat pump
@@ -68,7 +71,7 @@ working fluid will be set with the variable `wf`, `"NH3"` is used in the first
 setup. This way, we will be able to change the working fluid in a flexible
 way.
 
-.. dropdown:: Display source code of the full code
+.. dropdown:: Click to expand to code section
 
     .. literalinclude:: /../tutorial/advanced/starting_values.py
         :language: python
@@ -91,7 +94,7 @@ following way:
 - Pressure losses in all heat exchangers (`pr1`, `pr2`, `pr`)
 - Consumer heat demand (`Q`)
 
-.. dropdown:: Display source code of the full code
+.. dropdown:: Click to expand to code section
 
     .. literalinclude:: /../tutorial/advanced/starting_values.py
         :language: python
@@ -178,7 +181,7 @@ Expand fix to any working fluids
 Finally, using this strategy, it is possible to build a generic function,
 building a network, that works with a variety of working fluids.
 
-.. dropdown:: Display source code of the full code
+.. dropdown:: Click to expand to code section
 
     .. literalinclude:: /../tutorial/advanced/starting_values.py
         :language: python

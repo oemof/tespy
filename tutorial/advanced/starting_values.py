@@ -6,7 +6,7 @@ from tespy.components import (
     HeatExchangerSimple, Pump, Sink, Source, Valve
     )
 
-from tespy.connections import Connection, Ref, Bus
+from tespy.connections import Connection, Bus
 # %%[sec_2]
 wf = "NH3"
 
@@ -152,6 +152,7 @@ cop = abs(
     cons_heatsink.Q.val
     / (cons_pump.P.val + heatsource_pump.P.val + compressor.P.val)
 )
+print(cop)
 # %%[sec_6]
 def generate_network_with_starting_values(wf):
     # network
@@ -312,7 +313,6 @@ ax.set_axisbelow(True)
 ax.yaxis.grid(linestyle="dashed")
 ax.set_xlabel("Name of working fluid")
 ax.set_ylabel("Coefficicent of performance")
-ax.set_title("Coefficicent of performance for different working fluids")
 plt.tight_layout()
 
 fig.savefig("COP_by_wf.svg")

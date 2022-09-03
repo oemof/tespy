@@ -23,17 +23,19 @@ We provide the full script presented in this tutorial here:
 Task
 ^^^^
 This tutorial introduces you in how to model a heat pump in TESPy. You can see
-the plants topology in the figure. Also, you will find a fully working model in
-the last chapter of this tutorial.
+the plants topology in the figure.
 
 The main purpose of the heat pump is to deliver heat e.g. for the consumers of
 a heating system. Thus, the heat pump's parameters will be set in a way, which
-supports this target.
-Generally, if systems are getting more complex, it is highly recommended to set
-up your plant in incremental steps. This tutorial divides the plant in three
-sections: The consumer part, the valve and the evaporator and the compressor as
-last element. Each new section will be appended to the existing ones.
+supports this target. Generally, if systems are getting more complex, it is
+highly recommended to set up your plant in incremental steps. This tutorial
+divides the plant in three sections: The consumer part, the valve and the
+evaporator and the compressor as last element. Each new section will be
+appended to the existing ones.
 
+The system will be built up in a way, that independent of what working fluid
+we use, we will be able to generate stable starting values. After achieving
+that, the final parameters are specified instead of the initial values.
 
 Set up a Network
 ^^^^^^^^^^^^^^^^
@@ -45,7 +47,8 @@ example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\).
 Water is used for the cold side of the heat exchanger, for the consumer and
 for the hot side of the environmental temperature. Ammonia is used as coolant
 within the heat pump circuit. If you don’t specify the unit system, the
-variables are set to SI-Units.
+variables are set to SI-Units. We also keep the working fluid a variable to
+make reusing the script with a different working fluid easy.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -130,17 +133,18 @@ is used in a later step.
 
 Parametrization
 +++++++++++++++
-For the condenser we set pressure ratios on hot and cold side and additionally
-we set a value for the upper terminal temperature difference as design
-parameter and the heat transfer coefficient as offdesign parameter. The
-consumer will have pressure losses, too. Further we set the isentropic
-efficiency for the pump, the offdesign efficiency is calculated with a
-characteristic function. Thus, we set the efficiency as design parameter and
-the characteristic function as offdesign parameter. In offdesign calculation
-the consumer's pressure ratio will be a function of the mass flow, thus as
-offdesign parameter we select zeta. The most important parameter is the
-consumer's heat demand since it decides the overall mass flow in the systems.
-We marked this setting as :code:`"key parameter"`.
+For the condenser we set pressure ratios on hot and cold side. The consumer
+will have pressure losses, too. Further we set the isentropic efficiency for
+the pump. The most important parameter is the consumer's heat demand since it
+decides the overall mass flow in the systems.
+
+.. tip::
+
+    In this tutorial we will first build the system with parameters that
+    ensure stable starting values for a simulation, which in the end will be
+    switched to reasonable values for the individual parts of the system. For
+    example, instead of the evaporation pressure we will use the terminal
+    temperature difference at the condenser instead.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -149,27 +153,32 @@ We marked this setting as :code:`"key parameter"`.
 
 In order to calculate this network further parametrization is necessary, as
 e.g. the fluids are not determined yet: At the hot inlet of the condenser we
-define the temperature and the fluid vector. In order to fully determine the
-fluid's state at this point, an information on the pressure is required. This
-is achieved by setting the terminal temperature difference (see above). The
-same needs to be done for the consumer cycle. We suggest to set the parameters
-at the pump's inlet. On top, we assume that the consumer requires a constant
-inlet temperature. The :code:`CycleCloser` automatically makes sure, that the
-fluid's state at the consumer's outlet is the same as at the pump's inlet.
+define the temperature, pressure and the fluid vector. A good guess for
+pressure can be obtained from CoolProp's PropsSI function. We know that the
+condensation temperature must be higher than the consumer's feed flow
+temperature. Therefore we can set the pressure to a slightly higher value of
+that temperature's corresponding condensation pressure.
+
+The same needs to be done for the consumer cycle. We suggest to set
+the parameters at the pump's inlet. On top, we assume that the consumer
+requires a constant inlet temperature. The :code:`CycleCloser` automatically
+makes sure, that the fluid's state at the consumer's outlet is the same as at
+the pump's inlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
     :start-after: [sec_5]
     :end-before: [sec_6]
 
+Solve
++++++
+After creating the system, we want to solve our network. Until we have not
+set up the full system we will run design case calculations.
+
 .. note::
 
     In TESPy there are two different types of calculations: design point and
-    offdesign calculation. All parameters specified in the design attribute of
-    a component or connection, will be unset in a offdesign calculation, all
-    parameters specified in the offdesign attribute of a component or
-    connection will be set for the offdesign calculation. The value for these
-    parameters is the value derived from the design-calculation.
+    offdesign calculation.
 
     Generally, the design calculation is used for designing your system in the
     way you want it to look like. This means, that you might want to specify a
@@ -178,15 +187,8 @@ fluid's state at the consumer's outlet is the same as at the pump's inlet.
     offdesign calculations with TESPy. The offdesign calculation is used to
     predict the system's behavior at different points of operation. For this
     case, this might be different ambient temperature, different feed flow
-    temperature, or partial load.
-
-Solve
-+++++
-After creating the system, we want to solve our network. First, we calculate
-the design case and directly after we can perform the offdesign calculation.
-Before finishing the full network, we do this without changing the value of
-any parameters to test, if the calculation actually works. All results have
-to be identical to the design case results, if no value was modified.
+    temperature, or partial load. Add the end of this tutorial, you will learn
+    how to run the offdesign calculation.
 
 .. seealso::
 
@@ -263,63 +265,28 @@ connections to the model:
 Parametrization
 +++++++++++++++
 Previous parametrization stays untouched. Regarding the evaporator, we specify
-pressure ratios on hot side as well as the lower terminal temperature
-difference. This specification is similar to pinch point layout for waste heat
-steam generators. The pressure ratio of the cold side *MUST NOT* be specified
-in this setup as the drum imposes pressure equality for all inlets and outlets.
-
-We use the hot side pressure ratio and the lower terminal temperature
-difference as design parameters and choose zeta as well as a characteristic
-function referring to the area independent heat transfer coefficient as its
-offdesign parameters.
-
-On top of that, the characteristic function of the evaporator should follow
-the default characteristic line of 'EVAPORATING FLUID' on the cold side and
-the default line 'DEFAULT' on the hot side. These lines are defined in the
-:ref:`tespy_data_label`.
+pressure ratios on hot side as well as the evaporation pressure, for which we
+can obtain a good initial guess based on the ambient temperature level using
+CoolProp. From this specification the pinch point layout will be a result,
+similar as in waste heat steam generators. The pressure ratio of the cold side
+*MUST NOT* be specified in this setup as the drum imposes pressure equality
+for all inlets and outlets.
 
 The superheater will also use the pressure ratios on hot and cold side.
-Further we set a value for the upper terminal temperature difference. For
-offdesign and design parameter specification the same logic as for the
-evaporator and the already existing part of the network is applied. The system
-designer has to answer the question: Which parameters are design point
-parameters and how does the component perform at a different operation point.
+Further we set a value for the enthalpy at the working fluid side outlet. This
+determines the degree of overheating and is again based on a good guess.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
     :start-after: [sec_9]
     :end-before: [sec_10]
 
-.. seealso::
-
-    If you want to learn more about handling characteristic functions you
-    should have a glance at the
-    :ref:`TESPy components section <tespy_modules_components_label>`.
-
 Next step is the connection parametrization: The pressure in the drum and the
 enthalpy of the wet steam reentering the drum need to be determined. For the
-enthalpy we can specify a reference of the circulating mass flow to the main
-cycle mass flow. The pressure is achieved through the given lower terminal
-temperature difference of the evaporator and its hot side outlet temperature.
-As we have specified a terminal temperature difference at the evaporator's
-cold side inlet (:code:`ttd_l`), it might be necessary to state a starting
-value for the pressure or the state of the fluid (gaseous), as we are near to
-the two-phase region. On the hot side inlet of the superheater we define the
-temperature, pressure and the fluid. Since the pressure between superheater
-and first compressor will be a result of the pressure losses in the
-superheater and we set the terminal temperature difference there, bad starting
-values will lead to a linear dependency, as a temperature and a pressure are
-set while the fluid's state could be within the two phase region. Thus, we
-choose to specify :code:`state="g"`, so the solver will keep the fluid in
-gaseous state at all times. At last we have to fully determine the state of
-the incoming fluid at the superheater's hot side.
-
-.. attention::
-
-    Do only use the :code:`state` keyword if you know the fluid's state prior
-    to the simulation. If you specify the fluid to be gaseous but the correct
-    result of the simulation would be within the two-phase region, your
-    calculation most likely will not converge.
+enthalpy we can specify the vapor mass fraction :code:`x` determining the
+degree of evaporation. On the hot side inlet of the superheater we define the
+temperature, pressure and the fluid. At last we have to fully determine the
+state of the incoming fluid at the superheater's hot side.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -340,12 +307,11 @@ better convergence.
 Compressor system
 ^^^^^^^^^^^^^^^^^
 To complete the heat pump, we will add the compressor system to our existing
-network. This requires to change the connections 0, 6 and 13. The connection 6
+network. This requires to change the connections 0, 6 and 17. The connection 6
 has to be changed to include the compressor. After the last compressor stage,
 connection 0 has to redefined, since we need to include the CycleCloser of the
-working fluid's cycle. The connection 13 has to be connected to the heat
-exchanger for intermittent cooling and finally with a pump to make the water
-from the ambient heat source flow through the heat exchangers.
+working fluid's cycle. The connection 17 has to be connected to the heat
+exchanger for intermittent cooling as well as the bypass.
 
 .. figure:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
     :align: center
@@ -365,10 +331,11 @@ Components
 ++++++++++
 This part contains two compressors with intermittent cooling between them. The
 cold side of the heat exchanger will be connected to a pump upstream and to
-the superheater downstream. We will also replace the source for the coolant
-of :code:`c0` at the condenser with another CycleCloser (:code:`cool_closer`),
-to make sure the fluid properties after the second compressor are identical to
-the fluid properties at the condenser's inlet.
+the superheater downstream. The bypass is used to give the system flexibility
+in the temperature levels between the heat exchangers. We will also replac
+the source for the coolant of :code:`c0` at the condenser with another
+CycleCloser to make sure the fluid properties after the second compressor are
+identical to the fluid properties at the condenser's inlet.
 
 .. tip::
 
@@ -386,8 +353,8 @@ the fluid properties at the condenser's inlet.
 
 Connections
 +++++++++++
-Consequently to the addition of the cycle closer we have to adjust the
-connection definition touching the new cycle closer.
+We remove connections 0, 6 and 13 from the network, define the new connections
+and add them again.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -396,79 +363,125 @@ connection definition touching the new cycle closer.
 
 Parametrization
 +++++++++++++++
-For the two compressor we defined an isentropic efficiency and for the
-offdesign calculation a generic characteristic line for the isentropic
-efficiency will be applied. The first compressor has a fixed pressure ratio,
-the seconds compressor pressure ratio will result from the required pressure
-at the condenser. The heat exchanger comes with pressure ratios on both sides.
-The parametrization of all other components remains identical.
+For the first compressor we set the pressure ratio to the square root of the
+full pressure ration between condensation and evaporation. In the first step,
+we do not impose isentropic efficiency, because the respective equations are
+quite sensitive to good starting value. We will set these values after the
+full system has been calculated. The pump's isentropic efficiency value is not
+as critical, therefore we set this value. The intermittent cooling imposes
+pressure losses on both sides.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
     :start-after: [sec_14]
     :end-before: [sec_15]
 
-.. code-block:: python
+Regarding the connections we set enthalpy values for all working fluid side
+connections. After the superheater and intermittent cooling the value will be
+near saturation (enthalpy value of connection c5), after the compressors it
+will be higher.
 
-    cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
-    cp2.set_attr(eta_s=0.8, pr=5, design=['eta_s'], offdesign=['eta_s_char'])
-    he.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-                offdesign=['zeta1', 'zeta2', 'kA_char'])
+For the ambient side, we set temperature, pressure and fluid
+at connection 11. On top of that, we can specify the temperature of the
+ambient water after leaving the intermittent cooler.
 
-Regarding the connections, on the hot side after the intercooler we set the
-temperature. For the cold side of the heat exchanger we set the temperature,
-the pressure and the fluid on the inlet flow, at the outlet we specify the
-temperature as a design parameter. In offdesign calculation, this will be a
-result from the given heat transfer coefficient (see parametrisation of
-intercooler, kA_char is an offdesign parameter). Last, make sure the fluid
-properties after the compressor outlet are identical to those at the condenser
-inlet using the references.
-
-The last step leads to a necessary redefinition of the parametrization of the
-existing model: As the enthalpy at the outlet of the second compressor is a
-result of the given pressure ratio and the isentropic efficiency, it is not
-allowed to set the temperature at the condenser's hot inlet anymore.
+With readding of connection 0 we have to set the fluid and the pressure again,
+but not the temperature value, because this value will be a result of the
+condensation pressure and the given enthalpy at the compressor's outlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
     :start-after: [sec_15]
     :end-before: [sec_16]
 
-.. code-block:: python
+Solve and Set Final System Parameters
++++++++++++++++++++++++++++++++++++++
+Now we solve again. After that, we can exchange our good guesses with actual
+useful parameters:
 
-    # condenser system
+The condensation and evaporation pressure levels will be replaced by terminal
+temperature values of the condenser and the evaporator respectively. The lower
+terminal temperature value of the evaporator :code:`ttd_l` defines the pinch
+point. The upper terminal temperature value :code:`ttd_u` of the condenser
+defines the condensation pressure.
 
-    c_in_cd.set_attr(fluid={'water': 0, 'NH3': 1})
-
-    # compressor-system
-
-    he_cp2.set_attr(T=40, p0=10)
-    ic_in_he.set_attr(p=5, T=20, fluid={'water': 1, 'NH3': 0})
-    he_ic_out.set_attr(T=30, design=['T'])
-
-Solve
-+++++
-
-Here again, using the saved results from previous calculations is always
-favorable, but with manually adjusted starting values and the :code:`state`
-specifier, the calculation should still converge. If you want to use the
-previous part to initialise start the solver with
+The degree of superheating in the superheater will be determined by the upper
+terminal temperature instead of the enthalpy value at connection 6. The outlet
+enthalpies after both compressors are replaced by the isentropic efficiency
+values. Finally, the enthalpy after the intermittent cooling is replaced by
+the temperature difference to the boiling point. With this we can ensure, the
+working fluid does not start to condensate at the intermittent cooler.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
     :start-after: [sec_16]
     :end-before: [sec_17]
 
-.. code-block:: python
+Calculate Partload Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+After setting up the full system, we want to predict partload operation at
+different values for the consumer's heat demand. Some of the values utilized
+in the previous setup will change, if a component is not operated at its
+design point. This is individual to every system, so the designer has to
+answer the question: Which parameters are design point parameters and how does
+the component perform at a different operation point.
 
-    nw.solve('design', init_path='condenser')
+.. tip::
 
+    To make the necessary changes to the model, we can specify a design and an
+    offdesign attribute, both lists containing component or connection
+    parameter names. All parameters specified in the design attribute of a
+    component or connection, will be unset in a offdesign calculation, all
+    parameters specified in the offdesign attribute of a component or
+    connection will be set for the offdesign calculation. The value for these
+    parameters is the value derived from the design-calculation.
 
-Explore Partload Performance
-++++++++++++++++++++++++++++
+The changes we want to apply can be summarized as follows:
 
-Further tasks
-^^^^^^^^^^^^^
+- All heat exchangers should be calculated based on their heat transfer
+  coefficient with a characteristic for correction of that value depending
+  on the change of mass flow (:code:`kA_char`). Therefore terminal temperature
+  value specifications need to be added to the design parameters. Also, the
+  temperature at connection 14 cannot be specified anymore, since it will be a
+  result of the intermittent cooler's characteristics.
+- Pumps and compressors will have a characteristic function for their
+  isentropic efficiency instead of a constant value (:code:`eta_s_char`).
+- Pressure drops in components will be a result of the changing mass flow
+  through that component given the diameter in the design. The pressure ratio
+  will therefore be replaced by :code:`zeta` for all heat exchangers. The zeta
+  value is a geometry independent value.
+
+On top of that, for the evaporator the characteristic function of the heat
+transfer coefficient should follow different data than the default
+characteristic. The name of that line is 'EVAPORATING FLUID' for the cold
+side. The default line 'DEFAULT' will be kept for the hot side. These lines
+are available in the :ref:`tespy.data <tespy_data_label>` module.
+
+.. attention::
+
+    If you run the offdesign simulation without any changes in the
+    specification values, the results must be identical as in the respective
+    design case! If they are not, it is likely, something went wrong.
+
+.. literalinclude:: /../tutorial/advanced/stepwise.py
+    :language: python
+    :start-after: [sec_17]
+    :end-before: [sec_18]
+
+.. seealso::
+
+    If you want to learn more about handling characteristic functions you
+    should have a glance at the
+    :ref:`TESPy components section <tespy_modules_components_label>`.
+
+Finally, we can change the heat demand and run several offdesign calculations
+to calculate the partload COP value.
+
+.. literalinclude:: /../tutorial/advanced/stepwise.py
+    :language: python
+    :start-after: [sec_18]
+    :end-before: [sec_19]
+
 After successfully modeling the heat pump in design and offdesign cases, you
 can now start using your model for further calculations. For example, if you
 have a time series of required heat flow of your consumer, you can loop over

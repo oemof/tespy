@@ -438,17 +438,6 @@ check is skipped.
 In a lot of different tests the algorithm has found a near enough solution
 after the third iteration, further checks are usually not required.
 
-.. note::
-
-    It is possible to improve the convergence stability manually when using
-    pure fluids. If you know the fluid's state is liquid or gaseous prior to
-    the calculation, you may provide the according value for the keyword e.g.
-    :code:`myconn.set_attr(state='l')`. The convergence check manipulates the
-    enthalpy values so that the fluid is always in the desired state at that
-    point. For an example see the release information of
-    :ref:`version 0.1.1 <whats_new_011_example_label>`. **Please note, that**
-    **you need to adjust the other parts of the script to the latest API.**
-
 Calculation speed improvement
 +++++++++++++++++++++++++++++
 For improvement of calculation speed, the calculation of specific derivatives
@@ -744,15 +733,17 @@ respective API documentation.
 Creating fluid property diagrams
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. figure:: /api/_images/logph_diagram_states.svg
+.. figure:: /_static/images/modules/logph_diagram_states.svg
     :align: center
+    :alt: logph diagram of NH3 with a simple heat pump cycle
 
-    Figure: logph diagram of NH3 with a simple heat pump cycle.
+    Figure: logph diagram of NH3 with a simple heat pump cycle
 
-.. figure:: /api/_images/Ts_diagram_states.svg
+.. figure:: /_static/images/modules/Ts_diagram_states.svg
     :align: center
+    :alt: Ts diagram of NH3 with a simple heat pump cycle
 
-    Figure: Ts diagram of NH3 with a simple heat pump cycle.
+    Figure: Ts diagram of NH3 with a simple heat pump cycle
 
 CoolProp has an inbuilt feature for creating fluid property diagrams.
 Unfortunately, the handling is not very easy at the moment. We recommend using

@@ -1,3 +1,5 @@
+.. _tespy_basics_label:
+
 Modeling Basic Systems
 ~~~~~~~~~~~~~~~~~~~~~~
 

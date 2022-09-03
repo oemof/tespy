@@ -4,7 +4,7 @@ v0.3.4 - Darwin's Delight (October, 13, 2020)
 Documentation
 #############
 - Replace enthalpy starting value with :code:`state` keyword in the
-  :ref:`heat pump tutorial<heat_pump_tutorial_label>` and the examples from the
+  :ref:`heat pump tutorial <tespy_tutorial_heat_pump_label>` and the examples from the
   oemof_examples repository
   (`PR #214 <https://github.com/oemof/tespy/pull/214>`_,
   `743bfeb <https://github.com/oemof/oemof-examples/commit/743bfeb>`_).

@@ -63,12 +63,10 @@ Getting into TESPy
 ==================
 
 For a good start on how TESPy works and how you can use it, we provide some
-examples at the :ref:`examples section <tespy_examples_label>`. On top of that,
-there is a step-by-step :ref:`tutorial <heat_pump_tutorial_label>` on how to
-model a heat pump in TESPy.
-
-The :ref:`TESPy modules section <tespy_modules_label>` provides you
-with all important information on the different modules of TESPy.
+:ref:`basic <tespy_basics_label>` and :ref:`advanced <tespy_tutorial_label>`
+tutorials in the User Guide section. The
+:ref:`modules <tespy_modules_label>` section provides you with in depth
+information on the different modules of TESPy.
 
 Citation
 ========

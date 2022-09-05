@@ -116,7 +116,7 @@ tespy version:
 
 If you want to use the latest features, you might want to install the
 **developer version**. See section
-`Developing TESPy <http://tespy.readthedocs.io/en/dev/developing_tespy.html>`_
+`Developing TESPy <http://tespy.readthedocs.io/en/dev/development/how.html>`_
 for more information. The developer version is not recommended for productive
 use.
 

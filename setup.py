@@ -71,7 +71,15 @@ setup(
         'tabulate>=0.8.2,<0.9'
     ],
     extras_require={
-        'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',
-                'sphinxcontrib.bibtex', 'tox', ],
-        'dummy': ['tespy']}
+        'dev': [
+            'furo',
+            'pytest',
+            'sphinx',
+            'sphinx-copybutton',
+            'sphinx-design',
+            'sphinxcontrib.bibtex',
+            'tox',
+        ],
+        'dummy': ['tespy']
+    }
 )

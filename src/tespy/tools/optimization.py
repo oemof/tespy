@@ -50,59 +50,8 @@ class OptimizationProblem:
 
     Example
     -------
-    This example shows the optimization of the thermal efficiency of the
-    `SamplePlant` with respect to the pressure value at the intermediate
-    extration of the turbine. You can find the example code on the GitHub page
-    of TESPy:
-    :download:`example implementation </../tutorial/optimization_example.py>`.
-
-    To use the API, you need to define a class holding a TESPy network. You
-    create an instance of your plant class, i.e. :code:`plant = SamplePlant()`.
-    Then create an instance of the class
-    :py:class:`tespy.tools.optimization.OptimizationProblem` and pass
-
-    - the plant instance,
-    - the variables,
-    - the constraints and
-    - the objective function name.
-
-    For the optimization problem in this example, it can be formulated as
-    unconstrained problem by defining the lower and the upper limits for the
-    variable values, the constraints parameter can be left out. The objective
-    function of your plant (:code:`get_objective`), should return the
-    evaluation of the objective function. You can define multiple objective
-    functions, which can be accessed by the name of the objective. In the
-    example code only the thermal efficiency is defined, therefore the
-    :code:`objective` keyword does not need to be defined. The keywod is mainly
-    of use, if you want to quickly change the evaluation.
-
-    The only variable in this example is the extraction pressure at the
-    turbine. The upper limit is 50 bar and the lower limit 0.4 bar. Of course,
-    it is possible to use multiple variables and component parameters as
-    variables as well. Just provide them in the same structure as in this
-    example.
-
-    .. note::
-
-        Please note, that the sense of optimization is always minimization,
-        therefore you need to define your objective functions in the
-        appropriate way.
-
-    After selection of an appropriate algorithm (differential evolution is a
-    good fit for this application) we can start the optimization run. For more
-    information on algorithms available in the PyGMO framework and their
-    individual specifications please refer to the respective section in their
-    online documentation:
-    `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
-    Specify the number of individuals, the number of generations and call the
-    :py:meth:`tespy.tools.optimization.OptimizationProblem.run` method of your
-    :code:`OptimizationProblem` instance passing the algorithm and the number
-    of individials and generations.
-
-    In our sample run, we found an optimal value for the extraction pressure of
-    about 4.45 bar for a thermal efficiency of 38.7 %. The results for every
-    individual in each generation are stored in the :code:`individuals`
-    attribute of the :code:`OptimizationProblem`.
+    For an example please go to the tutorials section of TESPy's online
+    documentation.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective="objective"):
@@ -156,23 +105,65 @@ class OptimizationProblem:
         self.input_dict = self.variables.copy()
 
         self.nic = 0
-        for obj, data in self.constraints['upper limits'].items():
-            for label, constraints in data.items():
-                for param, constraint in constraints.items():
-                    self.nic += 1
-                    self.constraint_list += [
-                        obj + '-' + label + '-' + param + ' <= ' +
-                        str(constraint)
-                    ]
+        self.collect_constraints("upper", build=True)
+        self.collect_constraints("lower", build=True)
 
-        for obj, data in self.constraints['lower limits'].items():
+    def collect_constraints(self, border, build=False):
+        """Collect the constraints
+
+        Parameters
+        ----------
+        border : str
+            "upper" or "lower", determine which constraints to collect.
+        build : bool, optional
+            If True, the constraints are evaluated and returned, by default
+            False
+
+        Returns
+        -------
+        tuple
+            Return the upper and lower constraints evaluation lists.
+        """
+        evaluation = []
+        for obj, data in self.constraints[f'{border} limits'].items():
             for label, constraints in data.items():
                 for param, constraint in constraints.items():
-                    self.nic += 1
-                    self.constraint_list += [
-                        obj + '-' + label + '-' + param + ' >= ' +
-                        str(constraint)
-                    ]
+                    # to build the equations
+                    if build:
+                        self.nic += 1
+                        if isinstance(constraint, str):
+                            right_side = '-'.join(self.constraints[constraint])
+                        else:
+                            right_side = str(constraint)
+
+                        direction = '>=' if border == 'lower' else '<='
+                        self.constraint_list += [
+                            obj + '-' + label + '-' + param + direction +
+                            right_side
+                        ]
+                    # to get the constraints evaluation
+                    else:
+                        if isinstance(constraint, str):
+                            c = (
+                                self.model.get_param(
+                                    *self.constraints[constraint]
+                                ) - self.model.get_param(obj, label, param)
+                            )
+                        else:
+                            c = (
+                                constraint -
+                                self.model.get_param(obj, label, param)
+                            )
+                        if border == 'lower':
+                            evaluation += [c]
+                        else:
+                            evaluation += [-c]
+
+        if build:
+            return None
+        else:
+            return evaluation
+
 
     def fitness(self, x):
         """Evaluate the fitness function of an individual.
@@ -202,18 +193,8 @@ class OptimizationProblem:
         self.model.solve_model(**self.input_dict)
         f1 = [self.model.get_objective(self.objective)]
 
-        cu = [
-            self.model.get_param(obj, label, parameter) - constraint
-            for obj, data in self.constraints['upper limits'].items()
-            for label, constraints in data.items()
-            for parameter, constraint in constraints.items()
-        ]
-        cl = [
-            constraint - self.model.get_param(obj, label, parameter)
-            for obj, data in self.constraints['lower limits'].items()
-            for label, constraints in data.items()
-            for parameter, constraint in constraints.items()
-        ]
+        cu = self.collect_constraints("upper")
+        cl = self.collect_constraints("lower")
 
         return f1 + cu + cl
 
@@ -258,13 +239,16 @@ class OptimizationProblem:
             self.individuals[self.constraint_list] < 0
         ).all(axis='columns')
 
-    def run(self, algo, num_ind, num_gen):
+    def run(self, algo, pop, num_ind, num_gen):
         """Run the optimization algorithm.
 
         Parameters
         ----------
-        algo : pygmo.core
+        algo : pygmo.core.algorithm
             PyGMO optimization algorithm.
+
+        pop : pygmo.core.population
+            PyGMO population.
 
         num_ind : int
             Number of individuals.
@@ -285,9 +269,6 @@ class OptimizationProblem:
         ]
 
         self.individuals.set_index(["gen", "ind"], inplace=True)
-
-        algo = pg.algorithm(algo)
-        pop = pg.population(pg.problem(self), size=num_ind)
 
         # replace prints with logging
         gen = 0

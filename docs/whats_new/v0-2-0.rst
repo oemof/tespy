@@ -6,9 +6,6 @@ new features have been implemented improving the usage of the software. Due to
 changes in the API, **version 0.2.0 will not be compatible with older**
 **versions of TESPy!**
 
-The :ref:`example section below <tespy_v020_examples_label>` quickly shows,
-how to modify your scripts in order to work with the new version.
-
 New Features
 ############
 - Implemented a new component "cycle_closer". This component may serve as substitute for a
@@ -85,8 +82,6 @@ Contributors
 - @jfreissmann
 - @stianchris
 - @FranziPl
-
-.. _tespy_v020_examples_label:
 
 Examples
 ########

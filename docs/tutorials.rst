@@ -11,13 +11,13 @@ At the example of different heat pump topologies, you will learn to
 - create a more complex model *step by step* and get the idea of designing a
   plant and calculating the offdesign behavior.
 - set up a code structure, which allows you to generate stable starting values
-  flexibly, helping you to make faster analyses.
+  flexibly, helping you to build reliable setups faster.
 - use the inbuilt exergy analysis method in a simple geothermal heat pump
   setting.
 
 Furthermore, we introduce the coupling of TESPy with pygmo in order to create
 an optimization problem, which optimizes thermal efficiency of a clausius
-rankine power plant.
+rankine power plant. The
 
 - CGAM!
 - Larger dh system

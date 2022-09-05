@@ -99,7 +99,8 @@ class FuelCell(Component):
 
     Example
     -------
-    The example shows a simple adaptation of the fuel cell. It works with water as cooling fluid.
+    The example shows a simple adaptation of the fuel cell. It works with water
+    as cooling fluid.
 
     >>> from tespy.components import (Sink, Source, FuelCell)
     >>> from tespy.connections import Connection
@@ -124,22 +125,21 @@ class FuelCell(Component):
     >>> water_out = Connection(fc, 'out2', water_sink, 'in1')
     >>> nw.add_conns(cw_in, cw_out, oxygen_in, hydrogen_in, water_out)
 
-    The fuel cell shall produce 200kW of electrical power and 200kW of heat with an efficiency of 0.45. The
-    thermodynamic parameters of the input oxygen and hydrogen are given, the mass flow rates are calculated out of
+    The fuel cell shall produce 200kW of electrical power and 200kW of heat
+    with an efficiency of 0.45. The thermodynamic parameters of the input
+    oxygen and hydrogen are given, the mass flow rates are calculated out of
     the given power output. The cooling fluid is pure water.
 
-    >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9, design=['eta', 'P', 'Q', 'pr'])
-    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1, 'O2': 0, 'H2': 0}, design=['T', 'p', 'm'])
-    >>> oxygen_in.set_attr(T=25, p=1, design=['T', 'p'])
-    >>> hydrogen_in.set_attr(T=25, design=['T'])
+    >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9)
+    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1, 'O2': 0, 'H2': 0})
+    >>> oxygen_in.set_attr(T=25, p=1)
+    >>> hydrogen_in.set_attr(T=25)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
-    >>> P_design = fc.P.val / 1e03
-    >>> round(P_design, 1)
-    -200
+    >>> P_design = fc.P.val / 1e3
+    >>> round(P_design, 0)
+    -200.0
     >>> round(fc.eta.val, 2)
     0.45
-
     """
     @staticmethod
     def component():

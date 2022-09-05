@@ -50,59 +50,8 @@ class OptimizationProblem:
 
     Example
     -------
-    This example shows the optimization of the thermal efficiency of the
-    `SamplePlant` with respect to the pressure value at the intermediate
-    extration of the turbine. You can find the example code on the GitHub page
-    of TESPy:
-    :download:`example implementation </../tutorial/optimization_example.py>`.
-
-    To use the API, you need to define a class holding a TESPy network. You
-    create an instance of your plant class, i.e. :code:`plant = SamplePlant()`.
-    Then create an instance of the class
-    :py:class:`tespy.tools.optimization.OptimizationProblem` and pass
-
-    - the plant instance,
-    - the variables,
-    - the constraints and
-    - the objective function name.
-
-    For the optimization problem in this example, it can be formulated as
-    unconstrained problem by defining the lower and the upper limits for the
-    variable values, the constraints parameter can be left out. The objective
-    function of your plant (:code:`get_objective`), should return the
-    evaluation of the objective function. You can define multiple objective
-    functions, which can be accessed by the name of the objective. In the
-    example code only the thermal efficiency is defined, therefore the
-    :code:`objective` keyword does not need to be defined. The keywod is mainly
-    of use, if you want to quickly change the evaluation.
-
-    The only variable in this example is the extraction pressure at the
-    turbine. The upper limit is 50 bar and the lower limit 0.4 bar. Of course,
-    it is possible to use multiple variables and component parameters as
-    variables as well. Just provide them in the same structure as in this
-    example.
-
-    .. note::
-
-        Please note, that the sense of optimization is always minimization,
-        therefore you need to define your objective functions in the
-        appropriate way.
-
-    After selection of an appropriate algorithm (differential evolution is a
-    good fit for this application) we can start the optimization run. For more
-    information on algorithms available in the PyGMO framework and their
-    individual specifications please refer to the respective section in their
-    online documentation:
-    `list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
-    Specify the number of individuals, the number of generations and call the
-    :py:meth:`tespy.tools.optimization.OptimizationProblem.run` method of your
-    :code:`OptimizationProblem` instance passing the algorithm and the number
-    of individials and generations.
-
-    In our sample run, we found an optimal value for the extraction pressure of
-    about 4.45 bar for a thermal efficiency of 38.7 %. The results for every
-    individual in each generation are stored in the :code:`individuals`
-    attribute of the :code:`OptimizationProblem`.
+    For an example please go to the tutorials section of TESPy's online
+    documentation.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective="objective"):

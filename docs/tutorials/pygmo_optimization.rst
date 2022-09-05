@@ -5,27 +5,35 @@ Thermal Power Plant Efficiency Optimization
 
 Task
 ^^^^
-
 Designing a power plant meets multiple different tasks, such as finding the
 optimal fresh steam temperature and pressure to reduce exhaust steam water
 content, or the optimization of extraction pressures to maximize cycle
 efficiency and many more.
 
-In case of a rather simple power plant topologies the task of finding optimized
-values for e.g. extraction pressures is still manageable without any
+In case of a rather simple power plant topologies the task of finding
+optimized values for e.g. extraction pressures is still manageable without any
 optimization tool. As the topology becomes more complex and boundary
 conditions come into play the usage of additional tools is recommended. The
 following tutorial is intended to show the usage of PyGMO in combination with
 TESPy to **maximize the cycle efficiency of a power plant with two**
 **extractions.**
 
-The source code can be found at the TESPy
-`examples repository <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy/efficiency_optimization>`__.
+You can download the code here:
+:download:`pygmo_optimization.py </../tutorial/advanced/pygmo_optimization.py>`
 
-.. figure:: /api/_images/power_plant_two_extractions.svg
+.. figure:: /_static/images/tutorials/pygmo_optimization/flowsheet.svg
     :align: center
+    :alt: Topology of the power plant
+    :figclass: only-light
 
-    Figure: Topology of the power plant.
+    Figure: Topology of the power plant
+
+.. figure:: /_static/images/tutorials/pygmo_optimization/flowsheet_darkmode.svg
+    :align: center
+    :alt: Topology of the power plant
+    :figclass: only-dark
+
+    Figure: Topology of the power plant
 
 What is PyGMO?
 ^^^^^^^^^^^^^^
@@ -51,37 +59,46 @@ approximation for the real optimum.
 Install PyGMO
 +++++++++++++
 
-conda
-#####
+.. tab-set::
 
-With the conda package manager PyGMO is available for Linux, OSX and Windows
-thanks to the infrastructure of `conda-forge <https://conda-forge.org/>`_:
+   .. tab-item:: conda
 
-.. code-block:: bash
+        With the conda package manager PyGMO is available for Linux, OSX and
+        Windows thanks to the infrastructure of
+        `conda-forge <https://conda-forge.org/>`_:
 
-    conda install -c conda-forge pygmo
+        .. code-block:: bash
 
-pip
-###
+            conda install -c conda-forge pygmo
 
-On Linux you also have the option to use the
-`pip <https://pip.pypa.io/en/stable/>`_ package installer:
 
-.. code-block:: bash
+        Windows user can perform an installation from source as an alternative
+        to conda. For further information on this process we recommend the
+        `PyGMO installation <https://esa.github.io/pygmo2/install.html#installation-from-source>`__
+        accordingly.
 
-    pip install pygmo
 
-Windows user can perform an installation from source as an alternative to conda.
-For further information on this process we recommend the `PyGMO installation
-<https://esa.github.io/pygmo2/install.html#installation-from-source>`__
-accordingly.
+   .. tab-item:: pip (Linux only!)
+
+        On Linux you also have the option to use the
+        `pip <https://pip.pypa.io/en/stable/>`_ package installer:
+
+        .. code-block:: bash
+
+            pip install pygmo
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+To use the API, you need to define a class holding a TESPy network. The
+initialization of the class should build the network and run an initial
+simulation. Furthermore, you have to define methods
 
-It is necessary to use object oriented programming in PyGMO. Therefore we create
-a class :code:`PowerPlant` which contains our TESPy-Model and a function to
-return the cycle efficiency.
+- to get component or connection parameters of the plant :code:`get_param`,
+- to run a new simulation for every new input from PyGMO :code:`solve_model`
+  and
+- to return the objective value :code:`get_objective`.
+
+First, we set up the class with the TESPy network.
 
 .. dropdown:: Display source code for the PowerPlant class
 
@@ -247,12 +264,13 @@ return the cycle efficiency.
                 else:
                     return self.nw.busses['power'].P.val / self.nw.busses['heat'].P.val
 
-Note, that you have to label all busses and connections you want to access
-later on with PyGMO. In :code:`calculate_efficiency(self, x)` the variable
-:code:`x` is a list containing your decision variables. This function returns
-the cycle efficiency for a specific set of decision variables. The efficiency
-is defined by the ratio of total power transferred (including turbines and
-pumps) to steam generator heat input.
+Next, we add the methods :code:`get_param`, :code:`solve_model` and
+:code:`get_objective`.
+
+.. note::
+
+    The sense of optimization is always minimization, therefore you need to
+    define your objective functions in the appropriate way.
 
 Additionally, we have to make sure, only the result of physically feasible
 solutions is returned. In case we have infeasible solutions, we can simply
@@ -260,6 +278,25 @@ return :code:`np.nan`. An infeasible solution is obtained in case the power
 of a turbine is positive, the power of a pump is negative or the heat exchanged
 in any of the preheaters is positive. We also check, if the calculation does
 converge.
+
+After this, we import the :py:class:`tespy.tools.optimize.OptimizationProblem`
+class and create an instance of our self defined class, which we pass to an
+instance of the OptimizationProblem class. We also have to pass
+
+- the variables to optimize,
+- the constraints to consider and
+- the objective function name (you can define multiple).
+
+Before we can run the optimization, we only need to select an appropriate
+algorithm. After that we can start the optimization run. For more information
+on algorithms available in the PyGMO framework and their individual
+specifications please refer to the respective section in their online
+documentation:
+`list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
+Specify the number of individuals, the number of generations and call the
+:py:meth:`tespy.tools.optimization.OptimizationProblem.run` method of your
+:code:`OptimizationProblem` instance passing the algorithm and the number
+of individuals and generations.
 
 .. math::
 
@@ -356,8 +393,8 @@ With :code:`pop` we define the size of each population for the optimization,
 algorithms can be found in
 `List of algorithms <https://esa.github.io/pygmo2/overview.html#list-of-algorithms>`_.
 The choice of your algorithm depends on the type of problem. Have you set
-equality or inequality constraints? Do you perform a single- or multi-objective
-optimization?
+equality or inequality constraints? Do you perform a single- or
+multi-objective optimization?
 
 We choose a population size of 10 individuals and want to carry out 15
 generations. We can evolve the population generation by generation, e.g. using

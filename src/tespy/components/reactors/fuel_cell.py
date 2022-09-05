@@ -38,8 +38,6 @@ class FuelCell(Component):
     - in1 (cooling inlet), in2 (oxygen inlet), in3 (hydrogen inlet)
     - out1 (cooling outlet), out2 (water outlet)
 
-    //TODO: add image
-
     Image
 
     .. image:: _images/FuelCell.svg
@@ -99,8 +97,6 @@ class FuelCell(Component):
     as the water outlet. Thus, the user must not specify the fluid composition
     at these connections!
 
-    \\TODO: complete example
-
     Example
     -------
     The example shows a simple adaptation of the fuel cell. It works with water as cooling fluid.
@@ -121,11 +117,11 @@ class FuelCell(Component):
     >>> cw_source = Source('cw_source')
     >>> cw_sink = Sink('cw_sink')
     >>> water_sink = Sink('water_sink')
-    >>> cw_in = Connection(cw_source, 'out1', FC, 'in1')
-    >>> cw_out = Connection(FC, 'out1', cw_sink, 'in1')
-    >>> oxygen_in = Connection(oxygen_source, 'out1', FC, 'in2')
-    >>> hydrogen_in = Connection(hydrogen_source, 'out1', FC, 'in3')
-    >>> water_out = Connection(FC, 'out2', water_sink, 'in1')
+    >>> cw_in = Connection(cw_source, 'out1', fc, 'in1')
+    >>> cw_out = Connection(fc, 'out1', cw_sink, 'in1')
+    >>> oxygen_in = Connection(oxygen_source, 'out1', fc, 'in2')
+    >>> hydrogen_in = Connection(hydrogen_source, 'out1', fc, 'in3')
+    >>> water_out = Connection(fc, 'out2', water_sink, 'in1')
     >>> nw.add_conns(cw_in, cw_out, oxygen_in, hydrogen_in, water_out)
 
     The fuel cell shall produce 200kW of electrical power and 200kW of heat with an efficiency of 0.45. The

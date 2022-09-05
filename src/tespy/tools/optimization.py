@@ -105,23 +105,65 @@ class OptimizationProblem:
         self.input_dict = self.variables.copy()
 
         self.nic = 0
-        for obj, data in self.constraints['upper limits'].items():
-            for label, constraints in data.items():
-                for param, constraint in constraints.items():
-                    self.nic += 1
-                    self.constraint_list += [
-                        obj + '-' + label + '-' + param + ' <= ' +
-                        str(constraint)
-                    ]
+        self.collect_constraints("upper", build=True)
+        self.collect_constraints("lower", build=True)
 
-        for obj, data in self.constraints['lower limits'].items():
+    def collect_constraints(self, border, build=False):
+        """Collect the constraints
+
+        Parameters
+        ----------
+        border : str
+            "upper" or "lower", determine which constraints to collect.
+        build : bool, optional
+            If True, the constraints are evaluated and returned, by default
+            False
+
+        Returns
+        -------
+        tuple
+            Return the upper and lower constraints evaluation lists.
+        """
+        evaluation = []
+        for obj, data in self.constraints[f'{border} limits'].items():
             for label, constraints in data.items():
                 for param, constraint in constraints.items():
-                    self.nic += 1
-                    self.constraint_list += [
-                        obj + '-' + label + '-' + param + ' >= ' +
-                        str(constraint)
-                    ]
+                    # to build the equations
+                    if build:
+                        self.nic += 1
+                        if isinstance(constraint, str):
+                            right_side = '-'.join(self.constraints[constraint])
+                        else:
+                            right_side = str(constraint)
+
+                        direction = '>=' if border == 'lower' else '<='
+                        self.constraint_list += [
+                            obj + '-' + label + '-' + param + direction +
+                            right_side
+                        ]
+                    # to get the constraints evaluation
+                    else:
+                        if isinstance(constraint, str):
+                            c = (
+                                self.model.get_param(
+                                    *self.constraints[constraint]
+                                ) - self.model.get_param(obj, label, param)
+                            )
+                        else:
+                            c = (
+                                constraint -
+                                self.model.get_param(obj, label, param)
+                            )
+                        if border == 'lower':
+                            evaluation += [c]
+                        else:
+                            evaluation += [-c]
+
+        if build:
+            return None
+        else:
+            return evaluation
+
 
     def fitness(self, x):
         """Evaluate the fitness function of an individual.
@@ -151,18 +193,8 @@ class OptimizationProblem:
         self.model.solve_model(**self.input_dict)
         f1 = [self.model.get_objective(self.objective)]
 
-        cu = [
-            self.model.get_param(obj, label, parameter) - constraint
-            for obj, data in self.constraints['upper limits'].items()
-            for label, constraints in data.items()
-            for parameter, constraint in constraints.items()
-        ]
-        cl = [
-            constraint - self.model.get_param(obj, label, parameter)
-            for obj, data in self.constraints['lower limits'].items()
-            for label, constraints in data.items()
-            for parameter, constraint in constraints.items()
-        ]
+        cu = self.collect_constraints("upper")
+        cl = self.collect_constraints("lower")
 
         return f1 + cu + cl
 
@@ -207,13 +239,16 @@ class OptimizationProblem:
             self.individuals[self.constraint_list] < 0
         ).all(axis='columns')
 
-    def run(self, algo, num_ind, num_gen):
+    def run(self, algo, pop, num_ind, num_gen):
         """Run the optimization algorithm.
 
         Parameters
         ----------
-        algo : pygmo.core
+        algo : pygmo.core.algorithm
             PyGMO optimization algorithm.
+
+        pop : pygmo.core.population
+            PyGMO population.
 
         num_ind : int
             Number of individuals.
@@ -234,9 +269,6 @@ class OptimizationProblem:
         ]
 
         self.individuals.set_index(["gen", "ind"], inplace=True)
-
-        algo = pg.algorithm(algo)
-        pop = pg.population(pg.problem(self), size=num_ind)
 
         # replace prints with logging
         gen = 0

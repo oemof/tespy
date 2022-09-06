@@ -17,10 +17,62 @@ At the example of different heat pump topologies, you will learn to
 
 Furthermore, we introduce the coupling of TESPy with pygmo in order to create
 an optimization problem, which optimizes thermal efficiency of a clausius
-rankine power plant. The
+rankine power plant. Another typical setup are heat recovery steam generators
+using exhaust gases from an open cycle gas turbine.
 
-- CGAM!
-- Larger dh system
+Finally, we provide an approach on how to model complex district heating
+systems. If you have any questions, ideas for other tutorials or feedback,
+please reach out to us. We are looking forward to hearing from you!
+
+.. grid:: 2
+    :gutter: 1
+
+    .. grid-item-card::  Build complex systems step by step
+        :link: tespy_tutorial_heat_pump_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Generate stable starting values
+        :link: tespy_tutorial_starting_values_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
+
+.. grid:: 2
+    :gutter: 1
+
+    .. grid-item-card::  Exergy analysis of a heat pump
+        :link: tespy_tutorial_heat_pump_exergy_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+
+    .. grid-item-card::  Building Complex District Heating Systems
+        :link: TODO
+        :link-type: ref
+
+        Coming soon!
+
+.. grid:: 2
+    :gutter: 1
+
+    .. grid-item-card::  Optimization of a thermal power plant
+        :link: tespy_tutorial_pygmo_optimization_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+
+    .. grid-item-card::  Gas Turbine with Heat Recovery Steam Generator
+        :link: TODO
+        :link-type: ref
+
+        Coming soon!
+
 
 .. toctree::
     :maxdepth: 1

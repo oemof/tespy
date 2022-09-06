@@ -26,11 +26,13 @@ meetings as well as a discussion forum on GitHub.
     basics/district_heating.rst
 
 
-.. card::  Introduction
+.. card::  Introduction: Learn the basic modeling concept of TESPy
     :link: tespy_basics_intro_label
     :link-type: ref
 
-    Learn the basic modeling concept of TESPy
+    .. figure:: /_static/images/basics/modeling_concept.svg
+        :align: center
+        :alt: TESPy's modeling concept
 
 .. grid:: 2
     :gutter: 1

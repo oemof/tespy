@@ -34,10 +34,19 @@ We create a subsystem for the usage of a waste heat steam generator. The
 subsystem is built up of a superheater, an evaporator, a drum and an economizer
 as seen in the figure below.
 
-.. figure:: /api/_images/subsystem_waste_heat_generator.svg
+.. figure:: /_static/images/modules/subsystem_waste_heat_generator.svg
     :align: center
+    :alt: Topology of the waste heat steam generator
+    :figclass: only-light
 
-    Figure: Topology of the waste heat steam generator.
+    Figure: Topology of the waste heat steam generator
+
+.. figure:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+    :align: center
+    :alt: Topology of the waste heat steam generator
+    :figclass: only-dark
+
+    Figure: Topology of the waste heat steam generator
 
 Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 

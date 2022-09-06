@@ -19,7 +19,7 @@ TESPy to **maximize the cycle efficiency of a power plant with two**
 **extractions.**
 
 You can download the code here:
-:download:`pygmo_optimization.py </../tutorial/advanced/pygmo_optimization.py>`
+:download:`optimization_example.py </../tutorial/advanced/optimization_example.py>`
 
 .. figure:: /_static/images/tutorials/pygmo_optimization/flowsheet.svg
     :align: center
@@ -38,10 +38,10 @@ You can download the code here:
 What is PyGMO?
 ^^^^^^^^^^^^^^
 
-PyGMO (Python Parallel Global Multiobjective Optimizer, :cite:`Biscani2020`) is
-a library that provides a large number of evolutionary optimization algorithms.
-PyGMO can be used to solve constrained, unconstrained, single objective and
-multi objective problems.
+PyGMO (Python Parallel Global Multiobjective Optimizer, :cite:`Biscani2020`)
+is a library that provides a large number of evolutionary optimization
+algorithms. PyGMO can be used to solve constrained, unconstrained, single
+objective and multi objective problems.
 
 Evolutionary Algorithms
 +++++++++++++++++++++++
@@ -137,9 +137,10 @@ converge.
         :start-after: [sec_2]
         :end-before: [sec_3]
 
-After this, we import the :py:class:`tespy.tools.optimize.OptimizationProblem`
-class and create an instance of our self defined class, which we pass to an
-instance of the OptimizationProblem class. We also have to pass
+After this, we import the
+:py:class:`tespy.tools.optimization.OptimizationProblem` class and create an
+instance of our self defined class, which we pass to an instance of the
+OptimizationProblem class. We also have to pass
 
 - the variables to optimize,
 - the constraints to consider and
@@ -186,14 +187,15 @@ In our run, we got:
 
 .. code:: bash
 
-    Efficiency: 44.8596 %
-    Extraction 1: 25.8585 bar
-    Extraction 2: 2.6903 bar
+    Efficiency: 44.82 %
+    Extraction 1: 25.4756 bar
+    Extraction 2: 2.5428 bar
 
-.. figure:: /api/_images/scatterplot_efficiency_optimization.svg
+.. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
     :align: center
+    :alt: Scatter plot for all individuals during the optimization
 
-    Figure: Scatter plot for all individuals during the optimization.
+    Figure: Scatter plot for all individuals during the optimization
 
 Finally, you can access the individuals in each of the generations and you
 can have a look at you population. For more info on the population API please

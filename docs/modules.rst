@@ -15,7 +15,6 @@ as the underlying functionalities of the software.
 
     modules/networks.rst
     modules/components.rst
-    modules/subsystems.rst
     modules/connections.rst
     modules/characteristics.rst
     modules/fluid_properties.rst

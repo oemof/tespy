@@ -42,6 +42,10 @@ please reach out to us. We are looking forward to hearing from you!
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
+            :class: only-dark
 
 .. grid:: 2
     :gutter: 1
@@ -51,6 +55,10 @@ please reach out to us. We are looking forward to hearing from you!
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Building Complex District Heating Systems
         :link: TODO
@@ -66,6 +74,10 @@ please reach out to us. We are looking forward to hearing from you!
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Gas Turbine with Heat Recovery Steam Generator
         :link: TODO
@@ -83,4 +95,3 @@ please reach out to us. We are looking forward to hearing from you!
     tutorials/starting_values.rst
     tutorials/heat_pump_exergy.rst
     tutorials/pygmo_optimization.rst
-    tutorials/combustion_chamber.rst

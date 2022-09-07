@@ -194,6 +194,14 @@ In our run, we got:
 .. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
     :align: center
     :alt: Scatter plot for all individuals during the optimization
+    :figclass: only-light
+
+    Figure: Scatter plot for all individuals during the optimization
+
+.. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+    :align: center
+    :alt: Scatter plot for all individuals during the optimization
+    :figclass: only-dark
 
     Figure: Scatter plot for all individuals during the optimization
 

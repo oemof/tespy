@@ -264,7 +264,7 @@ optimize.run(algo, pop, num_ind, num_gen)
 # To access the results
 print(optimize.individuals)
 # check pygmo documentation to see, what you can get from the population
-print(pop)
+pop
 # plot the results
 import matplotlib.pyplot as plt
 

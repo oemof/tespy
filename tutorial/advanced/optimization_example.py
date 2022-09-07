@@ -293,4 +293,5 @@ ax.set_ylabel("Pressure at connection 4 in bar")
 plt.tight_layout()
 
 fig.savefig("pygmo_optimization.svg")
+print(data.loc[data["efficiency"].values == data["efficiency"].min()])
 # %%[sec_6]

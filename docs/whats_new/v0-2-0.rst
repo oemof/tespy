@@ -68,7 +68,7 @@ Other changes
 - Implement pep8speaks (PEP8 checker) in GitHub repository (`PR #131 <https://github.com/oemof/tespy/pull/131>`_).
 - The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make
   accessing the individual properties much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_). For a use
-  case of subsystems, have a look at the :ref:`district heating example <dh_example_label>`.
+  case of subsystems, have a look at the :ref:`district heating example <tespy_tutorial_district_heating_label>`.
 - Change the specification of set value for :py:class:`dc_simple <tespy.tools.data_containers.dc_simple>`
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 - Move the default characteristic function plots to the :ref:`tespy_data_label` documentation

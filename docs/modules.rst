@@ -35,10 +35,10 @@ as the underlying functionalities of the software.
         :link: tespy_modules_components_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/components.svg
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/components_darkmode.svg
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
             :class: only-dark
 
 .. grid:: 2
@@ -72,7 +72,4 @@ as the underlying functionalities of the software.
 
         .. math::
 
-            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
-            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
-            \dot{m}_2 = f\left(\frac{X}{X_0}\right)\\
             \dot{m}_2 = f\left(\frac{X}{X_0}\right)

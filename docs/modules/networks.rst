@@ -505,7 +505,7 @@ the fluid_balance parameter adds only one equation to your system.
 If you are modeling a cycle, e.g. the clausius rankine cylce, you need to make
 a cut in the cycle using the cycle_closer or a sink and a source not to
 overdetermine the system. Have a look in the
-:ref:`heat pump tutorial <heat_pump_tutorial_label>` to understand why this is
+:ref:`tutorial section <tespy_basics_label>` to understand why this is
 important and how it can be implemented.
 
 If you have provided the correct number of parameters in your system and the

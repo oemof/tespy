@@ -61,8 +61,6 @@ please reach out to us. We are looking forward to hearing from you!
             :class: only-dark
 
     .. grid-item-card::  Building Complex District Heating Systems
-        :link: TODO
-        :link-type: ref
 
         Coming soon!
 
@@ -80,8 +78,6 @@ please reach out to us. We are looking forward to hearing from you!
             :class: only-dark
 
     .. grid-item-card::  Gas Turbine with Heat Recovery Steam Generator
-        :link: TODO
-        :link-type: ref
 
         Coming soon!
 

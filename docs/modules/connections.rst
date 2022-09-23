@@ -181,8 +181,7 @@ These data are also available in the network's results dictionary and contain
 
     - 'comp' for the component instance.
     - 'param' for the parameter (e.g. the combustion engine has various
-      parameters, have a look at the
-      :ref:`combustion engine example <combustion_engine_label>`)
+      parameters)
     - 'char' for the characteristic line
     - 'base' the base for efficiency definition
     - 'P_ref' for the reference value of the component

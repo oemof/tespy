@@ -395,7 +395,7 @@ diagram is then easily done:
     ))
     fig.show()
 
-.. figure:: /_static/images/advanced/exergy/sankey.png
+.. figure:: /_static/images/advanced/exergy/sankey.svg
     :align: center
     :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
 

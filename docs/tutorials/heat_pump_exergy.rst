@@ -25,9 +25,9 @@ plotted.
     GitHub.
 
 Since there is an existing tutorial for
-:ref:`creating a heat pump <heat_pump_tutorial_label>`, this tutorial starts
-with the explanations for setting up the exergy analysis. Note, however, that
-the heat pump model differs slightly in structure from the model in the
+:ref:`creating a heat pump <tespy_tutorial_heat_pump_label>`, this tutorial
+starts with the explanations for setting up the exergy analysis. However note,
+that the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
 

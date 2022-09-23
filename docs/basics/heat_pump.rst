@@ -155,6 +155,14 @@ plot using matplotlib.
 .. figure:: /_static/images/basics/heat_pump_parametric.svg
     :align: center
     :alt: Parametric analysis of the heat pump's COP
+    :figclass: only-light
+
+    Figure: Parametric analysis of the heat pump's COP
+
+.. figure:: /_static/images/basics/heat_pump_parametric_darkmode.svg
+    :align: center
+    :alt: Parametric analysis of the heat pump's COP
+    :figclass: only-dark
 
     Figure: Parametric analysis of the heat pump's COP
 

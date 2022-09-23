@@ -47,13 +47,21 @@ as the underlying functionalities of the software.
         :link: tespy_modules_connections_label
         :link-type: ref
 
-        TODO: IMAGE
+        .. image:: /_static/images/modules/connections.svg
+            :class: only-light
+
+        .. image:: /_static/images/modules/connections_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Characteristics
         :link: tespy_modules_characteristics_label
         :link-type: ref
 
         .. image:: /_static/images/modules/characteristics.svg
+            :class: only-light
+
+        .. image:: /_static/images/modules/characteristics_darkmode.svg
+            :class: only-dark
 
 
 .. grid:: 2
@@ -64,11 +72,17 @@ as the underlying functionalities of the software.
         :link-type: ref
 
         .. image:: /_static/images/modules/fluid_properties.svg
+            :class: only-light
+
+        .. image:: /_static/images/modules/fluid_properties_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  User Defined Equations
         :link: tespy_ude_label
         :link-type: ref
 
-        .. math::
+        .. image:: /_static/images/modules/ude.svg
+            :class: only-light
 
-            \dot{m}_2 = f\left(\frac{X}{X_0}\right)
+        .. image:: /_static/images/modules/ude_darkmode.svg
+            :class: only-dark

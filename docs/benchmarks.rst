@@ -23,18 +23,23 @@ Finally, in the extension of the exergy analysis to chemical exergy
 :cite:`Valero1994` modeled in TESPy with a full model using industry software
 and with the data provided from literature as well :cite:`Bejan1996`.
 
+The code for the full models is accessible open source on GitHub:
+
+- `So called "Solar Energy Generating System" <https://github.com/fwitte/SEGS_exergy>`__
+- `Supercritical CO2 power cycle <https://github.com/fwitte/sCO2_exergy>`__
+- `Air refrigeration machine <https://github.com/fwitte/refrigeration_exergy>`__
+- `CGAM process <https://github.com/KarimHShawky/Chemical-Exergy-in-TESPy>`__
+
+
 Unit testing
 ------------
-Appart from the full model validation, the software includes full unit testing.
+On top of the full model validation, the software includes full unit testing.
 Here, single features of the software are tested by comparing the result the
 software provides with the result we would expect when manually modeling that
 feature. For example, we set up a turbine and check, whether the isentropic
 efficiency specification in the TESPy component matches the results that is
 expected doing the same process manually. This is done for all modules of the
 software.
-
-Furthermore, the full models denoted in the model validation are included in
-the testing pipeline as well.
 
 Continuous Integration
 ----------------------

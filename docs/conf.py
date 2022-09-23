@@ -31,7 +31,7 @@ extensions = [
 ]
 
 # landing page
-master_doc = 'contents'
+# master_doc = 'contents'
 # names, years, etc
 project = 'TESPy'
 year = '2022'

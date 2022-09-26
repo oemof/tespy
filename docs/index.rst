@@ -36,7 +36,6 @@
     :hidden:
 
     advanced/exergy
-    advanced/optimization
 
 ..  toctree::
     :maxdepth: 2

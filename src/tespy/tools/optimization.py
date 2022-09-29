@@ -164,7 +164,6 @@ class OptimizationProblem:
         else:
             return evaluation
 
-
     def fitness(self, x):
         """Evaluate the fitness function of an individual.
 

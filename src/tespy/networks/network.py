@@ -1464,9 +1464,10 @@ class Network:
             Connection to initialise.
         """
         if np.isnan(c.get_attr(key).val0):
-            # starting value for mass flow is 1 kg/s
+            # starting value for mass flow is random between 1 and 2 kg/s
+            # (should be generated based on some hash maybe?)
             if key == 'm':
-                c.get_attr(key).val0 = 1
+                c.get_attr(key).val0 = np.random.random() + 1
 
             # generic starting values for pressure and enthalpy
             else:
@@ -2378,6 +2379,37 @@ class Network:
                     fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
                 self.jacobian[k, col + 2] = (
                     fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
+                k += 1
+
+            # referenced volumetric flow
+            if c.v.ref_set:
+                ref = c.v.ref
+                flow_ref = ref.obj.get_flow()
+                ref_col = ref.obj.conn_loc * self.num_conn_vars
+                v = fp.v_mix_ph(flow, T0=c.T.val_SI)
+                v_ref = fp.v_mix_ph(flow_ref, T0=ref.obj.T.val_SI)
+                self.residual[k] = (
+                    (v * c.m.val_SI)
+                    - ((v_ref * ref.obj.m.val_SI) * ref.factor + ref.delta_SI)
+                )
+
+                self.jacobian[k, col] = v
+                self.jacobian[k, col + 1] = (
+                    fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI
+                )
+                self.jacobian[k, col + 2] = (
+                    fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI
+                )
+
+                self.jacobian[k, ref_col] = -v_ref * ref.factor
+                self.jacobian[k, ref_col + 1] = -(
+                    fp.dv_mix_dph(flow_ref, T0=ref.obj.T.val_SI)
+                    * ref.factor * ref.obj.m.val_SI
+                )
+                self.jacobian[k, ref_col + 2] = -(
+                    fp.dv_mix_pdh(flow_ref, T0=ref.obj.T.val_SI)
+                    * ref.factor * ref.obj.m.val_SI
+                )
                 k += 1
 
             # temperature difference to boiling point

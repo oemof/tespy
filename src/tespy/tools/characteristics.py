@@ -19,7 +19,6 @@ import logging
 import os
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from tespy import __datapath__
 from tespy.tools.helpers import extend_basic_path
@@ -169,6 +168,8 @@ class CharLine:
             raise KeyError(msg)
 
     def plot(self, path, title, xlabel, ylabel):
+
+        from matplotlib import pyplot as plt
 
         # plotting
         fig = plt.figure()
@@ -445,6 +446,8 @@ class CharMap:
             raise KeyError(msg)
 
     def plot(self, path, title, xlabel, ylabel):
+
+        from matplotlib import pyplot as plt
 
         # plotting
         fig = plt.figure()

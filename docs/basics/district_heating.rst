@@ -114,6 +114,14 @@ constant as well.
 .. figure:: /_static/images/basics/district_heating_partload.svg
     :align: center
     :alt: Performance of the district heating system at changing operating conditions
+    :figclass: only-light
+
+    Figure: Performance of the district heating system at changing operating conditions.
+
+.. figure:: /_static/images/basics/district_heating_partload_darkmode.svg
+    :align: center
+    :alt: Performance of the district heating system at changing operating conditions
+    :figclass: only-dark
 
     Figure: Performance of the district heating system at changing operating conditions.
 

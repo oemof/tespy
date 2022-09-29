@@ -1,3 +1,4 @@
+# %%[sec_1]
 import numpy as np
 import pygmo as pg
 
@@ -136,6 +137,8 @@ class SamplePlant:
         self.nw.save(self.stable)
         self.solved = True
 
+    # %%[sec_2]
+
     def get_param(self, obj, label, parameter):
         """Get the value of a parameter in the network"s unit system.
 
@@ -183,7 +186,12 @@ class SamplePlant:
                 self.nw.solve("design", init_only=True, init_path=self.stable)
             else:
                 # might need more checks here!
-                if any(self.nw.results["Condenser"]["Q"] > 0):
+                if (
+                        any(self.nw.results["Condenser"]["Q"] > 0)
+                        or any(self.nw.results["Desuperheater"]["Q"] > 0)
+                        or any(self.nw.results["Turbine"]["P"] > 0)
+                        or any(self.nw.results["Pump"]["P"] < 0)
+                    ):
                     self.solved = False
                 else:
                     self.solved = True
@@ -217,6 +225,7 @@ class SamplePlant:
         else:
             return np.nan
 
+    # %%[sec_3]
 
 plant = SamplePlant()
 plant.get_objective("efficiency")
@@ -238,14 +247,51 @@ constraints = {
 optimize = OptimizationProblem(
     plant, variables, constraints, objective="efficiency"
 )
+# %%[sec_4]
+num_ind = 10
+num_gen = 100
 
-num_ind = 5
-num_gen = 3
-
-# careful here, some algorithms do need the number of generations passed,
-# some not!
-algo = pg.algorithm(pg.ihs(gen=num_gen))
+# for algorithm selection and parametrization please consider the pygmo
+# documentation! The number of generations indicated in the algorithm is
+# the number of evolutions we undertake within each generation defined in
+# num_gen
+algo = pg.algorithm(pg.ihs(gen=3, seed=42))
 # create starting population
-pop = pg.population(pg.problem(optimize), size=num_ind)
+pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
 
 optimize.run(algo, pop, num_ind, num_gen)
+# %%[sec_5]
+# To access the results
+print(optimize.individuals)
+# check pygmo documentation to see, what you can get from the population
+pop
+# plot the results
+import matplotlib.pyplot as plt
+
+
+# make text reasonably sized
+plt.rc("font", **{"size": 18})
+
+fig, ax = plt.subplots(1, figsize=(16, 8))
+
+filter_valid_constraint = optimize.individuals["valid"].values
+filter_valid_result = ~np.isnan(optimize.individuals["efficiency"].values)
+data = optimize.individuals.loc[filter_valid_constraint & filter_valid_result]
+
+sc = ax.scatter(
+    data["Connections-2-p"],
+    data["Connections-4-p"],
+    c=1 / data["efficiency"] * 100,
+    s=100
+)
+cbar = plt.colorbar(sc)
+cbar.set_label("Thermal efficiency in %")
+
+ax.set_axisbelow(True)
+ax.set_xlabel("Pressure at connection 2 in bar")
+ax.set_ylabel("Pressure at connection 4 in bar")
+plt.tight_layout()
+
+fig.savefig("pygmo_optimization.svg")
+print(data.loc[data["efficiency"].values == data["efficiency"].min()])
+# %%[sec_6]

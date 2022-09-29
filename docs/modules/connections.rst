@@ -12,14 +12,14 @@ Parametrisation
 As mentioned in the introduction, for each connection you can specify the
 following parameters:
 
- * mass flow* (m),
- * volumetric flow (v),
- * pressure* (p),
- * enthalpy* (h),
- * temperature* (T),
- * vapor mass fraction for pure fluids (x),
- * a fluid vector (fluid) and
- * a balance closer for the fluid vector (fluid_balance).
+* mass flow* (m),
+* volumetric flow (v),
+* pressure* (p),
+* enthalpy* (h),
+* temperature* (T),
+* vapor mass fraction for pure fluids (x),
+* a fluid vector (fluid) and
+* a balance closer for the fluid vector (fluid_balance).
 
 It is possible to specify values, starting values, references and data
 containers. The data containers for connections are dc_prop for fluid
@@ -54,18 +54,24 @@ In order to create the connections we create the components to connect first.
     myconn.set_attr(m0=10, p0=15, h0=100)
 
     # do the same with a data container
-    myconn.set_attr(p=dc_prop(val=7, val_set=True),
-                    x=dc_prop(val=0.5, val_set=True))
-    myconn.set_attr(m=dc_prop(val0=10), p=dc_prop(val0=15),
-                    h=dc_prop(val0=100))
+    myconn.set_attr(
+        p=dc_prop(val=7, val_set=True),
+        x=dc_prop(val=0.5, val_set=True)
+    )
+    myconn.set_attr(
+        m=dc_prop(val0=10), p=dc_prop(val0=15), h=dc_prop(val0=100)
+    )
 
     # specify a referenced value: pressure of myconn is 1.2 times pressure at
     # myotherconn minus 5 (unit is the network's corresponding unit)
     myconn.set_attr(p=Ref(myotherconn, 1.2, -5))
 
     # specify value and reference at the same time
-    myconn.set_attr(p=dc_prop(val=7, val_set=True,
-                    ref=Ref(myotherconn, 1.2, -5), ref_set=True))
+    myconn.set_attr(
+        p=dc_prop(
+            val=7, val_set=True, ref=Ref(myotherconn, 1.2, -5), ref_set=True
+        )
+    )
 
     # possibilities to unset values
     myconn.set_attr(p=np.nan)
@@ -175,8 +181,7 @@ These data are also available in the network's results dictionary and contain
 
     - 'comp' for the component instance.
     - 'param' for the parameter (e.g. the combustion engine has various
-      parameters, have a look at the
-      :ref:`combustion engine example <combustion_engine_label>`)
+      parameters)
     - 'char' for the characteristic line
     - 'base' the base for efficiency definition
     - 'P_ref' for the reference value of the component
@@ -240,7 +245,7 @@ consumption.
 Create two turbines :code:`turbine1` and :code:`turbine2` which have the same
 power output.
 
-.. code:: python
+.. code-block:: python
 
     # the total power on this bus must be zero, too
     # we make sure the two turbines yield the same power output by adding the char
@@ -253,7 +258,7 @@ Create a bus for post-processing purpose only. Include a characteristic line
 for a generator and add two turbines :code:`turbine_hp` and :code:`turbine_lp`
 to the bus.
 
-.. code:: python
+.. code-block:: python
 
     # bus for postprocessing, no power (or heat flow) specified but with variable
     # conversion efficiency
@@ -264,14 +269,15 @@ to the bus.
     gen = CharLine(x=x, y=y)
     power.add_comps(
         {'comp': turbine_hp, 'char': gen1},
-        {'comp': turbine_lp, 'char': gen2})
+        {'comp': turbine_lp, 'char': gen2}
+    )
     my_network.add_busses(power_bus)
 
 Create a bus for the electrical power output of a combustion engine
 :code:`comb_engine`. Use a generator for power conversion and specify the total
 power output.
 
-.. code:: python
+.. code-block:: python
 
     # bus for combustion engine power
     el_power_bus = Bus('combustion engine power', P=-10e6)
@@ -282,7 +288,7 @@ Create a bus for the electrical power input of a pump :code:`pu` with
 the component power will be identical. Due to the different efficiency
 definitions the value of the bus power will differ in part load.
 
-.. code:: python
+.. code-block:: python
 
     import numpy as np
     from tespy.components import Pump, Sink, Source

@@ -150,6 +150,14 @@ can disable the printout of the convergence history.
 .. figure:: /_static/images/basics/rankine_parametric.svg
     :align: center
     :alt: Parametric analysis of the efficiency and power output
+    :figclass: only-light
+
+    Figure: Parametric analysis of the efficiency and power output
+
+.. figure:: /_static/images/basics/rankine_parametric_darkmode.svg
+    :align: center
+    :alt: Parametric analysis of the efficiency and power output
+    :figclass: only-dark
 
     Figure: Parametric analysis of the efficiency and power output
 
@@ -232,5 +240,13 @@ Finally, we can alter the mass flow from its design value of 20 kg/s to only
 .. figure:: /_static/images/basics/rankine_partload.svg
     :align: center
     :alt: Partload electric efficiency of the rankine cycle
+    :figclass: only-light
+
+    Figure: Partload electric efficiency of the rankine cycle
+
+.. figure:: /_static/images/basics/rankine_partload_darkmode.svg
+    :align: center
+    :alt: Partload electric efficiency of the rankine cycle
+    :figclass: only-dark
 
     Figure: Partload electric efficiency of the rankine cycle

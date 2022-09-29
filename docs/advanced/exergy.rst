@@ -137,6 +137,12 @@ model.
 .. figure:: /_static/images/advanced/exergy/flowsheet.svg
     :align: center
     :alt: Topology of the Solar Energy Generating System (SEGS)
+    :figclass: only-light
+
+.. figure:: /_static/images/advanced/exergy/flowsheet_darkmode.svg
+    :align: center
+    :alt: Topology of the Solar Energy Generating System (SEGS)
+    :figclass: only-dark
 
 The input data are based on literature :cite:`Kearney1988`, which provides
 measured data. Some parameters are however taken from a follow-up publication,
@@ -395,7 +401,7 @@ diagram is then easily done:
     ))
     fig.show()
 
-.. figure:: /_static/images/advanced/exergy/sankey.png
+.. figure:: /_static/images/advanced/exergy/sankey.svg
     :align: center
     :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
 

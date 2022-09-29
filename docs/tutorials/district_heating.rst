@@ -1,3 +1,5 @@
+.. _tespy_tutorial_district_heating_label:
+
 Distric heating system
 ----------------------
 
@@ -10,7 +12,7 @@ Although the structure of the system (see the Figure below) does not seem very
 complex, it has more than 120 components. But we can easily determine repeating
 structures for the consumers and this is, where the subsystems come in place.
 
-.. figure:: /api/_images/dhs.svg
+.. figure:: /_static/images/tutorials/district_heating_system/dhs.svg
     :align: center
 
     Figure: Topology of the heating system.
@@ -22,17 +24,17 @@ closed) or is open to connect to another part of the grid (industrial area,
 see subsystem open). Additionally, each branch of the main grid is connected to
 the upstream part with the fork subsystem (Ki, see subsystem fork).
 
-.. figure:: /api/_images/dhs_closed.svg
+.. figure:: /_static/images/tutorials/district_heating_system/dhs_closed.svg
     :align: center
 
     Figure: Generic topology of the dead end subsystem.
 
-.. figure:: /api/_images/dhs_open.svg
+.. figure:: /_static/images/tutorials/district_heating_system/dhs_open.svg
     :align: center
 
     Figure: Generic topology of the open subsystem.
 
-.. figure:: /api/_images/dhs_forks.svg
+.. figure:: /_static/images/tutorials/district_heating_system/dhs_forks.svg
     :align: center
 
     Figure: Generic topology of the forks (variable number of branches).

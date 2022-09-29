@@ -25,9 +25,9 @@ plotted.
     GitHub.
 
 Since there is an existing tutorial for
-:ref:`creating a heat pump <heat_pump_tutorial_label>`, this tutorial starts
-with the explanations for setting up the exergy analysis. Note, however, that
-the heat pump model differs slightly in structure from the model in the
+:ref:`creating a heat pump <tespy_tutorial_heat_pump_label>`, this tutorial
+starts with the explanations for setting up the exergy analysis. However note,
+that the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
 
@@ -456,6 +456,15 @@ is shown below.
 .. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
     :align: center
     :alt: Comparison of exergy destruction and exergy efficiency
+    :figclass: only-light
+
+    Figure: Comparison of exergy destruction and exergy efficiency of both
+    working fluids in design case.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+    :align: center
+    :alt: Comparison of exergy destruction and exergy efficiency
+    :figclass: only-dark
 
     Figure: Comparison of exergy destruction and exergy efficiency of both
     working fluids in design case.
@@ -552,6 +561,14 @@ documentation.
 .. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_eps_Tamb_Tgeo.svg
     :align: center
     :alt: Varying Tamb and Tgeo of the GCHP
+    :figclass: only-light
+
+    Figure: Varying ambient and geothermal temperature.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_eps_Tamb_Tgeo_darkmode.svg
+    :align: center
+    :alt: Varying Tamb and Tgeo of the GCHP
+    :figclass: only-dark
 
     Figure: Varying ambient and geothermal temperature.
 
@@ -630,6 +647,14 @@ corresponding Python code can likewise be found in the plot script
 .. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_cop_eps_Tgeo_Ths.svg
     :align: center
     :alt: Varying Tgeo and Ths of the GCHP
+    :figclass: only-light
+
+    Figure: Varying geothermal and heating system temperature.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_cop_eps_Tgeo_Ths_darkmode.svg
+    :align: center
+    :alt: Varying Tgeo and Ths of the GCHP
+    :figclass: only-dark
 
     Figure: Varying geothermal and heating system temperature.
 
@@ -660,6 +685,14 @@ instead.
 .. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_cop_eps_Tgeo_Q.svg
     :align: center
     :alt: Varying Tgeo and Q of the GCHP
+    :figclass: only-light
+
+    Figure: Varying geothermal temperature and heat load.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_cop_eps_Tgeo_Q_darkmode.svg
+    :align: center
+    :alt: Varying Tgeo and Q of the GCHP
+    :figclass: only-dark
 
     Figure: Varying geothermal temperature and heat load.
 

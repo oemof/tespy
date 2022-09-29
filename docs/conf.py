@@ -31,7 +31,7 @@ extensions = [
 ]
 
 # landing page
-master_doc = 'contents'
+# master_doc = 'contents'
 # names, years, etc
 project = 'TESPy'
 year = '2022'
@@ -99,9 +99,9 @@ html_static_path = ['_static']
 html_css_files = [
     'css/custom.css',
 ]
-html_additional_pages = {
-    "index": "index.html"
-}
+# html_additional_pages = {
+#     "index": "index.html"
+# }
 
 html_sidebars = {
     '**': [

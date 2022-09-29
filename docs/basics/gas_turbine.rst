@@ -180,6 +180,15 @@ assume 2 % heat losses and 3 % pressure losses in the combustion chamber.
 .. figure:: /_static/images/basics/gas_turbine_parametric.svg
     :align: center
     :alt: Gas turbine performance at different compressor pressure ratios and turbine inlet temperatures
+    :figclass: only-light
+
+    Figure: Gas turbine performance at different compressor pressure ratios
+    and turbine inlet temperatures
+
+.. figure:: /_static/images/basics/gas_turbine_parametric_darkmode.svg
+    :align: center
+    :alt: Gas turbine performance at different compressor pressure ratios and turbine inlet temperatures
+    :figclass: only-dark
 
     Figure: Gas turbine performance at different compressor pressure ratios
     and turbine inlet temperatures
@@ -202,6 +211,15 @@ turbine inlet temperature correlates with the oxygen mass fraction.
 .. figure:: /_static/images/basics/gas_turbine_oxygen.svg
     :align: center
     :alt: Turbine inlet temperature at different levels of oxygen in the flue gas
+    :figclass: only-light
+
+    Figure: Turbine inlet temperature at different levels of oxygen in the
+    flue gas
+
+.. figure:: /_static/images/basics/gas_turbine_oxygen_darkmode.svg
+    :align: center
+    :alt: Turbine inlet temperature at different levels of oxygen in the flue gas
+    :figclass: only-dark
 
     Figure: Turbine inlet temperature at different levels of oxygen in the
     flue gas
@@ -233,6 +251,15 @@ hydrogen and methane.
 .. figure:: /_static/images/basics/gas_turbine_fuel_composition.svg
     :align: center
     :alt: Mass fractions of H2 and CH4 in fuel mixture at different thermal input
+    :figclass: only-light
+
+    Figure: Mass fractions of H2 and CH4 in fuel mixture at varying thermal
+    input and constant fuel mass flow
+
+.. figure:: /_static/images/basics/gas_turbine_fuel_composition_darkmode.svg
+    :align: center
+    :alt: Mass fractions of H2 and CH4 in fuel mixture at different thermal input
+    :figclass: only-dark
 
     Figure: Mass fractions of H2 and CH4 in fuel mixture at varying thermal
     input and constant fuel mass flow

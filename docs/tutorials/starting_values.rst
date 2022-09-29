@@ -198,5 +198,13 @@ We can run that function for different working fluids and plot the results:
 .. figure:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
     :align: center
     :alt: Analysis of the COP using different working fluids
+    :figclass: only-light
+
+    Figure: Analysis of the COP using different working fluids
+
+.. figure:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
+    :align: center
+    :alt: Analysis of the COP using different working fluids
+    :figclass: only-dark
 
     Figure: Analysis of the COP using different working fluids

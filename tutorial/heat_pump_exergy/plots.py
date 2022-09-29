@@ -75,8 +75,8 @@ axs[1, 1].set_xlim(right=1)
 fig.suptitle('Component Exergy Destruction', fontsize=14)
 fig.legend(bbox_to_anchor=(0.08, 0, 0.9, .0), loc='center',
            ncol=3, borderaxespad=0.)
-plt.show()
 fig.savefig('diagram_E_D.svg', bbox_inches='tight')
+plt.close()
 
 
 # %% figure 2: epsilon depending on ambient Temperature Tamb
@@ -118,6 +118,7 @@ axs[1].legend(loc='lower left')
 
 fig.suptitle('Exergetic Efficency depending on Temperature', fontsize=14)
 fig.savefig('diagram_eps_Tamb_Tgeo.svg', bbox_inches='tight')
+plt.close()
 
 
 # %% figure 3: epsilon and COP depending on mean geothermal temperature Tgeo
@@ -166,6 +167,7 @@ fig.suptitle(
     'COP and $\epsilon$ depending heating and geothermal mean temperature',
     fontsize=12)
 fig.savefig('diagram_cop_eps_Tgeo_Ths.svg', bbox_inches='tight')
+plt.close()
 
 
 # %% figure 4: epsilon and COP depending on mean geothermal temperature Tgeo
@@ -217,3 +219,4 @@ fig.suptitle(
     'COP and $\epsilon$ depending on load and geothermal mean temperature',
     fontsize=12)
 fig.savefig('diagram_cop_eps_Tgeo_Q.svg', bbox_inches='tight')
+plt.close()

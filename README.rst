@@ -146,12 +146,9 @@ Examples
 ========
 
 For a short introduction on how TESPy works and how you can use it, we provide
-some
-`examples and tutorials <https://tespy.readthedocs.io/en/main/tutorials_examples.html>`_,
-go and check them out. You can download the python scripts of all example plants
-from the
-`tespy_examples <https://github.com/oemof/oemof-examples/tree/master/oemof_examples/tespy>`_
-repository.
+an extensive `user guide <https://tespy.readthedocs.io/en/main/>`__. You can
+download all python scripts of the examples and tutorials from this GitHub
+repository. They are included in the "tutorial" directory.
 
 Citation
 ========

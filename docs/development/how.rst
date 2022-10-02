@@ -136,8 +136,8 @@ Docstrings
 ^^^^^^^^^^
 
 We decided to use the style of the numpydoc docstrings. See the following
-link for an
-`example <https://github.com/numpy/numpy/blob/main/doc/example.py>`_.
+link for more information
+`numpy docstrings <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html>`_.
 
 
 Code commenting

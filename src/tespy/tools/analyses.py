@@ -24,8 +24,6 @@ from tabulate import tabulate
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
 
-# %%
-
 
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""

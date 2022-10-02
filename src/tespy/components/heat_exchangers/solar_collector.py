@@ -45,9 +45,15 @@ class SolarCollector(HeatExchangerSimple):
 
     Image
 
-    .. image:: _images/SolarCollector.svg
-       :alt: alternative text
+    .. image:: /api/_images/SolarCollector.svg
+       :alt: flowsheet of the solar collector
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/SolarCollector_darkmode.svg
+       :alt: flowsheet of the solar collector
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

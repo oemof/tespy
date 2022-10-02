@@ -47,9 +47,15 @@ class Turbine(Turbomachine):
 
     Image
 
-    .. image:: _images/Turbine.svg
-       :alt: alternative text
+    .. image:: /api/_images/Turbine.svg
+       :alt: flowsheet of the turbine
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Turbine_darkmode.svg
+       :alt: flowsheet of the turbine
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

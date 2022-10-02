@@ -14,8 +14,8 @@ import os
 import shutil
 
 import numpy as np
-from pkg_resources import resource_filename
 
+from tespy import __datapath__
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_custom_char
@@ -27,7 +27,7 @@ def test_custom_CharLine_import():
     """Test importing a custom characteristc lines."""
 
     # we need to write some data to the path first, using defaults
-    data_path = resource_filename('tespy.data', 'char_lines.json')
+    data_path = __datapath__ + 'char_lines.json'
     path = extend_basic_path('data')
     tmp_path = extend_basic_path('tmp_dir_for_testing')
 
@@ -75,7 +75,7 @@ def test_custom_CharMap_import():
     """Test importing a custom characteristc map."""
 
     # we need to write some data to the path first, using defaults
-    data_path = resource_filename('tespy.data', 'char_maps.json')
+    data_path = __datapath__ + 'char_maps.json'
     path = extend_basic_path('data')
     tmp_path = extend_basic_path('tmp_dir_for_testing')
 

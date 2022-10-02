@@ -6,9 +6,6 @@ new features have been implemented improving the usage of the software. Due to
 changes in the API, **version 0.2.0 will not be compatible with older**
 **versions of TESPy!**
 
-The :ref:`example section below <tespy_v020_examples_label>` quickly shows,
-how to modify your scripts in order to work with the new version.
-
 New Features
 ############
 - Implemented a new component "cycle_closer". This component may serve as substitute for a
@@ -71,10 +68,10 @@ Other changes
 - Implement pep8speaks (PEP8 checker) in GitHub repository (`PR #131 <https://github.com/oemof/tespy/pull/131>`_).
 - The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make
   accessing the individual properties much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_). For a use
-  case of subsystems, have a look at the :ref:`district heating example <dh_example_label>`.
+  case of subsystems, have a look at the :ref:`district heating example <tespy_tutorial_district_heating_label>`.
 - Change the specification of set value for :py:class:`dc_simple <tespy.tools.data_containers.dc_simple>`
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
-- Move the default characteristic function plots to the :py:mod:`tespy.data <tespy.data>` module documentation
+- Move the default characteristic function plots to the :ref:`tespy_data_label` documentation
   (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 
 Contributors
@@ -85,8 +82,6 @@ Contributors
 - @jfreissmann
 - @stianchris
 - @FranziPl
-
-.. _tespy_v020_examples_label:
 
 Examples
 ########

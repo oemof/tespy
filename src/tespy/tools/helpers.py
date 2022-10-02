@@ -10,7 +10,6 @@ SPDX-License-Identifier: MIT
 """
 import logging
 import os
-
 from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
@@ -39,10 +38,12 @@ def merge_dicts(dict1, dict2):
 
 def nested_OrderedDict(dictionary):
     """Create a nested OrderedDict from a nested dict.
+
     Parameters
     ----------
     dictionary : dict
         Nested dict.
+
     Returns
     -------
     dictionary : collections.OrderedDict

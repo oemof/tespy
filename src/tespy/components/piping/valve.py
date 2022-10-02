@@ -42,9 +42,15 @@ class Valve(Component):
 
     Image
 
-    .. image:: _images/Valve.svg
-       :alt: alternative text
+    .. image:: /api/_images/Valve.svg
+       :alt: flowsheet of the valve
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Valve_darkmode.svg
+       :alt: flowsheet of the valve
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

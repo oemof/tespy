@@ -33,8 +33,6 @@ Other changes
 - Add method to calculate and export vapour mass fraction values of pure fluids in the post processing (`PR #74 <https://github.com/oemof/tespy/pull/74>`_).
 - Only allow label and P as parameters for busses to avoid misleading parameter specification (`PR #78 <https://github.com/oemof/tespy/pull/78>`_).
 
-.. _whats_new_012_example_label:
-
 Water Electrolyzer Example
 ##########################
 

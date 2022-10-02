@@ -1,6 +1,8 @@
 # -*- coding: utf-8
+from pkg_resources import resource_filename
 
-__version__ = '0.6.0 - Colored Chemicals'
+__datapath__ = resource_filename('tespy', 'data/')
+__version__ = '0.6.1 - Leidenfrost\'s Library'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

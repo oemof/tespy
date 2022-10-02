@@ -2,28 +2,45 @@
 
 .. include:: introduction.rst
 
+..  toctree::
+    :maxdepth: 2
+    :hidden:
 
-Contents
-========
+    introduction
 
 ..  toctree::
     :maxdepth: 2
+    :caption: User Guide
+    :hidden:
 
-    introduction
     installation
-    first_steps
+    basics
+    tutorials
+    examples
     regular_meeting
-    tutorials_examples
-    tespy_modules
-    tespy_analyses
-    developing_tespy
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Documentation
+    :hidden:
+
+    modules
+    benchmarks
+    api
     whats_new
     zliterature
-    api
 
-Indices and tables
-==================
+..  toctree::
+    :maxdepth: 2
+    :caption: Advanced Features
+    :hidden:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    advanced/exergy
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Contribute to TESPy
+    :hidden:
+
+    development/what
+    development/how

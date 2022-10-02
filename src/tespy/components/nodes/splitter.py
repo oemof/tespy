@@ -35,9 +35,15 @@ class Splitter(NodeBase):
 
     Image
 
-    .. image:: _images/Splitter.svg
-       :alt: alternative text
+    .. image:: /api/_images/Splitter.svg
+       :alt: flowsheet of the splitter
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Splitter_darkmode.svg
+       :alt: flowsheet of the splitter
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

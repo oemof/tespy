@@ -60,9 +60,15 @@ class HeatExchangerSimple(Component):
 
     Image
 
-    .. image:: _images/Pipe.svg
-       :alt: alternative text
+    .. image:: /api/_images/Pipe.svg
+       :alt: flowsheet of the simple heat exchanger
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Pipe_darkmode.svg
+       :alt: flowsheet of the simple heat exchanger
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

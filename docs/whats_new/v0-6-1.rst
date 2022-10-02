@@ -1,0 +1,45 @@
+v0.6.1 - Leidenfrost's Library (October, 02, 2022)
+++++++++++++++++++++++++++++++++++++++++++++++++++
+We have completely revised the documentation improving the overall structure
+and introducing a modern look
+(`PR #355 <https://github.com/oemof/tespy/pull/355>`_). Have fun exploring the
+website!
+
+New Features
+############
+- Add support for higher Python versions and remove upper limit
+  (`PR #350 <https://github.com/oemof/tespy/pull/350>`_).
+- A new component FuelCell is available:
+  :py:class:`tespy.components.reactors.fuel_cell.FuelCell`. It is analogously
+  defined to the WaterElectrolyzer
+  :py:class:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer`
+  (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
+- Integration of an optimization suite using pygmo :cite:`Biscani2020` to apply
+  a variety of state of the art optimization algorithms to your TESPy model
+  (`PR #296 <https://github.com/oemof/tespy/pull/296>`__). It has been further
+  improved in `PR #357 <https://github.com/oemof/tespy/pull/357>`__.
+- Volumetric flow can be referenced using the
+  :py:class:`tespy.connections.connection.Ref` class
+  (`Discussion #352 <https://github.com/oemof/tespy/discussions/352>`__).
+
+Bug Fixes
+#########
+- The Network's component DataFrame is now available as soon as a connection
+  is added to the network. It is possible to use the
+  :py:meth:`tespy.networks.network.Network.get_comp` method prior to
+  initializing or solving
+  (`PR #362 <https://github.com/oemof/tespy/pull/362>`_).
+
+Documentation
+#############
+- Fix some typos in the online documentation
+  (`PR #342 <https://github.com/oemof/tespy/pull/342>`_).
+- New tutorial on starting values for a subcritical heat pump setup
+  (`PR #346 <https://github.com/oemof/tespy/pull/346>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)
+- `@NicholasFry <https://github.com/NicholasFry>`_
+- Matthias Bock (`@matbock <https://github.com/matbock>`_)
+- `@maltefritz <https://github.com/maltefritz>`_

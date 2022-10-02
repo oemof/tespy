@@ -35,9 +35,15 @@ class Drum(DropletSeparator):
 
     Image
 
-    .. image:: _images/Drum.svg
-       :alt: alternative text
+    .. image:: /api/_images/Drum.svg
+       :alt: flowsheet of the drum
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Drum_darkmode.svg
+       :alt: flowsheet of the drum
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

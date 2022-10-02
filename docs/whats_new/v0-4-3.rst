@@ -8,7 +8,7 @@ New Features
   exergy sankey diagrams. For example, the diagram of the solar thermal power
   plant presented in the thermodynamic analyses section
 
-  .. figure:: /api/_images/SEGS_sankey.png
+  .. figure:: /_static/images/advanced/exergy/sankey.svg
       :align: center
       :alt: Example of the sankey diagram
 
@@ -37,7 +37,7 @@ New Features
 Documentation
 #############
 - An own chapter for the
-  :ref:`exergy analysis toolbox <tespy_analyses_exergy_label>` has been added
+  :ref:`exergy analysis toolbox <tespy_advanced_exergy_label>` has been added
   (`PR #251 <https://github.com/oemof/tespy/pull/251>`_).
 - Fix some typos in the code of heat pump tutorial
   (`PR #260 <https://github.com/oemof/tespy/pull/260>`_).

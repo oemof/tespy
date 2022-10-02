@@ -38,9 +38,15 @@ class Pipe(HeatExchangerSimple):
 
     Image
 
-    .. image:: _images/Pipe.svg
-       :alt: alternative text
+    .. image:: /api/_images/Pipe.svg
+       :alt: flowsheet of the pipe
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Pipe_darkmode.svg
+       :alt: flowsheet of the pipe
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

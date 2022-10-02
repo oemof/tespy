@@ -46,9 +46,15 @@ class Pump(Turbomachine):
 
     Image
 
-    .. image:: _images/Pump.svg
-       :alt: alternative text
+    .. image:: /api/_images/Pump.svg
+       :alt: flowsheet of the pump
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Pump_darkmode.svg
+       :alt: flowsheet of the pump
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

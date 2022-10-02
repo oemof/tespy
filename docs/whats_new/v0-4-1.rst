@@ -10,7 +10,7 @@ New Features
   restrictions as long as the partial derivatives are provided correctly. For
   extensive examples have a look at the API documentation of class
   :py:class:`tespy.tools.helpers.UserDefinedEquation` or in the respective
-  section in the online :ref:`documentation <tespy_other_label>`
+  section in the online :ref:`documentation <tespy_ude_label>`
   (`PR #245 <https://github.com/oemof/tespy/pull/245>`_).
 
 Documentation

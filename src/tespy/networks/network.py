@@ -175,7 +175,10 @@ class Network:
         # connection dataframe
         self.conns = pd.DataFrame(
             columns=['object', 'source', 'source_id', 'target', 'target_id'],
-            dtype='object')
+            dtype='object'
+        )
+        # component dataframe
+        self.comps = pd.DataFrame(dtype='object')
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -471,6 +474,7 @@ class Network:
             logging.debug(msg)
             # set status "checked" to false, if connection is added to network.
             self.checked = False
+        self._add_comps(*args)
 
     def del_conns(self, *args):
         """
@@ -524,6 +528,40 @@ class Network:
                 'Please check your network.')
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
+
+    def _add_comps(self, *args):
+        r"""
+        Add to network's component DataFrame from added connections.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            The connections, which have been added to the network. The
+            components are extracted from these information.
+        """
+        # get unique components in new connections
+        comps = list(set([cp for c in args for cp in [c.source, c.target]]))
+        # add to the dataframe of components
+        for comp in comps:
+            if comp.label in self.comps.index:
+                if self.comps.loc[comp.label, 'object'] == comp:
+                    continue
+                else:
+                    comp_type = comp.__class__.__name__
+                    other_obj = self.comps.loc[comp.label, "object"]
+                    other_comp_type = other_obj.__class__.__name__
+                    msg = (
+                        f"The component with the label {comp.label} of type "
+                        f"{comp_type} cannot be added to the network as a "
+                        f"different component of type {other_comp_type} with "
+                        "the same label has already been added. All "
+                        "components must have unique values!"
+                    )
+                    raise hlp.TESPyNetworkError(msg)
+
+            comp_type = comp.__class__.__name__
+            self.comps.loc[comp.label, 'comp_type'] = comp_type
+            self.comps.loc[comp.label, 'object'] = comp
 
     def add_ude(self, *args):
         r"""
@@ -644,21 +682,21 @@ class Network:
         if len(self.conns) == 0:
             msg = (
                 'No connections have been added to the network, please make '
-                'sure to add your connections with the .add_conns() method.')
+                'sure to add your connections with the .add_conns() method.'
+            )
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if len(self.fluids) == 0:
-            msg = ('Network has no fluids, please specify a list with fluids '
-                   'on network creation.')
+            msg = (
+                'Network has no fluids, please specify a list with fluids on '
+                'network creation.'
+            )
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         self.check_conns()
-        # get unique components in connections dataframe
-        comps = pd.unique(self.conns[['source', 'target']].values.ravel())
-        # build the dataframe for components
-        self.init_components(comps)
+        self.init_components()
         # count number of incoming and outgoing connections and compare to
         # expected values
         for comp in self.comps['object']:
@@ -686,32 +724,9 @@ class Network:
         msg = 'Networkcheck successful.'
         logging.info(msg)
 
-    def init_components(self, comps):
-        r"""
-        Set up a dataframe for the network's components.
-
-        Additionally, check, if all components have unique labels.
-
-        Parameters
-        ----------
-        comps : pandas.core.frame.DataFrame
-            DataFrame containing all components of the network gathered from
-            the network's connection information.
-
-        Note
-        ----
-        The dataframe for the components is derived from the network's
-        connections. Thus it does not hold any additional information, the
-        dataframe is used to simplify the code, only.
-        """
-        self.comps = pd.DataFrame(dtype='object')
-
-        labels = []
-        for comp in comps:
-            # this is required for printing and saving
-            comp_type = comp.__class__.__name__
-            self.comps.loc[comp, 'comp_type'] = comp_type
-            self.comps.loc[comp, 'label'] = comp.label
+    def init_components(self):
+        r"""Set up necessary component information."""
+        for comp in self.comps["object"]:
             # get incoming and outgoing connections of a component
             sources = self.conns[self.conns['source'] == comp]
             sources = sources['source_id'].sort_values().index.tolist()
@@ -723,13 +738,14 @@ class Network:
             comp.outl = self.conns.loc[sources, 'object'].tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
-            labels += [comp.label]
 
             # save the connection locations to the components
             comp.conn_loc = []
             for c in comp.inl + comp.outl:
                 comp.conn_loc += [self.conns.index.get_loc(c.label)]
 
+            # set up restults and specification dataframes
+            comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [col for col, data in comp.variables.items()
                         if isinstance(data, dc_cp)]
@@ -750,18 +766,6 @@ class Network:
                     'variables': pd.DataFrame(columns=cols, dtype='bool'),
                     'properties': pd.DataFrame(columns=cols, dtype='bool')
                 }
-
-        self.comps = self.comps.reset_index().set_index('label')
-        self.comps.rename(columns={'index': 'object'}, inplace=True)
-
-        # check for duplicates in the component labels
-        if len(labels) != len(list(set(labels))):
-            duplicates = [
-                item for item, count in Counter(labels).items() if count > 1]
-            msg = ('All Components must have unique labels, duplicate labels '
-                   'are: "' + '", "'.join(duplicates) + '".')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
 
     def initialise(self):
         r"""
@@ -2627,9 +2631,12 @@ class Network:
                     if len(df) > 0:
                         # printout with tabulate
                         print('##### RESULTS (' + cp + ') #####')
-                        print(tabulate(
-                            df, headers='keys', tablefmt='psql',
-                            floatfmt='.2e'))
+                        print(
+                            tabulate(
+                                df, headers='keys', tablefmt='psql',
+                                floatfmt='.2e'
+                            )
+                        )
 
         # connection properties
         df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
@@ -2648,7 +2655,8 @@ class Network:
         if len(df) > 0:
             print('##### RESULTS (Connection) #####')
             print(
-                tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e'))
+                tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
+            )
 
         for b in self.busses.values():
             if b.printout:
@@ -2661,8 +2669,12 @@ class Network:
                         coloring['set'] + str(df.loc['total', 'bus value']) +
                         coloring['end'])
                 print('##### RESULTS (Bus: ' + b.label + ') #####')
-                print(tabulate(df, headers='keys', tablefmt='psql',
-                               floatfmt='.3e'))
+                print(
+                    tabulate(
+                        df, headers='keys', tablefmt='psql',
+                        floatfmt='.3e'
+                    )
+                )
 
     def print_components(self, c, *args):
         """

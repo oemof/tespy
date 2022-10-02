@@ -27,7 +27,7 @@ The code for the full models is accessible open source on GitHub:
 
 - `So called "Solar Energy Generating System" <https://github.com/fwitte/SEGS_exergy>`__
 - `Supercritical CO2 power cycle <https://github.com/fwitte/sCO2_exergy>`__
-- `Air refrigeration machine <https://github.com/fwitte/refrigeration_exergy>`__
+- `Air refrigeration machine <https://github.com/fwitte/refrigeration_cycle_exergy>`__
 - `CGAM process <https://github.com/KarimHShawky/Chemical-Exergy-in-TESPy>`__
 
 

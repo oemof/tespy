@@ -161,15 +161,15 @@ class Condenser(HeatExchanger):
     >>> import shutil
     >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
-    >>> amb_in = Sink('ambient air inlet')
-    >>> amb_out = Source('air outlet')
+    >>> amb_in = Source('ambient air inlet')
+    >>> amb_out = Sink('air outlet')
     >>> waste_steam = Source('waste steam')
     >>> c = Sink('condensate sink')
     >>> cond = Condenser('condenser')
     >>> cond.component()
     'condenser'
-    >>> amb_he = Connection(amb_out, 'out1', cond, 'in2')
-    >>> he_amb = Connection(cond, 'out2', amb_in, 'in1')
+    >>> amb_he = Connection(amb_in, 'out1', cond, 'in2')
+    >>> he_amb = Connection(cond, 'out2', amb_out, 'in1')
     >>> ws_he = Connection(waste_steam, 'out1', cond, 'in1')
     >>> he_c = Connection(cond, 'out1', c, 'in1')
     >>> nw.add_conns(amb_he, he_amb, ws_he, he_c)

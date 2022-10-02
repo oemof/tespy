@@ -515,9 +515,8 @@ class TestNetworkErrors:
         source = Source('label')
         sink = Sink('label')
         a = Connection(source, 'out1', sink, 'in1')
-        self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.add_conns(a)
 
     def test_missing_offdesign_path(self):
         source = Source('source')

@@ -253,6 +253,33 @@ class TestNetworks:
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
+    def test_Network_get_comp_without_connections_added(self):
+        """Test if components are found prior to initialization."""
+        self.setup_Network_tests()
+        pi = Pipe('pipe')
+        a = Connection(self.source, 'out1', pi, 'in1')
+        b = Connection(pi, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        msg = (
+            "A component with the label 'sink' has been created but must not "
+            "be part of the network as the respective connection has not "
+            "been added."
+        )
+        assert self.nw.get_comp("sink") == None, msg
+
+    def test_Network_get_comp_before_initialization(self):
+        """Test if components are found prior to initialization."""
+        self.setup_Network_tests()
+        pi = Pipe('pipe')
+        a = Connection(self.source, 'out1', pi, 'in1')
+        b = Connection(pi, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        msg = (
+            "A component with the label 'pipe' is part of the network "
+            "and therefore must be found in the DataFrame."
+        )
+        assert self.nw.get_comp("pipe") == pi, msg
+
 
 class TestNetworkIndividualOffdesign:
 

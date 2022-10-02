@@ -22,6 +22,14 @@ New Features
   :py:class:`tespy.connections.connection.Ref` class
   (`Discussion #352 <https://github.com/oemof/tespy/discussions/352>`__).
 
+Bug Fixes
+#########
+- The Network's component DataFrame is now available as soon as a connection
+  is added to the network. It is possible to use the
+  :py:meth:`tespy.networks.network.Network.get_comp` method prior to
+  initializing or solving
+  (`PR #361 <https://github.com/oemof/tespy/pull/361>`_).
+
 Documentation
 #############
 - Fix some typos in the online documentation

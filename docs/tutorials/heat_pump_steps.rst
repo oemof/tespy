@@ -45,10 +45,10 @@ container of the model and will be required in all following sections. First,
 it is necessary to specify a list of the fluids used in the plant. In this
 example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\).
 Water is used for the cold side of the heat exchanger, for the consumer and
-for the hot side of the environmental temperature. Ammonia is used as coolant
-within the heat pump circuit. If you don’t specify the unit system, the
-variables are set to SI-Units. We also keep the working fluid a variable to
-make reusing the script with a different working fluid easy.
+for the hot side of the environmental temperature. Ammonia is used as
+refrigerant within the heat pump circuit. If you don’t specify the unit
+system, the variables are set to SI-Units. We also keep the working fluid a
+variable to make reusing the script with a different working fluid easy.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -86,7 +86,7 @@ first step, so the imports will not need further adjustment.
 
 .. tip::
 
-    We label the sink for the coolant :code:`"valve"`, as for our next
+    We label the sink for the refrigerant :code:`"valve"`, as for our next
     calculation the valve will be attached there instead of the sink. In this
     way, the fluid properties can be initialized at the interface-connection,
     too.
@@ -332,8 +332,8 @@ Components
 This part contains two compressors with intermittent cooling between them. The
 cold side of the heat exchanger will be connected to a pump upstream and to
 the superheater downstream. The bypass is used to give the system flexibility
-in the temperature levels between the heat exchangers. We will also replac
-the source for the coolant of :code:`c0` at the condenser with another
+in the temperature levels between the heat exchangers. We will also replace
+the source for the refrigerant of :code:`c0` at the condenser with another
 CycleCloser to make sure the fluid properties after the second compressor are
 identical to the fluid properties at the condenser's inlet.
 
@@ -343,8 +343,8 @@ identical to the fluid properties at the condenser's inlet.
     however used to increase the evaporation pressure of the working fluid due
     to the higher temperature level of the heat source, the reduction is very
     limited. We use a two stage compressor, because in a single stage
-    compression, the outlet temperature of the coolant might violate technical
-    boundary conditions of the real-world component.
+    compression, the outlet temperature of the refrigerant might violate
+    technical boundary conditions of the real-world component.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python

@@ -15,7 +15,7 @@ from tespy.components import Sink
 from tespy.components import Source
 
 # sources & sinks
-c_in = Source("coolant in")
+c_in = Source("refrigerant in")
 cons_closer = CycleCloser("consumer cycle closer")
 va = Sink("valve")
 

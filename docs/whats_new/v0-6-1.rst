@@ -16,15 +16,11 @@ New Features
   (`PR #329 <https://github.com/oemof/tespy/pull/329>`_).
 - Integration of an optimization suite using pygmo :cite:`Biscani2020` to apply
   a variety of state of the art optimization algorithms to your TESPy model
-<<<<<<< HEAD
-  (`PR #296 <https://github.com/oemof/tespy/pull/296>`_). It has been further
-  improved in `PR #357 <https://github.com/oemof/tespy/pull/357>`_.
-=======
-  (`PR #296 <https://github.com/oemof/tespy/pull/296>`_).
+  (`PR #296 <https://github.com/oemof/tespy/pull/296>`__). It has been further
+  improved in `PR #357 <https://github.com/oemof/tespy/pull/357>`__.
 - Volumetric flow can be referenced using the
   :py:class:`tespy.connections.connection.Ref` class
-  (`Discussion #352 <https://github.com/oemof/tespy/discussions/352>`_).
->>>>>>> 968a2c2cb7b74522b6f4b3d289bdae1daa04cea7
+  (`Discussion #352 <https://github.com/oemof/tespy/discussions/352>`__).
 
 Documentation
 #############

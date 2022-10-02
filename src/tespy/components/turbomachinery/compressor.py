@@ -51,9 +51,15 @@ class Compressor(Turbomachine):
 
     Image
 
-    .. image:: _images/Compressor.svg
-       :alt: alternative text
+    .. image:: /api/_images/Compressor.svg
+       :alt: flowsheet of the compressor
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Compressor_darkmode.svg
+       :alt: flowsheet of the compressor
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

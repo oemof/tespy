@@ -34,8 +34,14 @@ class SubsystemInterface(Component):
     Image
 
     .. image:: /api/_images/SubsystemInterface.svg
-       :alt: alternative text
+       :alt: flowsheet of the subsystem interface
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/SubsystemInterface_darkmode.svg
+       :alt: flowsheet of the subsystem interface
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

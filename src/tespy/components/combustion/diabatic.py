@@ -47,15 +47,21 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     Image
 
-    .. image:: _images/CombustionChamber.svg
-       :alt: alternative text
+    .. image:: /api/_images/CombustionChamber.svg
+       :alt: flowsheet of the combustion chamber
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/CombustionChamber_darkmode.svg
+       :alt: flowsheet of the combustion chamber
+       :align: center
+       :class: only-dark
 
     .. note::
 
         The fuel and the air components can be connected to either of the
         inlets. The pressure of inlet 2 is disconnected from the pressure of
-        inlet 1. A warning is promted, if the pressure at inlet 2 is lower than
+        inlet 1. A warning is prompted, if the pressure at inlet 2 is lower than
         the pressure at inlet 1.
 
     Parameters

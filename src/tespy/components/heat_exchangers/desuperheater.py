@@ -47,9 +47,15 @@ class Desuperheater(HeatExchanger):
 
     Image
 
-    .. image:: _images/HeatExchanger.svg
-       :alt: alternative text
+    .. image:: /api/_images/HeatExchanger.svg
+       :alt: flowsheet of the desuperheater
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/HeatExchanger_darkmode.svg
+       :alt: flowsheet of the desuperheater
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

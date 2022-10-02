@@ -61,9 +61,15 @@ class Condenser(HeatExchanger):
 
     Image
 
-    .. image:: _images/Condenser.svg
-       :alt: alternative text
+    .. image:: /api/_images/Condenser.svg
+       :alt: flowsheet of the condenser
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Condenser_darkmode.svg
+       :alt: flowsheet of the condenser
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

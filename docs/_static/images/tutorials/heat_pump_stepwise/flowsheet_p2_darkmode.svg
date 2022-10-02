@@ -2,7 +2,7 @@
 <svg
    inkscape:export-ydpi="1012"
    inkscape:export-xdpi="1012"
-   sodipodi:docname="flowsheet_p2.svg"
+   sodipodi:docname="flowsheet_p2_darkmode.svg"
    inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
    id="svg8"
    version="1.1"
@@ -67,9 +67,9 @@
      inkscape:document-rotation="0"
      inkscape:current-layer="layer1"
      inkscape:document-units="mm"
-     inkscape:cy="423"
-     inkscape:cx="604"
-     inkscape:zoom="0.5"
+     inkscape:cy="424.5"
+     inkscape:cx="282"
+     inkscape:zoom="1"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
      borderopacity="1.0"
@@ -170,7 +170,7 @@
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccc"
        style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 119.5,92.5 v 32.50001 h 47.99998"
+       d="m 119.99997,92.5 v 32.50001 l 47.50001,0"
        id="path984-0-9-9-9-7-0-1-5-0-8-4" />
     <path
        inkscape:connector-curvature="0"
@@ -221,7 +221,7 @@
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccc"
        style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 182.49997,125.00001 h 42.00001 v -7.2646"
+       d="m 182.49997,125.00001 h 42.5 v -7.2646"
        id="path984-0-9-9-9-7-6-9" />
     <text
        id="text1025-3-9-3"
@@ -417,12 +417,6 @@
          y="121.79543"
          style="fill:#ffffff;fill-opacity:1;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round">23</tspan></text>
     <path
-       style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#323232;stroke-width:0.499999;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 117.99998,59.000009 2,1.999996 2,-1.999996 z"
-       id="path4652-12-9-60-5-4-2-9"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cccc" />
-    <path
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc"
        style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
@@ -566,13 +560,13 @@
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccc"
        style="fill:none;stroke:#323232;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 189.99997,80.000007 -14.99999,0 V 62.500012"
+       d="M 189.99997,80.000007 H 174.99998 V 62.500012"
        id="path984-0-9-9-9-7-6-4-1" />
     <path
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc"
        style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 217.5,80.000007 -27.50003,0"
+       d="M 217.5,80.000007 H 189.99997"
        id="path984-0-9-9-9-7-6-4-1-3" />
     <path
        inkscape:connector-curvature="0"
@@ -835,9 +829,9 @@
        id="text1025-3-9-3-7-2"
        y="66.379425"
        x="229.93007"
-       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:#323232;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
        xml:space="preserve"><tspan
-         style="fill:#ffffff;fill-opacity:1;stroke:#323232;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
          y="66.379425"
          x="229.93007"
          id="tspan1023-6-9-1-5-6"
@@ -876,5 +870,11 @@
        d="m 187.49997,70.000012 h 5.00001 l -5,-10 h 5 z"
        id="path1057-2-6-6-9-7"
        sodipodi:nodetypes="ccccc" />
+    <path
+       style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#323232;stroke-width:0.499999;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 117.99998,59.000009 2,1.999996 2,-1.999996 z"
+       id="path4652-12-9-60-5-4-2-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
   </g>
 </svg>

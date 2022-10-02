@@ -74,9 +74,15 @@ class CombustionEngine(CombustionChamber):
 
     Image
 
-    .. image:: _images/CombustionEngine.svg
-       :alt: alternative text
+    .. image:: /api/_images/CombustionEngine.svg
+       :alt: flowsheet of the combustion engine
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/CombustionEngine_darkmode.svg
+       :alt: flowsheet of the combustion engine
+       :align: center
+       :class: only-dark
 
     .. note::
 

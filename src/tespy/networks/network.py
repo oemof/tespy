@@ -17,7 +17,6 @@ import ast
 import json
 import logging
 import os
-from collections import Counter
 from collections import OrderedDict
 from time import time
 

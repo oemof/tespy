@@ -23,10 +23,8 @@ class SubsystemInterface(Component):
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
     - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - Pressure:
-      :py:meth:`tespy.components.basics.subsystem_interface.SubsystemInterface.variable_equality_func`
-    - Enthalpy:
-      :py:meth:`tespy.components.basics.subsystem_interface.SubsystemInterface.variable_equality_func`
+    - :py:meth:`tespy.components.component.Component.pressure_equality_func`
+    - :py:meth:`tespy.components.component.Component.enthalpy_equality_func`
 
     Inlets/Outlets
 
@@ -35,9 +33,15 @@ class SubsystemInterface(Component):
 
     Image
 
-    .. image:: _images/SubsystemInterface.svg
-       :alt: alternative text
+    .. image:: /api/_images/SubsystemInterface.svg
+       :alt: flowsheet of the subsystem interface
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/SubsystemInterface_darkmode.svg
+       :alt: flowsheet of the subsystem interface
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

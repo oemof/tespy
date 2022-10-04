@@ -40,9 +40,15 @@ class DropletSeparator(NodeBase):
 
     Image
 
-    .. image:: _images/DropletSeparator.svg
-       :alt: alternative text
+    .. image:: /api/_images/DropletSeparator.svg
+       :alt: flowsheet of the droplet separator
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/DropletSeparator_darkmode.svg
+       :alt: flowsheet of the droplet separator
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

@@ -140,12 +140,12 @@ New Features
 
   The diagrams could look like this:
 
-  .. figure:: /api/_images/logph_diagram_states.svg
+  .. figure:: /_static/images/modules/logph_diagram_states.svg
       :align: center
 
       Figure: logph diagram of NH3 with a simple heat pump cycle.
 
-  .. figure:: /api/_images/Ts_diagram_states.svg
+  .. figure:: /_static/images/modules/Ts_diagram_states.svg
       :align: center
 
       Figure: Ts diagram of NH3 with a simple heat pump cycle.

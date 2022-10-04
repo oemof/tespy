@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.6.1.dev0',
+    version='0.6.2.dev0',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -71,7 +71,15 @@ setup(
         'tabulate>=0.8.2,<0.9'
     ],
     extras_require={
-        'dev': ['pytest', 'sphinx', 'sphinx_rtd_theme',
-                'sphinxcontrib.bibtex', 'tox', ],
-        'dummy': ['tespy']}
+        'dev': [
+            'furo',
+            'pytest',
+            'sphinx',
+            'sphinx-copybutton',
+            'sphinx-design',
+            'sphinxcontrib.bibtex',
+            'tox',
+        ],
+        'dummy': ['tespy']
+    }
 )

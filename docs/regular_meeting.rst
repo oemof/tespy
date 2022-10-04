@@ -1,21 +1,16 @@
-.. _installation_and_setup_label:
+.. _tespy_community_label:
 
-###############################
-Get in touch with the community
-###############################
-
-.. contents::
-    :depth: 1
-    :local:
-    :backlinks: top
+###############
+TESPy community
+###############
 
 Online "Stammtisch"
 ===================
 We have decided to start a reoccurring "Stammtisch" meeting for all interested
 TESPy users and (potential) developers. You are invited to join us on every 3rd
-Monday of a month at 17:00 CE(S)T for a casual get together. The first meeting
-will be held at June, 20, 2022. The intent of this meeting is to establish a
-more active and well connected network of TESPy users and developers.
+Monday of a month at 17:00 CE(S)T for a casual get together. The intent of this
+meeting is to establish a more active and well connected network of TESPy users
+and developers.
 
 If you are interested, you can simply join the meeting at
 https://meet.jit.si/tespy_user_meeting. We are looking forward to seeing you!

@@ -16,7 +16,7 @@ Documentation
 #############
 - internal adjustments for links in the documentation and API.
 - added a tutorial for the combustion chamber and moved tutorials to the :ref:`appropriate section <tespy_tutorial_label>` (`8c0034d <https://github.com/oemof/tespy/commit/8c0034db07f26d124206f129d5eabe4e214dcf00>`_, `fd7a8e7 <https://github.com/oemof/tespy/commit/fd7a8e7674a52fda6876c50adf03a7d428b4805a>`_, `e887478 <https://github.com/oemof/tespy/commit/e88747860c1eab844ba86598621223adbfe0941c>`_).
-- added installation guide for :ref:`windows <tespy_installation_windows_label>` windows (`ca5eaa1 <https://github.com/oemof/tespy/commit/ca5eaa195ccdbbc90308cc1083faddf0888c6e65>`_).
+- added installation guide for :ref:`windows <installation_and_setup_label>` windows (`ca5eaa1 <https://github.com/oemof/tespy/commit/ca5eaa195ccdbbc90308cc1083faddf0888c6e65>`_).
 
 Testing
 #######

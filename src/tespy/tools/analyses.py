@@ -25,8 +25,6 @@ from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
 from tespy.tools.Chem_Ex_libs.libChemExAhrendts import Chem_Ex
 
-# %%
-
 
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""

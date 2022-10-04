@@ -27,8 +27,6 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 
-# %%
-
 
 class WaterElectrolyzer(Component):
     r"""
@@ -61,9 +59,15 @@ class WaterElectrolyzer(Component):
 
     Image
 
-    .. image:: _images/WaterElectrolyzer.svg
-       :alt: alternative text
+    .. image:: /api/_images/WaterElectrolyzer.svg
+       :alt: flowsheet of the water electrolyzer
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/WaterElectrolyzer_darkmode.svg
+       :alt: flowsheet of the water electrolyzer
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

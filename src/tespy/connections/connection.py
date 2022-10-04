@@ -442,11 +442,11 @@ class Connection:
 
                 # reference object
                 elif isinstance(kwargs[key], Ref):
-                    if key in ['x', 'v', 'Td_bp']:
+                    if key in ['x', 'Td_bp']:
                         msg = (
-                            'References for volumetric flow, vapor mass '
-                            'fraction and subcooling/superheating are not '
-                            'implemented.')
+                            'References for vapor mass fraction and '
+                            'subcooling/superheating are not implemented.'
+                        )
                         logging.error(msg)
                         raise NotImplementedError(msg)
                     else:

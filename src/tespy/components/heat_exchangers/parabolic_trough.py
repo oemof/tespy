@@ -45,9 +45,15 @@ class ParabolicTrough(HeatExchangerSimple):
 
     Image
 
-    .. image:: _images/ParabolicTrough.svg
-       :alt: alternative text
+    .. image:: /api/_images/ParabolicTrough.svg
+       :alt: flowsheet of the parabolic trough
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/ParabolicTrough_darkmode.svg
+       :alt: flowsheet of the parabolic trough
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

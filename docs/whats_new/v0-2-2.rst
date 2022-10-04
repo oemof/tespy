@@ -15,7 +15,7 @@ New Features
   parameter allows linear extrapolation, for an example see the corresponding
   sections in the online documentation:
   :ref:`component characteristics <component_characteristic_specification_label>`,
-  :ref:`tespy characteristics <using_tespy_characteristics_label>`
+  :ref:`tespy characteristics <tespy_modules_characteristics_label>`
   (`PR #159 <https://github.com/oemof/tespy/pull/159>`_).
 - Add a new component evaporator for geothermal organic rankine cycle. The
   component has inlets for geothermal steam brine. On the cold side, the orc

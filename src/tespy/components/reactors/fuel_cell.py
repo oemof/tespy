@@ -38,8 +38,6 @@ class FuelCell(Component):
     - in1 (cooling inlet), in2 (oxygen inlet), in3 (hydrogen inlet)
     - out1 (cooling outlet), out2 (water outlet)
 
-    //TODO: add image
-
     Image
 
     .. image:: _images/FuelCell.svg
@@ -98,8 +96,6 @@ class FuelCell(Component):
     built into its equations for the feed hydrogen and oxygen inlets as well
     as the water outlet. Thus, the user must not specify the fluid composition
     at these connections!
-
-    \\TODO: complete example
 
     Example
     -------

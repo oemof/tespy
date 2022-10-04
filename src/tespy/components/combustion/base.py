@@ -53,9 +53,15 @@ class CombustionChamber(Component):
 
     Image
 
-    .. image:: _images/CombustionChamber.svg
-       :alt: alternative text
+    .. image:: /api/_images/CombustionChamber.svg
+       :alt: flowsheet of the combustion chamber
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/CombustionChamber_darkmode.svg
+       :alt: flowsheet of the combustion chamber
+       :align: center
+       :class: only-dark
 
     .. note::
 

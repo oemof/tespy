@@ -37,9 +37,15 @@ class Merge(NodeBase):
 
     Image
 
-    .. image:: _images/Merge.svg
-       :alt: alternative text
+    .. image:: /api/_images/Merge.svg
+       :alt: flowsheet of the merge
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Merge_darkmode.svg
+       :alt: flowsheet of the merge
+       :align: center
+       :class: only-dark
 
     Parameters
     ----------

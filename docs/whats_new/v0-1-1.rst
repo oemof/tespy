@@ -29,8 +29,6 @@ Other changes
 - Changed access to imported network's connections (:code:`mynetwork.imp_conns['{source}:{source id}_{target}:{target id}']`, replace :code:`{...}` by the respectve component or id). (`a5a867 <https://github.com/oemof/tespy/commit/a5a8674a029a7b9eab81e41de39c303b278577a9>`_).
 - Improved convergence stability for temperatures specified near to the two phase area using the keyowrd :code:`state='l'` (for liquid) or :code:`state='g'` (for gaseous).
   The convergence check manipulates the enthalpy values at this connection in order to meet the phase specification (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
-  
-.. _whats_new_011_example_label:
 
 Example
 #######

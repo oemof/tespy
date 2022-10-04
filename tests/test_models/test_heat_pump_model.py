@@ -38,7 +38,7 @@ class TestHeatPump:
 
         # %% components
         # sources & sinks
-        cc_coolant = CycleCloser('coolant cycle closer')
+        cc_refrigerant = CycleCloser('refrigerant cycle closer')
         cc_consumer = CycleCloser('consumer cycle closer')
         amb_in = Source('source ambient')
         amb_out = Sink('sink ambient')
@@ -73,7 +73,7 @@ class TestHeatPump:
 
         # %% connections
         # consumer system
-        c_in_cd = Connection(cc_coolant, 'out1', cd, 'in1')
+        c_in_cd = Connection(cc_refrigerant, 'out1', cd, 'in1')
 
         cb_rp = Connection(cc_consumer, 'out1', rp, 'in1')
         rp_cd = Connection(rp, 'out1', cd, 'in2')
@@ -110,7 +110,7 @@ class TestHeatPump:
         # compressor-system
         cp1_he = Connection(cp1, 'out1', he, 'in1')
         he_cp2 = Connection(he, 'out1', cp2, 'in1')
-        cp2_c_out = Connection(cp2, 'out1', cc_coolant, 'in1')
+        cp2_c_out = Connection(cp2, 'out1', cc_refrigerant, 'in1')
 
         ic_in_he = Connection(ic_in, 'out1', he, 'in2')
         he_ic_out = Connection(he, 'out2', ic_out, 'in1')

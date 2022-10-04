@@ -13,3 +13,4 @@ from .data_containers import FluidComposition  # noqa: F401
 from .data_containers import FluidProperties  # noqa: F401
 from .data_containers import GroupedComponentProperties  # noqa: F401
 from .document_models import document_model  # noqa: F401
+from .optimization import OptimizationProblem  # noqa: F401

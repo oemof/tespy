@@ -1685,3 +1685,16 @@ class CombustionEngine(CombustionChamber):
         self.S_irr = (
             self.S_irr_i + self.S_irr2 + self.S_irr1 + self.S_Q1irr +
             self.S_Q2irr)
+
+    def exergy_balance(self, T0):
+        
+        self.E_P= (self.outl[2].Ex_physical - (self.inl[3].Ex_physical 
+                                              + self.inl[2].Ex_physical)
+                    -self.P.val + (self.outl[1]-self.inl[1])+(self.outl[0]-self.inl[0]))
+        self.E_F= self.inl[3].Ex_chemical +self.inl[2].Ex_chemical -self.outl[2].Ex_chemical
+        
+        self.E_D= self.E_F - self.E_P
+        self.epsilon= self.E_P/self.E_F
+        self.E_bus = -self.P.val
+        
+        

@@ -139,7 +139,7 @@ class ORCEvaporator(Component):
     specify the enthalpy at the outgoing connection manually.
 
     Additionally, an equation for enthalpy at the outlet of the working fluid
-    is imposed: It leaves the component in saturated gas state. If
+    is set: It leaves the component in saturated gas state. If
     :code:`overheating` is enabled (:code:`True`), it is possible to specify
     the enthalpy at the outgoing connection manually.
 

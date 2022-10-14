@@ -485,46 +485,61 @@ class Network:
             The connection to be removed from the network, connections objects
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
+        comps = list(set([cp for c in args for cp in [c.source, c.target]]))
         for c in args:
             self.conns.drop(c.label, inplace=True)
             self.results['Connection'].drop(c.label, inplace=True)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logging.debug(msg)
+
+        self._del_comps(comps)
+
         # set status "checked" to false, if connection is deleted from network.
         self.checked = False
 
     def check_conns(self):
         r"""Check connections for multiple usage of inlets or outlets."""
+        for location in ["source", "target"]:
+            dub = self.conns.loc[
+                self.conns.duplicated([location, f"{location}_id"]).values
+            ]
+            for c in dub['object']:
+                dubplicates = []
+                for conn in self.conns.loc[
+                        (self.conns[location].values == getattr(c, location)) &
+                        (
+                            self.conns[f"{location}_id"].values ==
+                            getattr(c, f"{location}_id")
+                        ),
+                        "object"
+                    ]:
+                    dubplicates += [f"{getattr(conn, location).label} ({conn.target_id})"]
+                targets = ", ".join(targets)
+                msg = (
+                    f"The source {c.source.label} ({c.source_id}) is attached to "
+                    f"more than one target: {targets}. "
+                    "Please check your network configuration."
+                )
+                logging.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
         dub = self.conns.loc[
-            self.conns.duplicated(['source', 'source_id']) == True]  # noqa: E712
+            self.conns.duplicated(['target', 'target_id']).values
+        ]
         for c in dub['object']:
-            targets = ''
-            for conns in self.conns[
-                    (self.conns['source'] == c.source) &
-                    (self.conns['source_id'] == c.source_id)]['object']:
-                targets += conns.target.label + ' (' + conns.target_id + '); '
-
+            sources = []
+            for conns in self.conns.loc[
+                    (self.conns["target"].values == c.source) &
+                    (self.conns["target_id"].values == c.source_id),
+                    "object"
+                ]:
+                sources += [f"{conns.source.label} ({conns.source_id})"]
+            sources = ", ".join(sources)
             msg = (
-                'The source ' + c.source.label + ' (' + c.source_id +
-                ') is attached '
-                'to more than one target: ' + targets[:-2] + '. '
-                'Please check your network.')
-            logging.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        dub = self.conns.loc[
-            self.conns.duplicated(['target', 'target_id']) == True]  # noqa: E712
-        for c in dub['object']:
-            sources = ''
-            for conns in self.conns[
-                    (self.conns['target'] == c.target) &
-                    (self.conns['target_id'] == c.target_id)]['object']:
-                sources += conns.source.label + ' (' + conns.source_id + '); '
-
-            msg = (
-                'The target ' + c.target.label + ' (' + c.target_id +
-                ') is attached to more than one source: ' + sources[:-2] + '. '
-                'Please check your network.')
+                f"The target {c.target.label} ({c.target_id}) is attached to "
+                f"more than one source: {sources}. "
+                "Please check your network configuration."
+            )
             logging.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -561,6 +576,28 @@ class Network:
             comp_type = comp.__class__.__name__
             self.comps.loc[comp.label, 'comp_type'] = comp_type
             self.comps.loc[comp.label, 'object'] = comp
+
+    def _del_comps(self, comps):
+        r"""
+        Delete from network's component DataFrame from deleted connections.
+
+        For every component it is checked, if it is still part of other
+        connections, which have not been deleted. The component is only
+        removed if it cannot be found int the remaining connections.
+
+        Parameters
+        ----------
+        comps : list
+            List of components to potentially be deleted.
+        """
+        for comp in comps:
+            if (
+                comp not in self.conns["source"].values and
+                comp not in self.conns["target"].values
+            ):
+                self.comps.drop(comp.label, inplace=True)
+                msg = f"Deleted component {comp.label} from network."
+                logging.debug(msg)
 
     def add_ude(self, *args):
         r"""
@@ -619,13 +656,14 @@ class Network:
         for b in args:
             if self.check_busses(b):
                 self.busses[b.label] = b
-                msg = 'Added bus ' + b.label + ' to network.'
+                msg = f"Added bus {b.label} to network."
                 logging.debug(msg)
 
                 self.results[b.label] = pd.DataFrame(
                     columns=[
                         'component value', 'bus value', 'efficiency',
-                        'design value'],
+                        'design value'
+                    ],
                     dtype='float64')
 
     def del_busses(self, *args):
@@ -641,7 +679,7 @@ class Network:
         for b in args:
             if b in self.busses.values():
                 del self.busses[b.label]
-                msg = 'Deleted bus ' + b.label + ' from network.'
+                msg = f"Deleted bus {b.label} from network."
                 logging.debug(msg)
 
                 del self.results[b.label]
@@ -658,13 +696,11 @@ class Network:
         if isinstance(b, con.Bus):
             if len(self.busses) > 0:
                 if b in self.busses.values():
-                    msg = ('Network contains the bus ' + b.label + ' (' +
-                           str(b) + ') already.')
+                    msg = f"The network contains the bus {b.label} already."
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses:
-                    msg = ('Network already has a bus with the name ' +
-                           b.label + '.')
+                    msg = f"The network already has a bus labeld {b.label}."
                     logging.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 else:
@@ -701,19 +737,24 @@ class Network:
         for comp in self.comps['object']:
             num_o = (self.conns[['source', 'target']] == comp).sum().source
             num_i = (self.conns[['source', 'target']] == comp).sum().target
+
             if num_o != comp.num_o:
                 msg = (
-                    comp.label + ' is missing ' + str(comp.num_o - num_o) + ' '
-                    'outgoing connections. Make sure all outlets are connected'
-                    ' and all connections have been added to the network.')
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_o - num_o} outgoing connections. Make sure "
+                    "all outlets are connected and all connections have been "
+                    "added to the network."
+                )
                 logging.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
             elif num_i != comp.num_i:
                 msg = (
-                    comp.label + ' is missing ' + str(comp.num_i - num_i) + ' '
-                    'incoming connections. Make sure all inlets are connected '
-                    'and all connections have been added to the network.')
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_i - num_i} incoming connections. Make sure "
+                    "all inlets are connected and all connections have been "
+                    "added to the network."
+                )
                 logging.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)

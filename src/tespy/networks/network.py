@@ -499,45 +499,40 @@ class Network:
 
     def check_conns(self):
         r"""Check connections for multiple usage of inlets or outlets."""
-        for location in ["source", "target"]:
-            dub = self.conns.loc[
-                self.conns.duplicated([location, f"{location}_id"]).values
-            ]
-            for c in dub['object']:
-                dubplicates = []
-                for conn in self.conns.loc[
-                        (self.conns[location].values == getattr(c, location)) &
-                        (
-                            self.conns[f"{location}_id"].values ==
-                            getattr(c, f"{location}_id")
-                        ),
-                        "object"
-                    ]:
-                    dubplicates += [f"{getattr(conn, location).label} ({conn.target_id})"]
-                targets = ", ".join(targets)
-                msg = (
-                    f"The source {c.source.label} ({c.source_id}) is attached to "
-                    f"more than one target: {targets}. "
-                    "Please check your network configuration."
-                )
-                logging.error(msg)
-                raise hlp.TESPyNetworkError(msg)
+        dub = self.conns.loc[self.conns.duplicated(["source", "source_id"])]
+        for c in dub['object']:
+            targets = []
+            for conns in self.conns.loc[
+                    (self.conns["source"].values == c.source) &
+                    (self.conns["source_id"].values == c.source_id),
+                    "object"
+                ]:
+                targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
+            targets = ", ".join(targets)
+
+            msg = (
+                f"The source \"{c.source.label}\" ({c.source_id}) is attached "
+                f"to more than one component on the target side: {targets}. "
+                "Please check your network configuration."
+            )
+            logging.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         dub = self.conns.loc[
-            self.conns.duplicated(['target', 'target_id']).values
+            self.conns.duplicated(['target', 'target_id'])
         ]
         for c in dub['object']:
             sources = []
             for conns in self.conns.loc[
-                    (self.conns["target"].values == c.source) &
-                    (self.conns["target_id"].values == c.source_id),
+                    (self.conns["target"].values == c.target) &
+                    (self.conns["target_id"].values == c.target_id),
                     "object"
                 ]:
-                sources += [f"{conns.source.label} ({conns.source_id})"]
+                sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
             sources = ", ".join(sources)
             msg = (
-                f"The target {c.target.label} ({c.target_id}) is attached to "
-                f"more than one source: {sources}. "
+                f"The target \"{c.target.label}\" ({c.target_id}) is attached "
+                f"to more than one component on the source side: {sources}. "
                 "Please check your network configuration."
             )
             logging.error(msg)

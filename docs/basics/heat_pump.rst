@@ -43,8 +43,8 @@ connection c1 to 5 kg/s:
     :end-before: [sec_8]
 
 You can observe, that the heat transferred by the condenser now is a result of
-the mass flow imposed. We could do similar things, for example with the heat
-sink temperature. We imposed it in our initial set up. Now we want to insert
+the mass flow specified. We could do similar things, for example with the heat
+sink temperature. We specified it in our initial set up. Now we want to insert
 a compressor with a fixed output to input pressure ratio. In that case, we
 cannot choose the condensation temperature but it will be a result of that
 specification:

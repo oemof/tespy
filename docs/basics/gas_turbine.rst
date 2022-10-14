@@ -196,10 +196,10 @@ assume 2 % heat losses and 3 % pressure losses in the combustion chamber.
 Fluid Composition Specifications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In this section you will learn how the fluid composition can be used as a
-variable in such systems. To begin, we can impose the oxygen mass fraction on
-the flue gas instead of the turbine inlet pressure, since it determines the
-share of oxygen that is not required in the combustion. We can see, how the
-turbine inlet temperature correlates with the oxygen mass fraction.
+variable in such systems. To begin, we can set the oxygen mass fraction on the
+flue gas instead of the turbine inlet pressure, since it determines the share
+of oxygen that is not required in the combustion. We can see, how the turbine
+inlet temperature correlates with the oxygen mass fraction.
 
 .. dropdown:: Click to expand to code section
 

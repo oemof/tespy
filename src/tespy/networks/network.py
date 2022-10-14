@@ -505,9 +505,8 @@ class Network:
             for conns in self.conns.loc[
                     (self.conns["source"].values == c.source) &
                     (self.conns["source_id"].values == c.source_id),
-                    "object"
-                ]:
-                    targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
+                    "object"]:
+                targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
             targets = ", ".join(targets)
 
             msg = (
@@ -526,9 +525,8 @@ class Network:
             for conns in self.conns.loc[
                     (self.conns["target"].values == c.target) &
                     (self.conns["target_id"].values == c.target_id),
-                    "object"
-                ]:
-                    sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
+                    "object"]:
+                sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
             sources = ", ".join(sources)
             msg = (
                 f"The target \"{c.target.label}\" ({c.target_id}) is attached "

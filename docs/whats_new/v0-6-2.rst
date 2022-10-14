@@ -1,0 +1,11 @@
+v0.6.2 - Leidenfrost's Library Hotfix (October, 14, 2022)
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The Network's component DataFrame is updated when connections are removed
+  from the Network (`PR #365 <https://github.com/oemof/tespy/pull/365>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

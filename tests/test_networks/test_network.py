@@ -108,7 +108,7 @@ class TestNetworks:
         p = Pipe("Dummy")
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        a.set_attr(fluid={"water":1}, m=1, p=1, T=25)
+        a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
         self.nw.solve("design")
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
@@ -121,7 +121,7 @@ class TestNetworks:
         a = Connection(self.source, 'out1', p, 'in1')
         b = Connection(p, 'out1', new_sink, 'in1')
         self.nw.add_conns(a, b)
-        a.set_attr(fluid={"water":1}, m=1, p=1, T=25)
+        a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
         b.set_attr(p=1, T=25)
         self.nw.solve("design")
         convergence_check(self.nw.lin_dep)

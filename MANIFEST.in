@@ -1,23 +1,19 @@
 graft docs
 graft src
-graft ci
 graft tests
+graft tutorial
 
-include .bumpversion.cfg
 include .coveragerc
-include .cookiecutterrc
 include .editorconfig
 
-include AUTHORS.rst
-include CHANGELOG.rst
-include CONTRIBUTING.rst
 include LICENSE
 include README.rst
+include *.bib
 include *.md
 include *.yml
-include *.bib
-recursive-include tutorial *.py
+recursive-include *.py
 
 include tox.ini
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
+

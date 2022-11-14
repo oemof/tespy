@@ -910,7 +910,7 @@ def dT_bp_dp(flow):
 
 
 def cond_check(y_i, x_i, p, n, T):
-    """_summary_
+    """Check if water is partially condensing in gaseous mixture.
 
     Parameters
     ----------
@@ -923,13 +923,13 @@ def cond_check(y_i, x_i, p, n, T):
     n : float
         Molar mass flow.
     T : float
-        Temperatrure of mass flow.
+        Temperature of mass flow.
 
     Returns
     -------
     tuple
-        Tuple containing gasphase mass specific and molar specific compositions
-        and overall liquid water mass fraction.
+        Tuple containing gas phase mass specific and molar specific
+        compositions and overall liquid water mass fraction.
     """
     x_i_gas = x_i.copy()
     y_i_gas = y_i.copy()

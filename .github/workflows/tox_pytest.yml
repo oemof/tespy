@@ -22,8 +22,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install xmllint
-      run: sudo apt install coinor-cbc
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:

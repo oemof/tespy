@@ -73,6 +73,7 @@ setup(
     extras_require={
         'dev': [
             'furo',
+            'py',
             'pytest',
             'sphinx',
             'sphinx-copybutton',

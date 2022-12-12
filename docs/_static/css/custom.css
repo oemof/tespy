@@ -1,3 +1,12 @@
 .tight-table td {
     white-space: normal !important;
 }
+
+article p {
+    text-align: justify;
+}
+
+figure figcaption p {
+    text-align: center;
+    font-weight: bold;
+}

@@ -269,7 +269,7 @@ pressure ratios on hot side as well as the evaporation pressure, for which we
 can obtain a good initial guess based on the ambient temperature level using
 CoolProp. From this specification the pinch point layout will be a result,
 similar as in waste heat steam generators. The pressure ratio of the cold side
-*MUST NOT* be specified in this setup as the drum imposes pressure equality
+*MUST NOT* be specified in this setup as the drum assumes pressure equality
 for all inlets and outlets.
 
 The superheater will also use the pressure ratios on hot and cold side.
@@ -365,10 +365,10 @@ Parametrization
 +++++++++++++++
 For the first compressor we set the pressure ratio to the square root of the
 full pressure ration between condensation and evaporation. In the first step,
-we do not impose isentropic efficiency, because the respective equations are
+we do not set the isentropic efficiency, because the respective equations are
 quite sensitive to good starting value. We will set these values after the
 full system has been calculated. The pump's isentropic efficiency value is not
-as critical, therefore we set this value. The intermittent cooling imposes
+as critical, therefore we set this value. The intermittent cooling causes
 pressure losses on both sides.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py

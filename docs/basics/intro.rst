@@ -136,7 +136,7 @@ compressor. On top of that, the heat production of the heat pump can be set
 with :code:`Q` for the condenser. Since we are working in **subcritical**
 regime in this tutorial, we set the state of the fluid at the evaporator's
 outlet to fully saturated steam (:code:`x=1`) and at the condenser's outlet to
-fully saturated liqud (:code:`x=0`). On top of that, we want to impose the
+fully saturated liqud (:code:`x=0`). On top of that, we want to set the
 condensation and the evaporation temperature levels. Last, we have to specify
 the fluid vector at one point in our network.
 

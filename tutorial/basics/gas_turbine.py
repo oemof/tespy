@@ -87,7 +87,7 @@ c4.set_attr(p=Ref(c1, 1, 0))
 nw.solve("design")
 nw.print_results()
 # %%[sec_10]
-# unset the value, impose Referenced value instead
+# unset the value, set Referenced value instead
 c5.set_attr(p=None)
 c5.set_attr(p=Ref(c2, 1.05, 0))
 nw.solve("design")

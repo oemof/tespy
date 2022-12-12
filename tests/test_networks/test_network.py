@@ -35,12 +35,12 @@ from tespy.tools.helpers import TESPyNetworkError
 def convergence_check(lin_dep):
     """Check convergence status of a simulation."""
     msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
+    assert not lin_dep, msg
 
 
 class TestNetworks:
     def setup_Network_tests(self):
-        self.nw = Network(['water'], p_unit='bar', v_unit='m3 / s')
+        self.nw = Network(['water'], p_unit='bar', v_unit='m3 / s', T_unit='C')
         self.source = Source('source')
         self.sink = Sink('sink')
 
@@ -51,8 +51,9 @@ class TestNetworks:
     def test_Network_linear_dependency(self):
         """Test network linear dependency."""
         self.setup_Network_tests()
-        a = Connection(self.source, 'out1', self.sink, 'in1', m=1, p=1, x=1,
-                       T=280)
+        a = Connection(
+            self.source, 'out1', self.sink, 'in1', m=1, p=1, x=1, T=7
+        )
         self.nw.add_conns(a)
         self.nw.solve('design')
         msg = ('This test must result in a linear dependency of the jacobian '
@@ -63,8 +64,9 @@ class TestNetworks:
         """Test no convergence progress."""
         self.setup_Network_tests()
         pi = Pipe('pipe', pr=1, Q=-100e3)
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=280,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=7, fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
@@ -76,8 +78,9 @@ class TestNetworks:
         """Test reaching maximum iteration count."""
         self.setup_Network_tests()
         pi = Pipe('pipe', pr=1, Q=100e3)
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=280,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=7, fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design', max_iter=2)
@@ -97,7 +100,31 @@ class TestNetworks:
         self.nw.del_conns(a)
         msg = ('A connection has been deleted, the network consistency check '
                'must be repeated (.checked-property must be False).')
-        assert self.nw.checked is False, msg
+        assert not self.nw.checked, msg
+
+    def test_Network_delete_comps(self):
+        """Test deleting components by deleting connections."""
+        self.setup_Network_tests()
+        p = Pipe("Dummy")
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
+        self.nw.solve("design")
+        msg = ('After the network check, the .checked-property must be True.')
+        assert self.nw.checked, msg
+
+        # if a connection is deleted, the respective components must be deleted
+        # as well, if there is no other connection in the system containing
+        # the respective component
+        self.nw.del_conns(a)
+        new_sink = Sink("A different sink")
+        a = Connection(self.source, 'out1', p, 'in1')
+        b = Connection(p, 'out1', new_sink, 'in1')
+        self.nw.add_conns(a, b)
+        a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
+        b.set_attr(p=1, T=25)
+        self.nw.solve("design")
+        convergence_check(self.nw.lin_dep)
 
     def test_Network_missing_connection_in_init_path(self):
         """Test debug message for missing connection in init_path."""
@@ -181,8 +208,9 @@ class TestNetworks:
         """Test for missing data in design case files."""
         self.setup_Network_tests()
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=20, fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')

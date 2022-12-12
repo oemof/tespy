@@ -43,7 +43,7 @@ In the first step, we assume we have a specific heat demand of the consumer
 and constant pressure and thermal losses in the pipes. Furthermore, the pump
 produces a constant pressure at the feed part of the system. With the control
 valve in place the pressure of the return part of the system is then decoupled
-from that value. Therefore, we need to impose a pressure value at the sink as
+from that value. Therefore, we need to set a pressure value at the sink as
 well, which should be equal to the pressure at the pump's inlet. The pressure
 drop in the valve will then be the residual pressure drop between the feed and
 the return part of the system. Lastly, we fix the feed flow and the return
@@ -64,9 +64,9 @@ for this:
 - Calculate the necessary insulation of the pipe based on assumptions
   regarding the heat loss at a given ambient temperature value.
 
-For the first step, we impose lengths and roughness of the pipe and set the
-diameter to :code:`"var"`, indicating the diameter of the pipe should be a
-variable value in the calculation.
+For the first step, we set lengths and roughness of the pipe and the diameter
+to :code:`"var"`, indicating the diameter of the pipe should be a variable
+value in the calculation.
 
 .. literalinclude:: /../tutorial/basics/district_heating.py
     :language: python
@@ -74,7 +74,7 @@ variable value in the calculation.
     :end-before: [sec_4]
 
 In the second step we can fix the diameter to its resulting value and
-therefore unset the desired pressure loss first. Then, we impose the ambient
+therefore unset the desired pressure loss first. Then, we set the ambient
 temperature of the pipes (we assume the temperature of the ambient is not
 affected by the heat loss of the pipe). With the given heat loss, the
 :code:`kA` value can be calculated. It is the area independent heat transfer

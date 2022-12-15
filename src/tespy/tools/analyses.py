@@ -23,13 +23,12 @@ from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
-from tespy.tools.Chem_Ex_libs.libChemExAhrendts import Chem_Ex
 
 
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""
 
-    def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[], Chem_Ex=Chem_Ex ,chemical=False):
+    def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[], Chem_Ex={} ,chemical=False):
         r"""
         Parameters
         ----------

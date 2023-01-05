@@ -157,6 +157,8 @@ class Memorise:
                 'temperature for convergence check of fluid ' + f + '.')
             logging.debug(msg)
 
+        Memorise.is_incomp_mixture = ('INCOMP' in Memorise.back_end.values())
+
     @staticmethod
     def del_memory(fluids):
         r"""
@@ -262,9 +264,13 @@ def T_mix_ph(flow, T0=675):
         ) + 0.1
         if T0 < valmin or np.isnan(T0):
             T0 = valmin * 1.1
-
+        valmax = min(
+            [Memorise.value_range[f][3] for f in fl if flow[3][f] > err]
+        ) - 0.1            
+        if T0 > valmax or np.isnan(T0):
+            T0 = valmax * 0.9
         val = newton(h_mix_pT, dh_mix_pdT, flow, flow[2], val0=T0,
-                     valmin=valmin, valmax=3000, imax=10)
+                     valmin=valmin, valmax=valmax, imax=10)
     else:
         # calculate fluid property for pure fluids
         val = T_ph(flow[1], flow[2], fluid)
@@ -555,7 +561,8 @@ def h_mix_pT(flow, T, force_gas=False):
                     h += Memorise.state[fluid].hmass() * y_water_liq
                     Memorise.state[fluid].update(CP.QT_INPUTS, 1, T)
                     h += Memorise.state[fluid].hmass() * y * (1 - y_water_liq)
-
+                elif Memorise.is_incomp_mixture:
+                    h += h_pT(flow[1]         , T, fluid, False) * y
                 else:
                     h += h_pT(
                         flow[1] * x_i_gas[fluid], T, fluid, force_gas
@@ -1171,8 +1178,11 @@ def v_mix_pT(flow, T):
     d = 0
     for fluid, x in flow[3].items():
         if x > err:
-            ni = x / molar_masses[fluid]
-            d += d_pT(flow[1] * ni / n, T, fluid)
+            if Memorise.is_incomp_mixture:
+                d += d_pT(flow[1]         , T, fluid) * x
+            else:
+                ni = x / molar_masses[fluid]
+                d += d_pT(flow[1] * ni / n, T, fluid)            
 
     return 1 / d
 
@@ -1352,9 +1362,13 @@ def visc_mix_pT(flow, T):
     b = 0
     for fluid, x in flow[3].items():
         if x > err:
-            bi = x * np.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
-            b += bi
-            a += bi * visc_pT(flow[1], T, fluid)
+            if Memorise.is_incomp_mixture:
+                b = 1 
+                a += visc_pT(flow[1], T, fluid) * x
+            else:            
+                bi = x * np.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
+                b += bi
+                a += bi * visc_pT(flow[1], T, fluid)
 
     return a / b
 
@@ -1528,7 +1542,8 @@ def s_mix_pT(flow, T, force_gas=False):
                     )
                     Memorise.state[water].update(CP.QT_INPUTS, 0, T)
                     s += Memorise.state[water].smass() * y_water_liq
-
+                elif Memorise.is_incomp_mixture:
+                    s += s_pT(flow[1], T, fluid, False) * y
                 else:
                     pp = flow[1] * x_i_gas[fluid]
                     s += y * (1 - y_water_liq) * s_pT(pp, T, fluid, force_gas)

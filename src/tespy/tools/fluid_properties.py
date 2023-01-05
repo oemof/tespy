@@ -1179,10 +1179,13 @@ def v_mix_pT(flow, T):
     for fluid, x in flow[3].items():
         if x > err:
             if Memorise.is_incomp_mixture:
-                d += d_pT(flow[1]         , T, fluid) * x
+                d += 1/d_pT(flow[1]         , T, fluid) * x
             else:
                 ni = x / molar_masses[fluid]
                 d += d_pT(flow[1] * ni / n, T, fluid)            
+
+    if Memorise.is_incomp_mixture: 
+        d = 1 / d
 
     return 1 / d
 

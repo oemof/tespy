@@ -2096,11 +2096,11 @@ class Network:
         Tmin = max(
             [fp.Memorise.value_range[f][2] for
              f in flow[3].keys() if flow[3][f] > err]
-        ) + 100
+        ) # why add 100 here?? + 100
         Tmax = min(
             [fp.Memorise.value_range[f][3] for
              f in flow[3].keys() if flow[3][f] > err]
-        ) - 100
+        ) # why substract 100 here?? - 100
         hmin = fp.h_mix_pT(flow, Tmin)
         hmax = fp.h_mix_pT(flow, Tmax)
 

@@ -1488,7 +1488,7 @@ class Network:
             except ValueError:
                 pass
 
-    def init_val0(self, c, key):
+    def init_val0(self, c: con.Connection, key: str):
         r"""
         Set starting values for fluid properties.
 

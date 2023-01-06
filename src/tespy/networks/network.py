@@ -1899,20 +1899,27 @@ class Network:
         if self.lin_dep:
             return
 
+        if self.iter < 2: 
+            RobustRelax = 0.1
+        elif self.iter < 4:             
+            RobustRelax = 0.25
+        elif self.iter < 6:             
+            RobustRelax = 0.5            
+        else: 
+            RobustRelax = 1
+
         # add the increment
         i = 0
         for c in self.conns['object']:
             # mass flow, pressure and enthalpy
             if not c.m.val_set:
-                c.m.val_SI += self.increment[i * (self.num_conn_vars)]
+                c.m.val_SI += RobustRelax * self.increment[i * (self.num_conn_vars)]
             if not c.p.val_set:
                 # this prevents negative pressures
-                relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] /
-                            (0.5 * c.p.val_SI))
-                c.p.val_SI += self.increment[
-                    i * (self.num_conn_vars) + 1] / relax
+                relax = max(1, -self.increment[i * (self.num_conn_vars) + 1] / (0.5 * c.p.val_SI))
+                c.p.val_SI += RobustRelax * self.increment[i * (self.num_conn_vars) + 1] / relax
             if not c.h.val_set:
-                c.h.val_SI += self.increment[i * (self.num_conn_vars) + 2]
+                c.h.val_SI += RobustRelax * self.increment[i * (self.num_conn_vars) + 2]
 
             # fluid vector (only if number of fluids is greater than 1)
             if len(self.fluids) > 1:
@@ -1920,9 +1927,7 @@ class Network:
                 for fluid in self.fluids:
                     # add increment
                     if not c.fluid.val_set[fluid]:
-                        c.fluid.val[fluid] += (
-                                self.increment[
-                                    i * (self.num_conn_vars) + 3 + j])
+                        c.fluid.val[fluid] += RobustRelax * (self.increment[i * (self.num_conn_vars) + 3 + j])
 
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < err:

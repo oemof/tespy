@@ -1512,6 +1512,11 @@ class Network:
                 val_s = c.source.initialise_source(c, key)
                 val_t = c.target.initialise_target(c, key)
 
+                if val_s is None:
+                    val_s = 0
+                if val_t is None:
+                    val_t = 0
+
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
                         c.get_attr(key).val0 = 1e5

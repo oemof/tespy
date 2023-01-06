@@ -1390,10 +1390,10 @@ class Network:
                     'network.')
                 logging.warning(msg)
 
-            for key in ['m', 'p', 'h']:
+            for key in ['m', 'p', 'h', 'T']: # maybe add all properties to be initialized (maybe also initialize those from init_path)
                 if not c.good_starting_values:
                     self.init_val0(c, key)
-                if not c.get_attr(key).val_set:
+                if not c.get_attr(key).val_set: # especially if not_set, e.g. T.val_SI can be used in some components
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit)
 
@@ -1517,6 +1517,8 @@ class Network:
                         c.get_attr(key).val0 = 1e5
                     elif key == 'h':
                         c.get_attr(key).val0 = 1e6
+                    elif key == 'T':                # should probably add other paratemeter too ?
+                        c.get_attr(key).val0 = 300 
 
                 elif val_s == 0:
                     c.get_attr(key).val0 = val_t

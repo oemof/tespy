@@ -173,6 +173,8 @@ class NodeBase(Component):
             return 1e5
         elif key == 'h':
             return 5e5
+        elif key == 'T': # maybe add more parameters
+            return 300            
 
     @staticmethod
     def initialise_target(c, key):
@@ -203,3 +205,5 @@ class NodeBase(Component):
             return 1e5
         elif key == 'h':
             return 5e5
+        elif key == 'T': # maybe add more parameters
+            return 300

@@ -80,4 +80,4 @@ your project.
 
     Authors: Nicholas Fry, Jessica Eagle-Bluestone, Francesco Witte
 
-    Reference:
+    Reference: :cite:`Fry2022`

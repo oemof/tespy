@@ -1,0 +1,13 @@
+v0.6.3 - Leidenfrost's Library (Month, Day, Year)
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The pressure ratio of the
+  :py:class:`tespy.components.combustion.diabatic.DiabaticCombustionChamber`
+  was never calculated in postprocessing if not specified from user
+  (`PR #380 <https://github.com/oemof/tespy/pull/380>`_).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`_)

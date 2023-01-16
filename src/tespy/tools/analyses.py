@@ -292,7 +292,7 @@ class ExergyAnalysis:
 
         self.grassmann_diagram = {}
 
-    def analyse(self, pamb, Tamb):
+    def analyse(self, pamb, Tamb, Chem_Ex=None):
         """Run the exergy analysis.
 
         Parameters
@@ -313,9 +313,13 @@ class ExergyAnalysis:
             columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64')
         self.bus_data = self.component_data.copy()
         self.bus_data['base'] = np.nan
+        conn_exergy_data_cols = ['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M']
+        if Chem_Ex is not None:
+            conn_exergy_data_cols += ['e_CH', 'E_CH']
         self.connection_data = pd.DataFrame(
-            columns=['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M', 'e_CH', 'E_CH'],
-            dtype='float64')
+            columns=conn_exergy_data_cols,
+            dtype='float64'
+        )
         self.network_data = pd.Series(
             index=['E_F', 'E_P', 'E_D', 'E_L'], dtype='float64')
         self.network_data[:] = 0
@@ -323,12 +327,15 @@ class ExergyAnalysis:
         # physical exergy of connections
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
-            conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
-            self.connection_data.loc[conn.label] = [
+            conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
-                conn.Ex_physical, conn.Ex_therm, conn.Ex_mech,
-                conn.ex_chemical, conn.Ex_chemical]
+                conn.Ex_physical, conn.Ex_therm, conn.Ex_mech
+            ]
+            if Chem_Ex is not None:
+                conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
+                conn_exergy_data += [conn.ex_chemical, conn.Ex_chemical]
 
+            self.connection_data.loc[conn.label] = conn_exergy_data
 
         self.sankey_data = {}
         for label in self.reserved_fkt_groups:

@@ -283,5 +283,6 @@ epub_exclude_files = ['search.html']
 # -- Options for linkcheck ----------------------------------------------
 
 linkcheck_ignore = [
-  r'https://doi.org/10.2172/95571',
+  r'https://doi.org/10.2172/95571',  # resolves, but has issues with check
+  r'https://doi.org/20.500.12738/6561',  # 08.01.2023: does not resolve anymore
 ]

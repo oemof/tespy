@@ -20,7 +20,7 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         elif mixing_rule == "ideal-cond":
             return T_mix_ph_ideal_cond(p, h, fluid_data, T0=T0)
         elif mixing_rule == "incompressible":
-            raise NotImplementedError()
+            return T_mix_ph_incompressible(p, h, fluid_data, T0=T0)
         else:
             raise ValueError()
 
@@ -35,7 +35,7 @@ def h_mix_pT(p, T, fluid_data, mixing_rule=None):
         elif mixing_rule == "ideal-cond":
             return h_mix_pT_ideal_cond(p, T, fluid_data)
         elif mixing_rule == "incompressible":
-            raise NotImplementedError()
+            return h_mix_pT_incompressible(p, T, fluid_data)
         else:
             raise ValueError()
 
@@ -50,7 +50,7 @@ def T_mix_ps(p, s, fluid_data, mixing_rule=None):
         elif mixing_rule == "ideal-cond":
             return T_mix_ps_ideal_cond(p, s, fluid_data)
         elif mixing_rule == "incompressible":
-            raise NotImplementedError()
+            return T_mix_ps_incompressible(p, s, fluid_data)
         else:
             raise ValueError()
 
@@ -137,6 +137,17 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         return h_mix_pT_ideal(p, T, fluid_data, **kwargs)
 
 
+def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
+
+    h = 0
+    for data in fluid_data.values():
+        if _is_larger_than_precision(data["mass_fraction"]):
+            h += data["property_object"].h_pT(p, T) * data["mass_fraction"]
+
+    return h
+
+
+
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     molar_fractions = get_molar_fractions(fluid_data)
 
@@ -172,6 +183,17 @@ def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         return s_mix_pT_ideal(p, T, fluid_data, **kwargs)
 
 
+def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+
+    s = 0
+    for data in fluid_data.values():
+
+        if _is_larger_than_precision(data["mass_fraction"]):
+            s += data["property_object"].s_pT(p, T) * data["mass_fraction"]
+
+    return s
+
+
 def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     molar_fractions = get_molar_fractions(fluid_data)
 
@@ -205,6 +227,16 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         return 1 / d
     else:
         return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
+
+
+def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+
+    v = 0
+    for data in fluid_data.values():
+        if _is_larger_than_precision(data["mass_fraction"]):
+            v += 1 / data["property_object"].d_pT(p, T) * data["mass_fraction"]
+
+    return v
 
 
 def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -246,11 +278,21 @@ def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     b = 0
     for fluid, data in fluid_data.items():
         if _is_larger_than_precision(data["mass_fraction"]):
-            bi = molar_fractions[fluid] * fluid_data[fluid]["property_object"]._molar_mass ** 0.5
+            bi = molar_fractions[fluid] * data["property_object"]._molar_mass ** 0.5
             b += bi
-            a += bi * fluid_data[fluid]["property_object"].viscosity_pT(p, T)
+            a += bi * data["property_object"].viscosity_pT(p, T)
 
     return a / b
+
+
+def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+
+    viscosity = 0
+    for data in fluid_data.values():
+        if _is_larger_than_precision(data["mass_fraction"]):
+            viscosity += data["property_object"].viscosity_pT(p, T) * data["mass_fraction"]
+
+    return viscosity
 
 
 def _water_in_mixture(fluid_data):
@@ -299,6 +341,26 @@ def T_mix_ph_ideal_cond(p=None, h=None, fluid_data=None, T0=None):
     )
 
 
+def T_mix_ph_incompressible(p=None, h=None, fluid_data=None, T0=None):
+    # calculate the fluid properties for fluid mixtures
+    valmin, valmax = get_mixture_temperature_range(fluid_data)
+    if T0 is None:
+        T0 = (valmin + valmax) / 2
+
+    function_kwargs = {
+        "p": p, "fluid_data": fluid_data, "T": T0,
+        "function": h_mix_pT_incompressible, "parameter": "T" , "delta": 0.01
+    }
+    return newton_with_kwargs(
+        central_difference,
+        s,
+        val0=T0,
+        valmin=valmin,
+        valmax=valmax,
+        **function_kwargs
+    )
+
+
 def T_mix_ps_ideal(p=None, s=None, fluid_data=None, T0=None):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
@@ -336,6 +398,26 @@ def T_mix_ps_ideal_cond(p=None, s=None, fluid_data=None, T0=None):
         valmin=valmin,
         valmax=valmax,
         tol_rel=1e-4,
+        **function_kwargs
+    )
+
+
+def T_mix_ps_incompressible(p=None, s=None, fluid_data=None, T0=None):
+    # calculate the fluid properties for fluid mixtures
+    valmin, valmax = get_mixture_temperature_range(fluid_data)
+    if T0 is None:
+        T0 = (valmin + valmax) / 2
+
+    function_kwargs = {
+        "p": p, "fluid_data": fluid_data, "T": T0,
+        "function": s_mix_pT_incompressible, "parameter": "T" , "delta": 0.01
+    }
+    return newton_with_kwargs(
+        central_difference,
+        s,
+        val0=T0,
+        valmin=valmin,
+        valmax=valmax,
         **function_kwargs
     )
 

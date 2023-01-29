@@ -55,6 +55,34 @@ def T_mix_ps(p, s, fluid_data, mixing_rule=None):
             raise ValueError()
 
 
+def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return 1 / pure_fluid["property_object"].d_ph(p, h)
+    else:
+        if mixing_rule == "ideal":
+            return v_mix_pT_ideal(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
+        elif mixing_rule == "ideal-cond":
+            return v_mix_pT_ideal_cond(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
+        elif mixing_rule == "incompressible":
+            raise NotImplementedError()
+        else:
+            raise ValueError()
+
+
+def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["property_object"].viscosity_ph(p, h)
+    else:
+        if mixing_rule == "ideal" or mixing_rule == "ideal-cond":
+            return viscosity_mix_pT_ideal(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
+        elif mixing_rule == "incompressible":
+            raise NotImplementedError()
+        else:
+            raise ValueError()
+
+
 def get_number_of_fluids(fluid_data):
     return sum([1 for f in fluid_data.values() if _is_larger_than_precision(f["mass_fraction"])])
 
@@ -144,105 +172,44 @@ def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         return s_mix_pT_ideal(p, T, fluid_data, **kwargs)
 
 
-def v_mix_ph(flow, T0=675):
-    r"""
-    Calculate the specific volume from pressure and enthalpy.
-
-    Parameters
-    ----------
-    flow : list
-        Fluid property vector containing mass flow, pressure, enthalpy and
-        fluid composition.
-
-    Returns
-    -------
-    v : float
-        Specific volume v / (:math:`\mathrm{m}^3`/kg).
-
-    Note
-    ----
-    First, check if fluid property has been memorised already.
-    If this is the case, return stored value, otherwise calculate value and
-    store it in the memorisation class.
-
-    Uses CoolProp interface for pure fluids, newton algorithm for mixtures:
-
-    .. math::
-
-        v_{mix}\left(p,h\right) = v\left(p,T_{mix}(p,h)\right)
-    """
-    # check if fluid properties have been calculated before
-    fl = tuple(flow[3].keys())
-    memorisation = fl in Memorise.v_ph
-    if memorisation:
-        a = Memorise.v_ph[fl][:, :-2]
-        b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
-        if ix.size == 1:
-            # known fluid properties
-            Memorise.v_ph[fl][ix, -1] += 1
-            return Memorise.v_ph[fl][ix, -2][0]
-
-    # unknown fluid properties
-    fluid = single_fluid(flow[3])
-    if fluid is None:
-        # calculate the fluid properties for fluid mixtures
-        val = v_mix_pT(flow, T_mix_ph(flow, T0=T0))
-    else:
-        # calculate fluid property for pure fluids
-        val = 1 / d_ph(flow[1], flow[2], fluid)
-
-    if memorisation:
-        # memorise the newly calculated value
-        new = np.asarray(
-            [[flow[1], flow[2]] + list(flow[3].values()) + [val, 0]])
-        Memorise.v_ph[fl] = np.append(Memorise.v_ph[fl], new, axis=0)
-
-    return val
-
-
-def v_mix_pT(flow, T):
-    r"""
-    Calculate the specific volume from pressure and temperature.
-
-    Parameters
-    ----------
-    flow : list
-        Fluid property vector containing mass flow, pressure, enthalpy and
-        fluid composition.
-
-    T : float
-        Temperature T / K.
-
-    Returns
-    -------
-    v : float
-        Specific volume v / (:math:`\mathrm{m}^3`/kg).
-
-    Note
-    ----
-    Calculation for fluid mixtures.
-
-    .. math::
-
-        v_{mix}(p,T)=\frac{1}{\sum_{i} \rho(pp_{i}, T, fluid_{i})}\;
-        \forall i \in \text{fluid components}\\
-        pp: \text{partial pressure}
-    """
-    n = molar_mass_flow(flow[3])
+def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
+    molar_fractions = get_molar_fractions(fluid_data)
 
     d = 0
-    for fluid, x in flow[3].items():
-        if x > err:
-            ni = x / molar_masses[fluid]
-            d += d_pT(flow[1] * ni / n, T, fluid)
+    for fluid, data in fluid_data.items():
+
+        if _is_larger_than_precision(data["mass_fraction"]):
+            pp = p * molar_fractions[fluid]
+            d += data["property_object"].d_pT(pp, T)
 
     return 1 / d
 
 
-def d_mix_pT(flow, T):
+def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
+
+    water_alias = _water_in_mixture(fluid_data)
+    if water_alias:
+        water_alias = next(iter(water_alias))
+        mass_fractions_gas, molar_fraction_gas, mass_liquid, molar_liquid = cond_check(p, T, fluid_data, water_alias)
+        if mass_liquid == 0:
+            return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
+        d = 0
+        for fluid, data in fluid_data.items():
+            if _is_larger_than_precision(data["mass_fraction"]):
+                if fluid == water_alias:
+                    d += fluid_data[water_alias]["property_object"].d_QT(0, T) * mass_liquid
+                    d += fluid_data[water_alias]["property_object"].d_QT(1, T) * (1 - mass_liquid)
+                else:
+                    pp = p * molar_fraction_gas[fluid]
+                    d += data["property_object"].d_pT(pp, T) * (1 - mass_liquid)
+        return 1 / d
+    else:
+        return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
+
+
+def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     r"""
-    Calculate the density from pressure and temperature.
+    Calculate dynamic viscosity from pressure and temperature.
 
     Parameters
     ----------
@@ -255,8 +222,8 @@ def d_mix_pT(flow, T):
 
     Returns
     -------
-    d : float
-        Density d / (kg/:math:`\mathrm{m}^3`).
+    visc : float
+        Dynamic viscosity visc / Pa s.
 
     Note
     ----
@@ -264,14 +231,31 @@ def d_mix_pT(flow, T):
 
     .. math::
 
-        \rho_{mix}\left(p,T\right)=\frac{1}{v_{mix}\left(p,T\right)}
+        \eta_{mix}(p,T)=\frac{\sum_{i} \left( \eta(p,T,fluid_{i}) \cdot y_{i}
+        \cdot \sqrt{M_{i}} \right)}
+        {\sum_{i} \left(y_{i} \cdot \sqrt{M_{i}} \right)}\;
+        \forall i \in \text{fluid components}\\
+        y: \text{volume fraction}\\
+        M: \text{molar mass}
+
+    Reference: :cite:`Herning1936`.
     """
-    return 1 / v_mix_pT(flow, T)
+    molar_fractions = get_molar_fractions(fluid_data)
+
+    a = 0
+    b = 0
+    for fluid, data in fluid_data.items():
+        if _is_larger_than_precision(data["mass_fraction"]):
+            bi = molar_fractions[fluid] * fluid_data[fluid]["property_object"]._molar_mass ** 0.5
+            b += bi
+            a += bi * fluid_data[fluid]["property_object"].viscosity_pT(p, T)
+
+    return a / b
 
 
 def _water_in_mixture(fluid_data):
     water_aliases = set(CP.CoolProp.get_aliases("H2O"))
-    return water_aliases & set(fluid_data.keys())
+    return water_aliases & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
 
 
 def T_mix_ph_ideal(p=None, h=None, fluid_data=None, T0=None):
@@ -345,8 +329,6 @@ def T_mix_ps_ideal_cond(p=None, s=None, fluid_data=None, T0=None):
         "p": p, "fluid_data": fluid_data, "T": T0,
         "function": s_mix_pT_ideal_cond, "parameter": "T" , "delta": 0.01
     }
-    print(function_kwargs)
-    print(s)
     return newton_with_kwargs(
         central_difference,
         s,
@@ -554,13 +536,17 @@ class CoolPropWrapper:
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.rhomass()
 
-    def visc_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.viscoisty()
+    def d_QT(self, Q, T):
+        self.AS.update(CP.QT_INPUTS, Q, T)
+        return self.AS.rhomass()
 
-    def visc_pT(self, p, T):
+    def viscosity_ph(self, p, h):
+        self.AS.update(CP.HmassP_INPUTS, h, p)
+        return self.AS.viscosity()
+
+    def viscosity_pT(self, p, T):
         self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.viscoisty()
+        return self.AS.viscosity()
 
     def s_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
@@ -596,6 +582,7 @@ fluid_data = {
 print(h_mix_pT(1e5, 327.2409, fluid_data, "ideal"))
 print(h_mix_pT(1e5, 327.2409, fluid_data, "ideal-cond"))
 print(T_mix_ph(1e5, 2.5e5, fluid_data, "ideal"))
+print(viscosity_mix_pT_ideal(1e5, 350, fluid_data))
 
 h = h_mix_pT_ideal_cond(1e5, 320, fluid_data)
 T = T_mix_ph(1e5, h, fluid_data, "ideal-cond")

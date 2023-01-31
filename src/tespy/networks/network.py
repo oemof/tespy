@@ -1659,7 +1659,7 @@ class Network:
         logger.info(msg)
 
         self.solve_determination()
-        self.solve_loop()
+        iter_result = self.solve_loop()
 
         if self.lin_dep:
             msg = (
@@ -1691,9 +1691,12 @@ class Network:
 
         msg = 'Calculation complete.'
         logger.info(msg)
+        return iter_result
 
     def solve_loop(self):
         r"""Loop of the newton algorithm."""
+
+        result = ""
         # parameter definitions
         self.res = np.array([])
         self.residual = np.zeros([self.num_vars])
@@ -1704,7 +1707,7 @@ class Network:
         self.progress = True
 
         if self.iterinfo:
-            self.print_iterinfo_head()
+            result += self.print_iterinfo_head() + '\n'
 
         for self.iter in range(self.max_iter):
 
@@ -1713,7 +1716,7 @@ class Network:
             self.res = np.append(self.res, norm(self.residual))
 
             if self.iterinfo:
-                self.print_iterinfo_body()
+                result += self.print_iterinfo_body() + '\n'
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
@@ -1727,13 +1730,14 @@ class Network:
 
         self.end_time = time()
 
-        self.print_iterinfo_tail()
+        result += self.print_iterinfo_tail() + '\n'
 
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
                    '), calculation stopped. Residual value is '
                    '{:.2e}'.format(norm(self.residual)))
             logger.warning(msg)
+        return result
 
     def solve_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -1807,6 +1811,7 @@ class Network:
             msg += '-' * 8 + '+----------' * 5 + '+' + '-' * 9
 
         logging.log(31, msg)
+        return msg
 
     def print_iterinfo_body(self):
         """Print convergence progress."""
@@ -1839,6 +1844,7 @@ class Network:
                 msg += ' |      nan'
 
         logging.log(31, msg)
+        return msg
 
     def print_iterinfo_tail(self):
         """Print tail of convergence progress."""
@@ -1856,9 +1862,13 @@ class Network:
         if self.iterinfo:
             if self.num_comp_vars == 0:
                 logging.log(31, '-' * 8 + '+----------' * 4 + '+' + '-' * 9)
+                result_msg = '-' * 8 + '+----------' * 4 + '+' + '-' * 9 + '\n' + msg
             else:
                 logging.log(31, '-' * 8 + '+----------' * 5 + '+' + '-' * 9)
+                result_msg = '-' * 8 + '+----------' * 5 + '+' + '-' * 9 + '\n' + msg
             logging.log(31, msg)
+            return result_msg
+        return None
 
     def matrix_inversion(self):
         """Invert matrix of derivatives and caluclate increment."""

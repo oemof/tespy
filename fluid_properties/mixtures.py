@@ -1,80 +1,9 @@
-from CoolProp.CoolProp import PropsSI
-from CoolProp.CoolProp import AbstractState
 import CoolProp as CP
-from tespy.tools.helpers import newton
 
-PRECISION = 1e-6
+from .helpers import _is_larger_than_precision
+from .helpers import calc_molar_mass_mixture
+from .helpers import get_molar_fractions
 
-
-def _is_larger_than_precision(value):
-    return value > PRECISION
-
-
-def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["property_object"].T_ph(p, h)
-    else:
-        kwargs = {
-            "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
-            "f": T_MIX_PH_REVERSE[mixing_rule]
-        }
-        return inverse_temperature_mixture(**kwargs)
-
-
-def h_mix_pT(p, T, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["property_object"].h_pT(p, T)
-    else:
-        return H_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
-
-
-def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["property_object"].T_ps(p, s)
-    else:
-        kwargs = {
-            "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,
-            "f": T_MIX_PS_REVERSE[mixing_rule]
-        }
-        return inverse_temperature_mixture(**kwargs)
-
-
-def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return 1 / pure_fluid["property_object"].d_ph(p, h)
-    else:
-        return V_MIX_PT_DIRECT[mixing_rule](p, T_mix_ph(p, h , fluid_data, mixing_rule, T0), fluid_data, T0)
-
-
-def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["property_object"].viscosity_ph(p, h)
-    else:
-        VISCOSITY_MIX_PT_DIRECT[mixing_rule](p, T_mix_ph(p, h , fluid_data, mixing_rule, T0), fluid_data, T0)
-
-
-def get_number_of_fluids(fluid_data):
-    return sum([1 for f in fluid_data.values() if _is_larger_than_precision(f["mass_fraction"])])
-
-
-def get_pure_fluid(fluid_data):
-    for f in fluid_data.values():
-        if _is_larger_than_precision(f["mass_fraction"]):
-            return f
-
-
-def get_molar_fractions(fluid_data):
-    molarflow = {
-        key: value["mass_fraction"] / value["property_object"]._molar_mass
-        for key, value in fluid_data.items()
-    }
-    molarflow_sum = sum(molarflow.values())
-    return {key: value / molarflow_sum for key, value in molarflow.items()}
 
 
 def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -274,88 +203,6 @@ def _water_in_mixture(fluid_data):
     return water_aliases & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
 
 
-def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": f, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        target_value,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        **function_kwargs
-    )
-
-
-def get_mixture_temperature_range(fluid_data):
-    valmin = max(
-        [v["property_object"]._T_min for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
-    ) + 0.1
-    valmax = min(
-        [v["property_object"]._T_max for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
-    ) - 0.1
-    return valmin, valmax
-
-
-def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10, tol_rel=PRECISION, tol_abs=PRECISION, tol_mode="rel", **function_kwargs):
-
-    # start newton loop
-    iteration = 0
-    expr = True
-    x = val0
-    parameter = function_kwargs["parameter"]
-    function = function_kwargs["function"]
-
-    while expr:
-        # calculate function residual and new value
-        function_kwargs[parameter] = x
-        residual = target_value - function(**function_kwargs)
-        x += residual / derivative(**function_kwargs)
-
-        # check for value ranges
-        if x < valmin:
-            x = valmin
-        if x > valmax:
-            x = valmax
-        iteration += 1
-
-        if iteration > max_iter:
-            msg = (
-                'The Newton algorithm was not able to find a feasible value '
-                f'for function {function}. Current value with x={x} is '
-                f'{function(**function_kwargs)}, target value is '
-                f'{target_value}, residual is {residual} after {iteration} '
-                'iterations.'
-            )
-            print(msg)
-            # logging.debug(msg)
-
-            break
-        if tol_mode == 'abs':
-            expr = abs(residual) >= tol_abs
-        elif tol_mode == 'rel':
-            expr = abs(residual / target_value) >= tol_rel
-        else:
-            expr = abs(residual / target_value) >= tol_rel or abs(residual) >= tol_abs
-
-    return x
-
-
-def central_difference(function=None, parameter=None, delta=None, **kwargs):
-    upper = kwargs.copy()
-    upper[parameter] += delta
-    lower = kwargs
-    lower[parameter] -= delta
-    return (function(**upper) - function(**lower)) / (2 * delta)
-
-
 def cond_check(p, T, fluid_data, water_alias):
     """Check if water is partially condensing in gaseous mixture.
 
@@ -414,103 +261,6 @@ def cond_check(p, T, fluid_data, water_alias):
     return mass_fractions_gas, molar_fractions_gas, water_mass_liquid, water_molar_liquid
 
 
-def calc_molar_mass_mixture(fluid_data, molar_fractions):
-    return sum([x * fluid_data[fluid]["property_object"]._molar_mass for fluid, x in molar_fractions.items()])
-
-
-class CoolPropWrapper:
-
-    def __init__(self, fluid, backend=None) -> None:
-        self.fluid = fluid
-        if backend is None:
-            backend = "HEOS"
-
-        self.AS = AbstractState(backend, fluid)
-        self._set_constants()
-
-    def _set_constants(self):
-        self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
-        self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
-        self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
-        self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
-        self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
-        self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        self._molar_mass = self.AS.trivial_keyed_output(CP.imolar_mass)
-
-    def _is_below_T_critical(self, T):
-        return T < self._T_crit
-
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
-
-    def T_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.T()
-
-    def T_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
-        return self.AS.T()
-
-    def h_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.hmass()
-
-    def h_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.hmass()
-
-    def s_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.smass()
-
-    def T_boiling(self, p):
-        p = self._make_p_subcritical(p)
-        self.AS.update(CP.PQ_INPUTS, p, 1)
-        return self.AS.T()
-
-    def p_boiling(self, T):
-        if T > self._T_crit:
-            T = self._T_crit * 0.99
-
-        self.AS.update(CP.QT_INPUTS, 1, T)
-        return self.AS.p()
-
-    def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.Q()
-
-    def d_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.rhomass()
-
-    def d_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.rhomass()
-
-    def d_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.rhomass()
-
-    def viscosity_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.viscosity()
-
-    def viscosity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.viscosity()
-
-    def s_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.smass()
-
-    def s_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.smass()
-
-
 T_MIX_PH_REVERSE = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
@@ -532,6 +282,13 @@ H_MIX_PT_DIRECT = {
 }
 
 
+S_MIX_PT_DIRECT = {
+    "ideal": s_mix_pT_ideal,
+    "ideal-cond": s_mix_pT_ideal_cond,
+    "incompressible": s_mix_pT_incompressible
+}
+
+
 V_MIX_PT_DIRECT = {
     "ideal": v_mix_pT_ideal,
     "ideal-cond": v_mix_pT_ideal_cond,
@@ -541,44 +298,6 @@ V_MIX_PT_DIRECT = {
 
 VISCOSITY_MIX_PT_DIRECT = {
     "ideal": viscosity_mix_pT_ideal,
-    "ideal-cond": viscosity_mix_pT_ideal
+    "ideal-cond": viscosity_mix_pT_ideal,
+    "incompressible": viscosity_mix_pT_incompressible
 }
-
-
-
-h2o = CoolPropWrapper("H2O", "HEOS")
-n2 = CoolPropWrapper("N2", "HEOS")
-o2 = CoolPropWrapper("O2", "HEOS")
-
-
-fluid_data = {
-    "H2O": {
-        "mass_fraction": 0.1,
-        "property_object": h2o
-    },
-    "N2": {
-        "mass_fraction": 0.7,
-        "property_object": n2
-    },
-    "O2": {
-        "mass_fraction": 0.2,
-        "property_object": o2
-    }
-}
-
-
-print(h_mix_pT(1e5, 327.2409, fluid_data, "ideal"))
-print(h_mix_pT(1e5, 327.2409, fluid_data, "ideal-cond"))
-print(T_mix_ph(1e5, 2.5e5, fluid_data, "ideal"))
-print(viscosity_mix_pT_ideal(1e5, 350, fluid_data))
-
-h = h_mix_pT_ideal_cond(1e5, 320, fluid_data)
-T = T_mix_ph(1e5, h, fluid_data, "ideal-cond")
-print(T)
-
-s = s_mix_pT_ideal_cond(1e5, 300, fluid_data)
-print(s)
-T = T_mix_ps(1e5, s, fluid_data, "ideal-cond")
-
-print(T)
-# print(cond_check(1e5, T, fluid_data, "H2O"))

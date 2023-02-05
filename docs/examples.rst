@@ -12,7 +12,7 @@ your project.
 
 .. card::
 
-    **Combined Heat and Power Organic Rankine Cycle**
+    **Coupled Porous Media Storage and Power Plant Simulation**
     ^^^
 
     .. image:: /_static/images/examples/PM_CAES_graphical-abstract.svg

@@ -2721,7 +2721,7 @@ class Network:
         param : str
             Component parameter to print.
 
-        colored : booloean
+        colored : bool
             Color the printout.
 
         coloring : dict

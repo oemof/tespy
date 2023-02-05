@@ -30,7 +30,15 @@ Setting up the System
 For this model we have to import the :code:`Network` and :code:`Connection`
 classes as well as the respective components. After setting up the network we
 can create the components, connect them to the network (as shown in the other)
-examples.
+examples. As a fluid, we will use the incompressibles back-end of CoolProp,
+since we only need liquid water. The incompressible back-end has much higher
+access speed while preserving high accuracy.
+
+
+.. tip::
+
+    For more information on the fluid properties in TESPy,
+    `check out this page <tespy_fluid_properties_label>`__.
 
 .. dropdown:: Click to expand to code section
 

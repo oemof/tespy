@@ -15,14 +15,11 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["property_object"].T_ph(p, h)
     else:
-        if mixing_rule == "ideal":
-            return T_mix_ph_ideal(p, h, fluid_data, T0=T0)
-        elif mixing_rule == "ideal-cond":
-            return T_mix_ph_ideal_cond(p, h, fluid_data, T0=T0)
-        elif mixing_rule == "incompressible":
-            return T_mix_ph_incompressible(p, h, fluid_data, T0=T0)
-        else:
-            raise ValueError()
+        kwargs = {
+            "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
+            "f": T_MIX_PH_REVERSE[mixing_rule]
+        }
+        return inverse_temperature_mixture(**kwargs)
 
 
 def h_mix_pT(p, T, fluid_data, mixing_rule=None):
@@ -30,29 +27,19 @@ def h_mix_pT(p, T, fluid_data, mixing_rule=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["property_object"].h_pT(p, T)
     else:
-        if mixing_rule == "ideal":
-            return h_mix_pT_ideal(p, T, fluid_data)
-        elif mixing_rule == "ideal-cond":
-            return h_mix_pT_ideal_cond(p, T, fluid_data)
-        elif mixing_rule == "incompressible":
-            return h_mix_pT_incompressible(p, T, fluid_data)
-        else:
-            raise ValueError()
+        return H_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
 
 
-def T_mix_ps(p, s, fluid_data, mixing_rule=None):
+def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["property_object"].T_ps(p, s)
     else:
-        if mixing_rule == "ideal":
-            return T_mix_ps_ideal(p, s, fluid_data)
-        elif mixing_rule == "ideal-cond":
-            return T_mix_ps_ideal_cond(p, s, fluid_data)
-        elif mixing_rule == "incompressible":
-            return T_mix_ps_incompressible(p, s, fluid_data)
-        else:
-            raise ValueError()
+        kwargs = {
+            "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,
+            "f": T_MIX_PS_REVERSE[mixing_rule]
+        }
+        return inverse_temperature_mixture(**kwargs)
 
 
 def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -60,14 +47,7 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return 1 / pure_fluid["property_object"].d_ph(p, h)
     else:
-        if mixing_rule == "ideal":
-            return v_mix_pT_ideal(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
-        elif mixing_rule == "ideal-cond":
-            return v_mix_pT_ideal_cond(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
-        elif mixing_rule == "incompressible":
-            raise NotImplementedError()
-        else:
-            raise ValueError()
+        return V_MIX_PT_DIRECT[mixing_rule](p, T_mix_ph(p, h , fluid_data, mixing_rule, T0), fluid_data, T0)
 
 
 def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -75,12 +55,7 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["property_object"].viscosity_ph(p, h)
     else:
-        if mixing_rule == "ideal" or mixing_rule == "ideal-cond":
-            return viscosity_mix_pT_ideal(p, T_mix_ph(p, h, fluid_data, mixing_rule), fluid_data, T0=T0)
-        elif mixing_rule == "incompressible":
-            raise NotImplementedError()
-        else:
-            raise ValueError()
+        VISCOSITY_MIX_PT_DIRECT[mixing_rule](p, T_mix_ph(p, h , fluid_data, mixing_rule, T0), fluid_data, T0)
 
 
 def get_number_of_fluids(fluid_data):
@@ -145,7 +120,6 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
             h += data["property_object"].h_pT(p, T) * data["mass_fraction"]
 
     return h
-
 
 
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -300,7 +274,7 @@ def _water_in_mixture(fluid_data):
     return water_aliases & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
 
 
-def T_mix_ph_ideal(p=None, h=None, fluid_data=None, T0=None):
+def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
     if T0 is None:
@@ -308,113 +282,11 @@ def T_mix_ph_ideal(p=None, h=None, fluid_data=None, T0=None):
 
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": h_mix_pT_ideal, "parameter": "T" , "delta": 0.01
+        "function": f, "parameter": "T" , "delta": 0.01
     }
     return newton_with_kwargs(
         central_difference,
-        h,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        **function_kwargs
-    )
-
-
-def T_mix_ph_ideal_cond(p=None, h=None, fluid_data=None, T0=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": h_mix_pT_ideal_cond, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        h,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        tol_rel=1e-4,
-        **function_kwargs
-    )
-
-
-def T_mix_ph_incompressible(p=None, h=None, fluid_data=None, T0=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": h_mix_pT_incompressible, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        s,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        **function_kwargs
-    )
-
-
-def T_mix_ps_ideal(p=None, s=None, fluid_data=None, T0=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": s_mix_pT_ideal, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        s,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        **function_kwargs
-    )
-
-
-def T_mix_ps_ideal_cond(p=None, s=None, fluid_data=None, T0=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": s_mix_pT_ideal_cond, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        s,
-        val0=T0,
-        valmin=valmin,
-        valmax=valmax,
-        tol_rel=1e-4,
-        **function_kwargs
-    )
-
-
-def T_mix_ps_incompressible(p=None, s=None, fluid_data=None, T0=None):
-    # calculate the fluid properties for fluid mixtures
-    valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None:
-        T0 = (valmin + valmax) / 2
-
-    function_kwargs = {
-        "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": s_mix_pT_incompressible, "parameter": "T" , "delta": 0.01
-    }
-    return newton_with_kwargs(
-        central_difference,
-        s,
+        target_value,
         val0=T0,
         valmin=valmin,
         valmax=valmax,
@@ -637,6 +509,40 @@ class CoolPropWrapper:
     def s_pT(self, p, T):
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.smass()
+
+
+T_MIX_PH_REVERSE = {
+    "ideal": h_mix_pT_ideal,
+    "ideal-cond": h_mix_pT_ideal_cond,
+    "incompressible": h_mix_pT_incompressible
+}
+
+
+T_MIX_PS_REVERSE = {
+    "ideal": s_mix_pT_ideal,
+    "ideal-cond": s_mix_pT_ideal_cond,
+    "incompressible": s_mix_pT_incompressible
+}
+
+
+H_MIX_PT_DIRECT = {
+    "ideal": h_mix_pT_ideal,
+    "ideal-cond": h_mix_pT_ideal_cond,
+    "incompressible": h_mix_pT_incompressible
+}
+
+
+V_MIX_PT_DIRECT = {
+    "ideal": v_mix_pT_ideal,
+    "ideal-cond": v_mix_pT_ideal_cond,
+    "incompressible": v_mix_pT_incompressible
+}
+
+
+VISCOSITY_MIX_PT_DIRECT = {
+    "ideal": viscosity_mix_pT_ideal,
+    "ideal-cond": viscosity_mix_pT_ideal
+}
 
 
 

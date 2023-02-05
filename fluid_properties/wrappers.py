@@ -148,3 +148,83 @@ class CoolPropWrapper(FluidProperyWrapper):
     def s_pT(self, p, T):
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.smass()
+
+
+
+import pyromat as pm
+pm.config['unit_energy'] = "J"
+pm.config['unit_pressure'] = "Pa"
+pm.config['unit_molar'] = "mol"
+
+
+class PyromatIdealGasWrapper(FluidProperyWrapper):
+
+    def __init__(self, fluid, backend=None) -> None:
+        self.fluid = fluid
+
+        self.AS = pm.get(f"ig.{fluid}")
+        self._set_constants()
+
+    def _set_constants(self):
+        # self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
+        # self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
+        self._p_min, self._p_max = 100, 1000e5
+        self._T_min, self._T_max = self.AS.Tlim()
+        self._molar_mass = self.AS.mw()
+
+    def T_ph(self, p, h):
+        return self.AS.T(p=p, h=h)[0]
+
+    def T_ps(self, p, s):
+        return self.AS.T(p=p, s=s)[0]
+
+    def h_pT(self, p, T):
+        return self.AS.h(p=p, T=T)[0]
+
+    def T_ph(self, p, h):
+        return self.AS.T(p=p, h=h)[0]
+
+    def T_ps(self, p, s):
+        return self.AS.T(p=p, s=s)[0]
+
+    def h_pT(self, p, T):
+        return self.AS.h(p=p, T=T)[0]
+
+    def d_ph(self, p, h):
+        return self.AS.d(p=p, h=h)[0]
+
+    def d_pT(self, p, T):
+        return self.AS.d(p=p, T=T)[0]
+
+    def s_ph(self, p, h):
+        return self.AS.s(p=p, h=h)[0]
+
+    def s_pT(self, p, T):
+        return self.AS.s(p=p, T=T)[0]
+
+
+class PyromatMulitphaseWrapper(PyromatIdealGasWrapper):
+
+    def __init__(self, fluid, backend=None) -> None:
+        self.fluid = fluid
+
+        self.AS = pm.get(f"mp.{fluid}")
+        self._set_constants()
+
+    def h_QT(self, Q, T):
+        return self.AS.h(x=Q, T=T)[0]
+
+    def s_QT(self, Q, T):
+        return self.AS.s(x=Q, T=T)[0]
+
+    def T_boiling(self, p):
+        return self.AS.T(x=1, p=p)[0]
+
+    def p_boiling(self, T):
+        return self.AS.p(x=1, T=T)[0]
+
+    def Q_ph(self, p, h):
+        return self.AS.x(p=p, h=h)[0]
+
+    def d_QT(self, Q, T):
+        return self.AS.d(x=Q, T=T)[0]

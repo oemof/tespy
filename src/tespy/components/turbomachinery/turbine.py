@@ -1,4 +1,4 @@
-# -*- coding: utf-8
+ # -*- coding: utf-8
 
 """Module of class Turbine.
 
@@ -532,6 +532,6 @@ class Turbine(Turbomachine):
             self.E_P = np.nan
             self.E_F = np.nan
 
-        self.E_bus = -self.P.val
+        self.E_bus = -self.P.val  # {"Chem": 0, "Phys":0, "Massless": -self.P.val}
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

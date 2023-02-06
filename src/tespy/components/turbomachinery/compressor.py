@@ -1,3 +1,8 @@
+
+
+
+
+
 # -*- coding: utf-8
 
 """Module of class Compressor.

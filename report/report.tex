@@ -1,0 +1,731 @@
+\documentclass[]{article}
+\usepackage{geometry}
+\geometry{a4paper, left=20mm, top=20mm,}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{units}
+\usepackage{cleveref}
+
+\usepackage{longtable}
+
+\newcommand{\iftab}{\fontshape{sl}\selectfont}
+
+\newcommand{\bftab}{\fontseries{b}\selectfont}
+
+\begin{document}
+
+\section*{Software Information}
+
+\begin{table}[H]
+\begin{tabular}{ll}
+\bftab General information&\\
+& \\
+TESPy Version:&0.6.2 - Leidenfrost's Library\\
+Commit:&a9e8aaca@features/chemical\_exergy\\
+CoolProp version:&6.4.3\\
+Python version:&3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0]\\
+Documentation generated:&January 19, 2023\\
+& \\
+\bftab Parameter highlighting&\\
+& \\
+Variable component parameters:& \iftab italic\\
+Specified input parameter:& \bftab bold\\
+Results of simulation:& normalfont \\
+& \\
+\multicolumn{2}{l}{\iftab Equations are displayed for input parameters only.}\\
+\end{tabular}
+\end{table}
+\newpage\section{Connections in design mode}
+
+\subsection{Connection specifications and results}
+
+\begin{longtable}[H]{lrrrrrrr}
+\caption{Connection specifications and results}\\
+\toprule
+{} & m in $\unitfrac[]{kg}{s}$ (\ref{eq:Connection_mass flow}) & p in $\unit[]{bar}$ (\ref{eq:Connection_pressure}) & h in $\unitfrac[]{kJ}{kg}$ & T in $\unit[]{^\circ C}$ (\ref{eq:Connection_temperature}) & s in $\unitfrac[]{kJ}{kgK}$ & x in $\unit[]{-}$ (\ref{eq:Connection_vapor mass fraction}) & Td\_bp in $\unit[]{^\circ C}$ (\ref{eq:Connection_temperature difference to boiling point}) \\
+label &                                                           &                                                    &                            &                                                            &                             &                                                             &                                                                                             \\
+\midrule
+\endfirsthead
+\caption[]{Connection specifications and results} \\
+\toprule
+{} & m in $\unitfrac[]{kg}{s}$ (\ref{eq:Connection_mass flow}) & p in $\unit[]{bar}$ (\ref{eq:Connection_pressure}) & h in $\unitfrac[]{kJ}{kg}$ & T in $\unit[]{^\circ C}$ (\ref{eq:Connection_temperature}) & s in $\unitfrac[]{kJ}{kgK}$ & x in $\unit[]{-}$ (\ref{eq:Connection_vapor mass fraction}) & Td\_bp in $\unit[]{^\circ C}$ (\ref{eq:Connection_temperature difference to boiling point}) \\
+label &                                                           &                                                    &                            &                                                            &                             &                                                             &                                                                                             \\
+\midrule
+\endhead
+\midrule
+\multicolumn{8}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+1     &                                                    38.969 &                                    \bftab 100.0000 &                   3,002.40 &                                               \bftab 371.0 &                      6.0697 &                                                       -1.00 &                                                                                           - \\
+2     &                                                    38.969 &                                           100.0000 &                   3,002.40 &                                                      371.0 &                      6.0697 &                                                       -1.00 &                                                                                           - \\
+3     &                                             \bftab 38.969 &                                     \bftab 33.6100 &                   2,804.82 &                                                      240.7 &                      6.1443 &                                                       -1.00 &                                                                                           - \\
+4     &                                                    36.012 &                                            33.6100 &                   2,804.82 &                                                      240.7 &                      6.1443 &                                                       -1.00 &                                                                                           - \\
+5     &                                                    36.012 &                                     \bftab 18.5800 &                   2,707.54 &                                                      208.7 &                      6.1810 &                                                        0.95 &                                                                                           - \\
+6     &                                                    33.524 &                                            18.5800 &                   2,707.54 &                                                      208.7 &                      6.1810 &                                                        0.95 &                                                                                           - \\
+7     &                                                    33.524 &                                     \bftab 17.1000 &                   3,189.77 &                                               \bftab 371.0 &                      7.1106 &                                                       -1.00 &                                                                                           - \\
+8     &                                                    33.524 &                                      \bftab 7.9800 &                   3,015.17 &                                                      280.3 &                      7.1616 &                                                       -1.00 &                                                                                           - \\
+9     &                                                    31.041 &                                             7.9800 &                   3,015.17 &                                                      280.3 &                      7.1616 &                                                       -1.00 &                                                                                           - \\
+10    &                                                    31.041 &                                      \bftab 2.7300 &                   2,797.89 &                                                      166.4 &                      7.2068 &                                                       -1.00 &                                                                                           - \\
+11    &                                                    29.273 &                                             2.7300 &                   2,797.89 &                                                      166.4 &                      7.2068 &                                                       -1.00 &                                                                                           - \\
+12    &                                                    29.273 &                                      \bftab 0.9600 &                   2,623.62 &                                                       98.5 &                      7.2393 &                                                        0.98 &                                                                                           - \\
+13    &                                                    27.676 &                                             0.9600 &                   2,623.62 &                                                       98.5 &                      7.2393 &                                                        0.98 &                                                                                           - \\
+14    &                                                    27.676 &                                      \bftab 0.2900 &                   2,461.05 &                                                       68.3 &                      7.3042 &                                                        0.93 &                                                                                           - \\
+15    &                                                    26.568 &                                             0.2900 &                   2,461.05 &                                                       68.3 &                      7.3042 &                                                        0.93 &                                                                                           - \\
+16    &                                                    26.568 &                                      \bftab 0.0800 &                   2,348.06 &                                                       41.5 &                      7.5023 &                                                        0.91 &                                                                                           - \\
+17    &                                                    31.041 &                                             0.0800 &                   2,040.95 &                                                       41.5 &                      6.5263 &                                                        0.78 &                                                                                           - \\
+18    &                                                    31.041 &                                             0.0800 &                     173.84 &                                                       41.5 &                      0.5925 &                                                        0.00 &                                                                                           - \\
+25    &                                                    31.041 &                                             7.9800 &                     526.89 &                                                      125.3 &                      1.5846 &                                                       -1.00 &                                                                                           - \\
+26    &                                                    38.969 &                                             7.9800 &                     720.41 &                                                      170.3 &                      2.0446 &                                                 \bftab 0.00 &                                                                                           - \\
+31    &                                                    38.969 &                                    \bftab 103.5600 &                   1,016.11 &                                                      235.2 &                      2.6433 &                                                       -1.00 &                                                                                           - \\
+32    &                                                    38.969 &                                           103.4200 &                   1,410.39 &                                                      311.5 &                      3.3638 &                                                       -1.00 &                                                                                 \bftab -2.0 \\
+33    &                                                    78.680 &                                           103.4200 &                   1,422.74 &                                                      313.5 &                      3.3849 &                                                        0.00 &                                                                                           - \\
+34    &                                                    78.680 &                                           103.4200 &                   2,070.94 &                                                      313.5 &                      4.4898 &                                                 \bftab 0.50 &                                                                                           - \\
+35    &                                                    38.969 &                                    \bftab 103.4200 &                   2,719.14 &                                                      313.5 &                      5.5948 &                                                        1.00 &                                                                                           - \\
+36    &                                                     2.957 &                                            33.6100 &                   2,804.82 &                                                      240.7 &                      6.1443 &                                                       -1.00 &                                                                                           - \\
+39    &                                                     2.957 &                                            18.5800 &                     914.90 &                                                      208.7 &                      2.4605 &                                                        0.01 &                                                                                           - \\
+40    &                                                     2.489 &                                            18.5800 &                   2,707.54 &                                                      208.7 &                      6.1810 &                                                        0.95 &                                                                                           - \\
+41    &                                                     5.445 &                                            18.5800 &                   1,734.16 &                                                      208.7 &                      4.1608 &                                                        0.44 &                                                                                           - \\
+44    &                                                     5.445 &                                             7.9800 &                     777.12 &                                                      170.3 &                      2.1725 &                                                        0.03 &                                                                                           - \\
+45    &                                                     2.483 &                                             7.9800 &                   3,015.17 &                                                      280.3 &                      7.1616 &                                                       -1.00 &                                                                                           - \\
+46    &                                                     1.768 &                                             2.7300 &                   2,797.89 &                                                      166.4 &                      7.2068 &                                                       -1.00 &                                                                                           - \\
+49    &                                                     1.768 &                                             0.9600 &                     433.92 &                                                       98.5 &                      1.3470 &                                                        0.01 &                                                                                           - \\
+50    &                                                     1.596 &                                             0.9600 &                   2,623.62 &                                                       98.5 &                      7.2393 &                                                        0.98 &                                                                                           - \\
+51    &                                                     3.364 &                                             0.9600 &                   1,472.90 &                                                       98.5 &                      4.1428 &                                                        0.47 &                                                                                           - \\
+54    &                                                     3.364 &                                             0.2900 &                     307.02 &                                                       68.3 &                      0.9961 &                                                        0.01 &                                                                                           - \\
+55    &                                                     1.108 &                                             0.2900 &                   2,461.05 &                                                       68.3 &                      7.3042 &                                                        0.93 &                                                                                           - \\
+56    &                                                     4.472 &                                             0.2900 &                     840.68 &                                                       68.3 &                      2.5589 &                                                        0.24 &                                                                                           - \\
+59    &                                                     4.472 &                                             0.0800 &                     216.49 &                                                       41.5 &                      0.7280 &                                                        0.02 &                                                                                           - \\
+60    &                                                 2,132.083 &                                             1.0663 &                     153.03 &                                                       36.5 &                      0.5255 &                                                       -1.00 &                                                                                           - \\
+61    &                                                 2,132.083 &                                             1.0663 &                     153.03 &                                                       36.5 &                      0.5255 &                                                       -1.00 &                                                                                           - \\
+62    &                                                 2,132.083 &                                      \bftab 1.0130 &                     125.82 &                                                \bftab 30.0 &                      0.4367 &                                                       -1.00 &                                                                                           - \\
+63    &                                                 2,132.083 &                                             1.1848 &                     125.85 &                                                       30.0 &                      0.4367 &                                                       -1.00 &                                                                                           - \\
+64    &                                                11,691.521 &                                      \bftab 1.0130 &                     424.44 &                                                \bftab 25.0 &                      3.8806 &                                                       -1.00 &                                                                                           - \\
+65    &                                                11,691.521 &                                      \bftab 1.0135 &                     424.51 &                                                       25.1 &                      3.8807 &                                                       -1.00 &                                                                                           - \\
+66    &                                                11,691.521 &                                      \bftab 1.0130 &                     429.47 &                                                \bftab 30.0 &                      3.8973 &                                                       -1.00 &                                                                                           - \\
+70    &                                                   405.389 &                                     \bftab 23.3040 &                     761.43 &                                               \bftab 390.0 &                      1.6201 &                                                        -inf &                                                                                           - \\
+71    &                                                   405.389 &                                            23.3040 &                     761.43 &                                                      390.0 &                      1.6201 &                                                        -inf &                                                                                           - \\
+72    &                                                   353.337 &                                            23.3040 &                     761.43 &                                                      390.0 &                      1.6201 &                                                        -inf &                                                                                           - \\
+73    &                                                   353.337 &                                     \bftab 22.7530 &                     730.18 &                                                      377.7 &                      1.5726 &                                                        -inf &                                                                                           - \\
+74    &                                                   353.337 &                                     \bftab 21.1670 &                     585.85 &                                                      318.5 &                      1.3406 &                                                        -inf &                                                                                           - \\
+75    &                                                   353.337 &                                            20.3400 &                     542.36 &                                                      299.8 &                      1.2661 &                                                        -inf &                                                                                           - \\
+76    &                                                    52.052 &                                            23.3040 &                     761.43 &                                                      390.0 &                      1.6201 &                                                        -inf &                                                                                           - \\
+77    &                                                    52.052 &                                            20.3400 &                     450.85 &                                                      259.2 &                      1.1005 &                                                        -inf &                                                                                           - \\
+78    &                                                   405.389 &                                     \bftab 20.3400 &                     530.61 &                                                      294.7 &                      1.2455 &                                                        -inf &                                                                                           - \\
+79    &                                                   405.389 &                                     \bftab 41.0240 &                     534.80 &                                                      296.3 &                      1.2484 &                                                        -inf &                                                                                           - \\
+19    &                                                    31.041 &                                     \bftab 14.7550 &                     175.95 &                                                       41.7 &                      0.5945 &                                                       -1.00 &                                                                                           - \\
+20    &                                                    31.041 &                                            14.7550 &                     185.97 &                                                       44.1 &                      0.6262 &                                                       -1.00 &                                                                                           - \\
+21    &                                                    31.041 &                                      \bftab 9.9975 &                     265.88 &                                                       63.3 &                      0.8722 &                                                       -1.00 &                                                                                           - \\
+22    &                                                    31.041 &                                             9.9975 &                     277.34 &                                                       66.1 &                      0.9061 &                                                       -1.00 &                                                                                           - \\
+23    &                                                    31.041 &                                      \bftab 8.7012 &                     392.25 &                                                       93.5 &                      1.2323 &                                                       -1.00 &                                                                                           - \\
+24    &                                                    31.041 &                                             8.7012 &                     398.73 &                                                       95.0 &                      1.2499 &                                                       -1.00 &                                                                                           - \\
+27    &                                                    38.969 &                                    \bftab 125.0000 &                     738.98 &                                                      173.1 &                      2.0571 &                                                       -1.00 &                                                                                           - \\
+28    &                                                    38.969 &                                           125.0000 &                     754.98 &                                                      176.8 &                      2.0928 &                                                       -1.00 &                                                                                           - \\
+29    &                                                    38.969 &                                    \bftab 112.0000 &                     872.71 &                                                      203.7 &                      2.3501 &                                                       -1.00 &                                                                                           - \\
+30    &                                                    38.969 &                                           112.0000 &                     882.11 &                                                      205.8 &                      2.3698 &                                                       -1.00 &                                                                                           - \\
+37    &                                                     2.957 &                                            33.6100 &                   1,038.69 &                                                      240.2 &                      2.7042 &                                                        0.00 &                                                                                           - \\
+38    &                                                     2.957 &                                            33.6100 &                     914.90 &                                                      213.7 &                      2.4566 &                                                       -1.00 &                                                                                           - \\
+42    &                                                     5.445 &                                            18.5800 &                     891.63 &                                                      208.7 &                      2.4122 &                                                        0.00 &                                                                                           - \\
+43    &                                                     5.445 &                                            18.5800 &                     777.12 &                                                      183.1 &                      2.1681 &                                                       -1.00 &                                                                                           - \\
+47    &                                                     1.768 &                                             2.7300 &                     547.81 &                                                      130.3 &                      1.6382 &                                                        0.00 &                                                                                           - \\
+48    &                                                     1.768 &                                             2.7300 &                     433.92 &                                                      103.5 &                      1.3461 &                                                       -1.00 &                                                                                           - \\
+52    &                                                     3.364 &                                             0.9600 &                     412.71 &                                                       98.5 &                      1.2899 &                                                       -0.00 &                                                                                           - \\
+53    &                                                     3.364 &                                             0.9600 &                     307.02 &                                                       73.3 &                      0.9954 &                                                       -1.00 &                                                                                           - \\
+57    &                                                     4.472 &                                             0.2900 &                     286.02 &                                                       68.3 &                      0.9345 &                                                       -0.00 &                                                                                           - \\
+58    &                                                     4.472 &                                             0.2900 &                     216.49 &                                                       51.7 &                      0.7258 &                                                       -1.00 &                                                                                           - \\
+\end{longtable}
+\subsection{Equations applied}
+
+\begin{equation}
+\label{eq:Connection_mass flow}
+0 = \dot{m} - \dot{m}_\mathrm{spec}
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_pressure}
+0 = p - p_\mathrm{spec}
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_temperature}
+0 = T \left(p, h \right) - T_\mathrm{spec}
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_vapor mass fraction}
+0 = h - h\left(p, x_\mathrm{spec}\right)
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_temperature difference to boiling point}
+0 = \Delta T_\mathrm{spec}- T_\mathrm{sat}\left(p\right)
+\end{equation}
+
+\subsection{Specified fluids}
+
+\begin{table}[H]
+\centering
+\caption{Specified fluids}
+\begin{tabular}{lrrr}
+\toprule
+{} & TVP1 (\ref{eq:Connection_TVP1}) & air (\ref{eq:Connection_air}) & water (\ref{eq:Connection_water}) \\
+label &                                 &                               &                                   \\
+\midrule
+1     &                    \bftab 0.000 &                  \bftab 0.000 &                      \bftab 1.000 \\
+62    &                    \bftab 0.000 &                  \bftab 0.000 &                      \bftab 1.000 \\
+64    &                    \bftab 0.000 &                  \bftab 1.000 &                      \bftab 0.000 \\
+70    &                    \bftab 1.000 &                  \bftab 0.000 &                      \bftab 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Equations applied}
+
+\begin{equation}
+\label{eq:Connection_TVP1}
+0 = x_\mathrm{TVP1} - x_\mathrm{TVP1,spec}
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_air}
+0 = x_\mathrm{air} - x_\mathrm{air,spec}
+\end{equation}
+
+\begin{equation}
+\label{eq:Connection_water}
+0 = x_\mathrm{water} - x_\mathrm{water,spec}
+\end{equation}
+
+\subsection{Referenced mass flow}
+
+\begin{table}[H]
+\centering
+\caption{Specified reference values for mass flow}
+\begin{tabular}{llrr}
+\toprule
+{} & reference &  factor in - &  delta in $\unitfrac[]{kg}{s}$ \\
+label &           &              &                                \\
+\midrule
+0     &        70 &       0.1284 &                              0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Equation applied}
+
+\begin{equation}
+\label{eq:Connection_ref}
+0 = \text{value} - \text{value}_\mathrm{ref} \cdot \mathrm{factor} + \text{delta}
+\end{equation}
+
+\section{Components in design mode}
+
+\subsection{Components of type Condenser}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Condenser_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1, 2]
+\end{equation}
+
+\begin{equation}
+\label{eq:Condenser_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1, 2]
+\end{equation}
+
+\begin{equation}
+\label{eq:Condenser_energy_balance_constraints}
+0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type Condenser}
+\begin{tabular}{lrrrrr}
+\toprule
+{} &               Q & ttd\_u (\ref{eq:Condenser_ttd_u}) & ttd\_l & pr1 (\ref{eq:Condenser_pr1}) & pr2 (\ref{eq:Condenser_pr2}) \\
+label                     &                 &                                   &        &                              &                              \\
+\midrule
+High pressure preheater 2 &   -5,221,925.04 &                       \bftab 5.00 &  34.45 &                  \bftab 1.00 &                         0.92 \\
+Low pressure preheater 2  &   -3,566,757.71 &                       \bftab 5.00 &  32.41 &                  \bftab 1.00 &                         0.87 \\
+Condenser                 &  -57,956,348.47 &                       \bftab 5.00 &  11.51 &                  \bftab 1.00 &                  \bftab 0.90 \\
+Low pressure preheater 3  &   -3,978,057.22 &                       \bftab 5.00 &  35.32 &                  \bftab 1.00 &                         0.92 \\
+High pressure preheater 1 &   -4,587,816.13 &                       \bftab 5.00 &  31.90 &                  \bftab 1.00 &                         0.90 \\
+Low pressure preheater 1  &   -2,480,570.42 &                       \bftab 5.00 &  24.21 &                  \bftab 1.00 &                         0.68 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:Condenser_ttd_u}
+0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right) + T_\mathrm{out,2}
+\end{equation}
+
+\begin{equation}
+\label{eq:Condenser_pr1}
+0=p_\mathrm{in,1}\cdot pr1 - p_\mathrm{out,1}
+\end{equation}
+
+\begin{equation}
+\label{eq:Condenser_pr2}
+0=p_\mathrm{in,2}\cdot pr2 - p_\mathrm{out,2}
+\end{equation}
+
+
+\subsection{Components of type Splitter}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Splitter_mass_flow_constraints}
+0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}\;\forall i \in \text{inlets}, \forall j \in \text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Splitter_fluid_constraints}
+0 = x_{fl\mathrm{,in}} - x_{fl\mathrm{,out,}j}\; \forall fl \in \text{network fluids,} \; \forall j \in\text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Splitter_energy_balance_constraints}
+0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Splitter_pressure_constraints}
+\begin{split}
+0 = p_\mathrm{in,1} - p_{\mathrm{in,}i} & \; \forall i \in \text{inlets} \setminus \left\lbrace 1\right\rbrace\\
+0 = p_\mathrm{in,1} - p_{\mathrm{out,}j} & \; \forall j \in \text{outlets}\\
+\end{split}
+\end{equation}
+
+
+\subsection{Components of type Pump}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Pump_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:Pump_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type Pump}
+\begin{tabular}{lrrr}
+\toprule
+{} &             P & eta\_s (\ref{eq:Pump_eta_s}) &      pr \\
+label              &               &                              &         \\
+\midrule
+Feedwater pump     &    723,827.94 &                  \bftab 0.70 &   15.66 \\
+Cooling water pump &     52,554.41 &                  \bftab 0.70 &    1.17 \\
+HTF pump           &  1,700,238.56 &                  \bftab 0.60 &    2.02 \\
+Condenser pump     &     65,605.65 &                  \bftab 0.70 &  184.44 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:Pump_eta_s}
+0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)
+\end{equation}
+
+
+\subsection{Components of type CycleCloser}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:CycleCloser_pressure_equality_constraints}
+0=p_{\mathrm{in,}i}-p_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:CycleCloser_enthalpy_equality_constraints}
+0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type CycleCloser}
+\begin{tabular}{lrr}
+\toprule
+{} & mass\_deviation & fluid\_deviation \\
+label                    &                 &                  \\
+\midrule
+Cycle closer pt          &            0.00 &             0.00 \\
+Cycle closer power cycle &            0.00 &             0.00 \\
+Cycle closer cw          &            0.00 &             0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Components of type Turbine}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Turbine_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:Turbine_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type Turbine}
+\begin{tabular}{lrrr}
+\toprule
+{} &              P & eta\_s (\ref{eq:Turbine_eta_s}) &    pr \\
+label        &                &                                 &       \\
+\midrule
+LP turbine 4 &  -4,499,249.42 &                     \bftab 0.88 &  0.30 \\
+HP turbine 1 &  -7,699,459.42 &                     \bftab 0.84 &  0.34 \\
+LP turbine 5 &  -3,001,919.77 &                     \bftab 0.64 &  0.28 \\
+HP turbine 2 &  -3,503,353.54 &                     \bftab 0.85 &  0.55 \\
+LP turbine 1 &  -5,853,157.76 &                     \bftab 0.86 &  0.47 \\
+LP turbine 2 &  -6,744,442.54 &                     \bftab 0.92 &  0.34 \\
+LP turbine 3 &  -5,101,417.76 &                     \bftab 0.94 &  0.35 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:Turbine_eta_s}
+0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}
+\end{equation}
+
+
+\subsection{Components of type HeatExchanger}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:HeatExchanger_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1, 2]
+\end{equation}
+
+\begin{equation}
+\label{eq:HeatExchanger_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1, 2]
+\end{equation}
+
+\begin{equation}
+\label{eq:HeatExchanger_energy_balance_constraints}
+0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type HeatExchanger}
+\begin{tabular}{lrrrrr}
+\toprule
+{} &               Q & ttd\_u & ttd\_l (\ref{eq:HeatExchanger_ttd_l}) & pr1 (\ref{eq:HeatExchanger_pr1}) & pr2 (\ref{eq:HeatExchanger_pr2}) \\
+label                                &                 &        &                                       &                                  &                                  \\
+\midrule
+Reheater                             &  -16,165,997.53 &  19.00 &                                 50.50 &                             0.87 &                             0.92 \\
+Economizer                           &  -15,364,788.65 &   7.00 &                                 64.59 &                             0.96 &                             1.00 \\
+Evaporator                           &  -51,000,483.02 &  64.21 &                           \bftab 5.00 &                             0.93 &                             1.00 \\
+Cooling tower                        &  -58,008,902.88 &   6.51 &                                  4.93 &                      \bftab 0.95 &                             1.00 \\
+Superheater                          &  -11,038,645.89 &  19.00 &                                 64.21 &                             0.98 &                             0.97 \\
+Low pressure preheater 2 subcooling  &     -355,547.41 &  32.41 &                          \bftab 10.00 &                      \bftab 1.00 &                      \bftab 1.00 \\
+Low pressure preheater 3 subcooling  &     -201,352.32 &  35.32 &                          \bftab 10.00 &                      \bftab 1.00 &                      \bftab 1.00 \\
+High pressure preheater 1 subcooling &     -623,547.56 &  31.90 &                          \bftab 10.00 &                      \bftab 1.00 &                      \bftab 1.00 \\
+High pressure preheater 2 subcooling &     -366,012.28 &  34.45 &                          \bftab 10.00 &                      \bftab 1.00 &                      \bftab 1.00 \\
+Low pressure preheater 1 subcooling  &     -310,958.68 &  24.21 &                          \bftab 10.00 &                      \bftab 1.00 &                      \bftab 1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:HeatExchanger_ttd_l}
+0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}
+\end{equation}
+
+\begin{equation}
+\label{eq:HeatExchanger_pr1}
+0=p_\mathrm{in,1}\cdot pr1 - p_\mathrm{out,1}
+\end{equation}
+
+\begin{equation}
+\label{eq:HeatExchanger_pr2}
+0=p_\mathrm{in,2}\cdot pr2 - p_\mathrm{out,2}
+\end{equation}
+
+
+\subsection{Components of type Merge}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Merge_mass_flow_constraints}
+0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}\;\forall i \in \text{inlets}, \forall j \in \text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Merge_fluid_constraints}
+0=\sum_i \dot{m}_{\mathrm{in,}i} \cdot x_{fl\mathrm{,in,}i}- \dot {m}_\mathrm{out} \cdot x_{fl\mathrm{,out}}\; \forall fl \in \text{network fluids,} \; \forall i \in\text{inlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Merge_energy_balance_constraints}
+0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}\right) - \dot{m}_\mathrm{out} \cdot h_\mathrm{out} \; \forall i \in \text{inlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Merge_pressure_constraints}
+\begin{split}
+0 = p_\mathrm{in,1} - p_{\mathrm{in,}i} & \; \forall i \in \text{inlets} \setminus \left\lbrace 1\right\rbrace\\
+0 = p_\mathrm{in,1} - p_{\mathrm{out,}j} & \; \forall j \in \text{outlets}\\
+\end{split}
+\end{equation}
+
+
+\subsection{Components of type Compressor}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Compressor_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:Compressor_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type Compressor}
+\begin{tabular}{lrrr}
+\toprule
+{} &           P & eta\_s (\ref{eq:Compressor_eta_s}) &    pr \\
+label             &             &                                    &       \\
+\midrule
+Cooling tower fan &  822,719.88 &                        \bftab 0.60 &  1.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:Compressor_eta_s}
+0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)
+\end{equation}
+
+
+\subsection{Components of type Valve}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Valve_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:Valve_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:Valve_enthalpy_equality_constraints}
+0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type Valve}
+\begin{tabular}{lrr}
+\toprule
+{} &    pr &            zeta \\
+label   &       &                 \\
+\midrule
+Valve 1 &  0.55 &  116,509,403.93 \\
+Valve 2 &  0.43 &    9,926,543.49 \\
+Valve 3 &  0.35 &    7,513,567.89 \\
+Valve 4 &  0.30 &      288,942.73 \\
+Valve 5 &  0.28 &        8,013.54 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Components of type ParabolicTrough}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:ParabolicTrough_mass_flow_constraints}
+0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}\; \forall i \in [1]
+\end{equation}
+
+\begin{equation}
+\label{eq:ParabolicTrough_fluid_constraints}
+0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;\forall fl \in\text{network fluids,}\; \forall i \in [1]
+\end{equation}
+
+
+\subsubsection{Specifications and results}
+
+\begin{table}[H]
+\centering
+\caption{Parameters of components of type ParabolicTrough}
+\begin{tabular}{lrrrrr}
+\toprule
+{} &              Q &    pr &       zeta &         Q\_loss &  energy\_group (\ref{eq:ParabolicTrough_energy_group}) \\
+label            &                &       &            &                 &                                                        \\
+\midrule
+Parabolic trough &  91,869,676.53 &  0.57 &  10,127.07 &  -60,124,279.32 &                                                   True \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}[H]
+\centering
+\caption{Parametergroup energy\_group}
+\begin{tabular}{lllllllllll}
+\toprule
+{} &                E &     eta\_opt &          aoi &          doc &         c\_1 &         c\_2 &       iam\_1 &       iam\_2 &                  A &          Tamb \\
+label            &                  &              &              &              &              &              &              &              &                    &               \\
+\midrule
+Parabolic trough &  \bftab 1,000.00 &  \bftab 0.73 &  \bftab 0.00 &  \bftab 0.95 &  \bftab 0.00 &  \bftab 0.00 &  \bftab 1.00 &  \bftab 1.00 &  \iftab 151,993.96 &  \bftab 25.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsubsection{Equations applied}
+
+\begin{equation}
+\label{eq:ParabolicTrough_energy_group}
+\begin{split}
+0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - h_\mathrm{in} \right)\\
+& - A \cdot \left[E \cdot \eta_\mathrm{opt} \cdot doc^{1.5}\cdot iam \right. \\
+&\left. -c_1\cdot\left(T_\mathrm{m}-T_\mathrm{amb}\right) -c_2 \cdot \left(T_\mathrm{m} - T_\mathrm{amb}\right)^2\vphantom{\eta_\mathrm{opt}\cdot doc^{1.5}}\right]\\
+T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\
+iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\
+\end{split}
+\end{equation}
+
+
+\subsection{Components of type Drum}
+
+\subsubsection{Mandatory constraints}
+
+\begin{equation}
+\label{eq:Drum_mass_flow_constraints}
+0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}\;\forall i \in \text{inlets}, \forall j \in \text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Drum_fluid_constraints}
+0 = x_{fl\mathrm{,in,1}} - x_{fl\mathrm{,out,}j}\; \forall fl \in \text{network fluids,} \; \forall j \in\text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Drum_energy_balance_constraints}
+0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}\right) - \sum_j \left(\dot{m}_{\mathrm{out,}j} \cdot h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;\forall j \in \text{outlets}
+\end{equation}
+
+\begin{equation}
+\label{eq:Drum_pressure_constraints}
+\begin{split}
+0 = p_\mathrm{in,1} - p_{\mathrm{in,}i} & \; \forall i \in \text{inlets} \setminus \left\lbrace 1\right\rbrace\\
+0 = p_\mathrm{in,1} - p_{\mathrm{out,}j} & \; \forall j \in \text{outlets}\\
+\end{split}
+\end{equation}
+
+\begin{equation}
+\label{eq:Drum_outlet_constraints}
+\begin{split}
+0 =&h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0\right)\\0 =&h_\mathrm{out,2} -h\left(p_\mathrm{out,2}, x=1\right)\\\end{split}
+\end{equation}
+
+
+\section{Busses in design mode}
+
+\subsection{Bus ``total output power''}
+
+This bus is used for postprocessing only.
+
+\begin{table}[H]
+\centering
+\caption{Results overview for bus total output power}
+\begin{tabular}{lrrrrr}
+\toprule
+{} &                                                   $\dot{E}_\mathrm{comp}$ & $\dot{E}_\mathrm{comp,result}$ &                $\dot{E}_\mathrm{bus}$ & $\dot{E}_\mathrm{bus,result}$ & $\eta_\mathrm{result}$ \\
+label              &                                                                           &                                &                                       &                               &                        \\
+\midrule
+HP turbine 1       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -7,699,459.42 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -7,468,475.64 &                   0.97 \\
+HP turbine 2       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -3,503,353.54 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -3,398,252.93 &                   0.97 \\
+LP turbine 1       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -5,853,157.76 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -5,677,563.03 &                   0.97 \\
+LP turbine 2       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -6,744,442.54 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -6,542,109.27 &                   0.97 \\
+LP turbine 3       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -5,101,417.76 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -4,948,375.22 &                   0.97 \\
+LP turbine 4       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -4,499,249.42 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -4,364,271.94 &                   0.97 \\
+LP turbine 5       &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  -3,001,919.77 &    $\dot{E}_\mathrm{comp} \cdot \eta$ &                 -2,911,862.18 &                   0.97 \\
+Feedwater pump     &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                     723,827.94 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                    761,924.15 &                   0.95 \\
+Condenser pump     &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                      65,605.65 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                     69,058.58 &                   0.95 \\
+HTF pump           &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                   1,700,238.56 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                  1,789,724.80 &                   0.95 \\
+Cooling water pump &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                      52,554.41 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                     55,320.44 &                   0.95 \\
+Cooling tower fan  &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                     822,719.88 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                    866,020.92 &                   0.95 \\
+total              &                                                                         - &                 -33,038,053.77 &                                     - &                -31,768,861.32 &                      - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\subsection{Bus ``heat input''}
+
+This bus is used for postprocessing only.
+
+\begin{table}[H]
+\centering
+\caption{Results overview for bus heat input}
+\begin{tabular}{lrrrrr}
+\toprule
+{} &                                                   $\dot{E}_\mathrm{comp}$ & $\dot{E}_\mathrm{comp,result}$ &                $\dot{E}_\mathrm{bus}$ & $\dot{E}_\mathrm{bus,result}$ & $\eta_\mathrm{result}$ \\
+label            &                                                                           &                                &                                       &                               &                        \\
+\midrule
+Parabolic trough &  $\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - h_\mathrm{in} \right)$ &                  91,869,676.53 &  $\frac{\dot{E}_\mathrm{comp}}{\eta}$ &                 91,869,676.53 &                   1.00 \\
+total            &                                                                         - &                  91,869,676.53 &                                     - &                 91,869,676.53 &                      - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\end{document}

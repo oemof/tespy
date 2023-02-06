@@ -19,6 +19,7 @@ from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
+from chemical_exergy.libChemExAhrendts import Chem_Ex
 
 # pass the warning messages to the logger
 logging.captureWarnings(True)

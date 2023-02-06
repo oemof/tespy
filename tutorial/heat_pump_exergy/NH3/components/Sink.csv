@@ -1,3 +1,0 @@
-label;comp_type;busses;bus_param;bus_P_ref;bus_char;bus_base;design;offdesign;design_path;local_design;local_offdesign
-ground heat return flow;Sink;['geothermal heat'];[None];[0.0];['0x7fe26775d540'];['component'];[];[];nan;False;False
-heating system feed flow;Sink;['heating system'];[None];[0.0];['0x7fe26775e0b0'];['component'];[];[];nan;False;False

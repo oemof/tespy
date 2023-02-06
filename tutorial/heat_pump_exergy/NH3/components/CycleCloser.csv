@@ -1,2 +1,0 @@
-label;comp_type;busses;bus_param;bus_P_ref;bus_char;bus_base;design;offdesign;design_path;local_design;local_offdesign;mass_deviation;mass_deviation_set;mass_deviation_var;fluid_deviation;fluid_deviation_set;fluid_deviation_var
-cycle closer;CycleCloser;[];[];[];[];[];[];[];nan;False;False;0.0;False;False;0.0;False;False

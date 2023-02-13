@@ -17,7 +17,106 @@ from logging import handlers
 import tespy
 
 TESPY_LOGGER_ID = "TESPyLogger"
-TESPY_PROGRESS_LOG_LEVEL = 31
+TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1 # 11
+TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2 # 12
+
+# Create a bunch of shorthand functions, this is mostly 
+# copied straight from the logging module.
+def getLogger():
+    return logging.getLogger(TESPY_LOGGER_ID)
+
+def log(level, msg, *args, **kwargs):
+    """
+    Log 'msg % args' with the integer severity 'level'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    log(level, "We have a %s", "mysterious problem", exc_info=1)
+    """
+    logger = getLogger()
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
+    logger.log(level, msg, args, **kwargs)
+
+def debug(msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'DEBUG'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    debug("Houston, we have a %s", "thorny problem", exc_info=1)
+    """
+    return log(logging.DEBUG, msg, *args, **kwargs)
+
+def info(msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'INFO'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    info("Houston, we have a %s", "interesting problem", exc_info=1)
+    """
+    return log(logging.INFO, msg, args, **kwargs)
+
+def warning(msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'WARNING'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    warning("Houston, we have a %s", "bit of a problem", exc_info=1)
+    """
+    return log(logging.WARNING, msg, args, **kwargs)
+
+def error(msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'ERROR'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    error("Houston, we have a %s", "major problem", exc_info=1)
+    """
+    return log(logging.ERROR, msg, args, **kwargs)
+
+def exception(msg, *args, exc_info=True, **kwargs):
+    """
+    Convenience method for logging an ERROR with exception information.
+    """
+    error(msg, *args, exc_info=exc_info, **kwargs)
+
+def critical(msg, *args, **kwargs):
+    """
+    Log 'msg % args' with severity 'CRITICAL'.
+
+    To pass exception information, use the keyword argument exc_info with
+    a true value, e.g.
+
+    critical("Houston, we have a %s", "major disaster", exc_info=1)
+    """
+    return log(logging.CRITICAL, msg, args, **kwargs)
+
+# Custom logging function that abuses log level TESPY_PROGRESS_LOG_LEVEL 
+# to report progress information programmatically.
+def progress(value, msg, *args, **kwargs):
+    """
+    Report progress values between 0 and 100, you can also use
+    the `extra` dict to modify the progress limits. Additionally, 
+    log 'msg % args' with severity 'TESPY_PROGRESS_LOG_LEVEL'.    
+
+    progress(51, "Houston, we have completed step %d of 100.", 51)
+    progress(0.51, "Houston, we have completed %f percent of the mission.", 0.51*100, extra=dict(progress_min=0.0, progress_max=1.0))
+    """
+    if "extra" not in kwargs:
+        kwargs["extra"] = dict(progress_min=0, progress_max=100)
+    kwargs["extra"]["progress_val"] = value
+    return log(TESPY_PROGRESS_LOG_LEVEL, msg, args, **kwargs)
 
 
 def add_console_logging(
@@ -52,7 +151,7 @@ def add_console_logging(
     loghandler.setLevel(loglevel)
 
     # Get the logger object and register the handler
-    log = logging.getLogger(TESPY_LOGGER_ID)
+    log = getLogger()
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
@@ -124,7 +223,7 @@ def add_file_logging(
     loghandler.setLevel(loglevel)
 
     # Get the logger object and register the handler
-    log = logging.getLogger(TESPY_LOGGER_ID)
+    log = getLogger()
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger

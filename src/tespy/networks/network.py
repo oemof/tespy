@@ -2698,7 +2698,7 @@ class Network:
                         )
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
+        df = self.results['Connection']
         for c in df.index:
             if not self.get_conn(c).printout:
                 df.drop([c], axis=0, inplace=True)

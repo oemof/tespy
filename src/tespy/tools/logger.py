@@ -45,7 +45,7 @@ def log(level, msg, *args, **kwargs):
     # Last exit for Python < 3.8
     if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 8):
         kwargs.pop("stacklevel")
-    logger.log(level, msg, args, **kwargs)
+    logger.log(level, msg, *args, **kwargs)
 
 def debug(msg, *args, **kwargs):
     """
@@ -75,7 +75,7 @@ def info(msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
-    return log(logging.INFO, msg, args, **kwargs)
+    return log(logging.INFO, msg, *args, **kwargs)
 
 def warning(msg, *args, **kwargs):
     """
@@ -90,7 +90,7 @@ def warning(msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
-    return log(logging.WARNING, msg, args, **kwargs)
+    return log(logging.WARNING, msg, *args, **kwargs)
 
 def error(msg, *args, **kwargs):
     """
@@ -105,7 +105,7 @@ def error(msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
-    return log(logging.ERROR, msg, args, **kwargs)
+    return log(logging.ERROR, msg, *args, **kwargs)
 
 def exception(msg, *args, exc_info=True, **kwargs):
     """
@@ -130,7 +130,7 @@ def critical(msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
-    return log(logging.CRITICAL, msg, args, **kwargs)
+    return log(logging.CRITICAL, msg, *args, **kwargs)
 
 # Custom logging function that abuses log level TESPY_PROGRESS_LOG_LEVEL 
 # to report progress information programmatically.
@@ -150,7 +150,7 @@ def progress(value, msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
-    return log(TESPY_PROGRESS_LOG_LEVEL, msg, args, **kwargs)
+    return log(TESPY_PROGRESS_LOG_LEVEL, msg, *args, **kwargs)
 
 
 def add_console_logging(
@@ -342,7 +342,7 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
     >>> mypath[-9:]
     'tespy.log'
-    >>> logging.debug('Hi')
+    >>> logger.debug('Hi')
     """
     add_console_logging(screen_format, screen_datefmt, screen_level, False)
     return add_file_logging(logpath, logfile, timed_rotating, file_format, file_datefmt, file_level, log_version, log_path)

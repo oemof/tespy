@@ -39,6 +39,9 @@ def log(level, msg, *args, **kwargs):
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
     kwargs["stacklevel"] += 1
+    # Last exit for Python < 3.8
+    if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 8):
+        kwargs.pop("stacklevel")
     logger.log(level, msg, args, **kwargs)
 
 def debug(msg, *args, **kwargs):
@@ -50,6 +53,10 @@ def debug(msg, *args, **kwargs):
 
     debug("Houston, we have a %s", "thorny problem", exc_info=1)
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(logging.DEBUG, msg, *args, **kwargs)
 
 def info(msg, *args, **kwargs):
@@ -61,6 +68,10 @@ def info(msg, *args, **kwargs):
 
     info("Houston, we have a %s", "interesting problem", exc_info=1)
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(logging.INFO, msg, args, **kwargs)
 
 def warning(msg, *args, **kwargs):
@@ -72,6 +83,10 @@ def warning(msg, *args, **kwargs):
 
     warning("Houston, we have a %s", "bit of a problem", exc_info=1)
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(logging.WARNING, msg, args, **kwargs)
 
 def error(msg, *args, **kwargs):
@@ -83,12 +98,20 @@ def error(msg, *args, **kwargs):
 
     error("Houston, we have a %s", "major problem", exc_info=1)
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(logging.ERROR, msg, args, **kwargs)
 
 def exception(msg, *args, exc_info=True, **kwargs):
     """
     Convenience method for logging an ERROR with exception information.
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     error(msg, *args, exc_info=exc_info, **kwargs)
 
 def critical(msg, *args, **kwargs):
@@ -100,6 +123,10 @@ def critical(msg, *args, **kwargs):
 
     critical("Houston, we have a %s", "major disaster", exc_info=1)
     """
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(logging.CRITICAL, msg, args, **kwargs)
 
 # Custom logging function that abuses log level TESPY_PROGRESS_LOG_LEVEL 
@@ -116,6 +143,10 @@ def progress(value, msg, *args, **kwargs):
     if "extra" not in kwargs:
         kwargs["extra"] = dict(progress_min=0, progress_max=100)
     kwargs["extra"]["progress_val"] = value
+    # We force the logging framework to trace past this file
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    kwargs["stacklevel"] += 1
     return log(TESPY_PROGRESS_LOG_LEVEL, msg, args, **kwargs)
 
 

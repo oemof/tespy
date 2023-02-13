@@ -16,6 +16,126 @@ from logging import handlers
 
 import tespy
 
+TESPY_LOGGER_ID = "TESPyLogger"
+TESPY_PROGRESS_LOG_LEVEL = 31
+
+
+def add_console_logging(
+    logformat=None, logdatefmt="%H:%M:%S", loglevel=logging.INFO,
+    log_version=True):
+    r"""Initialise customisable console logger.
+
+    Parameters
+    ----------
+    logformat : str
+        Format of the screen output.
+        Default: "%(asctime)s-%(levelname)s-%(message)s"
+
+    logdatefmt : str
+        Format of the datetime in the screen output. Default: "%H:%M:%S"
+
+    loglevel : int
+        Level of logging to stdout. Default: 20 (logging.INFO)
+
+    log_version : boolean
+        If True, version information is logged while initialising the logger.
+
+    """
+    # Prepare the log settings
+    logformat_setting = "%(asctime)s-%(levelname)s-%(message)s"
+    if logformat is not None:
+        logformat_setting = logformat
+
+    # Create the console handler and apply the settings
+    loghandler = logging.StreamHandler(sys.stdout)
+    loghandler.setFormatter(logging.Formatter(logformat_setting, logdatefmt))
+    loghandler.setLevel(loglevel)
+
+    # Get the logger object and register the handler
+    log = logging.getLogger(TESPY_LOGGER_ID)
+    log.addHandler(loghandler)
+
+    # Submit the first messages to the logger
+    if log_version:
+        logging.info("Used TESPy version: {0}".format(get_version()))
+        
+    return None
+
+
+def add_file_logging(
+    logpath=None, logfile=None, logrotation=None, 
+    logformat=None, logdatefmt=None, loglevel=logging.DEBUG,
+    log_version=True, log_path=True):
+    r"""Initialise customisable file logger.
+
+    Parameters
+    ----------
+    logpath : str
+        The path for log files. By default a ".tespy' folder is created in your
+        home directory with subfolder called 'log_files'.
+    
+    logfile : str
+        Name of the log file, default: tespy.log
+
+    logrotation : dict
+        Option to pass parameters to the TimedRotatingFileHandler.
+
+    logformat : str
+        Format of the file output.
+        Default: "%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+
+    logdatefmt : str
+        Format of the datetime in the file output. Default: None
+
+    loglevel : int
+        Level of logging to file. Default: 10 (logging.DEBUG)
+
+    log_version : boolean
+        If True, version information is logged while initialising the logger.
+
+    log_path : boolean
+        If True, the used file path is logged while initialising the logger.
+
+    Returns
+    -------
+    file : str
+        Place where the log file is stored.
+    """
+    # Prepare the log file settings
+    logpath_setting = tespy.tools.helpers.extend_basic_path('log_files')
+    if logpath is not None:
+        logpath_setting = logpath
+
+    logfile_setting = os.path.join(logpath_setting, 'tespy.log')
+    if logfile is not None:
+        logfile_setting = os.path.join(logpath_setting, logfile)
+
+    logrotation_setting = {'when': 'midnight', 'backupCount': 10}
+    if logrotation is not None:
+        logrotation_setting.update(logrotation)
+
+    logformat_setting = ("%(asctime)s - %(levelname)s - %(module)s - %(message)s")
+    if logformat is not None:
+        logformat_setting = logformat
+
+    # Create the file handler and apply the settings
+    loghandler = handlers.TimedRotatingFileHandler(logfile_setting, **logrotation_setting)
+    loghandler.setFormatter(logging.Formatter(logformat_setting, logdatefmt))
+    loghandler.setLevel(loglevel)
+
+    # Get the logger object and register the handler
+    log = logging.getLogger(TESPY_LOGGER_ID)
+    log.addHandler(loghandler)
+
+    # Submit the first messages to the logger
+    if log_path:
+        logging.info("Path for logging: {0}".format(logfile_setting))
+
+    if log_version:
+        logging.info("Used TESPy version: {0}".format(get_version()))
+        
+    return logfile_setting    
+
 
 def define_logging(logpath=None, logfile='tespy.log', file_format=None,
                    screen_format=None, file_datefmt=None, screen_datefmt=None,
@@ -25,12 +145,12 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
 
     Parameters
     ----------
-    logfile : str
-        Name of the log file, default: tespy.log
-
     logpath : str
         The path for log files. By default a ".tespy' folder is created in your
         home directory with subfolder called 'log_files'.
+
+    logfile : str
+        Name of the log file, default: tespy.log
 
     file_format : str
         Format of the file output.
@@ -70,7 +190,7 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
 
     Notes
     -----
-    By default the WARNING level is printed on the screen and the DEBUG level
+    By default the INFO level is printed on the screen and the DEBUG level
     in a file, but you can easily configure the logger.
     Every module that wants to create logging messages has to import the
     logging module. The oemof logger module has to be imported once to
@@ -91,53 +211,8 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     'tespy.log'
     >>> logging.debug('Hi')
     """
-    if logpath is None:
-        logpath = tespy.tools.helpers.extend_basic_path('log_files')
-
-    file = os.path.join(logpath, logfile)
-
-    log = logging.getLogger('')
-
-    # Remove existing handlers to avoid interference.
-    log.handlers = []
-    log.setLevel(logging.DEBUG)
-
-    if file_format is None:
-        file_format = (
-            "%(asctime)s - %(levelname)s - %(module)s - %(message)s")
-    file_formatter = logging.Formatter(file_format, file_datefmt)
-
-    if screen_format is None:
-        screen_format = "%(asctime)s-%(levelname)s-%(message)s"
-    if screen_datefmt is None:
-        screen_datefmt = "%H:%M:%S"
-    screen_formatter = logging.Formatter(screen_format, screen_datefmt)
-
-    tmp_formatter = logging.Formatter("%(message)s")
-
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(screen_formatter)
-    ch.setLevel(screen_level)
-    log.addHandler(ch)
-
-    timed_rotating_p = {'when': 'midnight', 'backupCount': 10}
-
-    if timed_rotating is not None:
-        timed_rotating_p.update(timed_rotating)
-
-    fh = handlers.TimedRotatingFileHandler(file, **timed_rotating_p)
-    fh.setFormatter(tmp_formatter)
-    fh.setLevel(file_level)
-    log.addHandler(fh)
-
-    logging.debug("******************************************************")
-    fh.setFormatter(file_formatter)
-    if log_path:
-        logging.info("Path for logging: {0}".format(file))
-
-    if log_version:
-        logging.info("Used TESPy version: {0}".format(get_version()))
-    return file
+    add_console_logging(screen_format, screen_datefmt, screen_level, False)
+    return add_file_logging(logpath, logfile, timed_rotating, file_format, file_datefmt, file_level, log_version, log_path)
 
 
 def get_version():

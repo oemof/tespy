@@ -17,7 +17,7 @@ import numpy as np
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses
@@ -89,7 +89,7 @@ class Memorise:
             msg = (
                 'Added fluids ' + ', '.join(fl) +
                 ' to memorise lookup tables.')
-            logging.debug(msg)
+            logger.debug(msg)
 
         Memorise.water = None
         for f, back_end in fluids.items():
@@ -110,13 +110,13 @@ class Memorise:
                     'Could not find the fluid "' + f + '" in the fluid '
                     'property database.'
                 )
-                logging.warning(msg)
+                logger.warning(msg)
                 continue
 
             msg = (
                 'Created CoolProp.AbstractState object for fluid ' +
                 f + ' with back end ' + back_end + '.')
-            logging.debug(msg)
+            logger.debug(msg)
             # pressure range
             try:
                 pmin = Memorise.state[f].trivial_keyed_output(CP.iP_min)
@@ -127,7 +127,7 @@ class Memorise:
                 msg = (
                     'Could not find values for maximum and minimum '
                     'pressure.')
-                logging.warning(msg)
+                logger.warning(msg)
 
             # temperature range
             Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_min)
@@ -149,12 +149,12 @@ class Memorise:
                     msg = (
                         'Could not find values for molar mass and gas '
                         'constant.')
-                    logging.warning(msg)
+                    logger.warning(msg)
 
             msg = (
                 'Specifying fluid property ranges for pressure and '
                 'temperature for convergence check of fluid ' + f + '.')
-            logging.debug(msg)
+            logger.debug(msg)
 
     @staticmethod
     def del_memory(fluids):
@@ -192,7 +192,7 @@ class Memorise:
 
             msg = ('Dropping not frequently used fluid property values from '
                    'memorise class for fluids ' + ', '.join(fl) + '.')
-            logging.debug(msg)
+            logger.debug(msg)
         except KeyError:
             pass
 
@@ -760,11 +760,11 @@ def h_mix_pQ(flow, Q):
     if fluid is None:
         if sum(flow[3].values()) == 0:
             msg = 'The function h_mix_pQ is called without fluid information.'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
         else:
             msg = 'The function h_mix_pQ can only be used for pure fluids.'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
     try:

@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -215,13 +215,13 @@ class Connection:
                 isinstance(comp2, Component)):
             msg = ('Error creating connection. Check if comp1, comp2 are of '
                    'type component.')
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         if comp1 == comp2:
             msg = ('Error creating connection. Cannot connect component ' +
                    comp1.label + ' to itself.')
-            logging.error(msg)
+            logger.error(msg)
             raise TESPyConnectionError(msg)
 
         if outlet_id not in comp1.outlets():
@@ -229,7 +229,7 @@ class Connection:
                    outlet_id + ') is not valid for component ' +
                    comp1.component() + '. Valid ids are: ' +
                    str(comp1.outlets()) + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         if inlet_id not in comp2.inlets():
@@ -237,7 +237,7 @@ class Connection:
                 'Error creating connection. Specified inlet_id (' + inlet_id +
                 ') is not valid for component ' + comp2.component() +
                 '. Valid ids are: ' + str(comp2.inlets()) + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         if label is None:
@@ -249,7 +249,7 @@ class Connection:
 
         if not isinstance(self.label, str):
             msg = 'Please provide the label as string.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         # set specified values
@@ -276,7 +276,7 @@ class Connection:
         msg = (
             'Created connection ' + self.source.label + ' (' + self.source_id +
             ') -> ' + self.target.label + ' (' + self.target_id + ').')
-        logging.debug(msg)
+        logger.debug(msg)
 
     def set_attr(self, **kwargs):
         r"""
@@ -369,7 +369,7 @@ class Connection:
             if key == 'label':
                 # bad datatype
                 msg = 'Label can only be specified on instance creation.'
-                logging.error(msg)
+                logger.error(msg)
                 raise TESPyConnectionError(msg)
             elif key in self.variables or key in self.variables0:
                 # fluid specification
@@ -394,7 +394,7 @@ class Connection:
                         msg = (
                             'Datatype for fluid vector specification must be '
                             'dict.')
-                        logging.error(msg)
+                        logger.error(msg)
                         raise TypeError(msg)
 
                 elif key == 'state':
@@ -409,13 +409,13 @@ class Connection:
                             msg = (
                                 'To unset the state specification either use '
                                 'np.nan or None.')
-                            logging.error(msg)
+                            logger.error(msg)
                             raise ValueError(msg)
                     else:
                         msg = (
                             'Keyword argument "state" must either be '
                             '"l" or "g" or be None or np.nan.')
-                        logging.error(msg)
+                        logger.error(msg)
                         raise TypeError(msg)
 
                 elif kwargs[key] is None:
@@ -444,7 +444,7 @@ class Connection:
                             'References for vapor mass fraction and '
                             'subcooling/superheating are not implemented.'
                         )
-                        logging.error(msg)
+                        logger.error(msg)
                         raise NotImplementedError(msg)
                     else:
                         self.get_attr(key).set_attr(ref=kwargs[key])
@@ -453,7 +453,7 @@ class Connection:
                 # invalid datatype for keyword
                 else:
                     msg = 'Bad datatype for keyword argument ' + key + '.'
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
 
             # fluid balance
@@ -464,14 +464,14 @@ class Connection:
                     msg = (
                         'Datatype for keyword argument fluid_balance must be '
                         'boolean.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
 
             # design/offdesign parameter list
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
                     msg = 'Please provide the ' + key + ' parameters as list!'
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
                 elif set(kwargs[key]).issubset(self.variables.keys()):
                     self.__dict__.update({key: kwargs[key]})
@@ -480,7 +480,7 @@ class Connection:
                     msg = (
                         'Available parameters for (off-)design specification '
                         'are: ' + params + '.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise ValueError(msg)
 
             # design path
@@ -493,7 +493,7 @@ class Connection:
                     msg = (
                         'Please provide the design_path parameter as string '
                         'or as nan.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
 
                 self.new_design = True
@@ -502,7 +502,7 @@ class Connection:
             elif key in ['printout', 'local_design', 'local_offdesign']:
                 if not isinstance(kwargs[key], bool):
                     msg = ('Please provide the ' + key + ' as boolean.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
                 else:
                     self.__dict__.update({key: kwargs[key]})
@@ -510,7 +510,7 @@ class Connection:
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'
-                logging.error(msg)
+                logger.error(msg)
                 raise KeyError(msg)
 
     def get_attr(self, key):
@@ -531,7 +531,7 @@ class Connection:
             return self.__dict__[key]
         else:
             msg = 'Connection has no attribute \"' + key + '\".'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     @staticmethod
@@ -617,17 +617,17 @@ class Ref:
 
         if not isinstance(ref_obj, Connection):
             msg = 'First parameter must be object of type connection.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(factor, int) or isinstance(factor, float)):
             msg = 'Second parameter must be of type int or float.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         if not (isinstance(delta, int) or isinstance(delta, float)):
             msg = 'Thrid parameter must be of type int or float.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         self.obj = ref_obj
@@ -639,7 +639,7 @@ class Ref:
                ' and delta ' + str(self.delta) + ' referring to connection ' +
                ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
                ref_obj.target.label + ' (' + ref_obj.target_id + ').')
-        logging.debug(msg)
+        logger.debug(msg)
 
     def get_attr(self, key):
         r"""
@@ -659,5 +659,5 @@ class Ref:
             return self.__dict__[key]
         else:
             msg = 'Reference has no attribute \"' + key + '\".'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)

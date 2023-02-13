@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
 import CoolProp.CoolProp as CP
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -267,7 +267,7 @@ class WaterElectrolyzer(Component):
             msg = ('The power input of a water electrolyzer must be set! '
                    'We are adding the power input of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         for fluid in ['o2', 'h2o', 'h2']:
             try:
@@ -284,7 +284,7 @@ class WaterElectrolyzer(Component):
                 aliases = ', '.join(CP.get_aliases(fluid.upper()))
                 msg = msg.replace(
                     '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logging.error(msg)
+                logger.error(msg)
                 raise TESPyComponentError(msg)
 
         self.e0 = self.calc_e0()
@@ -645,7 +645,7 @@ class WaterElectrolyzer(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return (
@@ -671,7 +671,7 @@ class WaterElectrolyzer(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         latex = (
@@ -1060,7 +1060,7 @@ class WaterElectrolyzer(Component):
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return val
@@ -1141,7 +1141,7 @@ class WaterElectrolyzer(Component):
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return deriv

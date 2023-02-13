@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -196,7 +196,7 @@ class Valve(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'pressure drop to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return (
@@ -222,7 +222,7 @@ class Valve(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'pressure drop to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         latex = (
@@ -384,7 +384,7 @@ class Valve(Component):
         else:
             msg = ('Exergy balance of a valve, where outlet temperature is '
                    'larger than inlet temperature is not implmented.')
-            logging.warning(msg)
+            logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
 

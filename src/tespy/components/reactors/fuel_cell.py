@@ -1,7 +1,7 @@
 import CoolProp.CoolProp as CP
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -213,7 +213,7 @@ class FuelCell(Component):
             msg = ('The power output of a fuel cell must be set! '
                    'We are adding the power output of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         for fluid in ['H2', 'H2O', 'O2']:
             try:
@@ -230,7 +230,7 @@ class FuelCell(Component):
                 aliases = ', '.join(CP.get_aliases(fluid.upper()))
                 msg = msg.replace(
                     '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logging.error(msg)
+                logger.error(msg)
                 raise TESPyComponentError(msg)
 
         self.e0 = self.calc_e0()

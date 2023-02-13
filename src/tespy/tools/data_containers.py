@@ -17,7 +17,7 @@ import collections
 
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 
 # %%
 
@@ -123,7 +123,7 @@ class DataContainer:
             else:
                 msg = ('Data container of type ' + self.__class__.__name__ +
                        ' has no attribute ' + key + '.')
-                logging.error(msg)
+                logger.error(msg)
                 raise KeyError(msg)
 
     def get_attr(self, key):
@@ -145,7 +145,7 @@ class DataContainer:
         else:
             msg = ('Datacontainer of type ' + self.__class__.__name__ +
                    ' has no attribute \"' + str(key) + '\".')
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     @staticmethod

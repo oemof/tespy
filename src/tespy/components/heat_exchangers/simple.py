@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -1031,7 +1031,7 @@ class HeatExchangerSimple(Component):
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'outlet temperature is higher than inlet temperature '
                        'with heat extracted is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
                 self.E_bus = np.nan
@@ -1054,7 +1054,7 @@ class HeatExchangerSimple(Component):
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'inlet temperature is higher than outlet temperature '
                        'with heat injected is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
                 self.E_bus = self.E_F

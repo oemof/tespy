@@ -19,7 +19,7 @@ import pandas as pd
 from matplotlib import cm
 from tabulate import tabulate
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
 
@@ -271,12 +271,12 @@ class ExergyAnalysis:
         """
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
-            logging.error(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if len(E_P) == 0:
             msg = ('Missing product exergy E_P of network.')
-            logging.error(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         self.nw = network
@@ -406,7 +406,7 @@ class ExergyAnalysis:
                 'smaller than ' + str(err ** 0.5) + '), you should check the '
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
-            logging.error(msg)
+            logger.error(msg)
 
         self.create_group_data()
 
@@ -427,7 +427,7 @@ class ExergyAnalysis:
                         'busses in the exergy analysis. Make sure that no '
                         'component is connected to more than one of the '
                         'busses passed to the exergy_analysis method.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
 
                 if b.comps.loc[cp, 'base'] == 'bus':
@@ -652,7 +652,7 @@ class ExergyAnalysis:
                 msg = (
                     'The list of nodes passed is missing the following '
                     'nodes: "' + '", "'.join(missing) + '".')
-                logging.error(msg)
+                logger.error(msg)
                 raise ValueError(msg)
 
         cmap = cm.get_cmap('Set1')(np.linspace(0.0, 1.0, 10))

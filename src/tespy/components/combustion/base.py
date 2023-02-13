@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
 import CoolProp.CoolProp as CP
 import numpy as np
 
-import tespy.tools.logger as logging
+import tespy.tools.logger as logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -217,14 +217,14 @@ class CombustionChamber(Component):
                    'available for the component ' + self.label + ' of type ' +
                    self.component() + '. Available fuels are: ' +
                    ', '.join(fuels) + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise TESPyComponentError(msg)
 
         else:
             msg = ('The fuels for component ' + self.label + ' of type ' +
                    self.component() + ' are: ' + ', '.join(self.fuel_list) +
                    '.')
-            logging.debug(msg)
+            logger.debug(msg)
 
         for fluid in ['o2', 'co2', 'h2o', 'n2']:
             try:
@@ -241,7 +241,7 @@ class CombustionChamber(Component):
                 aliases = ', '.join(CP.get_aliases(fluid.upper()))
                 msg = msg.replace(
                     '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logging.error(msg)
+                logger.error(msg)
                 raise TESPyComponentError(msg)
 
         self.fuels = {}

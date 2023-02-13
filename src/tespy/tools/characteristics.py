@@ -19,7 +19,7 @@ import os
 
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy import __datapath__
 from tespy.tools.helpers import extend_basic_path
 

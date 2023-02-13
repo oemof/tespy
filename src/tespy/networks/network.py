@@ -24,7 +24,7 @@ import pandas as pd
 from numpy.linalg import norm
 from tabulate import tabulate
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy import connections as con
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp

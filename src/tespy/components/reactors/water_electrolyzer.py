@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
 import CoolProp.CoolProp as CP
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp

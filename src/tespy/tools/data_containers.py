@@ -17,7 +17,7 @@ import collections
 
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 
 # %%
 

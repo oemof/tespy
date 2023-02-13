@@ -16,7 +16,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc

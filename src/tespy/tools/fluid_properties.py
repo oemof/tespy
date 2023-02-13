@@ -17,7 +17,7 @@ import numpy as np
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses

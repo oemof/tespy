@@ -16,7 +16,7 @@ from copy import deepcopy
 import CoolProp as CP
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses

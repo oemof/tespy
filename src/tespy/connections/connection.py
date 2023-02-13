@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-import tespy.tools.logger as logger
+from tespy.tools import logger
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple

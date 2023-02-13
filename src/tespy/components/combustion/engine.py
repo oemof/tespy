@@ -10,11 +10,9 @@ tespy/components/combustion/engine.py
 
 SPDX-License-Identifier: MIT
 """
-
-import logging
-
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.components.combustion.base import CombustionChamber
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc

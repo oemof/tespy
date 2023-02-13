@@ -14,13 +14,12 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
-
 import numpy as np
 import pandas as pd
 from matplotlib import cm
 from tabulate import tabulate
 
+import tespy.tools.logger as logging
 from tespy.tools import helpers as hlp
 from tespy.tools.global_vars import err
 

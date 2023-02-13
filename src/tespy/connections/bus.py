@@ -10,17 +10,13 @@ available from its original location tespy/connections/bus.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 import pandas as pd
 
+import tespy.tools.logger as logging
 from tespy.components.component import Component
 from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
-
-# pass the warning messages to the logger
-logging.captureWarnings(True)
 
 
 class Bus:

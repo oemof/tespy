@@ -11,8 +11,7 @@ tespy/components/combustion/diabatic.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
+import tespy.tools.logger as logging
 from tespy.components import CombustionChamber
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq

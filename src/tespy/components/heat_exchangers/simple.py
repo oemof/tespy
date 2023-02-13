@@ -11,10 +11,9 @@ tespy/components/heat_exchangers/simple.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp

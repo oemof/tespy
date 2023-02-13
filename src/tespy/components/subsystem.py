@@ -13,7 +13,7 @@ available from its original location tespy/components/subsystems.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
+import tespy.tools.logger as logging
 
 # %%
 

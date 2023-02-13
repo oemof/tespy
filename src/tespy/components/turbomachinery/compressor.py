@@ -11,10 +11,9 @@ tespy/components/turbomachinery/compressor.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.components.component import Component
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm

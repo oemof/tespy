@@ -14,9 +14,10 @@ SPDX-License-Identifier: MIT
 """
 
 import collections
-import logging
 
 import numpy as np
+
+import tespy.tools.logger as logging
 
 # %%
 

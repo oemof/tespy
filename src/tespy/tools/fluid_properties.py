@@ -12,13 +12,12 @@ available from its original location tespy/tools/fluid_properties.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import CoolProp as CP
 import numpy as np
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
+import tespy.tools.logger as logging
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses

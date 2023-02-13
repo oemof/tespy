@@ -11,11 +11,10 @@ tespy/components/combustion/base.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import CoolProp.CoolProp as CP
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.components.component import Component
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq

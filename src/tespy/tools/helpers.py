@@ -8,7 +8,6 @@ available from its original location tespy/tools/helpers.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
 import os
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -17,6 +16,7 @@ from copy import deepcopy
 import CoolProp as CP
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses

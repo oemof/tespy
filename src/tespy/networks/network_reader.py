@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 """
 import ast
 import json
-import logging
 import os
 
 import pandas as pd
@@ -57,9 +56,7 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.helpers import modify_path_os
-
-# pass the warning messages to the logger
-logging.captureWarnings(True)
+import tespy.tools.logger as logging
 
 
 comp_target_classes = {

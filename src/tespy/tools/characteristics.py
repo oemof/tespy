@@ -15,11 +15,11 @@ SPDX-License-Identifier: MIT
 """
 
 import json
-import logging
 import os
 
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy import __datapath__
 from tespy.tools.helpers import extend_basic_path
 

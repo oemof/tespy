@@ -12,11 +12,11 @@ available from its original location tespy/components/components.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
 from collections import OrderedDict
 
 import numpy as np
 
+import tespy.tools.logger as logging
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc

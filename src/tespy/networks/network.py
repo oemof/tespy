@@ -1545,7 +1545,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, always_all_equations=True):
+              use_cuda=False, always_all_equations=True, print_results=True):
         r"""
         Solve the network.
 
@@ -1659,7 +1659,7 @@ class Network:
         logger.info(msg)
 
         self.solve_determination()
-        self.solve_loop()
+        self.solve_loop(print_results=print_results)
 
         if self.lin_dep:
             msg = (

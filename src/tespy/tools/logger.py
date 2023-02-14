@@ -30,6 +30,13 @@ def getLogger():
     return logging.getLogger(TESPY_LOGGER_ID)
 
 
+def increment_stacklevel(kwargs):
+    """"Method to force the logging framework to trace past this file"""
+    if "stacklevel" not in kwargs:
+        kwargs["stacklevel"] = 1
+    return kwargs["stacklevel"] + 1
+
+
 def log(level, msg, *args, **kwargs):
     """
     Log 'msg % args' with the integer severity 'level'.
@@ -149,13 +156,6 @@ def progress(value, msg, *args, **kwargs):
     return log(TESPY_PROGRESS_LOG_LEVEL, msg, *args, **kwargs)
 
 
-def increment_stacklevel(kwargs):
-    """"Method to force the logging framework to trace past this file"""
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    return kwargs["stacklevel"] + 1
-
-
 # Custom reporting function that abuses log level TESPY_RESULT_LOG_LEVEL 
 # to report result information programmatically.
 def result(msg, *args, **kwargs):
@@ -164,9 +164,7 @@ def result(msg, *args, **kwargs):
 
     result("The result is %f", 1.23456)
     """
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(TESPY_RESULT_LOG_LEVEL, msg, *args, **kwargs)
 
 

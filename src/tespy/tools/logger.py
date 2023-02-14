@@ -17,16 +17,18 @@ from logging import handlers
 import tespy
 
 TESPY_LOGGER_ID = "TESPyLogger"
-TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1 # 11
-TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2 # 12
+TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1  # 11
+TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2  # 12
 
 # Capture warnings globally instead of per file
 logging.captureWarnings(True)
 
-# Create a bunch of shorthand functions, this is mostly 
+
+# Create a bunch of shorthand functions, this is mostly
 # copied straight from the logging module.
 def getLogger():
     return logging.getLogger(TESPY_LOGGER_ID)
+
 
 def log(level, msg, *args, **kwargs):
     """
@@ -39,13 +41,15 @@ def log(level, msg, *args, **kwargs):
     """
     logger = getLogger()
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     # Last exit for Python < 3.8
-    if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 8):
+    if (
+        sys.version_info.major < 3
+        or (sys.version_info.major == 3 and sys.version_info.minor < 8)
+    ):
         kwargs.pop("stacklevel")
     logger.log(level, msg, *args, **kwargs)
+
 
 def debug(msg, *args, **kwargs):
     """
@@ -57,10 +61,9 @@ def debug(msg, *args, **kwargs):
     debug("Houston, we have a %s", "thorny problem", exc_info=1)
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(logging.DEBUG, msg, *args, **kwargs)
+
 
 def info(msg, *args, **kwargs):
     """
@@ -72,10 +75,9 @@ def info(msg, *args, **kwargs):
     info("Houston, we have a %s", "interesting problem", exc_info=1)
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(logging.INFO, msg, *args, **kwargs)
+
 
 def warning(msg, *args, **kwargs):
     """
@@ -87,10 +89,9 @@ def warning(msg, *args, **kwargs):
     warning("Houston, we have a %s", "bit of a problem", exc_info=1)
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(logging.WARNING, msg, *args, **kwargs)
+
 
 def error(msg, *args, **kwargs):
     """
@@ -102,20 +103,18 @@ def error(msg, *args, **kwargs):
     error("Houston, we have a %s", "major problem", exc_info=1)
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(logging.ERROR, msg, *args, **kwargs)
+
 
 def exception(msg, *args, exc_info=True, **kwargs):
     """
     Convenience method for logging an ERROR with exception information.
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     error(msg, *args, exc_info=exc_info, **kwargs)
+
 
 def critical(msg, *args, **kwargs):
     """
@@ -127,18 +126,17 @@ def critical(msg, *args, **kwargs):
     critical("Houston, we have a %s", "major disaster", exc_info=1)
     """
     # We force the logging framework to trace past this file
-    if "stacklevel" not in kwargs:
-        kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
     return log(logging.CRITICAL, msg, *args, **kwargs)
 
-# Custom logging function that abuses log level TESPY_PROGRESS_LOG_LEVEL 
+
+# Custom logging function that abuses log level TESPY_PROGRESS_LOG_LEVEL
 # to report progress information programmatically.
 def progress(value, msg, *args, **kwargs):
     """
     Report progress values between 0 and 100, you can also use
-    the `extra` dict to modify the progress limits. Additionally, 
-    log 'msg % args' with severity 'TESPY_PROGRESS_LOG_LEVEL'.    
+    the `extra` dict to modify the progress limits. Additionally,
+    log 'msg % args' with severity 'TESPY_PROGRESS_LOG_LEVEL'.
 
     progress(51, "Houston, we have completed step %d of 100.", 51)
     progress(0.51, "Houston, we have completed %f percent of the mission.", 0.51*100, extra=dict(progress_min=0.0, progress_max=1.0))
@@ -147,10 +145,15 @@ def progress(value, msg, *args, **kwargs):
         kwargs["extra"] = dict(progress_min=0, progress_max=100)
     kwargs["extra"]["progress_val"] = value
     # We force the logging framework to trace past this file
+    kwargs["stacklevel"] = increment_stacklevel(kwargs)
+    return log(TESPY_PROGRESS_LOG_LEVEL, msg, *args, **kwargs)
+
+
+def increment_stacklevel(kwargs):
+    """"Method to force the logging framework to trace past this file"""
     if "stacklevel" not in kwargs:
         kwargs["stacklevel"] = 1
-    kwargs["stacklevel"] += 1
-    return log(TESPY_PROGRESS_LOG_LEVEL, msg, *args, **kwargs)
+    return kwargs["stacklevel"] + 1
 
 
 # Custom reporting function that abuses log level TESPY_RESULT_LOG_LEVEL 
@@ -168,9 +171,10 @@ def result(msg, *args, **kwargs):
 
 
 def add_console_logging(
-    logformat=None, logdatefmt="%H:%M:%S", loglevel=logging.INFO,
-    log_version=True):
-    r"""Initialise customisable console logger.
+        logformat=None, logdatefmt="%H:%M:%S", loglevel=logging.INFO,
+        log_the_version=True
+        ):
+    r"""Initialise customizable console logger.
 
     Parameters
     ----------
@@ -184,7 +188,7 @@ def add_console_logging(
     loglevel : int
         Level of logging to stdout. Default: 20 (logging.INFO)
 
-    log_version : boolean
+    log_the_version : boolean
         If True, version information is logged while initialising the logger.
 
     """
@@ -203,16 +207,17 @@ def add_console_logging(
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
-    if log_version:
+    if log_the_version:
         logging.info("Used TESPy version: {0}".format(get_version()))
-        
+
     return None
 
 
 def add_file_logging(
-    logpath=None, logfile=None, logrotation=None, 
-    logformat=None, logdatefmt=None, loglevel=logging.DEBUG,
-    log_version=True, log_path=True):
+        logpath=None, logfile=None, logrotation=None,
+        logformat=None, logdatefmt=None, loglevel=logging.DEBUG,
+        log_the_version=True, log_the_path=True
+        ):
     r"""Initialise customisable file logger.
 
     Parameters
@@ -220,7 +225,7 @@ def add_file_logging(
     logpath : str
         The path for log files. By default a ".tespy' folder is created in your
         home directory with subfolder called 'log_files'.
-    
+
     logfile : str
         Name of the log file, default: tespy.log
 
@@ -237,10 +242,10 @@ def add_file_logging(
     loglevel : int
         Level of logging to file. Default: 10 (logging.DEBUG)
 
-    log_version : boolean
+    log_the_version : boolean
         If True, version information is logged while initialising the logger.
 
-    log_path : boolean
+    log_the_path : boolean
         If True, the used file path is logged while initialising the logger.
 
     Returns
@@ -275,19 +280,21 @@ def add_file_logging(
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
-    if log_path:
+    if log_the_path:
         logging.info("Path for logging: {0}".format(logfile_setting))
 
-    if log_version:
+    if log_the_version:
         logging.info("Used TESPy version: {0}".format(get_version()))
-        
-    return logfile_setting    
+
+    return logfile_setting
 
 
-def define_logging(logpath=None, logfile='tespy.log', file_format=None,
-                   screen_format=None, file_datefmt=None, screen_datefmt=None,
-                   screen_level=logging.INFO, file_level=logging.DEBUG,
-                   log_version=True, log_path=True, timed_rotating=None):
+def define_logging(
+        logpath=None, logfile='tespy.log', file_format=None,
+        screen_format=None, file_datefmt=None, screen_datefmt=None,
+        screen_level=logging.INFO, file_level=logging.DEBUG,
+        log_the_version=True, log_the_path=True, timed_rotating=None
+        ):
     r"""Initialise customisable logger.
 
     Parameters
@@ -319,16 +326,15 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     file_level : int
         Level of logging to file. Default: 10 (logging.DEBUG)
 
-    log_version : boolean
+    log_the_version : boolean
         If True the actual version or commit is logged while initialising the
         logger.
 
-    log_path : boolean
+    log_the_path : boolean
         If True the used file path is logged while initialising the logger.
 
     timed_rotating : dict
         Option to pass parameters to the TimedRotatingFileHandler.
-
 
     Returns
     -------
@@ -340,8 +346,7 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     By default the INFO level is printed on the screen and the DEBUG level
     in a file, but you can easily configure the logger.
     Every module that wants to create logging messages has to import the
-    logging module. The oemof logger module has to be imported once to
-    initialise it.
+    logger.
 
     Examples
     --------
@@ -352,14 +357,19 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     >>> import logging
     >>> from tespy.tools import logger
     >>> mypath = logger.define_logging(
-    ...     log_path=True, log_version=True, timed_rotating={'backupCount': 4},
-    ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
+    ...     log_the_path=True, log_the_version=True, timed_rotating={'backupCount': 4},
+    ...     screen_level=logging.ERROR, screen_datefmt = "no_date"
+    ... )
     >>> mypath[-9:]
     'tespy.log'
     >>> logger.debug('Hi')
     """
     add_console_logging(screen_format, screen_datefmt, screen_level, False)
-    return add_file_logging(logpath, logfile, timed_rotating, file_format, file_datefmt, file_level, log_version, log_path)
+    return add_file_logging(
+        logpath, logfile, timed_rotating,
+        file_format, file_datefmt, file_level,
+        log_the_version, log_the_path
+    )
 
 
 def get_version():

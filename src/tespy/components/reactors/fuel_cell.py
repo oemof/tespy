@@ -1,8 +1,22 @@
+# -*- coding: utf-8
+
+"""Module of class FuelCell.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/components/reactors/fuel_cell.py
+
+SPDX-License-Identifier: MIT
+"""
+
+
 import CoolProp.CoolProp as CP
 import numpy as np
 
-from tespy.tools import logger
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT

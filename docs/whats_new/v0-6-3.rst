@@ -1,0 +1,16 @@
+v0.6.3 - Development in Progress
+++++++++++++++++++++++++++++++++
+
+New Features
+############
+- A new TESPy logger has been implemented to capture TESPy specific loggings
+  with a constant string id for the logger object that is retrieved from the
+  logging module. This allows to modify the logging functionality in a
+  programmatic way and simplifies the work that has to be done in libraries and
+  applications that consume the TESPy library
+  (`PR #390 <https://github.com/oemof/tespy/pull/390>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@jowr <https://github.com/jowr>`__

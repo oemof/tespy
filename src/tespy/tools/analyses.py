@@ -19,8 +19,8 @@ import pandas as pd
 from matplotlib import cm
 from tabulate import tabulate
 
-from tespy.tools import logger
 from tespy.tools import helpers as hlp
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 
 

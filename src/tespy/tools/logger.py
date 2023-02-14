@@ -16,13 +16,13 @@ from logging import handlers
 
 import tespy
 
-
 TESPY_LOGGER_ID = "TESPyLogger"
-TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1 # 11
-TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2 # 12
+TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1  # 11
+TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2  # 12
 
 # Capture warnings globally instead of per file
 logging.captureWarnings(True)
+
 
 # Create a bunch of shorthand functions, this is mostly
 # copied straight from the logging module.
@@ -43,8 +43,11 @@ def log(level, msg, *args, **kwargs):
     # We force the logging framework to trace past this file
     kwargs["stacklevel"] = increment_stacklevel(kwargs)
     # Last exit for Python < 3.8
-    if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 8):
-        kwargs.pop("stacklevel")
+    if (
+            sys.version_info.major < 3
+            or (sys.version_info.major == 3 and sys.version_info.minor < 8)
+        ):
+            kwargs.pop("stacklevel")
     logger.log(level, msg, *args, **kwargs)
 
 
@@ -154,9 +157,10 @@ def increment_stacklevel(kwargs):
 
 
 def add_console_logging(
-    logformat=None, logdatefmt="%H:%M:%S", loglevel=logging.INFO,
-    log_version=True):
-    r"""Initialise customisable console logger.
+        logformat=None, logdatefmt="%H:%M:%S", loglevel=logging.INFO,
+        log_the_version=True
+        ):
+    r"""Initialise customizable console logger.
 
     Parameters
     ----------
@@ -170,7 +174,7 @@ def add_console_logging(
     loglevel : int
         Level of logging to stdout. Default: 20 (logging.INFO)
 
-    log_version : boolean
+    log_the_version : boolean
         If True, version information is logged while initialising the logger.
 
     """
@@ -189,16 +193,17 @@ def add_console_logging(
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
-    if log_version:
+    if log_the_version:
         logging.info("Used TESPy version: {0}".format(get_version()))
 
     return None
 
 
 def add_file_logging(
-    logpath=None, logfile=None, logrotation=None,
-    logformat=None, logdatefmt=None, loglevel=logging.DEBUG,
-    log_version=True, log_path=True):
+        logpath=None, logfile=None, logrotation=None,
+        logformat=None, logdatefmt=None, loglevel=logging.DEBUG,
+        log_the_version=True, log_the_path=True
+        ):
     r"""Initialise customisable file logger.
 
     Parameters
@@ -223,10 +228,10 @@ def add_file_logging(
     loglevel : int
         Level of logging to file. Default: 10 (logging.DEBUG)
 
-    log_version : boolean
+    log_the_version : boolean
         If True, version information is logged while initialising the logger.
 
-    log_path : boolean
+    log_the_path : boolean
         If True, the used file path is logged while initialising the logger.
 
     Returns
@@ -261,19 +266,21 @@ def add_file_logging(
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
-    if log_path:
+    if log_the_path:
         logging.info("Path for logging: {0}".format(logfile_setting))
 
-    if log_version:
+    if log_the_version:
         logging.info("Used TESPy version: {0}".format(get_version()))
 
     return logfile_setting
 
 
-def define_logging(logpath=None, logfile='tespy.log', file_format=None,
-                   screen_format=None, file_datefmt=None, screen_datefmt=None,
-                   screen_level=logging.INFO, file_level=logging.DEBUG,
-                   log_version=True, log_path=True, timed_rotating=None):
+def define_logging(
+        logpath=None, logfile='tespy.log', file_format=None,
+        screen_format=None, file_datefmt=None, screen_datefmt=None,
+        screen_level=logging.INFO, file_level=logging.DEBUG,
+        log_the_version=True, log_the_path=True, timed_rotating=None
+        ):
     r"""Initialise customisable logger.
 
     Parameters
@@ -305,11 +312,11 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     file_level : int
         Level of logging to file. Default: 10 (logging.DEBUG)
 
-    log_version : boolean
+    log_the_version : boolean
         If True the actual version or commit is logged while initialising the
         logger.
 
-    log_path : boolean
+    log_the_path : boolean
         If True the used file path is logged while initialising the logger.
 
     timed_rotating : dict
@@ -336,14 +343,19 @@ def define_logging(logpath=None, logfile='tespy.log', file_format=None,
     >>> import logging
     >>> from tespy.tools import logger
     >>> mypath = logger.define_logging(
-    ...     log_path=True, log_version=True, timed_rotating={'backupCount': 4},
-    ...     screen_level=logging.ERROR, screen_datefmt = "no_date")
+    ...     log_the_path=True, log_the_version=True, timed_rotating={'backupCount': 4},
+    ...     screen_level=logging.ERROR, screen_datefmt = "no_date"
+    ... )
     >>> mypath[-9:]
     'tespy.log'
     >>> logger.debug('Hi')
     """
     add_console_logging(screen_format, screen_datefmt, screen_level, False)
-    return add_file_logging(logpath, logfile, timed_rotating, file_format, file_datefmt, file_level, log_version, log_path)
+    return add_file_logging(
+        logpath, logfile, timed_rotating,
+        file_format, file_datefmt, file_level,
+        log_the_version, log_the_path
+    )
 
 
 def get_version():

@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 import numpy as np
 import pandas as pd
 
-from tespy.tools import logger
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 

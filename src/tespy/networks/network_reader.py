@@ -46,6 +46,7 @@ from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks.network import Network
+from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
@@ -56,8 +57,6 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.helpers import modify_path_os
-from tespy.tools import logger
-
 
 comp_target_classes = {
     'CycleCloser': CycleCloser,

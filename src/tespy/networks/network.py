@@ -24,10 +24,10 @@ import pandas as pd
 from numpy.linalg import norm
 from tabulate import tabulate
 
-from tespy.tools import logger
 from tespy import connections as con
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp

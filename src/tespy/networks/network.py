@@ -1693,10 +1693,8 @@ class Network:
         logger.info(msg)
         return
 
-    def solve_loop(self, print_results = True):
+    def solve_loop(self, print_results=True):
         r"""Loop of the newton algorithm."""
-
-        result = ""
         # parameter definitions
         self.res = np.array([])
         self.residual = np.zeros([self.num_vars])
@@ -1796,14 +1794,22 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def iterinfo_head(self, print_results = True):
+    def iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
         # Start with defining the format here
-        self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} | {massflow:10s} | {pressure:10s} | {enthalpy:10s} | {fluid:10s} | {custom:10s} '
+        self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
+        self.iterinfo_fmt += '| {massflow:10s} | {pressure:10s} | {enthalpy:10s} '
+        self.iterinfo_fmt += '| {fluid:10s} | {custom:10s} '
         # Use the format to create the first logging entry
         custom = '' if self.num_comp_vars == 0 else 'custom'
-        msg = self.iterinfo_fmt.format(iter='iter', residual='residual', progress='progress', massflow='massflow', pressure='pressure', enthalpy='enthalpy', fluid='fluid', custom=custom)
-        #msg += '-' * len(msg) + '\n'
+        msg = self.iterinfo_fmt.format(iter='iter', 
+            residual='residual', 
+            progress='progress', 
+            massflow='massflow', 
+            pressure='pressure', 
+            enthalpy='enthalpy', 
+            fluid='fluid', 
+            custom=custom)
         msg += '\n' + '-' * 7 + '+------------' * 7
         logger.progress(0, msg)
         if print_results:

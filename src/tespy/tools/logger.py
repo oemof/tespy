@@ -156,11 +156,11 @@ def progress(value, msg, *args, **kwargs):
     return log(TESPY_PROGRESS_LOG_LEVEL, msg, *args, **kwargs)
 
 
-# Custom reporting function that abuses log level TESPY_RESULT_LOG_LEVEL 
+# Custom reporting function that abuses log level TESPY_RESULT_LOG_LEVEL
 # to report result information programmatically.
 def result(msg, *args, **kwargs):
     """
-    Report result values by logging 'msg % args' with severity 'TESPY_RESULT_LOG_LEVEL'.    
+    Report result values by logging 'msg % args' with severity 'TESPY_RESULT_LOG_LEVEL'.
 
     result("The result is %f", 1.23456)
     """

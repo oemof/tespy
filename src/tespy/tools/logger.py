@@ -44,10 +44,10 @@ def log(level, msg, *args, **kwargs):
     kwargs["stacklevel"] = increment_stacklevel(kwargs)
     # Last exit for Python < 3.8
     if (
-            sys.version_info.major < 3
-            or (sys.version_info.major == 3 and sys.version_info.minor < 8)
-        ):
-            kwargs.pop("stacklevel")
+        sys.version_info.major < 3
+        or (sys.version_info.major == 3 and sys.version_info.minor < 8)
+    ):
+        kwargs.pop("stacklevel")
     logger.log(level, msg, *args, **kwargs)
 
 

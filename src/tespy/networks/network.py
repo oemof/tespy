@@ -1545,7 +1545,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, always_all_equations=True, return_result=False):
+              use_cuda=False, always_all_equations=True):
         r"""
         Solve the network.
 
@@ -1590,10 +1590,6 @@ class Network:
             Calculate all equations in every iteration. Disabling this flag,
             will increase calculation speed, especially for mixtures, default:
             :code:`True`.
-        
-        return_result : boolean
-            Print the results to the terminal instead of returning a string 
-            with the results, default: :code:`True`.
 
         Note
         ----
@@ -1663,7 +1659,7 @@ class Network:
         logger.info(msg)
 
         self.solve_determination()
-        iter_result = self.solve_loop(return_result)
+        self.solve_loop()
 
         if self.lin_dep:
             msg = (
@@ -1695,9 +1691,9 @@ class Network:
 
         msg = 'Calculation complete.'
         logger.info(msg)
-        return iter_result
+        return
 
-    def solve_loop(self, return_result=False):
+    def solve_loop(self, print_results = True):
         r"""Loop of the newton algorithm."""
 
         result = ""
@@ -1711,7 +1707,7 @@ class Network:
         self.progress = True
 
         if self.iterinfo:
-            result += self.print_iterinfo_head(return_result) + '\n'
+            self.iterinfo_head(print_results)
 
         for self.iter in range(self.max_iter):
 
@@ -1720,7 +1716,7 @@ class Network:
             self.res = np.append(self.res, norm(self.residual))
 
             if self.iterinfo:
-                result += self.print_iterinfo_body(return_result) + '\n'
+                self.iterinfo_body(print_results)
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
@@ -1734,14 +1730,14 @@ class Network:
 
         self.end_time = time()
 
-        result += self.print_iterinfo_tail(return_result) + '\n'
+        self.iterinfo_tail(print_results)
 
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
                    '), calculation stopped. Residual value is '
                    '{:.2e}'.format(norm(self.residual)))
             logger.warning(msg)
-        return result
+        return
 
     def solve_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -1800,90 +1796,80 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def print_iterinfo_head(self, return_result=False):
+    def iterinfo_head(self, print_results = True):
         """Print head of convergence progress."""
-        if self.num_comp_vars == 0:
-            # iterinfo printout without any custom variables
-            msg = (
-                'iter\t| residual | massflow | pressure | enthalpy | fluid\n')
-            msg += '-' * 8 + '+----------' * 4 + '+' + '-' * 9
+        # Start with defining the format here
+        self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} | {massflow:10s} | {pressure:10s} | {enthalpy:10s} | {fluid:10s} | {custom:10s} '
+        # Use the format to create the first logging entry
+        custom = '' if self.num_comp_vars == 0 else 'custom'
+        msg = self.iterinfo_fmt.format(iter='iter', residual='residual', progress='progress', massflow='massflow', pressure='pressure', enthalpy='enthalpy', fluid='fluid', custom=custom)
+        #msg += '-' * len(msg) + '\n'
+        msg += '\n' + '-' * 7 + '+------------' * 7
+        logger.progress(0, msg)
+        if print_results:
+            print('\n' + msg)
+        return
 
-        else:
-            # iterinfo printout with custom variables in network
-            msg = ('iter\t| residual | massflow | pressure | enthalpy | '
-                   'fluid    | custom\n')
-            msg += '-' * 8 + '+----------' * 5 + '+' + '-' * 9
-
-        if return_result:
-            logging.log(31, msg)
-            return msg
-        else:
-            print(msg)
-            return ''
-
-    def print_iterinfo_body(self, return_result=False):
+    def iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         vec = self.increment[0:-(self.num_comp_vars + 1)]
-        msg = (str(self.iter + 1))
+        iter =str(self.iter + 1)
+        residual_norm = norm(self.residual)
+        residual = 'NaN'
+        progress = 'NaN'
+        massflow = 'NaN'
+        pressure = 'NaN'
+        enthalpy = 'NaN'
+        fluid = 'NaN'
+        custom = 'NaN'
 
-        if not self.lin_dep and not np.isnan(norm(self.residual)):
-            msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
-            msg += ' | ' + '{:.2e}'.format(norm(vec[0::self.num_conn_vars]))
-            msg += ' | ' + '{:.2e}'.format(norm(vec[1::self.num_conn_vars]))
-            msg += ' | ' + '{:.2e}'.format(norm(vec[2::self.num_conn_vars]))
+        if not np.isnan(residual_norm):
+            residual = '{:.2e}'.format(residual_norm)
+
+        if not self.lin_dep and not np.isnan(residual_norm):
+            massflow = '{:.2e}'.format(norm(vec[0::self.num_conn_vars]))
+            pressure = '{:.2e}'.format(norm(vec[1::self.num_conn_vars]))
+            enthalpy = '{:.2e}'.format(norm(vec[2::self.num_conn_vars]))
 
             ls = []
             for f in range(len(self.fluids)):
                 ls += vec[3 + f::self.num_conn_vars].tolist()
-
-            msg += ' | ' + '{:.2e}'.format(norm(ls))
+            fluid = '{:.2e}'.format(norm(ls))
 
             if self.num_comp_vars > 0:
-                msg += ' | ' + '{:.2e}'.format(norm(
+                custom = '{:.2e}'.format(norm(
                     self.increment[-self.num_comp_vars:]))
-
-        else:
-            if np.isnan(norm(self.residual)):
-                msg += '\t|      nan'
             else:
-                msg += '\t| ' + '{:.2e}'.format(norm(self.residual))
-            msg += ' |      nan' * 4
-            if self.num_comp_vars > 0:
-                msg += ' |      nan'
-        
-        if return_result:
-            logging.log(31, msg)
-            return msg
-        else:
+                custom = ''
+       
+        progress_val = -1
+        if not np.isnan(residual_norm):
+            # This should not be hardcoded here.
+            progress_min = np.log(err)
+            progress_max = np.log(err) * -1
+            progress_val = np.log(residual_norm) * -1
+            # Scale to 100%
+            progress_val = max(0, min(100, int((progress_val - progress_min) / (progress_max - progress_min) * 100)))
+            progress = '{:d} %'.format(progress_val)
+
+        msg = self.iterinfo_fmt.format(iter=iter, residual=residual, progress=progress, massflow=massflow, pressure=pressure, enthalpy=enthalpy, fluid=fluid, custom=custom)
+        logger.progress(progress_val, msg)
+        if print_results:
             print(msg)
-            return ''
+        return
 
-    def print_iterinfo_tail(self, return_result=False):
+    def iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
-        msg = (
-            'Total iterations: ' + str(self.iter + 1) + ', Calculation '
-            'time: ' + str(round(self.end_time - self.start_time, 1)) +
-            ' s, Iterations per second: ')
-        ips = 'inf'
-        if self.end_time != self.start_time:
-            ips = str(round(
-                (self.iter + 1) / (self.end_time - self.start_time), 2))
-        msg += ips
+        num_iter = self.iter + 1
+        clc_time = self.end_time - self.start_time
+        num_ips = num_iter / clc_time if clc_time > 1e-10 else np.Inf
+        msg = 'Total iterations: {0:d}, Calculation time: {1:.2f} s, Iterations per second: {2:.2f}'.format(num_iter, clc_time, num_ips)
         logger.debug(msg)
-
-        if self.iterinfo:
-            if self.num_comp_vars == 0:
-                result_msg = '-' * 8 + '+----------' * 4 + '+' + '-' * 9 + '\n' + msg
-            else:
-                result_msg = '-' * 8 + '+----------' * 5 + '+' + '-' * 9 + '\n' + msg
-
-            if return_result:
-                logging.log(31, result_msg)
-                return result_msg
-            else:
-                print(result_msg)
-                return ''
-        return ''
+        msg = '-' * 7 + '+------------' * 7 + '\n' + msg
+        logger.progress(100, msg)
+        if print_results:
+            print(msg)
+        return
 
     def matrix_inversion(self):
         """Invert matrix of derivatives and caluclate increment."""
@@ -2654,7 +2640,7 @@ class Network:
 
 # %% printing and plotting
 
-    def print_results(self, colored=True, colors={}, return_result=False):
+    def print_results(self, colored=True, colors={}, print_results=True):
         r"""Print the calculations results to prompt."""
         # Define colors for highlighting values in result table
         result = ""
@@ -2734,11 +2720,10 @@ class Network:
                         floatfmt='.3e'
                     )
                 )
-        if return_result:
-            return result
-        else:
+        logger.result(result)
+        if print_results:
             print(result)
-            return ''
+        return
 
     def print_components(self, c, *args):
         """

@@ -10,10 +10,9 @@ available from its original location tespy/components/turbomachinery/pump.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
+from tespy.tools import logger
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -269,7 +268,7 @@ class Pump(Turbomachine):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         i = self.inl[0]
@@ -535,7 +534,7 @@ class Pump(Turbomachine):
         else:
             msg = ('Exergy balance of a pump, where outlet temperature is '
                    'smaller than inlet temperature is not implmented.')
-            logging.warning(msg)
+            logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
 

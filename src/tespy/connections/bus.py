@@ -10,17 +10,13 @@ available from its original location tespy/connections/bus.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 import pandas as pd
 
+from tespy.tools import logger
 from tespy.components.component import Component
 from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
-
-# pass the warning messages to the logger
-logging.captureWarnings(True)
 
 
 class Bus:
@@ -195,7 +191,7 @@ class Bus:
         self.set_attr(**kwargs)
 
         msg = 'Created bus ' + self.label + '.'
-        logging.debug(msg)
+        logger.debug(msg)
 
     def set_attr(self, **kwargs):
         r"""
@@ -234,13 +230,13 @@ class Bus:
                     self.P.set_attr(is_set=False)
                 else:
                     msg = ('Keyword argument ' + key + ' must be numeric.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
 
             elif key == 'printout':
                 if not isinstance(kwargs[key], bool):
                     msg = ('Please provide the ' + key + ' as boolean.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
                 else:
                     self.__dict__.update({key: kwargs[key]})
@@ -248,7 +244,7 @@ class Bus:
             # invalid keyword
             else:
                 msg = 'A bus has no attribute ' + key + '.'
-                logging.error(msg)
+                logger.error(msg)
                 raise KeyError(msg)
 
     def get_attr(self, key):
@@ -269,7 +265,7 @@ class Bus:
             return self.__dict__[key]
         else:
             msg = 'Bus ' + self.label + ' has no attribute ' + key + '.'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def add_comps(self, *args):
@@ -335,11 +331,11 @@ class Bus:
                             None, np.nan, self.char, np.nan, 'component']
                     else:
                         msg = 'Keyword "comp" must hold a TESPy component.'
-                        logging.error(msg)
+                        logger.error(msg)
                         raise TypeError(msg)
                 else:
                     msg = 'You must provide the component "comp".'
-                    logging.error(msg)
+                    logger.error(msg)
                     raise TypeError(msg)
 
                 for k, v in c.items():
@@ -350,7 +346,7 @@ class Bus:
                             msg = (
                                 'The bus parameter selection must be a '
                                 'string (at bus ' + self.label + ').')
-                            logging.error(msg)
+                            logger.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'char':
@@ -370,7 +366,7 @@ class Bus:
                             msg = (
                                 'Char must be a number or a TESPy '
                                 'characteristics char line.')
-                            logging.error(msg)
+                            logger.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'P_ref':
@@ -383,7 +379,7 @@ class Bus:
                             self.comps.loc[comp, 'P_ref'] = v
                         else:
                             msg = 'Reference value must be numeric.'
-                            logging.error(msg)
+                            logger.error(msg)
                             raise TypeError(msg)
 
                     elif k == 'base':
@@ -392,17 +388,17 @@ class Bus:
                         else:
                             msg = (
                                 'The base value must be "bus" or "component".')
-                            logging.error(msg)
+                            logger.error(msg)
                             raise ValueError(msg)
 
             else:
                 msg = (
                     'Provide arguments as dictionaries. See the documentation '
                     'of bus.add_comps() for more information.')
-                logging.error(msg)
+                logger.error(msg)
                 raise TypeError(msg)
 
             msg = (
                 'Added component ' + comp.label + ' to bus ' +
                 self.label + '.')
-            logging.debug(msg)
+            logger.debug(msg)

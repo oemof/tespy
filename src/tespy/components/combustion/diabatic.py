@@ -11,8 +11,7 @@ tespy/components/combustion/diabatic.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
+from tespy.tools import logger
 from tespy.components import CombustionChamber
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -363,4 +362,4 @@ class DiabaticCombustionChamber(CombustionChamber):
                 "The pressure at inlet 2 is lower than the pressure at inlet 1 "
                 "at component " + self.label + "."
             )
-            logging.warning(msg)
+            logger.warning(msg)

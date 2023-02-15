@@ -30,10 +30,12 @@ logging.captureWarnings(True)
 logger = logging.getLogger(TESPY_LOGGER_ID)
 logger.setLevel(logging.DEBUG)
 
+
 # Create a bunch of shorthand functions, this is mostly
 # copied straight from the logging module.
-def getLogger():
+def get_logger():
     return logger
+
 
 def increment_stacklevel(kwargs):
     """"Method to force the logging framework to trace past this file"""
@@ -51,7 +53,7 @@ def log(level, msg, *args, **kwargs):
 
     log(level, "We have a %s", "mysterious problem", exc_info=1)
     """
-    logger = getLogger()
+    logger = get_logger()
     # We force the logging framework to trace past this file
     kwargs["stacklevel"] = increment_stacklevel(kwargs)
     # Last exit for Python < 3.8
@@ -154,7 +156,10 @@ def progress(value, msg, *args, **kwargs):
     progress(0.51, "Houston, we have completed %f percent of the mission.", 0.51*100, extra=dict(progress_min=0.0, progress_max=1.0))
     """
     if "extra" not in kwargs:
-        kwargs["extra"] = dict(progress_min=0, progress_max=100)
+        kwargs["extra"] = {}
+    if "progress_min" not in kwargs["extra"] and "progress_max" not in kwargs["extra"]:
+        kwargs["extra"]["progress_min"] = 0
+        kwargs["extra"]["progress_max"] = 100
     kwargs["extra"]["progress_val"] = value
     # We force the logging framework to trace past this file
     kwargs["stacklevel"] = increment_stacklevel(kwargs)
@@ -206,7 +211,7 @@ def add_console_logging(
     loghandler.setLevel(loglevel)
 
     # Get the logger object and register the handler
-    log = getLogger()
+    log = get_logger()
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger
@@ -279,7 +284,7 @@ def add_file_logging(
     loghandler.setLevel(loglevel)
 
     # Get the logger object and register the handler
-    log = getLogger()
+    log = get_logger()
     log.addHandler(loghandler)
 
     # Submit the first messages to the logger

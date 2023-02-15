@@ -17,18 +17,23 @@ from logging import handlers
 import tespy
 
 TESPY_LOGGER_ID = "TESPyLogger"
-TESPY_PROGRESS_LOG_LEVEL = logging.DEBUG + 1  # 11
-TESPY_RESULT_LOG_LEVEL = logging.DEBUG + 2  # 12
+TESPY_PROGRESS_LOG_LEVEL = logging.INFO + 1  # 21
+TESPY_RESULT_LOG_LEVEL = logging.INFO + 2  # 22
+
+logging._levelToName[TESPY_PROGRESS_LOG_LEVEL] = 'PROGRESS'
+logging._nameToLevel['PROGRESS'] = TESPY_PROGRESS_LOG_LEVEL
+logging._levelToName[TESPY_RESULT_LOG_LEVEL] = 'RESULT'
+logging._nameToLevel['RESULT'] = TESPY_RESULT_LOG_LEVEL
 
 # Capture warnings globally instead of per file
 logging.captureWarnings(True)
-
+logger = logging.getLogger(TESPY_LOGGER_ID)
+logger.setLevel(logging.DEBUG)
 
 # Create a bunch of shorthand functions, this is mostly
 # copied straight from the logging module.
 def getLogger():
-    return logging.getLogger(TESPY_LOGGER_ID)
-
+    return logger
 
 def increment_stacklevel(kwargs):
     """"Method to force the logging framework to trace past this file"""
@@ -206,7 +211,7 @@ def add_console_logging(
 
     # Submit the first messages to the logger
     if log_the_version:
-        logging.info("Used TESPy version: {0}".format(get_version()))
+        info("Used TESPy version: {0}".format(get_version()))
 
     return None
 
@@ -279,10 +284,10 @@ def add_file_logging(
 
     # Submit the first messages to the logger
     if log_the_path:
-        logging.info("Path for logging: {0}".format(logfile_setting))
+        info("Path for logging: {0}".format(logfile_setting))
 
     if log_the_version:
-        logging.info("Used TESPy version: {0}".format(get_version()))
+        info("Used TESPy version: {0}".format(get_version()))
 
     return logfile_setting
 

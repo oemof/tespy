@@ -1810,10 +1810,11 @@ class Network:
             enthalpy='enthalpy', 
             fluid='fluid', 
             custom=custom)
-        msg += '\n' + '-' * 7 + '+------------' * 7
         logger.progress(0, msg)
+        msg2 = '-' * 7 + '+------------' * 7
+        logger.progress(0, msg2)
         if print_results:
-            print('\n' + msg)
+            print('\n' + msg + '\n' + msg2)
         return
 
     def iterinfo_body(self, print_results=True):

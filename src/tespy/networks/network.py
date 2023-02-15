@@ -414,7 +414,7 @@ class Network:
         try:
             return self.conns.loc[label, 'object']
         except KeyError:
-            logger.warning('Connection with label ' + label + ' not found.')
+            logger.warning('Connection with label %s not found.', label)
             return None
 
     def get_comp(self, label):
@@ -435,7 +435,7 @@ class Network:
         try:
             return self.comps.loc[label, 'object']
         except KeyError:
-            logger.warning('Component with label ' + label + ' not found.')
+            logger.warning('Component with label %s not found.', label)
             return None
 
     def add_conns(self, *args):
@@ -485,7 +485,7 @@ class Network:
             The connection to be removed from the network, connections objects
             ci :code:`del_conns(c1, c2, c3, ...)`.
         """
-        comps = list(set([cp for c in args for cp in [c.source, c.target]]))
+        comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
             self.results['Connection'].drop(c.label, inplace=True)
@@ -547,7 +547,7 @@ class Network:
             components are extracted from these information.
         """
         # get unique components in new connections
-        comps = list(set([cp for c in args for cp in [c.source, c.target]]))
+        comps = list({cp for c in args for cp in [c.source, c.target]})
         # add to the dataframe of components
         for comp in comps:
             if comp.label in self.comps.index:
@@ -1208,15 +1208,15 @@ class Network:
             c.vol.design = c.v.design / c.m.design
             for fluid in self.fluids:
                 c.fluid.design[fluid] = df.loc[conn_id, fluid]
-        except IndexError:
+        except IndexError as iex:
             # no matches in the connections of the network and the design files
             msg = (
-                'Could not find connection ' + c.label + ' in design case. '
+                'Could not find connection %s in design case. '
                 'Please, make sure no connections have been modified or '
                 'components have been relabeled for your offdesign '
                 'calculation.')
-            logger.error(msg)
-            raise hlp.TESPyNetworkError(msg)
+            logger.exception(msg, c.label)
+            raise hlp.TESPyNetworkError(msg) from iex
 
     def init_offdesign(self):
         r"""
@@ -1441,16 +1441,16 @@ class Network:
             Connection count parameters of.
         """
         # variables 0 to 9: fluid properties
-        vars = self.specifications['Connection'].columns[:9]
-        row = [c.get_attr(var).val_set for var in vars]
+        local_vars = self.specifications['Connection'].columns[:9]
+        row = [c.get_attr(var).val_set for var in local_vars]
         self.num_conn_eq += row.count(True)
         # write information to specifaction dataframe
-        self.specifications['Connection'].loc[c.label, vars] = row
+        self.specifications['Connection'].loc[c.label, local_vars] = row
 
-        row = [c.get_attr(var).ref_set for var in vars]
+        row = [c.get_attr(var).ref_set for var in local_vars]
         self.num_conn_eq += row.count(True)
         # write refrenced value information to specifaction dataframe
-        self.specifications['Ref'].loc[c.label, vars] = row
+        self.specifications['Ref'].loc[c.label, local_vars] = row
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
@@ -1707,8 +1707,8 @@ class Network:
         if self.iterinfo:
             self.iterinfo_head(print_results)
 
-        for self.iter in range(self.max_iter):
-
+        for count in range(self.max_iter):
+            self.iter = count
             self.increment_filter = np.absolute(self.increment) < err ** 2
             self.solve_control()
             self.res = np.append(self.res, norm(self.residual))
@@ -1802,14 +1802,14 @@ class Network:
         self.iterinfo_fmt += '| {fluid:10s} | {custom:10s} '
         # Use the format to create the first logging entry
         custom = '' if self.num_comp_vars == 0 else 'custom'
-        msg = self.iterinfo_fmt.format(iter='iter', 
-            residual='residual', 
-            progress='progress', 
-            massflow='massflow', 
-            pressure='pressure', 
-            enthalpy='enthalpy', 
-            fluid='fluid', 
-            custom=custom)
+        msg = self.iterinfo_fmt.format(iter='iter',
+                                       residual='residual',
+                                       progress='progress',
+                                       massflow='massflow',
+                                       pressure='pressure',
+                                       enthalpy='enthalpy',
+                                       fluid='fluid',
+                                       custom=custom)
         logger.progress(0, msg)
         msg2 = '-' * 7 + '+------------' * 7
         logger.progress(0, msg2)
@@ -1820,7 +1820,7 @@ class Network:
     def iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         vec = self.increment[0:-(self.num_comp_vars + 1)]
-        iter =str(self.iter + 1)
+        iter_str = str(self.iter + 1)
         residual_norm = norm(self.residual)
         residual = 'NaN'
         progress = 'NaN'
@@ -1848,7 +1848,7 @@ class Network:
                     self.increment[-self.num_comp_vars:]))
             else:
                 custom = ''
-       
+
         progress_val = -1
         if not np.isnan(residual_norm):
             # This should not be hardcoded here.
@@ -1859,7 +1859,14 @@ class Network:
             progress_val = max(0, min(100, int((progress_val - progress_min) / (progress_max - progress_min) * 100)))
             progress = '{:d} %'.format(progress_val)
 
-        msg = self.iterinfo_fmt.format(iter=iter, residual=residual, progress=progress, massflow=massflow, pressure=pressure, enthalpy=enthalpy, fluid=fluid, custom=custom)
+        msg = self.iterinfo_fmt.format(iter=iter_str,
+                                       residual=residual,
+                                       progress=progress,
+                                       massflow=massflow,
+                                       pressure=pressure,
+                                       enthalpy=enthalpy,
+                                       fluid=fluid,
+                                       custom=custom)
         logger.progress(progress_val, msg)
         if print_results:
             print(msg)
@@ -2041,7 +2048,7 @@ class Network:
                 except ValueError as e:
                     T *= 0.99
                     if T < fp.Memorise.value_range[fl][2]:
-                        raise ValueError(e)
+                        raise ValueError(e) from e
 
             if c.h.val_SI < hmin and not c.h.val_set:
                 if hmin < 0:
@@ -2595,9 +2602,8 @@ class Network:
             c.fluid.val0 = c.fluid.val.copy()
 
             self.results['Connection'].loc[c.label] = (
-                [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
-                 c.s.val, c.x.val, c.Td_bp.val] +
-                [f for f in c.fluid.val.values()])
+              [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
+               c.s.val, c.x.val, c.Td_bp.val] + list(c.fluid.val.values()))
 
     def process_components(self):
         """Process the component results."""
@@ -2647,9 +2653,11 @@ class Network:
 
 # %% printing and plotting
 
-    def print_results(self, colored=True, colors={}, print_results=True):
+    def print_results(self, colored=True, colors=None, print_results=True):
         r"""Print the calculations results to prompt."""
         # Define colors for highlighting values in result table
+        if colors is None:
+            colors = {}
         result = ""
         coloring = {
             'end': '\033[0m',
@@ -2799,7 +2807,7 @@ class Network:
             path += '/'
         path = hlp.modify_path_os(path)
 
-        logger.debug('Saving network to path ' + path + '.')
+        logger.debug('Saving network to path %s.', path)
         # creat path, if non existent
         if not os.path.exists(path):
             os.makedirs(path)
@@ -2841,7 +2849,7 @@ class Network:
         with open(fn, 'w') as f:
             f.write(json.dumps(data, indent=4))
 
-        logger.debug('Network information saved to ' + fn + '.')
+        logger.debug('Network information saved to %s.', fn)
 
     def save_connections(self, fn):
         r"""
@@ -2918,7 +2926,7 @@ class Network:
         df['balance'] = df.apply(f, axis=1, args=('fluid', 'balance'))
 
         df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-        logger.debug('Connection information saved to ' + fn + '.')
+        logger.debug('Connection information saved to %s.', fn)
 
     def save_components(self, path):
         r"""
@@ -2993,8 +3001,7 @@ class Network:
             df.set_index('label', inplace=True)
             fn = path + c + '.csv'
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-            logger.debug(
-                'Component information (' + c + ') saved to ' + fn + '.')
+            logger.debug('Component information (%s) saved to %s.', c, fn)
 
     def save_busses(self, fn):
         r"""
@@ -3017,7 +3024,7 @@ class Network:
 
             df.set_index('label', inplace=True)
             df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-            logger.debug('Bus information saved to ' + fn + '.')
+            logger.debug('Bus information saved to %s.', fn)
 
     def save_characteristics(self, path):
         r"""
@@ -3032,7 +3039,7 @@ class Network:
         char_lines = []
         char_maps = []
         for c in self.comps['object']:
-            for col, data in c.variables.items():
+            for _col, data in c.variables.items():
                 if isinstance(data, dc_cc):
                     char_lines += [data.char_func]
                 elif isinstance(data, dc_cm):
@@ -3060,8 +3067,7 @@ class Network:
             # write to char.csv
             fn = path + 'char_line.csv'
             df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logger.debug(
-                'Characteristic line information saved to ' + fn + '.')
+            logger.debug('Characteristic line information saved to %s.', fn)
 
         if len(char_maps) > 0:
             # get id and data
@@ -3077,8 +3083,7 @@ class Network:
             # write to char_map.csv
             fn = path + 'char_map.csv'
             df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logger.debug(
-                'Characteristic map information saved to ' + fn + '.')
+            logger.debug('Characteristic map information saved to %s.', fn)
 
     @staticmethod
     def get_id(c):

@@ -1728,7 +1728,8 @@ class Network:
 
         self.end_time = time()
 
-        self.iterinfo_tail(print_results)
+        if self.iterinfo:
+            self.iterinfo_tail(print_results)
 
         if self.iter == self.max_iter - 1:
             msg = ('Reached maximum iteration count (' + str(self.max_iter) +
@@ -1850,13 +1851,15 @@ class Network:
                 custom = ''
 
         progress_val = -1
-        if not np.isnan(residual_norm):
+        if not np.isnan(residual_norm) and residual_norm > np.finfo(float).eps*100:
             # This should not be hardcoded here.
             progress_min = np.log(err)
             progress_max = np.log(err) * -1
-            progress_val = np.log(residual_norm) * -1
+            progress_val = np.log(max(residual_norm, err)) * -1
+            # Scale to 0-1
+            progress_val = max(0, min(1, (progress_val - progress_min) / (progress_max - progress_min)))
             # Scale to 100%
-            progress_val = max(0, min(100, int((progress_val - progress_min) / (progress_max - progress_min) * 100)))
+            progress_val = int((progress_val - progress_min) / (progress_max - progress_min) * 100)
             progress = '{:d} %'.format(progress_val)
 
         msg = self.iterinfo_fmt.format(iter=iter_str,
@@ -1877,10 +1880,10 @@ class Network:
         num_iter = self.iter + 1
         clc_time = self.end_time - self.start_time
         num_ips = num_iter / clc_time if clc_time > 1e-10 else np.Inf
+        msg = '-' * 7 + '+------------' * 7
+        logger.progress(100, msg)
         msg = 'Total iterations: {0:d}, Calculation time: {1:.2f} s, Iterations per second: {2:.2f}'.format(num_iter, clc_time, num_ips)
         logger.debug(msg)
-        msg = '-' * 7 + '+------------' * 7 + '\n' + msg
-        logger.progress(100, msg)
         if print_results:
             print(msg)
         return
@@ -2735,9 +2738,10 @@ class Network:
                         floatfmt='.3e'
                     )
                 )
-        logger.result(result)
-        if print_results:
-            print(result)
+        if len(str(result)) > 0:
+            logger.result(result)
+            if print_results:
+                print(result)
         return
 
     def print_components(self, c, *args):

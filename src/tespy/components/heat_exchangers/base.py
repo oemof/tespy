@@ -835,6 +835,9 @@ class HeatExchanger(Component):
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
             self.kA.val = np.nan
+        elif self.ttd_l.val == self.ttd_u.val:
+            self.td_log.val = self.ttd_l.val
+            self.kA.val = -self.Q.val / self.td_log.val
         else:
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))

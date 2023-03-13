@@ -10,7 +10,16 @@ New Features
   applications that consume the TESPy library
   (`PR #390 <https://github.com/oemof/tespy/pull/390>`__).
 
+Bug Fixes
+#########
+- Heat exchangers will now provide a result for the logarithmic temperature
+  difference and the heat transfer coefficient in case the values of the upper
+  and lower temperature difference are equal. Some issues in such situations
+  remain when in offdesign mode
+  (`PR #396 <https://github.com/oemof/tespy/pull/396>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@jowr <https://github.com/jowr>`__
+- `@dk-teknologisk-enp <https://github.com/dk-teknologisk-enp`__

@@ -9,6 +9,8 @@ New Features
   programmatic way and simplifies the work that has to be done in libraries and
   applications that consume the TESPy library
   (`PR #390 <https://github.com/oemof/tespy/pull/390>`__).
+- A progress bar for the iterations has been integrated
+  (`PR #391 <https://github.com/oemof/tespy/pull/391>`__).
 
 Contributors
 ############

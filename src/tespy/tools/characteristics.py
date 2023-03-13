@@ -15,12 +15,12 @@ SPDX-License-Identifier: MIT
 """
 
 import json
-import logging
 import os
 
 import numpy as np
 
 from tespy import __datapath__
+from tespy.tools import logger
 from tespy.tools.helpers import extend_basic_path
 
 # %%
@@ -74,11 +74,11 @@ class CharLine:
             msg = ('Please provide the same amount of x-values and y-values. '
                    'Number of x-values is ' + str(len(self.x)) + ', number of '
                    'y-values is ' + str(len(self.y)) + ' for CharLine.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         msg = ('Created characteristic line function.')
-        logging.debug(msg)
+        logger.debug(msg)
 
     def evaluate(self, x):
         r"""
@@ -139,12 +139,12 @@ class CharLine:
             msg = ('Operating point above characteristic line range: '
                    'X=' + str(round(x, 3)) + ' with maximum of ' +
                    str(self.x[-1]) + ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
         elif x < self.x[0]:
             msg = ('Operating point below characteristic line range: '
                    'X=' + str(round(x, 3)) + ' with minimum of ' +
                    str(self.x[0]) + ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
 
     def get_attr(self, key):
         r"""
@@ -164,7 +164,7 @@ class CharLine:
             return self.__dict__[key]
         else:
             msg = 'Char_map has no attribute \"' + key + '\".'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def plot(self, path, title, xlabel, ylabel):
@@ -234,17 +234,17 @@ class CharMap:
                 'for the characteristic map. You have provided ' +
                 str(len(self.x)) + 'x-values. Thus, the y- and z-arrays must '
                 'have ' + str(len(self.x)) + ' number of dimensions.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
         elif self.y.shape != self.z.shape:
             msg = (
                 'Make sure that the number of dimensions and the number of '
                 'values in the y-, z-arrays are identical!')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         msg = ('Created characteristic map function.')
-        logging.debug(msg)
+        logger.debug(msg)
 
     def evaluate_x(self, x):
         r"""
@@ -366,13 +366,13 @@ class CharMap:
             msg = ('Operating point above CharMap range: '
                    'X=' + str(round(x, 3)) + ' with maximum of ' +
                    str(self.x[-1]) + ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
         elif xpos == 0 and x != self.x[0]:
             yarr = self.y[0]
             msg = ('Operating point below CharMap range: '
                    'X=' + str(round(x, 3)) + ' with minimum of ' +
                    str(self.x[0]) + ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
             yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
@@ -401,13 +401,13 @@ class CharMap:
                 'Operating point above compressor map range: Y=' +
                 str(round(y, 3)) + ' with maximum of ' + str(yarr[-1]) +
                 ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
         elif ypos == 0 and y != yarr[0]:
             msg = (
                 'Operating point below compressor map range: Y=' +
                 str(round(y, 3)) + ' with minimum of ' + str(yarr[0]) +
                 ' at component ' + c + '.')
-            logging.warning(msg)
+            logger.warning(msg)
 
     def get_domain_errors(self, x, y, c):
         r"""
@@ -442,7 +442,7 @@ class CharMap:
             return self.__dict__[key]
         else:
             msg = 'Char_map has no attribute \"' + key + '\".'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def plot(self, path, title, xlabel, ylabel):
@@ -556,5 +556,5 @@ def load_custom_char(name, char_type):
         msg = ('The file containing your custom charactersitics could not be '
                'found on your system. The path should be ' + path + '. Please '
                'make sure the .tespy/data path exists in your home directory.')
-        logging.error(msg)
+        logger.error(msg)
         raise FileNotFoundError(msg)

@@ -38,7 +38,7 @@ access speed while preserving high accuracy.
 .. tip::
 
     For more information on the fluid properties in TESPy,
-    `check out this page <tespy_fluid_properties_label>`__.
+    :ref:`check out this page <tespy_fluid_properties_label>`.
 
 .. dropdown:: Click to expand to code section
 

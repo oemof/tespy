@@ -24,4 +24,4 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@jowr <https://github.com/jowr>`__
-- `@dk-teknologisk-enp <https://github.com/dk-teknologisk-enp`__
+- `@dk-teknologisk-enp <https://github.com/dk-teknologisk-enp>`__

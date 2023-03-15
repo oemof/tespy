@@ -11,11 +11,10 @@ tespy/components/heat_exchangers/simple.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -536,7 +535,8 @@ class HeatExchangerSimple(Component):
         elif ttd_1 < ttd_2:
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            td_log = 0
+            # both values are equal
+            td_log = ttd_2
 
         return i[0] * (o[2] - i[2]) + self.kA.val * td_log
 
@@ -647,7 +647,8 @@ class HeatExchangerSimple(Component):
         elif ttd_1 < ttd_2:
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            td_log = 0
+            # both values are equal
+            td_log = ttd_2
 
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
@@ -866,12 +867,15 @@ class HeatExchangerSimple(Component):
             ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
             ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
 
+            if (ttd_1 / ttd_2) < 0:
+                td_log = np.nan
             if ttd_1 > ttd_2:
                 td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
             elif ttd_1 < ttd_2:
                 td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
             else:
-                td_log = np.nan
+                # both values are equal
+                td_log = ttd_1
 
             self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
             self.kA.is_result = True
@@ -1032,7 +1036,7 @@ class HeatExchangerSimple(Component):
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'outlet temperature is higher than inlet temperature '
                        'with heat extracted is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
                 self.E_bus = np.nan
@@ -1055,7 +1059,7 @@ class HeatExchangerSimple(Component):
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'inlet temperature is higher than outlet temperature '
                        'with heat injected is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
                 self.E_bus = self.E_F

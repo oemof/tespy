@@ -10,13 +10,11 @@ tespy/components/combustion/engine.py
 
 SPDX-License-Identifier: MIT
 """
-
-import logging
-
 import numpy as np
 
 from tespy.components.combustion.base import CombustionChamber
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -354,14 +352,14 @@ class CombustionEngine(CombustionChamber):
             msg = ('The power output of combustion engines must be set! '
                    'We are adding the power output of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         if not self.Qloss.is_set:
             self.set_attr(Qloss='var')
             msg = ('The heat loss of combustion engines must be set! '
                    'We are adding the heat loss of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         Component.comp_init(self, nw)
 
@@ -1237,7 +1235,7 @@ class CombustionEngine(CombustionChamber):
         else:
             msg = ('The parameter ' + str(bus['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return val
@@ -1358,7 +1356,7 @@ class CombustionEngine(CombustionChamber):
         else:
             msg = ('The parameter ' + str(b['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return deriv

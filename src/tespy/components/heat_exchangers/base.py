@@ -412,8 +412,12 @@ class HeatExchanger(Component):
         if T_o1 <= T_i2:
             T_i2 = T_o1 - 0.02
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+        ttd_u = T_i1 - T_o2
+        ttd_l = T_o1 - T_i2
+        if ttd_u == ttd_l:
+            td_log = ttd_l
+        else:
+            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
 
         return i1.m.val_SI * (
             o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
@@ -510,8 +514,12 @@ class HeatExchanger(Component):
         if T_o1 <= T_i2:
             T_i2 = T_o1 - 0.02
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+        ttd_u = T_i1 - T_o2
+        ttd_l = T_o1 - T_i2
+        if ttd_u == ttd_l:
+            td_log = ttd_l
+        else:
+            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
 
         fkA1 = self.kA_char1.char_func.evaluate(f1)
         fkA2 = self.kA_char2.char_func.evaluate(f2)
@@ -834,11 +842,12 @@ class HeatExchanger(Component):
         # kA and logarithmic temperature difference
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
-            self.kA.val = np.nan
+        elif self.ttd_l.val == self.ttd_u.val:
+            self.td_log.val = self.ttd_l.val
         else:
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))
-            self.kA.val = -self.Q.val / self.td_log.val
+        self.kA.val = -self.Q.val / self.td_log.val
 
     def entropy_balance(self):
         r"""

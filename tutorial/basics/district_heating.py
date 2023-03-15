@@ -6,7 +6,7 @@ from tespy.components import (
 )
 from tespy.connections import Connection
 
-fluid_list = ['water']
+fluid_list = ['INCOMP::Water']
 nw = Network(fluids=fluid_list)
 nw.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
 
@@ -39,7 +39,7 @@ pu.set_attr(eta_s=0.75)
 pipe_feed.set_attr(Q=-250, pr=0.98)
 pipe_return.set_attr(Q=-200, pr=0.98)
 
-c1.set_attr(T=90, p=10, fluid={'water': 1})
+c1.set_attr(T=90, p=10, fluid={'Water': 1})
 c2.set_attr(p=13)
 c4.set_attr(T=65)
 

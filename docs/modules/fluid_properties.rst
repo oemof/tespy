@@ -14,6 +14,9 @@ to choose from the following back ends:
 
 - :code:`HEOS`: Helmhotz Equation Of State with highest accuracy and lowest
   calculation speed. **This is the default back end!**
+- :code:`REFPROP`: Highest accuracy and highest convergence stability.
+  **This back end is not free**, a separate
+  `REFPROP <https://www.nist.gov/srd/refprop>`__ license is required.
 - :code:`BICUBIC`: Tabular back end with high accuracy and very high
   calculation speed.
 - :code:`TTSE`: Tabular back end with lowest accuracy and very high calculation

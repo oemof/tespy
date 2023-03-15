@@ -14,6 +14,10 @@ New Features
 
 Bug Fixes
 #########
+- The pressure ratio of the
+  :py:class:`tespy.components.combustion.diabatic.DiabaticCombustionChamber`
+  was never calculated in postprocessing if not specified from user
+  (`PR #380 <https://github.com/oemof/tespy/pull/380>`_).
 - Heat exchangers will now provide a result for the logarithmic temperature
   difference and the heat transfer coefficient in case the values of the upper
   and lower temperature difference are equal. Some issues in such situations

@@ -146,19 +146,34 @@ class DiabaticCombustionChamber(CombustionChamber):
     chamber.
 
     >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
-    >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
+    >>> amb_comb.set_attr(p=1.2, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
     >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'Ar': 0,
-    ... 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96}, p=1.2)
+    ... 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96}, p=1.3)
     >>> comb_fg.set_attr(T=1200)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014
+    >>> round(comb_fg.p.val, 2)
+    1.14
+
+    Instead of the pressure ration, we can also specify the outlet pressure.
+    The pressure ratio is the ratio or pressure at the outlet to the pressure
+    at the inlet 1 (ambient air inlet in this example).
+
+    >>> comb.set_attr(pr=None)
+    >>> comb_fg.set_attr(p=1)
+    >>> nw.solve('design')
+    >>> round(comb.pr.val, 3)
+    0.833
+
+    We can change lambda to a specific value and unset the flue gas temperature:
+
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=None)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
-    1206.6
+    1206.5
 
     Now, if we change the efficiency value, e.g. to 0.9, a total of 10 % of
     heat respective to the thermal input will be transferred to the ambient.
@@ -357,9 +372,11 @@ class DiabaticCombustionChamber(CombustionChamber):
         self.eta.val = -res / self.ti.val
         self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
 
-        if self.inl[1].p.val < self.inl[0].p.val:
-            msg = (
-                "The pressure at inlet 2 is lower than the pressure at inlet 1 "
-                "at component " + self.label + "."
-            )
-            logger.warning(msg)
+        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        for i in range(self.num_i):
+            if self.inl[i].p.val < self.outl[0].p.val:
+                msg = (
+                    f"The pressure at inlet {i + 1} is lower than the pressure "
+                    f"at the outlet of component {self.label}."
+                )
+                logger.warning(msg)

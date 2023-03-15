@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 """
 import ast
 import json
-import logging
 import os
 
 import pandas as pd
@@ -47,6 +46,7 @@ from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks.network import Network
+from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
@@ -57,10 +57,6 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.helpers import modify_path_os
-
-# pass the warning messages to the logger
-logging.captureWarnings(True)
-
 
 comp_target_classes = {
     'CycleCloser': CycleCloser,
@@ -258,7 +254,7 @@ def load_network(path):
     path = modify_path_os(path)
 
     msg = 'Reading network data from base path ' + path + '.'
-    logging.info(msg)
+    logger.info(msg)
 
     # load characteristics
     fn = path_comps + 'char_line.csv'
@@ -267,7 +263,7 @@ def load_network(path):
                                  converters={'x': ast.literal_eval,
                                              'y': ast.literal_eval})
         msg = 'Reading characteristic lines data from ' + fn + '.'
-        logging.debug(msg)
+        logger.debug(msg)
 
     except FileNotFoundError:
         char_lines = pd.DataFrame(
@@ -277,7 +273,7 @@ def load_network(path):
     fn = path_comps + 'char_map.csv'
     try:
         msg = 'Reading characteristic maps data from ' + fn + '.'
-        logging.debug(msg)
+        logger.debug(msg)
         char_maps = pd.read_csv(fn, sep=';', decimal='.',
                                 converters={'x': ast.literal_eval,
                                             'y': ast.literal_eval,
@@ -314,11 +310,11 @@ def load_network(path):
             comps = pd.concat((comps, df[cols]), axis=0)
 
             msg = 'Reading component data (' + f[:-4] + ') from ' + fn + '.'
-            logging.debug(msg)
+            logger.debug(msg)
 
     comps = comps.set_index('label')
     msg = 'Created network components.'
-    logging.info(msg)
+    logger.info(msg)
 
     # create network
     nw = construct_network(path)
@@ -330,7 +326,7 @@ def load_network(path):
                                     'offdesign': ast.literal_eval})
 
     msg = 'Reading connection data from ' + fn + '.'
-    logging.debug(msg)
+    logger.debug(msg)
 
     # create connections
     conns['instance'] = conns.apply(
@@ -343,19 +339,19 @@ def load_network(path):
         nw.add_conns(c)
 
     msg = 'Created connections.'
-    logging.info(msg)
+    logger.info(msg)
 
     # load busses
     try:
         fn = path_comps + 'bus.csv'
         busses = pd.read_csv(fn, sep=';', decimal='.')
         msg = 'Reading bus data from ' + fn + '.'
-        logging.debug(msg)
+        logger.debug(msg)
 
     except FileNotFoundError:
         busses = pd.DataFrame(dtype='object')
         msg = 'No bus data found!'
-        logging.debug(msg)
+        logger.debug(msg)
 
     # create busses
     if len(busses) > 0:
@@ -369,10 +365,10 @@ def load_network(path):
             nw.add_busses(b)
 
         msg = 'Created busses.'
-        logging.info(msg)
+        logger.info(msg)
 
     msg = 'Created network.'
-    logging.info(msg)
+    logger.info(msg)
 
     nw.check_network()
 
@@ -448,7 +444,7 @@ def construct_components(c, *args):
                     msg = ('Could not find x and y values for characteristic '
                            'line, using defaults instead for function ' + key +
                            ' at component ' + c.label + '.')
-                    logging.warning(msg)
+                    logger.warning(msg)
 
                 kwargs[key] = {
                     'is_set': c[key + '_set'],
@@ -470,7 +466,7 @@ def construct_components(c, *args):
                     char = None
                     msg = ('Could not find x, y and z values for '
                            'characteristic map of component ' + c.label + '!')
-                    logging.warning(msg)
+                    logger.warning(msg)
 
                 kwargs[key] = {
                     'is_set': c[key + '_set'],

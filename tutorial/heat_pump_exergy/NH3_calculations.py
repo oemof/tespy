@@ -12,7 +12,8 @@ from tespy.connections import Connection
 from tespy.connections import Bus
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
-from analyses import ExergyAnalysis
+from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools import ExergyAnalysis
 import numpy as np
 from plotly.offline import plot
 import plotly.graph_objects as go
@@ -159,7 +160,7 @@ result_dict.update({cd.label: cd.get_plotting_data()[1]})
 result_dict.update({va.label: va.get_plotting_data()[1]})
 
 # create plot
-diagram = FluidPropertyDiagram('water') #todo: with NH3 as fluid -> error-message
+diagram = FluidPropertyDiagram('NH3')
 diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
 
 for key, data in result_dict.items():
@@ -174,7 +175,7 @@ for key in result_dict.keys():
     diagram.ax.plot(datapoints['h'], datapoints['p'], color='#ff0000')
     diagram.ax.scatter(datapoints['h'][0], datapoints['p'][0], color='#ff0000')
 
-# diagram.save('NH3_logph.svg')
+diagram.save('NH3_logph.svg')
 
 # %% exergy analysis
 
@@ -355,13 +356,3 @@ for Tgeo in Tgeo_range:
 
 df_cop_Tgeo_Q.to_csv('NH3_cop_Tgeo_Q.csv')
 df_eps_Tgeo_Q.to_csv('NH3_eps_Tgeo_Q.csv')
-
-links, nodes = ean.generate_plotly_sankey_input()
-fig = go.Figure(go.Sankey(
-     arrangement="snap",
-     node={
-         "label": nodes,
-         'pad': 11,
-         'color': 'orange'},
-     link=links))
-plot(fig, filename='NH3_sankey')

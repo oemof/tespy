@@ -1533,7 +1533,7 @@ class CombustionEngine(CombustionChamber):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        super().check_parameter_bounds(self)
+        super().check_parameter_bounds()
         # get bound errors for characteristic lines
         if np.isnan(self.P.design):
             expr = 1

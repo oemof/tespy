@@ -625,7 +625,7 @@ class Compressor(Turbomachine):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        super().check_parameter_bounds(self)
+        super().check_parameter_bounds()
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:

@@ -477,7 +477,7 @@ class Pump(Turbomachine):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        Turbomachine.calc_parameters(self)
+        super().calc_parameters()
 
         self.eta_s.val = (
             (isentropic(

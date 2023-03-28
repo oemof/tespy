@@ -199,8 +199,8 @@ class CombustionChamber(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
-        Component.comp_init(self, nw)
+    def preprocess(self, nw):
+        super().preprocess(nw)
         self.setup_reaction_parameters()
 
     def setup_reaction_parameters(self):

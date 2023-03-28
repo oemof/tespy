@@ -1056,7 +1056,7 @@ class Network:
                 cp.set_parameters(self.mode, series)
 
             # component initialisation
-            cp.comp_init(self)
+            cp.preprocess(self)
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
@@ -1282,7 +1282,7 @@ class Network:
                     logger.debug(msg)
 
             # start component initialisation
-            cp.comp_init(self)
+            cp.preprocess(self)
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:

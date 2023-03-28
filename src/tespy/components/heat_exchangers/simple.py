@@ -238,8 +238,8 @@ class HeatExchangerSimple(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
+    def preprocess(self, nw):
+        super().preprocess(nw, num_eq=len(nw.fluids) + 1)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, nw.T_unit)
 

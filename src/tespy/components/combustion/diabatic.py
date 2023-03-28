@@ -355,7 +355,7 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        CombustionChamber.calc_parameters(self)
+        super().calc_parameters()
 
         T_ref = 298.15
         p_ref = 1e5

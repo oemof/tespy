@@ -303,7 +303,7 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def comp_init(self, nw, num_eq=0):
+    def preprocess(self, nw, num_eq=0):
         r"""
         Perform component initialization in network preprocessing.
 

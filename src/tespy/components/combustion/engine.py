@@ -345,7 +345,7 @@ class CombustionEngine(CombustionChamber):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -361,7 +361,7 @@ class CombustionEngine(CombustionChamber):
                    self.label + ' as custom variable of the system.')
             logger.info(msg)
 
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
         self.setup_reaction_parameters()
 
@@ -1530,7 +1530,7 @@ class CombustionEngine(CombustionChamber):
         self.P.val = self.calc_P()
         self.Qloss.val = self.calc_Qloss()
 
-        CombustionChamber.calc_parameters(self)
+        super().calc_parameters()
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""

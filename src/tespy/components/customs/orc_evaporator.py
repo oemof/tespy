@@ -265,11 +265,11 @@ class ORCEvaporator(Component):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         self.overheating.is_set = not self.overheating.val
         self.subcooling.is_set = not self.subcooling.val
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
     def energy_balance_func(self):
         r"""

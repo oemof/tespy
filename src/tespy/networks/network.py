@@ -1056,7 +1056,7 @@ class Network:
                 cp.set_parameters(self.mode, series)
 
             # component initialisation
-            cp.comp_init(self)
+            cp.preprocess(self)
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
@@ -1282,7 +1282,7 @@ class Network:
                     logger.debug(msg)
 
             # start component initialisation
-            cp.comp_init(self)
+            cp.preprocess(self)
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
@@ -1812,7 +1812,10 @@ class Network:
                                        fluid='fluid',
                                        custom=custom)
         logger.progress(0, msg)
-        msg2 = '-' * 7 + '+------------' * 7
+        msg2 = '-' * 7 + '+------------' * 6 + "+"
+        if self.num_comp_vars > 0:
+            msg2 += '+-------------'
+
         logger.progress(0, msg2)
         if print_results:
             print('\n' + msg + '\n' + msg2)
@@ -2731,7 +2734,7 @@ class Network:
                     df.loc['total', 'bus value'] = (
                         coloring['set'] + str(df.loc['total', 'bus value']) +
                         coloring['end'])
-                result += ('##### RESULTS (Bus: ' + b.label + ') #####')
+                result += ('\n##### RESULTS (Bus: ' + b.label + ') #####\n')
                 result += (
                     tabulate(
                         df, headers='keys', tablefmt='psql',

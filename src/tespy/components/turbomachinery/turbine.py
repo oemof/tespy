@@ -471,7 +471,7 @@ class Turbine(Turbomachine):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        Turbomachine.calc_parameters(self)
+        super().calc_parameters()
 
         self.eta_s.val = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (

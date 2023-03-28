@@ -261,11 +261,11 @@ class Condenser(HeatExchanger):
                 deriv=self.subcooling_deriv, func=self.subcooling_func)
         }
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
     def subcooling_func(self):
         r"""

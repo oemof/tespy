@@ -24,6 +24,11 @@ Bug Fixes
   remain when in offdesign mode
   (`PR #396 <https://github.com/oemof/tespy/pull/396>`__).
 
+Other Changes
+#############
+- Rename `comp_init` method of components to `preprocess`
+  (`PR #404 <https://github.com/oemof/tespy/pull/404>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -10,9 +10,12 @@ from tespy.connections import Connection, Bus
 from tespy.components import (
     Source, Sink, HeatExchanger,
     DiabaticCombustionChamber, Turbine, Compressor)
-from tespy.tools.Chem_Ex_libs.libChemExAhrendts import Chem_Ex
+from tespy.tools.helpers import get_chem_ex_lib
 from tespy.tools.analyses import ExergyAnalysis
 import plotly.graph_objects as go
+
+
+Chem_Ex = get_chem_ex_lib("Ahrendts")
 
 fluid_list = ['O2', 'H2O', 'N2', 'CO2', 'CH4']
 nwk = Network(fluids=fluid_list, p_unit='bar', T_unit='K')
@@ -93,15 +96,15 @@ ean.print_results()
 #     c.get_chemical_exergy(1.013e5, 298.15, Chem_Ex)
 # for k,v in ean.sankey_data.items():
 #     print(v)
-#     print(k) 
+#     print(k)
   # print(ean.sankey_data)
-    
-links, nodes = ean.generate_plotly_sankey_input()  
+
+links, nodes = ean.generate_plotly_sankey_input()
 
 links['value'] = [val / links['value'][0] for val in links['value']]
 
 fig = go.Figure(data=[go.Sankey(
-    
+
       arrangement="snap",
       textfont={"family": "Linux Libertine O"},
       node={
@@ -112,5 +115,4 @@ fig = go.Figure(data=[go.Sankey(
 fig.show()
 
 
-    
-    
+

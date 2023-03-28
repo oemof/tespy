@@ -612,7 +612,11 @@ class Connection:
 
                 E^\mathrm{CH} = \dot{m} \cdot e^\mathrm{CH}
         """
-        self.ex_chemical = fp.calc_chemical_exergy(self, p0, T0, Chem_Ex)
+        if Chem_Ex is None:
+            self.ex_chemical = 0
+        else:
+            self.ex_chemical = fp.calc_chemical_exergy(self, p0, T0, Chem_Ex)
+
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
 
 

@@ -8,9 +8,12 @@ from tespy.connections import Connection, Bus
 from tespy.components import (
     Source, Sink, HeatExchanger,
     DiabaticCombustionChamber, Turbine, Compressor, Drum)
-from tespy.tools.Chem_Ex_libs.libChemExAhrendts import Chem_Ex
+from tespy.tools.helpers import get_chem_ex_lib
 from tespy.tools.analyses import ExergyAnalysis
 import plotly.graph_objects as go
+
+
+Chem_Ex = get_chem_ex_lib("Ahrendts")
 
 fluid_list = ['O2', 'H2O', 'N2', 'CO2', 'CH4']
 nwk = Network(fluids=fluid_list, p_unit='bar', T_unit='K')
@@ -126,12 +129,12 @@ network_result = ean.network_data.to_frame().transpose()
 for c in nwk.conns["object"]:
     c.get_physical_exergy(1.013e5, 298.15)
     c.get_chemical_exergy(1.013e5, 298.15, Chem_Ex)
-    
+
 ##Following Tstsaronis definition
 ##Exergy Balance Combustion Chamber without Split
 
 # E_P=cc_in_exp.Ex_physical+cc_in_exp.Ex_chemical-(amb_in_cc.Ex_physical+amb_in_cc.Ex_chemical)
-# E_F= (ch4_in_cc.Ex_chemical+ch4_in_cc.Ex_physical) 
+# E_F= (ch4_in_cc.Ex_chemical+ch4_in_cc.Ex_physical)
 
 # 70.17%
 
@@ -147,8 +150,8 @@ for c in nwk.conns["object"]:
 #Bejan
 #E_P=cc_in_exp.Ex_physical+cc_in_exp.Ex_chemical
 #E_F= aph_in_cc.Ex_chemical+ aph_in_cc.Ex_physical + ch4_in_cc.Ex_chemical+ ch4_in_cc.Ex_physical
- 
- 
+
+
 # Always when there is a combustion chamber it should calculate the chemical exergy
 #79.9%
 
@@ -157,7 +160,7 @@ for c in nwk.conns["object"]:
 #       (aph_in_cc.Ex_chemical+ aph_in_cc.Ex_physical) +
 #       ch4_in_cc.m.val*(-ch4_in_cc.ex_physical+cc_in_exp.ex_physical))
 # E_F= ch4_in_cc.m.val *(ch4_in_cc.ex_chemical-cc_in_exp.ex_chemical )
-# 
+#
 # 69.96 %
 E_P=dr_in_steam.Ex_chemical+dr_in_steam.Ex_physical-(water_in_eco.Ex_chemical
                                                      +water_in_eco.Ex_physical)
@@ -166,7 +169,7 @@ E_F=aph_in_eva.Ex_physical-eco_in_out.Ex_physical
 
 epsilon=E_P/E_F
 print(epsilon)
-links, nodes = ean.generate_plotly_sankey_input()  
+links, nodes = ean.generate_plotly_sankey_input()
 links['value'] = [val / links['value'][0] for val in links['value']]
 
 fig = go.Figure(data=[go.Sankey(
@@ -179,5 +182,5 @@ fig = go.Figure(data=[go.Sankey(
     link=links)])
 fig.show()
 
-#print(ebsilon)  
+#print(ebsilon)
 #plot(fig, filename='NH3_sankey')

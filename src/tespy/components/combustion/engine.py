@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.combustion.base import CombustionChamber
-from tespy.components.component import Component
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -1534,7 +1533,7 @@ class CombustionEngine(CombustionChamber):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        Component.check_parameter_bounds(self)
+        super().check_parameter_bounds(self)
         # get bound errors for characteristic lines
         if np.isnan(self.P.design):
             expr = 1

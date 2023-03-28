@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
@@ -626,7 +625,7 @@ class Compressor(Turbomachine):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        Component.check_parameter_bounds(self)
+        super().check_parameter_bounds(self)
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:

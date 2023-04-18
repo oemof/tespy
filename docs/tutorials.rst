@@ -63,7 +63,7 @@ out to us. We are looking forward to hearing from you!
             :class: only-dark
 
     .. grid-item-card::  Integration of an air source heat pump in energy system optimization
-        :link: https://fwitte.github.io/oemof-workshop-osmses-2023/
+        :link: https://oemof.github.io/heat-pump-tutorial/
 
         .. image:: /_static/images/tutorials/osmses-2023.svg
             :class: only-light

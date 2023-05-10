@@ -286,10 +286,16 @@ class ExergyAnalysis:
         self.E_L = E_L
         self.internal_busses = internal_busses
 
-        self.reserved_fkt_groups = (
-            ['E_P', 'E_F', 'E_D', 'E_L'] +
-            [b.label for b in internal_busses + E_F + E_P + E_L]
-        )
+        bus_labels = [b.label for b in internal_busses + E_F + E_P + E_L]
+        key_exergy_labels = ['E_P', 'E_F', 'E_D', 'E_L']
+        self.reserved_fkt_groups = key_exergy_labels + bus_labels
+        if len(set(bus_labels).intersection(key_exergy_labels)) > 0:
+            msg = (
+                "None of your busses may have the label '"
+                + "', '".join(key_exergy_labels) + "' when performing the "
+                + "exergy analysis."
+            )
+            raise ValueError(msg)
 
     def analyse(self, pamb, Tamb, Chem_Ex=None):
         """Run the exergy analysis.
@@ -363,20 +369,21 @@ class ExergyAnalysis:
             if not hasattr(cp, 'fkt_group'):
                 cp.fkt_group = cp.label
             self.component_data.loc[cp.label] = [
-                cp.E_F, cp.E_P, cp.E_D, cp.epsilon, cp.fkt_group]
+                cp.E_F, cp.E_P, cp.E_D, cp.epsilon, cp.fkt_group
+            ]
 
             if cp.fkt_group in self.reserved_fkt_groups:
                 msg = (
                     'The labels ' + ', '.join(self.reserved_fkt_groups) + ' '
                     'cannot be used by components (if no group was assigned) '
                     'or component groups in the exergy analysis. Found '
-                    'component/group with name ' + cp.fkt_group + '.')
+                    'component/group with name ' + cp.fkt_group + '.'
+                )
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
-               # print(cp)
-               # todo: überprüfen der sankey data
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
-                    columns=['value', 'chemical_exergy', 'physical_exergy', 'cat'], dtype='object')
+                columns=sankey_columns_dtypes.keys()
+            ).astype(sankey_columns_dtypes)
 
             self.evaluate_busses(cp)
 

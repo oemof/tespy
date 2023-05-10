@@ -389,7 +389,9 @@ class Valve(Component):
             self.E_P = np.nan
             self.E_F = np.nan
 
-        self.E_bus = np.nan
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
         if np.isnan(self.E_P):
             self.E_D = self.E_F
         else:

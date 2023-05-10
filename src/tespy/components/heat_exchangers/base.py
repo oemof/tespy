@@ -1015,7 +1015,7 @@ class HeatExchanger(Component):
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_mech)
 
-        self.E_bus = np.nan
+        self.E_bus = {"chemical": np.nan, "physical": np.nan, "massless": np.nan}
         if np.isnan(self.E_P):
             self.E_D = self.E_F
         else:

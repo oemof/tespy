@@ -138,19 +138,21 @@ class TestClausiusRankine:
         self.nw.get_comp('turbine').set_attr(eta_s=0.9)
         self.nw.get_comp('feed water pump turbine').set_attr(eta_s=0.85)
         self.nw.get_comp('pump').set_attr(eta_s=0.75)
-        self.nw.get_conn('cond').set_attr(T=self.Tamb + 3)
+        # to make a beautiful graph we need positive exergy of the condensate
+        self.nw.get_conn('cond').set_attr(T=self.Tamb + 5)
 
         # specify efficiency values for the internal bus and power bus
         self.nw.del_busses(self.fwp_power, self.power)
 
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.get_comp('feed water pump turbine'),
-             'char': 0.99},
-            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('feed water pump turbine'), 'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'}
+        )
         self.power = Bus('power_output')
         self.power.add_comps(
-            {'comp': self.nw.get_comp('turbine'), 'char': 0.98})
+            {'comp': self.nw.get_comp('turbine'), 'char': 0.98}
+        )
 
         self.nw.add_busses(self.fwp_power, self.power)
 
@@ -164,7 +166,8 @@ class TestClausiusRankine:
 
         exergy_balance = (
             ean.network_data.E_F - ean.network_data.E_P -
-            ean.network_data.E_L - ean.network_data.E_D)
+            ean.network_data.E_L - ean.network_data.E_D
+        )
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -215,9 +218,9 @@ class TestClausiusRankine:
         self.nw.del_busses(self.fwp_power)
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.get_comp('feed water pump turbine'),
-             'char': 0.99},
-            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('feed water pump turbine'), 'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'}
+        )
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)

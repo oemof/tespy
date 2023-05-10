@@ -14,7 +14,7 @@ New Features
 - The chemical exergy analysis features is now available for combustion chamber
   and diabatic combustion chamber. The feature also ships the `Ahrendts`
   :cite:`Ahrendts1980,Ahrendts1977,Ahrendts1974`, `Szargut1988`
-  :cite:`szargut1988` and `Szargut2007` :cite:`szargut2007,bakshi2011` chemical
+  :cite:`Szargut1988` and `Szargut2007` :cite:`Szargut2007,Bakshi2011` chemical
   exergy data for the environment model. In your Grassmann exergy flow diagrams
   you can now also decide, whether to disaggregate the flows of exergy into
   their chemical and physical (and massless, e.g. mechanical or electrical

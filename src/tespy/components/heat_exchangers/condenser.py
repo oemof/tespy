@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -261,11 +260,11 @@ class Condenser(HeatExchanger):
                 deriv=self.subcooling_deriv, func=self.subcooling_func)
         }
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
     def subcooling_func(self):
         r"""
@@ -318,23 +317,8 @@ class Condenser(HeatExchanger):
         self.jacobian[k, 2, 1] = -dh_mix_dpQ(self.outl[0].get_flow(), 0)
         self.jacobian[k, 2, 2] = 1
 
-    def kA_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
+    def calculate_td_log(self):
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
-                kA \cdot \frac{T_{out,1} -
-                T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
-                {\ln{\frac{T_{out,1} - T_{in,2}}
-                {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
-        """
         i1 = self.inl[0]
         i2 = self.inl[1]
         o1 = self.outl[0]
@@ -354,10 +338,14 @@ class Condenser(HeatExchanger):
         if T_o1 <= T_i2 and not i2.T.val_set:
             T_i2 = T_o1 - 1
 
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
+        ttd_u = T_i1 - T_o2
+        ttd_l = T_o1 - T_i2
+        if ttd_u == ttd_l:
+            td_log = ttd_l
+        else:
+            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
 
-        return i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) + self.kA.val * td_log
+        return td_log
 
     def kA_func_doc(self, label):
         r"""
@@ -409,41 +397,7 @@ class Condenser(HeatExchanger):
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
         module :py:mod:`tespy.data`.
         """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
-        f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
-
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-
-        # temperature value manipulation for convergence stability
-        T_i1 = T_bp_p(i1.get_flow())
-        T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
-
-        if T_i1 <= T_o2 and not i1.T.val_set:
-            T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.val_set:
-            T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.val_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.val_set:
-            T_i2 = T_o1 - 1
-
-        td_log = ((T_o1 - T_i2 - T_i1 + T_o2) /
-                  np.log((T_o1 - T_i2) / (T_i1 - T_o2)))
-
-        fkA1 = self.kA_char1.char_func.evaluate(f1)
-        fkA2 = self.kA_char2.char_func.evaluate(f2)
-        fkA = 2 / (1 / fkA1 + 1 / fkA2)
-
-        return (
-            i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI) +
-            self.kA.design * fkA * td_log)
+        return super().kA_char_func()
 
     def kA_char_func_doc(self, label):
         r"""
@@ -537,8 +491,9 @@ class Condenser(HeatExchanger):
         # kA and logarithmic temperature difference
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
-            self.kA.val = np.nan
+        elif self.ttd_l.val == self.ttd_u.val:
+            self.td_log.val = self.ttd_l.val
         else:
             self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
                                np.log(self.ttd_l.val / self.ttd_u.val))
-            self.kA.val = -self.Q.val / self.td_log.val
+        self.kA.val = -self.Q.val / self.td_log.val

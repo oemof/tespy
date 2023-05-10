@@ -2,7 +2,7 @@
 version: 2
 sphinx:
   configuration: docs/conf.py
-formats: all
+# formats: all  ## none appart from html required here
 python:
   install:
     - requirements: docs/requirements.txt

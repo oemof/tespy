@@ -517,3 +517,44 @@ class TestHeatExchangers:
                str(round(self.c1.p.val_SI, 5)) + '.')
         assert p == round(self.c1.p.val_SI, 5), msg
         shutil.rmtree('./tmp', ignore_errors=True)
+
+    def test_CondenserWithEvaporation(self):
+        """Test a Condenser that evaporates a fluid."""
+        instance = Condenser('condenser')
+        self.setup_HeatExchanger_network(instance)
+
+        # design specification
+        instance.set_attr(pr1=1, pr2=1, offdesign=["kA"])
+        self.c1.set_attr(x=1, p=1, fluid={'Ar': 0, 'H2O': 1, 'S800': 0}, m=1)
+        self.c3.set_attr(
+            x=0, p=0.7, fluid={'Ar': 0, 'H2O': 1, 'S800': 0}, m=2, design=["m"]
+        )
+        self.nw.solve('design')
+        convergence_check(self.nw.lin_dep)
+        ttd_l = round(instance.ttd_l.val, 3)
+        ttd_u = round(instance.ttd_u.val, 3)
+        td_log = round(instance.td_log.val, 3)
+        msg = (
+            "Value of upper and lower terminal temperature differences must be "
+            f"identical, but they are not: ttd_u={ttd_u}, ttd_l={ttd_l}."
+        )
+        assert instance.ttd_l.val == instance.ttd_u.val, msg
+
+        msg = (
+            "Value of logarithmic and lower terminal temperature differences "
+            f"must be identical, but they are not: td_log={td_log}, "
+            f"ttd_l={ttd_l}."
+        )
+        assert instance.td_log.val == instance.ttd_l.val, msg
+
+        # self.nw.save('tmp')
+        # self.c1.set_attr(m=1)
+        # self.nw.solve("offdesign", design_path="tmp")
+        # convergence_check(self.nw.lin_dep)
+        # msg = (
+        #     "Value of logarithmic and lower terminal temperature differences "
+        #     f"must be identical, but they are not: td_log={td_log}, "
+        #     f"ttd_l={self.c3.m.val}."
+        # )
+        # assert instance.td_log.val == instance.ttd_l.val, msg
+        shutil.rmtree('./tmp', ignore_errors=True)

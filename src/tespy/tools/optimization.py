@@ -289,7 +289,9 @@ class OptimizationProblem:
                 )
             pop = algo.evolve(pop)
 
-        gen += 1
+        if num_gen > 1:
+            gen += 1
+
         self._process_generation_data(gen, pop)
 
         print('Final evolution: {}'.format(gen))

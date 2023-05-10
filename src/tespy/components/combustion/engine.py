@@ -10,13 +10,10 @@ tespy/components/combustion/engine.py
 
 SPDX-License-Identifier: MIT
 """
-
-import logging
-
 import numpy as np
 
 from tespy.components.combustion.base import CombustionChamber
-from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -347,23 +344,23 @@ class CombustionEngine(CombustionChamber):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         if not self.P.is_set:
             self.set_attr(P='var')
             msg = ('The power output of combustion engines must be set! '
                    'We are adding the power output of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         if not self.Qloss.is_set:
             self.set_attr(Qloss='var')
             msg = ('The heat loss of combustion engines must be set! '
                    'We are adding the heat loss of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
         self.setup_reaction_parameters()
 
@@ -1237,7 +1234,7 @@ class CombustionEngine(CombustionChamber):
         else:
             msg = ('The parameter ' + str(bus['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return val
@@ -1358,7 +1355,7 @@ class CombustionEngine(CombustionChamber):
         else:
             msg = ('The parameter ' + str(b['param']) +
                    ' is not a valid parameter for a ' + self.component() + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return deriv
@@ -1532,11 +1529,11 @@ class CombustionEngine(CombustionChamber):
         self.P.val = self.calc_P()
         self.Qloss.val = self.calc_Qloss()
 
-        CombustionChamber.calc_parameters(self)
+        super().calc_parameters()
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        Component.check_parameter_bounds(self)
+        super().check_parameter_bounds()
         # get bound errors for characteristic lines
         if np.isnan(self.P.design):
             expr = 1

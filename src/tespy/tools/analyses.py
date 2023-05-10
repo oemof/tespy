@@ -14,14 +14,13 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
-
 import numpy as np
 import pandas as pd
 from matplotlib import cm
 from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 
 
@@ -272,12 +271,12 @@ class ExergyAnalysis:
         """
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
-            logging.error(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         if len(E_P) == 0:
             msg = ('Missing product exergy E_P of network.')
-            logging.error(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         self.nw = network
@@ -440,7 +439,7 @@ class ExergyAnalysis:
                 'smaller than ' + str(err ** 0.5) + '), you should check the '
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
-            logging.error(msg)
+            logger.error(msg)
 
         self.create_group_data()
 
@@ -461,7 +460,7 @@ class ExergyAnalysis:
                         'busses in the exergy analysis. Make sure that no '
                         'component is connected to more than one of the '
                         'busses passed to the exergy_analysis method.')
-                    logging.error(msg)
+                    logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 # todo: E_bus als dict mit den versch. werten
                 if b.comps.loc[cp, 'base'] == 'bus':
@@ -727,7 +726,7 @@ class ExergyAnalysis:
                 msg = (
                     'The list of nodes passed is missing the following '
                     'nodes: "' + '", "'.join(missing) + '".')
-                logging.error(msg)
+                logger.error(msg)
                 raise ValueError(msg)
 
         num_fluids = len(self.nw.fluids)

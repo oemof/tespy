@@ -11,12 +11,10 @@ tespy/components/turbomachinery/compressor.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components.turbomachinery.base import Turbomachine
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -270,7 +268,7 @@ class Compressor(Turbomachine):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         i = self.inl[0]
@@ -617,7 +615,7 @@ class Compressor(Turbomachine):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        Turbomachine.calc_parameters(self)
+        super().calc_parameters()
 
         self.eta_s.val = (
             (isentropic(
@@ -627,7 +625,7 @@ class Compressor(Turbomachine):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        Component.check_parameter_bounds(self)
+        super().check_parameter_bounds()
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
@@ -687,7 +685,7 @@ class Compressor(Turbomachine):
         else:
             msg = ('Exergy balance of a compressor, where outlet temperature '
                    'is smaller than inlet temperature is not implmented.')
-            logging.warning(msg)
+            logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
 

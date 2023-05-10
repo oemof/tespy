@@ -17,12 +17,14 @@ At the example of different heat pump topologies, you will learn to
 
 Furthermore, we introduce the coupling of TESPy with pygmo in order to create
 an optimization problem, which optimizes thermal efficiency of a clausius
-rankine power plant. Another typical setup are heat recovery steam generators
-using exhaust gases from an open cycle gas turbine.
+rankine power plant. Also, there is a tutorial on the implementation of an air
+source heat pump in an energy system dispatch optimization problem using
+`oemof-solph <https://github.com/oemof/oemof-solph>`__. For that tutorial an air
+source heat pump is implemented in various details of modeling complexity and
+the results are transferred to the energy system optimization problem.
 
-Finally, we provide an approach on how to model complex district heating
-systems. If you have any questions, ideas for other tutorials or feedback,
-please reach out to us. We are looking forward to hearing from you!
+If you have any questions, ideas for other tutorials or feedback, please reach
+out to us. We are looking forward to hearing from you!
 
 .. grid:: 2
     :gutter: 1
@@ -60,9 +62,15 @@ please reach out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Building Complex District Heating Systems
+    .. grid-item-card::  Integration of an air source heat pump in energy system optimization
+        :link: https://oemof.github.io/heat-pump-tutorial/
 
-        Coming soon!
+        .. image:: /_static/images/tutorials/osmses-2023.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
+            :class: only-dark
+
 
 .. grid:: 2
     :gutter: 1

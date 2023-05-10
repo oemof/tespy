@@ -8,7 +8,7 @@ available from its original location tespy/tools/helpers.py
 
 SPDX-License-Identifier: MIT
 """
-import logging
+
 import json
 import os
 from collections import OrderedDict
@@ -19,6 +19,7 @@ import CoolProp as CP
 import numpy as np
 
 from tespy import __datapath__
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
@@ -326,7 +327,7 @@ class UserDefinedEquation:
             self.label = label
         else:
             msg = 'Label of UserDefinedEquation object must be of type String.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         if isinstance(conns, list):
@@ -335,7 +336,7 @@ class UserDefinedEquation:
             msg = (
                 'Parameter conns must be a list of '
                 'tespy.connections.connection.Connection objects.')
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         self.func = func
@@ -345,7 +346,7 @@ class UserDefinedEquation:
             self.params = params
         else:
             msg = 'The parameter params must be passed as dictionary.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
         self.latex = {
@@ -357,7 +358,7 @@ class UserDefinedEquation:
             self.latex.update(latex)
         else:
             msg = 'The parameter latex must be passed as dictionary.'
-            logging.error(msg)
+            logger.error(msg)
             raise TypeError(msg)
 
     def numeric_deriv(self, param, idx):
@@ -421,7 +422,7 @@ class UserDefinedEquation:
             msg = (
                 'Can only calculate numerical derivative to primary variables.'
                 'Please specify "m", "p", "h" or "fluid" as param.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return deriv
@@ -515,7 +516,7 @@ def newton(func, deriv, params, y, **kwargs):
                    'for function ' + str(func) + '. Current value with x=' +
                    str(x) + ' is ' + str(func(params, x)) +
                    ', target value is ' + str(y) + '.')
-            logging.debug(msg)
+            logger.debug(msg)
 
             break
         if tol_mode == 'abs':

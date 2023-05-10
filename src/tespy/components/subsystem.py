@@ -13,7 +13,7 @@ available from its original location tespy/components/subsystems.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
+from tespy.tools import logger
 
 # %%
 
@@ -44,12 +44,12 @@ class Subsystem:
 
         if not isinstance(label, str):
             msg = 'Subsystem label must be of type str!'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         elif len([x for x in [';', ', ', '.'] if x in label]) > 0:
             msg = 'Can\'t use ' + str([';', ', ', '.']) + ' in label.'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
         else:
             self.label = label
@@ -77,7 +77,7 @@ class Subsystem:
             return self.__dict__[key]
         else:
             msg = 'Subsystem ' + self.label + ' has no attribute ' + key + '.'
-            logging.error(msg)
+            logger.error(msg)
             raise KeyError(msg)
 
     def create_comps(self):

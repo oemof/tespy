@@ -2576,7 +2576,7 @@ class Network:
             if (fluid is None and
                     abs(
                         fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI
-                    ) > err ** (1 / 3)):
+                    ) > err ** .5):
                 c.T.val_SI = np.nan
                 c.vol.val_SI = np.nan
                 c.v.val_SI = np.nan

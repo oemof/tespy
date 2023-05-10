@@ -381,8 +381,8 @@ class ExergyAnalysis:
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
-                columns=sankey_columns_dtypes.keys()
-            ).astype(sankey_columns_dtypes)
+                    columns=sankey_columns_dtypes.keys()
+                ).astype(sankey_columns_dtypes)
 
             self.evaluate_busses(cp)
 
@@ -668,8 +668,7 @@ class ExergyAnalysis:
 
     def generate_plotly_sankey_input(
             self, node_order=[], colors={}, display_thresold=1e-3,
-            aggregate_flows=True
-        ):
+            aggregate_flows=True):
         """Generate input data for sankey plots.
 
         Only exergy flow above the display threshold is included. All

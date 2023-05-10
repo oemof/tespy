@@ -1278,16 +1278,14 @@ class WaterElectrolyzer(Component):
             4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
             ))
 
+    def exergy_balance(self, T0):
+        self.E_P = (
+            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
+            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
+            + self.inl[0].Ex_physical
+        )
+        self.E_F = self.P.val
 
-
-        def exergy_balance(self, T0):
-
-             self.E_P= (self.outl[1].Ex_chemical + self.outl[2].Ex_chemical -
-                        self.inl[1].Ex_chemical) + (self.outl[0].Ex_physical
-                                                   + self.inl[0].Ex_physical)
-             self.E_F= self.P.val
-
-             self.E_D= self.E_F - self.E_P
-             self.epsilon= self.E_P/self.E_F
-             self.E_bus= self.P.val
-
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P/self.E_F
+        self.E_bus = self.P.val

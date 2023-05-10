@@ -1742,7 +1742,7 @@ def calc_chemical_exergy(conn, p0, T0, Chem_Ex):
     ex_chemical = ex_cond + ex_dry * (1 - x_water_liq)
     ex_chemical *= 1 / molar_mass_mixture
 
-    return ex_chemical * 1e3 # Data from Chem_Ex are in kJ / mol
+    return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
 
 
 def entropy_iteration_IF97(p, h, fluid, output):

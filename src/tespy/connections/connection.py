@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8
 """Module of class Connection and class Ref.
 
 

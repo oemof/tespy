@@ -14,9 +14,9 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
+import matplotlib
 import numpy as np
 import pandas as pd
-import matplotlib
 from tabulate import tabulate
 
 from tespy.tools import helpers as hlp

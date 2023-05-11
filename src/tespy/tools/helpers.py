@@ -27,7 +27,7 @@ from tespy.tools.global_vars import molar_masses
 
 def get_chem_ex_lib(name):
     """Return a new dictionary by merging two dictionaries recursively."""
-    path = os.path.join(__datapath__, "ChemEx", f"LibChemEx{name}.json")
+    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
     with open(path, "r") as f:
         return json.load(f)
 

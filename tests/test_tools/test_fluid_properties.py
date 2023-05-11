@@ -35,7 +35,7 @@ def convergence_check(lin_dep):
 
 class TestFluidProperties:
 
-    def setup(self):
+    def setup_method(self):
         fp.Memorise.add_fluids({'Air': 'HEOS'})
         fp.Memorise.add_fluids({
             'N2': 'HEOS', 'O2': 'HEOS', 'Ar': 'HEOS', 'CO2': 'HEOS'})

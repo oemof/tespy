@@ -291,7 +291,7 @@ def test_CombustionChamber_missing_oxygen():
 
 class TestCombustionEngineBusErrors:
 
-    def setup(self):
+    def setup_method(self):
         self.nw = Network(['water', 'air'])
         self.instance = CombustionEngine('combustion engine')
         self.bus = Bus('power')
@@ -446,7 +446,7 @@ def test_wrong_Bus_param_deriv():
 
 class TestNetworkErrors:
 
-    def setup(self):
+    def setup_method(self):
         self.nw = Network(['water'])
 
     def test_add_conns_TypeError(self):

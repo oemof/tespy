@@ -34,7 +34,7 @@ def convergence_check(lin_dep):
 
 class TestHeatExchangers:
 
-    def setup(self):
+    def setup_method(self):
 
         self.nw = Network(
             ['H2O', 'Ar', 'INCOMP::S800'], T_unit='C', p_unit='bar',

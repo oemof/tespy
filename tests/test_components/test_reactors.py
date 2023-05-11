@@ -30,7 +30,7 @@ def convergence_check(lin_dep):
 
 class TestReactors:
 
-    def setup(self):
+    def setup_method(self):
         """Set up network for electrolyzer tests."""
         self.nw = Network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
         self.instance = WaterElectrolyzer('electrolyzer')

@@ -38,7 +38,7 @@ def convergence_check(lin_dep):
 
 class TestClausiusRankine:
 
-    def setup(self):
+    def setup_method(self):
         """Set up clausis rankine cycle with turbine driven feed water pump."""
         self.Tamb = 20
         self.pamb = 1
@@ -259,10 +259,19 @@ class TestClausiusRankine:
                 self.nw, E_P=[self.power], E_F=[self.heat, self.power])
             ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
+    def test_exergy_analysis_invalid_bus_name(self):
+        """Test exergy analysis errors with components on more than one bus."""
+        with raises(ValueError):
+            self.power.label = "E_P"
+            ean = ExergyAnalysis(
+                self.nw, E_P=[self.power], E_F=[self.heat]
+            )
+            ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
 
 class TestRefrigerator:
 
-    def setup(self):
+    def setup_method(self):
         """Set up simple refrigerator."""
         self.Tamb = 20
         self.pamb = 1
@@ -328,7 +337,7 @@ class TestRefrigerator:
 
 class TestCompressedAirIn:
 
-    def setup(self):
+    def setup_method(self):
         """Set up air compressor."""
         self.Tamb = 20
         self.pamb = 1
@@ -387,7 +396,7 @@ class TestCompressedAirIn:
 
 class TestCompressedAirOut:
 
-    def setup(self):
+    def setup_method(self):
         """Set up air compressed air turbine."""
         self.Tamb = 20
         self.pamb = 1
@@ -477,7 +486,7 @@ class TestCompressedAirOut:
 
 class TestCompression:
 
-    def setup(self):
+    def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
         fluids = ['Air']
@@ -556,7 +565,7 @@ class TestCompression:
 
 class TestExpansion:
 
-    def setup(self):
+    def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
         fluids = ['Air']

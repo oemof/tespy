@@ -28,7 +28,7 @@ def convergence_check(lin_dep):
 
 class TestClausiusRankine:
 
-    def setup(self):
+    def setup_method(self):
         """Set up clausis rankine cycle with turbine driven feed water pump."""
         self.Tamb = 20
         self.pamb = 1

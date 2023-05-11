@@ -38,7 +38,7 @@ def convergence_check(lin_dep):
 
 class TestClausiusRankine:
 
-    def setup(self):
+    def setup_method(self):
         """Set up clausis rankine cycle with turbine driven feed water pump."""
         self.Tamb = 20
         self.pamb = 1
@@ -138,19 +138,21 @@ class TestClausiusRankine:
         self.nw.get_comp('turbine').set_attr(eta_s=0.9)
         self.nw.get_comp('feed water pump turbine').set_attr(eta_s=0.85)
         self.nw.get_comp('pump').set_attr(eta_s=0.75)
-        self.nw.get_conn('cond').set_attr(T=self.Tamb + 3)
+        # to make a beautiful graph we need positive exergy of the condensate
+        self.nw.get_conn('cond').set_attr(T=self.Tamb + 5)
 
         # specify efficiency values for the internal bus and power bus
         self.nw.del_busses(self.fwp_power, self.power)
 
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.get_comp('feed water pump turbine'),
-             'char': 0.99},
-            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('feed water pump turbine'), 'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'}
+        )
         self.power = Bus('power_output')
         self.power.add_comps(
-            {'comp': self.nw.get_comp('turbine'), 'char': 0.98})
+            {'comp': self.nw.get_comp('turbine'), 'char': 0.98}
+        )
 
         self.nw.add_busses(self.fwp_power, self.power)
 
@@ -164,7 +166,8 @@ class TestClausiusRankine:
 
         exergy_balance = (
             ean.network_data.E_F - ean.network_data.E_P -
-            ean.network_data.E_L - ean.network_data.E_D)
+            ean.network_data.E_L - ean.network_data.E_D
+        )
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(err ** 0.5) + ') for this test but is ' +
@@ -215,9 +218,9 @@ class TestClausiusRankine:
         self.nw.del_busses(self.fwp_power)
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
-            {'comp': self.nw.get_comp('feed water pump turbine'),
-             'char': 0.99},
-            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
+            {'comp': self.nw.get_comp('feed water pump turbine'), 'char': 0.99},
+            {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'}
+        )
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
         convergence_check(self.nw.lin_dep)
@@ -256,10 +259,19 @@ class TestClausiusRankine:
                 self.nw, E_P=[self.power], E_F=[self.heat, self.power])
             ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
+    def test_exergy_analysis_invalid_bus_name(self):
+        """Test exergy analysis errors with components on more than one bus."""
+        with raises(ValueError):
+            self.power.label = "E_P"
+            ean = ExergyAnalysis(
+                self.nw, E_P=[self.power], E_F=[self.heat]
+            )
+            ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
+
 
 class TestRefrigerator:
 
-    def setup(self):
+    def setup_method(self):
         """Set up simple refrigerator."""
         self.Tamb = 20
         self.pamb = 1
@@ -325,7 +337,7 @@ class TestRefrigerator:
 
 class TestCompressedAirIn:
 
-    def setup(self):
+    def setup_method(self):
         """Set up air compressor."""
         self.Tamb = 20
         self.pamb = 1
@@ -384,7 +396,7 @@ class TestCompressedAirIn:
 
 class TestCompressedAirOut:
 
-    def setup(self):
+    def setup_method(self):
         """Set up air compressed air turbine."""
         self.Tamb = 20
         self.pamb = 1
@@ -474,7 +486,7 @@ class TestCompressedAirOut:
 
 class TestCompression:
 
-    def setup(self):
+    def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
         fluids = ['Air']
@@ -553,7 +565,7 @@ class TestCompression:
 
 class TestExpansion:
 
-    def setup(self):
+    def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
         fluids = ['Air']

@@ -28,7 +28,7 @@ def convergence_check(lin_dep):
 
 class TestOrcEvaporator:
 
-    def setup(self):
+    def setup_method(self):
         self.nw = Network(['water', 'Isopentane'], T_unit='C', p_unit='bar',
                           h_unit='kJ / kg')
         self.inl1 = Source('inlet 1')

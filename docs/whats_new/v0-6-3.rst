@@ -11,6 +11,14 @@ New Features
   (`PR #390 <https://github.com/oemof/tespy/pull/390>`__).
 - A progress bar for the iterations has been integrated
   (`PR #391 <https://github.com/oemof/tespy/pull/391>`__).
+- The chemical exergy analysis features is now available for combustion chamber
+  and diabatic combustion chamber. The feature also ships the `Ahrendts`
+  :cite:`Ahrendts1980,Ahrendts1977,Ahrendts1974`, `Szargut1988`
+  :cite:`Szargut1988` and `Szargut2007` :cite:`Szargut2007,Bakshi2011` chemical
+  exergy data for the environment model. In your Grassmann exergy flow diagrams
+  you can now also decide, whether to disaggregate the flows of exergy into
+  their chemical and physical (and massless, e.g. mechanical or electrical
+  power) parts (`PR #322 <https://github.com/oemof/tespy/pull/322>`__).
 
 Bug Fixes
 #########
@@ -34,3 +42,8 @@ Contributors
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@jowr <https://github.com/jowr>`__
 - `@dk-teknologisk-enp <https://github.com/dk-teknologisk-enp>`__
+- `@aburabazam <https://github.com/aburabazam>`__
+
+Special thanks to `@KarimHShawky <https://github.com/KarimHShawky>`__ and
+`@tub-hofmann <https://github.com/tub-hofmann>`__ for the compilation and
+provision of the standard chemical exergy data.

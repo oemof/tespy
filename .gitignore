@@ -39,17 +39,8 @@ htmlcov
 # Translations
 *.mo
 
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-.idea
-*.iml
-*.komodoproject
-
-# Complexity
-output/*.html
-output/*/index.html
+# VS code
+.vscode
 
 # Sphinx
 docs/_build
@@ -66,6 +57,3 @@ docs/_build
 .bootstrap
 .appveyor.token
 *.bak
-
-# Mypy Cache
-.mypy_cache/

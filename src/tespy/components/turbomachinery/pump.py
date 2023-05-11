@@ -538,6 +538,8 @@ class Pump(Turbomachine):
             self.E_P = np.nan
             self.E_F = np.nan
 
-        self.E_bus = self.P.val
+        self.E_bus = {
+            "chemical": 0, "physical": 0, "massless": self.P.val
+        }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

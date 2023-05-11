@@ -491,7 +491,9 @@ class Merge(NodeBase):
                     self.E_F += i.m.val_SI * (
                         i.ex_physical - self.outl[0].ex_physical)
 
-        self.E_bus = np.nan
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

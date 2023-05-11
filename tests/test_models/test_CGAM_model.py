@@ -186,11 +186,11 @@ class TestCGAM:
 
         fuel_exergy = Bus('fuel exergy')
         fuel_exergy.add_comps(
-            {'comp': ch4, 'base':'bus'},{'comp': amb, 'base':'bus'}
+            {'comp': ch4, 'base': 'bus'}, {'comp': amb, 'base': 'bus'}
         )
         heat = Bus('heat product')
         heat.add_comps(
-            {'comp': fw, 'base':'bus'},{'comp': ls, 'base':'component'}
+            {'comp': fw, 'base': 'bus'}, {'comp': ls, 'base': 'component'}
         )
 
         exergy_loss = Bus('exergy loss')

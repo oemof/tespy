@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 import pandas as pd
-from matplotlib import cm
+import matplotlib
 from tabulate import tabulate
 
 from tespy.tools import helpers as hlp

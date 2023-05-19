@@ -1554,6 +1554,9 @@ class Network:
         - Perform actual calculation.
         - Postprocessing.
 
+        It is possible to check programatically, if a network was solved
+        successfully with the `.converged` property.
+
         Parameters
         ----------
         mode : str
@@ -1597,6 +1600,7 @@ class Network:
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
         self.new_design = False
+        self.converged = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
                 if c.new_design:
@@ -1718,6 +1722,7 @@ class Network:
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
+                self.converged = True
                 break
 
             if self.iter > 40:
@@ -1736,6 +1741,7 @@ class Network:
                    '), calculation stopped. Residual value is '
                    '{:.2e}'.format(norm(self.residual)))
             logger.warning(msg)
+
         return
 
     def solve_determination(self):

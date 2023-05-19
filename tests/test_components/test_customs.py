@@ -20,12 +20,6 @@ from tespy.networks import Network
 from tespy.tools.fluid_properties import T_bp_p
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestOrcEvaporator:
 
     def setup_method(self):
@@ -69,7 +63,7 @@ class TestOrcEvaporator:
         Q = -6.64e+07
         self.instance.set_attr(Q=Q)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         Q_is = -self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat flow must be ' + str(round(Q, 0)) +
                ', is ' + str(round(Q_is, 0)) + '.')
@@ -82,7 +76,7 @@ class TestOrcEvaporator:
         b.add_comps({'comp': self.instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('tmp')
 
         Q_is = -self.c5.m.val_SI * (self.c6.h.val_SI - self.c5.h.val_SI)
@@ -108,7 +102,7 @@ class TestOrcEvaporator:
         # Check offdesign by zeta values
         # geometry independent friction coefficient
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         msg = ('Geometry independent friction coefficient '
                'at hot side 1 (steam) '
@@ -131,7 +125,7 @@ class TestOrcEvaporator:
         self.c2.set_attr(Td_bp=-dT)
         self.c6.set_attr(Td_bp=dT)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         T_steam = T_bp_p(self.c2.get_flow()) - dT
         T_isop = T_bp_p(self.c6.get_flow()) + dT

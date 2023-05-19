@@ -20,12 +20,6 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestPiping:
 
     def setup_piping_network(self, instance):
@@ -48,7 +42,7 @@ class TestPiping:
         # test variable pressure ration
         instance.set_attr(pr='var')
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(round(instance.pr.val, 2)) + '.')
@@ -58,7 +52,7 @@ class TestPiping:
         zeta = round(instance.zeta.val, 0)
         instance.set_attr(zeta='var', pr=None)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of dimension independent zeta value must be ' +
                str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
         assert zeta == round(instance.zeta.val, 0), msg
@@ -73,7 +67,7 @@ class TestPiping:
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=np.nan)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)

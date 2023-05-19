@@ -27,12 +27,6 @@ from tespy.networks import Network
 from tespy.tools import fluid_properties as fp
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestFluidProperties:
 
     def setup_method(self):
@@ -316,7 +310,7 @@ class TestFluidPropertyBackEnds:
             if fluid in fp.Memorise.state.keys():
                 del fp.Memorise.state[fluid]
             self.setup_pipeline_network([back_end + '::' + fluid])
-            convergence_check(self.nw.lin_dep)
+            self.nw._convergence_check()
 
             value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (

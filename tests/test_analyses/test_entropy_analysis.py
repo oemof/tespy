@@ -20,12 +20,6 @@ from tespy.connections import Connection
 from tespy.networks import Network
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestClausiusRankine:
 
     def setup_method(self):
@@ -88,7 +82,7 @@ class TestClausiusRankine:
         self.nw.solve('design')
         for cp in self.nw.comps['object']:
             cp.entropy_balance()
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_entropy_perfect_cycle(self):
         """Test entropy values in the perfect clausius rankine cycle."""

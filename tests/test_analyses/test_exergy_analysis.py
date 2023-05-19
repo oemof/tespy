@@ -30,12 +30,6 @@ from tespy.tools.global_vars import err
 from tespy.tools.helpers import TESPyNetworkError
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestClausiusRankine:
 
     def setup_method(self):
@@ -96,7 +90,7 @@ class TestClausiusRankine:
 
         # solve network
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_exergy_analysis_perfect_cycle(self):
         """Test exergy analysis in the perfect clausius rankine cycle."""
@@ -158,7 +152,7 @@ class TestClausiusRankine:
 
         # solve network
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         ean = ExergyAnalysis(
             self.nw, E_P=[self.power], E_F=[self.heat],
             internal_busses=[self.fwp_power])
@@ -197,7 +191,7 @@ class TestClausiusRankine:
             {'comp': self.nw.get_comp('pump'), 'char': 0.98, 'base': 'bus'})
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         # miss out on internal bus in exergy_analysis
         ean = ExergyAnalysis(
             self.nw, E_P=[self.power], E_F=[self.heat])
@@ -223,7 +217,7 @@ class TestClausiusRankine:
         )
         self.nw.add_busses(self.fwp_power)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         # no exergy losses in this case
         ean = ExergyAnalysis(
             self.nw, E_P=[self.power], E_F=[self.heat],
@@ -317,7 +311,7 @@ class TestRefrigerator:
 
         # solve network
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
@@ -377,7 +371,7 @@ class TestCompressedAirIn:
 
         # solve network
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
@@ -442,7 +436,7 @@ class TestCompressedAirOut:
 
         # solve network
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis at product exergy with T < Tamb."""
@@ -468,7 +462,7 @@ class TestCompressedAirOut:
         c = self.nw.get_conn('outlet')
         c.set_attr(T=self.Tamb - 20)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 

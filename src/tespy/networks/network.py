@@ -677,6 +677,11 @@ class Network:
 
                 del self.results[b.label]
 
+    def _convergence_check(self):
+        """Check convergence status of a simulation."""
+        msg = 'Calculation did not converge!'
+        assert (not self.lin_dep) and self.converged, msg
+
     def check_busses(self, b):
         r"""
         Checksthe busses to be added for type, duplicates and identical labels.

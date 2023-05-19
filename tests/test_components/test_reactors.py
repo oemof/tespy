@@ -22,12 +22,6 @@ from tespy.connections import Connection
 from tespy.networks import Network
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestReactors:
 
     def setup_method(self):
@@ -67,7 +61,7 @@ class TestReactors:
         self.nw.add_busses(power)
 
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of power must be ' + str(power.P.val) + ', is ' +
                str(self.instance.P.val) + '.')
         assert round(power.P.val, 1) == round(self.instance.P.val), msg
@@ -92,7 +86,7 @@ class TestReactors:
         self.nw.add_busses(heat)
 
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of heat flow must be ' + str(heat.P.val) +
                ', is ' + str(self.instance.Q.val) + '.')
         assert round(heat.P.val, 1) == round(self.instance.Q.val), msg
@@ -103,7 +97,7 @@ class TestReactors:
         Q = heat.P.val * 0.9
         heat.set_attr(P=Q)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of heat flow must be ' + str(Q) +
                ', is ' + str(self.instance.Q.val) + '.')
         assert round(Q, 1) == round(self.instance.Q.val), msg
@@ -115,7 +109,7 @@ class TestReactors:
         self.nw.get_conn('h2').set_attr(m=0.1)
         self.instance.set_attr(eta=0.9, e='var')
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of efficiency must be ' + str(self.instance.eta.val) +
                ', is ' + str(self.instance.e0 / self.instance.e.val) + '.')
         eta = round(self.instance.eta.val, 2)
@@ -127,7 +121,7 @@ class TestReactors:
         self.instance.set_attr(e=np.nan, eta=np.nan)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         # test efficiency
         msg = ('Value of efficiency must be ' + str(self.instance.e0 / e) +
                ', is ' + str(self.instance.eta.val) + '.')
@@ -144,7 +138,7 @@ class TestReactors:
         self.instance.set_attr(e=np.nan, eta=np.nan)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of specific energy consumption e must be ' + str(e) +
                ', is ' + str(self.instance.e.val) + '.')
         assert round(e, 1) == round(self.instance.e.val, 1), msg
@@ -156,7 +150,7 @@ class TestReactors:
         self.nw.solve('design')
         shutil.rmtree('./tmp', ignore_errors=True)
         self.nw.save('tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr.val) + '.')
         assert round(pr, 2) == round(self.instance.pr.val, 2), msg
@@ -165,7 +159,7 @@ class TestReactors:
         # ratio must not change
         self.instance.set_attr(zeta=np.nan, offdesign=['zeta'])
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr.val) + '.')
         assert round(pr, 2) == round(self.instance.pr.val, 2), msg
@@ -174,7 +168,7 @@ class TestReactors:
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=np.nan)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of heat must be ' + str(Q) + ', is ' +
                str(self.instance.Q.val) + '.')
         assert round(Q, 0) == round(self.instance.Q.val, 0), msg

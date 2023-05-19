@@ -28,12 +28,6 @@ from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import s_mix_ph
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert lin_dep is False, msg
-
-
 class TestTurbomachinery:
 
     def setup_network(self, instance):
@@ -56,7 +50,7 @@ class TestTurbomachinery:
         self.c2.set_attr(p=6)
         instance.set_attr(eta_s=0.8)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('tmp')
 
         # test isentropic efficiency value
@@ -70,7 +64,7 @@ class TestTurbomachinery:
         # trigger invalid value for isentropic efficiency
         instance.set_attr(eta_s=1.1)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         # test calculated value
         eta_s = (
@@ -94,7 +88,7 @@ class TestTurbomachinery:
 
         # offdesign test, efficiency value should be at design value
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                ') must be identical to design case (' + str(eta_s) + ').')
         assert round(eta_s_d, 2) == round(instance.eta_s.val, 2), msg
@@ -103,7 +97,7 @@ class TestTurbomachinery:
         # at that line
         self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=-30)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         # should be value
         eta_s = eta_s_d * instance.char_map_eta_s.char_func.z[6, 0]
@@ -115,7 +109,7 @@ class TestTurbomachinery:
         # that line
         self.c1.set_attr(T=175)
         self.nw.solve('offdesign', design_path='tmp', init_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         # should be value
         eta_s = eta_s_d * instance.char_map_eta_s.char_func.z[0, 9]
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
@@ -133,7 +127,7 @@ class TestTurbomachinery:
         instance.char_map_eta_s.is_set = False
         instance.char_map_pr.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
                ', is ' + str(instance.eta_s.val) + '.')
         assert round(eta_s_d, 3) == round(instance.eta_s.val, 3), msg
@@ -141,7 +135,7 @@ class TestTurbomachinery:
         # move up in volumetric flow
         self.c1.set_attr(v=1.5)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         eta_s = round(eta_s_d * instance.eta_s_char.char_func.evaluate(
             self.c1.m.val_SI / self.c1.m.design), 3)
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
@@ -153,7 +147,7 @@ class TestTurbomachinery:
         self.c1.set_attr(v=1)
         self.c2.set_attr(p=6)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         expr = (self.c2.p.val_SI * self.c1.p.design /
                 (self.c2.p.design * self.c1.p.val_SI))
         eta_s = round(
@@ -172,7 +166,7 @@ class TestTurbomachinery:
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         # test calculated value for efficiency
         eta_s = (
@@ -196,7 +190,7 @@ class TestTurbomachinery:
         eta_s_d = 0.8
         instance.set_attr(eta_s=eta_s_d)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('tmp')
         self.c2.set_attr(p=np.nan)
 
@@ -210,7 +204,7 @@ class TestTurbomachinery:
                 'char_func': ldc('pump', 'eta_s_char', 'DEFAULT', CharLine),
                 'is_set': True})
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         # value for difference pressure
         dp = 650000.0
@@ -221,7 +215,7 @@ class TestTurbomachinery:
         # test ohter volumetric flow on flow char
         self.c1.set_attr(v=0.9)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         dp = 775000.0
         msg = ('Value of pressure rise must be ' + str(dp) + ', is ' +
                str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
@@ -240,7 +234,7 @@ class TestTurbomachinery:
         instance.set_attr(eta_s=0.8)
         self.c1.set_attr(m=0, v=None)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of power must be ' + str(14e5) + ', is ' +
                str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
         assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 14e5, msg
@@ -248,7 +242,7 @@ class TestTurbomachinery:
         # upper boundary
         self.c1.set_attr(v=1.5, m=None)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of power must be 0, is ' +
                str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
         assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 0, msg
@@ -264,7 +258,7 @@ class TestTurbomachinery:
         self.c2.set_attr(p=1, T=25)
         instance.set_attr(eta_s=0.85)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('tmp')
 
         # design value of isentropic efficiency
@@ -280,7 +274,7 @@ class TestTurbomachinery:
         # trigger invalid value for isentropic efficiency
         instance.set_attr(eta_s=1.1)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         eta_s = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
                 isentropic(self.c1.get_flow(), self.c2.get_flow()) -
@@ -297,7 +291,7 @@ class TestTurbomachinery:
         instance.eta_s_char.is_set = True
         instance.eta_s.is_set = False
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         # check efficiency
         msg = ('Value of isentropic efficiency (' + str(instance.eta_s.val) +
                ') must be identical to design case (' + str(eta_s_d) + ').')
@@ -311,7 +305,7 @@ class TestTurbomachinery:
         # lowering mass flow, inlet pressure must sink according to cone law
         self.c1.set_attr(m=self.c1.m.val * 0.8)
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         msg = ('Value of pressure ratio (' + str(instance.pr.val) +
                ') must be at (' + str(0.128) + ').')
         assert 0.128 == round(instance.pr.val, 3), msg
@@ -321,7 +315,7 @@ class TestTurbomachinery:
         self.c1.set_attr(m=10)
         instance.eta_s_char.param = 'v'
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         expr = self.c1.v.val_SI / self.c1.v.design
         eta_s = round(eta_s_d * instance.eta_s_char.char_func.evaluate(expr), 3)
         msg = ('Value of isentropic efficiency (' +
@@ -332,7 +326,7 @@ class TestTurbomachinery:
         # test parameter specification pr
         instance.eta_s_char.param = 'pr'
         self.nw.solve('offdesign', design_path='tmp')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         expr = (self.c2.p.val_SI * self.c1.p.design /
                 (self.c2.p.design * self.c1.p.val_SI))
         eta_s = round(eta_s_d * instance.eta_s_char.char_func.evaluate(expr), 3)
@@ -356,7 +350,7 @@ class TestTurbomachinery:
         # pressure ratio and power are the basic functions for turbomachines,
         # these are inherited by all children, thus only tested here
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         pr = self.c2.p.val_SI / self.c1.p.val_SI
         msg = ('Value of power must be ' + str(power) + ', is ' +
@@ -370,7 +364,7 @@ class TestTurbomachinery:
         self.c2.set_attr(p=np.nan)
         instance.set_attr(pr=5)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         pr = self.c2.p.val_SI / self.c1.p.val_SI
         msg = ('Value of power must be ' + str(pr) + ', is ' +
                str(instance.pr.val) + '.')
@@ -380,7 +374,7 @@ class TestTurbomachinery:
         self.c2.set_attr(h=np.nan)
         instance.set_attr(P=1e5)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         msg = ('Value of power must be ' + str(power) + ', is ' +
                str(instance.P.val) + '.')

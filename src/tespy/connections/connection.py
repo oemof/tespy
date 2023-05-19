@@ -618,7 +618,8 @@ class Connection:
 
 class Ref:
     r"""
-    A bus is used to connect different energy flows.
+    A reference object is used to reference (unknown) properties of connections
+    to other connections.
 
     For example, reference the mass flow of one connection :math:`\dot{m}` to
     another mass flow :math:`\dot{m}_{ref}`:

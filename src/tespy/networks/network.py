@@ -340,9 +340,9 @@ class Network:
                 msg = (
                     'Setting ' + fpd[prop]['text'] +
                     ' limits\nmin: ' + str(limits[0]) + ' ' +
-                    self.get_attr(prop + '_unit') + '\n'
+                    fpd[prop]['SI_unit'] + '\n'
                     'max: ' + str(limits[1]) + ' ' +
-                    self.get_attr(prop + '_unit'))
+                    fpd[prop]['SI_unit'])
                 logger.debug(msg)
 
         # update non SI value ranges

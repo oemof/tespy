@@ -31,6 +31,8 @@ Bug Fixes
   and lower temperature difference are equal. Some issues in such situations
   remain when in offdesign mode
   (`PR #396 <https://github.com/oemof/tespy/pull/396>`__).
+- Fix unit display for fluid property ranges in log files
+  (`PR #420 <https://github.com/oemof/tespy/pull/420>`__).
 
 Other Changes
 #############
@@ -43,6 +45,7 @@ Contributors
 - `@jowr <https://github.com/jowr>`__
 - `@dk-teknologisk-enp <https://github.com/dk-teknologisk-enp>`__
 - `@aburabazam <https://github.com/aburabazam>`__
+- `@tboussaid <https://github.com/tboussaid>`__
 
 Special thanks to `@KarimHShawky <https://github.com/KarimHShawky>`__ and
 `@tub-hofmann <https://github.com/tub-hofmann>`__ for the compilation and

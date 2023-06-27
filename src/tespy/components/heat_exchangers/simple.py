@@ -1065,8 +1065,12 @@ class HeatExchangerSimple(Component):
                     "massless": self.inl[0].Ex_therm
                 }
             elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
-                self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
-                    self.outl[0].Ex_mech - self.inl[0].Ex_mech)
+                if self.dissipative.val:
+                    self.E_P = np.nan
+                else:
+                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
+                        self.outl[0].Ex_mech - self.inl[0].Ex_mech
+                    )
                 self.E_F = self.inl[0].Ex_therm - self.outl[0].Ex_therm
                 self.E_bus = {
                     "chemical": 0, "physical": 0, "massless": self.E_F

@@ -24,9 +24,15 @@ from tespy.tools import logger
 from tespy.tools.global_vars import err
 
 
+idx = pd.IndexSlice
+
+
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""
     exergy_cats = ["chemical", "physical", "massless"]
+    fluid_categories = {
+        "0": "two-phase-fluid"
+    }
 
     def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[]):
         r"""
@@ -351,15 +357,18 @@ class ExergyAnalysis:
         # todo: überprüfen der sankey data + massless exergy
         self.sankey_data = {}
         sankey_columns_dtypes = {
-            'total': float,
             'chemical': float,
             'physical': float,
-            'massless': float,
-            'cat': 'object'
+            'massless': float
         }
         for label in self.reserved_fkt_groups:
             self.sankey_data[label] = pd.DataFrame(
-                columns=sankey_columns_dtypes.keys()
+                columns=sankey_columns_dtypes.keys(),
+                index=pd.MultiIndex(
+                    levels=[[], []],
+                    names=["target_group", "category"],
+                    codes=[[], []]
+                )
             ).astype(sankey_columns_dtypes)
 
         # exergy balance of components
@@ -382,7 +391,12 @@ class ExergyAnalysis:
                 raise ValueError(msg)
             elif cp.fkt_group not in self.sankey_data:
                 self.sankey_data[cp.fkt_group] = pd.DataFrame(
-                    columns=sankey_columns_dtypes.keys()
+                    columns=sankey_columns_dtypes.keys(),
+                    index=pd.MultiIndex(
+                        levels=[[], []],
+                        names=["target_group", "category"],
+                        codes=[[], []]
+                    )
                 ).astype(sankey_columns_dtypes)
 
             self.evaluate_busses(cp)
@@ -482,13 +496,21 @@ class ExergyAnalysis:
                     else:
                         cat = b.label
                     # todo: wie verhält es sich mit den bussen
-                    if cp.fkt_group in self.sankey_data[b.label].index:
-                        for key, value in cp.E_bus.items():
-                            self.sankey_data[b.label].loc[cp.fkt_group, key] += value / bus_efficiency
-                    else:
-                        for key, value in cp.E_bus.items():
-                            self.sankey_data[b.label].loc[cp.fkt_group, key] = value / bus_efficiency
-                        self.sankey_data[b.label].loc[cp.fkt_group, 'cat'] = cat
+                    for key, value in cp.E_bus.items():
+                        if value == 0:
+                            continue
+
+                        if key != "massless":
+                            # source/sink case, fluid determines coloring
+                            fluid = "0"
+                            category = self.fluid_categories[fluid]
+                        else:
+                            category = "work"
+
+                        if (cp.fkt_group, category) not in self.sankey_data[b.label].index:
+                            self.sankey_data[b.label].loc[(cp.fkt_group, category), :] = 0
+
+                        self.sankey_data[b.label].loc[(cp.fkt_group, category), key] += value / bus_efficiency
                 else:
                     E_bus = sum(e for e in cp.E_bus.values() if e)
                     bus_efficiency = cp.calc_bus_efficiency(b)
@@ -507,13 +529,21 @@ class ExergyAnalysis:
                     else:
                         cat = b.label
 
-                    if b.label in self.sankey_data[cp.fkt_group].index:
-                        for key, value in cp.E_bus.items():
-                            self.sankey_data[cp.fkt_group].loc[b.label, key] += value * bus_efficiency
-                    else:
-                        for key, value in cp.E_bus.items():
-                            self.sankey_data[cp.fkt_group].loc[b.label, key] = value * bus_efficiency
-                        self.sankey_data[cp.fkt_group].loc[b.label, 'cat'] = cat
+                    for key, value in cp.E_bus.items():
+                        if value == 0:
+                            continue
+
+                        if key != "massless":
+                            # source/sink case, fluid determines coloring
+                            fluid = "0"
+                            category = self.fluid_categories[fluid]
+                        else:
+                            category = "work"
+
+                        if (b.label, category) not in self.sankey_data[cp.fkt_group].index:
+                            self.sankey_data[cp.fkt_group].loc[(b.label, category), :] = 0
+
+                        self.sankey_data[cp.fkt_group].loc[(b.label, category), key] += value * bus_efficiency
 
                 self.bus_data.loc[cp.label, 'base'] = b.comps.loc[cp, 'base']
                 self.bus_data.loc[cp.label, 'group'] = cp.fkt_group
@@ -528,33 +558,30 @@ class ExergyAnalysis:
             E_D = self.aggregation_data[
                 self.aggregation_data['group'] == group
             ]['E_D'].sum()
-            self.sankey_data[group].loc['E_D'] = [0., 0., 0., E_D, 'E_D']
+            self.sankey_data[group].loc[('E_D', "E_D"), :] = [0., 0., E_D]
         # establish connections for fuel exergy via bus balance
         for b in self.E_F:
             input_value = self.calculate_group_input_value(b.label)
-            self.sankey_data['E_F'].loc[b.label, self.exergy_cats] = (
+            self.sankey_data['E_F'].loc[(b.label, "E_F"), self.exergy_cats] = (
                 self.sankey_data[b.label].loc[:, self.exergy_cats].sum()
                 - input_value.sum()
             )
-            self.sankey_data['E_F'].loc[b.label, 'cat'] = 'E_F'
 
         # establish connections for product exergy via bus balance
         for b in self.E_P:
             input_value = self.calculate_group_input_value(b.label)
-            self.sankey_data[b.label].loc['E_P', self.exergy_cats] = (
+            self.sankey_data[b.label].loc[('E_P', "E_P"), self.exergy_cats] = (
                 input_value.sum()
                 - self.sankey_data[b.label].loc[:, self.exergy_cats].sum()
             )
-            self.sankey_data[b.label].loc['E_P', 'cat'] = 'E_P'
 
         # establish connections for exergy loss via bus balance
         for b in self.E_L:
             input_value = self.calculate_group_input_value(b.label)
-            self.sankey_data[b.label].loc['E_L', self.exergy_cats] = (
+            self.sankey_data[b.label].loc[('E_L', 'E_L'), self.exergy_cats] = (
                 input_value.sum()
                 - self.sankey_data[b.label].loc[:, self.exergy_cats].sum()
             )
-            self.sankey_data[b.label].loc['E_L', 'cat'] = 'E_L'
 
         for fkt_group, data in self.sankey_data.items():
             mask = self.component_data['group'] == fkt_group
@@ -570,22 +597,20 @@ class ExergyAnalysis:
                             if hasattr(conn, "Ex_chemical") else 0.
                         )
                         target_value_physical = conn.Ex_physical
-                        cat = hlp.single_fluid(conn.fluid.val)
-                        if cat is None:
-                            cat = 'mix'
-                        if target_group in data.index:
-                            self.sankey_data[fkt_group].loc[
-                                target_group, 'physical'] += target_value_physical
-                            self.sankey_data[fkt_group].loc[
-                                target_group, 'chemical'] += target_value_chemical
+                        fluid = hlp.single_fluid(conn.fluid.val)
+                        if fluid is None:
+                            cat = "non-combustion-gas"
                         else:
-                            self.sankey_data[fkt_group].loc[target_group] = [
-                                0, target_value_chemical, target_value_physical, 0, cat
+                            cat = "two-phase-fluid"
+                        if (target_group, cat) in data.index:
+                            self.sankey_data[fkt_group].loc[
+                                (target_group, cat), 'physical'] += target_value_physical
+                            self.sankey_data[fkt_group].loc[
+                                (target_group, cat), 'chemical'] += target_value_chemical
+                        else:
+                            self.sankey_data[fkt_group].loc[(target_group, cat), :] = [
+                                target_value_chemical, target_value_physical, 0
                             ]
-
-            self.sankey_data[fkt_group]["total"] = (
-                self.sankey_data[fkt_group].sum(axis=1, numeric_only=True)
-            )
 
         # create overview of component groups
         self.group_data = pd.DataFrame(
@@ -597,7 +622,7 @@ class ExergyAnalysis:
                 self.calculate_group_input_value(fkt_group).sum().sum()
             )
             self.group_data.loc[fkt_group, 'E_D'] = (
-                self.sankey_data[fkt_group].loc['E_D', self.exergy_cats].sum()
+                self.sankey_data[fkt_group].loc[idx['E_D', :], self.exergy_cats].sum().sum()
             )
 
         # calculate missing values
@@ -620,7 +645,7 @@ class ExergyAnalysis:
         )
         for fkt_group, data in self.sankey_data.items():
             if group_label in data.index:
-                value += data.loc[group_label, self.exergy_cats]
+                value += data.loc[idx[group_label, :], self.exergy_cats].values
         return value
 
     def single_group_input(self, group_label, group_data):
@@ -646,21 +671,20 @@ class ExergyAnalysis:
         group_data : dict
             Dictionary containing the modified component group data.
         """
-        cols = ["total"] + self.exergy_cats
+        cols = self.exergy_cats
         for fkt_group in group_data.copy().keys():
+            if fkt_group in self.reserved_fkt_groups:
+                continue
             source_groups = self.single_group_input(fkt_group, group_data)
             if len(source_groups) == 1 and len(group_data[fkt_group]) == 1:
 
                 source_group = source_groups[0]
-                target_group = group_data[fkt_group].index[0]
+                target_group = group_data[fkt_group].index.get_level_values(0)[0]
 
-                target_value = group_data[fkt_group].loc[target_group]
-                if target_group in group_data[source_group].index:
+                target_values = group_data[fkt_group].loc[idx[target_group, :]]
+                if (target_group) in group_data[source_group].index:
                     group_data[source_group].loc[target_group, cols] += (
                         target_value[cols]
-                    )
-                    group_data[source_group].loc[target_group, 'cat'] = (
-                        group_data[source_group].loc[target_group, 'cat']
                     )
                 else:
                     group_data[source_group].loc[target_group] = target_value
@@ -723,14 +747,15 @@ class ExergyAnalysis:
             mask = data.loc[:, cols].abs().sum(axis=1) >= display_thresold
             group_data[fkt_group] = group_data[fkt_group].loc[mask]
 
-        self.remove_transit_groups(group_data)
+        # self.remove_transit_groups(group_data)
 
         if len(node_order) == 0:
             node_order = (
                 ['E_F'] + [b.label for b in self.E_F] +
                 [fkt_group for fkt_group in self.group_data.index] +
                 [b.label for b in self.internal_busses + self.E_P + self.E_L] +
-                ['E_P', 'E_L', 'E_D'])
+                ['E_P', 'E_L', 'E_D']
+            )
         else:
             missing = []
             for node in group_data.keys():
@@ -744,40 +769,21 @@ class ExergyAnalysis:
                 logger.error(msg)
                 raise ValueError(msg)
 
-        num_fluids = len(self.nw.fluids)
-        num_colors = 4 + num_fluids + len(self.internal_busses)
-        if num_fluids > 1:
-            num_colors += 1
-
-        cmap = matplotlib.colormaps['Set1'](
-            np.linspace(0.0, 1.0, num_colors + 1)
-        )
-        cmap[:, 0:3] *= 255
-        cmap[:, 3] *= 0.75
-        rgba_list = []
-        for i in range(cmap.shape[0]):
-            rgba_list += [
-                'rgba(' +
-                str(cmap[i, 0]) + ', ' +
-                str(cmap[i, 1]) + ', ' +
-                str(cmap[i, 2]) + ', ' +
-                str(cmap[i, 3]) + ')']
-
-        colordict = {}
-        colordict['E_P'] = rgba_list[0]
-        colordict['E_F'] = rgba_list[1]
-        colordict['E_D'] = rgba_list[2]
-        colordict['E_L'] = rgba_list[3]
-        i = 3
-        for f in self.nw.fluids:
-            i += 1
-            colordict[f] = rgba_list[i]
-        for b in self.internal_busses:
-            i += 1
-            colordict[b.label] = rgba_list[i]
-
+        colordict = {
+            "E_F": "rgba(242, 142, 43, 0.90)",
+            "E_P": "rgba(118, 183, 178, 0.90)",
+            "E_D": "rgba(176, 122, 161, 0.90)",
+            "E_L": "rgba(156, 117, 95, 0.90)",
+            "combustion-gas": "rgba(237, 201, 72, 0.90)",
+            "non-combustion-gas": "rgba(186, 176, 172, 0.90)",
+            "two-phase-fluid": "rgba(89, 161, 79, 0.90)",
+            "incompressible": "rgba(255, 157, 167, 0.90)",
+            "work": "rgba(78, 121, 167, 0.90)",
+            "heat": "rgba(225, 87, 89, 0.90)",
+            np.nan: "rgba(100, 100, 100, 1.00)"
+        }
         colordict.update(colors)
-        colordict['mix'] = rgba_list[i + 1]
+
         links = {
             'source': [],
             'target': [],
@@ -786,17 +792,14 @@ class ExergyAnalysis:
         }
         for fkt_group, data in group_data.items():
             source_id = node_order.index(fkt_group)
-            if not disaggregate_flows:
-                cols = ["total"]
             for target in data.index:
                 for col in cols:
+                    # how to aggregate here?
                     if data.loc[target, col] > 0.:
                         links['source'] += [source_id]
-                        links['target'] += [node_order.index(target)]
+                        links['target'] += [node_order.index(target[0])]
                         links['value'] += [data.loc[target, col]]
-                        links['color'].append(
-                            colordict[data.loc[target, "cat"]]
-                        )
+                        links['color'].append(colordict[target[1]])
 
         return links, node_order
 

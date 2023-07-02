@@ -23,7 +23,6 @@ from tespy.tools import logger
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import err
 
-
 idx = pd.IndexSlice
 
 
@@ -47,6 +46,7 @@ def categorize_fluids(conn):
         except RuntimeError:
             # CoolProp cannot call aliases on incompressibles
             is_incompressible = True
+            is_combustion_gas = False
         if is_combustion_gas:
             cat = "combustion-gas"
         elif is_incompressible:
@@ -510,17 +510,14 @@ class ExergyAnalysis:
                     bus_efficiency = cp.calc_bus_efficiency(b)
                     E_F = E_bus / bus_efficiency
                     self.bus_data.loc[cp.label, 'E_F'] = E_F
+
                     if b in self.E_F:
                         self.network_data.loc['E_F'] += E_F
-                        cat = 'E_F'
                     elif b in self.E_P:
                         self.network_data.loc['E_P'] -= E_F
-                        cat = 'E_P'
                     elif b in self.E_L:
                         self.network_data.loc['E_L'] -= E_F
-                        cat = 'E_L'
-                    else:
-                        cat = b.label
+
                     for key, value in cp.E_bus.items():
                         if value == 0:
                             continue
@@ -541,17 +538,13 @@ class ExergyAnalysis:
                     E_P = E_bus * bus_efficiency
                     self.bus_data.loc[cp.label, 'E_P'] = E_P
                     self.bus_data.loc[cp.label, 'E_F'] = E_bus
+
                     if b in self.E_F:
                         self.network_data.loc['E_F'] -= E_P
-                        cat = 'E_F'
                     elif b in self.E_P:
                         self.network_data.loc['E_P'] += E_P
-                        cat = 'E_P'
                     elif b in self.E_L:
                         self.network_data.loc['E_L'] += E_P
-                        cat = 'E_L'
-                    else:
-                        cat = b.label
 
                     for key, value in cp.E_bus.items():
                         if value == 0:
@@ -688,7 +681,6 @@ class ExergyAnalysis:
         group_data : dict
             Dictionary containing the modified component group data.
         """
-        cols = self.exergy_cats
         for fkt_group in group_data.copy().keys():
             if fkt_group in self.reserved_fkt_groups:
                 continue
@@ -696,7 +688,6 @@ class ExergyAnalysis:
             if len(source_groups) == 1 and len(group_data[fkt_group].index.get_level_values("target_group").unique()) == 1:
 
                 source_group = source_groups[0]
-                target_group = group_data[fkt_group].index.get_level_values("target_group")[0]
 
                 group_data[source_group] = group_data[source_group].add(group_data[fkt_group], fill_value=0)
                 to_drop = group_data[source_group].index.get_level_values("target_group") == fkt_group

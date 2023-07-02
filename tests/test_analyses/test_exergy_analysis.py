@@ -169,16 +169,20 @@ class TestClausiusRankine:
         assert abs(exergy_balance) <= err ** 0.5, msg
 
         nodes = [
-            'E_F', 'steam generator', 'splitter 1', 'feed water pump turbine',
-            'turbine', 'merge 1', 'condenser', 'pump', 'E_D', 'E_P']
+            'E_F', 'heat_input', 'steam generator', 'splitter 1',
+            'feed water pump turbine', 'turbine', 'merge 1', 'condenser',
+            'feed water pump power', 'pump', 'power_output', 'E_D', 'E_P', 'E_L'
+        ]
 
         links, nodes = ean.generate_plotly_sankey_input(node_order=nodes)
         # checksum for targets and source
         checksum = sum(links['target'] + links['source'])
+        check = 233
         msg = (
             'The checksum of all target and source values in the link lists'
-            'must be 148, but is ' + str(checksum) + '.')
-        assert 148 == checksum, msg
+            f'must be {check}, but is {checksum}.'
+        )
+        assert check == checksum, msg
 
     def test_exergy_analysis_violated_balance(self):
         """Test exergy analysis with violated balance."""
@@ -277,7 +281,7 @@ class TestRefrigerator:
         va = Valve('expansion valve')
         cp = Compressor('compressor')
         cond = HeatExchangerSimple('condenser')
-        eva = HeatExchangerSimple('evaporator')
+        eva = HeatExchangerSimple('evaporator', dissipative=False)
         cc = CycleCloser('cycle closer')
 
         # create busses

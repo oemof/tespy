@@ -33,13 +33,26 @@ def categorize_fluids(conn):
         cat = "non-combustion-gas"
         for f, x in conn.fluid.val.items():
             if x > err:
-                if hlp.fluidalias_in_list(f, combustion_gases):
-                    cat = "combustion-gas"
-                    break
-    elif hlp.fluidalias_in_list(fluid, combustion_gases):
-        cat = "combustion-gas"
+                try:
+                    if hlp.fluidalias_in_list(f, combustion_gases):
+                        cat = "combustion-gas"
+                        break
+                except RuntimeError:
+                    # CoolProp cannot call aliases on incompressibles
+                    pass
     else:
-        cat = "two-phase-fluid"
+        is_incompressible = False
+        try:
+            is_combustion_gas = hlp.fluidalias_in_list(fluid, combustion_gases)
+        except RuntimeError:
+            # CoolProp cannot call aliases on incompressibles
+            is_incompressible = True
+        if is_combustion_gas:
+            cat = "combustion-gas"
+        elif is_incompressible:
+            cat = "incompressible"
+        else:
+            cat = "two-phase-fluid"
     return cat
 
 

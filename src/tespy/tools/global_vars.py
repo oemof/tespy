@@ -99,3 +99,5 @@ fluid_property_data = {
         'documentation': {'float_fmt': '{:,.2f}'}
     }
 }
+
+combustion_gases = ['methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane']

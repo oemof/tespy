@@ -20,9 +20,11 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluid_structure
+from tespy.tools.helpers import fluidalias_in_list
 
 
 class CombustionChamber(Component):
@@ -206,17 +208,15 @@ class CombustionChamber(Component):
     def setup_reaction_parameters(self):
         r"""Setup parameters for reaction (gas name aliases and LHV)."""
         self.fuel_list = []
-        fuels = [
-            'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane']
-        for f in fuels:
-            self.fuel_list += [x for x in self.nw_fluids if x in [
-                a.replace(' ', '') for a in CP.get_aliases(f)]]
+        for f in self.nw_fluids:
+            if fluidalias_in_list(f, combustion_gases):
+                self.fuel_list += [f]
 
         if len(self.fuel_list) == 0:
             msg = ('Your network\'s fluids do not contain any fuels, that are '
                    'available for the component ' + self.label + ' of type ' +
                    self.component() + '. Available fuels are: ' +
-                   ', '.join(fuels) + '.')
+                   ', '.join(combustion_gases) + '.')
             logger.error(msg)
             raise TESPyComponentError(msg)
 
@@ -226,23 +226,19 @@ class CombustionChamber(Component):
                    '.')
             logger.debug(msg)
 
-        for fluid in ['o2', 'co2', 'h2o', 'n2']:
-            try:
-                setattr(
-                    self, fluid, [x for x in self.nw_fluids if x in [
-                        a.replace(' ', '') for a in
-                        CP.get_aliases(fluid.upper())
-                    ]][0])
-            except IndexError:
+        for fluid in ['O2', 'CO2', 'H2O', 'N2']:
+            if not fluidalias_in_list(fluid, self.nw_fluids):
+                aliases = ', '.join(CP.get_aliases(fluid))
                 msg = (
                     'The component ' + self.label + ' (class ' +
                     self.__class__.__name__ + ') requires that the fluid '
-                    '[fluid] is in the network\'s list of fluids.')
-                aliases = ', '.join(CP.get_aliases(fluid.upper()))
-                msg = msg.replace(
-                    '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
+                    f'{fluid} (aliases: {aliases}) is in the network\'s list '
+                    'of fluids.'
+                )
                 logger.error(msg)
                 raise TESPyComponentError(msg)
+            else:
+                setattr(self, fluid.lower(), fluid)
 
         self.fuels = {}
         for f in self.fuel_list:

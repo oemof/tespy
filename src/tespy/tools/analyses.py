@@ -14,25 +14,38 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
-import matplotlib
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
+from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import err
 
 
 idx = pd.IndexSlice
 
 
+def categorize_fluids(conn):
+    fluid = hlp.single_fluid(conn.fluid.val)
+    if fluid is None:
+        cat = "non-combustion-gas"
+        for f, x in conn.fluid.val.items():
+            if x > err:
+                if hlp.fluidalias_in_list(f, combustion_gases):
+                    cat = "combustion-gas"
+                    break
+    elif hlp.fluidalias_in_list(fluid, combustion_gases):
+        cat = "combustion-gas"
+    else:
+        cat = "two-phase-fluid"
+    return cat
+
+
 class ExergyAnalysis:
     r"""Class for exergy analysis of TESPy models."""
     exergy_cats = ["chemical", "physical", "massless"]
-    fluid_categories = {
-        "0": "two-phase-fluid"
-    }
 
     def __init__(self, network, E_F, E_P, E_L=[], internal_busses=[]):
         r"""
@@ -495,15 +508,13 @@ class ExergyAnalysis:
                         cat = 'E_L'
                     else:
                         cat = b.label
-                    # todo: wie verhält es sich mit den bussen
                     for key, value in cp.E_bus.items():
                         if value == 0:
                             continue
 
                         if key != "massless":
-                            # source/sink case, fluid determines coloring
-                            fluid = "0"
-                            category = self.fluid_categories[fluid]
+                            # this should be a source
+                            category = categorize_fluids(cp.outl[0])
                         else:
                             category = "work"
 
@@ -534,9 +545,8 @@ class ExergyAnalysis:
                             continue
 
                         if key != "massless":
-                            # source/sink case, fluid determines coloring
-                            fluid = "0"
-                            category = self.fluid_categories[fluid]
+                            # this should be a sink
+                            category = categorize_fluids(cp.inl[0])
                         else:
                             category = "work"
 
@@ -597,11 +607,7 @@ class ExergyAnalysis:
                             if hasattr(conn, "Ex_chemical") else 0.
                         )
                         target_value_physical = conn.Ex_physical
-                        fluid = hlp.single_fluid(conn.fluid.val)
-                        if fluid is None:
-                            cat = "non-combustion-gas"
-                        else:
-                            cat = "two-phase-fluid"
+                        cat = categorize_fluids(conn)
                         if (target_group, cat) in data.index:
                             self.sankey_data[fkt_group].loc[
                                 (target_group, cat), 'physical'] += target_value_physical
@@ -652,10 +658,8 @@ class ExergyAnalysis:
         """Calculate the total exergy input of a component group."""
         inputs = []
         for fkt_group, data in group_data.items():
-            if group_label in data.index and fkt_group != group_label:
+            if group_label in data.index.get_level_values("target_group") and fkt_group != group_label:
                 inputs += [fkt_group]
-            if len(inputs) > 1:
-                return inputs
 
         return inputs
 
@@ -676,19 +680,14 @@ class ExergyAnalysis:
             if fkt_group in self.reserved_fkt_groups:
                 continue
             source_groups = self.single_group_input(fkt_group, group_data)
-            if len(source_groups) == 1 and len(group_data[fkt_group]) == 1:
+            if len(source_groups) == 1 and len(group_data[fkt_group].index.get_level_values("target_group").unique()) == 1:
 
                 source_group = source_groups[0]
-                target_group = group_data[fkt_group].index.get_level_values(0)[0]
+                target_group = group_data[fkt_group].index.get_level_values("target_group")[0]
 
-                target_values = group_data[fkt_group].loc[idx[target_group, :]]
-                if (target_group) in group_data[source_group].index:
-                    group_data[source_group].loc[target_group, cols] += (
-                        target_value[cols]
-                    )
-                else:
-                    group_data[source_group].loc[target_group] = target_value
-                group_data[source_group].drop(fkt_group, inplace=True)
+                group_data[source_group] = group_data[source_group].add(group_data[fkt_group], fill_value=0)
+                to_drop = group_data[source_group].index.get_level_values("target_group") == fkt_group
+                group_data[source_group] = group_data[source_group].loc[~to_drop]
                 del group_data[fkt_group]
                 # recursive call in case multiple components are attached in
                 # a line without any conversion
@@ -724,9 +723,6 @@ class ExergyAnalysis:
             - :code:`mix` (used in case of any gas mixture)
             - labels of internal busses
 
-            In case no colors are passed, the matplotlib :code:`Set1` colormap
-            will be applied.
-
         display_threshold : float
             Minimum value of flows to be displayed in the diagram, defaults to
             1e-3.
@@ -747,7 +743,7 @@ class ExergyAnalysis:
             mask = data.loc[:, cols].abs().sum(axis=1) >= display_thresold
             group_data[fkt_group] = group_data[fkt_group].loc[mask]
 
-        # self.remove_transit_groups(group_data)
+        self.remove_transit_groups(group_data)
 
         if len(node_order) == 0:
             node_order = (

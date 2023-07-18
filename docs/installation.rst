@@ -28,8 +28,8 @@ installed.
 
       **Having Python 3 installed**
 
-      We recommend installting TESPy within a virtual Python enviroment an not
-      into the base, system wide Python installation. On Linux you can use
+      We recommend installing TESPy within a virtual Python environment and not
+      into the base, system-wide Python installation. On Linux you can use
       virtualenv to do so.
 
       1. Install virtualenv using the package management of your Linux distribution,
@@ -49,13 +49,13 @@ installed.
 
       **Using Conda**
 
-      Alternatively you can use conda for enviroment and package management. You
+      Alternatively you can use conda for environment and package management. You
       can follow the installation instructions for windows users.
 
    .. tab-item:: Windows
 
       For windows we recommend using conda as package manager. You can download a
-      light weight open source variant of conda: "miniforge3".
+      lightweight open source variant of conda: "miniforge3".
 
       1. Download latest `miniforge3 <https://github.com/conda-forge/miniforge>`__
          for Python 3.x (64 or 32 bit).
@@ -69,3 +69,15 @@ installed.
             activate tespy-env
 
       4. In the active prompt type: :code:`pip install tespy`
+
+   .. tab-item:: Developer Version
+
+      If you would like to get access to not yet released features or features
+      under development you can install the developer version. The steps are
+      similar to the steps here, but INSTEAD of installing TESPy using
+
+      .. code-block:: console
+
+           pip install tespy
+
+      follow the instructions on :ref:`this page <tespy_development_how_label>`.

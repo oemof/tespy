@@ -33,6 +33,9 @@ Bug Fixes
   (`PR #396 <https://github.com/oemof/tespy/pull/396>`__).
 - Fix unit display for fluid property ranges in log files
   (`PR #420 <https://github.com/oemof/tespy/pull/420>`__).
+- The fluid propagation often got caught in infinite recursion when splitters
+  and merges are part the network. This PR fixes that bug for many instances
+  (`PR #427 <https://github.com/oemof/tespy/pull/427>`__).
 
 Other Changes
 #############

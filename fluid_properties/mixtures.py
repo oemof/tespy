@@ -14,7 +14,7 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            h += data["property_object"].h_pT(pp, T) * data["mass_fraction"]
+            h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
 
     return h
 
@@ -31,11 +31,11 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         for fluid, data in fluid_data.items():
             if _is_larger_than_precision(data["mass_fraction"]):
                 if fluid == water_alias:
-                    h += fluid_data[water_alias]["property_object"].h_QT(0, T) * mass_liquid
-                    h += fluid_data[water_alias]["property_object"].h_QT(1, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
+                    h += fluid_data[water_alias]["wrapper"].h_QT(0, T) * mass_liquid
+                    h += fluid_data[water_alias]["wrapper"].h_QT(1, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
                 else:
                     pp = p * molar_fraction_gas[fluid]
-                    h += data["property_object"].h_pT(pp, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
+                    h += data["wrapper"].h_pT(pp, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
         return h
     else:
         return h_mix_pT_ideal(p, T, fluid_data, **kwargs)
@@ -46,7 +46,7 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
     h = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            h += data["property_object"].h_pT(p, T) * data["mass_fraction"]
+            h += data["wrapper"].h_pT(p, T) * data["mass_fraction"]
 
     return h
 
@@ -59,7 +59,7 @@ def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            s += data["property_object"].s_pT(pp, T) * data["mass_fraction"]
+            s += data["wrapper"].s_pT(pp, T) * data["mass_fraction"]
 
     return s
 
@@ -76,11 +76,11 @@ def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         for fluid, data in fluid_data.items():
             if _is_larger_than_precision(data["mass_fraction"]):
                 if fluid == water_alias:
-                    s += fluid_data[water_alias]["property_object"].s_QT(0, T) * mass_liquid
-                    s += fluid_data[water_alias]["property_object"].s_QT(1, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
+                    s += fluid_data[water_alias]["wrapper"].s_QT(0, T) * mass_liquid
+                    s += fluid_data[water_alias]["wrapper"].s_QT(1, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
                 else:
                     pp = p * molar_fraction_gas[fluid]
-                    s += data["property_object"].s_pT(pp, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
+                    s += data["wrapper"].s_pT(pp, T) * mass_fractions_gas[fluid] * (1 - mass_liquid)
         return s
     else:
         return s_mix_pT_ideal(p, T, fluid_data, **kwargs)
@@ -92,7 +92,7 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     for data in fluid_data.values():
 
         if _is_larger_than_precision(data["mass_fraction"]):
-            s += data["property_object"].s_pT(p, T) * data["mass_fraction"]
+            s += data["wrapper"].s_pT(p, T) * data["mass_fraction"]
 
     return s
 
@@ -105,7 +105,7 @@ def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            d += data["property_object"].d_pT(pp, T)
+            d += data["wrapper"].d_pT(pp, T)
 
     return 1 / d
 
@@ -122,11 +122,11 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         for fluid, data in fluid_data.items():
             if _is_larger_than_precision(data["mass_fraction"]):
                 if fluid == water_alias:
-                    d += fluid_data[water_alias]["property_object"].d_QT(0, T) * mass_liquid
-                    d += fluid_data[water_alias]["property_object"].d_QT(1, T) * (1 - mass_liquid)
+                    d += fluid_data[water_alias]["wrapper"].d_QT(0, T) * mass_liquid
+                    d += fluid_data[water_alias]["wrapper"].d_QT(1, T) * (1 - mass_liquid)
                 else:
                     pp = p * molar_fraction_gas[fluid]
-                    d += data["property_object"].d_pT(pp, T) * (1 - mass_liquid)
+                    d += data["wrapper"].d_pT(pp, T) * (1 - mass_liquid)
         return 1 / d
     else:
         return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
@@ -137,7 +137,7 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     v = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            v += 1 / data["property_object"].d_pT(p, T) * data["mass_fraction"]
+            v += 1 / data["wrapper"].d_pT(p, T) * data["mass_fraction"]
 
     return v
 
@@ -181,9 +181,9 @@ def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     b = 0
     for fluid, data in fluid_data.items():
         if _is_larger_than_precision(data["mass_fraction"]):
-            bi = molar_fractions[fluid] * data["property_object"]._molar_mass ** 0.5
+            bi = molar_fractions[fluid] * data["wrapper"]._molar_mass ** 0.5
             b += bi
-            a += bi * data["property_object"].viscosity_pT(p, T)
+            a += bi * data["wrapper"].viscosity_pT(p, T)
 
     return a / b
 
@@ -193,7 +193,7 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     viscosity = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            viscosity += data["property_object"].viscosity_pT(p, T) * data["mass_fraction"]
+            viscosity += data["wrapper"].viscosity_pT(p, T) * data["mass_fraction"]
 
     return viscosity
 
@@ -231,8 +231,8 @@ def cond_check(p, T, fluid_data, water_alias):
     water_mass_liquid = 0
     water_molar_liquid = 0
 
-    if fluid_data[water_alias]["property_object"]._is_below_T_critical(T):
-        p_sat = fluid_data[water_alias]["property_object"].p_boiling(T)
+    if fluid_data[water_alias]["wrapper"]._is_below_T_critical(T):
+        p_sat = fluid_data[water_alias]["wrapper"].p_boiling(T)
         pp_water = p * molar_fractions[water_alias]
 
         if p_sat < pp_water:
@@ -245,7 +245,7 @@ def cond_check(p, T, fluid_data, water_alias):
 
             water_mass_liquid = (
                 water_molar_liquid
-                * fluid_data[water_alias]["property_object"]._molar_mass
+                * fluid_data[water_alias]["wrapper"]._molar_mass
                 / calc_molar_mass_mixture(fluid_data, molar_fractions)
             )
 
@@ -253,7 +253,7 @@ def cond_check(p, T, fluid_data, water_alias):
             mass_fractions_gas = {
                 fluid: (
                     x / molar_mass_mixture
-                    * fluid_data[fluid]["property_object"]._molar_mass
+                    * fluid_data[fluid]["wrapper"]._molar_mass
                 )
                 for fluid, x in molar_fractions_gas.items()
             }

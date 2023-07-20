@@ -5,6 +5,16 @@ def _is_larger_than_precision(value):
     return value > PRECISION
 
 
+def _check_mixing_rule(mixing_rule, mixing_functions, propertyfunction):
+    if mixing_rule not in mixing_functions:
+        msg = (
+            f"The mixing rule '{mixing_rule}' is not available for "
+            f"the fluid property functions for {propertyfunction}. Available "
+            f"rules are '" + "', '".join(mixing_functions.keys()) + "'."
+        )
+        raise KeyError(msg)
+
+
 def get_number_of_fluids(fluid_data):
     return sum([1 for f in fluid_data.values() if _is_larger_than_precision(f["mass_fraction"])])
 
@@ -17,7 +27,7 @@ def get_pure_fluid(fluid_data):
 
 def get_molar_fractions(fluid_data):
     molarflow = {
-        key: value["mass_fraction"] / value["property_object"]._molar_mass
+        key: value["mass_fraction"] / value["wrapper"]._molar_mass
         for key, value in fluid_data.items()
     }
     molarflow_sum = sum(molarflow.values())
@@ -98,13 +108,13 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
 
 def get_mixture_temperature_range(fluid_data):
     valmin = max(
-        [v["property_object"]._T_min for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
+        [v["wrapper"]._T_min for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
     ) + 0.1
     valmax = min(
-        [v["property_object"]._T_max for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
+        [v["wrapper"]._T_max for v in fluid_data.values() if _is_larger_than_precision(v["mass_fraction"])]
     ) - 0.1
     return valmin, valmax
 
 
 def calc_molar_mass_mixture(fluid_data, molar_fractions):
-    return sum([x * fluid_data[fluid]["property_object"]._molar_mass for fluid, x in molar_fractions.items()])
+    return sum([x * fluid_data[fluid]["wrapper"]._molar_mass for fluid, x in molar_fractions.items()])

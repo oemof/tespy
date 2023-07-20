@@ -7,5 +7,6 @@ from .functions import v_mix_pT  # noqa: F401
 from .functions import v_mix_ph  # noqa: F401
 from .functions import viscosity_mix_pT  # noqa: F401
 from .functions import viscosity_mix_ph  # noqa: F401
+from .functions import s_mix_ph  # noqa: F401
 from .functions import s_mix_pT  # noqa: F401
 from .functions import T_mix_ps  # noqa: F401

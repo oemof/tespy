@@ -20,7 +20,7 @@ Testing
 
 Bug fixes
 #########
-- Adjusted the generic pump characteristics to cause less instabilites and adjusted function parameters according to `KSB <https://www.ksb.com/kreiselpumpenlexikon/spezifische-drehzahl/186490>`_.
+- Adjusted the generic pump characteristics to cause less instabilities and adjusted function parameters according to `KSB <https://www.ksb.com/de-global/kreiselpumpenlexikon/artikel/spezifische-drehzahl-1075774>`_.
 - Fixed bug in combustion chamber's thermal input equation.
 - Fixed parameters for numerical calculation of derivatives.
 - Fixed starting relaxation parameter.

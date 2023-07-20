@@ -12,13 +12,12 @@ available from its original location tespy/tools/fluid_properties.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import CoolProp as CP
 import numpy as np
 from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
+from tespy.tools import logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses
@@ -90,7 +89,7 @@ class Memorise:
             msg = (
                 'Added fluids ' + ', '.join(fl) +
                 ' to memorise lookup tables.')
-            logging.debug(msg)
+            logger.debug(msg)
 
         Memorise.water = None
         for f, back_end in fluids.items():
@@ -111,13 +110,13 @@ class Memorise:
                     'Could not find the fluid "' + f + '" in the fluid '
                     'property database.'
                 )
-                logging.warning(msg)
+                logger.warning(msg)
                 continue
 
             msg = (
                 'Created CoolProp.AbstractState object for fluid ' +
                 f + ' with back end ' + back_end + '.')
-            logging.debug(msg)
+            logger.debug(msg)
             # pressure range
             try:
                 pmin = Memorise.state[f].trivial_keyed_output(CP.iP_min)
@@ -128,7 +127,7 @@ class Memorise:
                 msg = (
                     'Could not find values for maximum and minimum '
                     'pressure.')
-                logging.warning(msg)
+                logger.warning(msg)
 
             # temperature range
             Tmin = Memorise.state[f].trivial_keyed_output(CP.iT_min)
@@ -150,12 +149,12 @@ class Memorise:
                     msg = (
                         'Could not find values for molar mass and gas '
                         'constant.')
-                    logging.warning(msg)
+                    logger.warning(msg)
 
             msg = (
                 'Specifying fluid property ranges for pressure and '
                 'temperature for convergence check of fluid ' + f + '.')
-            logging.debug(msg)
+            logger.debug(msg)
 
     @staticmethod
     def del_memory(fluids):
@@ -193,7 +192,7 @@ class Memorise:
 
             msg = ('Dropping not frequently used fluid property values from '
                    'memorise class for fluids ' + ', '.join(fl) + '.')
-            logging.debug(msg)
+            logger.debug(msg)
         except KeyError:
             pass
 
@@ -761,11 +760,11 @@ def h_mix_pQ(flow, Q):
     if fluid is None:
         if sum(flow[3].values()) == 0:
             msg = 'The function h_mix_pQ is called without fluid information.'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
         else:
             msg = 'The function h_mix_pQ can only be used for pure fluids.'
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
     try:
@@ -1676,6 +1675,74 @@ def calc_physical_exergy(conn, p0, T0):
     s0 = s_mix_pT([0, p0, 0, conn.fluid.val], T0)
     ex_mech = (h_T0_p - h0) - T0 * (s_T0_p - s0)
     return ex_therm, ex_mech
+
+
+def calc_chemical_exergy(conn, p0, T0, Chem_Ex):
+    """
+    Calculate specific chemical exergy.
+
+    Parameters
+    ----------
+    conn : tespy.connections.connection.Connection
+        Connection to calculate specific chemical exergy for.
+
+    p0 : float
+        Ambient pressure p0 / Pa.
+
+    T0 : float
+        Ambient temperature T0 / K.
+
+    Chem_Ex : dict
+        Lookup table for standard specific chemical exergy.
+
+    Returns
+    -------
+    e_ch : float
+        Specific chemical exergy in J / kg.
+    """
+    fluid_name = single_fluid(conn.fluid.val)
+
+    if fluid_name is None:
+
+        n = molar_mass_flow(conn.fluid.val)
+        x = {
+                fluid: y / (molar_masses[fluid] * n)
+                for fluid, y in conn.fluid.val.items()
+            }
+
+        molar_mass_mixture = sum(
+            [x * molar_masses[fluid] for fluid, x in x.items()]
+        )
+
+        y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
+            cond_check(conn.fluid.val, x, p0, n, T0)
+        )
+
+    else:
+
+        fluid_aliases = CP.CoolProp.get_aliases(fluid_name)
+        y = [Chem_Ex[k][Chem_Ex[k][4]] for k in fluid_aliases if k in Chem_Ex]
+        return y[0] / molar_masses[fluid_name] * 1e3
+
+    ex_cond = 0
+    ex_dry = 0
+    for fluid, x in x_i_gas.items():
+        if x == 0:
+            continue
+
+        fluid_aliases = CP.CoolProp.get_aliases(fluid)
+        if fluid in CP.CoolProp.get_aliases('H2O') and x_water_liq > 0:
+
+            y = [Chem_Ex[k][2] for k in fluid_aliases if k in Chem_Ex]
+            ex_cond += x_water_liq * y[0]
+
+        y = [Chem_Ex[k][3] for k in fluid_aliases if k in Chem_Ex]
+        ex_dry += x * y[0] + T0 * gas_constants['uni'] * 1e-3 * x * np.log(x)
+
+    ex_chemical = ex_cond + ex_dry * (1 - x_water_liq)
+    ex_chemical *= 1 / molar_mass_mixture
+
+    return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
 
 
 def entropy_iteration_IF97(p, h, fluid, output):

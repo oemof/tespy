@@ -31,7 +31,7 @@ from tespy.tools.characteristics import CharLine
 
 class TestHeatPump:
 
-    def setup(self):
+    def setup_method(self):
         # %% network setup
         self.nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
                           h_unit='kJ / kg', m_unit='kg / s')

@@ -10,11 +10,10 @@ available from its original location tespy/components/piping.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -197,7 +196,7 @@ class Valve(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'pressure drop to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return (
@@ -223,7 +222,7 @@ class Valve(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'pressure drop to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         latex = (
@@ -385,11 +384,13 @@ class Valve(Component):
         else:
             msg = ('Exergy balance of a valve, where outlet temperature is '
                    'larger than inlet temperature is not implmented.')
-            logging.warning(msg)
+            logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
 
-        self.E_bus = np.nan
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
         if np.isnan(self.E_P):
             self.E_D = self.E_F
         else:

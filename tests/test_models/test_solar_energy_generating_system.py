@@ -31,7 +31,7 @@ from tespy.tools import ExergyAnalysis
 
 class TestSEGS:
 
-    def setup(self):
+    def setup_method(self):
         """
         Full model validation of SEGS model in TESPy vs. EBSILON.
 
@@ -402,7 +402,7 @@ class TestSEGS:
         ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
         # generate Grassmann diagram
-        links, nodes = ean.generate_plotly_sankey_input()
+        links, nodes = ean.generate_plotly_sankey_input(disaggregate_flows=True)
 
         # check if exergy product value in links is equal to total power
         # output

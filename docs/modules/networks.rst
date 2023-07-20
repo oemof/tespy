@@ -438,6 +438,13 @@ check is skipped.
 In a lot of different tests the algorithm has found a near enough solution
 after the third iteration, further checks are usually not required.
 
+.. tip::
+
+    To check if the solver successfully found a solution for your model you can
+    check the `.converged` attribute of the Network class after calling the
+    `solve` method. It will be `True` in case no linear dependency was and the
+    residual value of all equations is below the minimum threshold.
+
 Calculation speed improvement
 +++++++++++++++++++++++++++++
 For improvement of calculation speed, the calculation of specific derivatives
@@ -455,7 +462,7 @@ For component equations the recalculation of the residual value is skipped,
 
 Connections equations are skipped
 
-- only if you specified :code:`always_all_equations=False` and
+- if you specified :code:`always_all_equations=False` and
 - if the absolute of the residual value of that equations is lower than the
   threshold of :code:`1e-12` in the iteration before and
 - the iteration count is not a multiple of 2 and
@@ -469,7 +476,7 @@ these equations and derivatives.
 
 .. note::
 
-    In order to make sure, that every equations is evaluated at least twice,
+    In order to make sure, that every equation is evaluated at least twice,
     the minimum amount of iterations before convergence can be accepted is at
     4.
 
@@ -502,7 +509,7 @@ methane (although beeing zero) at that point
 :code:`fluid={water: 1}, fluid_balance=True` will still not be sufficient, as
 the fluid_balance parameter adds only one equation to your system.
 
-If you are modeling a cycle, e.g. the clausius rankine cylce, you need to make
+If you are modeling a cycle, e.g. the Clausius Rankine cylce, you need to make
 a cut in the cycle using the cycle_closer or a sink and a source not to
 overdetermine the system. Have a look in the
 :ref:`tutorial section <tespy_basics_label>` to understand why this is
@@ -526,7 +533,7 @@ frequent reasons for that:
 
 The first reason can be eliminated by carefully choosing the parametrization.
 **A linear dependency due to bad starting values is often more difficult to**
-**resolve and it may require some experience.** In many cases, the linear
+**resolve, and it may require some experience.** In many cases, the linear
 dependency is caused by equations, that require the **calculation of a**
 **temperature**, e.g. specifying a temperature at some point of the network,
 terminal temperature differences at heat exchangers, etc.. In this case,

@@ -182,7 +182,7 @@ class SamplePlant:
         self.solved = False
         try:
             self.nw.solve("design")
-            if self.nw.res[-1] >= 1e-3 or self.nw.lin_dep:
+            if not self.nw.converged:
                 self.nw.solve("design", init_only=True, init_path=self.stable)
             else:
                 # might need more checks here!

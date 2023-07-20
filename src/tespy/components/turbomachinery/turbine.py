@@ -10,11 +10,11 @@ available from its original location tespy/components/turbomachinery/turbine.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
 
 import numpy as np
 
 from tespy.components.turbomachinery.base import Turbomachine
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -327,7 +327,7 @@ class Turbine(Turbomachine):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'isentropic efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         i = self.inl[0]
@@ -471,7 +471,7 @@ class Turbine(Turbomachine):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        Turbomachine.calc_parameters(self)
+        super().calc_parameters()
 
         self.eta_s.val = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
@@ -528,10 +528,10 @@ class Turbine(Turbomachine):
         else:
             msg = ('Exergy balance of a turbine, where outlet temperature is '
                    'larger than inlet temperature is not implmented.')
-            logging.warning(msg)
+            logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan
 
-        self.E_bus = -self.P.val
+        self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F

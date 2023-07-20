@@ -11,11 +11,10 @@ tespy/components/heat_exchangers/simple.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
@@ -239,8 +238,8 @@ class HeatExchangerSimple(Component):
     def outlets():
         return ['out1']
 
-    def comp_init(self, nw):
-        Component.comp_init(self, nw, num_eq=len(nw.fluids) + 1)
+    def preprocess(self, nw):
+        super().preprocess(nw, num_eq=len(nw.fluids) + 1)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, nw.T_unit)
 
@@ -536,7 +535,8 @@ class HeatExchangerSimple(Component):
         elif ttd_1 < ttd_2:
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            td_log = 0
+            # both values are equal
+            td_log = ttd_2
 
         return i[0] * (o[2] - i[2]) + self.kA.val * td_log
 
@@ -647,7 +647,8 @@ class HeatExchangerSimple(Component):
         elif ttd_1 < ttd_2:
             td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
         else:
-            td_log = 0
+            # both values are equal
+            td_log = ttd_2
 
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
@@ -866,12 +867,15 @@ class HeatExchangerSimple(Component):
             ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
             ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
 
+            if (ttd_1 / ttd_2) < 0:
+                td_log = np.nan
             if ttd_1 > ttd_2:
                 td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
             elif ttd_1 < ttd_2:
                 td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
             else:
-                td_log = np.nan
+                # both values are equal
+                td_log = ttd_1
 
             self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
             self.kA.is_result = True
@@ -1017,53 +1021,77 @@ class HeatExchangerSimple(Component):
                 else:
                     self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
                 self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-                self.E_bus = self.E_P
+                self.E_bus = {
+                    "chemical": 0, "physical": 0, "massless": self.E_P
+                }
             elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
                 self.E_P = self.outl[0].Ex_therm
                 self.E_F = self.inl[0].Ex_therm + self.outl[0].Ex_therm + (
                     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = self.inl[0].Ex_therm + self.outl[0].Ex_therm
+                self.E_bus = {
+                    "chemical": 0, "physical": 0,
+                    "massless": self.inl[0].Ex_therm + self.outl[0].Ex_therm
+                }
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
                 self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
                 self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (
                     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = self.E_P
+                self.E_bus = {
+                    "chemical": 0, "physical": 0, "massless": self.E_P
+                }
             else:
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'outlet temperature is higher than inlet temperature '
                        'with heat extracted is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
-                self.E_bus = np.nan
+                self.E_bus = {
+                    "chemical": np.nan, "physical": np.nan, "massless": np.nan
+                }
         elif self.Q.val > 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
                 self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_bus = self.E_F
+                self.E_bus = {
+                    "chemical": 0, "physical": 0, "massless": self.E_F
+                }
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
                 self.E_P = self.outl[0].Ex_therm + self.inl[0].Ex_therm
                 self.E_F = self.inl[0].Ex_therm + (
                     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = self.inl[0].Ex_therm
+                self.E_bus = {
+                    "chemical": 0, "physical": 0,
+                    "massless": self.inl[0].Ex_therm
+                }
             elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
-                self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
-                    self.outl[0].Ex_mech - self.inl[0].Ex_mech)
+                if self.dissipative.val:
+                    self.E_P = np.nan
+                else:
+                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
+                        self.outl[0].Ex_mech - self.inl[0].Ex_mech
+                    )
                 self.E_F = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-                self.E_bus = self.E_F
+                self.E_bus = {
+                    "chemical": 0, "physical": 0, "massless": self.E_F
+                }
             else:
                 msg = ('Exergy balance of simple heat exchangers, where '
                        'inlet temperature is higher than outlet temperature '
                        'with heat injected is not implmented.')
-                logging.warning(msg)
+                logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
-                self.E_bus = self.E_F
+                self.E_bus = {
+                    "chemical": np.nan, "physical": np.nan, "massless": self.E_F
+                }
         else:
-            # this is basically the exergy balance of a valve
+            # fully dissipative
             self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-            self.E_bus = np.nan
+            self.E_bus = {
+                "chemical": np.nan, "physical": np.nan, "massless": np.nan
+            }
 
         if np.isnan(self.E_P):
             self.E_D = self.E_F

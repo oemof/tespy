@@ -21,8 +21,3 @@ We have implemented a
 `discussion room on GitHub <https://github.com/oemof/tespy/discussions>`__ as
 user forum. If you have issues with setting up your model or any other question
 about using the software, you are invited to start a discussion there.
-
-In-person meetings
-==================
-Currently, no in-person meetings are scheduled. We will update this section, as
-soon as a meeting is planned.

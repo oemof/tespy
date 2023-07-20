@@ -11,12 +11,11 @@ tespy/components/reactors/water_electrolyzer.py
 SPDX-License-Identifier: MIT
 """
 
-import logging
-
 import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -261,14 +260,14 @@ class WaterElectrolyzer(Component):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def comp_init(self, nw):
+    def preprocess(self, nw):
 
         if not self.P.is_set:
             self.set_attr(P='var')
             msg = ('The power input of a water electrolyzer must be set! '
                    'We are adding the power input of component ' +
                    self.label + ' as custom variable of the system.')
-            logging.info(msg)
+            logger.info(msg)
 
         for fluid in ['o2', 'h2o', 'h2']:
             try:
@@ -285,12 +284,12 @@ class WaterElectrolyzer(Component):
                 aliases = ', '.join(CP.get_aliases(fluid.upper()))
                 msg = msg.replace(
                     '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logging.error(msg)
+                logger.error(msg)
                 raise TESPyComponentError(msg)
 
         self.e0 = self.calc_e0()
 
-        Component.comp_init(self, nw)
+        super().preprocess(nw)
 
     def calc_e0(self):
         r"""
@@ -646,7 +645,7 @@ class WaterElectrolyzer(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return (
@@ -672,7 +671,7 @@ class WaterElectrolyzer(Component):
         if not expr:
             msg = ('Please choose a valid parameter, you want to link the '
                    'efficiency to at component ' + self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         latex = (
@@ -1061,7 +1060,7 @@ class WaterElectrolyzer(Component):
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return val
@@ -1142,7 +1141,7 @@ class WaterElectrolyzer(Component):
                    'parameter for a component of type ' + self.component() +
                    '. Please specify a bus parameter (P/Q) for component ' +
                    self.label + '.')
-            logging.error(msg)
+            logger.error(msg)
             raise ValueError(msg)
 
         return deriv
@@ -1278,3 +1277,15 @@ class WaterElectrolyzer(Component):
         self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
             4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
             ))
+
+    def exergy_balance(self, T0):
+        self.E_P = (
+            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
+            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
+            + self.inl[0].Ex_physical
+        )
+        self.E_F = self.P.val
+
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P/self.E_F
+        self.E_bus = self.P.val

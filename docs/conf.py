@@ -34,7 +34,7 @@ extensions = [
 # master_doc = 'contents'
 # names, years, etc
 project = 'TESPy'
-year = '2022'
+year = '2023'
 author = 'Francesco Witte'
 copyright = '{0}, {1}'.format(year, author)
 
@@ -119,6 +119,7 @@ html_theme_options = {
     "light_logo": "./images/logo_tespy_mid.svg",
     "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
 }
+html_favicon = './_static/images/logo_tespy_small.svg'
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False
@@ -131,158 +132,11 @@ copybutton_prompt_is_regexp = True
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'tespy_doc'
 
-
-# -- Options for LaTeX output ---------------------------------------------
-
-latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
-
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
-
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-  ('index', 'tespy.tex', u'tespy Documentation',
-   u'Francesco Witte', 'manual'),
-]
-
-# The name of an image file (relative to this directory) to place at the top of
-# the title page.
-#latex_logo = None
-
-# For "manual" documents, if this is true, then toplevel headings are parts,
-# not chapters.
-#latex_use_parts = False
-
-# If true, show page references after internal links.
-#latex_show_pagerefs = False
-
-# If true, show URL addresses after external links.
-#latex_show_urls = False
-
-# Documents to append as an appendix to all manuals.
-#latex_appendices = []
-
-# If false, no module index is generated.
-#latex_domain_indices = True
-
-
-# -- Options for manual page output ---------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'tespy', u'tespy Documentation',
-     [u'Francesco Witte'], 1)
-]
-
-# If true, show URL addresses after external links.
-#man_show_urls = False
-
-
-# -- Options for Texinfo output -------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-  ('index', 'tespy', u'tespy Documentation',
-   u'Author', 'tespy', 'Thermal Engineering Systems in Python',
-   'Miscellaneous'),
-]
-
-# Documents to append as an appendix to all manuals.
-#texinfo_appendices = []
-
-# If false, no module index is generated.
-#texinfo_domain_indices = True
-
-# How to display URL addresses: 'footnote', 'no', or 'inline'.
-#texinfo_show_urls = 'footnote'
-
-# If true, do not generate a @detailmenu in the "Top" node's menu.
-#texinfo_no_detailmenu = False
-
-
-# -- Options for Epub output ----------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = u'tespy'
-epub_author = u'Francesco Witte'
-epub_publisher = u'Francesco Witte'
-epub_copyright = u'2018-2020, Francesco Witte'
-
-# The basename for the epub file. It defaults to the project name.
-#epub_basename = u'pahesmf'
-
-# The HTML theme for the epub output. Since the default themes are not optimized
-# for small screen space, using the same theme for HTML and epub output is
-# usually not wise. This defaults to 'epub', a theme designed to save visual
-# space.
-#epub_theme = 'epub'
-
-# The language of the text. It defaults to the language option
-# or en if the language is not set.
-#epub_language = ''
-
-# The scheme of the identifier. Typical schemes are ISBN or URL.
-#epub_scheme = ''
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#epub_identifier = ''
-
-# A unique identification for the text.
-#epub_uid = ''
-
-# A tuple containing the cover image and cover page html template filenames.
-#epub_cover = ()
-
-# A sequence of (type, uri, title) tuples for the guide element of content.opf.
-#epub_guide = ()
-
-# HTML files that should be inserted before the pages created by sphinx.
-# The format is a list of tuples containing the path and title.
-#epub_pre_files = []
-
-# HTML files shat should be inserted after the pages created by sphinx.
-# The format is a list of tuples containing the path and title.
-#epub_post_files = []
-
-# A list of files that should not be packed into the epub file.
-epub_exclude_files = ['search.html']
-
-# The depth of the table of contents in toc.ncx.
-#epub_tocdepth = 3
-
-# Allow duplicate toc entries.
-#epub_tocdup = True
-
-# Choose between 'default' and 'includehidden'.
-#epub_tocscope = 'default'
-
-# Fix unsupported image types using the PIL.
-#epub_fix_images = False
-
-# Scale large images.
-#epub_max_image_width = 0
-
-# How to display URL addresses: 'footnote', 'no', or 'inline'.
-#epub_show_urls = 'inline'
-
-# If false, no index is generated.
-#epub_use_index = True
-
 # -- Options for linkcheck ----------------------------------------------
 
 linkcheck_ignore = [
   r'https://doi.org/10.2172/95571',  # resolves, but has issues with check
   r'https://doi.org/20.500.12738/6561',  # 08.01.2023: does not resolve anymore
+  r'https://doi.org/10.1021/ie4033999',  # 28.02.2023: does not resolve anymore for some reason
+  r'https://doi.org/10.1002/bbpc.19900940121',  # 13.03.2023 ...?
 ]

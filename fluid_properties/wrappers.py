@@ -97,6 +97,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PSmass_INPUTS, p, s)
         return self.AS.T()
 
+    def h_pQ(self, p, Q):
+        self.AS.update(CP.PQ_INPUTS, p, Q)
+        return self.AS.hmass()
+
     def h_pT(self, p, T):
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
@@ -109,12 +113,12 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.QT_INPUTS, Q, T)
         return self.AS.smass()
 
-    def T_boiling(self, p):
+    def T_sat(self, p):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.PQ_INPUTS, p, 1)
         return self.AS.T()
 
-    def p_boiling(self, T):
+    def p_sat(self, T):
         if T > self._T_crit:
             T = self._T_crit * 0.99
 

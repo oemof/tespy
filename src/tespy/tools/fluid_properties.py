@@ -18,7 +18,7 @@ from CoolProp.CoolProp import PropsSI as CPPSI
 from CoolProp.CoolProp import get_aliases
 
 from tespy.tools import logger
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import gas_constants
 from tespy.tools.global_vars import molar_masses
 from tespy.tools.helpers import molar_mass_flow
@@ -245,7 +245,7 @@ def T_mix_ph(flow, T0=675):
     if memorisation:
         a = Memorise.T_ph[fl][:, :-2]
         b = np.array([flow[1], flow[2]] + list(flow[3].values()))
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        ix = np.where(np.all(abs(a - b) <= ERR , axis=1))[0]
 
         if ix.size == 1:
             # known fluid properties
@@ -257,7 +257,7 @@ def T_mix_ph(flow, T0=675):
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
         valmin = max(
-            [Memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            [Memorise.value_range[f][2] for f in fl if flow[3][f] > ERR ]
         ) + 0.1
         if T0 < valmin or np.isnan(T0):
             T0 = valmin * 1.1
@@ -387,7 +387,7 @@ def dT_mix_ph_dfluid(flow, T0=675):
     lo = flow.copy()
     vec_deriv = []
     for fluid, x in flow[3].items():
-        if x > err:
+        if x > ERR :
             up[3][fluid] += d
             lo[3][fluid] -= d
             vec_deriv += [
@@ -441,7 +441,7 @@ def T_mix_ps(flow, s, T0=675):
     if memorisation:
         a = Memorise.T_ps[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()) + [s])
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        ix = np.where(np.all(abs(a - b) <= ERR , axis=1))[0]
         if ix.size == 1:
             # known fluid properties
             Memorise.T_ps[fl][ix, -1] += 1
@@ -452,7 +452,7 @@ def T_mix_ps(flow, s, T0=675):
     if fluid is None:
         # calculate the fluid properties for fluid mixtures
         valmin = max(
-            [Memorise.value_range[f][2] for f in fl if flow[3][f] > err]
+            [Memorise.value_range[f][2] for f in fl if flow[3][f] > ERR ]
         ) + 0.1
         if T0 < valmin or np.isnan(T0):
             T0 = valmin * 1.1
@@ -537,7 +537,7 @@ def h_mix_pT(flow, T, force_gas=False):
         }
 
         water = Memorise.water
-        if (water is not None and not force_gas and flow[3][water] > err):
+        if (water is not None and not force_gas and flow[3][water] > ERR ):
             y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
                 cond_check(flow[3], x_i, flow[1], n, T)
             )
@@ -548,7 +548,7 @@ def h_mix_pT(flow, T, force_gas=False):
             x_i_gas = x_i
 
         for fluid, y in y_i_gas.items():
-            if y > err:
+            if y > ERR :
                 if fluid == water and y_water_liq > 0:
                     Memorise.state[fluid].update(CP.QT_INPUTS, 0, T)
                     h += Memorise.state[fluid].hmass() * y_water_liq
@@ -1001,7 +1001,7 @@ def v_mix_ph(flow, T0=675):
     if memorisation:
         a = Memorise.v_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        ix = np.where(np.all(abs(a - b) <= ERR , axis=1))[0]
         if ix.size == 1:
             # known fluid properties
             Memorise.v_ph[fl][ix, -1] += 1
@@ -1169,7 +1169,7 @@ def v_mix_pT(flow, T):
 
     d = 0
     for fluid, x in flow[3].items():
-        if x > err:
+        if x > ERR :
             ni = x / molar_masses[fluid]
             d += d_pT(flow[1] * ni / n, T, fluid)
 
@@ -1262,7 +1262,7 @@ def visc_mix_ph(flow, T0=675):
     if memorisation:
         a = Memorise.visc_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        ix = np.where(np.all(abs(a - b) <= ERR , axis=1))[0]
         if ix.size == 1:
             # known fluid properties
             Memorise.visc_ph[fl][ix, -1] += 1
@@ -1350,7 +1350,7 @@ def visc_mix_pT(flow, T):
     a = 0
     b = 0
     for fluid, x in flow[3].items():
-        if x > err:
+        if x > ERR :
             bi = x * np.sqrt(molar_masses[fluid]) / (molar_masses[fluid] * n)
             b += bi
             a += bi * visc_pT(flow[1], T, fluid)
@@ -1415,7 +1415,7 @@ def s_mix_ph(flow, T0=675):
     if memorisation:
         a = Memorise.s_ph[fl][:, :-2]
         b = np.asarray([flow[1], flow[2]] + list(flow[3].values()))
-        ix = np.where(np.all(abs(a - b) <= err, axis=1))[0]
+        ix = np.where(np.all(abs(a - b) <= ERR , axis=1))[0]
         if ix.size == 1:
             # known fluid properties
             Memorise.s_ph[fl][ix, -1] += 1
@@ -1508,7 +1508,7 @@ def s_mix_pT(flow, T, force_gas=False):
         }
 
         water = Memorise.water
-        if (water is not None and not force_gas and flow[3][water] > err):
+        if (water is not None and not force_gas and flow[3][water] > ERR ):
             y_i_gas, x_i_gas, y_water_liq, x_water_liq = (
                 cond_check(flow[3], x_i, flow[1], n, T)
             )
@@ -1519,7 +1519,7 @@ def s_mix_pT(flow, T, force_gas=False):
             x_i_gas = x_i
 
         for fluid, y in y_i_gas.items():
-            if y > err:
+            if y > ERR :
                 if fluid == water and y_water_liq > 0:
                     Memorise.state[water].update(CP.QT_INPUTS, 1, T)
                     s += Memorise.state[water].smass() * y * (

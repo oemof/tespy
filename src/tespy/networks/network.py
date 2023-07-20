@@ -34,7 +34,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 
 # Only require cupy if Cuda shall be used
@@ -1727,14 +1727,14 @@ class Network:
 
         for count in range(self.max_iter):
             self.iter = count
-            self.increment_filter = np.absolute(self.increment) < err ** 2
+            self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
             self.res = np.append(self.res, norm(self.residual))
 
             if self.iterinfo:
                 self.iterinfo_body(print_results)
 
-            if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
+            if ((self.iter >= self.min_iter and self.res[-1] < ERR ** 0.5) or
                     self.lin_dep):
                 self.converged = True
                 break
@@ -1872,7 +1872,7 @@ class Network:
     #         # This should not be hardcoded here.
     #         progress_min = np.log(err)
     #         progress_max = np.log(err) * -1
-    #         progress_val = np.log(max(residual_norm, err)) * -1
+    #         progress_val = np.log(max(residual_norm, ERR )) * -1
     #         # Scale to 0-1
     #         progress_val = max(0, min(1, (progress_val - progress_min) / (progress_max - progress_min)))
     #         # Scale to 100%
@@ -1969,9 +1969,9 @@ class Network:
                                     i * (self.num_conn_vars) + 3 + j])
 
                     # keep mass fractions within [0, 1]
-                    if c.fluid.val[fluid] < err:
+                    if c.fluid.val[fluid] < ERR :
                         c.fluid.val[fluid] = 0
-                    elif c.fluid.val[fluid] > 1 - err:
+                    elif c.fluid.val[fluid] > 1 - ERR :
                         c.fluid.val[fluid] = 1
 
                     j += 1
@@ -2141,11 +2141,11 @@ class Network:
         flow = c.get_flow()
         Tmin = max(
             [fp.Memorise.value_range[f][2] for
-             f in flow[3].keys() if flow[3][f] > err]
+             f in flow[3].keys() if flow[3][f] > ERR ]
         ) + 100
         Tmax = min(
             [fp.Memorise.value_range[f][3] for
-             f in flow[3].keys() if flow[3][f] > err]
+             f in flow[3].keys() if flow[3][f] > ERR ]
         ) - 100
         hmin = fp.h_mix_pT(flow, Tmin)
         hmax = fp.h_mix_pT(flow, Tmax)
@@ -2369,8 +2369,14 @@ class Network:
         primary_vars = {'m': 0, 'p': 1, 'h': 2}
         for c in self.conns['object']:
             c.build_fluid_data()
-            # flow = c.get_flow()
-            # col = c.conn_loc * self.num_conn_vars
+
+            start, end = self.conns.loc[c.label, ["loc_J_start", "loc_J_end"]]
+            indices = [np.arange(start, end)]
+            c.solve(self.increment_filter[np.array(indices)])
+            self.residual[k:k + c.num_eq] = c.residual
+            self.jacobian[k:k + c.num_eq, indices] = c.jacobian
+
+            k += c.num_eq
 
             # referenced mass flow, pressure or enthalpy
             for var, pos in primary_vars.items():
@@ -2384,34 +2390,6 @@ class Network:
                     self.jacobian[k, col + pos] = 1
                     self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.factor
                     k += 1
-
-            start, end = self.conns.loc[c.label, ["loc_J_start", "loc_J_end"]]
-            indices = [np.arange(start, end)]
-            c.solve(self.increment_filter[np.array(indices)])
-            self.residual[k:k + c.num_eq] = c.residual
-            self.jacobian[k:k + c.num_eq, indices] = c.jacobian
-
-            k += c.num_eq
-            # temperature
-            # if c.T.val_set:
-                # from .fluid_properties import T_mix_ph
-                # from .fluid_properties.functions import dT_mix_pdh, dT_mix_dph
-                # dct = OrderedDict()
-                # dct["water"] = {"wrapper": c.fluid.back_end["water"], "mass_fraction": 1}
-
-                # self.jacobian[k, col + 1] = (
-                #     dT_mix_dph(c.p.val_SI, c.h.val_SI, dct)
-                # )
-                # self.jacobian[k, col + 2] = (
-                #     dT_mix_pdh(c.p.val_SI, c.h.val_SI, dct)
-                # )
-                # if len(self.fluids) != 1:
-                #     col_s = c.conn_loc * self.num_conn_vars + 3
-                #     col_e = (c.conn_loc + 1) * self.num_conn_vars
-                #     if not all(self.increment_filter[col_s:col_e]):
-                #         self.jacobian[k, col_s:col_e] = fp.dT_mix_ph_dfluid(
-                #             flow, T0=c.T.val_SI)
-                # k += 1
 
             # referenced temperature
             if c.T.ref_set:
@@ -2447,32 +2425,6 @@ class Network:
                                 flow_ref, T0=ref.obj.T.val_SI)])
                 k += 1
 
-            # saturated steam fraction
-            if c.x.val_set:
-                if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0 or self.always_all_equations):
-                    self.residual[k] = c.h.val_SI - (
-                        fp.h_mix_pQ(flow, c.x.val_SI))
-                if not self.increment_filter[col + 1]:
-                    self.jacobian[k, col + 1] = -(
-                        fp.dh_mix_dpQ(flow, c.x.val_SI))
-                self.jacobian[k, col + 2] = 1
-                k += 1
-
-            # volumetric flow
-            # if c.v.val_set:
-            #     if (np.absolute(self.residual[k]) > err ** 2 or
-            #             self.iter % 2 == 0 or self.always_all_equations):
-            #         self.residual[k] = (
-            #             fp.v_mix_ph(flow, T0=c.T.val_SI) * c.m.val_SI -
-            #             c.v.val_SI)
-            #     self.jacobian[k, col] = fp.v_mix_ph(flow, T0=c.T.val_SI)
-            #     self.jacobian[k, col + 1] = (
-            #         fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI)
-            #     self.jacobian[k, col + 2] = (
-            #         fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI)
-            #     k += 1
-
             # referenced volumetric flow
             if c.v.ref_set:
                 ref = c.v.ref
@@ -2504,32 +2456,17 @@ class Network:
                 )
                 k += 1
 
-            # temperature difference to boiling point
-            if c.Td_bp.val_set:
-                if (np.absolute(self.residual[k]) > err ** 2 or
-                        self.iter % 2 == 0 or self.always_all_equations):
-                    self.residual[k] = (
-                        fp.T_mix_ph(flow, T0=c.T.val_SI) - c.Td_bp.val_SI -
-                        fp.T_bp_p(flow))
-                if not self.increment_filter[col + 1]:
-                    self.jacobian[k, col + 1] = (
-                        fp.dT_mix_dph(flow, T0=c.T.val_SI) - fp.dT_bp_dp(flow))
-                if not self.increment_filter[col + 2]:
-                    self.jacobian[k, col + 2] = fp.dT_mix_pdh(
-                        flow, T0=c.T.val_SI)
-                k += 1
-
             # fluid composition balance
-            if c.fluid.balance:
-                j = 0
-                res = 1
-                for f in self.fluids:
-                    res -= c.fluid.val[f]
-                    self.jacobian[k, c.conn_loc + 3 + j] = -1
-                    j += 1
+            # if c.fluid.balance:
+            #     j = 0
+            #     res = 1
+            #     for f in self.fluids:
+            #         res -= c.fluid.val[f]
+            #         self.jacobian[k, c.conn_loc + 3 + j] = -1
+            #         j += 1
 
-                self.residual[k] = res
-                k += 1
+            #     self.residual[k] = res
+            #     k += 1
 
         # equations and derivatives for specified primary variables are static
         # if self.iter == 0:
@@ -2600,7 +2537,7 @@ class Network:
             if (fluid is None and
                     abs(
                         fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI
-                    ) > err ** .5):
+                    ) > ERR ** .5):
                 c.T.val_SI = np.nan
                 c.vol.val_SI = np.nan
                 c.v.val_SI = np.nan
@@ -2802,8 +2739,8 @@ class Network:
             if not colored:
                 return str(val)
             # else part
-            if (val < comp.get_attr(param).min_val - err or
-                    val > comp.get_attr(param).max_val + err):
+            if (val < comp.get_attr(param).min_val - ERR or
+                    val > comp.get_attr(param).max_val + ERR ):
                 return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
             if comp.get_attr(args[0]).is_var:
                 return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']

@@ -46,6 +46,38 @@ def h_mix_pT(p, T, fluid_data, mixing_rule=None):
         return H_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
 
 
+def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].h_pQ(p, Q)
+    else:
+        msg = "Saturation function cannot be called on mixtures."
+        raise ValueError(msg)
+
+
+def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
+    d = 0.1
+    upper = h_mix_pQ(p + d, Q, fluid_data)
+    lower = h_mix_pQ(p - d, Q, fluid_data)
+    return (upper - lower) / (2 * d)
+
+
+def T_sat_p(p, fluid_data, mixing_rule=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].T_sat(p)
+    else:
+        msg = "Saturation function cannot be called on mixtures."
+        raise ValueError(msg)
+
+
+def dT_sat_dp(p, fluid_data, mixing_rule=None):
+    d = 0.01
+    upper = T_sat_p(p + d, fluid_data)
+    lower = T_sat_p(p - d, fluid_data)
+    return (upper - lower) / (2 * d)
+
+
 def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)

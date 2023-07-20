@@ -1,10 +1,11 @@
-from fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, CoolPropWrapper
+from fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, h_mix_pQ, T_sat_p, CoolPropWrapper
 from collections import OrderedDict
 from tespy.tools.helpers import newton
+from tespy.tools.global_vars import ERR
 
 from fluid_properties.helpers import newton_with_kwargs
 from fluid_properties.wrappers import FluidPropertyWrapper
-from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh
+from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp
 
 from copy import deepcopy
 import numpy as np
@@ -87,8 +88,8 @@ def _newton(func, deriv, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
-    tol_rel = kwargs.get('tol_rel', 1e-6)
-    tol_abs = kwargs.get('tol_abs', 1e-6)
+    tol_rel = kwargs.get('tol_rel', ERR)
+    tol_abs = kwargs.get('tol_abs', ERR)
     tol_mode = kwargs.get('tol_mode', 'abs')
 
     # start newton loop
@@ -200,12 +201,22 @@ class NewConnection(Connection):
             "T": {
                 "func": self.T_func, "deriv": self.T_deriv,
                 "constant_deriv": False, "latex": None,
-                "num_eq": 1, "partials": ["p", "h", "fluid"]
+                "num_eq": 1
             },
             "v": {
                 "func": self.v_func, "deriv": self.v_deriv,
                 "constant_deriv": False, "latex": None,
-                "num_eq": 1, "partials": ["m", "p", "h"]
+                "num_eq": 1
+            },
+            "x": {
+                "func": self.x_func, "deriv": self.x_deriv,
+                "constant_deriv": False, "latex": None,
+                "num_eq": 1
+            },
+            "Td_bp": {
+                "func": self.Td_bp_func, "deriv": self.Td_bp_deriv,
+                "constant_deriv": False, "latex": None,
+                "num_eq": 1
             },
         }
 
@@ -248,6 +259,47 @@ class NewConnection(Connection):
         if self.h.is_var:
             self.jacobian[k, 0, self.var_pos["h"]] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
 
+
+    def x_func(self, k):
+        # saturated steam fraction
+        # how to check if condition?
+        # if (np.absolute(self.residual[k]) > ERR ** 2 or
+        #         self.iter % 2 == 0 or self.always_all_equations):
+        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+
+    def x_deriv(self, k):
+        # if not self.increment_filter[col + 1]:
+        if self.p.is_var:
+            self.jacobian[k, 0, self.var_pos["p"]] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        if self.h.is_var:
+            self.jacobian[k, 0, self.var_pos["h"]] = 1
+
+    def Td_bp_func(self, k):
+
+        # temperature difference to boiling point
+            # if (np.absolute(self.residual[k]) > ERR ** 2 or
+            #         self.iter % 2 == 0 or self.always_all_equations):
+        self.residual[k] = (
+            T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            - self.Td_bp.val_SI
+            - T_sat_p(self.p.val_SI, self.fluid_data)
+        )
+
+    def Td_bp_deriv(self, k):
+        # if not self.increment_filter[col + 1]:
+        if self.p.is_var:
+            self.jacobian[k, 0, self.var_pos["p"]] = (
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                - dT_sat_dp(self.p.val_SI, self.fluid_data)
+            )
+        if self.h.is_var:
+            # if not self.increment_filter[col + 2]:
+            self.jacobian[k, 0, self.var_pos["h"]] = dT_mix_pdh(
+                self.p.val_SI, self.h.val_SI, self.fluid_data
+            )
+
+
+
     def solve(self, increment_filter):
         k = 0
         for parameter in self.parameters:
@@ -281,7 +333,7 @@ c1.fluid.val_set["water"] = True
 c1.fluid.val["water"] = fluid_data["water"]["mass_fraction"]
 c1.fluid.back_end["water"] = fluid_data["water"]["wrapper"]
 
-c2.set_attr(m=1, h=1e5, v=1)
+c2.set_attr(m=1, p=3, Td_bp=3)
 
 c2.fluid.val_set["water"] = True
 c2.fluid.val["water"] = fluid_data["water"]["mass_fraction"]
@@ -289,4 +341,8 @@ c2.fluid.back_end["water"] = fluid_data["water"]["wrapper"]
 
 nwk.solve("design")
 
+nwk.print_results()
+
+c2.set_attr(p=None, T=136)
+nwk.solve("design")
 nwk.print_results()

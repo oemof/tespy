@@ -20,7 +20,7 @@ import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
 
@@ -497,8 +497,8 @@ def newton(func, deriv, params, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
-    tol_rel = kwargs.get('tol_rel', err)
-    tol_abs = kwargs.get('tol_abs', err)
+    tol_rel = kwargs.get('tol_rel', ERR )
+    tol_abs = kwargs.get('tol_abs', ERR )
     tol_mode = kwargs.get('tol_mode', 'abs')
 
     # start newton loop
@@ -643,7 +643,7 @@ def molar_mass_flow(flow):
     """
     mm = 0
     for fluid, x in flow.items():
-        if x > err:
+        if x > ERR :
             mm += x / molar_masses[fluid]
     return mm
 
@@ -674,7 +674,7 @@ def num_fluids(fluids):
     """
     n = 0
     for fluid, x in fluids.items():
-        if x > err:
+        if x > ERR :
             n += 1
 
     return n
@@ -698,7 +698,7 @@ def single_fluid(fluids):
     """
     if num_fluids(fluids) == 1:
         for fluid, x in fluids.items():
-            if x > err:
+            if x > ERR :
                 return fluid
     else:
         return None

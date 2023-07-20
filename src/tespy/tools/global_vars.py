@@ -9,7 +9,7 @@ available from its original location tespy/tools/global_vars.py
 SPDX-License-Identifier: MIT
 """
 
-err = 1e-6
+ERR = 1e-6
 molar_masses = {}
 gas_constants = {}
 gas_constants['uni'] = 8.314462618

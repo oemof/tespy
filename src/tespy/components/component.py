@@ -28,7 +28,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton
@@ -872,7 +872,7 @@ class Component:
         for p in self.variables.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                if data.val > data.max_val + err:
+                if data.val > data.max_val + ERR :
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(data.val) + ' above maximum value (' +
@@ -880,7 +880,7 @@ class Component:
                         '.')
                     logger.warning(msg)
 
-                elif data.val < data.min_val - err:
+                elif data.val < data.min_val - ERR :
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(data.val) + ' below minimum value (' +

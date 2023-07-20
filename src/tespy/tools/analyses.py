@@ -21,7 +21,7 @@ from tabulate import tabulate
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.global_vars import combustion_gases
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 
 idx = pd.IndexSlice
 
@@ -31,7 +31,7 @@ def categorize_fluids(conn):
     if fluid is None:
         cat = "non-combustion-gas"
         for f, x in conn.fluid.val.items():
-            if x > err:
+            if x > ERR :
                 try:
                     if hlp.fluidalias_in_list(f, combustion_gases):
                         cat = "combustion-gas"
@@ -473,11 +473,11 @@ class ExergyAnalysis:
             self.network_data.loc['E_D'] - self.network_data.loc['E_L']
         )
 
-        if residual >= err ** 0.5:
+        if residual >= ERR ** 0.5:
             msg = (
                 'The exergy balance of your network is not closed (residual '
                 'value is ' + str(round(residual, 6)) + ', but should be '
-                'smaller than ' + str(err ** 0.5) + '), you should check the '
+                'smaller than ' + str(ERR ** 0.5) + '), you should check the '
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
             logger.error(msg)

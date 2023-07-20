@@ -3,61 +3,66 @@ import CoolProp as CP
 from CoolProp.CoolProp import AbstractState
 
 
-class FluidProperyWrapper:
+class FluidPropertyWrapper:
+
+    def _not_implemented(self) -> None:
+        raise NotImplementedError(
+            f"Method is not implemented for {self.__class__.__name__}."
+        )
 
     def _is_below_T_critical(self, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def _make_p_subcritical(self, p):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def T_ph(self, p, h):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def T_ps(self, p, s):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def h_pT(self, p, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def h_QT(self, Q, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def s_QT(self, Q, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def T_boiling(self, p):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def p_boiling(self, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def Q_ph(self, p, h):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def d_ph(self, p, h):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def d_pT(self, p, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def d_QT(self, Q, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def viscosity_ph(self, p, h):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def viscosity_pT(self, p, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def s_ph(self, p, h):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
     def s_pT(self, p, T):
-        raise NotImplementedError("Method is not implemented")
+        self._not_implemented()
 
 
-class CoolPropWrapper(FluidProperyWrapper):
+class CoolPropWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, backend=None) -> None:
         self.fluid = fluid
@@ -157,7 +162,7 @@ pm.config['unit_pressure'] = "Pa"
 pm.config['unit_molar'] = "mol"
 
 
-class PyromatIdealGasWrapper(FluidProperyWrapper):
+class PyromatIdealGasWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, backend=None) -> None:
         self.fluid = fluid

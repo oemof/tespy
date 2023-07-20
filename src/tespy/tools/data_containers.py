@@ -319,8 +319,15 @@ class FluidComposition(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': {}, 'val0': {}, 'val_set': {},
-                'design': collections.OrderedDict(), 'balance': False}
+        return {
+            'val': collections.OrderedDict(),
+            'val0': collections.OrderedDict(),
+            'val_set': collections.OrderedDict(),
+            'design': collections.OrderedDict(),
+            'back_end': collections.OrderedDict(),
+            "is_var": collections.OrderedDict(),
+            'balance': False
+        }
 
 
 class GroupedComponentProperties(DataContainer):
@@ -436,8 +443,17 @@ class FluidProperties(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'val': np.nan, 'val0': np.nan, 'val_SI': 0, 'val_set': False,
-                'ref': None, 'ref_set': False, 'unit': None, 'design': np.nan}
+        return {
+            'val': np.nan,
+            'val0': np.nan,
+            'val_SI': 0,
+            'val_set': False,
+            'ref': None,
+            'ref_set': False,
+            'unit': None,
+            'design': np.nan,
+            "is_var": False
+        }
 
 
 class DataContainerSimple(DataContainer):

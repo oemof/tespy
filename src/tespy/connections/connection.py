@@ -267,9 +267,12 @@ class Connection:
         self.printout = True
 
         # set default values for kwargs
-        self.variables = self.attr()
-        self.variables0 = [x + '0' for x in self.variables.keys()]
-        self.__dict__.update(self.variables)
+        self.property_data = self.attr()
+        self.property_data0 = [x + '0' for x in self.property_data.keys()]
+        self.__dict__.update(self.property_data)
+        self.m.is_var = True
+        self.p.is_var = True
+        self.h.is_var = True
         self.set_attr(**kwargs)
 
         msg = (
@@ -370,7 +373,7 @@ class Connection:
                 msg = 'Label can only be specified on instance creation.'
                 logger.error(msg)
                 raise TESPyConnectionError(msg)
-            elif key in self.variables or key in self.variables0:
+            elif key in self.property_data or key in self.property_data0:
                 # fluid specification
                 try:
                     float(kwargs[key])
@@ -380,7 +383,7 @@ class Connection:
                 if 'fluid' in key and key != 'fluid_balance':
                     if isinstance(kwargs[key], dict):
                         # starting values
-                        if key in self.variables0:
+                        if key in self.property_data0:
                             self.fluid.set_attr(val0=kwargs[key].copy())
                         # specified parameters
                         else:
@@ -420,17 +423,23 @@ class Connection:
                 elif kwargs[key] is None:
                     self.get_attr(key).set_attr(val_set=False)
                     self.get_attr(key).set_attr(ref_set=False)
+                    if key in ["m", "p", "h"]:
+                        self.get_attr(key).is_var = True
 
                 elif is_numeric:
                     if np.isnan(kwargs[key]):
                         self.get_attr(key).set_attr(val_set=False)
                         self.get_attr(key).set_attr(ref_set=False)
+                        if key in ["m", "p", "h"]:
+                            self.get_attr(key).is_var = True
                     else:
                         # value specification
-                        if key in self.variables:
+                        if key in self.property_data:
                             self.get_attr(key).set_attr(
                                 val_set=True,
                                 val=kwargs[key])
+                            if key in ["m", "p", "h"]:
+                                self.get_attr(key).is_var = False
                         # starting value specification
                         else:
                             self.get_attr(key.replace('0', '')).set_attr(
@@ -472,10 +481,10 @@ class Connection:
                     msg = 'Please provide the ' + key + ' parameters as list!'
                     logger.error(msg)
                     raise TypeError(msg)
-                elif set(kwargs[key]).issubset(self.variables.keys()):
+                elif set(kwargs[key]).issubset(self.property_data.keys()):
                     self.__dict__.update({key: kwargs[key]})
                 else:
-                    params = ', '.join(self.variables.keys())
+                    params = ', '.join(self.property_data.keys())
                     msg = (
                         'Available parameters for (off-)design specification '
                         'are: ' + params + '.')

@@ -475,6 +475,17 @@ class Connection:
                     logger.error(msg)
                     raise TypeError(msg)
 
+            # fluid variable
+            elif key == 'fluid_variable':
+                if isinstance(kwargs[key], bool):
+                    self.get_attr('fluid').set_attr(is_var=kwargs[key])
+                else:
+                    msg = (
+                        'Datatype for keyword argument fluid_variable must be '
+                        'boolean.')
+                    logger.error(msg)
+                    raise TypeError(msg)
+
             # design/offdesign parameter list
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
@@ -552,10 +563,12 @@ class Connection:
         out : list
             List of available attributes of a connection.
         """
-        return {'m': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
-                'x': dc_prop(), 'v': dc_prop(), 'vol': dc_prop(),
-                's': dc_prop(),
-                'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()}
+        return {
+            'm': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
+            'x': dc_prop(), 'v': dc_prop(), 'vol': dc_prop(),
+            's': dc_prop(),
+            'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()
+            }
 
     def get_flow(self):
         r"""

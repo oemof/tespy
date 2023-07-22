@@ -720,14 +720,6 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        if len(self.fluids) == 0:
-            msg = (
-                'Network has no fluids, please specify a list with fluids on '
-                'network creation.'
-            )
-            logger.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
         self.check_conns()
         self.init_components()
         # count number of incoming and outgoing connections and compare to
@@ -780,13 +772,13 @@ class Network:
             # set up restults and specification dataframes
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
-                cols = [col for col, data in comp.variables.items()
+                cols = [col for col, data in comp.parameters.items()
                         if isinstance(data, dc_cp)]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64')
             if comp_type not in self.specifications:
                 cols, groups, chars = [], [], []
-                for col, data in comp.variables.items():
+                for col, data in comp.parameters.items():
                     if isinstance(data, dc_cp):
                         cols += [col]
                     elif isinstance(data, dc_gcp) or isinstance(data, dc_gcc):
@@ -822,6 +814,8 @@ class Network:
         self.num_conn_eq = 0
         self.num_comp_vars = 0
         self.init_set_properties()
+        self.propagate_fluid_wrappers()
+        self.setup_connection_variables()
 
         if self.mode == 'offdesign':
             self.redesign = True
@@ -853,15 +847,11 @@ class Network:
 
     def init_set_properties(self):
         """Specification of SI values for user set values."""
-        self.num_conn_vars = 0
+        all_fluids = []
         # fluid property values
         for c in self.conns['object']:
-            c.preprocess()
-            self.conns.loc[c.label, "loc_J_start"] = self.num_conn_vars
-            self.num_conn_vars += c.num_vars
-            self.conns.loc[c.label, "loc_J_end"] = self.num_conn_vars
-            # set all specifications to False
-            self.specifications['Connection'].loc[c.label] = False
+            all_fluids += c.fluid.val.keys()
+
             if not self.init_previous:
                 c.good_starting_values = False
 
@@ -886,50 +876,90 @@ class Network:
                             c.get_attr(key).unit)
 
             # fluid vector specification
-            tmp = c.fluid.val
-            for fluid in tmp.keys():
-                if fluid not in self.fluids:
-                    msg = ('Your connection ' + c.label + ' holds a fluid, '
-                           'that is not part of the networks\'s fluids (' +
-                           fluid + ').')
-                    raise hlp.TESPyNetworkError(msg)
-            tmp0 = c.fluid.val0
-            tmp_set = c.fluid.val_set
+            # tmp = c.fluid.val
+            # for fluid in tmp.keys():
+            #     if fluid not in self.fluids:
+            #         msg = ('Your connection ' + c.label + ' holds a fluid, '
+            #                'that is not part of the networks\'s fluids (' +
+            #                fluid + ').')
+            #         raise hlp.TESPyNetworkError(msg)
+            # tmp0 = c.fluid.val0
+            # tmp_set = c.fluid.val_set
 
-            c.fluid.val = OrderedDict()
-            c.fluid.val0 = OrderedDict()
-            c.fluid.val_set = OrderedDict()
+            # c.fluid.val = OrderedDict()
+            # c.fluid.val0 = OrderedDict()
+            # c.fluid.val_set = OrderedDict()
 
-            # if the number of fluids is one the mass fraction is 1 for every
-            # connection
-            if len(self.fluids) == 1:
-                c.fluid.val[self.fluids[0]] = 1
-                c.fluid.val0[self.fluids[0]] = 1
-                if self.fluids[0] in tmp_set:
-                    c.fluid.val_set[self.fluids[0]] = tmp_set[self.fluids[0]]
-                else:
-                    c.fluid.val_set[self.fluids[0]] = False
+            # # if the number of fluids is one the mass fraction is 1 for every
+            # # connection
+            # if len(self.fluids) == 1:
+            #     c.fluid.val[self.fluids[0]] = 1
+            #     c.fluid.val0[self.fluids[0]] = 1
+            #     if self.fluids[0] in tmp_set:
+            #         c.fluid.val_set[self.fluids[0]] = tmp_set[self.fluids[0]]
+            #     else:
+            #         c.fluid.val_set[self.fluids[0]] = False
 
-                # jump to next connection
-                continue
+            #     # jump to next connection
+            #     continue
 
-            for fluid in self.fluids:
-                # take over values from temporary dicts
-                if fluid in tmp and fluid in tmp_set:
-                    c.fluid.val[fluid] = tmp[fluid]
-                    c.fluid.val0[fluid] = tmp[fluid]
-                    c.fluid.val_set[fluid] = tmp_set[fluid]
-                # take over starting values
-                elif fluid in tmp0:
-                    if fluid not in tmp_set:
-                        c.fluid.val[fluid] = tmp0[fluid]
-                        c.fluid.val0[fluid] = tmp0[fluid]
-                        c.fluid.val_set[fluid] = False
-                # if fluid not in keys
-                else:
-                    c.fluid.val[fluid] = 0
-                    c.fluid.val0[fluid] = 0
-                    c.fluid.val_set[fluid] = False
+            # for fluid in self.fluids:
+            #     # take over values from temporary dicts
+            #     if fluid in tmp and fluid in tmp_set:
+            #         c.fluid.val[fluid] = tmp[fluid]
+            #         c.fluid.val0[fluid] = tmp[fluid]
+            #         c.fluid.val_set[fluid] = tmp_set[fluid]
+            #     # take over starting values
+            #     elif fluid in tmp0:
+            #         if fluid not in tmp_set:
+            #             c.fluid.val[fluid] = tmp0[fluid]
+            #             c.fluid.val0[fluid] = tmp0[fluid]
+            #             c.fluid.val_set[fluid] = False
+            #     # if fluid not in keys
+            #     else:
+            #         c.fluid.val[fluid] = 0
+            #         c.fluid.val0[fluid] = 0
+            #         c.fluid.val_set[fluid] = False
+
+
+        cols = (
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            + list(set(all_fluids))
+        )
+        self.results['Connection'] = pd.DataFrame(
+            columns=cols, dtype='float64'
+        )
+        # include column for fluid balance in specs dataframe
+        self.specifications['Connection'] = pd.DataFrame(
+            columns=cols + ['balance'], dtype='bool'
+        )
+
+        if len(all_fluids) == 0:
+            msg = (
+                'Network has no fluids, please specify a list with fluids on '
+                'network creation.'
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        msg = (
+            'Updated fluid property SI values and fluid mass fraction for '
+            'user specified connection parameters.')
+        logger.debug(msg)
+
+    def propagate_fluid_wrappers(self):
+        for c in self.conns["object"]:
+            if any(c.fluid.val_set):
+                c.target.propagate_fluid_wrappers_to_target(c, c.target)
+                c.source.propagate_fluid_wrappers_to_source(c, c.source)
+
+    def setup_connection_variables(self):
+        self.num_conn_vars = 0
+        for c in self.conns["object"]:
+            c.preprocess()
+            self.conns.loc[c.label, "loc_J_start"] = self.num_conn_vars
+            self.num_conn_vars += c.num_vars
+            self.conns.loc[c.label, "loc_J_end"] = self.num_conn_vars
 
         self.conns["loc_J_start"] = self.conns["loc_J_start"].astype(int)
         self.conns["loc_J_end"] = self.conns["loc_J_end"].astype(int)
@@ -942,11 +972,6 @@ class Network:
             for c in cp.inl + cp.outl:
                 cp.conn_starts += [self.conns.loc[c.label, "loc_J_start"]]
                 cp.conn_ends += [self.conns.loc[c.label, "loc_J_end"]]
-
-        msg = (
-            'Updated fluid property SI values and fluid mass fraction for '
-            'user specified connection parameters.')
-        logger.debug(msg)
 
     def init_design(self):
         r"""
@@ -1467,7 +1492,7 @@ class Network:
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
-        row = [c.fluid.val_set[fluid] for fluid in fluids]
+        row = [x for x in c.fluid.val_set.values()]
         self.specifications['Connection'].loc[c.label, fluids] = row
 
         # last one: fluid balance specification
@@ -1795,7 +1820,8 @@ class Network:
 
         n = (
             self.num_comp_eq + self.num_conn_eq +
-            self.num_bus_eq + self.num_ude_eq)
+            self.num_bus_eq + self.num_ude_eq
+        )
         if n > self.num_vars:
             msg = ('You have provided too many parameters: ' +
                    str(self.num_vars) + ' required, ' + str(n) +
@@ -1943,7 +1969,6 @@ class Network:
             return
 
         # add the increment
-        i = 0
         for c in self.conns['object']:
             # mass flow, pressure and enthalpy
             start = self.conns.loc[c.label, "loc_J_start"]
@@ -1959,14 +1984,12 @@ class Network:
                 c.h.val_SI += self.increment[start + c.var_pos["h"]]
 
             # fluid vector (only if number of fluids is greater than 1)
-            if len(self.fluids) > 1:
-                j = 0
-                for fluid in self.fluids:
-                    # add increment
+            if c.fluid.is_var:
+                for fluid, x in c.fluid.val.items():
                     if not c.fluid.val_set[fluid]:
                         c.fluid.val[fluid] += (
-                                self.increment[
-                                    i * (self.num_conn_vars) + 3 + j])
+                            self.increment[start + c.var_pos[fluid]]
+                        )
 
                     # keep mass fractions within [0, 1]
                     if c.fluid.val[fluid] < ERR :
@@ -1974,22 +1997,18 @@ class Network:
                     elif c.fluid.val[fluid] > 1 - ERR :
                         c.fluid.val[fluid] = 1
 
-                    j += 1
-
             # check the fluid properties for physical ranges
             self.solve_check_props(c)
-            i += 1
 
         # increment for the custom variables
         if self.num_comp_vars > 0:
             sum_c_var = 0
             for cp in self.comps['object']:
                 for var in cp.vars.keys():
-                    pos = var.var_pos
-
                     # add increment
                     var.val += self.increment[
-                        self.num_conn_vars * len(self.conns) + sum_c_var + pos]
+                        self.num_conn_vars + sum_c_var + var.var_pos
+                    ]
 
                     # keep value within specified value range
                     if var.val < var.min_val:
@@ -2171,30 +2190,31 @@ class Network:
         sum_eq = 0
         sum_c_var = 0
         for cp in self.comps['object']:
-            locations = zip(cp.conn_starts, cp.conn_ends)
-
             indices = []
-            for start, end in locations:
-                indices += [np.arange(start, end)]
+            for start, end in zip(cp.conn_starts, cp.conn_ends):
+                indices += np.arange(start, end).tolist()
 
             cp.solve(self.increment_filter[np.array(indices)])
 
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
             deriv = cp.jacobian
 
-            if deriv is not None:
+            if deriv is not None and deriv.size > 0:
                 i = 0
                 # place derivatives in jacobian matrix
-                for start, end in locations:
-                    self.jacobian[
-                        sum_eq:sum_eq + cp.num_eq, start:end] = deriv[:, i]
+                for start, end in zip(cp.conn_starts, cp.conn_ends):
+                    cp_start, cp_end = cp.get_conn_pos(i)
+                    self.jacobian[sum_eq:sum_eq + cp.num_eq, start:end] = (
+                        deriv[:, cp_start:cp_end]
+                    )
                     i += 1
 
                 # derivatives for custom variables
                 for j in range(cp.num_vars):
                     coll = self.num_vars - self.num_comp_vars + sum_c_var
                     self.jacobian[sum_eq:sum_eq + cp.num_eq, coll] = (
-                        deriv[:, i + j, :1].transpose()[0])
+                        deriv[:, cp.num_conn_vars + j:].transpose()
+                    )
                     sum_c_var += 1
 
                 sum_eq += cp.num_eq
@@ -2568,9 +2588,15 @@ class Network:
             c.h.val0 = c.h.val
             c.fluid.val0 = c.fluid.val.copy()
 
+            prop_cols = self.results['Connection'].columns[:9]
+            fluid_cols = self.results['Connection'].columns[9:]
             self.results['Connection'].loc[c.label] = (
-              [c.m.val, c.p.val, c.h.val, c.T.val, c.v.val, c.vol.val,
-               c.s.val, c.x.val, c.Td_bp.val] + list(c.fluid.val.values()))
+              [c.get_attr(key).val for key in prop_cols]
+              + [
+                  c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
+                  for fluid in fluid_cols
+                ]
+            )
 
     def process_components(self):
         """Process the component results."""

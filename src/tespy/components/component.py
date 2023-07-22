@@ -393,10 +393,11 @@ class Component:
                 self.num_eq += data.num_eq
 
         # set up Jacobian matrix and residual vector
+        self.num_conn_vars = sum(c.num_vars for c in self.inl + self.outl)
         self.jacobian = np.zeros((
             self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
+            self.num_conn_vars + self.num_vars,
+        ))
         self.residual = np.zeros(self.num_eq)
 
         sum_eq = 0
@@ -421,10 +422,18 @@ class Component:
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': self.num_i},
+                # idea for removal of specified mass flows
+                # can be propagated through network similarly to the fluid
+                # information:
+                # sum(
+                #     # if neither is True, no equation reuqired
+                #     self.inl[i].m.is_var or self.outl[i].m.is_var
+                #     for i in range(self.num_i))
+                # },
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * self.num_i}
+                'num_eq': sum(c.fluid.is_var * len(c.fluid.val) for c in self.inl)}
         }
 
     @staticmethod
@@ -575,7 +584,8 @@ class Component:
         sum_eq = 0
         for constraint in self.constraints.values():
             num_eq = constraint['num_eq']
-            self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
+            if num_eq > 0:
+                self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
             if not constraint['constant_deriv']:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
@@ -815,6 +825,20 @@ class Component:
 
         outconn.target.propagate_fluid_to_target(outconn, start)
 
+    def propagate_fluid_wrappers_to_target(self, inconn, start):
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+        for fluid, x in inconn.fluid.val.items():
+            if fluid not in outconn.fluid.val:
+                outconn._create_fluid_wrapper(
+                    fluid, inconn.fluid.engine[fluid], inconn.fluid.back_end[fluid]
+                )
+                outconn.fluid.val_set[fluid] = False
+                outconn.fluid.is_var = inconn.fluid.is_var
+                outconn.fluid.val[fluid] = x
+
+        outconn.target.propagate_fluid_wrappers_to_target(outconn, start)
+
     def propagate_fluid_to_source(self, outconn, start):
         r"""
         Propagate the fluids towards connection's source in recursion.
@@ -837,6 +861,21 @@ class Component:
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)
+
+    def propagate_fluid_wrappers_to_source(self, outconn, start):
+        conn_idx = self.outl.index(outconn)
+        inconn = self.inl[conn_idx]
+
+        for fluid, x in outconn.fluid.val.items():
+            if fluid not in inconn.fluid.val:
+                inconn._create_fluid_wrapper(
+                    fluid, outconn.fluid.engine[fluid], outconn.fluid.back_end[fluid]
+                )
+                inconn.fluid.val_set[fluid] = False
+                inconn.fluid.is_var = outconn.fluid.is_var
+                inconn.fluid.val[fluid] = x
+
+        inconn.source.propagate_fluid_wrappers_to_source(inconn, start)
 
     def set_parameters(self, mode, data):
         r"""
@@ -983,13 +1022,22 @@ class Component:
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.fluid_constraints['num_eq'],
-                          2 * self.num_i + self.num_vars,
-                          self.num_nw_vars))
-        for i in range(self.num_i):
-            for j in range(self.num_nw_fluids):
-                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
-                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
+        deriv = np.zeros((
+            self.fluid_constraints['num_eq'],
+            self.num_conn_vars + self.num_vars,
+        ))
+        for i in range(deriv.shape[0]):
+            for j, fluid in enumerate(self.inl[i].fluid.val):
+                # this is a little bit hacky: If the fluid composition is
+                # variable at all is decided per connection not per component
+                # therefore the .is_var attribute decides over the connection
+                # is_set then means, that the user specified the value and it
+                # is therefore no system variable
+                if not self.inl[i].fluid.val_set[fluid]:
+                    deriv[j + i, self.get_conn_var_pos(i, fluid)] = 1
+                if not self.outl[i].fluid.val_set[fluid]:
+                    deriv[j + i, self.get_conn_var_pos(i + self.num_i, fluid)] = -1
+
         return deriv
 
     def mass_flow_func(self):
@@ -1046,12 +1094,17 @@ class Component:
         """
         deriv = np.zeros((
             self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
+            self.num_conn_vars + self.num_vars,
+        ))
+        num_conn_vars = 0
         for i in range(self.num_i):
-            deriv[i, i, 0] = 1
+            if self.inl[i].m.is_var:
+                deriv[i, num_conn_vars + self.inl[i].var_pos["m"]] = 1
+            num_conn_vars += self.inl[i].num_vars
         for j in range(self.num_o):
-            deriv[j, j + i + 1, 0] = -1
+            if self.outl[j].m.is_var:
+                deriv[j, num_conn_vars + self.outl[j].var_pos["m"]] = -1
+            num_conn_vars += self.outl[j].num_vars
         return deriv
 
     def pressure_equality_func(self):
@@ -1255,6 +1308,22 @@ class Component:
 
         return deriv
 
+    def get_conn_var_pos(self, connection_number, variable):
+        conns = self.inl + self.outl
+        return (
+            sum(c.num_vars for c in conns[:connection_number])
+            + conns[connection_number].var_pos[variable]
+        )
+
+    def get_conn_pos(self, connection_number):
+        conns = self.inl + self.outl
+        start = sum(c.num_vars for c in conns[:connection_number])
+        end = start + conns[connection_number].num_vars
+        return start, end
+
+    def get_comp_var_pos(self, variable):
+        return self.num_conn_vars + self.get_attr(variable).var_pos
+
     def pr_func(self, pr='', inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
@@ -1334,8 +1403,12 @@ class Component:
             Connection index of outlet.
         """
         pr = self.get_attr(pr)
-        self.jacobian[k, inconn, 1] = pr.val
-        self.jacobian[k, self.num_i + outconn, 1] = -1
+        i = self.inl[inconn]
+        o = self.outl[inconn]
+        if i.p.is_var:
+            self.jacobian[k, self.get_conn_var_pos(inconn, "p")] = pr.val
+        if o.p.is_var:
+            self.jacobian[k, self.get_conn_var_pos(self.num_i + outconn, "p")] = -1
         if pr.is_var:
             pos = self.num_i + self.num_o + pr.var_pos
             self.jacobian[k, pos, 0] = self.inl[inconn].p.val_SI

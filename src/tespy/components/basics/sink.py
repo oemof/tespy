@@ -84,6 +84,9 @@ class Sink(Component):
         """
         return
 
+    def propagate_fluid_wrappers_to_target(self, inconn, start):
+        return
+
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a sink.
 

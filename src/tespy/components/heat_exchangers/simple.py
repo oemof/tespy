@@ -257,7 +257,8 @@ class HeatExchangerSimple(Component):
                 0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
         return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        ) - self.Q.val
 
     def energy_balance_func_doc(self, label):
         r"""
@@ -291,13 +292,17 @@ class HeatExchangerSimple(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, self.get_conn_var_pos(0, "m")] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k,  self.get_conn_var_pos(0, "h")] = -i.m.val_SI
+        if o.h.is_var:
+            self.jacobian[k, self.get_conn_var_pos(1, "h")] = i.m.val_SI
         # custom variable Q
         if self.Q.is_var:
-            self.jacobian[k, 2 + self.Q.var_pos, 0] = -1
+            self.jacobian[k, self.get_comp_var_pos("Q")] = -1
 
     def hydro_group_func(self):
         r"""

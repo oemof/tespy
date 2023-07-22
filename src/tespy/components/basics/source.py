@@ -84,6 +84,9 @@ class Source(Component):
         """
         return
 
+    def propagate_fluid_wrappers_to_source(self, outconn, start):
+        return
+
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.
 

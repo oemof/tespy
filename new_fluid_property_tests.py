@@ -171,6 +171,18 @@ class NewConnection(Connection):
 
     def set_attr(self, **kwargs):
         super().set_attr(**kwargs)
+        if "fluid_variable" in kwargs:
+            self.fluid.is_var = kwargs.get("fluid_variable", False)
+        if "fluid" in kwargs:
+            for fluid in kwargs["fluid"]:
+                engine = CoolPropWrapper
+                back_end = "HEOS"
+                self._create_fluid_wrapper(fluid, engine, back_end)
+
+    def _create_fluid_wrapper(self, fluid, engine, back_end):
+        self.fluid.back_end[fluid] = back_end
+        self.fluid.engine[fluid] = engine
+        self.fluid.wrapper[fluid] = engine(fluid, back_end)
 
     def preprocess(self):
         self.parameters = self.get_parameters().copy()
@@ -188,10 +200,13 @@ class NewConnection(Connection):
                 self.var_pos[variable] = self.num_vars
                 self.num_vars += 1
 
-        # for fluid in self.fluid.val:
-            # if self.fluid.is_var[fluid]:
-            # self.var_pos[fluid] = self.num_vars
-            # self.num_vars += 1
+        if self.fluid.is_var:
+            # if the fluid is not a variable, it does not count towards the
+            # equations for this connection
+            for fluid, x in self.fluid.val_set.items():
+                if not x:
+                    self.var_pos[fluid] = self.num_vars
+                    self.num_vars += 1
 
         self.jacobian = np.zeros((self.num_eq, 1, self.num_vars))
         self.residual = np.zeros(self.num_eq)
@@ -223,7 +238,7 @@ class NewConnection(Connection):
     def build_fluid_data(self):
         self.fluid_data = {
             fluid: {
-                "wrapper": self.fluid.back_end[fluid],
+                "wrapper": self.fluid.wrapper[fluid],
                 "mass_fraction": self.fluid.val[fluid]
             } for fluid in self.fluid.val
         }
@@ -298,8 +313,6 @@ class NewConnection(Connection):
                 self.p.val_SI, self.h.val_SI, self.fluid_data
             )
 
-
-
     def solve(self, increment_filter):
         k = 0
         for parameter in self.parameters:
@@ -311,9 +324,9 @@ class NewConnection(Connection):
 
 
 from tespy.networks import Network
-from tespy.components import Source, Sink
+from tespy.components import Source, Sink, Pipe
 
-nwk = Network(fluids=["water"], T_unit="C", p_unit="bar")
+nwk = Network(fluids=["water", "H2"], T_unit="C", p_unit="bar")
 
 a = Source("source")
 b = Sink("sink")
@@ -321,23 +334,19 @@ b = Sink("sink")
 c1 = NewConnection(a, "out1", b, "in1", label="1")
 
 c = Source("source2")
-d = Sink("sink2")
+d = Pipe("pipe")
+e = Sink("sink2")
 
 c2 = NewConnection(c, "out1", d, "in1", label="2")
+c3 = NewConnection(d, "out1", e, "in1", label="3")
 
-nwk.add_conns(c1, c2)
+nwk.add_conns(c1, c2, c3)
 
-c1.set_attr(m=1, p=1, h=1e5)
-
-c1.fluid.val_set["water"] = True
-c1.fluid.val["water"] = fluid_data["water"]["mass_fraction"]
-c1.fluid.back_end["water"] = fluid_data["water"]["wrapper"]
+c1.set_attr(m=1, x=1, T=150, fluid={"water": 1, "H2": 0})
 
 c2.set_attr(m=1, p=3, Td_bp=3)
-
-c2.fluid.val_set["water"] = True
-c2.fluid.val["water"] = fluid_data["water"]["mass_fraction"]
-c2.fluid.back_end["water"] = fluid_data["water"]["wrapper"]
+d.set_attr(pr=1, Q="var")
+c3.set_attr(Td_bp=5, fluid={"water": 1, "H2": 0})
 
 nwk.solve("design")
 

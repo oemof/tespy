@@ -949,7 +949,7 @@ class Network:
 
     def propagate_fluid_wrappers(self):
         for c in self.conns["object"]:
-            if any(c.fluid.val_set):
+            if any(c.fluid.val_set.values()):
                 c.target.propagate_fluid_wrappers_to_target(c, c.target)
                 c.source.propagate_fluid_wrappers_to_source(c, c.source)
 

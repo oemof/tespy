@@ -135,7 +135,8 @@ class Splitter(NodeBase):
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
+                'num_eq': self.num_o * len(self.inl[0].fluid.val) * self.inl[0].fluid.is_var
+            },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -211,16 +212,16 @@ class Splitter(NodeBase):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((self.num_nw_fluids * self.num_o, 1 + self.num_o,
-                          self.num_nw_vars))
-        k = 0
-        for o in self.outl:
+        deriv = self._build_subjacobian(self.fluid_constraints)
+        if self.inl[0].fluid.is_var:
             i = 0
-            for fluid in self.nw_fluids:
-                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
-                i += 1
-            k += 1
+            for k in range(self.num_o):
+                for fluid in self.inl[0].fluid.val:
+                    if not self.inl[0].fluid.val_set[fluid]:
+                        deriv[i, self.get_conn_var_pos(0, fluid)] = 1
+                    if not self.outl[k].fluid.val_set[fluid]:
+                        deriv[i, self.get_conn_var_pos(k + 1, fluid)] = -1
+                    i += 1
         return deriv
 
     def energy_balance_func(self):
@@ -263,12 +264,12 @@ class Splitter(NodeBase):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_nw_vars))
-        k = 0
-        for o in self.outl:
-            deriv[k, 0, 2] = 1
-            deriv[k, k + 1, 2] = -1
-            k += 1
+        deriv = self._build_subjacobian(self.energy_balance_constraints)
+        for k in range(self.num_o):
+            if self.inl[0].h.is_var:
+                deriv[k, self.get_conn_var_pos(0, "h")] = 1
+            if self.outl[k].h.is_var:
+                deriv[k, self.get_conn_var_pos(k + 1, "h")] = -1
         return deriv
 
     def propagate_fluid_to_target(self, inconn, start):
@@ -291,6 +292,31 @@ class Splitter(NodeBase):
                     outconn.fluid.val[fluid] = x
 
             outconn.target.propagate_fluid_to_target(outconn, start)
+
+    def propagate_fluid_wrappers_to_target(self, inconn, start):
+        r"""
+        Propagate the fluids towards connection's target in recursion.
+
+        Parameters
+        ----------
+        inconn : tespy.connections.connection.Connection
+            Connection to initialise.
+
+        start : tespy.components.component.Component
+            This component is the fluid propagation starting point.
+            The starting component is saved to prevent infinite looping.
+        """
+        for outconn in self.outl:
+            for fluid, x in inconn.fluid.val.items():
+                if fluid not in outconn.fluid.val:
+                    outconn._create_fluid_wrapper(
+                        fluid, inconn.fluid.engine[fluid], inconn.fluid.back_end[fluid]
+                    )
+                    outconn.fluid.val_set[fluid] = False
+                    outconn.fluid.is_var = inconn.fluid.is_var
+                    outconn.fluid.val[fluid] = x
+
+            outconn.target.propagate_fluid_wrappers_to_target(outconn, start)
 
     def propagate_fluid_to_source(self, outconn, start):
         r"""

@@ -359,7 +359,7 @@ class NewConnection(Connection):
 
 
 from tespy.networks import Network
-from tespy.components import Source, Sink, Pipe
+from tespy.components import Source, Sink, Pipe, Splitter
 
 nwk = Network(fluids=["water", "H2"], T_unit="C", p_unit="bar")
 
@@ -370,18 +370,23 @@ c1 = NewConnection(a, "out1", b, "in1", label="1")
 
 c = Source("source2")
 d = Pipe("pipe")
-e = Sink("sink2")
+e = Splitter("splitter")
+f = Sink("sink2")
+g = Sink("sink3")
 
 c2 = NewConnection(c, "out1", d, "in1", label="2")
 c3 = NewConnection(d, "out1", e, "in1", label="3")
+c4 = NewConnection(e, "out1", f, "in1", label="4")
+c5 = NewConnection(e, "out2", g, "in1", label="5")
 
-nwk.add_conns(c1, c2, c3)
+nwk.add_conns(c1, c2, c3, c4, c5)
 
 c1.set_attr(m=1, p=Ref(c2, 1, 0), T=150, fluid={"water": 1, "H2": 0})
 
 c2.set_attr(m=1, p=3, Td_bp=3)
 d.set_attr(pr=1, Q="var")
-c3.set_attr(Td_bp=5, fluid={"water": 1, "H2": 0})
+c3.set_attr(Td_bp=5)
+c4.set_attr(m=0.5, fluid={"water": 1, "H2": 0})
 
 nwk.solve("design")
 

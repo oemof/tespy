@@ -902,6 +902,11 @@ class Component:
                 else:
                     self.get_attr(key).design = np.nan
 
+    def _build_subjacobian(self, constraint):
+        return np.zeros((
+            constraint['num_eq'], self.num_conn_vars + self.num_vars,
+        ))
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         return
@@ -1022,11 +1027,11 @@ class Component:
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((
-            self.fluid_constraints['num_eq'],
-            self.num_conn_vars + self.num_vars,
-        ))
-        for i in range(deriv.shape[0]):
+        deriv = self._build_subjacobian(self.fluid_constraints)
+        if deriv.shape[0] == 0:
+            return deriv
+
+        for i in range(self.num_i):
             for j, fluid in enumerate(self.inl[i].fluid.val):
                 # this is a little bit hacky: If the fluid composition is
                 # variable at all is decided per connection not per component
@@ -1092,10 +1097,7 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_conn_vars + self.num_vars,
-        ))
+        deriv = self._build_subjacobian(self.mass_flow_constraints)
         num_conn_vars = 0
         for i in range(self.num_i):
             if self.inl[i].m.is_var:
@@ -1159,10 +1161,7 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
+        deriv = self._build_subjacobian(self.pressure_equality_constraints)
         for i in range(self.num_i):
             deriv[i, i, 1] = 1
         for j in range(self.num_o):

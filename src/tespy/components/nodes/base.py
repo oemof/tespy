@@ -68,11 +68,13 @@ class NodeBase(Component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
+        deriv = np.zeros((1, self.num_conn_vars + self.num_vars))
         for i in range(self.num_i):
-            deriv[0, i, 0] = 1
+            if self.inl[i].m.is_var:
+                deriv[0, self.get_conn_var_pos(i, "m")] = 1
         for j in range(self.num_o):
-            deriv[0, j + i + 1, 0] = -1
+            if self.outl[j].m.is_var:
+                deriv[0, self.get_conn_var_pos(self.num_i + j, "m")] = -1
         return deriv
 
     def pressure_equality_func(self):
@@ -131,17 +133,16 @@ class NodeBase(Component):
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((
-            self.num_i + self.num_o - 1,
-            self.num_i + self.num_o,
-            self.num_nw_vars))
-
-        inl = []
+        deriv = self._build_subjacobian(self.pressure_constraints)
         if self.num_i > 1:
-            inl = self.inl[1:]
-        for k in range(len(inl + self.outl)):
-            deriv[k, 0, 1] = 1
-            deriv[k, k + 1, 1] = -1
+            conns = self.inl[1:] + self.outl
+        else:
+            conns = self.outl
+        for k in range(self.num_i + self.num_o - 1):
+            if self.inl[0].p.is_var:
+                deriv[k, self.get_conn_var_pos(0, "p")] = 1
+            if conns[k].p.is_var:
+                deriv[k, self.get_conn_var_pos(k + 1, "p")] = -1
         return deriv
 
     @staticmethod

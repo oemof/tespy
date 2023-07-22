@@ -4,6 +4,7 @@ from tespy.tools.helpers import newton
 from tespy.tools.global_vars import ERR
 
 from fluid_properties.helpers import newton_with_kwargs
+from tespy.tools.data_containers import FluidProperties as dc_prop, FluidComposition as dc_flu, SimpleDataContainer as dc_simple
 from fluid_properties.wrappers import FluidPropertyWrapper
 from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp
 
@@ -162,7 +163,7 @@ fluid_data["water"] = {"wrapper": CoolPropWrapper("water", "HEOS"), "mass_fracti
 # )
 
 
-from tespy.connections import Connection
+from tespy.connections import Connection, Ref
 
 class NewConnection(Connection):
 
@@ -185,14 +186,18 @@ class NewConnection(Connection):
         self.fluid.wrapper[fluid] = engine(fluid, back_end)
 
     def preprocess(self):
-        self.parameters = self.get_parameters().copy()
-
         self.var_pos = {}
+        ref_conns = []
 
         self.num_eq = 0
         for parameter in self.parameters:
             if self.get_attr(parameter).val_set:
-                self.num_eq += 1
+                self.num_eq += self.parameters[parameter].num_eq
+                if isinstance(self.get_attr(parameter).val, Ref):
+                    ref_conns += [self.get_attr(parameter).val.obj]
+
+        # extra space in the jacobian for referenced connections
+        self.ref_conns = list(set(ref_conns))
 
         self.num_vars = 0
         for variable in ["m", "p", "h"]:
@@ -208,31 +213,43 @@ class NewConnection(Connection):
                     self.var_pos[fluid] = self.num_vars
                     self.num_vars += 1
 
-        self.jacobian = np.zeros((self.num_eq, 1, self.num_vars))
         self.residual = np.zeros(self.num_eq)
+
+    def _build_jacobian(self):
+        num_vars_ref = sum(c.num_vars for c in self.ref_conns)
+        self.jacobian = np.zeros((self.num_eq, self.num_vars + num_vars_ref))
+
+    def get_ref_var_pos(self, conn):
+        pos = self.ref_conns.index(conn)
+        return self.num_vars + sum(c.num_vars for c in self.ref_conns[:pos])
 
     def get_parameters(self):
         return {
-            "T": {
-                "func": self.T_func, "deriv": self.T_deriv,
-                "constant_deriv": False, "latex": None,
-                "num_eq": 1
-            },
-            "v": {
-                "func": self.v_func, "deriv": self.v_deriv,
-                "constant_deriv": False, "latex": None,
-                "num_eq": 1
-            },
-            "x": {
-                "func": self.x_func, "deriv": self.x_deriv,
-                "constant_deriv": False, "latex": None,
-                "num_eq": 1
-            },
-            "Td_bp": {
-                "func": self.Td_bp_func, "deriv": self.Td_bp_deriv,
-                "constant_deriv": False, "latex": None,
-                "num_eq": 1
-            },
+            'm': dc_prop(),
+            'p': dc_prop(),
+            'h': dc_prop(),
+            'vol': dc_prop(),
+            's': dc_prop(),
+            'fluid': dc_flu(),
+            'state': dc_simple(),
+            "T": dc_prop(**{
+                "func": self.T_func, "deriv": self.T_deriv, "num_eq": 1
+            }),
+            "v": dc_prop(**{
+                "func": self.v_func, "deriv": self.v_deriv, "num_eq": 1
+            }),
+            "x": dc_prop(**{
+                "func": self.x_func, "deriv": self.x_deriv, "num_eq": 1
+            }),
+            "Td_bp": dc_prop(**{
+                "func": self.Td_bp_func, "deriv": self.Td_bp_deriv, "num_eq": 1
+            }),
+            # "m_ref": dc_prop(**{
+            #     "func": self.m_ref_func, "deriv": self.m_ref_deriv, "num_eq": 1
+            # }),
+            "p_ref": dc_prop(**{
+                "func": self.p_ref_func, "deriv": self.p_ref_deriv, "num_eq": 1
+            }),
         }
 
     def build_fluid_data(self):
@@ -243,17 +260,35 @@ class NewConnection(Connection):
             } for fluid in self.fluid.val
         }
 
+    def p_ref_func(self, k):
+        ref = self.p_ref.val
+        self.residual[k] = (
+            self.p.val_SI - ref.obj.p.val_SI * ref.factor + ref.delta * 1e5
+        )
+
+    def p_ref_deriv(self, k):
+        ref = self.p_ref.val
+        if self.p.is_var:
+            self.jacobian[k, self.var_pos["p"]] = 1
+
+        if ref.obj.p.is_var:
+            pos = self.get_ref_var_pos(ref.obj) + ref.obj.var_pos["p"]
+            self.jacobian[k, pos] = -ref.factor
+
+    def calc_T(self):
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+
     def T_func(self, k):
-        self.residual[k] = self.T.val_SI - T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        self.residual[k] = self.T.val_SI - self.calc_T()
 
     def T_deriv(self, k):
         if self.p.is_var:
-            self.jacobian[k, 0, self.var_pos["p"]] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.jacobian[k, self.var_pos["p"]] = (
+                -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
             )
         if self.h.is_var:
-            self.jacobian[k, 0, self.var_pos["h"]] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.jacobian[k, self.var_pos["h"]] = (
+                -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
             )
         # if len(self.fluid.val) > 1:
         #     self.jacobian[0, 0, 3:] = dT_mix_ph_dfluid(
@@ -268,11 +303,11 @@ class NewConnection(Connection):
 
     def v_deriv(self, k):
         if self.m.is_var:
-            self.jacobian[k, 0, self.var_pos["m"]] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.jacobian[k, self.var_pos["m"]] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         if self.p.is_var:
-            self.jacobian[k, 0, self.var_pos["p"]] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+            self.jacobian[k, self.var_pos["p"]] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
         if self.h.is_var:
-            self.jacobian[k, 0, self.var_pos["h"]] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+            self.jacobian[k, self.var_pos["h"]] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
 
 
     def x_func(self, k):
@@ -285,9 +320,9 @@ class NewConnection(Connection):
     def x_deriv(self, k):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
-            self.jacobian[k, 0, self.var_pos["p"]] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+            self.jacobian[k, self.var_pos["p"]] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         if self.h.is_var:
-            self.jacobian[k, 0, self.var_pos["h"]] = 1
+            self.jacobian[k, self.var_pos["h"]] = 1
 
     def Td_bp_func(self, k):
 
@@ -295,7 +330,7 @@ class NewConnection(Connection):
             # if (np.absolute(self.residual[k]) > ERR ** 2 or
             #         self.iter % 2 == 0 or self.always_all_equations):
         self.residual[k] = (
-            T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.calc_T()
             - self.Td_bp.val_SI
             - T_sat_p(self.p.val_SI, self.fluid_data)
         )
@@ -303,13 +338,13 @@ class NewConnection(Connection):
     def Td_bp_deriv(self, k):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
-            self.jacobian[k, 0, self.var_pos["p"]] = (
+            self.jacobian[k, self.var_pos["p"]] = (
                 dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
                 - dT_sat_dp(self.p.val_SI, self.fluid_data)
             )
         if self.h.is_var:
             # if not self.increment_filter[col + 2]:
-            self.jacobian[k, 0, self.var_pos["h"]] = dT_mix_pdh(
+            self.jacobian[k, self.var_pos["h"]] = dT_mix_pdh(
                 self.p.val_SI, self.h.val_SI, self.fluid_data
             )
 
@@ -317,8 +352,8 @@ class NewConnection(Connection):
         k = 0
         for parameter in self.parameters:
             if self.get_attr(parameter).val_set:
-                self.parameters[parameter]["func"](k)
-                self.parameters[parameter]["deriv"](k)
+                self.parameters[parameter].func(k)
+                self.parameters[parameter].deriv(k)
 
                 k += 1
 
@@ -342,7 +377,7 @@ c3 = NewConnection(d, "out1", e, "in1", label="3")
 
 nwk.add_conns(c1, c2, c3)
 
-c1.set_attr(m=1, x=1, T=150, fluid={"water": 1, "H2": 0})
+c1.set_attr(m=1, p=Ref(c2, 1, 0), T=150, fluid={"water": 1, "H2": 0})
 
 c2.set_attr(m=1, p=3, Td_bp=3)
 d.set_attr(pr=1, Q="var")

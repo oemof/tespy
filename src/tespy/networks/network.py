@@ -31,7 +31,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
@@ -1468,6 +1468,9 @@ class Network:
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
 
+            c.build_fluid_data()
+            c._build_jacobian()
+
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
 
@@ -1999,6 +2002,7 @@ class Network:
 
             # check the fluid properties for physical ranges
             self.solve_check_props(c)
+            c.build_fluid_data()
 
         # increment for the custom variables
         if self.num_comp_vars > 0:
@@ -2194,28 +2198,18 @@ class Network:
             for start, end in zip(cp.conn_starts, cp.conn_ends):
                 indices += np.arange(start, end).tolist()
 
+            for _ in range(cp.num_vars):
+                indices += [self.num_vars - self.num_comp_vars + sum_c_var]
+                sum_c_var += 1
+
             cp.solve(self.increment_filter[np.array(indices)])
 
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
             deriv = cp.jacobian
 
             if deriv is not None and deriv.size > 0:
-                i = 0
-                # place derivatives in jacobian matrix
-                for start, end in zip(cp.conn_starts, cp.conn_ends):
-                    cp_start, cp_end = cp.get_conn_pos(i)
-                    self.jacobian[sum_eq:sum_eq + cp.num_eq, start:end] = (
-                        deriv[:, cp_start:cp_end]
-                    )
-                    i += 1
-
                 # derivatives for custom variables
-                for j in range(cp.num_vars):
-                    coll = self.num_vars - self.num_comp_vars + sum_c_var
-                    self.jacobian[sum_eq:sum_eq + cp.num_eq, coll] = (
-                        deriv[:, cp.num_conn_vars + j:].transpose()
-                    )
-                    sum_c_var += 1
+                self.jacobian[sum_eq:sum_eq + cp.num_eq, indices] = deriv
 
                 sum_eq += cp.num_eq
             cp.it += 1
@@ -2388,93 +2382,96 @@ class Network:
         k = self.num_comp_eq
         primary_vars = {'m': 0, 'p': 1, 'h': 2}
         for c in self.conns['object']:
-            c.build_fluid_data()
-
             start, end = self.conns.loc[c.label, ["loc_J_start", "loc_J_end"]]
-            indices = [np.arange(start, end)]
+            indices = np.arange(start, end).tolist()
+
+            for ref_conn in c.ref_conns:
+                start, end = self.conns.loc[ref_conn.label, ["loc_J_start", "loc_J_end"]]
+                indices += np.arange(start, end).tolist()
+
             c.solve(self.increment_filter[np.array(indices)])
             self.residual[k:k + c.num_eq] = c.residual
             self.jacobian[k:k + c.num_eq, indices] = c.jacobian
 
             k += c.num_eq
 
-            # referenced mass flow, pressure or enthalpy
-            for var, pos in primary_vars.items():
-                if c.get_attr(var).ref_set:
-                    ref = c.get_attr(var).ref
-                    ref_col = ref.obj.conn_loc * self.num_conn_vars
-                    self.residual[k] = (
-                        c.get_attr(var).val_SI - (
-                            ref.obj.get_attr(var).val_SI * ref.factor +
-                            ref.delta_SI))
-                    self.jacobian[k, col + pos] = 1
-                    self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.factor
-                    k += 1
+            # # referenced mass flow, pressure or enthalpy
+            # for var, pos in primary_vars.items():
+            #     if c.get_attr(var).ref_set:
+            #         ref = c.get_attr(var).ref
+            #         ref_col = ref.obj.conn_loc * self.num_conn_vars
+            #         self.residual[k] = (
+            #             c.get_attr(var).val_SI - (
+            #                 ref.obj.get_attr(var).val_SI * ref.factor +
+            #                 ref.delta_SI))
+            #         self.jacobian[k, col + pos] = 1
+            #         self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.factor
+            #         k += 1
 
-            # referenced temperature
-            if c.T.ref_set:
-                ref = c.T.ref
-                flow_ref = ref.obj.get_flow()
-                ref_col = ref.obj.conn_loc * self.num_conn_vars
-                self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
-                    fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
-                    ref.factor + ref.delta_SI)
+            # # referenced temperature
+            # if c.T.ref_set:
+            #     ref = c.T.ref
+            #     flow_ref = ref.obj.get_flow()
+            #     ref_col = ref.obj.conn_loc * self.num_conn_vars
+            #     self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
+            #         fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
+            #         ref.factor + ref.delta_SI)
 
-                self.jacobian[k, col + 1] = (
-                    fp.dT_mix_dph(flow, T0=c.T.val_SI))
-                self.jacobian[k, col + 2] = (
-                    fp.dT_mix_pdh(flow, T0=c.T.val_SI))
+            #     self.jacobian[k, col + 1] = (
+            #         fp.dT_mix_dph(flow, T0=c.T.val_SI))
+            #     self.jacobian[k, col + 2] = (
+            #         fp.dT_mix_pdh(flow, T0=c.T.val_SI))
 
-                self.jacobian[k, ref_col + 1] = -(
-                    fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
-                self.jacobian[k, ref_col + 2] = -(
-                    fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
+            #     self.jacobian[k, ref_col + 1] = -(
+            #         fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
+            #     self.jacobian[k, ref_col + 2] = -(
+            #         fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
 
-                # dT / dFluid
-                if len(self.fluids) != 1:
-                    col_s = c.conn_loc * self.num_conn_vars + 3
-                    col_e = (c.conn_loc + 1) * self.num_conn_vars
-                    ref_col_s = ref.obj.conn_loc * self.num_conn_vars + 3
-                    ref_col_e = (ref.obj.conn_loc + 1) * self.num_conn_vars
-                    if not all(self.increment_filter[col_s:col_e]):
-                        self.jacobian[k, col_s:col_e] = (
-                            fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
-                    if not all(self.increment_filter[ref_col_s:ref_col_e]):
-                        self.jacobian[k, ref_col_s:ref_col_e] = -np.array([
-                            fp.dT_mix_ph_dfluid(
-                                flow_ref, T0=ref.obj.T.val_SI)])
-                k += 1
+            #     # dT / dFluid
+            #     if len(self.fluids) != 1:
+            #         col_s = c.conn_loc * self.num_conn_vars + 3
+            #         col_e = (c.conn_loc + 1) * self.num_conn_vars
+            #         ref_col_s = ref.obj.conn_loc * self.num_conn_vars + 3
+            #         ref_col_e = (ref.obj.conn_loc + 1) * self.num_conn_vars
+            #         if not all(self.increment_filter[col_s:col_e]):
+            #             self.jacobian[k, col_s:col_e] = (
+            #                 fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
+            #         if not all(self.increment_filter[ref_col_s:ref_col_e]):
+            #             self.jacobian[k, ref_col_s:ref_col_e] = -np.array([
+            #                 fp.dT_mix_ph_dfluid(
+            #                     flow_ref, T0=ref.obj.T.val_SI)])
+            #     k += 1
 
-            # referenced volumetric flow
-            if c.v.ref_set:
-                ref = c.v.ref
-                flow_ref = ref.obj.get_flow()
-                ref_col = ref.obj.conn_loc * self.num_conn_vars
-                v = fp.v_mix_ph(flow, T0=c.T.val_SI)
-                v_ref = fp.v_mix_ph(flow_ref, T0=ref.obj.T.val_SI)
-                self.residual[k] = (
-                    (v * c.m.val_SI)
-                    - ((v_ref * ref.obj.m.val_SI) * ref.factor + ref.delta_SI)
-                )
+            # # referenced volumetric flow
+            # if c.v.ref_set:
+            #     ref = c.v.ref
+            #     flow_ref = ref.obj.get_flow()
+            #     ref_col = ref.obj.conn_loc * self.num_conn_vars
+            #     v = fp.v_mix_ph(flow, T0=c.T.val_SI)
+            #     v_ref = fp.v_mix_ph(flow_ref, T0=ref.obj.T.val_SI)
+            #     self.residual[k] = (
+            #         (v * c.m.val_SI)
+            #         - ((v_ref * ref.obj.m.val_SI) * ref.factor + ref.delta_SI)
+            #     )
 
-                self.jacobian[k, col] = v
-                self.jacobian[k, col + 1] = (
-                    fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI
-                )
-                self.jacobian[k, col + 2] = (
-                    fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI
-                )
+            #     self.jacobian[k, col] = v
+            #     self.jacobian[k, col + 1] = (
+            #         fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI
+            #     )
+            #     self.jacobian[k, col + 2] = (
+            #         fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI
+            #     )
 
-                self.jacobian[k, ref_col] = -v_ref * ref.factor
-                self.jacobian[k, ref_col + 1] = -(
-                    fp.dv_mix_dph(flow_ref, T0=ref.obj.T.val_SI)
-                    * ref.factor * ref.obj.m.val_SI
-                )
-                self.jacobian[k, ref_col + 2] = -(
-                    fp.dv_mix_pdh(flow_ref, T0=ref.obj.T.val_SI)
-                    * ref.factor * ref.obj.m.val_SI
-                )
-                k += 1
+            #     self.jacobian[k, ref_col] = -v_ref * ref.factor
+            #     self.jacobian[k, ref_col + 1] = -(
+            #         fp.dv_mix_dph(flow_ref, T0=ref.obj.T.val_SI)
+            #         * ref.factor * ref.obj.m.val_SI
+            #     )
+            #     self.jacobian[k, ref_col + 2] = -(
+            #         fp.dv_mix_pdh(flow_ref, T0=ref.obj.T.val_SI)
+            #         * ref.factor * ref.obj.m.val_SI
+            #     )
+            #     k += 1
 
             # fluid composition balance
             # if c.fluid.balance:

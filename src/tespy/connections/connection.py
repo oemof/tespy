@@ -14,7 +14,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
@@ -267,7 +267,11 @@ class Connection:
         self.printout = True
 
         # set default values for kwargs
-        self.property_data = self.attr()
+        self.property_data = self.get_parameters()
+        self.parameters = {
+            k: v for k, v in self.get_parameters().items()
+            if isinstance(v, dc_prop) and v.func is not None
+        }
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.m.is_var = True
@@ -422,14 +426,16 @@ class Connection:
 
                 elif kwargs[key] is None:
                     self.get_attr(key).set_attr(val_set=False)
-                    self.get_attr(key).set_attr(ref_set=False)
+                    if f"{key}_ref" in self.property_data:
+                        self.get_attr(key).set_attr(val_set=False)
                     if key in ["m", "p", "h"]:
                         self.get_attr(key).is_var = True
 
                 elif is_numeric:
                     if np.isnan(kwargs[key]):
                         self.get_attr(key).set_attr(val_set=False)
-                        self.get_attr(key).set_attr(ref_set=False)
+                        if f"{key}_ref" in self.property_data:
+                            self.get_attr(key).set_attr(val_set=False)
                         if key in ["m", "p", "h"]:
                             self.get_attr(key).is_var = True
                     else:
@@ -447,16 +453,13 @@ class Connection:
 
                 # reference object
                 elif isinstance(kwargs[key], Ref):
-                    if key in ['x', 'Td_bp']:
-                        msg = (
-                            'References for vapor mass fraction and '
-                            'subcooling/superheating are not implemented.'
-                        )
+                    if f"{key}_ref" not in self.property_data:
+                        msg = f"Referencing {key} is not implemented."
                         logger.error(msg)
                         raise NotImplementedError(msg)
                     else:
-                        self.get_attr(key).set_attr(ref=kwargs[key])
-                        self.get_attr(key).set_attr(ref_set=True)
+                        self.get_attr(f"{key}_ref").set_attr(val=kwargs[key])
+                        self.get_attr(f"{key}_ref").set_attr(val_set=True)
 
                 # invalid datatype for keyword
                 else:
@@ -568,7 +571,7 @@ class Connection:
             'x': dc_prop(), 'v': dc_prop(), 'vol': dc_prop(),
             's': dc_prop(),
             'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()
-            }
+        }
 
     def get_flow(self):
         r"""

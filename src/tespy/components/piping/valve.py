@@ -136,7 +136,7 @@ class Valve(Component):
     def component():
         return 'valve'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,

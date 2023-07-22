@@ -82,7 +82,7 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'P': dc_cp(
                 deriv=self.energy_balance_deriv, num_eq=1,

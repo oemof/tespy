@@ -160,7 +160,7 @@ class FuelCell(Component):
 
 # %% Variables
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'P': dc_cp(max_val=0),
             'Q': dc_cp(

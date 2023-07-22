@@ -193,7 +193,7 @@ class WaterElectrolyzer(Component):
     def component():
         return 'water electrolyzer'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'P': dc_cp(min_val=0),
             'Q': dc_cp(

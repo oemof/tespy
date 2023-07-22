@@ -183,7 +183,7 @@ class SolarCollector(HeatExchangerSimple):
     def component():
         return 'solar collector'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,

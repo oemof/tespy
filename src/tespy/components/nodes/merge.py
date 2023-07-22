@@ -134,7 +134,7 @@ class Merge(NodeBase):
         return 'merge'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_in': dc_simple()}
 
     def get_mandatory_constraints(self):

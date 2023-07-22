@@ -393,14 +393,14 @@ Extend components with new equations
 You can easily add custom equations to the existing components. In order to do
 this, you need to implement four changes to the desired component class:
 
-- modify the :code:`get_variables(self)` method.
+- modify the :code:`get_parameters(self)` method.
 - add a method, that returns the result of your equation.
 - add a method, that places the partial derivatives in the jacobian matrix of
   your component.
 - add a method, that returns the LaTeX code of your equation for the automatic
   documentation feature.
 
-In the :code:`get_variables(self)` method, add an entry for your new equation.
+In the :code:`get_parameters(self)` method, add an entry for your new equation.
 If the equation uses a single parameter, use the :code:`ComponentProperties`
 type DataContainer (or the :code:`ComponentCharacteristics` type in case you
 only apply a characteristic curve). If your equations requires multiple
@@ -440,7 +440,7 @@ custom component. Now create a class for your component and at least add the
 following methods.
 
 - :code:`component(self)`,
-- :code:`get_variables(self)`,
+- :code:`get_parameters(self)`,
 - :code:`get_mandatory_constraints(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)` and
@@ -524,7 +524,7 @@ LaTeX string generation are individual methods you need to define
 Attributes
 ^^^^^^^^^^
 
-The :code:`get_variables()` method must return a dictionary with the attributes
+The :code:`get_parameters()` method must return a dictionary with the attributes
 you want to use for your component. The keys represent the attributes and the
 respective values the type of data container used for this attribute. By using
 the data container attributes, it is possible to add defaults. Defaults for
@@ -539,7 +539,7 @@ DataContainers instead of dictionaries, e.g. for the Valve:
 
 .. code:: python
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,

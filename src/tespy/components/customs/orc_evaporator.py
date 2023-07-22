@@ -202,7 +202,7 @@ class ORCEvaporator(Component):
     def component():
         return 'orc evaporator'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 max_val=0, num_eq=1, latex=self.energy_balance_cold_func_doc,

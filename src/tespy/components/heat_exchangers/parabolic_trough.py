@@ -220,7 +220,7 @@ class ParabolicTrough(HeatExchangerSimple):
     def component():
         return 'parabolic trough'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,

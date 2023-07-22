@@ -198,7 +198,7 @@ class HeatExchanger(Component):
     def component():
         return 'heat exchanger'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 max_val=0, func=self.energy_balance_hot_func, num_eq=1,

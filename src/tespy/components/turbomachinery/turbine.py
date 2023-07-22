@@ -149,7 +149,7 @@ class Turbine(Turbomachine):
     def component():
         return 'turbine'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'P': dc_cp(
                 max_val=0, num_eq=1,

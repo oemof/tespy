@@ -158,7 +158,7 @@ class CombustionChamber(Component):
     def component():
         return 'combustion chamber'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'lamb': dc_cp(
                 min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,

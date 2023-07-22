@@ -141,7 +141,7 @@ class Separator(NodeBase):
         return 'separator'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_out': dc_simple()}
 
     def get_mandatory_constraints(self):

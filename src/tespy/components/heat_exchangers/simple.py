@@ -195,7 +195,7 @@ class HeatExchangerSimple(Component):
     def component():
         return 'heat exchanger simple'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
@@ -239,7 +239,7 @@ class HeatExchangerSimple(Component):
         return ['out1']
 
     def preprocess(self, nw):
-        super().preprocess(nw, num_eq=len(nw.fluids) + 1)
+        super().preprocess(nw)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, nw.T_unit)
 

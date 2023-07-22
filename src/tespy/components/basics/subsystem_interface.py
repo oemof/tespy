@@ -152,7 +152,7 @@ class SubsystemInterface(Component):
         }
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_inter': dc_simple()}
 
     def inlets(self):

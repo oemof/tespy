@@ -120,8 +120,8 @@ class Component:
         self.printout = True
 
         # add container for components attributes
-        self.variables = OrderedDict(self.get_variables().copy())
-        self.__dict__.update(self.variables)
+        self.parameters = OrderedDict(self.get_parameters().copy())
+        self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
@@ -151,7 +151,7 @@ class Component:
         """
         # set specified values
         for key in kwargs:
-            if key in self.variables:
+            if key in self.parameters:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
@@ -234,13 +234,13 @@ class Component:
                         'at ' + self.label + '.')
                     logger.error(msg)
                     raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(self.variables.keys())):
+                if set(kwargs[key]).issubset(list(self.parameters.keys())):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
                     msg = (
                         'Available parameters for (off-)design specification '
-                        'are: ' + str(list(self.variables.keys())) + ' at ' +
+                        'are: ' + str(list(self.parameters.keys())) + ' at ' +
                         self.label + '.')
                     logger.error(msg)
                     raise ValueError(msg)
@@ -303,7 +303,7 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def preprocess(self, nw, num_eq=0):
+    def preprocess(self, nw):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -330,7 +330,7 @@ class Component:
         for constraint in self.constraints.values():
             self.num_eq += constraint['num_eq']
 
-        for key, val in self.variables.items():
+        for key, val in self.parameters.items():
             data = self.get_attr(key)
             if isinstance(val, dc_cp):
                 if data.is_var:
@@ -412,7 +412,7 @@ class Component:
             ' custom variables.')
         logger.debug(msg)
 
-    def get_variables(self):
+    def get_parameters(self):
         return {}
 
     def get_mandatory_constraints(self):
@@ -580,7 +580,7 @@ class Component:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        for parameter, data in self.variables.items():
+        for parameter, data in self.parameters.items():
             if data.is_set and data.func is not None:
                 self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                     **data.func_params)
@@ -854,7 +854,7 @@ class Component:
         if mode == 'design' or self.local_design:
             self.new_design = True
 
-        for key, dc in self.variables.items():
+        for key, dc in self.parameters.items():
             if isinstance(dc, dc_cp):
                 if ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)):
@@ -869,7 +869,7 @@ class Component:
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        for p in self.variables.keys():
+        for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
                 if data.val > data.max_val + ERR :

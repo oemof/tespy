@@ -123,7 +123,7 @@ class Splitter(NodeBase):
         return 'splitter'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_out': dc_simple()}
 
     def get_mandatory_constraints(self):

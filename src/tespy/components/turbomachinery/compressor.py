@@ -155,7 +155,7 @@ class Compressor(Turbomachine):
     def component():
         return 'compressor'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'P': dc_cp(
                 min_val=0, num_eq=1,

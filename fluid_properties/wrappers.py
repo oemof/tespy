@@ -89,6 +89,9 @@ class CoolPropWrapper(FluidPropertyWrapper):
             p = self._p_crit * 0.99
         return p
 
+    def isentropic(self, p_1, h_1, p_2):
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
+
     def T_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.T()
@@ -99,6 +102,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def h_pQ(self, p, Q):
         self.AS.update(CP.PQ_INPUTS, p, Q)
+        return self.AS.hmass()
+
+    def h_ps(self, p, s):
+        self.AS.update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
     def h_pT(self, p, T):

@@ -10,6 +10,16 @@ from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
 
 
+def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
+    else:
+        # todo
+        _check_mixing_rule(mixing_rule, ISENTROPIC_DIRECT, "enthalpy")
+        return ISENTROPIC_DIRECT[mixing_rule](p_1, h_1, p_2, fluid_data)
+
+
 def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)

@@ -188,12 +188,21 @@ class Turbine(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) +
                 \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
         """
+        inl = self.inl[0]
+        outl = self.outl[0]
         return (
-            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) + (
+            -(outl.h.val_SI - inl.h.val_SI)
+            + (
                 isentropic(
-                    self.inl[0].get_flow(), self.outl[0].get_flow(),
-                    T0=self.inl[0].T.val_SI) -
-                self.inl[0].h.val_SI) * self.eta_s.val)
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    T0=inl.T.val_SI
+                )
+                - inl.h.val_SI
+            ) * self.eta_s.val
+        )
 
     def eta_s_func_doc(self, label):
         r"""
@@ -227,13 +236,23 @@ class Turbine(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.eta_s_func
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        self.jacobian[k, 1, 2] = -1
+        if self.inl[0].p.is_var:
+            pos = self.get_conn_var_pos(0, "p")
+            if not increment_filter[pos]:
+                self.jacobian[k, pos] = self.numeric_deriv(f, "p", 0)
+
+        if self.outl[0].p.is_var:
+            pos = self.get_conn_var_pos(1, "p")
+            if not increment_filter[pos]:
+                self.jacobian[k, pos] = self.numeric_deriv(f, "p", 1)
+
+        if self.inl[0].h.is_var:
+            pos = self.get_conn_var_pos(0, "h")
+            if not increment_filter[pos]:
+                self.jacobian[k, pos] = self.numeric_deriv(f, "h", 0)
+
+        if self.outl[0].h.is_var and self.it == 0:
+            self.jacobian[k, self.get_conn_var_pos(1, "h")] = -1
 
     def cone_func(self):
         r"""
@@ -473,11 +492,21 @@ class Turbine(Turbomachine):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
 
+        inl = self.inl[0]
+        outl = self.outl[0]
         self.eta_s.val = (
-            (self.outl[0].h.val_SI - self.inl[0].h.val_SI) / (
+            (outl.h.val_SI - inl.h.val_SI)
+            / (
                 isentropic(
-                    self.inl[0].get_flow(), self.outl[0].get_flow(),
-                    T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    T0=inl.T.val_SI
+                )
+                - inl.h.val_SI
+            )
+        )
 
     def exergy_balance(self, T0):
         r"""

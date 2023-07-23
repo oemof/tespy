@@ -6,7 +6,7 @@ from tespy.tools.global_vars import ERR
 from fluid_properties.helpers import newton_with_kwargs
 from tespy.tools.data_containers import FluidProperties as dc_prop, FluidComposition as dc_flu, SimpleDataContainer as dc_simple
 from fluid_properties.wrappers import FluidPropertyWrapper
-from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp
+from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp, isentropic
 
 from copy import deepcopy
 import numpy as np
@@ -359,14 +359,16 @@ class NewConnection(Connection):
 
 
 from tespy.networks import Network
-from tespy.components import Source, Sink, Pipe, Splitter
+from tespy.components import Source, Sink, Pipe, Splitter, Turbine
 
 nwk = Network(fluids=["water", "H2"], T_unit="C", p_unit="bar")
 
 a = Source("source")
 b = Sink("sink")
+h = Turbine("turbine")
 
-c1 = NewConnection(a, "out1", b, "in1", label="1")
+c1 = NewConnection(a, "out1", h, "in1", label="1")
+c2 = NewConnection(h, "out1", b, "in1", label="2")
 
 c = Source("source2")
 d = Pipe("pipe")
@@ -374,19 +376,26 @@ e = Splitter("splitter")
 f = Sink("sink2")
 g = Sink("sink3")
 
-c2 = NewConnection(c, "out1", d, "in1", label="2")
-c3 = NewConnection(d, "out1", e, "in1", label="3")
-c4 = NewConnection(e, "out1", f, "in1", label="4")
-c5 = NewConnection(e, "out2", g, "in1", label="5")
+c11 = NewConnection(c, "out1", d, "in1", label="11")
+c12 = NewConnection(d, "out1", e, "in1", label="12")
+c13 = NewConnection(e, "out1", f, "in1", label="13")
+c14 = NewConnection(e, "out2", g, "in1", label="14")
 
-nwk.add_conns(c1, c2, c3, c4, c5)
+# monkey patch new isentropic method
+import tespy.components.turbomachinery.turbine as t
+t.isentropic = isentropic
 
-c1.set_attr(m=1, p=Ref(c2, 1, 0), T=150, fluid={"water": 1, "H2": 0})
 
-c2.set_attr(m=1, p=3, Td_bp=3)
+nwk.add_conns(c1, c2, c11, c12, c13, c14)
+
+c1.set_attr(m=1, p=Ref(c11, 1, 0), Td_bp=50, fluid={"water": 1, "H2": 0})
+c2.set_attr(p=1)
+h.set_attr(eta_s=0.9)
+
+c11.set_attr(m=1, p=3, Td_bp=3, fluid={"water": 1, "H2": 0})
 d.set_attr(pr=1, Q="var")
-c3.set_attr(Td_bp=5)
-c4.set_attr(m=0.5, fluid={"water": 1, "H2": 0})
+c12.set_attr(Td_bp=5)
+c13.set_attr(m=0.5)
 
 nwk.solve("design")
 

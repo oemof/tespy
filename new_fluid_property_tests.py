@@ -247,8 +247,17 @@ class NewConnection(Connection):
             # "m_ref": dc_prop(**{
             #     "func": self.m_ref_func, "deriv": self.m_ref_deriv, "num_eq": 1
             # }),
+            "m_ref": dc_prop(**{
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "m"}
+            }),
             "p_ref": dc_prop(**{
-                "func": self.p_ref_func, "deriv": self.p_ref_deriv, "num_eq": 1
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "p"}
+            }),
+            "h_ref": dc_prop(**{
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "h"}
             }),
         }
 
@@ -260,28 +269,32 @@ class NewConnection(Connection):
             } for fluid in self.fluid.val
         }
 
-    def p_ref_func(self, k):
-        ref = self.p_ref.val
+    def primary_ref_func(self, k, **kwargs):
+        variable = kwargs['variable']
+        self.get_attr(variable)
+        ref = self.get_attr(f"{variable}_ref").val
         self.residual[k] = (
-            self.p.val_SI - ref.obj.p.val_SI * ref.factor + ref.delta * 1e5
+            self.get_attr(variable).val_SI
+            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta
         )
 
-    def p_ref_deriv(self, k):
-        ref = self.p_ref.val
-        if self.p.is_var:
-            self.jacobian[k, self.var_pos["p"]] = 1
+    def primary_ref_deriv(self, k, **kwargs):
+        variable = kwargs['variable']
+        ref = self.get_attr(f"{variable}_ref").val
+        if self.get_attr(variable).is_var:
+            self.jacobian[k, self.var_pos[variable]] = 1
 
-        if ref.obj.p.is_var:
-            pos = self.get_ref_var_pos(ref.obj) + ref.obj.var_pos["p"]
+        if ref.obj.get_attr(variable).is_var:
+            pos = self.get_ref_var_pos(ref.obj) + ref.obj.var_pos[variable]
             self.jacobian[k, pos] = -ref.factor
 
     def calc_T(self):
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
 
-    def T_func(self, k):
+    def T_func(self, k, **kwargs):
         self.residual[k] = self.T.val_SI - self.calc_T()
 
-    def T_deriv(self, k):
+    def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.var_pos["p"]] = (
                 -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
@@ -295,13 +308,13 @@ class NewConnection(Connection):
         #         c.p.val_SI, c.h.val_SI, self.fluid_data, T0=c.T.val_SI
         # )
 
-    def v_func(self, k):
+    def v_func(self, k, **kwargs):
         self.residual[k] = (
             v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
             * self.m.val_SI - self.v.val_SI
         )
 
-    def v_deriv(self, k):
+    def v_deriv(self, k, **kwargs):
         if self.m.is_var:
             self.jacobian[k, self.var_pos["m"]] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         if self.p.is_var:
@@ -310,21 +323,21 @@ class NewConnection(Connection):
             self.jacobian[k, self.var_pos["h"]] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
 
 
-    def x_func(self, k):
+    def x_func(self, k, **kwargs):
         # saturated steam fraction
         # how to check if condition?
         # if (np.absolute(self.residual[k]) > ERR ** 2 or
         #         self.iter % 2 == 0 or self.always_all_equations):
         self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
 
-    def x_deriv(self, k):
+    def x_deriv(self, k, **kwargs):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
             self.jacobian[k, self.var_pos["p"]] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         if self.h.is_var:
             self.jacobian[k, self.var_pos["h"]] = 1
 
-    def Td_bp_func(self, k):
+    def Td_bp_func(self, k, **kwargs):
 
         # temperature difference to boiling point
             # if (np.absolute(self.residual[k]) > ERR ** 2 or
@@ -335,7 +348,7 @@ class NewConnection(Connection):
             - T_sat_p(self.p.val_SI, self.fluid_data)
         )
 
-    def Td_bp_deriv(self, k):
+    def Td_bp_deriv(self, k, **kwargs):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
             self.jacobian[k, self.var_pos["p"]] = (
@@ -350,10 +363,10 @@ class NewConnection(Connection):
 
     def solve(self, increment_filter):
         k = 0
-        for parameter in self.parameters:
+        for parameter, data in self.parameters.items():
             if self.get_attr(parameter).val_set:
-                self.parameters[parameter].func(k)
-                self.parameters[parameter].deriv(k)
+                data.func(k, **data.func_params)
+                data.deriv(k, **data.func_params)
 
                 k += 1
 
@@ -388,8 +401,8 @@ t.isentropic = isentropic
 
 nwk.add_conns(c1, c2, c11, c12, c13, c14)
 
-c1.set_attr(m=1, p=Ref(c11, 1, 0), Td_bp=50, fluid={"water": 1, "H2": 0})
-c2.set_attr(p=1)
+c1.set_attr(m=Ref(c12, 1, 0), p=Ref(c11, 1, 0), Td_bp=50, fluid={"water": 1, "H2": 0})
+c2.set_attr(h=Ref(c12, 0.9, 0))
 h.set_attr(eta_s=0.9)
 
 c11.set_attr(m=1, p=3, Td_bp=3, fluid={"water": 1, "H2": 0})
@@ -401,6 +414,6 @@ nwk.solve("design")
 
 nwk.print_results()
 
-c2.set_attr(p=None, T=136)
+c11.set_attr(p=None, T=136)
 nwk.solve("design")
 nwk.print_results()

@@ -459,7 +459,8 @@ class FluidProperties(DataContainer):
             "deriv": None,
             "constant_deriv": False,
             "latex": None,
-            "num_eq": 0
+            "num_eq": 0,
+            "func_params": {},
         }
 
 

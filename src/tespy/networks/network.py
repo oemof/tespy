@@ -244,7 +244,7 @@ class Network:
         logger.debug(msg)
 
         # initialise fluid property memorisation function for this network
-        fp.Memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
+        # fp.Memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
 
         # set up results dataframe for connections
         cols = (
@@ -1895,7 +1895,7 @@ class Network:
             return
 
         self.postprocessing()
-        fp.Memorise.del_memory(self.fluids)
+        # fp.Memorise.del_memory(self.fluids)
 
         if not self.progress:
             msg = (

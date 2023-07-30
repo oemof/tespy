@@ -327,7 +327,8 @@ class FluidComposition(DataContainer):
             'wrapper': collections.OrderedDict(),
             'engine': collections.OrderedDict(),
             'back_end': collections.OrderedDict(),
-            "is_var": False,
+            "is_var": collections.OrderedDict(),
+            "J_col": collections.OrderedDict(),
             'balance': False
         }
 
@@ -461,6 +462,7 @@ class FluidProperties(DataContainer):
             "latex": None,
             "num_eq": 0,
             "func_params": {},
+            "J_col": None
         }
 
 

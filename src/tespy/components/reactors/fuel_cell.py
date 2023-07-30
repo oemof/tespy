@@ -220,7 +220,7 @@ class FuelCell(Component):
 
 # %% Equations and derivatives
 
-    def preprocess(self, nw):
+    def preprocess(self, num_nw_vars):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -249,7 +249,7 @@ class FuelCell(Component):
 
         self.e0 = self.calc_e0()
 
-        super().preprocess(nw)
+        super().preprocess(num_nw_vars)
 
     def calc_e0(self):
         r"""

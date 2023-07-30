@@ -31,6 +31,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
@@ -722,37 +723,60 @@ class Network:
 
         self.check_conns()
         self.init_components()
-        # count number of incoming and outgoing connections and compare to
-        # expected values
-        for comp in self.comps['object']:
-            num_o = (self.conns[['source', 'target']] == comp).sum().source
-            num_i = (self.conns[['source', 'target']] == comp).sum().target
-
-            if num_o != comp.num_o:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_o - num_o} outgoing connections. Make sure "
-                    "all outlets are connected and all connections have been "
-                    "added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccesful
-                raise hlp.TESPyNetworkError(msg)
-            elif num_i != comp.num_i:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_i - num_i} incoming connections. Make sure "
-                    "all inlets are connected and all connections have been "
-                    "added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccesful
-                raise hlp.TESPyNetworkError(msg)
+        self.check_components()
+        self.create_branches()
 
         # network checked
         self.checked = True
         msg = 'Networkcheck successful.'
         logger.info(msg)
+
+    def create_branches(self):
+        self.branches = {}
+        mask = self.comps["object"].apply(lambda c: c.is_branch_source())
+        start_components = self.comps["object"].loc[mask]
+        if len(start_components) == 0:
+            msg = (
+                "You cannot build a system without at least one CycleCloser or "
+                "a Source and Sink."
+            )
+            raise hlp.TESPyNetworkError(msg)
+
+        for start in start_components:
+            self.branches.update(start.start_branch())
+
+        self.fluid_wrapper_branches = {}
+        mask = self.comps["comp_type"].isin(["Source", "CycleCloser"])
+        start_components = self.comps["object"].loc[mask]
+
+        for start in start_components:
+            self.fluid_wrapper_branches.update(start.start_fluid_wrapper_branch())
+
+        merged_fluid_wrapper_branches = self.fluid_wrapper_branches.copy()
+        for branch_name, branch_data in self.fluid_wrapper_branches.items():
+            if branch_name not in merged_fluid_wrapper_branches:
+                continue
+            merges = [cp for cp in branch_data["components"] if cp.component() == "merge"]
+            if any(merges):
+                for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
+                    if ob_name != branch_name:
+                        for merge in merges:
+                            if merge in ob_data["components"]:
+                                merged_fluid_wrapper_branches[branch_name]["connections"] = list(set(branch_data["connections"] + ob_data["connections"]))
+                                merged_fluid_wrapper_branches[branch_name]["components"] = list(set(branch_data["components"] + ob_data["components"]))
+                                del merged_fluid_wrapper_branches[ob_name]
+                                break
+
+        self.fluid_wrapper_branches = merged_fluid_wrapper_branches
+
+
+        self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
+
+        self.fluid_branches = {}
+        for branch_name, branch_data in self.branches.items():
+            subbranches = hlp.get_all_subdictionaries(branch_data["subbranches"])
+            main = {k: v for k, v in branch_data.items() if k != "subbranches"}
+            self.fluid_branches[branch_name] = [main] + subbranches
 
     def init_components(self):
         r"""Set up necessary component information."""
@@ -792,6 +816,96 @@ class Network:
                     'properties': pd.DataFrame(columns=cols, dtype='bool')
                 }
 
+    def check_components(self):
+        # count number of incoming and outgoing connections and compare to
+        # expected values
+        for comp in self.comps['object']:
+            counts = (self.conns[['source', 'target']] == comp).sum()
+
+            if counts["source"] != comp.num_o:
+                msg = (
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_o - counts['source']} outgoing connections. "
+                    "Make sure all outlets are connected and all connections "
+                    "have been added to the network."
+                )
+                logger.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
+            elif counts["target"] != comp.num_i:
+                msg = (
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_i - counts['target']} incoming connections. "
+                    "Make sure all inlets are connected and all connections "
+                    "have been added to the network."
+                )
+                logger.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
+
+    def presolve_massflow_topology(self):
+
+        self.all_fluids = []
+        # mass flow is a single variable in each sub branch
+        # fluid composition is a single variable in each main branch
+        for branch in self.massflow_branches:
+
+            num_massflow_specs = 0
+            for c in branch["connections"]:
+                # number of specifications cannot exceed 1
+                num_massflow_specs += c.m.val_set
+
+                if c.m.val_set:
+                    main_conn = c
+
+                # self reference is not allowed
+                if c.m_ref.val_set:
+                    if c.m_ref.val.obj in branch["connections"]:
+                        msg = (
+                            "You cannot reference a mass flow in the same "
+                            f"linear branch. The connection {c.label} "
+                            "references the connection "
+                            f"{c.m_ref.val.obj.label}."
+                        )
+                        raise hlp.TESPyNetworkError(msg)
+
+            if num_massflow_specs == 1:
+                # set every mass flow in branch to the specified value
+                for c in branch["connections"]:
+                    # map all connection's mass flow data containers to first
+                    # branch element
+                    c._m_tmp = c.m
+                    c.m = main_conn.m
+
+                msg = (
+                    "Removing "
+                    f"{len(branch['connections']) - num_massflow_specs} "
+                    "mass flow variables from system variables."
+                )
+                logger.debug(msg)
+            elif num_massflow_specs > 1:
+                msg = (
+                    "You cannot specify two or more values for mass flow in "
+                    "the same linear branch (starting at "
+                    f"{branch['components'][0].label} and ending at "
+                    f"{branch['components'][-1].label})."
+                )
+                raise hlp.TESPyNetworkError(msg)
+
+            else:
+                main_conn = branch["connections"][0]
+                for c in branch["connections"][1:]:
+                    # map all connection's mass flow data containers to first
+                    # branch element
+                    c._m_tmp = c.m
+                    c.m = main_conn.m
+
+                main_conn.m.J_col = self.num_conn_vars
+                self.variables_dict[self.num_conn_vars] = {
+                    "obj": main_conn, "variable": "m"
+                }
+                self.num_conn_vars += 1
+
     def initialise(self):
         r"""
         Initilialise the network depending on calclation mode.
@@ -812,10 +926,16 @@ class Network:
         self.num_bus_eq = 0
         self.num_comp_eq = 0
         self.num_conn_eq = 0
+        self.num_vars = 0
         self.num_comp_vars = 0
-        self.init_set_properties()
+        self.num_conn_vars = 0
+        self.variables_dict = {}
+
         self.propagate_fluid_wrappers()
-        self.setup_connection_variables()
+        self.presolve_massflow_topology()
+        self.presolve_fluid_topology()
+
+        self.init_set_properties()
 
         if self.mode == 'offdesign':
             self.redesign = True
@@ -837,7 +957,7 @@ class Network:
             self.init_design()
             # generic fluid initialisation
             # for offdesign cases good starting values should be available
-            self.init_fluids()
+            # self.init_fluids()
 
         # generic fluid property initialisation
         self.init_properties()
@@ -850,6 +970,16 @@ class Network:
         all_fluids = []
         # fluid property values
         for c in self.conns['object']:
+            c.preprocess()
+
+            for key in ["p", "h"]:
+                if c.get_attr(key).is_var:
+                    c.get_attr(key).J_col = self.num_conn_vars
+                    self.variables_dict[self.num_conn_vars] = {
+                        "obj": c, "variable": key
+                    }
+                    self.num_conn_vars += 1
+
             all_fluids += c.fluid.val.keys()
 
             if not self.init_previous:
@@ -874,53 +1004,6 @@ class Network:
                         c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
                             key, c.get_attr(key).ref.delta,
                             c.get_attr(key).unit)
-
-            # fluid vector specification
-            # tmp = c.fluid.val
-            # for fluid in tmp.keys():
-            #     if fluid not in self.fluids:
-            #         msg = ('Your connection ' + c.label + ' holds a fluid, '
-            #                'that is not part of the networks\'s fluids (' +
-            #                fluid + ').')
-            #         raise hlp.TESPyNetworkError(msg)
-            # tmp0 = c.fluid.val0
-            # tmp_set = c.fluid.val_set
-
-            # c.fluid.val = OrderedDict()
-            # c.fluid.val0 = OrderedDict()
-            # c.fluid.val_set = OrderedDict()
-
-            # # if the number of fluids is one the mass fraction is 1 for every
-            # # connection
-            # if len(self.fluids) == 1:
-            #     c.fluid.val[self.fluids[0]] = 1
-            #     c.fluid.val0[self.fluids[0]] = 1
-            #     if self.fluids[0] in tmp_set:
-            #         c.fluid.val_set[self.fluids[0]] = tmp_set[self.fluids[0]]
-            #     else:
-            #         c.fluid.val_set[self.fluids[0]] = False
-
-            #     # jump to next connection
-            #     continue
-
-            # for fluid in self.fluids:
-            #     # take over values from temporary dicts
-            #     if fluid in tmp and fluid in tmp_set:
-            #         c.fluid.val[fluid] = tmp[fluid]
-            #         c.fluid.val0[fluid] = tmp[fluid]
-            #         c.fluid.val_set[fluid] = tmp_set[fluid]
-            #     # take over starting values
-            #     elif fluid in tmp0:
-            #         if fluid not in tmp_set:
-            #             c.fluid.val[fluid] = tmp0[fluid]
-            #             c.fluid.val0[fluid] = tmp0[fluid]
-            #             c.fluid.val_set[fluid] = False
-            #     # if fluid not in keys
-            #     else:
-            #         c.fluid.val[fluid] = 0
-            #         c.fluid.val0[fluid] = 0
-            #         c.fluid.val_set[fluid] = False
-
 
         cols = (
             ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
@@ -947,31 +1030,114 @@ class Network:
             'user specified connection parameters.')
         logger.debug(msg)
 
+    def presolve_fluid_topology(self):
+
+        for branch_name, branch in self.fluid_branches.items():
+            all_connections = [
+                c for b in branch for c in b["connections"]
+            ]
+            main_conn = all_connections[0]
+            fluid_specs = [f for c in all_connections for f in c.fluid.val_set]
+            if len(fluid_specs) == 0:
+                main_conn._fluid_tmp = dc_flu()
+                main_conn._fluid_tmp.val = main_conn.fluid.val.copy()
+                main_conn._fluid_tmp.val_set = main_conn.fluid.val_set.copy()
+                main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
+                main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
+
+                for c in all_connections[1:]:
+                    c._fluid_tmp = c.fluid
+                    c.fluid = main_conn.fluid
+
+                main_conn.fluid.is_var = {f: True for f in main_conn.fluid.val}
+
+            elif len(fluid_specs) != len(set(fluid_specs)):
+                msg = (
+                    "The mass fraction of a single fluid cannot be specified "
+                    "twice within a branch."
+                )
+                raise hlp.TESPyNetworkError(msg)
+            else:
+                fixed_fractions = {
+                    f: c.fluid.val[f]
+                    for c in all_connections
+                    for f in fluid_specs
+                    if f in c.fluid.val_set and c.fluid.val_set[f]
+                }
+                mass_fraction_sum = sum(fixed_fractions.values())
+                if mass_fraction_sum > 1:
+                    msg = "Total mass fractions within a branch cannot exceed 1"
+                    raise ValueError(msg)
+                elif mass_fraction_sum < 1:
+                    # set the fluids with specified mass fraction
+                    # remaining fluids are variable, create wrappers for them
+                    all_fluids = main_conn.fluid.val.keys()
+                    num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
+                    if num_remaining_fluids == 1:
+                        missing_fluid = list(
+                            main_conn.fluid.val.keys() - fixed_fractions.keys()
+                        )[0]
+                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
+                        variable = {f: False for f in fixed_fractions}
+                    else:
+                        missing_fluids = (
+                            main_conn.fluid.val.keys() - fixed_fractions.keys()
+                        )
+                        variable = {f: False for f in fixed_fractions}
+                        variable.update({f: True for f in missing_fluids})
+
+                else:
+                    # fluid mass fraction is 100 %, all other fluids are 0 %
+                    all_fluids = main_conn.fluid.val.keys()
+                    remaining_fluids = (
+                        main_conn.fluid.val.keys() - fixed_fractions.keys()
+                    )
+                    for f in remaining_fluids:
+                        fixed_fractions[f] = 0
+
+                    variable = {f: False for f in fixed_fractions}
+
+                main_conn._fluid_tmp = dc_flu()
+                main_conn._fluid_tmp.val = main_conn.fluid.val.copy()
+                main_conn._fluid_tmp.val_set = main_conn.fluid.val_set.copy()
+                main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
+                main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
+
+                for c in all_connections[1:]:
+                    c._fluid_tmp = c.fluid
+                    c.fluid = main_conn.fluid
+
+                main_conn.fluid.val.update(fixed_fractions)
+                main_conn.fluid.val_set = {f: not x for f, x in variable.items()}
+                main_conn.fluid.is_var = variable
+
+            for fluid, value in main_conn.fluid.is_var.items():
+                if value:
+                    main_conn.fluid.J_col[fluid] = self.num_conn_vars
+                    self.variables_dict[self.num_conn_vars] = {
+                        "obj": main_conn, "variable": "fluid", "fluid": fluid
+                    }
+                    self.num_conn_vars += 1
+
     def propagate_fluid_wrappers(self):
-        for c in self.conns["object"]:
-            if any(c.fluid.val_set.values()):
-                c.target.propagate_fluid_wrappers_to_target(c, c.target)
-                c.source.propagate_fluid_wrappers_to_source(c, c.source)
 
-    def setup_connection_variables(self):
-        self.num_conn_vars = 0
-        for c in self.conns["object"]:
-            c.preprocess()
-            self.conns.loc[c.label, "loc_J_start"] = self.num_conn_vars
-            self.num_conn_vars += c.num_vars
-            self.conns.loc[c.label, "loc_J_end"] = self.num_conn_vars
+        for branch_data in self.fluid_wrapper_branches.values():
+            all_connections = [c for c in branch_data["connections"]]
+            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set if c.fluid.val_set[f]]
+            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set and c.fluid.val_set[f]}
 
-        self.conns["loc_J_start"] = self.conns["loc_J_start"].astype(int)
-        self.conns["loc_J_end"] = self.conns["loc_J_end"].astype(int)
+            if not any_fluids_set:
+                msg = "You are missing fluid specifications."
+            any_fluids = [f for c in all_connections for f in c.fluid.val]
+            any_fluids0 = [f for c in all_connections for f in c.fluid.val]
 
-        # save the connection locations to the components
-        for cp in self.comps['object']:
-            cp.conn_starts = []
-            cp.conn_ends = []
-
-            for c in cp.inl + cp.outl:
-                cp.conn_starts += [self.conns.loc[c.label, "loc_J_start"]]
-                cp.conn_ends += [self.conns.loc[c.label, "loc_J_end"]]
+            potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
+            for c in all_connections:
+                for f in potential_fluids:
+                    if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
+                        c.fluid.val[f] = 0
+                    if f not in c.fluid.wrapper:
+                        c.fluid.wrapper[f] = fluid_set_wrappers[f]
 
     def init_design(self):
         r"""
@@ -1096,7 +1262,8 @@ class Network:
                 cp.set_parameters(self.mode, series)
 
             # component initialisation
-            cp.preprocess(self)
+            cp.preprocess(self.num_conn_vars + self.num_comp_vars)
+
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
@@ -1104,6 +1271,10 @@ class Network:
                         cp.get_attr(self.specifications['lookup'][spec]))
 
             # count number of component equations and variables
+            i = self.num_conn_vars + self.num_comp_vars
+            for container, name in cp.vars.items():
+                self.variables_dict[i] = {"obj": container, "variable": name}
+                i += 1
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
 
@@ -1322,7 +1493,7 @@ class Network:
                     logger.debug(msg)
 
             # start component initialisation
-            cp.preprocess(self)
+            cp.preprocess(self.num_conn_vars + self.num_comp_vars)
             ct = cp.__class__.__name__
             for spec in self.specifications[ct].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
@@ -1469,7 +1640,6 @@ class Network:
                         c.h.val_SI = h * 0.999
 
             c.build_fluid_data()
-            c._build_jacobian()
 
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
@@ -1495,7 +1665,7 @@ class Network:
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
-        row = [x for x in c.fluid.val_set.values()]
+        row = [c.fluid.val_set[f] if f in c.fluid.val_set else None for f in fluids]
         self.specifications['Connection'].loc[c.label, fluids] = row
 
         # last one: fluid balance specification
@@ -1753,8 +1923,7 @@ class Network:
         if self.iterinfo:
             self.iterinfo_head(print_results)
 
-        for count in range(self.max_iter):
-            self.iter = count
+        for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
             self.res = np.append(self.res, norm(self.residual))
@@ -1762,9 +1931,9 @@ class Network:
             if self.iterinfo:
                 self.iterinfo_body(print_results)
 
-            if ((self.iter >= self.min_iter and self.res[-1] < ERR ** 0.5) or
-                    self.lin_dep):
-                self.converged = True
+            if ((self.iter >= self.min_iter - 1 and self.res[-1] < ERR ** 0.5)
+                    or self.lin_dep):
+                self.converged = not self.lin_dep
                 break
 
             if self.iter > 40:
@@ -1843,21 +2012,23 @@ class Network:
         # Start with defining the format here
         self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
         self.iterinfo_fmt += '| {massflow:10s} | {pressure:10s} | {enthalpy:10s} '
-        self.iterinfo_fmt += '| {fluid:10s} | {custom:10s} '
+        self.iterinfo_fmt += '| {fluid:10s} | {component:10s} '
         # Use the format to create the first logging entry
-        custom = '' if self.num_comp_vars == 0 else 'custom'
-        msg = self.iterinfo_fmt.format(iter='iter',
-                                       residual='residual',
-                                       progress='progress',
-                                       massflow='massflow',
-                                       pressure='pressure',
-                                       enthalpy='enthalpy',
-                                       fluid='fluid',
-                                       custom=custom)
+        component = '' if self.num_comp_vars == 0 else 'component'
+        msg = self.iterinfo_fmt.format(
+            iter='iter',
+            residual='residual',
+            progress='progress',
+            massflow='massflow',
+            pressure='pressure',
+            enthalpy='enthalpy',
+            fluid='fluid',
+            component=component
+        )
         logger.progress(0, msg)
         msg2 = '-' * 7 + '+------------' * 6 + "+"
         if self.num_comp_vars > 0:
-            msg2 += '+-------------'
+            msg2 += '-------------'
 
         logger.progress(0, msg2)
         if print_results:
@@ -1865,60 +2036,59 @@ class Network:
         return
 
     def iterinfo_body(self, print_results=True):
-    #     """Print convergence progress."""
-    #     vec = self.increment[0:-(self.num_comp_vars + 1)]
-    #     iter_str = str(self.iter + 1)
-    #     residual_norm = norm(self.residual)
-    #     residual = 'NaN'
-    #     progress = 'NaN'
-    #     massflow = 'NaN'
-    #     pressure = 'NaN'
-    #     enthalpy = 'NaN'
-    #     fluid = 'NaN'
-    #     custom = 'NaN'
+        """Print convergence progress."""
+        m = [k for k, v in self.variables_dict.items() if v["variable"] == "m"]
+        p = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
+        p = [k for k, v in self.variables_dict.items() if v["variable"] == "p"]
+        h = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
+        fl = [k for k, v in self.variables_dict.items() if v["variable"] == "fluid"]
+        cp = [k for k in self.variables_dict if k not in m + p + h + fl]
 
-    #     if not np.isnan(residual_norm):
-    #         residual = '{:.2e}'.format(residual_norm)
+        iter_str = str(self.iter + 1)
+        residual_norm = norm(self.residual)
+        residual = 'NaN'
+        progress = 'NaN'
+        massflow = 'NaN'
+        pressure = 'NaN'
+        enthalpy = 'NaN'
+        fluid = 'NaN'
+        component = 'NaN'
 
-    #     if not self.lin_dep and not np.isnan(residual_norm):
-    #         massflow = '{:.2e}'.format(norm(vec[0::self.num_conn_vars]))
-    #         pressure = '{:.2e}'.format(norm(vec[1::self.num_conn_vars]))
-    #         enthalpy = '{:.2e}'.format(norm(vec[2::self.num_conn_vars]))
+        if not np.isnan(residual_norm):
+            residual = '{:.2e}'.format(residual_norm)
 
-    #         ls = []
-    #         for f in range(len(self.fluids)):
-    #             ls += vec[3 + f::self.num_conn_vars].tolist()
-    #         fluid = '{:.2e}'.format(norm(ls))
+        if not self.lin_dep and not np.isnan(residual_norm):
+            massflow = '{:.2e}'.format(norm(self.increment[m]))
+            pressure = '{:.2e}'.format(norm(self.increment[p]))
+            enthalpy = '{:.2e}'.format(norm(self.increment[h]))
+            fluid = '{:.2e}'.format(norm(self.increment[fl]))
+            component  = '{:.2e}'.format(norm(self.increment[cp]))
 
-    #         if self.num_comp_vars > 0:
-    #             custom = '{:.2e}'.format(norm(
-    #                 self.increment[-self.num_comp_vars:]))
-    #         else:
-    #             custom = ''
+        progress_val = -1
+        if not np.isnan(residual_norm) and residual_norm > np.finfo(float).eps*100:
+            # This should not be hardcoded here.
+            progress_min = np.log(ERR)
+            progress_max = np.log(ERR) * -1
+            progress_val = np.log(max(residual_norm, ERR)) * -1
+            # Scale to 0-1
+            progress_val = max(0, min(1, (progress_val - progress_min) / (progress_max - progress_min)))
+            # Scale to 100%
+            progress_val = int(progress_val * 100)
+            progress = '{:d} %'.format(progress_val)
 
-    #     progress_val = -1
-    #     if not np.isnan(residual_norm) and residual_norm > np.finfo(float).eps*100:
-    #         # This should not be hardcoded here.
-    #         progress_min = np.log(err)
-    #         progress_max = np.log(err) * -1
-    #         progress_val = np.log(max(residual_norm, ERR )) * -1
-    #         # Scale to 0-1
-    #         progress_val = max(0, min(1, (progress_val - progress_min) / (progress_max - progress_min)))
-    #         # Scale to 100%
-    #         progress_val = int((progress_val - progress_min) / (progress_max - progress_min) * 100)
-    #         progress = '{:d} %'.format(progress_val)
-
-    #     msg = self.iterinfo_fmt.format(iter=iter_str,
-    #                                    residual=residual,
-    #                                    progress=progress,
-    #                                    massflow=massflow,
-    #                                    pressure=pressure,
-    #                                    enthalpy=enthalpy,
-    #                                    fluid=fluid,
-    #                                    custom=custom)
-    #     logger.progress(progress_val, msg)
-    #     if print_results:
-    #         print(msg)
+        msg = self.iterinfo_fmt.format(
+            iter=iter_str,
+            residual=residual,
+            progress=progress,
+            massflow=massflow,
+            pressure=pressure,
+            enthalpy=enthalpy,
+            fluid=fluid,
+            component=component
+        )
+        logger.progress(progress_val, msg)
+        if print_results:
+            print(msg)
         return
 
     def iterinfo_tail(self, print_results=True):
@@ -1972,55 +2142,37 @@ class Network:
             return
 
         # add the increment
+        for data in self.variables_dict.values():
+            if data["variable"] in ["m", "h"]:
+                container = data["obj"].get_attr(data["variable"])
+                container.val_SI += self.increment[container.J_col]
+            elif data["variable"] == "p":
+                container = data["obj"].p
+                increment = self.increment[container.J_col]
+                relax = max(1, -2 * increment / container.val_SI)
+                container.val_SI += increment / relax
+            elif data["variable"] == "fluid":
+                container = data["obj"].fluid
+                container.val[data["fluid"]] += self.increment[container.J_col[data["fluid"]]]
+
+                if container.val[data["fluid"]] < ERR :
+                    container.val[data["fluid"]] = 0
+                elif container.val[data["fluid"]] > 1 - ERR :
+                    container.val[data["fluid"]] = 1
+            else:
+                # add increment
+                data["obj"].val += self.increment[data["obj"].J_col]
+
+                # keep value within specified value range
+                if data["obj"].val < data["obj"].min_val:
+                    data["obj"].val = data["obj"].min_val
+                elif data["obj"].val > data["obj"].max_val:
+                    data["obj"].val = data["obj"].max_val
+
         for c in self.conns['object']:
-            # mass flow, pressure and enthalpy
-            start = self.conns.loc[c.label, "loc_J_start"]
-            if c.m.is_var:
-                c.m.val_SI += self.increment[start + c.var_pos["m"]]
-            if c.p.is_var:
-                # this prevents negative pressures
-                relax = max(
-                    1, -1.5 * self.increment[start + c.var_pos["p"]] / c.p.val_SI
-                )
-                c.p.val_SI += self.increment[start + c.var_pos["p"]] / relax
-            if c.h.is_var:
-                c.h.val_SI += self.increment[start + c.var_pos["h"]]
-
-            # fluid vector (only if number of fluids is greater than 1)
-            if c.fluid.is_var:
-                for fluid, x in c.fluid.val.items():
-                    if not c.fluid.val_set[fluid]:
-                        c.fluid.val[fluid] += (
-                            self.increment[start + c.var_pos[fluid]]
-                        )
-
-                    # keep mass fractions within [0, 1]
-                    if c.fluid.val[fluid] < ERR :
-                        c.fluid.val[fluid] = 0
-                    elif c.fluid.val[fluid] > 1 - ERR :
-                        c.fluid.val[fluid] = 1
-
             # check the fluid properties for physical ranges
             self.solve_check_props(c)
             c.build_fluid_data()
-
-        # increment for the custom variables
-        if self.num_comp_vars > 0:
-            sum_c_var = 0
-            for cp in self.comps['object']:
-                for var in cp.vars.keys():
-                    # add increment
-                    var.val += self.increment[
-                        self.num_conn_vars + sum_c_var + var.var_pos
-                    ]
-
-                    # keep value within specified value range
-                    if var.val < var.min_val:
-                        var.val = var.min_val
-                    elif var.val > var.max_val:
-                        var.val = var.max_val
-
-                sum_c_var += cp.num_vars
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
@@ -2068,7 +2220,7 @@ class Network:
         if fl is not None:
             # pressure
             if c.p.val_SI < fp.Memorise.value_range[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.Memorise.value_range[fl][0]
+                c.p.val_SI = fp.Memorise.value_range[fl][0] * 1.01
                 logger.debug(self.property_range_message(c, 'p'))
             elif (c.p.val_SI > fp.Memorise.value_range[fl][1] and
                   not c.p.val_set):
@@ -2081,6 +2233,7 @@ class Network:
                     c.p.val_SI, fp.Memorise.value_range[fl][2] * 1.001, fl)
             except ValueError:
                 f = 1.05
+                print(c.p.val_SI)
                 hmin = fp.h_pT(
                     c.p.val_SI, fp.Memorise.value_range[fl][2] * f, fl)
 
@@ -2192,26 +2345,19 @@ class Network:
         """
         # fetch component equation residuals and component partial derivatives
         sum_eq = 0
-        sum_c_var = 0
         for cp in self.comps['object']:
-            indices = []
-            for start, end in zip(cp.conn_starts, cp.conn_ends):
-                indices += np.arange(start, end).tolist()
 
-            for _ in range(cp.num_vars):
-                indices += [self.num_vars - self.num_comp_vars + sum_c_var]
-                sum_c_var += 1
-
-            cp.solve(self.increment_filter[np.array(indices)])
+            cp.solve(self.increment_filter)
 
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
-            deriv = cp.jacobian
 
-            if deriv is not None and deriv.size > 0:
-                # derivatives for custom variables
-                self.jacobian[sum_eq:sum_eq + cp.num_eq, indices] = deriv
-
+            if len(cp.jacobian) > 0:
+                rows = [k[0] + sum_eq for k in cp.jacobian]
+                columns = [k[1] for k in cp.jacobian]
+                data = list(cp.jacobian.values())
+                self.jacobian[rows, columns] = data
                 sum_eq += cp.num_eq
+
             cp.it += 1
 
     def solve_user_defined_eq(self):
@@ -2379,131 +2525,20 @@ class Network:
             \; , \forall k \in \text{fluid components}\\
             \text{for equation i, connection j}
         """
-        k = self.num_comp_eq
-        primary_vars = {'m': 0, 'p': 1, 'h': 2}
+        sum_eq = self.num_comp_eq
+
         for c in self.conns['object']:
-            start, end = self.conns.loc[c.label, ["loc_J_start", "loc_J_end"]]
-            indices = np.arange(start, end).tolist()
+            c.solve(self.increment_filter)
+            self.residual[sum_eq:sum_eq + c.num_eq] = c.residual
 
-            for ref_conn in c.ref_conns:
-                start, end = self.conns.loc[ref_conn.label, ["loc_J_start", "loc_J_end"]]
-                indices += np.arange(start, end).tolist()
+            if len(c.jacobian) > 0:
+                rows = [k[0] + sum_eq for k in c.jacobian]
+                columns = [k[1] for k in c.jacobian]
+                data = list(c.jacobian.values())
+                self.jacobian[rows, columns] = data
 
-            c.solve(self.increment_filter[np.array(indices)])
-            self.residual[k:k + c.num_eq] = c.residual
-            self.jacobian[k:k + c.num_eq, indices] = c.jacobian
-
-            k += c.num_eq
-
-            # # referenced mass flow, pressure or enthalpy
-            # for var, pos in primary_vars.items():
-            #     if c.get_attr(var).ref_set:
-            #         ref = c.get_attr(var).ref
-            #         ref_col = ref.obj.conn_loc * self.num_conn_vars
-            #         self.residual[k] = (
-            #             c.get_attr(var).val_SI - (
-            #                 ref.obj.get_attr(var).val_SI * ref.factor +
-            #                 ref.delta_SI))
-            #         self.jacobian[k, col + pos] = 1
-            #         self.jacobian[k, ref_col + pos] = -c.get_attr(var).ref.factor
-            #         k += 1
-
-            # # referenced temperature
-            # if c.T.ref_set:
-            #     ref = c.T.ref
-            #     flow_ref = ref.obj.get_flow()
-            #     ref_col = ref.obj.conn_loc * self.num_conn_vars
-            #     self.residual[k] = fp.T_mix_ph(flow, T0=c.T.val_SI) - (
-            #         fp.T_mix_ph(flow_ref, T0=ref.obj.T.val_SI) *
-            #         ref.factor + ref.delta_SI)
-
-            #     self.jacobian[k, col + 1] = (
-            #         fp.dT_mix_dph(flow, T0=c.T.val_SI))
-            #     self.jacobian[k, col + 2] = (
-            #         fp.dT_mix_pdh(flow, T0=c.T.val_SI))
-
-            #     self.jacobian[k, ref_col + 1] = -(
-            #         fp.dT_mix_dph(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
-            #     self.jacobian[k, ref_col + 2] = -(
-            #         fp.dT_mix_pdh(flow_ref, T0=ref.obj.T.val_SI) * ref.factor)
-
-            #     # dT / dFluid
-            #     if len(self.fluids) != 1:
-            #         col_s = c.conn_loc * self.num_conn_vars + 3
-            #         col_e = (c.conn_loc + 1) * self.num_conn_vars
-            #         ref_col_s = ref.obj.conn_loc * self.num_conn_vars + 3
-            #         ref_col_e = (ref.obj.conn_loc + 1) * self.num_conn_vars
-            #         if not all(self.increment_filter[col_s:col_e]):
-            #             self.jacobian[k, col_s:col_e] = (
-            #                 fp.dT_mix_ph_dfluid(flow, T0=c.T.val_SI))
-            #         if not all(self.increment_filter[ref_col_s:ref_col_e]):
-            #             self.jacobian[k, ref_col_s:ref_col_e] = -np.array([
-            #                 fp.dT_mix_ph_dfluid(
-            #                     flow_ref, T0=ref.obj.T.val_SI)])
-            #     k += 1
-
-            # # referenced volumetric flow
-            # if c.v.ref_set:
-            #     ref = c.v.ref
-            #     flow_ref = ref.obj.get_flow()
-            #     ref_col = ref.obj.conn_loc * self.num_conn_vars
-            #     v = fp.v_mix_ph(flow, T0=c.T.val_SI)
-            #     v_ref = fp.v_mix_ph(flow_ref, T0=ref.obj.T.val_SI)
-            #     self.residual[k] = (
-            #         (v * c.m.val_SI)
-            #         - ((v_ref * ref.obj.m.val_SI) * ref.factor + ref.delta_SI)
-            #     )
-
-            #     self.jacobian[k, col] = v
-            #     self.jacobian[k, col + 1] = (
-            #         fp.dv_mix_dph(flow, T0=c.T.val_SI) * c.m.val_SI
-            #     )
-            #     self.jacobian[k, col + 2] = (
-            #         fp.dv_mix_pdh(flow, T0=c.T.val_SI) * c.m.val_SI
-            #     )
-
-            #     self.jacobian[k, ref_col] = -v_ref * ref.factor
-            #     self.jacobian[k, ref_col + 1] = -(
-            #         fp.dv_mix_dph(flow_ref, T0=ref.obj.T.val_SI)
-            #         * ref.factor * ref.obj.m.val_SI
-            #     )
-            #     self.jacobian[k, ref_col + 2] = -(
-            #         fp.dv_mix_pdh(flow_ref, T0=ref.obj.T.val_SI)
-            #         * ref.factor * ref.obj.m.val_SI
-            #     )
-            #     k += 1
-
-            # fluid composition balance
-            # if c.fluid.balance:
-            #     j = 0
-            #     res = 1
-            #     for f in self.fluids:
-            #         res -= c.fluid.val[f]
-            #         self.jacobian[k, c.conn_loc + 3 + j] = -1
-            #         j += 1
-
-            #     self.residual[k] = res
-            #     k += 1
-
-        # equations and derivatives for specified primary variables are static
-        # if self.iter == 0:
-        #     for c in self.conns['object']:
-        #         col = c.conn_loc * self.num_conn_vars
-
-        #         # specified mass flow, pressure and enthalpy
-        #         for var, pos in primary_vars.items():
-        #             if c.get_attr(var).val_set:
-        #                 self.residual[k] = 0
-        #                 self.jacobian[k, col + pos] = 1
-        #                 k += 1
-
-        #         j = 0
-        #         # specified fluid mass fraction
-        #         for f in self.fluids:
-        #             if c.fluid.val_set[f]:
-        #                 self.jacobian[k, col + 3 + j] = 1
-        #                 k += 1
-        #             j += 1
+                sum_eq += c.num_eq
+            # c.it += 1
 
     def solve_busses(self):
         r"""
@@ -2536,7 +2571,6 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-
         self.process_connections()
         self.process_components()
         self.process_busses()
@@ -2547,43 +2581,21 @@ class Network:
     def process_connections(self):
         """Process the Connection results."""
         for c in self.conns['object']:
-            flow = c.get_flow()
+            if hasattr(c, "_m_tmp"):
+                value = c.m.val_SI
+                unit = c.m.unit
+                c.m = c._m_tmp
+                c.m.val_SI = value
+                c.m.unit = unit
+                del c._m_tmp
+            if hasattr(c, "_fluid_tmp"):
+                val = c.fluid.val
+                c.fluid = c._fluid_tmp
+                c.fluid.val = val
+                del c._fluid_tmp
+
             c.good_starting_values = True
-            c.T.val_SI = fp.T_mix_ph(flow, T0=c.T.val_SI)
-            fluid = hlp.single_fluid(c.fluid.val)
-            if (fluid is None and
-                    abs(
-                        fp.h_mix_pT(flow, c.T.val_SI) - c.h.val_SI
-                    ) > ERR ** .5):
-                c.T.val_SI = np.nan
-                c.vol.val_SI = np.nan
-                c.v.val_SI = np.nan
-                c.s.val_SI = np.nan
-                msg = (
-                    'Could not find a feasible value for mixture temperature '
-                    'at connection ' + c.label + '. The values for '
-                    'temperature, specific volume, volumetric flow and '
-                    'entropy are set to nan.')
-                logger.error(msg)
-
-            else:
-                c.vol.val_SI = fp.v_mix_ph(flow, T0=c.T.val_SI)
-                c.v.val_SI = c.vol.val_SI * c.m.val_SI
-                c.s.val_SI = fp.s_mix_ph(flow, T0=c.T.val_SI)
-                if fluid is not None:
-                    if not c.x.val_set:
-                        c.x.val_SI = fp.Q_ph(c.p.val_SI, c.h.val_SI, fluid)
-                    if not c.Td_bp.val_set:
-                        c.Td_bp.val_SI = np.nan
-
-            for prop in fpd.keys():
-                c.get_attr(prop).val = hlp.convert_from_SI(
-                    prop, c.get_attr(prop).val_SI, c.get_attr(prop).unit)
-
-            c.m.val0 = c.m.val
-            c.p.val0 = c.p.val
-            c.h.val0 = c.h.val
-            c.fluid.val0 = c.fluid.val.copy()
+            c.calc_results()
 
             prop_cols = self.results['Connection'].columns[:9]
             fluid_cols = self.results['Connection'].columns[9:]

@@ -236,23 +236,22 @@ class Turbine(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.eta_s_func
-        if self.inl[0].p.is_var:
-            pos = self.get_conn_var_pos(0, "p")
-            if not increment_filter[pos]:
-                self.jacobian[k, pos] = self.numeric_deriv(f, "p", 0)
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.p.is_var:
+            # if not increment_filter[pos]:
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, "p", i)
 
-        if self.outl[0].p.is_var:
-            pos = self.get_conn_var_pos(1, "p")
-            if not increment_filter[pos]:
-                self.jacobian[k, pos] = self.numeric_deriv(f, "p", 1)
+        if o.p.is_var:
+            # if not increment_filter[pos]:
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, "p", o)
 
-        if self.inl[0].h.is_var:
-            pos = self.get_conn_var_pos(0, "h")
-            if not increment_filter[pos]:
-                self.jacobian[k, pos] = self.numeric_deriv(f, "h", 0)
+        if i.h.is_var:
+            # if not increment_filter[pos]:
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
 
-        if self.outl[0].h.is_var and self.it == 0:
-            self.jacobian[k, self.get_conn_var_pos(1, "h")] = -1
+        if o.h.is_var and self.it == 0:
+            self.jacobian[k, o.h.J_col] = -1
 
     def cone_func(self):
         r"""

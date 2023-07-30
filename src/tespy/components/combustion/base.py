@@ -201,8 +201,12 @@ class CombustionChamber(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, nw):
-        super().preprocess(nw)
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self.setup_reaction_parameters()
 
     def setup_reaction_parameters(self):

@@ -138,15 +138,28 @@ class Merge(NodeBase):
         return {'num_in': dc_simple()}
 
     def get_mandatory_constraints(self):
+        num_fluid_eq = 0
+        for f in self.inl[0].fluid.is_var:
+            num_fluid_eq += any([c.fluid.is_var[f] for c in self.inl + self.outl])
+
+        if num_fluid_eq == 0:
+            num_fluid_eq = len(self.inl[0].fluid.val)
+            num_m_eq = 0
+        else:
+            num_m_eq = 1
+
+        # print(num_fluid_eq)
+        # num_m_eq = 0
+        # num_m_eq = int(any([c.m.is_var for c in self.inl + self.outl]))
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
+                'num_eq': num_m_eq},
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -170,6 +183,10 @@ class Merge(NodeBase):
     @staticmethod
     def outlets():
         return ['out1']
+
+    @staticmethod
+    def is_branch_source():
+        return True
 
     def fluid_func(self):
         r"""
@@ -229,16 +246,17 @@ class Merge(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        i = 0
+        o = self.outl[0]
         for fluid, x in self.outl[0].fluid.val.items():
-            j = 0
-            for inl in self.inl:
-                self.jacobian[k, j, 0] = inl.fluid.val[fluid]
-                self.jacobian[k, j, i + 3] = inl.m.val_SI
-                j += 1
-            self.jacobian[k, j, 0] = -x
-            self.jacobian[k, j, i + 3] = -self.outl[0].m.val_SI
-            i += 1
+            for i in self.inl:
+                if i.m.is_var:
+                    self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+                if i.fluid.is_var[fluid]:
+                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -x
+            if o.fluid.is_var[fluid]:
+                self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
             k += 1
 
     def energy_balance_func(self):
@@ -294,13 +312,16 @@ class Merge(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, self.num_i, 0] = -self.outl[0].h.val_SI
-        self.jacobian[k, self.num_i, 2] = -self.outl[0].m.val_SI
-        j = 0
         for i in self.inl:
-            self.jacobian[k, j, 0] = i.h.val_SI
-            self.jacobian[k, j, 2] = i.m.val_SI
-            j += 1
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
+            if i.h.is_var:
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
+        o = self.outl[0]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -o.h.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
     def initialise_fluids(self):
         """Fluid initialisation for fluid mixture at outlet of the node."""
@@ -363,6 +384,34 @@ class Merge(NodeBase):
                     inconn.fluid.val[fluid] = x
 
             inconn.source.propagate_fluid_to_source(inconn, start)
+
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target],
+            "subbranches": {}
+        }
+        outconn.target.propagate_to_target(branch)
+
+        return {outconn.label: branch}
+
+    def propagate_to_target(self, branch):
+        return
+
+    def propagate_wrapper_to_target(self, branch):
+        if self in branch["components"]:
+            return
+
+        outconn = self.outl[0]
+        branch["connections"] += [outconn]
+        branch["components"] += [self]
+        outconn.target.propagate_wrapper_to_target(branch)
+
 
     def entropy_balance(self):
         r"""

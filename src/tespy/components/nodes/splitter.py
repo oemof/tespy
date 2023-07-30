@@ -132,11 +132,11 @@ class Splitter(NodeBase):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * len(self.inl[0].fluid.val) * self.inl[0].fluid.is_var
-            },
+            # 'fluid_constraints': {
+            #     'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            #     'constant_deriv': True, 'latex': self.fluid_func_doc,
+            #     'num_eq': self.num_o * sum(self.inl[0].fluid.is_var)
+            # },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -160,6 +160,12 @@ class Splitter(NodeBase):
         else:
             self.set_attr(num_out=2)
             return self.outlets()
+
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            outconn.target.propagate_wrapper_to_target(branch)
 
     def fluid_func(self):
         r"""
@@ -255,7 +261,7 @@ class Splitter(NodeBase):
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self):
+    def energy_balance_deriv(self, k):
         r"""
         Calculate partial derivatives for energy balance equation.
 
@@ -264,13 +270,11 @@ class Splitter(NodeBase):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = self._build_subjacobian(self.energy_balance_constraints)
-        for k in range(self.num_o):
+        for eq, o in enumerate(self.outl):
             if self.inl[0].h.is_var:
-                deriv[k, self.get_conn_var_pos(0, "h")] = 1
-            if self.outl[k].h.is_var:
-                deriv[k, self.get_conn_var_pos(k + 1, "h")] = -1
-        return deriv
+                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
+            if o.h.is_var:
+                self.jacobian[k + eq, o.h.J_col] = -1
 
     def propagate_fluid_to_target(self, inconn, start):
         r"""

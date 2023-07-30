@@ -238,10 +238,10 @@ class HeatExchangerSimple(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, nw):
-        super().preprocess(nw)
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
 
-        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, nw.T_unit)
+        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
     def energy_balance_func(self):
         r"""
@@ -295,14 +295,14 @@ class HeatExchangerSimple(Component):
         i = self.inl[0]
         o = self.outl[0]
         if i.m.is_var:
-            self.jacobian[k, self.get_conn_var_pos(0, "m")] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
         if i.h.is_var:
-            self.jacobian[k,  self.get_conn_var_pos(0, "h")] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
         if o.h.is_var:
-            self.jacobian[k, self.get_conn_var_pos(1, "h")] = i.m.val_SI
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
         # custom variable Q
         if self.Q.is_var:
-            self.jacobian[k, self.get_comp_var_pos("Q")] = -1
+            self.jacobian[k, self.Q.J_col] = -1
 
     def hydro_group_func(self):
         r"""

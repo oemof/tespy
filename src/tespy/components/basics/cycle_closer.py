@@ -127,6 +127,23 @@ class CycleCloser(Component):
     def outlets():
         return ['out1']
 
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target]
+        }
+        outconn.target.propagate_to_target(branch)
+
+        return {outconn.label: branch}
+
+    def propagate_to_target(self, branch):
+        return
+
     def propagate_fluid_to_target(self, inconn, start):
         r"""
         Fluid propagation to target stops here.

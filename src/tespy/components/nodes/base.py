@@ -59,7 +59,7 @@ class NodeBase(Component):
             r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self):
+    def mass_flow_deriv(self, k):
         r"""
         Calculate partial derivatives for mass flow equation.
 
@@ -68,14 +68,12 @@ class NodeBase(Component):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = np.zeros((1, self.num_conn_vars + self.num_vars))
-        for i in range(self.num_i):
-            if self.inl[i].m.is_var:
-                deriv[0, self.get_conn_var_pos(i, "m")] = 1
-        for j in range(self.num_o):
-            if self.outl[j].m.is_var:
-                deriv[0, self.get_conn_var_pos(self.num_i + j, "m")] = -1
-        return deriv
+        for i in self.inl:
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = 1
+        for o in self.outl:
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -1
 
     def pressure_equality_func(self):
         r"""
@@ -124,7 +122,7 @@ class NodeBase(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self):
+    def pressure_equality_deriv(self, k):
         r"""
         Calculate partial derivatives for all pressure equations.
 
@@ -133,17 +131,16 @@ class NodeBase(Component):
         deriv : ndarray
             Matrix with partial derivatives for the fluid equations.
         """
-        deriv = self._build_subjacobian(self.pressure_constraints)
         if self.num_i > 1:
             conns = self.inl[1:] + self.outl
         else:
             conns = self.outl
-        for k in range(self.num_i + self.num_o - 1):
+
+        for eq, o in enumerate(conns):
             if self.inl[0].p.is_var:
-                deriv[k, self.get_conn_var_pos(0, "p")] = 1
-            if conns[k].p.is_var:
-                deriv[k, self.get_conn_var_pos(k + 1, "p")] = -1
-        return deriv
+                self.jacobian[k + eq, self.inl[0].p.J_col] = 1
+            if o.p.is_var:
+                self.jacobian[k + eq, o.p.J_col] = -1
 
     @staticmethod
     def initialise_source(c, key):
@@ -204,3 +201,14 @@ class NodeBase(Component):
             return 1e5
         elif key == 'h':
             return 5e5
+
+    def propagate_to_target(self, branch):
+
+        for outconn in self.outl:
+            subbranch = {
+                "connections": [outconn],
+                "components": [self, outconn.target],
+                "subbranches": {}
+            }
+            outconn.target.propagate_to_target(subbranch)
+            branch["subbranches"][outconn.label] = subbranch

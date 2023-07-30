@@ -25,6 +25,27 @@ from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
 
 
+def get_all_subdictionaries(data):
+    subdictionaries = []
+    for value in data.values():
+        if len(value["subbranches"]) == 0:
+            subdictionaries.append(
+                {k: v for k, v in value.items() if k != "subbranches"}
+            )
+        else:
+            subdictionaries.append(
+                {k: v for k, v in value.items() if k != "subbranches"}
+            )
+            subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
+
+    return subdictionaries
+    #     for key, value in data.items():
+    #         if isinstance(value, dict):
+    #             subdictionaries.append(value)
+    #             subdictionaries.extend(get_all_subdictionaries(value, dictionary_keys))
+    # return subdictionaries
+
+
 def get_chem_ex_lib(name):
     """Return a new dictionary by merging two dictionaries recursively."""
     path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
@@ -70,6 +91,13 @@ def nested_OrderedDict(dictionary):
             dictionary[key] = nested_OrderedDict(value)
 
     return dictionary
+
+
+def extend_tuple_of_lists(original, added):
+    return tuple(
+        [*x, *y] for x, y
+        in zip(original, added)
+    )
 
 
 class TESPyNetworkError(Exception):

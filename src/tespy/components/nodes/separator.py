@@ -178,6 +178,10 @@ class Separator(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
+    @staticmethod
+    def is_branch_source():
+        return True
+
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.

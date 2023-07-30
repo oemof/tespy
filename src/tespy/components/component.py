@@ -303,7 +303,31 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def preprocess(self, nw):
+    @staticmethod
+    def is_branch_source():
+        return False
+
+    def propagate_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        branch["connections"] += [outconn]
+        branch["components"] += [outconn.target]
+
+        outconn.target.propagate_to_target(branch)
+
+    def propagate_wrapper_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        branch["connections"] += [outconn]
+        branch["components"] += [self]
+
+        outconn.target.propagate_wrapper_to_target(branch)
+
+    def preprocess(self, num_nw_vars):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -312,10 +336,10 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        self.num_nw_fluids = len(nw.fluids)
-        self.nw_fluids = nw.fluids
-        self.always_all_equations = nw.always_all_equations
-        self.num_nw_vars = self.num_nw_fluids + 3
+        # self.num_nw_fluids = len(nw.fluids)
+        # self.nw_fluids = nw.fluids
+        # self.always_all_equations = nw.always_all_equations
+        # self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
         self.num_eq = 0
         self.vars = {}
@@ -334,7 +358,7 @@ class Component:
             data = self.get_attr(key)
             if isinstance(val, dc_cp):
                 if data.is_var:
-                    data.var_pos = self.num_vars
+                    data.J_col = num_nw_vars + self.num_vars
                     self.num_vars += 1
                     self.vars[data] = key
 
@@ -393,18 +417,19 @@ class Component:
                 self.num_eq += data.num_eq
 
         # set up Jacobian matrix and residual vector
-        self.num_conn_vars = sum(c.num_vars for c in self.inl + self.outl)
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_conn_vars + self.num_vars,
-        ))
+        # self.num_conn_vars = sum(c.num_vars for c in self.inl + self.outl)
+        # self.jacobian = np.zeros((
+        #     self.num_eq,
+        #     self.num_conn_vars + self.num_vars,
+        # ))
+        self.jacobian = OrderedDict()
         self.residual = np.zeros(self.num_eq)
 
         sum_eq = 0
         for constraint in self.constraints.values():
             num_eq = constraint['num_eq']
             if constraint['constant_deriv']:
-                self.jacobian[sum_eq:sum_eq + num_eq] = constraint['deriv']()
+                constraint["deriv"](sum_eq)
             sum_eq += num_eq
 
         # done
@@ -418,10 +443,10 @@ class Component:
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': self.num_i},
+            # 'mass_flow_constraints': {
+            #     'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+            #     'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+            #     'num_eq': self.num_i},
                 # idea for removal of specified mass flows
                 # can be propagated through network similarly to the fluid
                 # information:
@@ -430,10 +455,10 @@ class Component:
                 #     self.inl[i].m.is_var or self.outl[i].m.is_var
                 #     for i in range(self.num_i))
                 # },
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': sum(c.fluid.is_var * len(c.fluid.val) for c in self.inl)}
+            # 'fluid_constraints': {
+            #     'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            #     'constant_deriv': True, 'latex': self.fluid_func_doc,
+            #     'num_eq': sum(c.fluid.is_var * len(c.fluid.val) for c in self.inl)}
         }
 
     @staticmethod
@@ -1230,7 +1255,7 @@ class Component:
             deriv[j, j + i + 1, 2] = -1
         return deriv
 
-    def numeric_deriv(self, func, dx, pos, **kwargs):
+    def numeric_deriv(self, func, dx, conn, **kwargs):
         r"""
         Calculate partial derivative of the function func to dx.
 
@@ -1259,21 +1284,20 @@ class Component:
         """
         if dx == 'fluid':
             d = 1e-5
-            conns = self.inl + self.outl
             deriv = []
-            for f in conns[0].fluid.val.keys():
-                val = conns[pos].fluid.val[f]
-                if conns[pos].fluid.val[f] + d <= 1:
-                    conns[pos].fluid.val[f] += d
+            for f in conn.fluid.val.keys():
+                val = conn.fluid.val[f]
+                if conn.fluid.val[f] + d <= 1:
+                    conn.fluid.val[f] += d
                 else:
-                    conns[pos].fluid.val[f] = 1
+                    conn.fluid.val[f] = 1
                 exp = func(**kwargs)
-                if conns[pos].fluid.val[f] - 2 * d >= 0:
-                    conns[pos].fluid.val[f] -= 2 * d
+                if conn.fluid.val[f] - 2 * d >= 0:
+                    conn.fluid.val[f] -= 2 * d
                 else:
-                    conns[pos].fluid.val[f] = 0
+                    conn.fluid.val[f] = 0
                 exp -= func(**kwargs)
-                conns[pos].fluid.val[f] = val
+                conn.fluid.val[f] = val
 
                 deriv += [exp / (2 * d)]
 
@@ -1283,15 +1307,14 @@ class Component:
                 d = 1e-4
             else:
                 d = 1e-1
-            conns = self.inl + self.outl
-            conns[pos].get_attr(dx).val_SI += d
+            conn.get_attr(dx).val_SI += d
             exp = func(**kwargs)
 
-            conns[pos].get_attr(dx).val_SI -= 2 * d
+            conn.get_attr(dx).val_SI -= 2 * d
             exp -= func(**kwargs)
             deriv = exp / (2 * d)
 
-            conns[pos].get_attr(dx).val_SI += d
+            conn.get_attr(dx).val_SI += d
 
         else:
             d = self.get_attr(dx).d
@@ -1405,12 +1428,11 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[inconn]
         if i.p.is_var:
-            self.jacobian[k, self.get_conn_var_pos(inconn, "p")] = pr.val
+            self.jacobian[k, i.p.J_col] = pr.val
         if o.p.is_var:
-            self.jacobian[k, self.get_conn_var_pos(self.num_i + outconn, "p")] = -1
+            self.jacobian[k, o.p.J_col] = -1
         if pr.is_var:
-            pos = self.num_i + self.num_o + pr.var_pos
-            self.jacobian[k, pos, 0] = self.inl[inconn].p.val_SI
+            self.jacobian[k, self.pr.J_col] = i.p.val_SI
 
     def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""

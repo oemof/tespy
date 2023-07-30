@@ -344,7 +344,7 @@ class CombustionEngine(CombustionChamber):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def preprocess(self, nw):
+    def preprocess(self, num_nw_vars):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -360,7 +360,7 @@ class CombustionEngine(CombustionChamber):
                    self.label + ' as custom variable of the system.')
             logger.info(msg)
 
-        super().preprocess(nw)
+        super().preprocess(num_nw_vars)
 
         self.setup_reaction_parameters()
 

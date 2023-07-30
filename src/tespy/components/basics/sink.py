@@ -69,6 +69,13 @@ class Sink(Component):
     def get_mandatory_constraints():
         return {}
 
+    def propagate_to_target(self, branch):
+        return
+
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
+        return
+
     def propagate_fluid_to_target(self, inconn, start):
         r"""
         Fluid propagation to target stops here.

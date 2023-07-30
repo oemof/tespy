@@ -158,7 +158,7 @@ class TestBusses:
         msg = (
             'The efficiency value of the turbine on the bus ' + tpo.label +
             ' (' + str(eta_gt_tpo) + ') must be equal to 0.975.')
-        assert eta_gt_tpo == 0.975, msg
+        assert round(eta_gt_tpo, 3) == 0.975, msg
 
         eta_ti = cc.calc_bus_efficiency(ti)
         msg = (

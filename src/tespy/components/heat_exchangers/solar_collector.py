@@ -13,15 +13,15 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.heat_exchangers.simple import HeatExchangerSimple
+from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
 
 
-class SolarCollector(HeatExchangerSimple):
+class SolarCollector(SimpleHeatExchanger):
     r"""
     The solar collector calculates heat output from irradiance.
 
@@ -34,8 +34,8 @@ class SolarCollector(HeatExchangerSimple):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hydro_group_func`
     - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func`
 
     Inlets/Outlets

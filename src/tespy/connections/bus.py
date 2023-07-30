@@ -16,7 +16,7 @@ import pandas as pd
 from tespy.components.component import Component
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 class Bus:

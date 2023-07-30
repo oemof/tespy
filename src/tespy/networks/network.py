@@ -1850,21 +1850,26 @@ class Network:
         else:
             self.mode = mode
 
-        msg = (
-            'Solver properties: mode=' + self.mode + ', init_path=' +
-            str(self.init_path) + ', design_path=' + str(self.design_path) +
-            ', max_iter=' + str(max_iter) + ', min_iter=' + str(min_iter) +
-            ', init_only=' + str(init_only))
-        logger.debug(msg)
-
         if not self.checked:
             self.check_network()
 
         msg = (
-            'Network properties: '
-            'number of components=' + str(len(self.comps)) +
-            ', number of connections=' + str(len(self.conns.index)) +
-            ', number of busses=' + str(len(self.busses)))
+            "Solver properties:\n"
+            f" - mode: {self.mode}"
+            f" - init_path: {self.init_path}"
+            f" - design_path: {self.design_path}"
+            f" - min_iter: {self.min_iter}"
+            f" - max_iter: {self.max_iter}"
+            f" - init_path: {self.init_path}"
+        )
+        logger.debug(msg)
+
+        msg = (
+            "Network information:\n"
+            f" - Number of components: {len(self.comps)}\n"
+            f" - Number of connections: {len(self.conns)}\n"
+            f" - Number of busses: {len(self.busses)}\n"
+        )
         logger.debug(msg)
 
         self.initialise()

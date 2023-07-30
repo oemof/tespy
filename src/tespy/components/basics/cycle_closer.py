@@ -161,7 +161,6 @@ class CycleCloser(Component):
 
         self._propagation_start = False
 
-
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Fluid propagation to source stops here.

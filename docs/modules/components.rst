@@ -30,7 +30,7 @@ well as the equations.
 
 - Heat exchangers
 
-  * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.HeatExchangerSimple>`
+  * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.SimpleHeatExchanger>`
   * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
   * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
   * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
@@ -370,7 +370,7 @@ Characteristics are available for the following components and parameters:
 
 - simple heat exchangers
 
-  * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func>`: heat transfer coefficient.
+  * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func>`: heat transfer coefficient.
 
 - turbine
 
@@ -408,7 +408,7 @@ parameters, add these parameters as :code:`ComponentProperties` or
 :code:`ComponentCharacteristics` respectively and add a
 :code:`GroupedComponentProperties` type DataContainer holding the information,
 e.g. like the :code:`hydro_group` parameter of the
-:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
+:py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
 class shown below.
 
 .. code:: python

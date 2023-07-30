@@ -10,12 +10,12 @@ available from its original location tespy/components/piping/pipe.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.heat_exchangers.simple import HeatExchangerSimple
+from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 
 
-class Pipe(HeatExchangerSimple):
+class Pipe(SimpleHeatExchanger):
     r"""
-    The Pipe is a subclass of a HeatExchangerSimple.
+    The Pipe is a subclass of a SimpleHeatExchanger.
 
     **Mandatory Equations**
 
@@ -26,10 +26,10 @@ class Pipe(HeatExchangerSimple):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
 
     Inlets/Outlets
 

@@ -15,7 +15,7 @@ import numpy as np
 
 from tespy.components import Condenser
 from tespy.components import HeatExchanger
-from tespy.components import HeatExchangerSimple
+from tespy.components import SimpleHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import Sink
 from tespy.components import SolarCollector
@@ -36,7 +36,7 @@ class TestHeatExchangers:
         self.inl1 = Source('inlet 1')
         self.outl1 = Sink('outlet 1')
 
-    def setup_HeatExchangerSimple_network(self, instance):
+    def setup_SimpleHeatExchanger_network(self, instance):
 
         self.c1 = Connection(self.inl1, 'out1', instance, 'in1')
         self.c2 = Connection(instance, 'out1', self.outl1, 'in1')
@@ -55,10 +55,10 @@ class TestHeatExchangers:
 
         self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
-    def test_HeatExchangerSimple(self):
+    def test_SimpleHeatExchanger(self):
         """Test component properties of simple heat exchanger."""
-        instance = HeatExchangerSimple('heat exchanger')
-        self.setup_HeatExchangerSimple_network(instance)
+        instance = SimpleHeatExchanger('heat exchanger')
+        self.setup_SimpleHeatExchanger_network(instance)
         fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, m=1, p=10, T=100)
         # trigger heat exchanger parameter groups
@@ -138,7 +138,7 @@ class TestHeatExchangers:
         b.set_attr(P=None)
         self.nw.solve('design')
         self.nw._convergence_check()
-        kA_network = self.nw.results['HeatExchangerSimple'].loc[
+        kA_network = self.nw.results['SimpleHeatExchanger'].loc[
             instance.label, 'kA']
         print(kA_network)
         msg = 'kA value must not be included in network results.'
@@ -148,7 +148,7 @@ class TestHeatExchangers:
         # test kA as network results parameter
         instance.set_attr(Tamb=20)
         self.nw.solve('design')
-        kA_network = self.nw.results['HeatExchangerSimple'].loc[
+        kA_network = self.nw.results['SimpleHeatExchanger'].loc[
             instance.label, 'kA']
         kA_comp = instance.kA.val
         msg = 'kA value needs to be identical on network and component level.'
@@ -157,7 +157,7 @@ class TestHeatExchangers:
     def test_ParabolicTrough(self):
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')
-        self.setup_HeatExchangerSimple_network(instance)
+        self.setup_SimpleHeatExchanger_network(instance)
         fl = {'Ar': 0, 'H2O': 0, 'S800': 1}
         self.c1.set_attr(fluid=fl, p=2, T=200)
         self.c2.set_attr(T=350)
@@ -262,7 +262,7 @@ class TestHeatExchangers:
     def test_SolarCollector(self):
         """Test component properties of solar collector."""
         instance = SolarCollector('solar collector')
-        self.setup_HeatExchangerSimple_network(instance)
+        self.setup_SimpleHeatExchanger_network(instance)
         fl = {'Ar': 0, 'H2O': 1, 'S800': 0}
         self.c1.set_attr(fluid=fl, p=10, T=30)
         self.c2.set_attr(T=70)

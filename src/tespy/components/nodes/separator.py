@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph

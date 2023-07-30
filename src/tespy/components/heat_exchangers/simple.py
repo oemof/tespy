@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class HeatExchangerSimple.
+"""Module of class SimpleHeatExchanger.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -11,13 +11,15 @@ tespy/components/heat_exchangers/simple.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
@@ -28,11 +30,11 @@ from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 
 
-class HeatExchangerSimple(Component):
+class SimpleHeatExchanger(Component):
     r"""
     A basic heat exchanger representing a heat source or heat sink.
 
-    The component HeatExchangerSimple is the parent class for the components:
+    The component SimpleHeatExchanger is the parent class for the components:
 
     - :py:class:`tespy.components.heat_exchangers.solar_collector.SolarCollector`
     - :py:class:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough`
@@ -47,10 +49,10 @@ class HeatExchangerSimple(Component):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hydro_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
 
     Inlets/Outlets
 
@@ -136,14 +138,14 @@ class HeatExchangerSimple(Component):
 
     Example
     -------
-    The HeatExchangerSimple can be used as a sink or source of heat. This
+    The SimpleHeatExchanger can be used as a sink or source of heat. This
     component does not simulate the secondary side of the heat exchanger. It
     is possible to calculate the pressure ratio with the Darcy-Weisbach
     equation or in case of liquid water use the Hazen-Williams equation.
     Also, given ambient temperature and the heat transfer coeffiecient, it is
     possible to predict heat transfer.
 
-    >>> from tespy.components import Sink, Source, HeatExchangerSimple
+    >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
@@ -152,7 +154,7 @@ class HeatExchangerSimple(Component):
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
-    >>> heat_sink = HeatExchangerSimple('heat sink')
+    >>> heat_sink = SimpleHeatExchanger('heat sink')
     >>> heat_sink.component()
     'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
@@ -308,8 +310,8 @@ class HeatExchangerSimple(Component):
         residual : float
             Residual value of corresponding equation:
 
-            - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.darcy_func`
-            - :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.hazen_williams_func`
+            - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
+            - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':
@@ -1121,3 +1123,11 @@ class HeatExchangerSimple(Component):
                 'ending_point_value': self.outl[0].s.val
             }
         }
+
+
+class HeatExchangerSimple(SimpleHeatExchanger):
+
+    def __init__(self, label, **kwargs):
+        super().__init__(label, **kwargs)
+        msg = "The API for the component HeatExchangerSimple will change with the next major release, please import SimpleHeatExchanger instead."
+        warnings.warn(msg, DeprecationWarning)

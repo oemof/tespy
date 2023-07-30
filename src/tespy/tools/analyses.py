@@ -166,7 +166,7 @@ class ExergyAnalysis:
         exergy analysis is performed after simulation of the power plant.
         Start by defining ambient state and genereral network setup.
 
-        >>> from tespy.components import (CycleCloser, HeatExchangerSimple,
+        >>> from tespy.components import (CycleCloser, SimpleHeatExchanger,
         ... Merge, Splitter, Valve, Compressor, Pump, Turbine)
         >>> from tespy.connections import Bus
         >>> from tespy.connections import Connection
@@ -192,9 +192,9 @@ class ExergyAnalysis:
         >>> merge1 = Merge('merge 1')
         >>> turb = Turbine('turbine')
         >>> fwp_turb = Turbine('feed water pump turbine')
-        >>> condenser = HeatExchangerSimple('condenser')
+        >>> condenser = SimpleHeatExchanger('condenser')
         >>> fwp = Pump('pump')
-        >>> steam_generator = HeatExchangerSimple('steam generator')
+        >>> steam_generator = SimpleHeatExchanger('steam generator')
 
         >>> fs_in = Connection(cycle_close, 'out1', splitter1, 'in1')
         >>> fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')

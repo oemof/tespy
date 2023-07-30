@@ -9,15 +9,15 @@ my_plant = Network(fluids=fluid_list)
 my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
 # %%[sec_3]
 from tespy.components import (
-    CycleCloser, Compressor, Valve, HeatExchangerSimple
+    CycleCloser, Compressor, Valve, SimpleHeatExchanger
 )
 
 cc = CycleCloser('cycle closer')
 
 # heat sink
-co = HeatExchangerSimple('condenser')
+co = SimpleHeatExchanger('condenser')
 # heat source
-ev = HeatExchangerSimple('evaporator')
+ev = SimpleHeatExchanger('evaporator')
 
 va = Valve('expansion valve')
 cp = Compressor('compressor')

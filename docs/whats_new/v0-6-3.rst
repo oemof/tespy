@@ -1,5 +1,5 @@
-v0.6.3 - Development in Progress
-++++++++++++++++++++++++++++++++
+v0.6.3 - Leidenfrost's Library (July, 30, 2023)
++++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############

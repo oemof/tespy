@@ -16,9 +16,9 @@ import pytest
 
 from tespy.components import Condenser
 from tespy.components import CycleCloser
-from tespy.components import SimpleHeatExchanger
 from tespy.components import Pipe
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine

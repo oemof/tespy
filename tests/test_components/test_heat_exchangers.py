@@ -15,8 +15,8 @@ import numpy as np
 
 from tespy.components import Condenser
 from tespy.components import HeatExchanger
-from tespy.components import SimpleHeatExchanger
 from tespy.components import ParabolicTrough
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
 from tespy.components import Source

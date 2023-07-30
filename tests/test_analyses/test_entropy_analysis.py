@@ -10,9 +10,9 @@ tests/test_networks/test_exergy_and_entropy_analysis.py
 SPDX-License-Identifier: MIT
 """
 from tespy.components import CycleCloser
-from tespy.components import SimpleHeatExchanger
 from tespy.components import Merge
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Splitter
 from tespy.components import Turbine
 from tespy.connections import Bus

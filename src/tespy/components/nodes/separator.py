@@ -316,7 +316,7 @@ class Separator(NodeBase):
             j += 1
             k += 1
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation stops here.
 
@@ -331,7 +331,7 @@ class Separator(NodeBase):
         """
         return
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 

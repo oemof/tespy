@@ -319,16 +319,14 @@ class Merge(NodeBase):
 
             for c in ls:
                 for fluid in self.nw_fluids:
-                    for o in self.outl:
-                        if not o.fluid.val_set[fluid]:
-                            o.fluid.val[fluid] = c.fluid.val[fluid]
+                    if not self.outl[0].fluid.val_set[fluid]:
+                        self.outl[0].fluid.val[fluid] = c.fluid.val[fluid]
                     for i in self.inl:
                         if not i.fluid.val_set[fluid]:
                             i.fluid.val[fluid] = c.fluid.val[fluid]
-            for o in self.outl:
-                o.target.propagate_fluid_to_target(o, o.target)
+            self.outl[0].target.propagate_fluid_to_target(o, o, entry_point=True)
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation stops here.
 
@@ -343,7 +341,7 @@ class Merge(NodeBase):
         """
         return
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -356,6 +354,9 @@ class Merge(NodeBase):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and outconn == start:
+            return
+
         for inconn in self.inl:
             for fluid, x in outconn.fluid.val.items():
                 if (not inconn.fluid.val_set[fluid] and

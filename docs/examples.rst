@@ -6,7 +6,7 @@ Example Applications
 
 On this page we collect example applications of TESPy. If you want to add your
 example here, please open an issue on GitHub and let us know. The source code
-of the application should be accessible freely so other users can learn from
+of the application should be accessible freely, so other users can learn from
 your project.
 
 
@@ -30,7 +30,7 @@ your project.
     A porous media energy storage is coupled with a power plant simulation.
     Yearly operation of different power plant and storage setups is optimized
     within different energy system scenarios in a first step by transferring
-    information from the complex system to a mixed-interger linear formulation.
+    information from the complex system to a mixed-integer linear formulation.
     The optimized storage dispatch is then passed to the coupled simulation to
     find actual mass flow rates as well as pressure subsurface distribution.
 
@@ -96,7 +96,7 @@ your project.
     Starting from well production information for a geothermal energy reservoir
     over a lifetime of 40 years, the development of the electrical power output
     of an ORC is monitored within different designs of the plant. The
-    geothermal heat source is exploted to provide heat to a district heating
+    geothermal heat source is exploited to provide heat to a district heating
     system and the residual heat is used to operate the orc cycle.
 
     +++

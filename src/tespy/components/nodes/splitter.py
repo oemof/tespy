@@ -160,6 +160,10 @@ class Splitter(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
+    def preprocess(self, nw, num_eq=0):
+        super().preprocess(nw, num_eq)
+        self._propagation_start = False
+
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
@@ -271,7 +275,7 @@ class Splitter(NodeBase):
             k += 1
         return deriv
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -284,15 +288,17 @@ class Splitter(NodeBase):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and inconn == start:
+            return
         for outconn in self.outl:
             for fluid, x in inconn.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
+                if (not outconn.fluid.val_set[fluid] and
+                        not outconn.good_starting_values):
                     outconn.fluid.val[fluid] = x
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -305,6 +311,11 @@ class Splitter(NodeBase):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if (not entry_point and outconn == start) or self._propagation_start:
+            return
+
+        self._propagation_start = True
+
         inconn = self.inl[0]
         for fluid, x in outconn.fluid.val.items():
             if (inconn.fluid.val_set[fluid] is False and
@@ -312,3 +323,5 @@ class Splitter(NodeBase):
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)
+
+        self._propagation_start = False

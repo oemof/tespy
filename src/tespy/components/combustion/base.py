@@ -1295,7 +1295,7 @@ class CombustionChamber(Component):
         elif key == 'h':
             return 5e5
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation to target stops here.
 
@@ -1310,7 +1310,7 @@ class CombustionChamber(Component):
         """
         return
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Fluid propagation to source stops here.
 

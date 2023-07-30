@@ -1,13 +1,14 @@
-from fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, h_mix_pQ, T_sat_p, CoolPropWrapper
+from fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, h_mix_pQ, T_sat_p, CoolPropWrapper, Q_mix_ph
 from collections import OrderedDict
-from tespy.tools.helpers import newton
+from tespy.tools.helpers import convert_from_SI
 from tespy.tools.global_vars import ERR
 
-from fluid_properties.helpers import newton_with_kwargs
+from fluid_properties.helpers import get_number_of_fluids
 from tespy.tools.data_containers import FluidProperties as dc_prop, FluidComposition as dc_flu, SimpleDataContainer as dc_simple
 from fluid_properties.wrappers import FluidPropertyWrapper
 from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp, isentropic
-
+from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.logger import logger
 from copy import deepcopy
 import numpy as np
 
@@ -148,20 +149,31 @@ def _newton(func, deriv, y, **kwargs):
 # )
 
 
-fluid_data = OrderedDict()
-fluid_data["water"] = {"wrapper": CoolPropWrapper("water", "HEOS"), "mass_fraction": 1.0}
+# fluid_data = OrderedDict()
+# fluid_data["water"] = {"wrapper": CoolPropWrapper("water", "HEOS"), "mass_fraction": 0.15}
+# fluid_data["O2"] = {"wrapper": CoolPropWrapper("O2", "HEOS"), "mass_fraction": 0.05}
+# fluid_data["N2"] = {"wrapper": CoolPropWrapper("N2", "HEOS"), "mass_fraction": 0.70}
+# fluid_data["CO2"] = {"wrapper": CoolPropWrapper("CO2", "HEOS"), "mass_fraction": 0.1}
 
 
 # print(
-#     h_mix_pT(1e5, 493.15, fluid_data, "ideal-cond")
-#     - h_mix_pT(1e5, 393.15, fluid_data, "ideal-cond")
+#     h_mix_pT(1e5, 293.15, fluid_data, "ideal")
 # )
 
 # print(
-#     s_mix_pT(1e5, 493.15, fluid_data, "ideal-cond")
-#     - s_mix_pT(1e5, 393.15, fluid_data, "ideal-cond")
+#     s_mix_pT(1e5, 293.15, fluid_data, "ideal")
 # )
 
+# h = h_mix_pT(1e5, 293.15, fluid_data, "ideal-cond")
+
+
+# print(
+#     s_mix_ph(1e5, h, fluid_data, "ideal-cond")
+# )
+# print(
+#     s_mix_pT(1e5, 293.15, fluid_data, "ideal-cond")
+# )
+# s
 
 from tespy.connections import Connection, Ref
 
@@ -172,8 +184,6 @@ class NewConnection(Connection):
 
     def set_attr(self, **kwargs):
         super().set_attr(**kwargs)
-        if "fluid_variable" in kwargs:
-            self.fluid.is_var = kwargs.get("fluid_variable", False)
         if "fluid" in kwargs:
             for fluid in kwargs["fluid"]:
                 engine = CoolPropWrapper
@@ -186,42 +196,13 @@ class NewConnection(Connection):
         self.fluid.wrapper[fluid] = engine(fluid, back_end)
 
     def preprocess(self):
-        self.var_pos = {}
-        ref_conns = []
-
         self.num_eq = 0
         for parameter in self.parameters:
             if self.get_attr(parameter).val_set:
                 self.num_eq += self.parameters[parameter].num_eq
-                if isinstance(self.get_attr(parameter).val, Ref):
-                    ref_conns += [self.get_attr(parameter).val.obj]
-
-        # extra space in the jacobian for referenced connections
-        self.ref_conns = list(set(ref_conns))
-
-        self.num_vars = 0
-        for variable in ["m", "p", "h"]:
-            if self.get_attr(variable).is_var:
-                self.var_pos[variable] = self.num_vars
-                self.num_vars += 1
-
-        if self.fluid.is_var:
-            # if the fluid is not a variable, it does not count towards the
-            # equations for this connection
-            for fluid, x in self.fluid.val_set.items():
-                if not x:
-                    self.var_pos[fluid] = self.num_vars
-                    self.num_vars += 1
 
         self.residual = np.zeros(self.num_eq)
-
-    def _build_jacobian(self):
-        num_vars_ref = sum(c.num_vars for c in self.ref_conns)
-        self.jacobian = np.zeros((self.num_eq, self.num_vars + num_vars_ref))
-
-    def get_ref_var_pos(self, conn):
-        pos = self.ref_conns.index(conn)
-        return self.num_vars + sum(c.num_vars for c in self.ref_conns[:pos])
+        self.jacobian = OrderedDict()
 
     def get_parameters(self):
         return {
@@ -244,9 +225,6 @@ class NewConnection(Connection):
             "Td_bp": dc_prop(**{
                 "func": self.Td_bp_func, "deriv": self.Td_bp_deriv, "num_eq": 1
             }),
-            # "m_ref": dc_prop(**{
-            #     "func": self.m_ref_func, "deriv": self.m_ref_deriv, "num_eq": 1
-            # }),
             "m_ref": dc_prop(**{
                 "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
                 "num_eq": 1, "func_params": {"variable": "m"}
@@ -282,11 +260,10 @@ class NewConnection(Connection):
         variable = kwargs['variable']
         ref = self.get_attr(f"{variable}_ref").val
         if self.get_attr(variable).is_var:
-            self.jacobian[k, self.var_pos[variable]] = 1
+            self.jacobian[k, self.get_attr(variable).J_col] = 1
 
         if ref.obj.get_attr(variable).is_var:
-            pos = self.get_ref_var_pos(ref.obj) + ref.obj.var_pos[variable]
-            self.jacobian[k, pos] = -ref.factor
+            self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self):
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
@@ -296,17 +273,24 @@ class NewConnection(Connection):
 
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
-            self.jacobian[k, self.var_pos["p"]] = (
+            self.jacobian[k, self.p.J_col] = (
                 -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
             )
         if self.h.is_var:
-            self.jacobian[k, self.var_pos["h"]] = (
+            self.jacobian[k, self.h.J_col] = (
                 -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
             )
         # if len(self.fluid.val) > 1:
         #     self.jacobian[0, 0, 3:] = dT_mix_ph_dfluid(
         #         c.p.val_SI, c.h.val_SI, self.fluid_data, T0=c.T.val_SI
         # )
+
+    def calc_vol(self):
+        try:
+            vol = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
+        except NotImplementedError:
+            vol = np.nan
+        return vol
 
     def v_func(self, k, **kwargs):
         self.residual[k] = (
@@ -316,12 +300,18 @@ class NewConnection(Connection):
 
     def v_deriv(self, k, **kwargs):
         if self.m.is_var:
-            self.jacobian[k, self.var_pos["m"]] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.jacobian[k, self.m.J_col] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         if self.p.is_var:
-            self.jacobian[k, self.var_pos["p"]] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+            self.jacobian[k, self.p.J_col] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
         if self.h.is_var:
-            self.jacobian[k, self.var_pos["h"]] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+            self.jacobian[k, self.h.J_col] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
 
+    def calc_x(self):
+        try:
+            x = Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            x = np.nan
+        return x
 
     def x_func(self, k, **kwargs):
         # saturated steam fraction
@@ -333,33 +323,39 @@ class NewConnection(Connection):
     def x_deriv(self, k, **kwargs):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
-            self.jacobian[k, self.var_pos["p"]] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-        if self.h.is_var:
-            self.jacobian[k, self.var_pos["h"]] = 1
+            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        if self.h.is_var: # and self.it == 0
+            self.jacobian[k, self.h.J_col] = 1
+
+    def calc_Td_bp(self):
+        try:
+            Td_bp = self.calc_T() - T_sat_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            Td_bp = np.nan
+        return Td_bp
 
     def Td_bp_func(self, k, **kwargs):
 
         # temperature difference to boiling point
             # if (np.absolute(self.residual[k]) > ERR ** 2 or
             #         self.iter % 2 == 0 or self.always_all_equations):
-        self.residual[k] = (
-            self.calc_T()
-            - self.Td_bp.val_SI
-            - T_sat_p(self.p.val_SI, self.fluid_data)
-        )
+        self.residual[k] = self.calc_Td_bp() - self.Td_bp.val_SI
 
     def Td_bp_deriv(self, k, **kwargs):
         # if not self.increment_filter[col + 1]:
         if self.p.is_var:
-            self.jacobian[k, self.var_pos["p"]] = (
+            self.jacobian[k, self.p.J_col] = (
                 dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
                 - dT_sat_dp(self.p.val_SI, self.fluid_data)
             )
         if self.h.is_var:
             # if not self.increment_filter[col + 2]:
-            self.jacobian[k, self.var_pos["h"]] = dT_mix_pdh(
+            self.jacobian[k, self.h.J_col] = dT_mix_pdh(
                 self.p.val_SI, self.h.val_SI, self.fluid_data
             )
+
+    def calc_s(self):
+        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
 
     def solve(self, increment_filter):
         k = 0
@@ -370,11 +366,55 @@ class NewConnection(Connection):
 
                 k += 1
 
+    def calc_results(self):
+        self.T.val_SI = self.calc_T()
+        number_fluids = get_number_of_fluids(self.fluid_data)
+        if (
+                number_fluids > 1
+                and abs(
+                    h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data)
+                    - c.h.val_SI
+                ) > ERR ** .5
+        ):
+            self.T.val_SI = np.nan
+            self.vol.val_SI = np.nan
+            self.v.val_SI = np.nan
+            self.s.val_SI = np.nan
+            msg = (
+                'Could not find a feasible value for mixture temperature '
+                'at connection ' + c.label + '. The values for '
+                'temperature, specific volume, volumetric flow and '
+                'entropy are set to nan.')
+            logger.error(msg)
+        else:
+            self.vol.val_SI = self.calc_vol()
+            self.v.val_SI = self.vol.val_SI * self.m.val_SI
+            self.s.val_SI = self.calc_s()
+
+        if number_fluids == 1:
+            if not self.x.val_set:
+                self.x.val_SI = self.calc_x()
+            if not self.Td_bp.val_set:
+                self.Td_bp.val_SI = self.calc_Td_bp()
+
+            for prop in fpd.keys():
+                self.get_attr(prop).val = convert_from_SI(
+                    prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
+                )
+
+        self.m.val0 = self.m.val
+        self.p.val0 = self.p.val
+        self.h.val0 = self.h.val
+        self.fluid.val0 = self.fluid.val.copy()
+
+
+# def conceptual_test():
 
 from tespy.networks import Network
 from tespy.components import Source, Sink, Pipe, Splitter, Turbine
 
-nwk = Network(fluids=["water", "H2"], T_unit="C", p_unit="bar")
+
+nwk = Network(fluids=["Water", "H2", "R134a"], T_unit="C", p_unit="bar", h_unit='kJ / kg')
 
 a = Source("source")
 b = Sink("sink")
@@ -401,19 +441,64 @@ t.isentropic = isentropic
 
 nwk.add_conns(c1, c2, c11, c12, c13, c14)
 
-c1.set_attr(m=Ref(c12, 1, 0), p=Ref(c11, 1, 0), Td_bp=50, fluid={"water": 1, "H2": 0})
-c2.set_attr(h=Ref(c12, 0.9, 0))
+c1.set_attr(p=3, Td_bp=50, m=6, fluid={"Water": 1})
+c2.set_attr(h=Ref(c1, 0.9, 0), fluid={"H2": 0})
 h.set_attr(eta_s=0.9)
 
-c11.set_attr(m=1, p=3, Td_bp=3, fluid={"water": 1, "H2": 0})
+c11.set_attr(p=3, Td_bp=3, m=4)
 d.set_attr(pr=1, Q="var")
 c12.set_attr(Td_bp=5)
-c13.set_attr(m=0.5)
+c13.set_attr(m=0.5, fluid={"Water": 1})
 
-nwk.solve("design")
+# nwk.solve("design")
 
+# nwk.print_results()
+
+# c11.set_attr(p=None, T=136)
+# nwk.solve("design")
+# nwk.print_results()
+
+
+# conceptual_test()
+
+
+from tespy.networks import Network
+from tespy.components import Source, Sink, Merge, Splitter, HeatExchangerSimple
+# from tespy.connections import Connection
+
+# network = Network(fluids=['R134a', 'Water'])
+
+# network.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+
+source = Source('source123')
+source2 = Source('source1234')
+merge = Merge('merge123')
+component1 = HeatExchangerSimple('comp1', pr=1)
+splitter = Splitter('splitter123')
+component2 = HeatExchangerSimple('comp2')
+sink = Sink('sink123')
+
+c1 = NewConnection(source, 'out1', merge, 'in1', p=1, h=200, m=10, fluid={'R134a': 1})
+# c3 = NewConnection(source2, 'out1', merge, 'in2', h=200, fluid={'Water': 1})
+# c2 = NewConnection(merge, 'out1', sink, 'in1', fluid={'R134a': .2})
+c2 = NewConnection(merge, 'out1', component1, 'in1')
+c3 = NewConnection(component1, 'out1', splitter, 'in1', h=180)
+c4 = NewConnection(splitter, 'out1', component2, 'in1', m=1)
+c5 = NewConnection(component2, 'out1', merge, 'in2', h=170)
+c6 = NewConnection(splitter, 'out2', sink, 'in1')
+# c6 = NewConnection(splitter, 'out2', sink, 'in1')
+
+# nwk.add_conns(c1, c2, c3)
+nwk.add_conns(c1, c2, c3, c4, c5, c6)
+
+nwk.solve('design')
 nwk.print_results()
 
-c11.set_attr(p=None, T=136)
-nwk.solve("design")
+c3.set_attr(h=None)
+c5.set_attr(h=None)
+component1.set_attr(Q=-1000)
+component2.set_attr(Q=-500)
+
+nwk.solve('design')
+# network.solve('design')
 nwk.print_results()

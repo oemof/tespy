@@ -2,7 +2,7 @@
 from pkg_resources import resource_filename
 
 __datapath__ = resource_filename('tespy', 'data/')
-__version__ = '0.6.3 - Leidenfrost\'s Library'
+__version__ = '0.7.0 - dev'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

@@ -1,12 +1,12 @@
-from fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, h_mix_pQ, T_sat_p, CoolPropWrapper, Q_mix_ph
+from tespy.tools.fluid_properties import s_mix_ph, s_mix_pT, T_mix_ph, h_mix_pT, v_mix_ph, h_mix_pQ, T_sat_p, CoolPropWrapper, Q_mix_ph
 from collections import OrderedDict
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.global_vars import ERR
 
-from fluid_properties.helpers import get_number_of_fluids
+from tespy.tools.fluid_properties.helpers import get_number_of_fluids
 from tespy.tools.data_containers import FluidProperties as dc_prop, FluidComposition as dc_flu, SimpleDataContainer as dc_simple
-from fluid_properties.wrappers import FluidPropertyWrapper
-from fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp, isentropic
+from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
+from tespy.tools.fluid_properties.functions import dT_mix_pdh, dT_mix_dph, dv_mix_dph, dv_mix_pdh, dh_mix_dpQ, dT_sat_dp, isentropic
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.logger import logger
 from copy import deepcopy
@@ -373,7 +373,7 @@ class NewConnection(Connection):
                 number_fluids > 1
                 and abs(
                     h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data)
-                    - c.h.val_SI
+                    - self.h.val_SI
                 ) > ERR ** .5
         ):
             self.T.val_SI = np.nan
@@ -407,6 +407,109 @@ class NewConnection(Connection):
         self.h.val0 = self.h.val
         self.fluid.val0 = self.fluid.val.copy()
 
+    def check_pressure_bounds(self, fluid):
+        if self.p.val_SI < self.fluid.wrapper[fluid]._p_min:
+            c.p.val_SI = self.fluid.wrapper[fluid]._p_min * 1.01
+            logger.debug(self._property_range_message('p'))
+        elif self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
+            self.p.val_SI = self.fluid.wrapper[fluid]._p_max
+            logger.debug(self._property_range_message('p'))
+
+    def check_enthalpy_bounds(self, fluid):
+        # enthalpy
+        try:
+            hmin = self.fluid.wrapper[fluid].h_pT(
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min
+            )
+        except ValueError:
+            f = 1.05
+            hmin = self.fluid.wrapper[fluid].h_pT(
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min * f
+            )
+
+        T = self.fluid.wrapper[fluid]._T_max
+        while True:
+            try:
+                hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
+                break
+            except ValueError as e:
+                T *= 0.99
+                if T < self.fluid.wrapper[fluid]._T_min:
+                    raise ValueError(e) from e
+
+        if self.h.val_SI < hmin:
+            if hmin < 0:
+                self.h.val_SI = hmin * 0.9999
+            else:
+                self.h.val_SI = hmin * 1.0001
+            logger.debug(self._property_range_message('h'))
+
+        elif self.h.val_SI > hmax:
+            self.h.val_SI = hmax * 0.9999
+            logger.debug(self._property_range_message('h'))
+
+    def check_two_phase_bounds(self, fluid):
+
+        if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
+            if self.h.val_SI < h:
+                self.h.val_SI = h * 1.01
+                logger.debug(self._property_range_message('h'))
+        elif (self.Td_bp.val_SI < 0 or (self.state.val == 'l' and self.state.is_set)):
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
+            if self.h.val_SI > h:
+                self.h.val_SI = h * 0.99
+                logger.debug(self._property_range_message('h'))
+
+    def check_temperature_bounds(self):
+        r"""
+        Check if temperature is within user specified limits.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to check fluid properties.
+        """
+        Tmin = max(
+            [w._T_min for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
+        ) * 1.01
+        Tmax = min(
+            [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
+        ) * 0.99
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data)
+
+        if self.h.val_SI < hmin:
+            self.h.val_SI = hmin
+            logger.debug(self._property_range_message('h'))
+
+        if self.h.val_SI > hmax:
+            self.h.val_SI = hmax
+            logger.debug(self._property_range_message('h'))
+
+    def _property_range_message(self, prop):
+        r"""
+        Return debugging message for fluid property range adjustments.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to check fluid properties.
+
+        prop : str
+            Fluid property.
+
+        Returns
+        -------
+        msg : str
+            Debugging message.
+        """
+        msg = (
+            f"{fpd[prop]['text'][0].upper()} {fpd[prop]['text'][1:]} out of "
+            f"fluid property range at connection {self.label}, adjusting value "
+            f"to {self.get_attr(prop).val_SI} {fpd[prop]['SI_unit']}."
+        )
+        return msg
 
 # def conceptual_test():
 

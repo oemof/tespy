@@ -23,7 +23,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.fluid_properties import visc_mix_ph
+from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 

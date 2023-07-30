@@ -1111,6 +1111,7 @@ class Network:
                 main_conn.fluid.val_set = {f: not x for f, x in variable.items()}
                 main_conn.fluid.is_var = variable
 
+            [c.build_fluid_data() for c in all_connections]
             for fluid, value in main_conn.fluid.is_var.items():
                 if value:
                     main_conn.fluid.J_col[fluid] = self.num_conn_vars
@@ -1630,7 +1631,7 @@ class Network:
                     not c.h.val_set):
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
                         (c.state.val == 'g' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 1)
+                    h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
@@ -1888,7 +1889,8 @@ class Network:
                 'or kA-values for heat exchangers, \n-> support better '
                 'starting values.\n-> bad starting value for fuel mass flow '
                 'of combustion chamber, provide small (near to zero, but not '
-                'zero) starting value.')
+                'zero) starting value.'
+            )
             logger.error(msg)
             return
 
@@ -1901,7 +1903,8 @@ class Network:
                 'calculation. Residual value is '
                 '{:.2e}'.format(norm(self.residual)) + '. This frequently '
                 'happens, if the solver pushes the fluid properties out of '
-                'their feasible range.')
+                'their feasible range.'
+            )
             logger.warning(msg)
             return
 
@@ -2171,8 +2174,8 @@ class Network:
 
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
-            self.solve_check_props(c)
             c.build_fluid_data()
+            self.solve_check_props(c)
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
@@ -2181,30 +2184,6 @@ class Network:
 
             for c in self.conns['object']:
                 self.solve_check_props(c)
-
-    def property_range_message(self, c, prop):
-        r"""
-        Return debugging message for fluid property range adjustments.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to check fluid properties.
-
-        prop : str
-            Fluid property.
-
-        Returns
-        -------
-        msg : str
-            Debugging message.
-        """
-        msg = (
-            fpd[prop]['text'][0].upper() + fpd[prop]['text'][1:] +
-            ' out of fluid property range at connection ' + c.label +
-            ' adjusting value to ' + str(c.get_attr(prop).val_SI) +
-            ' ' + fpd[prop]['SI_unit'] + '.')
-        return msg
 
     def solve_check_props(self, c):
         r"""
@@ -2217,84 +2196,45 @@ class Network:
         """
         fl = hlp.single_fluid(c.fluid.val)
 
+        # pure fluid
         if fl is not None:
             # pressure
-            if c.p.val_SI < fp.Memorise.value_range[fl][0] and not c.p.val_set:
-                c.p.val_SI = fp.Memorise.value_range[fl][0] * 1.01
-                logger.debug(self.property_range_message(c, 'p'))
-            elif (c.p.val_SI > fp.Memorise.value_range[fl][1] and
-                  not c.p.val_set):
-                c.p.val_SI = fp.Memorise.value_range[fl][1]
-                logger.debug(self.property_range_message(c, 'p'))
+            if c.p.is_var:
+                c.check_pressure_bounds(fl)
 
             # enthalpy
-            try:
-                hmin = fp.h_pT(
-                    c.p.val_SI, fp.Memorise.value_range[fl][2] * 1.001, fl)
-            except ValueError:
-                f = 1.05
-                print(c.p.val_SI)
-                hmin = fp.h_pT(
-                    c.p.val_SI, fp.Memorise.value_range[fl][2] * f, fl)
+            if c.h.is_var:
+                c.check_enthalpy_bounds(fl)
 
-            T = fp.Memorise.value_range[fl][3]
-            while True:
-                try:
-                    hmax = fp.h_pT(c.p.val_SI, T, fl)
-                    break
-                except ValueError as e:
-                    T *= 0.99
-                    if T < fp.Memorise.value_range[fl][2]:
-                        raise ValueError(e) from e
+                # two-phase related
+                if (c.Td_bp.val_set or c.state.is_set) and self.iter < 3:
+                    c.check_two_phase_bounds(fl)
 
-            if c.h.val_SI < hmin and not c.h.val_set:
-                if hmin < 0:
-                    c.h.val_SI = hmin * 0.9999
-                else:
-                    c.h.val_SI = hmin * 1.0001
-                logger.debug(self.property_range_message(c, 'h'))
-
-            elif c.h.val_SI > hmax and not c.h.val_set:
-                c.h.val_SI = hmax * 0.9999
-                logger.debug(self.property_range_message(c, 'h'))
-
-            if ((c.Td_bp.val_set or c.state.is_set) and
-                    not c.h.val_set and self.iter < 3):
-                if (c.Td_bp.val_SI > 0 or
-                        (c.state.val == 'g' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 1)
-                    if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.01
-                        logger.debug(self.property_range_message(c, 'h'))
-                elif (c.Td_bp.val_SI < 0 or
-                      (c.state.val == 'l' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 0)
-                    if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.99
-                        logger.debug(self.property_range_message(c, 'h'))
-
+        # mixture
         elif self.iter < 4 and not c.good_starting_values:
             # pressure
-            if c.p.val_SI <= self.p_range_SI[0] and not c.p.val_set:
-                c.p.val_SI = self.p_range_SI[0]
-                logger.debug(self.property_range_message(c, 'p'))
+            if c.p.is_var:
+                if c.p.val_SI <= self.p_range_SI[0]:
+                    c.p.val_SI = self.p_range_SI[0]
+                    logger.debug(self.property_range_message(c, 'p'))
 
-            elif c.p.val_SI >= self.p_range_SI[1] and not c.p.val_set:
-                c.p.val_SI = self.p_range_SI[1]
-                logger.debug(self.property_range_message(c, 'p'))
+                elif c.p.val_SI >= self.p_range_SI[1]:
+                    c.p.val_SI = self.p_range_SI[1]
+                    logger.debug(self.property_range_message(c, 'p'))
 
             # enthalpy
-            if c.h.val_SI < self.h_range_SI[0] and not c.h.val_set:
-                c.h.val_SI = self.h_range_SI[0]
-                logger.debug(self.property_range_message(c, 'h'))
+            if c.h.is_var:
+                if c.h.val_SI < self.h_range_SI[0]:
+                    c.h.val_SI = self.h_range_SI[0]
+                    logger.debug(self.property_range_message(c, 'h'))
 
-            elif c.h.val_SI > self.h_range_SI[1] and not c.h.val_set:
-                c.h.val_SI = self.h_range_SI[1]
-                logger.debug(self.property_range_message(c, 'h'))
+                elif c.h.val_SI > self.h_range_SI[1]:
+                    c.h.val_SI = self.h_range_SI[1]
+                    logger.debug(self.property_range_message(c, 'h'))
 
-            # temperature
-            if c.T.val_set and not c.h.val_set:
-                self.solve_check_temperature(c)
+                # temperature
+                if c.T.val_set:
+                    c.check_temperature_bounds()
 
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
@@ -2304,35 +2244,6 @@ class Network:
         elif c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
             c.m.val_SI = self.m_range_SI[1]
             logger.debug(self.property_range_message(c, 'm'))
-
-    def solve_check_temperature(self, c):
-        r"""
-        Check if temperature is within user specified limits.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to check fluid properties.
-        """
-        flow = c.get_flow()
-        Tmin = max(
-            [fp.Memorise.value_range[f][2] for
-             f in flow[3].keys() if flow[3][f] > ERR ]
-        ) + 100
-        Tmax = min(
-            [fp.Memorise.value_range[f][3] for
-             f in flow[3].keys() if flow[3][f] > ERR ]
-        ) - 100
-        hmin = fp.h_mix_pT(flow, Tmin)
-        hmax = fp.h_mix_pT(flow, Tmax)
-
-        if c.h.val_SI < hmin:
-            c.h.val_SI = hmin
-            logger.debug(self.property_range_message(c, 'h'))
-
-        if c.h.val_SI > hmax:
-            c.h.val_SI = hmax
-            logger.debug(self.property_range_message(c, 'h'))
 
     def solve_components(self):
         r"""

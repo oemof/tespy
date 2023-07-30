@@ -76,7 +76,7 @@ class Sink(Component):
         branch["components"] += [self]
         return
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation to target stops here.
 

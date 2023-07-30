@@ -1218,7 +1218,7 @@ class WaterElectrolyzer(Component):
             T = 20 + 273.15
             return h_mix_pT(flow, T)
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -1231,6 +1231,8 @@ class WaterElectrolyzer(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and inconn == start:
+            return
         if inconn == self.inl[0]:
             outconn = self.outl[0]
 
@@ -1241,7 +1243,7 @@ class WaterElectrolyzer(Component):
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -1254,6 +1256,9 @@ class WaterElectrolyzer(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and outconn == start:
+            return
+
         if outconn == self.outl[0]:
             inconn = self.inl[0]
 

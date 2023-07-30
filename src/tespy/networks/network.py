@@ -1474,13 +1474,17 @@ class Network:
         # fluid propagation from set values
         for c in self.conns['object']:
             if any(c.fluid.val_set.values()):
-                c.target.propagate_fluid_to_target(c, c.target)
-                c.source.propagate_fluid_to_source(c, c.source)
-            if any(c.fluid.val0.values()):
-                c.target.propagate_fluid_to_target(c, c.target)
-                c.source.propagate_fluid_to_source(c, c.source)
+                c.target.propagate_fluid_to_target(c, c, entry_point=True)
+                c.source.propagate_fluid_to_source(c, c, entry_point=True)
 
-        # fluid starting value generation for components
+        # To save resources:
+        # find empty fluid data and propagate from connections with data that
+        # are interfaced directly to those connections by a component
+            if any(c.fluid.val0.values()):
+                c.target.propagate_fluid_to_target(c, c, entry_point=True)
+                c.source.propagate_fluid_to_source(c, c, entry_point=True)
+
+        # fluid starting value generation based on components
         for cp in self.comps['object']:
             cp.initialise_fluids()
 
@@ -1790,6 +1794,8 @@ class Network:
         else:
             self.mode = mode
 
+        import time
+        tmp = time.time()
         if not self.checked:
             self.check_network()
 
@@ -1813,6 +1819,7 @@ class Network:
         logger.debug(msg)
 
         self.initialise()
+        print(time.time() - tmp)
 
         if init_only:
             return

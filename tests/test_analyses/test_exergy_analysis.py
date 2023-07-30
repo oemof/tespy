@@ -14,9 +14,9 @@ from pytest import raises
 
 from tespy.components import Compressor
 from tespy.components import CycleCloser
-from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Splitter
@@ -45,9 +45,9 @@ class TestClausiusRankine:
         merge1 = Merge('merge 1')
         turb = Turbine('turbine')
         fwp_turb = Turbine('feed water pump turbine')
-        condenser = HeatExchangerSimple('condenser')
+        condenser = SimpleHeatExchanger('condenser')
         fwp = Pump('pump')
-        steam_generator = HeatExchangerSimple('steam generator')
+        steam_generator = SimpleHeatExchanger('steam generator')
         cycle_close = CycleCloser('cycle closer')
 
         # create busses
@@ -280,8 +280,8 @@ class TestRefrigerator:
         # create components
         va = Valve('expansion valve')
         cp = Compressor('compressor')
-        cond = HeatExchangerSimple('condenser')
-        eva = HeatExchangerSimple('evaporator', dissipative=False)
+        cond = SimpleHeatExchanger('condenser')
+        eva = SimpleHeatExchanger('evaporator', dissipative=False)
         cc = CycleCloser('cycle closer')
 
         # create busses
@@ -348,7 +348,7 @@ class TestCompressedAirIn:
         # components
         amb = Source('air intake')
         cp = Compressor('compressor')
-        cooler = HeatExchangerSimple('cooling')
+        cooler = SimpleHeatExchanger('cooling')
         cas = Sink('compressed air storage')
 
         # power input bus
@@ -406,7 +406,7 @@ class TestCompressedAirOut:
 
         # components
         cas = Source('compressed air storage')
-        reheater = HeatExchangerSimple('reheating')
+        reheater = SimpleHeatExchanger('reheating')
         turb = Turbine('turbine')
         amb = Sink('air outlet')
 

@@ -26,6 +26,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import ERR
@@ -827,7 +828,7 @@ class Component:
         """
         return 0
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -840,12 +841,15 @@ class Component:
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and inconn == start:
+            return
+
         conn_idx = self.inl.index(inconn)
         outconn = self.outl[conn_idx]
 
         for fluid, x in inconn.fluid.val.items():
-            if (outconn.fluid.val_set[fluid] is False and
-                    outconn.good_starting_values is False):
+            if (not outconn.fluid.val_set[fluid] and
+                    not outconn.good_starting_values):
                 outconn.fluid.val[fluid] = x
 
         outconn.target.propagate_fluid_to_target(outconn, start)
@@ -864,7 +868,7 @@ class Component:
 
         outconn.target.propagate_fluid_wrappers_to_target(outconn, start)
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -877,6 +881,9 @@ class Component:
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and outconn == start:
+            return
+
         conn_idx = self.outl.index(outconn)
         inconn = self.inl[conn_idx]
 

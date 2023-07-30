@@ -10,9 +10,9 @@ tests/test_networks/test_exergy_and_entropy_analysis.py
 SPDX-License-Identifier: MIT
 """
 from tespy.components import CycleCloser
-from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Splitter
 from tespy.components import Turbine
 from tespy.connections import Bus
@@ -35,9 +35,9 @@ class TestClausiusRankine:
         merge1 = Merge('merge 1')
         turb = Turbine('turbine')
         fwp_turb = Turbine('feed water pump turbine')
-        condenser = HeatExchangerSimple('condenser')
+        condenser = SimpleHeatExchanger('condenser')
         fwp = Pump('pump')
-        steam_generator = HeatExchangerSimple('steam generator')
+        steam_generator = SimpleHeatExchanger('steam generator')
         cycle_close = CycleCloser('cycle closer')
 
         # create busses

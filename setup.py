@@ -11,7 +11,7 @@ from os.path import dirname
 from os.path import join
 from os.path import splitext
 
-from setuptools import find_packages
+from setuptools import find_namespace_packages
 from setuptools import setup
 
 
@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='TESPy',
-    version='0.6.3.dev0',
+    version='0.7.0.dev0',
     license='MIT',
     description='Thermal Engineering Systems in Python (TESPy)',
     long_description='%s' % (
@@ -34,9 +34,9 @@ setup(
         )
     ),
     author='Francesco Witte',
-    author_email='francesco.witte@dlr.de',
+    author_email='tespy@witte.sh',
     url='https://github.com/oemof/tespy',
-    packages=find_packages('src'),
+    packages=find_namespace_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     include_package_data=True,

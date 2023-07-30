@@ -365,7 +365,7 @@ class DropletSeparator(NodeBase):
             dh_mix_dpQ(self.outl[1].get_flow(), 1))
         self.jacobian[k + 1, self.num_i + 1, 2] = -1
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -378,6 +378,8 @@ class DropletSeparator(NodeBase):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and inconn == start:
+            return
         for outconn in self.outl:
             for fluid, x in inconn.fluid.val.items():
                 if (outconn.fluid.val_set[fluid] is False and
@@ -386,7 +388,7 @@ class DropletSeparator(NodeBase):
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -399,6 +401,8 @@ class DropletSeparator(NodeBase):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and outconn == start:
+            return
         inconn = self.inl[0]
         for fluid, x in outconn.fluid.val.items():
             if (inconn.fluid.val_set[fluid] is False and

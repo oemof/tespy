@@ -8,6 +8,7 @@ available from its original location tespy/components/customs/orc_evaporator.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
 
 import numpy as np
 
@@ -197,6 +198,11 @@ class ORCEvaporator(Component):
     >>> eva_sink_s.x.val
     0.0
     """
+
+    def __init__(self, label, **kwargs):
+        super().__init__(label, **kwargs)
+        msg = "The component ORCEvaporator will be depricated with the next major release."
+        warnings.warn(msg, DeprecationWarning)
 
     @staticmethod
     def component():

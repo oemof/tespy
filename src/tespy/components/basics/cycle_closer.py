@@ -144,7 +144,11 @@ class CycleCloser(Component):
     def propagate_to_target(self, branch):
         return
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def preprocess(self, num_eq=0):
+        super().preprocess(num_eq)
+        self._propagation_start = False
+
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation to target stops here.
 
@@ -157,9 +161,24 @@ class CycleCloser(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        return
+        if (not entry_point and inconn == start) or self._propagation_start:
+            return
 
-    def propagate_fluid_to_source(self, outconn, start):
+        self._propagation_start = True
+
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        for fluid, x in inconn.fluid.val.items():
+            if (not outconn.fluid.val_set[fluid] and
+                    not outconn.good_starting_values):
+                outconn.fluid.val[fluid] = x
+
+        outconn.target.propagate_fluid_to_target(outconn, start)
+
+        self._propagation_start = False
+
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Fluid propagation to source stops here.
 
@@ -172,7 +191,21 @@ class CycleCloser(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        return
+        if (not entry_point and outconn == start) or self._propagation_start:
+            return
+
+        self._propagation_start = True
+        conn_idx = self.outl.index(outconn)
+        inconn = self.inl[conn_idx]
+
+        for fluid, x in outconn.fluid.val.items():
+            if (inconn.fluid.val_set[fluid] is False and
+                    inconn.good_starting_values is False):
+                inconn.fluid.val[fluid] = x
+
+        inconn.source.propagate_fluid_to_source(inconn, start)
+
+        self._propagation_start = False
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

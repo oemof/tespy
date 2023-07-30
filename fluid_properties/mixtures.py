@@ -232,7 +232,7 @@ def cond_check(p, T, fluid_data, water_alias):
     water_molar_liquid = 0
 
     if fluid_data[water_alias]["wrapper"]._is_below_T_critical(T):
-        p_sat = fluid_data[water_alias]["wrapper"].p_boiling(T)
+        p_sat = fluid_data[water_alias]["wrapper"].p_sat(T)
         pp_water = p * molar_fractions[water_alias]
 
         if p_sat < pp_water:

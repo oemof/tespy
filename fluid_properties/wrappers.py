@@ -31,10 +31,10 @@ class FluidPropertyWrapper:
     def s_QT(self, Q, T):
         self._not_implemented()
 
-    def T_boiling(self, p):
+    def T_sat(self, p):
         self._not_implemented()
 
-    def p_boiling(self, T):
+    def p_sat(self, T):
         self._not_implemented()
 
     def Q_ph(self, p, h):

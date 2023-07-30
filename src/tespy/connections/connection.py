@@ -9,15 +9,31 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import CoolPropWrapper
+from tespy.tools.fluid_properties import Q_mix_ph
+from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import T_sat_p
+from tespy.tools.fluid_properties import dT_mix_dph
+from tespy.tools.fluid_properties import dT_mix_pdh
+from tespy.tools.fluid_properties import dT_sat_dp
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.fluid_properties.helpers import get_number_of_fluids
+from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
+from tespy.tools.helpers import convert_from_SI
 
 
 class Connection:
@@ -535,6 +551,12 @@ class Connection:
                 logger.error(msg)
                 raise KeyError(msg)
 
+        if "fluid" in kwargs:
+            for fluid in kwargs["fluid"]:
+                engine = CoolPropWrapper
+                back_end = "HEOS"
+                self._create_fluid_wrapper(fluid, engine, back_end)
+
     def get_attr(self, key):
         r"""
         Get the value of a connection's attribute.
@@ -573,16 +595,326 @@ class Connection:
             'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()
         }
 
-    def get_flow(self):
+    def _create_fluid_wrapper(self, fluid, engine, back_end):
+        self.fluid.back_end[fluid] = back_end
+        self.fluid.engine[fluid] = engine
+        self.fluid.wrapper[fluid] = engine(fluid, back_end)
+
+    def preprocess(self):
+        self.num_eq = 0
+        for parameter in self.parameters:
+            if self.get_attr(parameter).val_set:
+                self.num_eq += self.parameters[parameter].num_eq
+
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian = OrderedDict()
+
+    def get_parameters(self):
+        return {
+            'm': dc_prop(),
+            'p': dc_prop(),
+            'h': dc_prop(),
+            'vol': dc_prop(),
+            's': dc_prop(),
+            'fluid': dc_flu(),
+            'state': dc_simple(),
+            "T": dc_prop(**{
+                "func": self.T_func, "deriv": self.T_deriv, "num_eq": 1
+            }),
+            "v": dc_prop(**{
+                "func": self.v_func, "deriv": self.v_deriv, "num_eq": 1
+            }),
+            "x": dc_prop(**{
+                "func": self.x_func, "deriv": self.x_deriv, "num_eq": 1
+            }),
+            "Td_bp": dc_prop(**{
+                "func": self.Td_bp_func, "deriv": self.Td_bp_deriv, "num_eq": 1
+            }),
+            "m_ref": dc_prop(**{
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "m"}
+            }),
+            "p_ref": dc_prop(**{
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "p"}
+            }),
+            "h_ref": dc_prop(**{
+                "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
+                "num_eq": 1, "func_params": {"variable": "h"}
+            }),
+        }
+
+    def build_fluid_data(self):
+        self.fluid_data = {
+            fluid: {
+                "wrapper": self.fluid.wrapper[fluid],
+                "mass_fraction": self.fluid.val[fluid]
+            } for fluid in self.fluid.val
+        }
+
+    def primary_ref_func(self, k, **kwargs):
+        variable = kwargs['variable']
+        self.get_attr(variable)
+        ref = self.get_attr(f"{variable}_ref").val
+        self.residual[k] = (
+            self.get_attr(variable).val_SI
+            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta
+        )
+
+    def primary_ref_deriv(self, k, **kwargs):
+        variable = kwargs['variable']
+        ref = self.get_attr(f"{variable}_ref").val
+        if self.get_attr(variable).is_var:
+            self.jacobian[k, self.get_attr(variable).J_col] = 1
+
+        if ref.obj.get_attr(variable).is_var:
+            self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
+
+    def calc_T(self):
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+
+    def T_func(self, k, **kwargs):
+        self.residual[k] = self.T.val_SI - self.calc_T()
+
+    def T_deriv(self, k, **kwargs):
+        if self.p.is_var:
+            self.jacobian[k, self.p.J_col] = (
+                -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            )
+        if self.h.is_var:
+            self.jacobian[k, self.h.J_col] = (
+                -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            )
+        # if len(self.fluid.val) > 1:
+        #     self.jacobian[0, 0, 3:] = dT_mix_ph_dfluid(
+        #         c.p.val_SI, c.h.val_SI, self.fluid_data, T0=c.T.val_SI
+        # )
+
+    def calc_vol(self):
+        try:
+            vol = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
+        except NotImplementedError:
+            vol = np.nan
+        return vol
+
+    def v_func(self, k, **kwargs):
+        self.residual[k] = (
+            v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            * self.m.val_SI - self.v.val_SI
+        )
+
+    def v_deriv(self, k, **kwargs):
+        if self.m.is_var:
+            self.jacobian[k, self.m.J_col] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        if self.p.is_var:
+            self.jacobian[k, self.p.J_col] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+        if self.h.is_var:
+            self.jacobian[k, self.h.J_col] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+
+    def calc_x(self):
+        try:
+            x = Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            x = np.nan
+        return x
+
+    def x_func(self, k, **kwargs):
+        # saturated steam fraction
+        # how to check if condition?
+        # if (np.absolute(self.residual[k]) > ERR ** 2 or
+        #         self.iter % 2 == 0 or self.always_all_equations):
+        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+
+    def x_deriv(self, k, **kwargs):
+        # if not self.increment_filter[col + 1]:
+        if self.p.is_var:
+            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        if self.h.is_var: # and self.it == 0
+            self.jacobian[k, self.h.J_col] = 1
+
+    def calc_Td_bp(self):
+        try:
+            Td_bp = self.calc_T() - T_sat_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            Td_bp = np.nan
+        return Td_bp
+
+    def Td_bp_func(self, k, **kwargs):
+
+        # temperature difference to boiling point
+            # if (np.absolute(self.residual[k]) > ERR ** 2 or
+            #         self.iter % 2 == 0 or self.always_all_equations):
+        self.residual[k] = self.calc_Td_bp() - self.Td_bp.val_SI
+
+    def Td_bp_deriv(self, k, **kwargs):
+        # if not self.increment_filter[col + 1]:
+        if self.p.is_var:
+            self.jacobian[k, self.p.J_col] = (
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                - dT_sat_dp(self.p.val_SI, self.fluid_data)
+            )
+        if self.h.is_var:
+            # if not self.increment_filter[col + 2]:
+            self.jacobian[k, self.h.J_col] = dT_mix_pdh(
+                self.p.val_SI, self.h.val_SI, self.fluid_data
+            )
+
+    def calc_s(self):
+        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
+
+    def solve(self, increment_filter):
+        k = 0
+        for parameter, data in self.parameters.items():
+            if self.get_attr(parameter).val_set:
+                data.func(k, **data.func_params)
+                data.deriv(k, **data.func_params)
+
+                k += 1
+
+    def calc_results(self):
+        self.T.val_SI = self.calc_T()
+        number_fluids = get_number_of_fluids(self.fluid_data)
+        if (
+                number_fluids > 1
+                and abs(
+                    h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data)
+                    - self.h.val_SI
+                ) > ERR ** .5
+        ):
+            self.T.val_SI = np.nan
+            self.vol.val_SI = np.nan
+            self.v.val_SI = np.nan
+            self.s.val_SI = np.nan
+            msg = (
+                'Could not find a feasible value for mixture temperature '
+                'at connection ' + c.label + '. The values for '
+                'temperature, specific volume, volumetric flow and '
+                'entropy are set to nan.')
+            logger.error(msg)
+        else:
+            self.vol.val_SI = self.calc_vol()
+            self.v.val_SI = self.vol.val_SI * self.m.val_SI
+            self.s.val_SI = self.calc_s()
+
+        if number_fluids == 1:
+            if not self.x.val_set:
+                self.x.val_SI = self.calc_x()
+            if not self.Td_bp.val_set:
+                self.Td_bp.val_SI = self.calc_Td_bp()
+
+            for prop in fpd.keys():
+                self.get_attr(prop).val = convert_from_SI(
+                    prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
+                )
+
+        self.m.val0 = self.m.val
+        self.p.val0 = self.p.val
+        self.h.val0 = self.h.val
+        self.fluid.val0 = self.fluid.val.copy()
+
+    def check_pressure_bounds(self, fluid):
+        if self.p.val_SI < self.fluid.wrapper[fluid]._p_min:
+            c.p.val_SI = self.fluid.wrapper[fluid]._p_min * 1.01
+            logger.debug(self._property_range_message('p'))
+        elif self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
+            self.p.val_SI = self.fluid.wrapper[fluid]._p_max
+            logger.debug(self._property_range_message('p'))
+
+    def check_enthalpy_bounds(self, fluid):
+        # enthalpy
+        try:
+            hmin = self.fluid.wrapper[fluid].h_pT(
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min
+            )
+        except ValueError:
+            f = 1.05
+            hmin = self.fluid.wrapper[fluid].h_pT(
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min * f
+            )
+
+        T = self.fluid.wrapper[fluid]._T_max
+        while True:
+            try:
+                hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
+                break
+            except ValueError as e:
+                T *= 0.99
+                if T < self.fluid.wrapper[fluid]._T_min:
+                    raise ValueError(e) from e
+
+        if self.h.val_SI < hmin:
+            if hmin < 0:
+                self.h.val_SI = hmin * 0.9999
+            else:
+                self.h.val_SI = hmin * 1.0001
+            logger.debug(self._property_range_message('h'))
+
+        elif self.h.val_SI > hmax:
+            self.h.val_SI = hmax * 0.9999
+            logger.debug(self._property_range_message('h'))
+
+    def check_two_phase_bounds(self, fluid):
+
+        if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
+            if self.h.val_SI < h:
+                self.h.val_SI = h * 1.01
+                logger.debug(self._property_range_message('h'))
+        elif (self.Td_bp.val_SI < 0 or (self.state.val == 'l' and self.state.is_set)):
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
+            if self.h.val_SI > h:
+                self.h.val_SI = h * 0.99
+                logger.debug(self._property_range_message('h'))
+
+    def check_temperature_bounds(self):
         r"""
-        Return the SI-values for the network variables.
+        Check if temperature is within user specified limits.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to check fluid properties.
+        """
+        Tmin = max(
+            [w._T_min for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
+        ) * 1.01
+        Tmax = min(
+            [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
+        ) * 0.99
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data)
+
+        if self.h.val_SI < hmin:
+            self.h.val_SI = hmin
+            logger.debug(self._property_range_message('h'))
+
+        if self.h.val_SI > hmax:
+            self.h.val_SI = hmax
+            logger.debug(self._property_range_message('h'))
+
+    def _property_range_message(self, prop):
+        r"""
+        Return debugging message for fluid property range adjustments.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to check fluid properties.
+
+        prop : str
+            Fluid property.
 
         Returns
         -------
-        out : list
-            List of mass flow and fluid property information.
+        msg : str
+            Debugging message.
         """
-        return [self.m.val_SI, self.p.val_SI, self.h.val_SI, self.fluid.val]
+        msg = (
+            f"{fpd[prop]['text'][0].upper()} {fpd[prop]['text'][1:]} out of "
+            f"fluid property range at connection {self.label}, adjusting value "
+            f"to {self.get_attr(prop).val_SI} {fpd[prop]['SI_unit']}."
+        )
+        return msg
 
     def get_physical_exergy(self, p0, T0):
         r"""

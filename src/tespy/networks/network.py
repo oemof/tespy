@@ -51,13 +51,6 @@ class Network:
 
     Parameters
     ----------
-    fluids : list
-        A list of all fluids within the network container.
-
-    memorise_fluid_properties : boolean
-        Activate or deactivate fluid property value memorization. Default
-        state is activated (:code:`True`).
-
     h_range : list
         List with minimum and maximum values for enthalpy value range.
 
@@ -107,17 +100,16 @@ class Network:
 
     Example
     -------
-    Basic example for a setting up a tespy.networks.network.Network object. Specifying
-    the fluids is mandatory! Unit systems, fluid property range and iterinfo
-    are optional.
+    Basic example for a setting up a tespy.networks.network.Network object.
+    Specifying the fluids is mandatory! Unit systems, fluid property range and
+    iterinfo are optional.
 
     Standard value for iterinfo is :code:`True`. This will print out
     convergence progress to the console. You can stop the printouts by setting
     this property to :code:`False`.
 
     >>> from tespy.networks import Network
-    >>> fluid_list = ['water', 'air', 'R134a']
-    >>> mynetwork = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
+    >>> mynetwork = Network(p_unit='bar', T_unit='C')
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
@@ -137,7 +129,7 @@ class Network:
     >>> from tespy.networks import Network
     >>> from tespy.components import Source, Sink, Pipe
     >>> from tespy.connections import Connection, Bus
-    >>> nw = Network(['CH4'], T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False)
@@ -155,19 +147,8 @@ class Network:
     >>> nw.print_results()
     """
 
-    def __init__(self, fluids, memorise_fluid_properties=True, **kwargs):
-
-        # fluid list and constants
-        if isinstance(fluids, list):
-            self.fluids = sorted(fluids)
-        else:
-            msg = ('Please provide a list containing the network\'s fluids on '
-                   'creation.')
-            logger.error(msg)
-            raise TypeError(msg)
-
+    def __init__(self, **kwargs):
         self.set_defaults()
-        self.set_fluid_back_ends(memorise_fluid_properties)
         self.set_attr(**kwargs)
 
     def set_defaults(self):
@@ -186,6 +167,13 @@ class Network:
         # results and specification dictionary
         self.results = {}
         self.specifications = {}
+
+        self.specifications['lookup'] = {
+            'properties': 'prop_specifications',
+            'chars': 'char_specifications',
+            'variables': 'var_specifications',
+            'groups': 'group_specifications'
+        }
 
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
@@ -216,53 +204,6 @@ class Network:
                 self.get_attr(prop + '_unit') + '\n'
                 'max: ' + str(limits[1]) + ' ' + self.get_attr(prop + '_unit'))
             logger.debug(msg)
-
-    def set_fluid_back_ends(self, memorise_fluid_properties):
-        """Set the fluid back ends."""
-        # this must be ordered as the fluid property memorisation calls
-        # the mass fractions of the different fluids as keys in a given order.
-        self.fluids_backends = OrderedDict()
-
-        msg = 'Network fluids are: '
-        i = 0
-        for f in self.fluids:
-            try:
-                data = f.split('::')
-                backend = data[0]
-                fluid = data[1]
-            except IndexError:
-                backend = 'HEOS'
-                fluid = f
-
-            self.fluids_backends[fluid] = backend
-            self.fluids[i] = fluid
-
-            msg += fluid + ', '
-            i += 1
-
-        msg = msg[:-2] + '.'
-        logger.debug(msg)
-
-        # initialise fluid property memorisation function for this network
-        # fp.Memorise.add_fluids(self.fluids_backends, memorise_fluid_properties)
-
-        # set up results dataframe for connections
-        cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-            + self.fluids)
-        self.results['Connection'] = pd.DataFrame(
-            columns=cols, dtype='float64')
-        # include column for fluid balance in specs dataframe
-        self.specifications['Connection'] = pd.DataFrame(
-            columns=cols + ['balance'], dtype='bool')
-        self.specifications['Ref'] = pd.DataFrame(
-            columns=cols, dtype='bool')
-        self.specifications['lookup'] = {
-            'properties': 'prop_specifications',
-            'chars': 'char_specifications',
-            'variables': 'var_specifications',
-            'groups': 'group_specifications'
-        }
 
     def set_attr(self, **kwargs):
         r"""
@@ -466,9 +407,8 @@ class Network:
             c.good_starting_values = False
 
             self.conns.loc[c.label] = [
-                c, c.source, c.source_id, c.target, c.target_id]
-
-            self.results['Connection'].loc[c.label] = np.nan
+                c, c.source, c.source_id, c.target, c.target_id
+            ]
 
             msg = 'Added connection ' + c.label + ' to network.'
             logger.debug(msg)
@@ -845,7 +785,6 @@ class Network:
 
     def presolve_massflow_topology(self):
 
-        self.all_fluids = []
         # mass flow is a single variable in each sub branch
         # fluid composition is a single variable in each main branch
         for branch in self.massflow_branches:
@@ -967,7 +906,7 @@ class Network:
 
     def init_set_properties(self):
         """Specification of SI values for user set values."""
-        all_fluids = []
+        self.all_fluids = []
         # fluid property values
         for c in self.conns['object']:
             c.preprocess()
@@ -980,7 +919,7 @@ class Network:
                     }
                     self.num_conn_vars += 1
 
-            all_fluids += c.fluid.val.keys()
+            self.all_fluids += c.fluid.val.keys()
 
             if not self.init_previous:
                 c.good_starting_values = False
@@ -1005,25 +944,26 @@ class Network:
                             key, c.get_attr(key).ref.delta,
                             c.get_attr(key).unit)
 
-        cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-            + list(set(all_fluids))
-        )
-        self.results['Connection'] = pd.DataFrame(
-            columns=cols, dtype='float64'
-        )
-        # include column for fluid balance in specs dataframe
-        self.specifications['Connection'] = pd.DataFrame(
-            columns=cols + ['balance'], dtype='bool'
-        )
-
-        if len(all_fluids) == 0:
+        if len(self.all_fluids) == 0:
             msg = (
                 'Network has no fluids, please specify a list with fluids on '
                 'network creation.'
             )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
+
+        # set up results dataframe for connections
+        # this should be done based on the connections
+        cols = ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+        self.all_fluids = list(set(self.all_fluids))
+        cols = (
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            + self.all_fluids
+        )
+        self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
+        # include column for fluid balance in specs dataframe
+        self.specifications['Connection'] = pd.DataFrame(columns=cols + ['balance'], dtype='bool')
+        self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
 
         msg = (
             'Updated fluid property SI values and fluid mass fraction for '

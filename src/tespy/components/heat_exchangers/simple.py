@@ -859,18 +859,19 @@ class HeatExchangerSimple(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        self.Q.val = i[0] * (o[2] - i[2])
-        self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            ))
+        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.zeta.val = (
+            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+        )
 
         if self.Tamb.is_set:
-            ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
-            ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
+            ttd_1 = i.T.val_SI - self.Tamb.val_SI
+            ttd_2 = o.T.val_SI - self.Tamb.val_SI
 
             if (ttd_1 / ttd_2) < 0:
                 td_log = np.nan
@@ -882,7 +883,7 @@ class HeatExchangerSimple(Component):
                 # both values are equal
                 td_log = ttd_1
 
-            self.kA.val = abs(i[0] * (o[2] - i[2]) / td_log)
+            self.kA.val = abs(self.Q.val / td_log)
             self.kA.is_result = True
         else:
             self.kA.is_result = False

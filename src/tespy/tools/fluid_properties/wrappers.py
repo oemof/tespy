@@ -166,16 +166,24 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
 
-
-import pyromat as pm
-pm.config['unit_energy'] = "J"
-pm.config['unit_pressure'] = "Pa"
-pm.config['unit_molar'] = "mol"
+try:
+    import pyromat as pm
+    pm.config['unit_energy'] = "J"
+    pm.config['unit_pressure'] = "Pa"
+    pm.config['unit_molar'] = "mol"
+except ModuleNotFoundError:
+    pm = None
 
 
 class PyromatIdealGasWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, backend=None) -> None:
+        if pm is None:
+            msg = (
+                "To use the pyromat fluid properties you need to install "
+                "pyromat."
+            )
+            raise ModuleNotFoundError(msg)
         self.fluid = fluid
 
         self.AS = pm.get(f"ig.{fluid}")
@@ -222,6 +230,12 @@ class PyromatIdealGasWrapper(FluidPropertyWrapper):
 class PyromatMulitphaseWrapper(PyromatIdealGasWrapper):
 
     def __init__(self, fluid, backend=None) -> None:
+        if pm is None:
+            msg = (
+                "To use the pyromat fluid properties you need to install "
+                "pyromat."
+            )
+            raise ModuleNotFoundError(msg)
         self.fluid = fluid
 
         self.AS = pm.get(f"mp.{fluid}")

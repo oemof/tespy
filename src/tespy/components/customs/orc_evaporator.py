@@ -20,7 +20,6 @@ from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.logger import logger
 
 
 class ORCEvaporator(Component):

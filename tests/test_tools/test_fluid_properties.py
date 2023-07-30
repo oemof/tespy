@@ -16,9 +16,9 @@ import pytest
 
 from tespy.components import Condenser
 from tespy.components import CycleCloser
-from tespy.components import HeatExchangerSimple
 from tespy.components import Pipe
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine
@@ -159,7 +159,7 @@ class TestFluidPropertyBackEnds:
         turb = Turbine('turbine')
         con = Condenser('condenser')
         pu = Pump('pump')
-        steam_generator = HeatExchangerSimple('steam generator')
+        steam_generator = SimpleHeatExchanger('steam generator')
         closer = CycleCloser('cycle closer')
 
         # cooling water
@@ -210,7 +210,7 @@ class TestFluidPropertyBackEnds:
         # main components
         pu = Pump('pump')
         pi = Pipe('pipeline')
-        es = HeatExchangerSimple('energy balance closing')
+        es = SimpleHeatExchanger('energy balance closing')
 
         closer = CycleCloser('cycle closer')
 

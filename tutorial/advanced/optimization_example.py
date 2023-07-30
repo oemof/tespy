@@ -7,7 +7,7 @@ from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Condenser
 from tespy.components import Desuperheater
-from tespy.components import HeatExchangerSimple
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Merge
 from tespy.components import Splitter
 from tespy.components import Valve
@@ -30,7 +30,7 @@ class SamplePlant:
         )
         # components
         # main cycle
-        sg = HeatExchangerSimple("steam generator")
+        sg = SimpleHeatExchanger("steam generator")
         cc = CycleCloser("cycle closer")
         hpt = Turbine("high pressure turbine")
         sp1 = Splitter("splitter 1", num_out=2)

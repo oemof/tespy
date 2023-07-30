@@ -34,6 +34,7 @@ from tespy.components import ParabolicTrough
 from tespy.components import Pipe
 from tespy.components import Pump
 from tespy.components import Separator
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
 from tespy.components import Source
@@ -52,10 +53,10 @@ from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.helpers import modify_path_os
 
 comp_target_classes = {
@@ -70,6 +71,7 @@ comp_target_classes = {
     'Desuperheater': Desuperheater,
     'HeatExchanger': HeatExchanger,
     'HeatExchangerSimple': HeatExchangerSimple,
+    'SimpleHeatExchanger': SimpleHeatExchanger,
     'SolarCollector': SolarCollector,
     'ParabolicTrough': ParabolicTrough,
     'DropletSeparator': DropletSeparator,
@@ -147,7 +149,7 @@ def load_network(path):
 
     >>> import numpy as np
     >>> from tespy.components import (Sink, Source, CombustionChamber,
-    ... Compressor, Turbine, HeatExchangerSimple)
+    ... Compressor, Turbine, SimpleHeatExchanger)
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import load_network, Network
     >>> import shutil
@@ -159,7 +161,7 @@ def load_network(path):
     >>> c = Compressor('compressor')
     >>> comb = CombustionChamber('combustion')
     >>> t = Turbine('turbine')
-    >>> p = HeatExchangerSimple('fuel preheater')
+    >>> p = SimpleHeatExchanger('fuel preheater')
     >>> si = Sink('sink')
     >>> inc = Connection(air, 'out1', c, 'in1', label='ambient air')
     >>> cc = Connection(c, 'out1', comb, 'in1')

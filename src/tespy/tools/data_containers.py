@@ -69,7 +69,7 @@ class DataContainer:
     >>> from tespy.tools.data_containers import (
     ... ComponentCharacteristics, ComponentCharacteristicMaps,
     ... ComponentProperties, FluidComposition, GroupedComponentProperties,
-    ... FluidProperties, DataContainerSimple)
+    ... FluidProperties, SimpleDataContainer)
     >>> from tespy.components import Pipe
     >>> type(ComponentCharacteristicMaps(is_set=True))
     <class 'tespy.tools.data_containers.ComponentCharacteristicMaps'>
@@ -90,8 +90,8 @@ class DataContainer:
     >>> type(FluidProperties(val=5, val_SI=500000, val_set=True, unit='bar',
     ...      ref=None, ref_set=False))
     <class 'tespy.tools.data_containers.FluidProperties'>
-    >>> type(DataContainerSimple(val=5, is_set=False))
-    <class 'tespy.tools.data_containers.DataContainerSimple'>
+    >>> type(SimpleDataContainer(val=5, is_set=False))
+    <class 'tespy.tools.data_containers.SimpleDataContainer'>
     """
 
     def __init__(self, **kwargs):
@@ -440,7 +440,7 @@ class FluidProperties(DataContainer):
                 'ref': None, 'ref_set': False, 'unit': None, 'design': np.nan}
 
 
-class DataContainerSimple(DataContainer):
+class SimpleDataContainer(DataContainer):
     """
     Simple data container without data type restrictions to val field.
 
@@ -456,7 +456,7 @@ class DataContainerSimple(DataContainer):
     @staticmethod
     def attr():
         r"""
-        Return the available attributes for a DataContainerSimple type object.
+        Return the available attributes for a SimpleDataContainer type object.
 
         Returns
         -------

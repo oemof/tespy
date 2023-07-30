@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import DataContainerSimple as dc_simple
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 class SubsystemInterface(Component):

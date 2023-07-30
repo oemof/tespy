@@ -170,6 +170,10 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
+    def preprocess(self, nw, num_eq=0):
+        super().preprocess(nw, num_eq)
+        self._propagation_start = False
+
     @staticmethod
     def initialise_source(c, key):
         r"""
@@ -238,7 +242,7 @@ class Drum(DropletSeparator):
             else:
                 return h_mix_pQ(c.get_flow(), 0.7)
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -251,17 +255,22 @@ class Drum(DropletSeparator):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        if self != start:
-            start = self
-            for outconn in self.outl:
-                for fluid, x in inconn.fluid.val.items():
-                    if (outconn.fluid.val_set[fluid] is False and
-                            outconn.good_starting_values is False):
-                        outconn.fluid.val[fluid] = x
+        if (not entry_point and inconn == start) or self._propagation_start:
+            return
 
-                outconn.target.propagate_fluid_to_target(outconn, start)
+        self._propagation_start = True
 
-    def propagate_fluid_to_source(self, outconn, start):
+        for outconn in self.outl:
+            for fluid, x in inconn.fluid.val.items():
+                if (outconn.fluid.val_set[fluid] is False and
+                        outconn.good_starting_values is False):
+                    outconn.fluid.val[fluid] = x
+
+            outconn.target.propagate_fluid_to_target(outconn, start)
+
+        self._propagation_start = False
+
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -274,15 +283,20 @@ class Drum(DropletSeparator):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        if self != start:
-            start = self
-            for inconn in self.inl:
-                for fluid, x in outconn.fluid.val.items():
-                    if (inconn.fluid.val_set[fluid] is False and
-                            inconn.good_starting_values is False):
-                        inconn.fluid.val[fluid] = x
+        if (not entry_point and outconn == start) or self._propagation_start:
+            return
 
-                inconn.source.propagate_fluid_to_source(inconn, start)
+        self._propagation_start = True
+
+        for inconn in self.inl:
+            for fluid, x in outconn.fluid.val.items():
+                if (inconn.fluid.val_set[fluid] is False and
+                        inconn.good_starting_values is False):
+                    inconn.fluid.val[fluid] = x
+
+            inconn.source.propagate_fluid_to_source(inconn, start)
+
+        self._propagation_start = False
 
     def exergy_balance(self, T0):
         r"""
@@ -305,7 +319,9 @@ class Drum(DropletSeparator):
         self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
         self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical
 
-        self.E_bus = np.nan
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 

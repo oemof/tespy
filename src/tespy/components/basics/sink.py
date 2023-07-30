@@ -69,7 +69,7 @@ class Sink(Component):
     def get_mandatory_constraints():
         return {}
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Fluid propagation to target stops here.
 
@@ -105,6 +105,10 @@ class Sink(Component):
         """
         self.E_P = np.nan
         self.E_F = np.nan
-        self.E_bus = self.inl[0].Ex_physical
+        self.E_bus = {
+            "chemical": self.inl[0].Ex_chemical,
+            "physical": self.inl[0].Ex_physical,
+            "massless": 0
+        }
         self.E_D = np.nan
         self.epsilon = np.nan

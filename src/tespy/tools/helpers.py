@@ -8,18 +8,33 @@ available from its original location tespy/tools/helpers.py
 
 SPDX-License-Identifier: MIT
 """
+
+import json
 import os
 from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 
-import CoolProp as CP
+import CoolProp.CoolProp as CP
 import numpy as np
 
+from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.global_vars import err
 from tespy.tools.global_vars import fluid_property_data
 from tespy.tools.global_vars import molar_masses
+
+
+def get_chem_ex_lib(name):
+    """Return a new dictionary by merging two dictionaries recursively."""
+    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def fluidalias_in_list(fluid, fluid_list):
+    aliases = [alias.replace(' ', '') for alias in CP.get_aliases(fluid)]
+    return any(alias in fluid_list for alias in aliases)
 
 
 def merge_dicts(dict1, dict2):
@@ -716,7 +731,7 @@ def fluid_structure(fluid):
     (1, 4)
     """
     parts = {}
-    for element in CP.CoolProp.get_fluid_param_string(
+    for element in CP.get_fluid_param_string(
             fluid, 'formula').split('}'):
         if element != '':
             el = element.split('_{')

@@ -19,7 +19,7 @@ from tespy.networks import Network
 
 class TestConnections:
 
-    def setup(self):
+    def setup_method(self):
         """Set up the model."""
         # %% network setup
         fluid_list = ['Air']

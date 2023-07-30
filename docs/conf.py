@@ -119,6 +119,7 @@ html_theme_options = {
     "light_logo": "./images/logo_tespy_mid.svg",
     "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
 }
+html_favicon = './_static/images/logo_tespy_small.svg'
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False

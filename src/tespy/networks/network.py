@@ -340,9 +340,9 @@ class Network:
                 msg = (
                     'Setting ' + fpd[prop]['text'] +
                     ' limits\nmin: ' + str(limits[0]) + ' ' +
-                    self.get_attr(prop + '_unit') + '\n'
+                    fpd[prop]['SI_unit'] + '\n'
                     'max: ' + str(limits[1]) + ' ' +
-                    self.get_attr(prop + '_unit'))
+                    fpd[prop]['SI_unit'])
                 logger.debug(msg)
 
         # update non SI value ranges
@@ -676,6 +676,11 @@ class Network:
                 logger.debug(msg)
 
                 del self.results[b.label]
+
+    def _convergence_check(self):
+        """Check convergence status of a simulation."""
+        msg = 'Calculation did not converge!'
+        assert (not self.lin_dep) and self.converged, msg
 
     def check_busses(self, b):
         r"""
@@ -1322,13 +1327,17 @@ class Network:
         # fluid propagation from set values
         for c in self.conns['object']:
             if any(c.fluid.val_set.values()):
-                c.target.propagate_fluid_to_target(c, c.target)
-                c.source.propagate_fluid_to_source(c, c.source)
-            if any(c.fluid.val0.values()):
-                c.target.propagate_fluid_to_target(c, c.target)
-                c.source.propagate_fluid_to_source(c, c.source)
+                c.target.propagate_fluid_to_target(c, c, entry_point=True)
+                c.source.propagate_fluid_to_source(c, c, entry_point=True)
 
-        # fluid starting value generation for components
+        # To save resources:
+        # find empty fluid data and propagate from connections with data that
+        # are interfaced directly to those connections by a component
+            if any(c.fluid.val0.values()):
+                c.target.propagate_fluid_to_target(c, c, entry_point=True)
+                c.source.propagate_fluid_to_source(c, c, entry_point=True)
+
+        # fluid starting value generation based on components
         for cp in self.comps['object']:
             cp.initialise_fluids()
 
@@ -1554,6 +1563,9 @@ class Network:
         - Perform actual calculation.
         - Postprocessing.
 
+        It is possible to check programatically, if a network was solved
+        successfully with the `.converged` property.
+
         Parameters
         ----------
         mode : str
@@ -1597,6 +1609,7 @@ class Network:
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
         self.new_design = False
+        self.converged = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
                 if c.new_design:
@@ -1718,6 +1731,7 @@ class Network:
 
             if ((self.iter >= self.min_iter and self.res[-1] < err ** 0.5) or
                     self.lin_dep):
+                self.converged = True
                 break
 
             if self.iter > 40:
@@ -1736,6 +1750,7 @@ class Network:
                    '), calculation stopped. Residual value is '
                    '{:.2e}'.format(norm(self.residual)))
             logger.warning(msg)
+
         return
 
     def solve_determination(self):

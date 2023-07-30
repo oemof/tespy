@@ -1471,7 +1471,7 @@ class CombustionEngine(CombustionChamber):
         elif key == 'h':
             return 5e5
 
-    def propagate_fluid_to_target(self, inconn, start):
+    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.
 
@@ -1484,6 +1484,8 @@ class CombustionEngine(CombustionChamber):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and inconn == start:
+            return
         for outconn in self.outl[:2]:
             for fluid, x in inconn.fluid.val.items():
                 if (outconn.fluid.val_set[fluid] is False and
@@ -1491,7 +1493,7 @@ class CombustionEngine(CombustionChamber):
                     outconn.fluid.val[fluid] = x
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_to_source(self, outconn, start):
+    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
 
@@ -1504,6 +1506,8 @@ class CombustionEngine(CombustionChamber):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
+        if not entry_point and outconn == start:
+            return
         for inconn in self.inl[:2]:
             for fluid, x in outconn.fluid.val.items():
                 if (inconn.fluid.val_set[fluid] is False and
@@ -1688,3 +1692,19 @@ class CombustionEngine(CombustionChamber):
         self.S_irr = (
             self.S_irr_i + self.S_irr2 + self.S_irr1 + self.S_Q1irr +
             self.S_Q2irr)
+
+    def exergy_balance(self, T0):
+
+        self.E_P = (
+            self.outl[2].Ex_physical - (self.inl[3].Ex_physical + self.inl[2].Ex_physical)
+            - self.P.val + (self.outl[1] - self.inl[1]) + (self.outl[0] - self.inl[0])
+        )
+        self.E_F = (
+            self.inl[3].Ex_chemical + self.inl[2].Ex_chemical
+            - self.outl[2].Ex_chemical
+        )
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": -self.P.val
+        }

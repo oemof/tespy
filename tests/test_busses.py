@@ -26,7 +26,7 @@ from tespy.tools.characteristics import CharLine
 
 class TestBusses:
 
-    def setup(self):
+    def setup_method(self):
         """Set up the model."""
         # %% network setup
         fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']

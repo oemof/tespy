@@ -32,12 +32,6 @@ from tespy.networks import load_network
 from tespy.tools.helpers import TESPyNetworkError
 
 
-def convergence_check(lin_dep):
-    """Check convergence status of a simulation."""
-    msg = 'Calculation did not converge!'
-    assert not lin_dep, msg
-
-
 class TestNetworks:
     def setup_Network_tests(self):
         self.nw = Network(['water'], p_unit='bar', v_unit='m3 / s', T_unit='C')
@@ -124,7 +118,7 @@ class TestNetworks:
         a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
         b.set_attr(p=1, T=25)
         self.nw.solve("design")
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
     def test_Network_missing_connection_in_init_path(self):
         """Test debug message for missing connection in init_path."""
@@ -358,10 +352,10 @@ class TestNetworkIndividualOffdesign:
         """Test individual design path specification."""
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('design1')
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
@@ -369,7 +363,7 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(T=95, state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('design2')
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
@@ -384,13 +378,13 @@ class TestNetworkIndividualOffdesign:
         self.p2_sc2.set_attr(design_path='design2')
         self.sc2_v2.set_attr(design_path='design2')
         self.nw.solve('offdesign', design_path='design1')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
 
         self.sc1.set_attr(E=500)
         self.sc2.set_attr(E=950)
 
         self.nw.solve('offdesign', design_path='design1')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.sc2_v2.set_attr(design_path=np.nan)
 
         # volumetric flow comparison
@@ -423,10 +417,10 @@ class TestNetworkIndividualOffdesign:
         """Test local offdesign feature."""
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('design1')
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -441,7 +435,7 @@ class TestNetworkIndividualOffdesign:
 
         self.sc2_v2.set_attr(T=95, m=np.nan)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('design2')
 
         # connections and components on side 1 must have switched to offdesign
@@ -465,10 +459,10 @@ class TestNetworkIndividualOffdesign:
         """Test missing design path on connections in local offdesign mode."""
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        convergence_check(self.nw.lin_dep)
+        self.nw._convergence_check()
         self.nw.save('design1')
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')

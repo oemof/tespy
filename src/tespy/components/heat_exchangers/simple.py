@@ -336,6 +336,13 @@ class SimpleHeatExchanger(Component):
         """
         # hazen williams equation
         if self.hydro_group.method == 'HW':
+            msg = (
+                "The Hazen-Williams equation will be accessible through its "
+                "own ks-value in the next major version. That means, you will "
+                "not need to specify hydro_group='HW' and ks. Instead of ks "
+                "specify ks_HW"
+            )
+            warnings.warn(msg, FutureWarning)
             return self.hazen_williams_func_doc(label)
         # darcy friction factor
         else:
@@ -1129,5 +1136,8 @@ class HeatExchangerSimple(SimpleHeatExchanger):
 
     def __init__(self, label, **kwargs):
         super().__init__(label, **kwargs)
-        msg = "The API for the component HeatExchangerSimple will change with the next major release, please import SimpleHeatExchanger instead."
-        warnings.warn(msg, DeprecationWarning)
+        msg = (
+            "The API for the component HeatExchangerSimple will change with "
+            "the next major release, please import SimpleHeatExchanger instead."
+        )
+        warnings.warn(msg, FutureWarning)

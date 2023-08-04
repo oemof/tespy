@@ -303,31 +303,6 @@ class Splitter(NodeBase):
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_wrappers_to_target(self, inconn, start):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if fluid not in outconn.fluid.val:
-                    outconn._create_fluid_wrapper(
-                        fluid, inconn.fluid.engine[fluid], inconn.fluid.back_end[fluid]
-                    )
-                    outconn.fluid.val_set[fluid] = False
-                    outconn.fluid.is_var = inconn.fluid.is_var
-                    outconn.fluid.val[fluid] = x
-
-            outconn.target.propagate_fluid_wrappers_to_target(outconn, start)
-
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.

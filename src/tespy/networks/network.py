@@ -847,6 +847,13 @@ class Network:
             all_connections = [c for c in branch_data["connections"]]
             any_fluids_set = [f for c in all_connections for f in c.fluid.val_set if c.fluid.val_set[f]]
             fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set and c.fluid.val_set[f]}
+            mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]
+            mixing_rule = set(mixing_rules)
+            if len(mixing_rule) > 1:
+                msg = "You have provided more than one mixing rule."
+                raise hlp.TESPyNetworkError(msg)
+            elif len(mixing_rule) == 0:
+                mixing_rule = set(["ideal-cond"])
 
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
@@ -855,6 +862,7 @@ class Network:
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             for c in all_connections:
+                c.mixing_rule = list(mixing_rule)[0]
                 for f in potential_fluids:
                     if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
                         c.fluid.val[f] = 0
@@ -1873,9 +1881,6 @@ class Network:
 
         self.start_time = time()
         self.progress = True
-
-        for c in self.conns["object"]:
-            print(c.fluid.val, c.fluid.val_set, c.fluid.is_var, c.mixing_rule)
 
         if self.iterinfo:
             self.iterinfo_head(print_results)

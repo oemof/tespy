@@ -205,7 +205,6 @@ class Compressor(Turbomachine):
         """
         i = self.inl[0]
         o = self.outl[0]
-        print(i.fluid_data)
         return (
             (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
                 isentropic(
@@ -253,13 +252,13 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if i.p.is_var:#not increment_filter[0, 1]:
+        if self.is_variable(i.p, increment_filter):
             self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if o.p.is_var:#not increment_filter[0, 1]:
+        if self.is_variable(o.p, increment_filter):
             self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if i.h.is_var:#not increment_filter[0, 1]:
+        if self.is_variable(i.h, increment_filter):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if o.h.is_var:
+        if self.is_variable(o.h, increment_filter):
             self.jacobian[k, o.h.J_col] = self.eta_s.val
 
     def eta_s_char_func(self):
@@ -630,11 +629,18 @@ class Compressor(Turbomachine):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
 
-        self.eta_s.val = (
-            (isentropic(
-                self.inl[0].get_flow(), self.outl[0].get_flow(),
-                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI) /
-            (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
+        i = self.inl[0]
+        o = self.outl[0]
+        self.eta_s.val =  (
+            isentropic(
+                i.p.val_SI,
+                i.h.val_SI,
+                o.p.val_SI,
+                i.fluid_data,
+                i.mixing_rule,
+                T0=None
+            ) - self.inl[0].h.val_SI
+        ) / (o.h.val_SI - i.h.val_SI)
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""

@@ -337,10 +337,6 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        # self.num_nw_fluids = len(nw.fluids)
-        # self.nw_fluids = nw.fluids
-        # self.always_all_equations = nw.always_all_equations
-        # self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
         self.num_eq = 0
         self.vars = {}
@@ -417,12 +413,6 @@ class Component:
             if data.is_set and data.func is not None:
                 self.num_eq += data.num_eq
 
-        # set up Jacobian matrix and residual vector
-        # self.num_conn_vars = sum(c.num_vars for c in self.inl + self.outl)
-        # self.jacobian = np.zeros((
-        #     self.num_eq,
-        #     self.num_conn_vars + self.num_vars,
-        # ))
         self.jacobian = OrderedDict()
         self.residual = np.zeros(self.num_eq)
 
@@ -443,24 +433,7 @@ class Component:
         return {}
 
     def get_mandatory_constraints(self):
-        return {
-            # 'mass_flow_constraints': {
-            #     'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-            #     'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-            #     'num_eq': self.num_i},
-                # idea for removal of specified mass flows
-                # can be propagated through network similarly to the fluid
-                # information:
-                # sum(
-                #     # if neither is True, no equation reuqired
-                #     self.inl[i].m.is_var or self.outl[i].m.is_var
-                #     for i in range(self.num_i))
-                # },
-            # 'fluid_constraints': {
-            #     'func': self.fluid_func, 'deriv': self.fluid_deriv,
-            #     'constant_deriv': True, 'latex': self.fluid_func_doc,
-            #     'num_eq': sum(c.fluid.is_var * len(c.fluid.val) for c in self.inl)}
-        }
+        return {}
 
     @staticmethod
     def inlets():
@@ -934,10 +907,11 @@ class Component:
                 else:
                     self.get_attr(key).design = np.nan
 
-    def _build_subjacobian(self, constraint):
-        return np.zeros((
-            constraint['num_eq'], self.num_conn_vars + self.num_vars,
-        ))
+    def is_variable(self, var, increment_filter):
+        if var.is_var:
+            if not increment_filter[var.J_col]:
+                return True
+        return False
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
@@ -1004,142 +978,6 @@ class Component:
 
     def get_plotting_data(self):
         return
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = x_{fl,in,i} - x_{fl,out,i} \; \forall fl \in
-                \text{network fluids,} \; \forall i \in \text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - self.outl[0].fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Get fluid balance equations in LaTeX format.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
-            r'\forall fl \in\text{network fluids,}'
-            r'\; \forall i \in [' + indices + r']')
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = self._build_subjacobian(self.fluid_constraints)
-        if deriv.shape[0] == 0:
-            return deriv
-
-        for i in range(self.num_i):
-            for j, fluid in enumerate(self.inl[i].fluid.val):
-                # this is a little bit hacky: If the fluid composition is
-                # variable at all is decided per connection not per component
-                # therefore the .is_var attribute decides over the connection
-                # is_set then means, that the user specified the value and it
-                # is therefore no system variable
-                if not self.inl[i].fluid.val_set[fluid]:
-                    deriv[j + i, self.get_conn_var_pos(i, fluid)] = 1
-                if not self.outl[i].fluid.val_set[fluid]:
-                    deriv[j + i, self.get_conn_var_pos(i + self.num_i, fluid)] = -1
-
-        return deriv
-
-    def mass_flow_func(self):
-        r"""
-        Calculate the residual value for mass flow balance equation.
-
-        Returns
-        -------
-        residual : list
-            Vector with residual value for component's mass flow balance.
-
-            .. math::
-
-                0 = \dot{m}_{in,i} -\dot{m}_{out,i} \;\forall i\in\text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-        return residual
-
-    def mass_flow_func_doc(self, label):
-        r"""
-        Get mass flow equations in LaTeX format.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
-            r'\; \forall i \in [' + indices + r']')
-        return generate_latex_eq(self, latex, label)
-
-    def mass_flow_deriv(self):
-        r"""
-        Calculate partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the mass flow balance
-            equations.
-        """
-        deriv = self._build_subjacobian(self.mass_flow_constraints)
-        num_conn_vars = 0
-        for i in range(self.num_i):
-            if self.inl[i].m.is_var:
-                deriv[i, num_conn_vars + self.inl[i].var_pos["m"]] = 1
-            num_conn_vars += self.inl[i].num_vars
-        for j in range(self.num_o):
-            if self.outl[j].m.is_var:
-                deriv[j, num_conn_vars + self.outl[j].var_pos["m"]] = -1
-            num_conn_vars += self.outl[j].num_vars
-        return deriv
 
     def pressure_equality_func(self):
         r"""

@@ -291,7 +291,7 @@ class Connection:
         }
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
-        self.mixing_rule = "ideal-cond"
+        self.mixing_rule = None
         self.set_attr(**kwargs)
 
         msg = (

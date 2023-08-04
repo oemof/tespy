@@ -239,18 +239,12 @@ class Turbine(Turbomachine):
         f = self.eta_s_func
         i = self.inl[0]
         o = self.outl[0]
-        if i.p.is_var:
-            # if not increment_filter[pos]:
+        if self.is_variable(i.p, increment_filter):
             self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, "p", i)
-
-        if o.p.is_var:
-            # if not increment_filter[pos]:
+        if self.is_variable(o.p, increment_filter):
             self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, "p", o)
-
-        if i.h.is_var:
-            # if not increment_filter[pos]:
+        if self.is_variable(i.h, increment_filter):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
-
         if o.h.is_var and self.it == 0:
             self.jacobian[k, o.h.J_col] = -1
 
@@ -502,6 +496,7 @@ class Turbine(Turbomachine):
                     inl.h.val_SI,
                     outl.p.val_SI,
                     inl.fluid_data,
+                    inl.mixing_rule,
                     T0=inl.T.val_SI
                 )
                 - inl.h.val_SI

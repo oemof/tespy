@@ -15,8 +15,6 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
     else:
-        # print(mixing_rule, fluid_data)
-        # print(T0)
         s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule)
         T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule)
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
@@ -32,7 +30,6 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
             "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
             "f": T_MIX_PH_REVERSE[mixing_rule]
         }
-        # print(p, h, fluid_data)
         return inverse_temperature_mixture(**kwargs)
 
 
@@ -106,7 +103,6 @@ def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         return pure_fluid["wrapper"].s_ph(p, h)
     else:
         T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
-        # print(T)
         return s_mix_pT(p, T, fluid_data, mixing_rule)
 
 

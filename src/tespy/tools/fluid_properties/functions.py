@@ -15,9 +15,9 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
     else:
-        # todo
-        _check_mixing_rule(mixing_rule, ISENTROPIC_DIRECT, "enthalpy")
-        return ISENTROPIC_DIRECT[mixing_rule](p_1, h_1, p_2, fluid_data)
+        s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule, T0)
+        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, T0)
+        return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
 
 
 def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):

@@ -290,9 +290,7 @@ class Connection:
         }
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
-        self.m.is_var = True
-        self.p.is_var = True
-        self.h.is_var = True
+        self.mixing_rule = "ideal-cond"
         self.set_attr(**kwargs)
 
         msg = (
@@ -545,6 +543,9 @@ class Connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
+            elif key == "mixing_rule":
+                self.mixing_rule = kwargs[key]
+
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'
@@ -602,6 +603,7 @@ class Connection:
 
     def preprocess(self):
         self.num_eq = 0
+        self.it = 0
         for parameter in self.parameters:
             if self.get_attr(parameter).val_set:
                 self.num_eq += self.parameters[parameter].num_eq
@@ -611,9 +613,9 @@ class Connection:
 
     def get_parameters(self):
         return {
-            'm': dc_prop(),
-            'p': dc_prop(),
-            'h': dc_prop(),
+            'm': dc_prop(is_var=True),
+            'p': dc_prop(is_var=True),
+            'h': dc_prop(is_var=True),
             'vol': dc_prop(),
             's': dc_prop(),
             'fluid': dc_flu(),

@@ -204,8 +204,8 @@ c13 = NewConnection(e, "out1", f, "in1", label="13")
 c14 = NewConnection(e, "out2", g, "in1", label="14")
 
 # monkey patch new isentropic method
-import tespy.components.turbomachinery.turbine as t
-t.isentropic = isentropic
+# import tespy.components.turbomachinery.turbine as t
+# t.isentropic = isentropic
 
 
 nwk.add_conns(c1, c2, c11, c12, c13, c14)
@@ -232,7 +232,7 @@ c13.set_attr(m=0.5, fluid={"Water": 1})
 
 
 from tespy.networks import Network
-from tespy.components import Source, Sink, Merge, Splitter, HeatExchangerSimple
+from tespy.components import Source, Sink, Merge, Splitter, HeatExchangerSimple, Compressor
 # from tespy.connections import Connection
 
 # network = Network(fluids=['R134a', 'Water'])
@@ -271,3 +271,34 @@ component2.set_attr(Q=-500)
 nwk.solve('design')
 # network.solve('design')
 nwk.print_results()
+
+
+so1 = Source("air")
+so2 = Source("Other gases")
+m1 = Merge("gas mixing")
+p1 = Pipe("test", pr=1, Q=0)
+sp1 = Splitter("Splitter")
+t1 = Turbine("Turbine", pr=.1, eta_s=.8)
+cp1 = Compressor("Compressor", pr=10, eta_s=.8)
+si1 = Sink("Sink1")
+si2 = Sink("Sink2")
+
+c21 = NewConnection(so1, "out1", m1, "in1", label="21", fluid={"N2": 0.76, "O2": 0.23, "Ar": 0.01}, m=10, T=25, p=1, mixing_rule="ideal-cond")
+c22 = NewConnection(so2, "out1", m1, "in2", label="22", fluid={"H2O": 1}, m=.5, T=100)
+c23 = NewConnection(m1, "out1", p1, "in1", label="23")
+c24 = NewConnection(p1, "out1", sp1, "in1", label="24")
+c25 = NewConnection(sp1, "out1", t1, "in1", label="25")
+c26 = NewConnection(t1, "out1", si1, "in1", label="26")
+c27 = NewConnection(sp1, "out2", cp1, "in1", label="27", m=4)
+c28 = NewConnection(cp1, "out1", si2, "in1", label="28")
+
+nwk.add_conns(c21, c22, c23, c24, c25, c26, c27, c28)
+
+from tespy.tools.helpers import TESPyNetworkError
+try:
+    nwk.solve("design")
+except TESPyNetworkError as e:
+    print(e)
+
+for c in [c21, c22, c23, c24, c25, c26, c27, c28]:
+    print(c.fluid.val)

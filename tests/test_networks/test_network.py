@@ -20,13 +20,16 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import Pipe
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import SubsystemInterface
+from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.connections import Connection
+from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.networks import load_network
 from tespy.tools.helpers import TESPyNetworkError
@@ -34,7 +37,7 @@ from tespy.tools.helpers import TESPyNetworkError
 
 class TestNetworks:
     def setup_Network_tests(self):
-        self.nw = Network(['water'], p_unit='bar', v_unit='m3 / s', T_unit='C')
+        self.nw = Network(p_unit='bar', v_unit='m3 / s', T_unit='C')
         self.source = Source('source')
         self.sink = Sink('sink')
 
@@ -482,3 +485,53 @@ class TestNetworkIndividualOffdesign:
             pass
 
         shutil.rmtree('./design1', ignore_errors=True)
+
+
+class TestNetworkPreprocessing:
+
+    def setup_method(self):
+        self.nwk = Network(T_unit="C", p_unit="bar", h_unit='kJ / kg')
+
+    def test_fluid_linear_branch_distribution():
+        raise NotImplementedError()
+
+    def test_fluid_connected_branches_distribution():
+        raise NotImplementedError()
+
+    def test_fluid_inpedendant_branches_distribution():
+        raise NotImplementedError()
+
+    def test_circular_topology_presolve(self):
+
+        source = Source('source')
+        merge = Merge('merge')
+        component1 = SimpleHeatExchanger('comp1', pr=1)
+        splitter = Splitter('splitter')
+        component2 = SimpleHeatExchanger('comp2')
+        sink = Sink('sink')
+
+        c1 = Connection(source, 'out1', merge, 'in1', p=1, h=200, m=10, fluid={'R134a': 1}, label="1")
+        c2 = Connection(merge, 'out1', component1, 'in1', label="2")
+        c3 = Connection(component1, 'out1', splitter, 'in1', h=180, label="3")
+        c4 = Connection(splitter, 'out1', component2, 'in1', m=1, label="4")
+        c5 = Connection(component2, 'out1', merge, 'in2', h=170, label="5")
+        c6 = Connection(splitter, 'out2', sink, 'in1', label="6")
+
+        self.nwk.add_conns(c1, c2, c3, c4, c5, c6)
+
+        self.nwk.solve("design")
+
+    def test_linear_branch_massflow_presolve():
+        raise NotImplementedError()
+
+    def test_splitting_branch_massflow_presolve():
+        raise NotImplementedError()
+
+    def test_linear_branch_fluid_presolve():
+        raise NotImplementedError()
+
+    def test_splitting_branch_fluid_presolve():
+        raise NotImplementedError()
+
+    def test_independant_branch_fluid_presolve():
+        raise NotImplementedError()

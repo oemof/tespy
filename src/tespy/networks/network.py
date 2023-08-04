@@ -709,7 +709,6 @@ class Network:
 
         self.fluid_wrapper_branches = merged_fluid_wrapper_branches
 
-
         self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
 
         self.fluid_branches = {}
@@ -783,6 +782,85 @@ class Network:
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
 
+    def initialise(self):
+        r"""
+        Initilialise the network depending on calclation mode.
+
+        Design
+
+        - Generic fluid composition and fluid property initialisation.
+        - Starting values from initialisation path if provided.
+
+        Offdesign
+
+        - Check offdesign path specification.
+        - Set component and connection design point properties.
+        - Switch from design/offdesign parameter specification.
+        """
+        # keep track of the number of bus, component and connection equations
+        # as well as number of component variables
+        self.num_bus_eq = 0
+        self.num_comp_eq = 0
+        self.num_conn_eq = 0
+        self.num_vars = 0
+        self.num_comp_vars = 0
+        self.num_conn_vars = 0
+        self.variables_dict = {}
+
+        self.propagate_fluid_wrappers()
+        self.presolve_massflow_topology()
+        self.presolve_fluid_topology()
+
+        self.init_set_properties()
+
+        if self.mode == 'offdesign':
+            self.redesign = True
+            if self.design_path is None:
+                # must provide design_path
+                msg = ('Please provide "design_path" for every offdesign '
+                       'calculation.')
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            # load design case
+            if self.new_design:
+                self.init_offdesign_params()
+
+            self.init_offdesign()
+
+        else:
+            # reset any preceding offdesign calculation
+            self.init_design()
+            # generic fluid initialisation
+            # for offdesign cases good starting values should be available
+            # self.init_fluids()
+
+        # generic fluid property initialisation
+        self.init_properties()
+
+        msg = 'Network initialised.'
+        logger.info(msg)
+
+    def propagate_fluid_wrappers(self):
+
+        for branch_data in self.fluid_wrapper_branches.values():
+            all_connections = [c for c in branch_data["connections"]]
+            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set if c.fluid.val_set[f]]
+            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set and c.fluid.val_set[f]}
+
+            if not any_fluids_set:
+                msg = "You are missing fluid specifications."
+            any_fluids = [f for c in all_connections for f in c.fluid.val]
+            any_fluids0 = [f for c in all_connections for f in c.fluid.val]
+
+            potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
+            for c in all_connections:
+                for f in potential_fluids:
+                    if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
+                        c.fluid.val[f] = 0
+                    if f not in c.fluid.wrapper:
+                        c.fluid.wrapper[f] = fluid_set_wrappers[f]
+
     def presolve_massflow_topology(self):
 
         # mass flow is a single variable in each sub branch
@@ -844,131 +922,6 @@ class Network:
                     "obj": main_conn, "variable": "m"
                 }
                 self.num_conn_vars += 1
-
-    def initialise(self):
-        r"""
-        Initilialise the network depending on calclation mode.
-
-        Design
-
-        - Generic fluid composition and fluid property initialisation.
-        - Starting values from initialisation path if provided.
-
-        Offdesign
-
-        - Check offdesign path specification.
-        - Set component and connection design point properties.
-        - Switch from design/offdesign parameter specification.
-        """
-        # keep track of the number of bus, component and connection equations
-        # as well as number of component variables
-        self.num_bus_eq = 0
-        self.num_comp_eq = 0
-        self.num_conn_eq = 0
-        self.num_vars = 0
-        self.num_comp_vars = 0
-        self.num_conn_vars = 0
-        self.variables_dict = {}
-
-        self.propagate_fluid_wrappers()
-        self.presolve_massflow_topology()
-        self.presolve_fluid_topology()
-
-        self.init_set_properties()
-
-        if self.mode == 'offdesign':
-            self.redesign = True
-            if self.design_path is None:
-                # must provide design_path
-                msg = ('Please provide "design_path" for every offdesign '
-                       'calculation.')
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            # load design case
-            if self.new_design:
-                self.init_offdesign_params()
-
-            self.init_offdesign()
-
-        else:
-            # reset any preceding offdesign calculation
-            self.init_design()
-            # generic fluid initialisation
-            # for offdesign cases good starting values should be available
-            # self.init_fluids()
-
-        # generic fluid property initialisation
-        self.init_properties()
-
-        msg = 'Network initialised.'
-        logger.info(msg)
-
-    def init_set_properties(self):
-        """Specification of SI values for user set values."""
-        self.all_fluids = []
-        # fluid property values
-        for c in self.conns['object']:
-            c.preprocess()
-
-            for key in ["p", "h"]:
-                if c.get_attr(key).is_var:
-                    c.get_attr(key).J_col = self.num_conn_vars
-                    self.variables_dict[self.num_conn_vars] = {
-                        "obj": c, "variable": key
-                    }
-                    self.num_conn_vars += 1
-
-            self.all_fluids += c.fluid.val.keys()
-
-            if not self.init_previous:
-                c.good_starting_values = False
-
-            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
-                # read unit specifications
-                if key == 'Td_bp':
-                    c.get_attr(key).unit = self.get_attr('T_unit')
-                else:
-                    c.get_attr(key).unit = self.get_attr(key + '_unit')
-                # set SI value
-                if c.get_attr(key).val_set:
-                    c.get_attr(key).val_SI = hlp.convert_to_SI(
-                        key, c.get_attr(key).val, c.get_attr(key).unit)
-                if c.get_attr(key).ref_set:
-                    if key == 'T':
-                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                            'Td_bp', c.get_attr(key).ref.delta,
-                            c.get_attr(key).unit)
-                    else:
-                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).ref.delta,
-                            c.get_attr(key).unit)
-
-        if len(self.all_fluids) == 0:
-            msg = (
-                'Network has no fluids, please specify a list with fluids on '
-                'network creation.'
-            )
-            logger.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        # set up results dataframe for connections
-        # this should be done based on the connections
-        cols = ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-        self.all_fluids = list(set(self.all_fluids))
-        cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-            + self.all_fluids
-        )
-        self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
-        # include column for fluid balance in specs dataframe
-        self.specifications['Connection'] = pd.DataFrame(columns=cols + ['balance'], dtype='bool')
-        self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
-
-        msg = (
-            'Updated fluid property SI values and fluid mass fraction for '
-            'user specified connection parameters.')
-        logger.debug(msg)
 
     def presolve_fluid_topology(self):
 
@@ -1060,25 +1013,71 @@ class Network:
                     }
                     self.num_conn_vars += 1
 
-    def propagate_fluid_wrappers(self):
+    def init_set_properties(self):
+        """Specification of SI values for user set values."""
+        self.all_fluids = []
+        # fluid property values
+        for c in self.conns['object']:
+            c.preprocess()
 
-        for branch_data in self.fluid_wrapper_branches.values():
-            all_connections = [c for c in branch_data["connections"]]
-            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set if c.fluid.val_set[f]]
-            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set and c.fluid.val_set[f]}
+            for key in ["p", "h"]:
+                if c.get_attr(key).is_var:
+                    c.get_attr(key).J_col = self.num_conn_vars
+                    self.variables_dict[self.num_conn_vars] = {
+                        "obj": c, "variable": key
+                    }
+                    self.num_conn_vars += 1
 
-            if not any_fluids_set:
-                msg = "You are missing fluid specifications."
-            any_fluids = [f for c in all_connections for f in c.fluid.val]
-            any_fluids0 = [f for c in all_connections for f in c.fluid.val]
+            self.all_fluids += c.fluid.val.keys()
 
-            potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
-            for c in all_connections:
-                for f in potential_fluids:
-                    if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
-                        c.fluid.val[f] = 0
-                    if f not in c.fluid.wrapper:
-                        c.fluid.wrapper[f] = fluid_set_wrappers[f]
+            if not self.init_previous:
+                c.good_starting_values = False
+
+            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
+                # read unit specifications
+                if key == 'Td_bp':
+                    c.get_attr(key).unit = self.get_attr('T_unit')
+                else:
+                    c.get_attr(key).unit = self.get_attr(key + '_unit')
+                # set SI value
+                if c.get_attr(key).val_set:
+                    c.get_attr(key).val_SI = hlp.convert_to_SI(
+                        key, c.get_attr(key).val, c.get_attr(key).unit)
+                if c.get_attr(key).ref_set:
+                    if key == 'T':
+                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                            'Td_bp', c.get_attr(key).ref.delta,
+                            c.get_attr(key).unit)
+                    else:
+                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                            key, c.get_attr(key).ref.delta,
+                            c.get_attr(key).unit)
+
+        if len(self.all_fluids) == 0:
+            msg = (
+                'Network has no fluids, please specify a list with fluids on '
+                'network creation.'
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        # set up results dataframe for connections
+        # this should be done based on the connections
+        cols = ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+        self.all_fluids = list(set(self.all_fluids))
+        cols = (
+            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            + self.all_fluids
+        )
+        self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
+        # include column for fluid balance in specs dataframe
+        self.specifications['Connection'] = pd.DataFrame(columns=cols + ['balance'], dtype='bool')
+        self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
+
+        msg = (
+            'Updated fluid property SI values and fluid mass fraction for '
+            'user specified connection parameters.')
+        logger.debug(msg)
 
     def init_design(self):
         r"""
@@ -1480,9 +1479,9 @@ class Network:
         # To save resources:
         # find empty fluid data and propagate from connections with data that
         # are interfaced directly to those connections by a component
-            if any(c.fluid.val0.values()):
-                c.target.propagate_fluid_to_target(c, c, entry_point=True)
-                c.source.propagate_fluid_to_source(c, c, entry_point=True)
+            # if any(c.fluid.val0.values()):
+            #     c.target.propagate_fluid_to_target(c, c, entry_point=True)
+            #     c.source.propagate_fluid_to_source(c, c, entry_point=True)
 
         # fluid starting value generation based on components
         for cp in self.comps['object']:
@@ -1635,13 +1634,13 @@ class Network:
         # starting values for specified vapour content or temperature
         if c.x.val_set and not c.h.val_set:
             try:
-                c.h.val_SI = fp.h_mix_pQ(c.get_flow(), c.x.val_SI)
+                c.h.val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
             except ValueError:
                 pass
 
         if c.T.val_set and not c.h.val_set:
             try:
-                c.h.val_SI = fp.h_mix_pT(c.get_flow(), c.T.val_SI)
+                c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
             except ValueError:
                 pass
 
@@ -1875,6 +1874,9 @@ class Network:
         self.start_time = time()
         self.progress = True
 
+        for c in self.conns["object"]:
+            print(c.fluid.val, c.fluid.val_set, c.fluid.is_var, c.mixing_rule)
+
         if self.iterinfo:
             self.iterinfo_head(print_results)
 
@@ -2076,25 +2078,7 @@ class Network:
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0
 
-    def solve_control(self):
-        r"""
-        Control iteration step of the newton algorithm.
-
-        - Calculate the residual value for each equation
-        - Calculate the jacobian matrix
-        - Calculate new values for variables
-        - Restrict fluid properties to value ranges
-        - Check component parameters for consistency
-        """
-        self.solve_components()
-        self.solve_busses()
-        self.solve_connections()
-        self.solve_user_defined_eq()
-        self.matrix_inversion()
-
-        # check for linear dependency
-        if self.lin_dep:
-            return
+    def update_variables(self):
 
         # add the increment
         for data in self.variables_dict.values():
@@ -2136,6 +2120,28 @@ class Network:
 
             for c in self.conns['object']:
                 self.solve_check_props(c)
+
+    def solve_control(self):
+        r"""
+        Control iteration step of the newton algorithm.
+
+        - Calculate the residual value for each equation
+        - Calculate the jacobian matrix
+        - Calculate new values for variables
+        - Restrict fluid properties to value ranges
+        - Check component parameters for consistency
+        """
+        self.solve_components()
+        self.solve_busses()
+        self.solve_connections()
+        self.solve_user_defined_eq()
+        self.matrix_inversion()
+
+        # check for linear dependency
+        if self.lin_dep:
+            return
+
+        self.update_variables()
 
     def solve_check_props(self, c):
         r"""
@@ -2204,14 +2210,12 @@ class Network:
         - Iterate through components in network to get residuals and
           derivatives.
         - Place residual values in residual value vector of the network.
-        - Place partial derivatives in jacobian matrix of the network.
+        - Place partial derivatives in Jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
         sum_eq = 0
         for cp in self.comps['object']:
-
             cp.solve(self.increment_filter)
-
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
 
             if len(cp.jacobian) > 0:
@@ -2230,7 +2234,7 @@ class Network:
         - Iterate through user defined functions and calculate residual value
           and corresponding jacobian.
         - Place residual values in residual value vector of the network.
-        - Place partial derivatives regarding connection parameters in jacobian
+        - Place partial derivatives regarding connection parameters in Jacobian
           matrix of the network.
         """
         row = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
@@ -2249,144 +2253,7 @@ class Network:
         - Iterate through connections in network to get residuals and
           derivatives.
         - Place residual values in residual value vector of the network.
-        - Place partial derivatives in jacobian matrix of the network.
-
-        Note
-        ----
-        **Equations**
-
-        **mass flow, pressure and enthalpy**
-
-        .. math::
-            val = 0
-
-        **temperatures**
-
-        .. math::
-            val = T_{j} - T \left( p_{j}, h_{j}, fluid_{j} \right)
-
-        **volumetric flow**
-
-        .. math::
-            val = \dot{V}_{j} - v \left( p_{j}, h_{j} \right) \cdot \dot{m}_j
-
-        **superheating or subcooling** *Works with pure fluids only!*
-
-        .. math::
-            val = T_{j} - td_{bp} - T_{bp}\left( p_{j}, fluid_{j} \right)
-
-            \text{td: temperature difference, bp: boiling point}
-
-        **vapour mass fraction** *Works with pure fluids only!*
-
-        .. math::
-            val = h_{j} - h \left( p_{j}, x_{j}, fluid_{j} \right)
-
-        **Referenced values**
-
-        **mass flow, pressure and enthalpy**
-
-        .. math::
-            val = x_{j} - x_{j,ref} \cdot a + b
-
-        **temperatures**
-
-        .. math::
-            val = T \left( p_{j}, h_{j}, fluid_{j} \right) -
-            T \left( p_{j}, h_{j}, fluid_{j} \right) \cdot a + b
-
-        **Derivatives**
-
-        **mass flow, pressure and enthalpy**
-
-        .. math::
-
-            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
-            \text{for equation i, connection j}\\
-            \text{pressure and enthalpy analogously}
-
-        **temperatures**
-
-        .. math::
-
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{\partial T_{j}}{\partial p_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{\partial T_{j}}{\partial h_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
-            - \frac{\partial T_{j}}{\partial fluid_{j,k}}
-
-            \forall k \in \text{fluid components}\\
-            \text{for equation i, connection j}
-
-        **volumetric flow**
-
-        .. math::
-
-            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) =
-            -v \left( p_{j}, h_{j} \right)\\
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{\partial v_{j}}{\partial p_{j}} \cdot \dot{m}_j\\
-            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            -\frac{\partial v_{j}}{\partial h_{j}} \cdot \dot{m}_j\\
-
-            \forall k \in \text{fluid components}\\
-            \text{for equation i, connection j}
-
-        **superheating or subcooling** *Works with pure fluids only!*
-
-        .. math::
-
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
-            {\partial p_{j}} -
-            \frac{\partial T_{bp} \left( p_{j}, fluid_{j} \right)}
-            {\partial p_{j}} \\
-            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            \frac{\partial T \left( p_{j}, h_{j}, fluid_{j} \right)}
-            {\partial h_{j}}\\
-
-            \text{for equation i, connection j}\\
-            \text{td: temperature difference, bp: boiling point}
-
-        **vapour mass fraction** *Works with pure fluids only!*
-
-        .. math::
-
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            -\frac{\partial h \left( p_{j}, x_{j}, fluid_{j} \right)}
-            {\partial p_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) = 1\\
-            \text{for equation i, connection j, x: vapour mass fraction}
-
-        **Referenced values**
-
-        **mass flow, pressure and enthalpy**
-
-        .. math::
-            J\left(\frac{\partial f_{i}}{\partial m_{j}}\right) = 1\\
-            J\left(\frac{\partial f_{i}}{\partial m_{j,ref}}\right) = - a\\
-            \text{for equation i, connection j}\\
-            \text{pressure and enthalpy analogously}
-
-        **temperatures**
-
-        .. math::
-            J\left(\frac{\partial f_{i}}{\partial p_{j}}\right) =
-            \frac{dT_{j}}{dp_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial h_{j}}\right) =
-            \frac{dT_{j}}{dh_{j}}\\
-            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k}}\right) =
-            \frac{dT_{j}}{dfluid_{j,k}}
-            \; , \forall k \in \text{fluid components}\\
-            J\left(\frac{\partial f_{i}}{\partial p_{j,ref}}\right) =
-            \frac{dT_{j,ref}}{dp_{j,ref}} \cdot a \\
-            J\left(\frac{\partial f_{i}}{\partial h_{j,ref}}\right) =
-            \frac{dT_{j,ref}}{dh_{j,ref}} \cdot a \\
-            J\left(\frac{\partial f_{i}}{\partial fluid_{j,k,ref}}\right) =
-            \frac{dT_{j}}{dfluid_{j,k,ref}} \cdot a
-            \; , \forall k \in \text{fluid components}\\
-            \text{for equation i, connection j}
+        - Place partial derivatives in Jacobian matrix of the network.
         """
         sum_eq = self.num_comp_eq
 
@@ -2401,7 +2268,8 @@ class Network:
                 self.jacobian[rows, columns] = data
 
                 sum_eq += c.num_eq
-            # c.it += 1
+
+            c.it += 1
 
     def solve_busses(self):
         r"""
@@ -2515,8 +2383,6 @@ class Network:
                     [cmp_val, bus_val, eff, design_value])
 
             b.P.val = self.results[b.label]['bus value'].sum()
-
-# %% printing and plotting
 
     def print_results(self, colored=True, colors=None, print_results=True):
         r"""Print the calculations results to prompt."""
@@ -2647,8 +2513,6 @@ class Network:
             return str(val)
         else:
             return np.nan
-
-# %% saving
 
     def save(self, path, **kwargs):
         r"""

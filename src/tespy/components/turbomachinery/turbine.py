@@ -198,6 +198,7 @@ class Turbine(Turbomachine):
                     inl.h.val_SI,
                     outl.p.val_SI,
                     inl.fluid_data,
+                    inl.mixing_rule,
                     T0=inl.T.val_SI
                 )
                 - inl.h.val_SI

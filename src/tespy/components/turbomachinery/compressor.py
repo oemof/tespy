@@ -203,11 +203,21 @@ class Compressor(Turbomachine):
                 0 = -\left( h_{out} - h_{in} \right) \cdot \eta_{s} +
                 \left( h_{out,s} - h_{in} \right)
         """
+        i = self.inl[0]
+        o = self.outl[0]
+        print(i.fluid_data)
         return (
-            -(self.outl[0].h.val_SI - self.inl[0].h.val_SI) *
-            self.eta_s.val + (isentropic(
-                self.inl[0].get_flow(), self.outl[0].get_flow(),
-                T0=self.inl[0].T.val_SI) - self.inl[0].h.val_SI))
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+                isentropic(
+                    i.p.val_SI,
+                    i.h.val_SI,
+                    o.p.val_SI,
+                    i.fluid_data,
+                    i.mixing_rule,
+                    T0=None
+                ) - self.inl[0].h.val_SI
+            )
+        )
 
     def eta_s_func_doc(self, label):
         r"""

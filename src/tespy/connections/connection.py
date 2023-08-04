@@ -31,6 +31,7 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import convert_from_SI
@@ -673,7 +674,7 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self):
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.T.val_SI - self.calc_T()
@@ -681,11 +682,11 @@ class Connection:
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
             )
         # if len(self.fluid.val) > 1:
         #     self.jacobian[0, 0, 3:] = dT_mix_ph_dfluid(
@@ -694,7 +695,7 @@ class Connection:
 
     def calc_vol(self):
         try:
-            vol = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
+            vol = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
         except NotImplementedError:
             vol = np.nan
         return vol
@@ -762,7 +763,7 @@ class Connection:
             )
 
     def calc_s(self):
-        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, T0=self.T.val_SI)
+        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
 
     def solve(self, increment_filter):
         k = 0
@@ -779,7 +780,7 @@ class Connection:
         if (
                 number_fluids > 1
                 and abs(
-                    h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data)
+                    h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
                     - self.h.val_SI
                 ) > ERR ** .5
         ):
@@ -789,7 +790,7 @@ class Connection:
             self.s.val_SI = np.nan
             msg = (
                 'Could not find a feasible value for mixture temperature '
-                'at connection ' + c.label + '. The values for '
+                'at connection ' + self.label + '. The values for '
                 'temperature, specific volume, volumetric flow and '
                 'entropy are set to nan.')
             logger.error(msg)
@@ -883,8 +884,8 @@ class Connection:
         Tmax = min(
             [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
         ) * 0.99
-        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data)
-        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data)
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule)
 
         if self.h.val_SI < hmin:
             self.h.val_SI = hmin

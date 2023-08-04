@@ -833,7 +833,7 @@ class Network:
             self.init_design()
             # generic fluid initialisation
             # for offdesign cases good starting values should be available
-            # self.init_fluids()
+            self.init_fluids()
 
         # generic fluid property initialisation
         self.init_properties()
@@ -1467,7 +1467,7 @@ class Network:
         - Propagate fluid vector in direction of sources and targets.
         """
         # stop fluid propagation for single fluid networks
-        if len(self.fluids) == 1:
+        if len(self.all_fluids) == 1:
             return
 
         # fluid propagation from set values
@@ -2110,6 +2110,11 @@ class Network:
 
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
+            if any(c.fluid.is_var.values()):
+                total_mass_fractions = sum(c.fluid.val.values())
+                for fluid in c.fluid.val:
+                    c.fluid.val[fluid] = c.fluid.val[fluid] / total_mass_fractions
+
             c.build_fluid_data()
             self.solve_check_props(c)
 
@@ -2174,21 +2179,21 @@ class Network:
             if c.p.is_var:
                 if c.p.val_SI <= self.p_range_SI[0]:
                     c.p.val_SI = self.p_range_SI[0]
-                    logger.debug(self.property_range_message(c, 'p'))
+                    logger.debug(c._property_range_message('p'))
 
                 elif c.p.val_SI >= self.p_range_SI[1]:
                     c.p.val_SI = self.p_range_SI[1]
-                    logger.debug(self.property_range_message(c, 'p'))
+                    logger.debug(c._property_range_message('p'))
 
             # enthalpy
             if c.h.is_var:
                 if c.h.val_SI < self.h_range_SI[0]:
                     c.h.val_SI = self.h_range_SI[0]
-                    logger.debug(self.property_range_message(c, 'h'))
+                    logger.debug(c._property_range_message('h'))
 
                 elif c.h.val_SI > self.h_range_SI[1]:
                     c.h.val_SI = self.h_range_SI[1]
-                    logger.debug(self.property_range_message(c, 'h'))
+                    logger.debug(c._property_range_message('h'))
 
                 # temperature
                 if c.T.val_set:
@@ -2197,11 +2202,11 @@ class Network:
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
             c.m.val_SI = self.m_range_SI[0]
-            logger.debug(self.property_range_message(c, 'm'))
+            logger.debug(self._property_range_message(c, 'm'))
 
         elif c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
             c.m.val_SI = self.m_range_SI[1]
-            logger.debug(self.property_range_message(c, 'm'))
+            logger.debug(self._property_range_message(c, 'm'))
 
     def solve_components(self):
         r"""

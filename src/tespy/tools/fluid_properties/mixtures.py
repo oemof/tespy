@@ -25,6 +25,7 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
     if water_alias:
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, molar_liquid = cond_check(p, T, fluid_data, water_alias)
+        print(mass_liquid)
         if mass_liquid == 0:
             return h_mix_pT_ideal(p, T, fluid_data, **kwargs)
         h = 0

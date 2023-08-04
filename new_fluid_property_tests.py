@@ -283,16 +283,16 @@ cp1 = Compressor("Compressor", pr=10, eta_s=.8)
 si1 = Sink("Sink1")
 si2 = Sink("Sink2")
 
-c21 = NewConnection(so1, "out1", m1, "in1", label="21", fluid={"N2": 0.76, "O2": 0.23, "Ar": 0.01}, m=10, T=25, p=1, mixing_rule="ideal-cond")
-c22 = NewConnection(so2, "out1", m1, "in2", label="22", fluid={"H2O": 1}, m=.5, T=100)
-c23 = NewConnection(m1, "out1", p1, "in1", label="23")
-c24 = NewConnection(p1, "out1", sp1, "in1", label="24")
-c25 = NewConnection(sp1, "out1", t1, "in1", label="25")
-c26 = NewConnection(t1, "out1", si1, "in1", label="26")
-c27 = NewConnection(sp1, "out2", cp1, "in1", label="27", m=4)
-c28 = NewConnection(cp1, "out1", si2, "in1", label="28")
+c21 = NewConnection(so1, "out1", m1, "in1", label="21", fluid={"N2": 0.76, "O2": 0.23, "Ar": 0.01}, m=10, T=40, p=1, mixing_rule="ideal-cond")
+c22 = NewConnection(so2, "out1", m1, "in2", label="22", fluid={"H2O": 1}, m=.5, T=40)
+c23 = NewConnection(m1, "out1", si1, "in1", label="23")
+# c24 = NewConnection(p1, "out1", sp1, "in1", label="24")
+# c25 = NewConnection(sp1, "out1", t1, "in1", label="25")
+# c26 = NewConnection(t1, "out1", si1, "in1", label="26")
+# c27 = NewConnection(sp1, "out2", cp1, "in1", label="27", m=4)
+# c28 = NewConnection(cp1, "out1", si2, "in1", label="28")
 
-nwk.add_conns(c21, c22, c23, c24, c25, c26, c27, c28)
+nwk.add_conns(c21, c22, c23)#, c24, c25, c26, c27, c28)
 
 from tespy.tools.helpers import TESPyNetworkError
 try:
@@ -300,5 +300,5 @@ try:
 except TESPyNetworkError as e:
     print(e)
 
-for c in [c21, c22, c23, c24, c25, c26, c27, c28]:
+for c in [c21, c22, c23]:#, c24, c25, c26, c27, c28]:
     print(c.fluid.val)

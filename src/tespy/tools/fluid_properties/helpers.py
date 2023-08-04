@@ -1,8 +1,9 @@
-PRECISION = 1e-6
+from tespy.tools.global_vars import ERR
+from tespy.tools.logger import logger
 
 
 def _is_larger_than_precision(value):
-    return value > PRECISION
+    return value > ERR
 
 
 def _check_mixing_rule(mixing_rule, mixing_functions, propertyfunction):
@@ -34,7 +35,7 @@ def get_molar_fractions(fluid_data):
     return {key: value / molarflow_sum for key, value in molarflow.items()}
 
 
-def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10, tol_rel=PRECISION, tol_abs=PRECISION, tol_mode="rel", **function_kwargs):
+def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=30, tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs):
 
     # start newton loop
     iteration = 0
@@ -42,19 +43,24 @@ def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=300
     x = val0
     parameter = function_kwargs["parameter"]
     function = function_kwargs["function"]
+    relax = 1
 
     while expr:
         # calculate function residual and new value
         function_kwargs[parameter] = x
         residual = target_value - function(**function_kwargs)
-        x += residual / derivative(**function_kwargs)
+        x += residual / derivative(**function_kwargs) * relax
 
         # check for value ranges
         if x < valmin:
             x = valmin
         if x > valmax:
             x = valmax
+
         iteration += 1
+        # relaxation to help convergence in case of jumping
+        if iteration == 5:
+            relax = 0.75
 
         if iteration > max_iter:
             msg = (
@@ -64,8 +70,7 @@ def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=300
                 f'{target_value}, residual is {residual} after {iteration} '
                 'iterations.'
             )
-            print(msg)
-            # logging.debug(msg)
+            logger.debug(msg)
 
             break
         if tol_mode == 'abs':
@@ -94,7 +99,7 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
 
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": f, "parameter": "T" , "delta": 0.01
+        "function": f, "parameter": "T" , "delta": 0.001
     }
     return newton_with_kwargs(
         central_difference,

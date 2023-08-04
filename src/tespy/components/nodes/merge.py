@@ -339,7 +339,9 @@ class Merge(NodeBase):
                     ls += [conn]
 
             for c in ls:
-                for fluid in self.nw_fluids:
+                for fluid in self.inl[0].fluid.val:
+                    if fluid not in self.outl[0].fluid.val_set:
+                        self.outl[0].fluid.val_set[fluid] = False
                     if not self.outl[0].fluid.val_set[fluid]:
                         self.outl[0].fluid.val[fluid] = c.fluid.val[fluid]
                     for i in self.inl:

@@ -250,14 +250,17 @@ class Compressor(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        i = self.inl[0]
+        o = self.outl[0]
         f = self.eta_s_func
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        self.jacobian[k, 1, 2] = -self.eta_s.val
+        if i.p.is_var:#not increment_filter[0, 1]:
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if o.p.is_var:#not increment_filter[0, 1]:
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if i.h.is_var:#not increment_filter[0, 1]:
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.eta_s.val
 
     def eta_s_char_func(self):
         r"""

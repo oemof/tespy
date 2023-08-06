@@ -1587,7 +1587,7 @@ class Network:
                         c.h.val_SI = h * 1.001
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
                       (c.state.val == 'l' and c.state.is_set)):
-                    h = fp.h_mix_pQ(c.get_flow(), 0)
+                    h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
 

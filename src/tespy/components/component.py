@@ -827,20 +827,6 @@ class Component:
 
         outconn.target.propagate_fluid_to_target(outconn, start)
 
-    def propagate_fluid_wrappers_to_target(self, inconn, start):
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-        for fluid, x in inconn.fluid.val.items():
-            if fluid not in outconn.fluid.val:
-                outconn._create_fluid_wrapper(
-                    fluid, inconn.fluid.engine[fluid], inconn.fluid.back_end[fluid]
-                )
-                outconn.fluid.val_set[fluid] = False
-                outconn.fluid.is_var = inconn.fluid.is_var
-                outconn.fluid.val[fluid] = x
-
-        outconn.target.propagate_fluid_wrappers_to_target(outconn, start)
-
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's source in recursion.
@@ -866,21 +852,6 @@ class Component:
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)
-
-    def propagate_fluid_wrappers_to_source(self, outconn, start):
-        conn_idx = self.outl.index(outconn)
-        inconn = self.inl[conn_idx]
-
-        for fluid, x in outconn.fluid.val.items():
-            if fluid not in inconn.fluid.val:
-                inconn._create_fluid_wrapper(
-                    fluid, outconn.fluid.engine[fluid], outconn.fluid.back_end[fluid]
-                )
-                inconn.fluid.val_set[fluid] = False
-                inconn.fluid.is_var = outconn.fluid.is_var
-                inconn.fluid.val[fluid] = x
-
-        inconn.source.propagate_fluid_wrappers_to_source(inconn, start)
 
     def set_parameters(self, mode, data):
         r"""

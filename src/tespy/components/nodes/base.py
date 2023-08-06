@@ -204,6 +204,9 @@ class NodeBase(Component):
 
     def propagate_to_target(self, branch):
 
+        if branch["connections"][-1].target_id == "in2":
+            return
+
         for outconn in self.outl:
             subbranch = {
                 "connections": [outconn],

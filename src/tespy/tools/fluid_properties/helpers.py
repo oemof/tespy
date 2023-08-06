@@ -35,7 +35,7 @@ def get_molar_fractions(fluid_data):
     return {key: value / molarflow_sum for key, value in molarflow.items()}
 
 
-def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=30, tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs):
+def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10, tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs):
 
     # start newton loop
     iteration = 0
@@ -61,6 +61,7 @@ def newton_with_kwargs(derivative, target_value, val0=300, valmin=70, valmax=300
         # relaxation to help convergence in case of jumping
         if iteration == 5:
             relax = 0.75
+            max_iter = 12
 
         if iteration > max_iter:
             msg = (

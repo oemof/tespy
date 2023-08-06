@@ -64,22 +64,32 @@ class FluidPropertyWrapper:
 
 class CoolPropWrapper(FluidPropertyWrapper):
 
-    def __init__(self, fluid, backend=None) -> None:
+    def __init__(self, fluid, back_end=None) -> None:
         self.fluid = fluid
-        if backend is None:
-            backend = "HEOS"
+        if back_end is None:
+            self.back_end = "HEOS"
+        else:
+            self.back_end = back_end
 
-        self.AS = AbstractState(backend, fluid)
+        self.AS = AbstractState(self.back_end, fluid)
         self._set_constants()
 
     def _set_constants(self):
-        self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
-        self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
-        self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
-        self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        self._molar_mass = self.AS.trivial_keyed_output(CP.imolar_mass)
+
+        if self.back_end == "INCOMP":
+            self._p_min = 1e2
+            self._p_max = 1e8
+            self._p_crit = 1e2
+            self._T_crit = None
+            self._molar_mass = 1
+        else:
+            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
+            self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
+            self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
+            self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
+            self._molar_mass = self.AS.trivial_keyed_output(CP.imolar_mass)
 
     def _is_below_T_critical(self, T):
         return T < self._T_crit

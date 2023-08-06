@@ -25,6 +25,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
+from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import dT_sat_dp
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT

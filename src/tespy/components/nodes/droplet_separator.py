@@ -150,10 +150,6 @@ class DropletSeparator(NodeBase):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 2},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -180,65 +176,6 @@ class DropletSeparator(NodeBase):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in,1} - fluid_{i,out,j}\\
-                \forall i \in \text{network fluids}, \; \forall j \in
-                \text{outlets}
-        """
-        residual = []
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - o.fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = x_{fl\mathrm{,in,1}} - x_{fl\mathrm{,out,}j}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-            r'\text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((
-            2 * self.num_nw_fluids, self.num_i + self.num_o, self.num_nw_vars))
-        for k in range(2):
-            for i in range(self.num_nw_fluids):
-                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + self.num_i, i + 3] = -1
-        return deriv
 
     def energy_balance_func(self):
         r"""
@@ -296,16 +233,17 @@ class DropletSeparator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        j = 0
         for i in self.inl:
-            self.jacobian[k, j, 0] = i.h.val_SI
-            self.jacobian[k, j, 2] = i.m.val_SI
-            j += 1
-        j = 0
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
+            if i.h.is_var:
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
+
         for o in self.outl:
-            self.jacobian[k, j + self.num_i, 0] = -o.h.val_SI
-            self.jacobian[k, j + self.num_i, 2] = -o.m.val_SI
-            j += 1
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -o.h.val_SI
+            if o.h.is_var:
+                self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
     def outlet_states_func(self):
         r"""
@@ -321,9 +259,12 @@ class DropletSeparator(NodeBase):
                 0 = h_{out,1} - h\left(p, x=0 \right)\\
                 0 = h_{out,2} - h\left(p, x=1 \right)
         """
+        o0 = self.outl[0]
+        o1 = self.outl[1]
         return [
-            h_mix_pQ(self.outl[0].get_flow(), 0) - self.outl[0].h.val_SI,
-            h_mix_pQ(self.outl[1].get_flow(), 1) - self.outl[1].h.val_SI]
+            h_mix_pQ(o0.p.val_SI, 0, o0.fluid_data) - o0.h.val_SI,
+            h_mix_pQ(o1.p.val_SI, 1, o1.fluid_data) - o1.h.val_SI
+        ]
 
     def outlet_states_func_doc(self, label):
         r"""
@@ -359,11 +300,21 @@ class DropletSeparator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, self.num_i, 1] = dh_mix_dpQ(self.outl[0].get_flow(), 0)
-        self.jacobian[k, self.num_i, 2] = -1
-        self.jacobian[k + 1, self.num_i + 1, 1] = (
-            dh_mix_dpQ(self.outl[1].get_flow(), 1))
-        self.jacobian[k + 1, self.num_i + 1, 2] = -1
+        o0 = self.outl[0]
+        o1 = self.outl[1]
+        if o0.p.is_var:
+            self.jacobian[k, o0.p.J_col] = (
+                dh_mix_dpQ(o0.p.val_SI, 0, o0.fluid_data)
+            )
+        if o0.h.is_var and self.it == 0:
+            self.jacobian[k, o0.h.J_col] = -1
+
+        if o1.p.is_var:
+            self.jacobian[k + 1, o1.p.J_col] = (
+                dh_mix_dpQ(o1.p.val_SI, 1, o1.fluid_data)
+            )
+        if o1.h.is_var and self.it == 0:
+            self.jacobian[k + 1, o1.h.J_col] = -1
 
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""

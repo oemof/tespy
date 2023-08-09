@@ -1093,24 +1093,29 @@ class Component:
 
                 \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
         """
-        if dx == 'fluid':
+        if dx in conn.fluid.is_var:
             d = 1e-5
-            deriv = []
-            for f in conn.fluid.val.keys():
-                val = conn.fluid.val[f]
-                if conn.fluid.val[f] + d <= 1:
-                    conn.fluid.val[f] += d
-                else:
-                    conn.fluid.val[f] = 1
-                exp = func(**kwargs)
-                if conn.fluid.val[f] - 2 * d >= 0:
-                    conn.fluid.val[f] -= 2 * d
-                else:
-                    conn.fluid.val[f] = 0
-                exp -= func(**kwargs)
-                conn.fluid.val[f] = val
 
-                deriv += [exp / (2 * d)]
+            val = conn.fluid.val[dx]
+            if conn.fluid.val[dx] + d <= 1:
+                conn.fluid.val[dx] += d
+            else:
+                conn.fluid.val[dx] = 1
+
+            conn.build_fluid_data()
+            exp = func(**kwargs)
+            if conn.fluid.val[dx] - 2 * d >= 0:
+                conn.fluid.val[dx] -= 2 * d
+            else:
+                conn.fluid.val[dx] = 0
+
+            conn.build_fluid_data()
+            exp -= func(**kwargs)
+
+            conn.fluid.val[dx] = val
+            conn.build_fluid_data()
+
+            deriv = exp / (2 * d)
 
         elif dx in ['m', 'p', 'h']:
 

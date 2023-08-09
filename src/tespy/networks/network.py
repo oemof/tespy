@@ -986,13 +986,12 @@ class Network:
                             main_conn.fluid.val.keys() - fixed_fractions.keys()
                         )[0]
                         fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
-                        variable = {f: False for f in fixed_fractions}
+                        variable = set()
                     else:
                         missing_fluids = (
                             main_conn.fluid.val.keys() - fixed_fractions.keys()
                         )
-                        variable = {f: False for f in fixed_fractions}
-                        variable.update({f: True for f in missing_fluids})
+                        variable = {f for f in missing_fluids}
 
                 else:
                     # fluid mass fraction is 100 %, all other fluids are 0 %
@@ -1003,7 +1002,7 @@ class Network:
                     for f in remaining_fluids:
                         fixed_fractions[f] = 0
 
-                    variable = {f: False for f in fixed_fractions}
+                    variable = set()
 
                 main_conn._fluid_tmp = dc_flu()
                 main_conn._fluid_tmp.val = main_conn.fluid.val.copy()
@@ -1016,17 +1015,17 @@ class Network:
                     c.fluid = main_conn.fluid
 
                 main_conn.fluid.val.update(fixed_fractions)
-                main_conn.fluid.val_set = {f: not x for f, x in variable.items()}
+                main_conn.fluid.val_set = {f: False for f in variable}
+                main_conn.fluid.val_set.update({f: True for f in fixed_fractions})
                 main_conn.fluid.is_var = variable
 
             [c.build_fluid_data() for c in all_connections]
-            for fluid, value in main_conn.fluid.is_var.items():
-                if value:
-                    main_conn.fluid.J_col[fluid] = self.num_conn_vars
-                    self.variables_dict[self.num_conn_vars] = {
-                        "obj": main_conn, "variable": "fluid", "fluid": fluid
-                    }
-                    self.num_conn_vars += 1
+            for fluid in main_conn.fluid.is_var:
+                main_conn.fluid.J_col[fluid] = self.num_conn_vars
+                self.variables_dict[self.num_conn_vars] = {
+                    "obj": main_conn, "variable": "fluid", "fluid": fluid
+                }
+                self.num_conn_vars += 1
 
     def init_set_properties(self):
         """Specification of SI values for user set values."""
@@ -1079,10 +1078,10 @@ class Network:
         # set up results dataframe for connections
         # this should be done based on the connections
         cols = ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-        self.all_fluids = list(set(self.all_fluids))
+        self.all_fluids = set(self.all_fluids)
         cols = (
             ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
-            + self.all_fluids
+            + list(self.all_fluids)
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
@@ -2117,9 +2116,9 @@ class Network:
 
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
-            if any(c.fluid.is_var.values()):
+            if len(c.fluid.is_var) > 0:
                 total_mass_fractions = sum(c.fluid.val.values())
-                for fluid in c.fluid.val:
+                for fluid in c.fluid.is_var:
                     c.fluid.val[fluid] = c.fluid.val[fluid] / total_mass_fractions
 
             c.build_fluid_data()

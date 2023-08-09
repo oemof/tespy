@@ -41,6 +41,28 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         return h_mix_pT_ideal(p, T, fluid_data, **kwargs)
 
 
+def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
+    molar_fractions = get_molar_fractions(fluid_data)
+
+    h = 0
+    for fluid, data in fluid_data.items():
+
+        if _is_larger_than_precision(data["mass_fraction"]):
+            pp = p * molar_fractions[fluid]
+            if fluid == "H2O":
+                if pp >= data["wrapper"]._p_min:
+                    if T <= data["wrapper"].T_sat(pp):
+                        h += data["wrapper"].h_QT(1, T) * data["mass_fraction"]
+                    else:
+                        h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
+                else:
+                    h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
+            else:
+                h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
+
+    return h
+
+
 def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
 
     h = 0
@@ -278,7 +300,8 @@ T_MIX_PS_REVERSE = {
 H_MIX_PT_DIRECT = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
-    "incompressible": h_mix_pT_incompressible
+    "incompressible": h_mix_pT_incompressible,
+    "forced-gas": h_mix_pT_forced_gas
 }
 
 

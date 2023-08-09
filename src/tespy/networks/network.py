@@ -696,7 +696,7 @@ class Network:
         for branch_name, branch_data in self.fluid_wrapper_branches.items():
             if branch_name not in merged_fluid_wrapper_branches:
                 continue
-            merges = [cp for cp in branch_data["components"] if cp.component() == "merge"]
+            merges = [cp for cp in branch_data["components"] if cp.component() == "merge" or cp.component() == "combustion chamber"]
             if any(merges):
                 for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
                     if ob_name != branch_name:

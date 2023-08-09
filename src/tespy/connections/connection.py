@@ -809,45 +809,53 @@ class Connection:
         self.fluid.val0 = self.fluid.val.copy()
 
     def check_pressure_bounds(self, fluid):
-        if self.p.val_SI < self.fluid.wrapper[fluid]._p_min:
-            c.p.val_SI = self.fluid.wrapper[fluid]._p_min * 1.01
-            logger.debug(self._property_range_message('p'))
-        elif self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
+        if self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
             self.p.val_SI = self.fluid.wrapper[fluid]._p_max
             logger.debug(self._property_range_message('p'))
+
+        elif self.p.val_SI < self.fluid.wrapper[fluid]._p_min:
+            try:
+                # if this works, the temperature is higher than the minimum
+                # temperature, we can access pressure values below minimum
+                # pressure
+                self.fluid.wrapper[fluid].T_ph(self.p.val_SI, self.h.val_SI)
+            except ValueError:
+                self.p.val_SI = self.fluid.wrapper[fluid]._p_min + 1e1
+                logger.debug(self._property_range_message('p'))
 
     def check_enthalpy_bounds(self, fluid):
         # enthalpy
         try:
+            # this
             hmin = self.fluid.wrapper[fluid].h_pT(
-                self.p.val_SI, self.fluid.wrapper[fluid]._T_min
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min + 1e-1
             )
         except ValueError:
             f = 1.05
             hmin = self.fluid.wrapper[fluid].h_pT(
                 self.p.val_SI, self.fluid.wrapper[fluid]._T_min * f
             )
-
-        T = self.fluid.wrapper[fluid]._T_max
-        while True:
-            try:
-                hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
-                break
-            except ValueError as e:
-                T *= 0.99
-                if T < self.fluid.wrapper[fluid]._T_min:
-                    raise ValueError(e) from e
-
         if self.h.val_SI < hmin:
             if hmin < 0:
                 self.h.val_SI = hmin * 0.9999
             else:
                 self.h.val_SI = hmin * 1.0001
             logger.debug(self._property_range_message('h'))
+        else:
 
-        elif self.h.val_SI > hmax:
-            self.h.val_SI = hmax * 0.9999
-            logger.debug(self._property_range_message('h'))
+            T = self.fluid.wrapper[fluid]._T_max
+            while True:
+                try:
+                    hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
+                    break
+                except ValueError as e:
+                    T *= 0.99
+                    if T < self.fluid.wrapper[fluid]._T_min:
+                        raise ValueError(e) from e
+
+            if self.h.val_SI > hmax:
+                self.h.val_SI = hmax * 0.9999
+                logger.debug(self._property_range_message('h'))
 
     def check_two_phase_bounds(self, fluid):
 

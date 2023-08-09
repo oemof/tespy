@@ -1927,11 +1927,10 @@ class Network:
         for func in self.user_defined_eq.values():
             # remap connection objects
             func.conns = [
-                self.conns.loc[c.label, 'object'] for c in func.conns]
+                self.conns.loc[c.label, 'object'] for c in func.conns
+            ]
             # remap jacobian
-            func.jacobian = {
-                c: np.zeros(c.num_variables)
-                for c in func.conns}
+            func.jacobian = {}
 
         # total number of variables
         self.num_vars = (
@@ -2248,14 +2247,17 @@ class Network:
         - Place partial derivatives regarding connection parameters in Jacobian
           matrix of the network.
         """
-        row = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
+        sum_eq = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
         for ude in self.user_defined_eq.values():
-            self.residual[row] = ude.func(ude)
-            jacobian = ude.deriv(ude)
-            for c, derivative in jacobian.items():
-                col = c.conn_loc * self.num_conn_vars
-                self.jacobian[row, col:col + self.num_conn_vars] = derivative
-            row += 1
+            ude.solve()
+            self.residual[sum_eq] = ude.residual
+
+            if len(ude.jacobian) > 0:
+                rows = [k[0] + sum_eq for k in ude.jacobian]
+                columns = [k[1] for k in ude.jacobian]
+                data = list(ude.jacobian.values())
+                self.jacobian[rows, columns] = data
+                sum_eq += 1
 
     def solve_connections(self):
         r"""

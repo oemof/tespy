@@ -2028,15 +2028,23 @@ class Network:
             component  = '{:.2e}'.format(norm(self.increment[cp]))
 
         progress_val = -1
-        if not np.isnan(residual_norm) and residual_norm > np.finfo(float).eps*100:
+        if not np.isnan(residual_norm):
             # This should not be hardcoded here.
-            progress_min = np.log(ERR)
-            progress_max = np.log(ERR) * -1
-            progress_val = np.log(max(residual_norm, ERR)) * -1
-            # Scale to 0-1
-            progress_val = max(0, min(1, (progress_val - progress_min) / (progress_max - progress_min)))
-            # Scale to 100%
-            progress_val = int(progress_val * 100)
+            if residual_norm > np.finfo(float).eps * 100:
+                progress_min = np.log(ERR)
+                progress_max = np.log(ERR ** 0.5) * -1
+                progress_val = np.log(max(residual_norm, ERR)) * -1
+                # Scale to 0-1
+                progres_scaled = (
+                    (progress_val - progress_min)
+                    / (progress_max - progress_min)
+                )
+                progress_val = max(0, min(1, progres_scaled))
+                # Scale to 100%
+                progress_val = int(progress_val * 100)
+            else:
+                progress_val = 100
+
             progress = '{:d} %'.format(progress_val)
 
         msg = self.iterinfo_fmt.format(

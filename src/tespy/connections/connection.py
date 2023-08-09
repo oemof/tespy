@@ -25,6 +25,8 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
+from tespy.tools.fluid_properties import dv_mix_dph
+from tespy.tools.fluid_properties import dv_mix_pdh
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import dT_sat_dp
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -409,7 +411,8 @@ class Connection:
                         else:
                             self.fluid.set_attr(val=kwargs[key].copy())
                             self.fluid.set_attr(
-                                val_set={f: True for f in kwargs[key].keys()})
+                                val_set={f: True for f in kwargs[key].keys()}
+                            )
 
                     else:
                         # bad datatype
@@ -490,17 +493,6 @@ class Connection:
                 else:
                     msg = (
                         'Datatype for keyword argument fluid_balance must be '
-                        'boolean.')
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-            # fluid variable
-            elif key == 'fluid_variable':
-                if isinstance(kwargs[key], bool):
-                    self.get_attr('fluid').set_attr(is_var=kwargs[key])
-                else:
-                    msg = (
-                        'Datatype for keyword argument fluid_variable must be '
                         'boolean.')
                     logger.error(msg)
                     raise TypeError(msg)
@@ -806,10 +798,10 @@ class Connection:
             if not self.Td_bp.val_set:
                 self.Td_bp.val_SI = self.calc_Td_bp()
 
-            for prop in fpd.keys():
-                self.get_attr(prop).val = convert_from_SI(
-                    prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
-                )
+        for prop in fpd.keys():
+            self.get_attr(prop).val = convert_from_SI(
+                prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
+            )
 
         self.m.val0 = self.m.val
         self.p.val0 = self.p.val

@@ -74,7 +74,7 @@ class CycleCloser(Component):
     >>> from tespy.components import CycleCloser, Pipe, Pump
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
@@ -135,13 +135,28 @@ class CycleCloser(Component):
         outconn = self.outl[0]
         branch = {
             "connections": [outconn],
-            "components": [self, outconn.target]
+            "components": [self, outconn.target],
+            "subbranches": {}
         }
         outconn.target.propagate_to_target(branch)
 
         return {outconn.label: branch}
 
+    def start_fluid_wrapper_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self]
+        }
+        outconn.target.propagate_wrapper_to_target(branch)
+
+        return {outconn.label: branch}
+
     def propagate_to_target(self, branch):
+        return
+
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
         return
 
     def preprocess(self, num_eq=0):

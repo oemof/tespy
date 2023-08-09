@@ -129,14 +129,6 @@ class SubsystemInterface(Component):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': self.num_i},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * self.num_i},
             'pressure_equality_constraints': {
                 'func': self.pressure_equality_func,
                 'deriv': self.pressure_equality_deriv,

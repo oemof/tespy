@@ -992,7 +992,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self):
+    def pressure_equality_deriv(self, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -1002,12 +1002,11 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = self._build_subjacobian(self.pressure_equality_constraints)
         for i in range(self.num_i):
-            deriv[i, i, 1] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 1] = -1
-        return deriv
+            if self.inl[i].p.is_var:
+                self.jacobian[k + i, self.inl[i].p.J_col] = 1
+            if self.outl[i].p.is_var:
+                self.jacobian[k + i, self.outl[i].p.J_col] = -1
 
     def enthalpy_equality_func(self):
         r"""
@@ -1051,7 +1050,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def enthalpy_equality_deriv(self):
+    def enthalpy_equality_deriv(self, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -1061,15 +1060,11 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
         for i in range(self.num_i):
-            deriv[i, i, 2] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 2] = -1
-        return deriv
+            if self.inl[i].h.is_var:
+                self.jacobian[k + i, self.inl[i].h.J_col] = 1
+            if self.outl[i].h.is_var:
+                self.jacobian[k + i, self.outl[i].h.J_col] = -1
 
     def numeric_deriv(self, func, dx, conn, **kwargs):
         r"""

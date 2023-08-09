@@ -147,10 +147,6 @@ class Merge(NodeBase):
             num_m_eq = 0
         else:
             num_m_eq = 1
-
-        # print(num_fluid_eq)
-        # num_m_eq = 0
-        # num_m_eq = int(any([c.m.is_var for c in self.inl + self.outl]))
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
@@ -414,7 +410,6 @@ class Merge(NodeBase):
         branch["connections"] += [outconn]
         branch["components"] += [self]
         outconn.target.propagate_wrapper_to_target(branch)
-
 
     def entropy_balance(self):
         r"""

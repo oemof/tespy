@@ -29,7 +29,6 @@ from tespy.components import Drum
 from tespy.components import HeatExchanger
 from tespy.components import HeatExchangerSimple
 from tespy.components import Merge
-from tespy.components import ORCEvaporator
 from tespy.components import ParabolicTrough
 from tespy.components import Pipe
 from tespy.components import Pump
@@ -67,7 +66,6 @@ comp_target_classes = {
     'SubsystemInterface': SubsystemInterface,
     'CombustionChamber': CombustionChamber,
     'CombustionEngine': CombustionEngine,
-    'ORCEvaporator': ORCEvaporator,
     'Condenser': Condenser,
     'Desuperheater': Desuperheater,
     'HeatExchanger': HeatExchanger,

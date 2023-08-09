@@ -197,6 +197,7 @@ class DropletSeparator(NodeBase):
             res += i.m.val_SI * i.h.val_SI
         for o in self.outl:
             res -= o.m.val_SI * o.h.val_SI
+
         return res
 
     def energy_balance_func_doc(self, label):
@@ -244,6 +245,7 @@ class DropletSeparator(NodeBase):
                 self.jacobian[k, o.m.J_col] = -o.h.val_SI
             if o.h.is_var:
                 self.jacobian[k, o.h.J_col] = -o.m.val_SI
+
 
     def outlet_states_func(self):
         r"""

@@ -147,7 +147,7 @@ class Network:
     >>> nw.print_results()
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, fluids=None, **kwargs):
         self.set_defaults()
         self.set_attr(**kwargs)
 
@@ -866,8 +866,15 @@ class Network:
                 for f in potential_fluids:
                     if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
                         c.fluid.val[f] = 0
-                    if f not in c.fluid.wrapper:
+                    elif f in c.fluid.val0:
+                        if f not in c.fluid.val_set:
+                            c.fluid.val[f] = c.fluid.val0[f]
+                        elif not c.fluid.val_set[f]:
+                            c.fluid.val[f] = c.fluid.val0[f]
+                    if f not in c.fluid.wrapper and f in fluid_set_wrappers:
                         c.fluid.wrapper[f] = fluid_set_wrappers[f]
+                    elif f not in c.fluid.wrapper:
+                        c._create_fluid_wrapper(f, fp.CoolPropWrapper, "HEOS")
 
     def presolve_massflow_topology(self):
 
@@ -950,7 +957,7 @@ class Network:
                     c._fluid_tmp = c.fluid
                     c.fluid = main_conn.fluid
 
-                main_conn.fluid.is_var = {f: True for f in main_conn.fluid.val}
+                main_conn.fluid.is_var = {f for f in main_conn.fluid.val}
 
             elif len(fluid_specs) != len(set(fluid_specs)):
                 msg = (
@@ -1515,6 +1522,7 @@ class Network:
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
         for c in self.conns['object']:
+            c.build_fluid_data()
             if self.init_path is not None:
                 conn = df.loc[
                     df['source'].isin([c.source.label]) &
@@ -1590,8 +1598,6 @@ class Network:
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
-
-            c.build_fluid_data()
 
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
@@ -1801,8 +1807,6 @@ class Network:
         else:
             self.mode = mode
 
-        import time
-        tmp = time.time()
         if not self.checked:
             self.check_network()
 
@@ -1826,7 +1830,6 @@ class Network:
         logger.debug(msg)
 
         self.initialise()
-        print(time.time() - tmp)
 
         if init_only:
             return
@@ -2084,7 +2087,6 @@ class Network:
             self.increment = self.residual * 0
 
     def update_variables(self):
-
         # add the increment
         for data in self.variables_dict.values():
             if data["variable"] in ["m", "h"]:

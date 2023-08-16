@@ -157,7 +157,7 @@ class Condenser(HeatExchanger):
     >>> from tespy.components import Sink, Source, Condenser
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
     >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
@@ -189,14 +189,14 @@ class Condenser(HeatExchanger):
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     66.9
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(T_sat_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(T_sat_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
     11.3
 
     It is possible to activate subcooling. The difference to boiling point
@@ -207,7 +207,7 @@ class Condenser(HeatExchanger):
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(T_sat_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
     13.4
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
@@ -325,7 +325,7 @@ class Condenser(HeatExchanger):
         o1 = self.outl[0]
         o2 = self.outl[1]
 
-        T_i1 = T_bp_p(i1.get_flow())
+        T_i1 = T_sat_p(i1.get_flow())
         T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
         T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
         T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
@@ -448,7 +448,7 @@ class Condenser(HeatExchanger):
         The upper terminal temperature difference ttd_u refers to boiling
         temperature at hot side inlet.
         """
-        T_i1 = T_bp_p(self.inl[0].get_flow())
+        T_i1 = T_sat_p(self.inl[0].get_flow())
         T_o2 = T_mix_ph(self.outl[1].get_flow(), T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_i1 + T_o2
 
@@ -476,7 +476,7 @@ class Condenser(HeatExchanger):
         # component parameters
         self.Q.val = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.ttd_u.val = T_bp_p(self.inl[0].get_flow()) - self.outl[1].T.val_SI
+        self.ttd_u.val = T_sat_p(self.inl[0].get_flow()) - self.outl[1].T.val_SI
         self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
 
         # pr and zeta

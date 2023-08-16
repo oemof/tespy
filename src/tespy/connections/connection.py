@@ -184,15 +184,15 @@ class Connection:
     False
     >>> so_si1.m.get_attr('val_set')
     False
-    >>> type(so_si2.m.ref)
+    >>> type(so_si2.m_ref.val)
     <class 'tespy.connections.connection.Ref'>
     >>> so_si2.fluid.get_attr('balance')
     True
-    >>> so_si2.m.ref.get_attr('delta')
+    >>> so_si2.m_ref.val.get_attr('delta')
     -5
-    >>> so_si2.m.ref_set
+    >>> so_si2.m_ref.val_set
     True
-    >>> type(so_si2.m.ref.get_attr('obj'))
+    >>> type(so_si2.m_ref.val.get_attr('obj'))
     <class 'tespy.connections.connection.Connection'>
 
     Unset the specified temperature and specify temperature difference to
@@ -410,9 +410,7 @@ class Connection:
                         # specified parameters
                         else:
                             self.fluid.set_attr(val=kwargs[key].copy())
-                            self.fluid.set_attr(
-                                val_set={f: True for f in kwargs[key].keys()}
-                            )
+                            self.fluid.val_set = {f for f in kwargs[key]}
 
                     else:
                         # bad datatype
@@ -681,10 +679,12 @@ class Connection:
             self.jacobian[k, self.h.J_col] = (
                 -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
             )
-        # if len(self.fluid.val) > 1:
-        #     self.jacobian[0, 0, 3:] = dT_mix_ph_dfluid(
-        #         c.p.val_SI, c.h.val_SI, self.fluid_data, T0=c.T.val_SI
-        # )
+        # if len(self.fluid.is_var.values()) > 1:
+        #     for fluid in self.fluid.val:
+        #         if self.fluid.is_var[fluid]:
+        #             self.jacobian[k], self.fluid.J_col[fluid] = dT_mix_ph_dfluid(
+        #                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+        #             )
 
     def calc_vol(self):
         try:

@@ -120,7 +120,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.components import Sink, Source, DiabaticCombustionChamber
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',

@@ -429,7 +429,6 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
-            self.results['Connection'].drop(c.label, inplace=True)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logger.debug(msg)
 
@@ -845,8 +844,8 @@ class Network:
 
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
-            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set if c.fluid.val_set[f]]
-            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set and c.fluid.val_set[f]}
+            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set]
+            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set}
             mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]
             mixing_rule = set(mixing_rules)
             if len(mixing_rule) > 1:
@@ -863,13 +862,11 @@ class Network:
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             for c in all_connections:
                 c.mixing_rule = list(mixing_rule)[0]
+                c._potential_fluids = potential_fluids
                 for f in potential_fluids:
                     if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
                         c.fluid.val[f] = 0
-                    elif f in c.fluid.val0:
-                        if f not in c.fluid.val_set:
-                            c.fluid.val[f] = c.fluid.val0[f]
-                        elif not c.fluid.val_set[f]:
+                    elif f not in c.fluid.val_set and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
                     if f not in c.fluid.wrapper and f in fluid_set_wrappers:
                         c.fluid.wrapper[f] = fluid_set_wrappers[f]
@@ -957,7 +954,10 @@ class Network:
                     c._fluid_tmp = c.fluid
                     c.fluid = main_conn.fluid
 
-                main_conn.fluid.is_var = {f for f in main_conn.fluid.val}
+                if len(main_conn._potential_fluids) > 1:
+                    main_conn.fluid.is_var = {f for f in main_conn.fluid.val}
+                else:
+                    main_conn.fluid.val[list(main_conn._potential_fluids)[0]] = 1
 
             elif len(fluid_specs) != len(set(fluid_specs)):
                 msg = (
@@ -970,7 +970,7 @@ class Network:
                     f: c.fluid.val[f]
                     for c in all_connections
                     for f in fluid_specs
-                    if f in c.fluid.val_set and c.fluid.val_set[f]
+                    if f in c.fluid.val_set
                 }
                 mass_fraction_sum = sum(fixed_fractions.values())
                 if mass_fraction_sum > 1:
@@ -1622,7 +1622,7 @@ class Network:
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
-        row = [c.fluid.val_set[f] if f in c.fluid.val_set else None for f in fluids]
+        row = [True if f in c.fluid.val_set else False for f in fluids]
         self.specifications['Connection'].loc[c.label, fluids] = row
 
         # last one: fluid balance specification
@@ -1811,11 +1811,11 @@ class Network:
 
         msg = (
             "Solver properties:\n"
-            f" - mode: {self.mode}"
-            f" - init_path: {self.init_path}"
-            f" - design_path: {self.design_path}"
-            f" - min_iter: {self.min_iter}"
-            f" - max_iter: {self.max_iter}"
+            f" - mode: {self.mode}\n"
+            f" - init_path: {self.init_path}\n"
+            f" - design_path: {self.design_path}\n"
+            f" - min_iter: {self.min_iter}\n"
+            f" - max_iter: {self.max_iter}\n"
             f" - init_path: {self.init_path}"
         )
         logger.debug(msg)
@@ -1824,7 +1824,7 @@ class Network:
             "Network information:\n"
             f" - Number of components: {len(self.comps)}\n"
             f" - Number of connections: {len(self.conns)}\n"
-            f" - Number of busses: {len(self.busses)}\n"
+            f" - Number of busses: {len(self.busses)}"
         )
         logger.debug(msg)
 
@@ -2595,7 +2595,7 @@ class Network:
         data['x_unit'] = self.x_unit
         data['v_unit'] = self.v_unit
         data['s_unit'] = self.s_unit
-        data['fluids'] = self.fluids_backends
+        data['fluids'] = list(self.all_fluids)
 
         with open(fn, 'w') as f:
             f.write(json.dumps(data, indent=4))
@@ -2664,14 +2664,15 @@ class Network:
         df[key + '_set'] = df.apply(f, axis=1, args=(key, 'is_set'))
 
         # fluid composition
-        for val in self.fluids:
+        for val in self.all_fluids:
             # fluid mass fraction
             df[val] = df.apply(f, axis=1, args=('fluid', 'val', val))
 
             # fluid mass fraction parametrisation
             df[val + '0'] = df.apply(f, axis=1, args=('fluid', 'val0', val))
             df[val + '_set'] = df.apply(
-                f, axis=1, args=('fluid', 'val_set', val))
+                f, axis=1, args=('fluid', 'val_set', val)
+            )
 
         # fluid balance
         df['balance'] = df.apply(f, axis=1, args=('fluid', 'balance'))

@@ -117,7 +117,7 @@ class CombustionChamber(Component):
     >>> from tespy.components import Sink, Source, CombustionChamber
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
     >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
     >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
@@ -1212,7 +1212,7 @@ class CombustionChamber(Component):
         m = 0
         for i in inl:
             if not i.good_starting_values:
-                if i.m.val_SI < 0 and not i.m.val_set:
+                if i.m.val_SI < 0 and i.m.is_var:
                     i.m.val_SI = 0.01
                 m += i.m.val_SI
 

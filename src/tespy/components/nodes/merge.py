@@ -138,9 +138,10 @@ class Merge(NodeBase):
         return {'num_in': dc_simple()}
 
     def get_mandatory_constraints(self):
-        num_fluid_eq = 0
-        for f in self.inl[0].fluid.is_var:
-            num_fluid_eq += any([c.fluid.is_var[f] for c in self.inl + self.outl])
+        variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(variable_fluids)
 
         if num_fluid_eq == 0:
             num_fluid_eq = len(self.inl[0].fluid.val)
@@ -247,11 +248,11 @@ class Merge(NodeBase):
             for i in self.inl:
                 if i.m.is_var:
                     self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
-                if i.fluid.is_var[fluid]:
+                if fluid in i.fluid.is_var:
                     self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
             if o.m.is_var:
                 self.jacobian[k, o.m.J_col] = -x
-            if o.fluid.is_var[fluid]:
+            if fluid in o.fluid.is_var:
                 self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
             k += 1
 

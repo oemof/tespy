@@ -820,10 +820,9 @@ class Component:
         conn_idx = self.inl.index(inconn)
         outconn = self.outl[conn_idx]
 
-        for fluid, x in inconn.fluid.val.items():
-            if (not outconn.fluid.val_set[fluid] and
-                    not outconn.good_starting_values):
-                outconn.fluid.val[fluid] = x
+        if not outconn.good_starting_values:
+            for fluid in outconn.fluid.is_var:
+                outconn.fluid.val[fluid] = inconn.fluid.val[fluid]
 
         outconn.target.propagate_fluid_to_target(outconn, start)
 
@@ -846,10 +845,9 @@ class Component:
         conn_idx = self.outl.index(outconn)
         inconn = self.inl[conn_idx]
 
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
+        if not inconn.good_starting_values:
+            for fluid in inconn.fluid.is_var:
+                inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
 
         inconn.source.propagate_fluid_to_source(inconn, start)
 

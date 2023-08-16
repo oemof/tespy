@@ -84,7 +84,7 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import Q_ph, T_bp_p
+    >>> from tespy.tools.fluid_properties import Q_ph, T_sat_p
     >>> import shutil
     >>> nw = Network(fluids=['water'], T_unit='C', p_unit='bar',
     ... h_unit='kJ / kg', iterinfo=False)
@@ -135,7 +135,7 @@ class DropletSeparator(NodeBase):
     >>> nw.solve('design')
     >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
     0.95
-    >>> T_boil = T_bp_p(so_ds.get_flow())
+    >>> T_boil = T_sat_p(so_ds.get_flow())
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
@@ -333,11 +333,11 @@ class DropletSeparator(NodeBase):
         """
         if not entry_point and inconn == start:
             return
+
         for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
-                    outconn.fluid.val[fluid] = x
+            if not outconn.good_starting_values:
+                for fluid in outconn.fluid.is_var:
+                    outconn.fluid.val[fluid] = inconn.fluid.val[fluid]
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
@@ -356,11 +356,11 @@ class DropletSeparator(NodeBase):
         """
         if not entry_point and outconn == start:
             return
+
         inconn = self.inl[0]
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
+        if not inconn.good_starting_values:
+            for fluid in inconn.fluid.is_var:
+                inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
 
         inconn.source.propagate_fluid_to_source(inconn, start)
 

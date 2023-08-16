@@ -67,9 +67,8 @@ class TestCombustion:
         self.setup_CombustionChamber_network(instance)
 
         # connection parameter specification
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
-               'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
         self.c3.set_attr(T=1200)

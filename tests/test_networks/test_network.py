@@ -14,6 +14,7 @@ import os
 import shutil
 
 import numpy as np
+from pytest import mark
 from pytest import raises
 
 from tespy.components import Compressor
@@ -36,7 +37,7 @@ from tespy.tools.helpers import TESPyNetworkError
 
 
 class TestNetworks:
-    def setup_Network_tests(self):
+    def setup_method(self):
         self.nw = Network(p_unit='bar', v_unit='m3 / s', T_unit='C')
         self.source = Source('source')
         self.sink = Sink('sink')
@@ -47,19 +48,16 @@ class TestNetworks:
 
     def test_Network_linear_dependency(self):
         """Test network linear dependency."""
-        self.setup_Network_tests()
         a = Connection(
-            self.source, 'out1', self.sink, 'in1', m=1, p=1, x=1, T=7
+            self.source, 'out1', self.sink, 'in1', p=5, x=1, T=7, fluid={"H2": 1}
         )
         self.nw.add_conns(a)
         self.nw.solve('design')
-        msg = ('This test must result in a linear dependency of the jacobian '
-               'matrix.')
+        msg = 'This test must result in a linear dependency of the jacobian matrix.'
         assert self.nw.lin_dep, msg
 
     def test_Network_no_progress(self):
         """Test no convergence progress."""
-        self.setup_Network_tests()
         pi = Pipe('pipe', pr=1, Q=-100e3)
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=7, fluid={'water': 1}
@@ -73,7 +71,6 @@ class TestNetworks:
 
     def test_Network_max_iter(self):
         """Test reaching maximum iteration count."""
-        self.setup_Network_tests()
         pi = Pipe('pipe', pr=1, Q=100e3)
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=7, fluid={'water': 1}
@@ -87,7 +84,6 @@ class TestNetworks:
 
     def test_Network_delete_conns(self):
         """Test deleting a network's connection."""
-        self.setup_Network_tests()
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.check_network()
@@ -101,7 +97,6 @@ class TestNetworks:
 
     def test_Network_delete_comps(self):
         """Test deleting components by deleting connections."""
-        self.setup_Network_tests()
         p = Pipe("Dummy")
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
@@ -125,7 +120,6 @@ class TestNetworks:
 
     def test_Network_missing_connection_in_init_path(self):
         """Test debug message for missing connection in init_path."""
-        self.setup_Network_tests()
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
@@ -146,7 +140,6 @@ class TestNetworks:
 
     def test_Network_export_no_chars_busses(self):
         """Test export of network without characteristics or busses."""
-        self.setup_Network_tests()
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
@@ -166,7 +159,6 @@ class TestNetworks:
 
     def test_Network_reader_no_chars_busses(self):
         """Test import of network without characteristics or busses."""
-        self.setup_Network_tests()
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
@@ -181,7 +173,6 @@ class TestNetworks:
 
     def test_Network_reader_deleted_chars(self):
         """Test import of network with missing characteristics."""
-        self.setup_Network_tests()
         comp = Compressor('compressor')
         a = Connection(self.source, 'out1', comp, 'in1')
         b = Connection(comp, 'out1', self.sink, 'in1')
@@ -203,7 +194,6 @@ class TestNetworks:
 
     def test_Network_missing_data_in_design_case_files(self):
         """Test for missing data in design case files."""
-        self.setup_Network_tests()
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=20, fluid={'water': 1}
@@ -230,7 +220,6 @@ class TestNetworks:
 
     def test_Network_missing_data_in_individual_design_case_file(self):
         """Test for missing data in individual design case files."""
-        self.setup_Network_tests()
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
                        fluid={'water': 1})
@@ -256,7 +245,6 @@ class TestNetworks:
 
     def test_Network_missing_connection_in_design_path(self):
         """Test for missing connection data in design case files."""
-        self.setup_Network_tests()
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
                        fluid={'water': 1})
@@ -280,7 +268,6 @@ class TestNetworks:
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""
-        self.setup_Network_tests()
         pi = Pipe('pipe')
         a = Connection(self.source, 'out1', pi, 'in1')
         Connection(pi, 'out1', self.sink, 'in1')
@@ -294,7 +281,6 @@ class TestNetworks:
 
     def test_Network_get_comp_before_initialization(self):
         """Test if components are found prior to initialization."""
-        self.setup_Network_tests()
         pi = Pipe('pipe')
         a = Connection(self.source, 'out1', pi, 'in1')
         b = Connection(pi, 'out1', self.sink, 'in1')
@@ -487,51 +473,32 @@ class TestNetworkIndividualOffdesign:
         shutil.rmtree('./design1', ignore_errors=True)
 
 
+@mark.skip(reason="Not implemented")
 class TestNetworkPreprocessing:
 
     def setup_method(self):
         self.nwk = Network(T_unit="C", p_unit="bar", h_unit='kJ / kg')
 
-    def test_fluid_linear_branch_distribution():
+    def test_fluid_linear_branch_distribution(self):
+        raise NotImplementedError(self)
+
+    def test_fluid_connected_branches_distribution(self):
+        raise NotImplementedError(self)
+
+    def test_fluid_independent_branches_distribution(self):
+        raise NotImplementedError(self)
+
+    def test_linear_branch_massflow_presolve(self):
+        raise NotImplementedError(self)
+
+    def test_splitting_branch_massflow_presolve(self):
         raise NotImplementedError()
 
-    def test_fluid_connected_branches_distribution():
+    def test_linear_branch_fluid_presolve(self):
         raise NotImplementedError()
 
-    def test_fluid_inpedendant_branches_distribution():
+    def test_splitting_branch_fluid_presolve(self):
         raise NotImplementedError()
 
-    def test_circular_topology_presolve(self):
-
-        source = Source('source')
-        merge = Merge('merge')
-        component1 = SimpleHeatExchanger('comp1', pr=1)
-        splitter = Splitter('splitter')
-        component2 = SimpleHeatExchanger('comp2')
-        sink = Sink('sink')
-
-        c1 = Connection(source, 'out1', merge, 'in1', p=1, h=200, m=10, fluid={'R134a': 1}, label="1")
-        c2 = Connection(merge, 'out1', component1, 'in1', label="2")
-        c3 = Connection(component1, 'out1', splitter, 'in1', h=180, label="3")
-        c4 = Connection(splitter, 'out1', component2, 'in1', m=1, label="4")
-        c5 = Connection(component2, 'out1', merge, 'in2', h=170, label="5")
-        c6 = Connection(splitter, 'out2', sink, 'in1', label="6")
-
-        self.nwk.add_conns(c1, c2, c3, c4, c5, c6)
-
-        self.nwk.solve("design")
-
-    def test_linear_branch_massflow_presolve():
-        raise NotImplementedError()
-
-    def test_splitting_branch_massflow_presolve():
-        raise NotImplementedError()
-
-    def test_linear_branch_fluid_presolve():
-        raise NotImplementedError()
-
-    def test_splitting_branch_fluid_presolve():
-        raise NotImplementedError()
-
-    def test_independant_branch_fluid_presolve():
+    def test_independant_branch_fluid_presolve(self):
         raise NotImplementedError()

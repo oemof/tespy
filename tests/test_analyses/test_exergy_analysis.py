@@ -26,7 +26,7 @@ from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools import ExergyAnalysis
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -100,9 +100,9 @@ class TestClausiusRankine:
         ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
         msg = (
             'Exergy destruction of this network must be 0 (smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(ean.network_data.E_D), 4)) + ' .')
-        assert abs(ean.network_data.E_D) <= err ** 0.5, msg
+        assert abs(ean.network_data.E_D) <= ERR ** 0.5, msg
 
         msg = (
             'Exergy efficiency of this network must be 1 for this test but '
@@ -114,9 +114,9 @@ class TestClausiusRankine:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         msg = (
             'Fuel exergy and product exergy must be identical for this test. '
@@ -124,7 +124,7 @@ class TestClausiusRankine:
             '. Product exergy value: ' + str(round(ean.network_data.E_P, 4)) +
             '.')
         delta = round(abs(ean.network_data.E_F - ean.network_data.E_P), 4)
-        assert delta < err ** 0.5, msg
+        assert delta < ERR ** 0.5, msg
 
     def test_exergy_analysis_plotting_data(self):
         """Test exergy analysis plotting."""
@@ -164,9 +164,9 @@ class TestClausiusRankine:
         )
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         nodes = [
             'E_F', 'heat_input', 'steam generator', 'splitter 1',
@@ -206,9 +206,9 @@ class TestClausiusRankine:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be violated for this test (larger than ' +
-            str(err ** 0.5) + ') but is ' +
+            str(ERR ** 0.5) + ') but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
-        assert abs(exergy_balance) > err ** 0.5, msg
+        assert abs(exergy_balance) > ERR ** 0.5, msg
 
     def test_exergy_analysis_bus_conversion(self):
         """Test exergy analysis bus conversion factors."""
@@ -243,23 +243,23 @@ class TestClausiusRankine:
         assert round(eps, 4) == 0.99, msg
 
     def test_exergy_analysis_missing_E_F_E_P_information(self):
-        """Test exergy analysis errors with missing information."""
-        with raises(TESPyNetworkError):
+        """Test exergy analysis ERRors with missing information."""
+        with raises(TESPyNetworkERRor):
             ExergyAnalysis(self.nw, E_P=[self.power], E_F=[])
 
-        with raises(TESPyNetworkError):
+        with raises(TESPyNetworkERRor):
             ExergyAnalysis(self.nw, E_P=[], E_F=[self.heat])
 
     def test_exergy_analysis_component_on_two_busses(self):
-        """Test exergy analysis errors with components on more than one bus."""
-        with raises(TESPyNetworkError):
+        """Test exergy analysis ERRors with components on more than one bus."""
+        with raises(TESPyNetworkERRor):
             ean = ExergyAnalysis(
                 self.nw, E_P=[self.power], E_F=[self.heat, self.power])
             ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
     def test_exergy_analysis_invalid_bus_name(self):
-        """Test exergy analysis errors with components on more than one bus."""
-        with raises(ValueError):
+        """Test exergy analysis ERRors with components on more than one bus."""
+        with raises(ValueERRor):
             self.power.label = "E_P"
             ean = ExergyAnalysis(
                 self.nw, E_P=[self.power], E_F=[self.heat]
@@ -328,9 +328,9 @@ class TestRefrigerator:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
 
 class TestCompressedAirIn:
@@ -387,9 +387,9 @@ class TestCompressedAirIn:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + ' .')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
 
 class TestCompressedAirOut:
@@ -454,9 +454,9 @@ class TestCompressedAirOut:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + '.')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         msg = (
             'Exergy efficiency must be equal to 1.0 for this test but is ' +
@@ -547,9 +547,9 @@ class TestCompression:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + '.')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         E_D_agg = ean.aggregation_data['E_D'].sum()
         E_D_nw = ean.network_data.loc['E_D']
@@ -627,9 +627,9 @@ class TestExpansion:
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
-            str(err ** 0.5) + ') for this test but is ' +
+            str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(exergy_balance), 4)) + '.')
-        assert abs(exergy_balance) <= err ** 0.5, msg
+        assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         E_D_agg = ean.aggregation_data['E_D'].sum()
         E_D_nw = ean.network_data.loc['E_D']

@@ -23,7 +23,7 @@ from tespy.components import Source
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.fluid_properties import T_bp_p
+from tespy.tools.fluid_properties import T_sat_p
 
 
 class TestHeatExchangers:
@@ -485,7 +485,7 @@ class TestHeatExchangers:
 
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
-        ttd_u = round(T_bp_p(self.c1.get_flow()) - self.c4.T.val_SI, 1)
+        ttd_u = round(T_sat_p(self.c1.get_flow()) - self.c4.T.val_SI, 1)
         p = round(self.c1.p.val_SI, 5)
         msg = ('Value of terminal temperature difference must be ' +
                str(round(instance.ttd_u.val, 1)) + ', is ' +

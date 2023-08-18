@@ -8,7 +8,7 @@ Model Validation
 TESPy has been used to model several research and engineering applications. In
 the paper on integration of generic exergy analysis in TESPy
 :cite:`Witte2022` three models have been built from literature sources: A
-solar thermal power plant, a supercritical CO2 brayton cycle as well as a
+solar thermal power plant, a supercritical CO2 Brayton cycle as well as a
 refrigeration machine using air as working fluid.
 
 For the solar thermal power plant we have created a full model of the plant

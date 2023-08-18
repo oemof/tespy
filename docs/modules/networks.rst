@@ -2,7 +2,7 @@
 
 Networks
 ========
-The network class handles preprocessing, solving and postprocessing.
+The network class handles preprocessing, solving and post-processing.
 We will walk you through all the important steps.
 
 Setup
@@ -114,7 +114,7 @@ or via subsystems using the corresponding methods:
 Busses: Energy Connectors
 +++++++++++++++++++++++++
 Another type of connection is the bus: Busses are connections for massless
-transfer of energy e.g. in turbomachines or heat exchangers. They can be used
+transfer of energy e.g. in turbomachinery or heat exchangers. They can be used
 to model motors or generators, too. Add them to your network with the following
 method:
 
@@ -241,7 +241,7 @@ Solving
 -------
 A TESPy network can be represented as a linear system of nonlinear equations,
 consequently the solution is obtained with numerical methods. TESPy uses the
-n-dimensional Newton–Raphson method to find the systems solution, which may
+n-dimensional Newton-Raphson method to find the system's solution, which may
 only be found, if the network is parameterized correctly. **The number of
 variables n** is :math:`n = num_{conn} \cdot (3 + num_{fluids})`.
 
@@ -288,7 +288,7 @@ your network's design point information using:
 Starting value generation for your calculations starts with the fluid
 propagation. **The fluid propagation is a very important step in the**
 **initialisation.** Often, you will specify the fluid at one point of the
-network only, all other connections are missing an initial information on the
+network only, all other connections are missing initial information on the
 fluid, if you are not using an :code:`init_path`. The fluid propagation will
 push/pull the specified fluid through the network. If you are using combustion
 chambers these will be starting points and a generic flue gas composition will
@@ -302,7 +302,7 @@ starting value for the fluid at every point of the network.
     Providing starting values manually can fix this problem.
 
 If available, the fluid property initialisation uses the user specified starting
-values or the results from the previous simulation. Otherwise generic starting
+values or the results from the previous simulation. Otherwise, generic starting
 values are generated on basis of which components a connection is linked to.
 If you do not want to use the results of a previous calculation, you need to
 specify :code:`init_previous=False` on the :code:`Network.solve` method call.
@@ -330,9 +330,9 @@ Algorithm
 In this section we will give you an introduction to the solving algorithm
 implemented.
 
-Newton–Raphson method
+Newton-Raphson method
 +++++++++++++++++++++
-The Newton–Raphson method requires the calculation of residual values for the
+The Newton-Raphson method requires the calculation of residual values for the
 equations and of the partial derivatives to all system variables (Jacobian
 matrix). In the next step the matrix is inverted and multiplied with the
 residual vector to calculate the increment for the system variables. This
@@ -400,10 +400,10 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 Convergence stability
 +++++++++++++++++++++
-One of the main downsides of the Newton–Raphson method is that the initial
-stepwidth is very large and that it does not know physical boundaries, for
+One of the main downsides of the Newton-Raphson method is that the initial
+step width is very large and that it does not know physical boundaries, for
 example mass fractions smaller than 0 and larger than 1 or negative pressure.
-Also, the large stepwidth can adjust enthalpy or pressure to quantities that
+Also, the large step width can adjust enthalpy or pressure to quantities that
 are not covered by the fluid property databases. This would cause an inability
 e.g. to calculate a temperature from pressure and enthalpy in the next
 iteration of the algorithm. In order to improve convergence stability, we have
@@ -414,7 +414,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid components never exceeds these boundaries.
+  mass fraction of a single fluid component never exceeds these boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -487,10 +487,10 @@ up common mistakes. If you want to debug your code, make sure to enable the
 logger and have a look at the log-file at :code:`~/.tespy/` (or at your
 specified location).
 
-First of all, make sure your network topology is set up correctly, TESPy will
-prompt an Error, if not. TESPy will prompt an error, too, if you did not
-provide enough or if you provide too many parameters for your calculation, but
-you will not be given an information which specific parameters are under- or
+First, make sure your network topology is set up correctly, TESPy will prompt
+an Error, if not. TESPy will prompt an error, too, if you did not provide
+enough or if you provide too many parameters for your calculation, but you will
+not be given an information which specific parameters are under- or
 overdetermined.
 
 .. note::
@@ -498,8 +498,8 @@ overdetermined.
     Always keep in mind, that the system has to find a value for mass flow,
     pressure, enthalpy and the fluid mass fractions. Try to build up your
     network step by step and have in mind, what parameters will be determined
-    by adding an additional component without any parametrisation. This way,
-    you can easily determine, which parameters are still to be specified.
+    by adding a component without any parametrisation. This way, you can easily
+    determine, which parameters are still to be specified.
 
 When using multiple fluids in your network, e.g.
 :code:`fluids=['water', 'air', 'methane']` and at some point you want to have
@@ -561,9 +561,9 @@ Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
 for other users!
 
-Postprocessing
---------------
-A postprocessing is performed automatically after the calculation finished. You
+Post-processing
+---------------
+A post-processing is performed automatically after the calculation finished. You
 have further options:
 
 - Automatically create a documentation of your model.
@@ -645,7 +645,7 @@ Results printing
 ^^^^^^^^^^^^^^^^
 To print the results in your console use the :code:`print_results()` method.
 It will print tables containing the component, connection and bus properties.
-Some of the results will be colored, the colored results indicate
+Some results will be colored, the colored results indicate
 
 * if a parameter was specified as value before calculation.
 * if a parameter is out of its predefined value bounds (e.g. efficiency > 1).

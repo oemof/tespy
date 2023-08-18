@@ -29,8 +29,8 @@ Download the full script here:
 Flexibility in Modeling
 ^^^^^^^^^^^^^^^^^^^^^^^
 In TESPy the specifications for components and/or connections are
-interchangable in every possible way, provided that the system of equations
-representing the plant is well defined.
+interchangeable in every possible way, provided that the system of equations
+representing the plant is well-defined.
 
 For example, instead of the heat provided by the condenser we could specify
 the mass flow :code:`m` of the refrigerant. To unset a parameter you need to
@@ -46,7 +46,7 @@ You can observe, that the heat transferred by the condenser now is a result of
 the mass flow specified. We could do similar things, for example with the heat
 sink temperature. We specified it in our initial set up. Now we want to insert
 a compressor with a fixed output to input pressure ratio. In that case, we
-cannot choose the condensation temperature but it will be a result of that
+cannot choose the condensation temperature, but it will be a result of that
 specification:
 
 .. literalinclude:: /../tutorial/basics/heat_pump.py
@@ -65,7 +65,7 @@ compressor would be, in case we measure :code:`T=97.3` at connection 3.
 
 Typical Errors
 ^^^^^^^^^^^^^^
-If you over- or underdetermine the system by specifying too few or too many
+If you over or under determine the system by specifying too few or too many
 parameters, you will get an error message. We could set the heat demand and the
 mass flow at the same time.
 
@@ -168,4 +168,4 @@ plot using matplotlib.
 
 The figure shows the results of the COP analysis. The base case is at an
 evaporation temperature of 20 °C, the condensation temperature at 80 °C and the
-isentropic effficiency of the compressor at 85 %.
+isentropic efficiency of the compressor at 85 %.

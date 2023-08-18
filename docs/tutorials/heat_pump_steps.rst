@@ -78,9 +78,9 @@ Components
 ++++++++++
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From the figure above you can determine the components of
-the consumer system: condenser, pump and the consumer (
-:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
-). Additionally we need a source and a sink for the consumer and the heat pump
+the consumer system: condenser, pump and the consumer
+(:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`).
+Additionally, we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment.
 
@@ -156,14 +156,14 @@ e.g. the fluids are not determined yet: At the hot inlet of the condenser we
 define the temperature, pressure and the fluid vector. A good guess for
 pressure can be obtained from CoolProp's PropsSI function. We know that the
 condensation temperature must be higher than the consumer's feed flow
-temperature. Therefore we can set the pressure to a slightly higher value of
+temperature. Therefore, we can set the pressure to a slightly higher value of
 that temperature's corresponding condensation pressure.
 
-The same needs to be done for the consumer cycle. We suggest to set
-the parameters at the pump's inlet. On top, we assume that the consumer
-requires a constant inlet temperature. The :code:`CycleCloser` automatically
-makes sure, that the fluid's state at the consumer's outlet is the same as at
-the pump's inlet.
+The same needs to be done for the consumer cycle. We suggest setting the
+parameters at the pump's inlet. On top, we assume that the consumer requires a
+constant inlet temperature. The :code:`CycleCloser` automatically makes sure,
+that the fluid's state at the consumer's outlet is the same as at the pump's
+inlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -258,7 +258,7 @@ connections to the model:
 
 .. attention::
 
-    The drum is special component, it has an inbuilt CycleCloser, therefore
+    The drum is special component, it has an inbuilt CycleCloser, therefore,
     although we are technically forming a cycle at the drum's outlet 1 to its
     inlet 2, we do not need to include a CycleCloser here.
 
@@ -285,7 +285,7 @@ Next step is the connection parametrization: The pressure in the drum and the
 enthalpy of the wet steam reentering the drum need to be determined. For the
 enthalpy we can specify the vapor mass fraction :code:`x` determining the
 degree of evaporation. On the hot side inlet of the superheater we define the
-temperature, pressure and the fluid. At last we have to fully determine the
+temperature, pressure and the fluid. At last, we have to fully determine the
 state of the incoming fluid at the superheater's hot side.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
@@ -385,7 +385,7 @@ For the ambient side, we set temperature, pressure and fluid
 at connection 11. On top of that, we can specify the temperature of the
 ambient water after leaving the intermittent cooler.
 
-With readding of connection 0 we have to set the fluid and the pressure again,
+With re-adding of connection 0 we have to set the fluid and the pressure again,
 but not the temperature value, because this value will be a result of the
 condensation pressure and the given enthalpy at the compressor's outlet.
 
@@ -420,18 +420,18 @@ working fluid does not start to condensate at the intermittent cooler.
 Calculate Partload Performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 After setting up the full system, we want to predict partload operation at
-different values for the consumer's heat demand. Some of the values utilized
-in the previous setup will change, if a component is not operated at its
-design point. This is individual to every system, so the designer has to
-answer the question: Which parameters are design point parameters and how does
-the component perform at a different operation point.
+different values for the consumer's heat demand. Some values utilized in the
+previous setup will change, if a component is not operated at its design point.
+This is individual to every system, so the designer has to answer the question:
+Which parameters are design point parameters and how does the component perform
+at a different operation point.
 
 .. tip::
 
     To make the necessary changes to the model, we can specify a design and an
     offdesign attribute, both lists containing component or connection
     parameter names. All parameters specified in the design attribute of a
-    component or connection, will be unset in a offdesign calculation, all
+    component or connection, will be unset in an offdesign calculation, all
     parameters specified in the offdesign attribute of a component or
     connection will be set for the offdesign calculation. The value for these
     parameters is the value derived from the design-calculation.

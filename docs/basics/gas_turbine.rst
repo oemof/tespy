@@ -21,7 +21,7 @@ This tutorial introduces a new component, the combustion chamber. You will
 learn how to use the component and set up a simple open cycle gas turbine: It
 compresses air and burns fuel in the combustion chamber. The hot and
 pressurized flue gas expands in the turbine, which drives the compressor and
-the generator. You will also learn, how to use the fluid compositon as a
+the generator. You will also learn, how to use the fluid composition as a
 variable in your simulation.
 
 Download the full script here:
@@ -238,7 +238,7 @@ hydrogen and methane.
     With this setup, a thermal input below the lower heating value of methane
     or above the lower heating value of hydrogen (each multiplied with the
     mass flow of 1 kg/s) does not make sense as input specification. This is
-    individual of every fluid you use as fuel and you cannot easily abstract
+    individual of every fluid you use as fuel, and you cannot easily abstract
     the values to any other combination.
 
 .. dropdown:: Click to expand to code section

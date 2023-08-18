@@ -39,15 +39,15 @@ What is PyGMO?
 ^^^^^^^^^^^^^^
 
 PyGMO (Python Parallel Global Multiobjective Optimizer, :cite:`Biscani2020`)
-is a library that provides a large number of evolutionary optimization
-algorithms. PyGMO can be used to solve constrained, unconstrained, single
-objective and multi objective problems.
+is a library that provides numerous evolutionary optimization algorithms. PyGMO
+can be used to solve constrained, unconstrained, single objective and multi
+objective problems.
 
 Evolutionary Algorithms
 +++++++++++++++++++++++
 
 Evolutionary Algorithms (EA) are optimization algorithms inspired by biological
-evolution. In a given population the algorithm uses the so called fitness
+evolution. In a given population the algorithm uses the so-called fitness
 function to determine the quality of the solutions to each individual (set of
 decision variables) problem. The best possible solution of the population is
 called champion. Via mutation, recombination and selection your population
@@ -109,9 +109,9 @@ First, we set up the class with the TESPy network.
 
 
 Next, we add the methods :code:`get_param`, :code:`solve_model` and
-:code:`get_objective`. On top of that, we add a setter working in a similar
-way as the getter. The objective is to maximize thermal efficiency as defined
-in the equation below.
+:code:`get_objective`. On top of that, we add a setter working similarly as the
+getter. The objective is to maximize thermal efficiency as defined in the
+equation below.
 
 .. math::
 
@@ -126,7 +126,7 @@ in the equation below.
 We also have to make sure, only the results of physically feasible solutions
 are returned. In case we have infeasible solutions, we can simply return
 :code:`np.nan`. An infeasible solution is obtained in case the power of a
-turbine is positive, the power of a pump is negative or the heat exchanged
+turbine is positive, the power of a pump is negative, or the heat exchanged
 in any of the preheaters is positive. We also check, if the calculation does
 converge.
 
@@ -205,7 +205,7 @@ In our run, we got:
 
     Figure: Scatter plot for all individuals during the optimization
 
-Finally, you can access the individuals in each of the generations and you
+Finally, you can access the individuals in each of the generations, and you
 can have a look at you population. For more info on the population API please
 visit the pygmo documentation.
 

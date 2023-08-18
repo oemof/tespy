@@ -107,7 +107,7 @@ Next, we want to investigate what happens, in case the
 - heat load varies.
 - overall temperature level in the heating system is reduced.
 
-To do that, we will use similar setups as show in the rankine cycle
+To do that, we will use similar setups as show in the Rankine cycle
 introduction. The :code:`KA` value of both pipes is assumed to be fixed, the
 efficiency of the pump and pressure losses in consumer and heat source are
 constant as well.

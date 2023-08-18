@@ -3,8 +3,8 @@ Thermal Engineering Systems in Python
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as power
 plants, district heating systems or heat pumps. It is an external extension
-module within the `Open Energy Modelling Framework <https://oemof.org/>`_ and
-can be used as a standalone package.
+module within the Open Energy Modelling Framework `oemof <https://oemof.org/>`_
+and can be used as a standalone package.
 
 .. figure:: https://raw.githubusercontent.com/oemof/tespy/9915f013c40fe418947a6e4c1fd0cd0eba45893c/docs/api/_images/logo_tespy_big.svg
     :align: center
@@ -20,8 +20,8 @@ exchangers, drum).
 Everybody is welcome to use and/or develop TESPy. Contribution is already
 possible on a low level by simply fixing typos in TESPy's documentation or
 rephrasing sections which are unclear. If you want to support us that way
-please fork the TESPy repository to your own github account and make changes
-as described in the github guidelines:
+please fork the TESPy repository to your own GitHub account and make changes
+as described in the GitHub guidelines:
 https://guides.github.com/activities/hello-world/
 
 Key Features
@@ -130,7 +130,7 @@ We have decided to start a reoccurring "Stammtisch" meeting for all interested
 TESPy users and (potential) developers. You are invited to join us on every 3rd
 Monday of a month at 17:00 CE(S)T for a casual get together. The first meeting
 will be held at June, 20, 2022. The intent of this meeting is to establish a
-more active and well connected network of TESPy users and developers.
+more active and well-connected network of TESPy users and developers.
 
 If you are interested, you can simply join the meeting at
 https://meet.jit.si/tespy_user_meeting. We are looking forward to seeing you!
@@ -153,7 +153,7 @@ repository. They are included in the "tutorial" directory.
 Citation
 ========
 The scope and functionalities of TESPy have been documented in a paper
-published in the Journal of Open Source Software with an OpenAccess license.
+published in the Journal of Open Source Software with an Open-Access license.
 Download the paper from https://doi.org/10.21105/joss.02178. As TESPy is a free
 software, we kindly ask that you add a reference to TESPy if you use the
 software for your scientific work. Please cite the article with the BibTeX
@@ -200,7 +200,7 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 License
 =======
-Copyright (c) 2017-2022 oemof developer group
+Copyright (c) 2017-2023 Francesco Witte
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

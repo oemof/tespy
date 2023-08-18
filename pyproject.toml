@@ -57,3 +57,31 @@ dev = [
     "sphinxcontrib.bibtex",
     "tox",
 ]
+
+[tool.pytest.ini_options]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+    "tests.py",
+]
+addopts = """
+    -ra
+    --strict-markers
+    --doctest-modules
+    --doctest-glob=/*.rst
+    --tb=short
+    --pyargs
+"""
+testpaths = [
+    "tespy",
+    "tests/",
+]
+
+[tool.isort]
+force_single_line = true
+line_length = 120
+known_first_party = "tespy"
+default_section = "THIRDPARTY"
+forced_separate = "test_tespy"
+not_skip = "__init__.py"
+skip = "migrations"

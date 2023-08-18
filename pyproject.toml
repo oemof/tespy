@@ -9,7 +9,7 @@ include-package-data = true
 mypkg = ["**/*.json"]
 
 [project]
-name = "TESPy"
+name = "tespy"
 version = "0.7.0.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"

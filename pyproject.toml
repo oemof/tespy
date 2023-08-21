@@ -2,6 +2,27 @@
 requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
+[tool.flit.sdist]
+include = [
+    "CHANGELOG.rst",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "MANIFEST.in",
+    "LICENSE*",
+    "PULL_REQUEST_TEMPLATE.md",
+    ".coveragerc",
+    ".editorconfig",
+    ".pep8speaks.yml",
+    ".readthedocs.yml",
+    "paper.bib",
+    "paper.md",
+    "tox.ini",
+    "docs/",
+    "tests/",
+    "tutorial/",
+]
+exclude = ["docs/_build"]
+
 [tool.setuptools]
 include-package-data = true
 
@@ -49,7 +70,7 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 
 [project.optional-dependencies]
 dev = [
-    "build",
+    "flit",
     "furo @ git+https://github.com/fwitte/furo@ceaeb12",
     "pytest",
     "sphinx>=7.2.2",

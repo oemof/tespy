@@ -107,3 +107,13 @@ default_section = "THIRDPARTY"
 forced_separate = "test_tespy"
 not_skip = "__init__.py"
 skip = "migrations"
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+omit = ["migrations"]

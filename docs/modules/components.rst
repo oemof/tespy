@@ -395,7 +395,7 @@ this, you need to implement four changes to the desired component class:
 
 - modify the :code:`get_variables(self)` method.
 - add a method, that returns the result of your equation.
-- add a method, that places the partial derivatives in the jacobian matrix of
+- add a method, that places the partial derivatives in the Jacobian matrix of
   your component.
 - add a method, that returns the LaTeX code of your equation for the automatic
   documentation feature.
@@ -708,7 +708,7 @@ Subsystems are an easy way to add frequently used component groups such as a
 drum with evaporator or a preheater with desuperheater to your system. In this
 section you will learn how to create a subsystem and implement it in your work.
 The subsystems are highly customizable and thus a very powerful tool, if you
-require to use specific component groups frequently. We provide an example, of
+require using specific component groups frequently. We provide an example, of
 how to create a simple subsystem and use it in a simulation.
 
 Custom subsystems

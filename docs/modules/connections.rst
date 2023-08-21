@@ -149,7 +149,7 @@ Different use-cases for busses could be:
 
 The handling of busses is very similar to connections and components. You need
 to add components to your busses as a dictionary containing at least the
-instance of your component. Additionally you may provide a characteristic line,
+instance of your component. Additionally, you may provide a characteristic line,
 linking the ratio of actual value to a referenced value (design case value) to
 an efficiency factor the component value of the bus is multiplied with. For
 instance, you can provide a characteristic line of an electrical generator or

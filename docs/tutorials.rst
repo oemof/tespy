@@ -16,8 +16,8 @@ At the example of different heat pump topologies, you will learn to
   setting.
 
 Furthermore, we introduce the coupling of TESPy with pygmo in order to create
-an optimization problem, which optimizes thermal efficiency of a clausius
-rankine power plant. Also, there is a tutorial on the implementation of an air
+an optimization problem, which optimizes thermal efficiency of a Clausius
+Rankine power plant. Also, there is a tutorial on the implementation of an air
 source heat pump in an energy system dispatch optimization problem using
 `oemof-solph <https://github.com/oemof/oemof-solph>`__. For that tutorial an air
 source heat pump is implemented in various details of modeling complexity and

@@ -12,7 +12,7 @@ Install the developer version
 
 It is recommenden to use
 `virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for
-the development process. Fork the repository and clone your forked tespy github
+the development process. Fork the repository and clone your forked tespy GitHub
 repository and install development requirements with pip.
 
 .. code:: bash
@@ -33,7 +33,7 @@ the example below).
     git fetch upstream
     git pull upstream dev --rebase
 
-Use the :code:`--rebase` comand to avoid merge commits fo every upstream pull.
+Use the :code:`--rebase` command to avoid merge commits for every upstream pull.
 If you want to make changes to tespy, checkout a new branch from your local dev
 branch. Make your changes, commit them and create a PR on the oemof/tespy dev
 branch.
@@ -41,13 +41,13 @@ branch.
 Collaboration with pull requests
 --------------------------------
 
-To collaborate use the pull request functionality of github as described here:
+To collaborate use the pull request functionality of GitHub as described here:
 https://guides.github.com/activities/hello-world/
 
 How to create a pull request
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Fork the oemof repository to your own github account.
+* Fork the oemof repository to your own GitHub account.
 * Change, add or remove code.
 * Commit your changes.
 * Create a pull request and describe what you will do and why. Please use the
@@ -79,7 +79,7 @@ The tests in TESPy are split up in two different parts:
 
 The tests contain code examples that expect a certain outcome. If the outcome
 is as expected a test will pass, if the outcome is different, the test will
-fail. You can run the tests locally by navigating into your local github clone.
+fail. You can run the tests locally by navigating into your local GitHub clone.
 The command :code:`check` tests PEP guidelines, the command :code:`docs`
 tests building the documentation, and the command :code:`py3X` runs the
 software tests in the selected Python version.

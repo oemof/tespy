@@ -1,7 +1,8 @@
 # -*- coding: utf-8
-from pkg_resources import resource_filename
+import importlib.resources
+import os
 
-__datapath__ = resource_filename('tespy', 'data/')
+__datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
 __version__ = '0.7.0 - dev'
 
 # tespy data and connections import

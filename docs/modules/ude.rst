@@ -14,8 +14,8 @@ Getting started
 For an easy start, let's consider two different streams. The mass flow of both
 streams should be coupled within the model. There is already a possibility
 covering simple relations, i.e. applying value referencing with the
-:py:class:`tespy.connections.connection.Ref` class. This class allows to
-formulate simple linear relations:
+:py:class:`tespy.connections.connection.Ref` class. This class allows
+formulating simple linear relations:
 
 .. math::
 
@@ -30,7 +30,7 @@ flow of the second stream.
     0 = \dot{m}_1 - \dot{m}_2^2
 
 In order to apply this relation, we need to import the
-:py:class:`tespy.tools.helpers.UserDefinedEquation` class into our model an
+:py:class:`tespy.tools.helpers.UserDefinedEquation` class into our model and
 create an instance with the respective data. First, we set up the TESPy model.
 
 .. code-block:: python
@@ -58,7 +58,7 @@ create an instance with the respective data. First, we set up the TESPy model.
     c1.set_attr(fluid={'water': 1}, p=1, T=50)
     c2.set_attr(fluid={'water': 1}, p=5, T=250, v=4)
 
-In the model both streams are well defined regarding pressure, enthalpy and
+In the model both streams are well-defined regarding pressure, enthalpy and
 fluid composition. The second stream's mass flow is defined through
 specification of the volumetric flow, we are missing the mass flow of the
 connection :code:`c1`. As described, its value should be quadratic to the
@@ -143,10 +143,9 @@ the network. The class requires four mandatory arguments to be passed:
 More examples
 -------------
 
-After warm-up let's create some more complex examples, e.g. the
-square root of the temperature of the second stream should be equal to the
-the logarithmic value of the pressure squared divided by the mass flow of the
-first stream.
+After warm-up let's create some more complex examples, e.g. the square root of
+the temperature of the second stream should be equal to the logarithmic value of
+the pressure squared divided by the mass flow of the first stream.
 
 .. math::
 
@@ -169,7 +168,7 @@ the logarithmic value.
 
 .. note::
 
-    We use the absolute value inside of the logarithm expression to avoid
+    We use the absolute value inside the logarithm expression to avoid
     ValueErrors within the solution process as the mass flow is not restricted
     to positive values.
 
@@ -251,7 +250,7 @@ instance must therefore be changed as below.
         'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1})
 
 
-One more example (using a CharLine for datapoint interpolation) can be found in
+One more example (using a CharLine for data point interpolation) can be found in
 the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
 

@@ -64,6 +64,7 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 
 [project.optional-dependencies]
 dev = [
+    "build",
     "flit",
     "furo @ git+https://github.com/fwitte/furo@ceaeb12",
     "pytest",

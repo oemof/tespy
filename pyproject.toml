@@ -23,12 +23,6 @@ include = [
 ]
 exclude = ["docs/_build"]
 
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.package-data]
-mypkg = ["**/*.json"]
-
 [project]
 name = "tespy"
 version = "0.7.0.dev0"

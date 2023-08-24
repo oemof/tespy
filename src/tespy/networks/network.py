@@ -973,10 +973,10 @@ class Network:
                     if f in c.fluid.val_set
                 }
                 mass_fraction_sum = sum(fixed_fractions.values())
-                if mass_fraction_sum > 1:
+                if mass_fraction_sum > 1 + ERR:
                     msg = "Total mass fractions within a branch cannot exceed 1"
                     raise ValueError(msg)
-                elif mass_fraction_sum < 1:
+                elif mass_fraction_sum < 1 - ERR:
                     # set the fluids with specified mass fraction
                     # remaining fluids are variable, create wrappers for them
                     all_fluids = main_conn.fluid.val.keys()

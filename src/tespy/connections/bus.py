@@ -187,6 +187,7 @@ class Bus:
         self.P = dc_simple(val=np.nan, is_set=False)
         self.char = CharLine(x=np.array([0, 3]), y=np.array([1, 1]))
         self.printout = True
+        self.jacobian = {}
 
         self.set_attr(**kwargs)
 
@@ -402,3 +403,13 @@ class Bus:
                 'Added component ' + comp.label + ' to bus ' +
                 self.label + '.')
             logger.debug(msg)
+
+    def solve(self):
+        self.residual = self.P.val
+        for cp in self.comps.index:
+            self.residual -= cp.calc_bus_value(self)
+            cp.bus_deriv(self)
+
+    def clear_jacobian(self):
+        for k in self.jacobian:
+            self.jacobian[k] = 0

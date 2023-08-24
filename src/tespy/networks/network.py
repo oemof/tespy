@@ -2300,26 +2300,20 @@ class Network:
         - Place residual values in residual value vector of the network.
         - Place partial derivatives in jacobian matrix of the network.
         """
-        row = self.num_comp_eq + self.num_conn_eq
+        sum_eq = self.num_comp_eq + self.num_conn_eq
         for bus in self.busses.values():
             if bus.P.is_set:
-                P_res = 0
-                for cp in bus.comps.index:
 
-                    P_res -= cp.calc_bus_value(bus)
-                    deriv = -cp.bus_deriv(bus)
+                bus.solve()
+                self.residual[sum_eq] = bus.residual
 
-                    j = 0
-                    for loc in cp.conn_loc:
-                        # start collumn index
-                        coll_s = loc * self.num_conn_vars
-                        # end collumn index
-                        coll_e = (loc + 1) * self.num_conn_vars
-                        self.jacobian[row, coll_s:coll_e] = deriv[:, j]
-                        j += 1
+                if len(bus.jacobian) > 0:
+                    columns = [k for k in bus.jacobian]
+                    data = list(bus.jacobian.values())
+                    self.jacobian[sum_eq, columns] = data
 
-                self.residual[row] = bus.P.val + P_res
-                row += 1
+                bus.clear_jacobian()
+                sum_eq += 1
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""

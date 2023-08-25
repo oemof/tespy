@@ -119,10 +119,7 @@ html_theme_options = {
     "light_logo": "./images/logo_tespy_mid.svg",
     "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
     "announcement": """
-    <div w3-include-html=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
-    <script>
-    includeHTML();
-    </script>
+    <div oemof-announcement=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
     """,
 }
 

@@ -1,4 +1,4 @@
-furo @ git+https://github.com/fwitte/furo@ceaeb12
+furo
 sphinx>=7.2.2
 sphinxcontrib-bibtex
 sphinx-copybutton

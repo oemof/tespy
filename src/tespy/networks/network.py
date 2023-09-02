@@ -1768,8 +1768,8 @@ class Network:
         For more information on the solution process have a look at the online
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
+        ## to own function
         self.new_design = False
-        self.converged = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
                 if c.new_design:
@@ -1784,6 +1784,7 @@ class Network:
         else:
             self.new_design = True
 
+        self.converged = False
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
@@ -1794,12 +1795,14 @@ class Network:
         self.always_all_equations = always_all_equations
 
         if self.use_cuda and cu is None:
-            msg = ('Specifying use_cuda=True requires cupy to be installed on '
-                   'your machine. Numpy will be used instead.')
+            msg = (
+                'Specifying use_cuda=True requires cupy to be installed on '
+                'your machine. Numpy will be used instead.'
+            )
             logger.warning(msg)
             self.use_cuda = False
 
-        if mode != 'offdesign' and mode != 'design':
+        if mode not in ['offdesign', 'design']:
             msg = 'Mode must be "design" or "offdesign".'
             logger.error(msg)
             raise ValueError(msg)
@@ -1856,8 +1859,6 @@ class Network:
             return
 
         self.postprocessing()
-        # fp.Memorise.del_memory(self.fluids)
-
         if not self.progress:
             msg = (
                 'The solver does not seem to make any progress, aborting '

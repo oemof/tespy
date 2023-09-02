@@ -329,7 +329,8 @@ class Bus:
                     # default values
                     if isinstance(comp, Component):
                         self.comps.loc[comp] = [
-                            None, np.nan, self.char, np.nan, 'component']
+                            None, np.nan, self.char, np.nan, 'component'
+                        ]
                     else:
                         msg = 'Keyword "comp" must hold a TESPy component.'
                         logger.error(msg)

@@ -1877,7 +1877,7 @@ class Network:
     def solve_loop(self, print_results=True):
         r"""Loop of the newton algorithm."""
         # parameter definitions
-        self.res = np.array([])
+        self.residual_history = np.array([])
         self.residual = np.zeros([self.num_vars])
         self.increment = np.ones([self.num_vars])
         self.jacobian = np.zeros((self.num_vars, self.num_vars))
@@ -1891,19 +1891,27 @@ class Network:
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
-            self.res = np.append(self.res, norm(self.residual))
+            self.residual_history = np.append(
+                self.residual_history, norm(self.residual)
+            )
 
             if self.iterinfo:
                 self.iterinfo_body(print_results)
 
-            if ((self.iter >= self.min_iter - 1 and self.res[-1] < ERR ** 0.5)
-                    or self.lin_dep):
+            if (
+                    (self.iter >= self.min_iter - 1
+                     and self.residual_history[-1] < ERR ** 0.5)
+                    or self.lin_dep
+                ):
                 self.converged = not self.lin_dep
                 break
 
             if self.iter > 40:
-                if (all(self.res[(self.iter - 3):] >= self.res[-3] * 0.95) and
-                        self.res[-1] >= self.res[-2] * 0.95):
+                if (
+                    all(
+                        self.residual_history[(self.iter - 3):] >= self.residual_history[-3] * 0.95
+                    ) and self.residual_history[-1] >= self.residual_history[-2] * 0.95
+                ):
                     self.progress = False
                     break
 
@@ -1913,9 +1921,11 @@ class Network:
             self.iterinfo_tail(print_results)
 
         if self.iter == self.max_iter - 1:
-            msg = ('Reached maximum iteration count (' + str(self.max_iter) +
-                   '), calculation stopped. Residual value is '
-                   '{:.2e}'.format(norm(self.residual)))
+            msg = (
+                f"Reached maximum iteration count ({self.max_iter})), "
+                "calculation stopped. Residual value is "
+                "{:.2e}".format(norm(self.residual))
+            )
             logger.warning(msg)
 
         return
@@ -1959,15 +1969,17 @@ class Network:
             self.num_bus_eq + self.num_ude_eq
         )
         if n > self.num_vars:
-            msg = ('You have provided too many parameters: ' +
-                   str(self.num_vars) + ' required, ' + str(n) +
-                   ' supplied. Aborting calculation!')
+            msg = (
+                f"You have provided too many parameters: {self.num_vars} "
+                f"required, {n} supplied. Aborting calculation!"
+            )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
         elif n < self.num_vars:
-            msg = ('You have not provided enough parameters: '
-                   + str(self.num_vars) + ' required, ' + str(n) +
-                   ' supplied. Aborting calculation!')
+            msg = (
+                f"You have not provided enough parameters: {self.num_vars} "
+                f"required, {n} supplied. Aborting calculation!"
+            )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -2106,7 +2118,9 @@ class Network:
                 container.val_SI += increment / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-                container.val[data["fluid"]] += self.increment[container.J_col[data["fluid"]]]
+                container.val[data["fluid"]] += self.increment[
+                    container.J_col[data["fluid"]]
+                ]
 
                 if container.val[data["fluid"]] < ERR :
                     container.val[data["fluid"]] = 0
@@ -2122,15 +2136,17 @@ class Network:
                 elif data["obj"].val > data["obj"].max_val:
                     data["obj"].val = data["obj"].max_val
 
+    def check_variable_bounds(self):
+
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
             if len(c.fluid.is_var) > 0:
                 total_mass_fractions = sum(c.fluid.val.values())
                 for fluid in c.fluid.is_var:
-                    c.fluid.val[fluid] = c.fluid.val[fluid] / total_mass_fractions
+                    c.fluid.val[fluid] /= total_mass_fractions
 
             c.build_fluid_data()
-            self.solve_check_props(c)
+            self.check_connection_properties(c)
 
         # second property check for first three iterations without an init_file
         if self.iter < 3:
@@ -2138,7 +2154,7 @@ class Network:
                 cp.convergence_check()
 
             for c in self.conns['object']:
-                self.solve_check_props(c)
+                self.check_connection_properties(c)
 
     def solve_control(self):
         r"""
@@ -2161,8 +2177,9 @@ class Network:
             return
 
         self.update_variables()
+        self.check_variable_bounds()
 
-    def solve_check_props(self, c):
+    def check_connection_properties(self, c):
         r"""
         Check for invalid fluid property values.
 
@@ -2246,28 +2263,6 @@ class Network:
 
             cp.it += 1
 
-    def solve_user_defined_eq(self):
-        """
-        Calculate the residual and jacobian of user defined equations.
-
-        - Iterate through user defined functions and calculate residual value
-          and corresponding jacobian.
-        - Place residual values in residual value vector of the network.
-        - Place partial derivatives regarding connection parameters in Jacobian
-          matrix of the network.
-        """
-        sum_eq = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
-        for ude in self.user_defined_eq.values():
-            ude.solve()
-            self.residual[sum_eq] = ude.residual
-
-            if len(ude.jacobian) > 0:
-                rows = [k[0] + sum_eq for k in ude.jacobian]
-                columns = [k[1] for k in ude.jacobian]
-                data = list(ude.jacobian.values())
-                self.jacobian[rows, columns] = data
-                sum_eq += 1
-
     def solve_connections(self):
         r"""
         Calculate the residual and derivatives of connection equations.
@@ -2292,6 +2287,27 @@ class Network:
                 sum_eq += c.num_eq
 
             c.it += 1
+
+    def solve_user_defined_eq(self):
+        """
+        Calculate the residual and jacobian of user defined equations.
+
+        - Iterate through user defined functions and calculate residual value
+          and corresponding jacobian.
+        - Place residual values in residual value vector of the network.
+        - Place partial derivatives regarding connection parameters in Jacobian
+          matrix of the network.
+        """
+        sum_eq = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
+        for ude in self.user_defined_eq.values():
+            ude.solve()
+            self.residual[sum_eq] = ude.residual
+
+            if len(ude.jacobian) > 0:
+                columns = [k for k in ude.jacobian]
+                data = list(ude.jacobian.values())
+                self.jacobian[sum_eq, columns] = data
+                sum_eq += 1
 
     def solve_busses(self):
         r"""
@@ -2395,8 +2411,8 @@ class Network:
                 else:
                     design_value = b.comps.loc[cp, 'P_ref']
 
-                self.results[b.label].loc[cp.label] = (
-                    [cmp_val, bus_val, eff, design_value])
+                result = [cmp_val, bus_val, eff, design_value]
+                self.results[b.label].loc[cp.label] = result
 
             b.P.val = self.results[b.label]['bus value'].sum()
 

@@ -84,10 +84,10 @@ class DataContainer:
     <class 'tespy.tools.data_containers.GroupedComponentProperties'>
     >>> type(FluidComposition(
     ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
-    ... val_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
+    ... is_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
     ... balance=False))
     <class 'tespy.tools.data_containers.FluidComposition'>
-    >>> type(FluidProperties(val=5, val_SI=500000, val_set=True, unit='bar',
+    >>> type(FluidProperties(val=5, val_SI=500000, is_set=True, unit='bar',
     ...      ref=None, ref_set=False))
     <class 'tespy.tools.data_containers.FluidProperties'>
     >>> type(SimpleDataContainer(val=5, is_set=False))
@@ -121,8 +121,10 @@ class DataContainer:
                 self.__dict__.update({key: kwargs[key]})
 
             else:
-                msg = ('Data container of type ' + self.__class__.__name__ +
-                       ' has no attribute ' + key + '.')
+                msg = (
+                    f"Datacontainer of type {self.__class__.__name__} has no "
+                    f"attribute \"{key}\"."
+                )
                 logger.error(msg)
                 raise KeyError(msg)
 
@@ -143,8 +145,10 @@ class DataContainer:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = ('Datacontainer of type ' + self.__class__.__name__ +
-                   ' has no attribute \"' + str(key) + '\".')
+            msg = (
+                f"Datacontainer of type {self.__class__.__name__} has no "
+                f"attribute \"{key}\"."
+            )
             logger.error(msg)
             raise KeyError(msg)
 
@@ -195,7 +199,8 @@ class ComponentCharacteristics(DataContainer):
             'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq': 0}
+            'num_eq': 0
+        }
 
 
 class ComponentCharacteristicMaps(DataContainer):
@@ -299,8 +304,8 @@ class FluidComposition(DataContainer):
         default: val0={}. Pattern for dictionary: keys are fluid name, values
         are mass fractions.
 
-    val_set : dict
-        Which fluid mass fractions have been set, default val_set={}.
+    is_set : dict
+        Which fluid mass fractions have been set, default is_set={}.
         Pattern for dictionary: keys are fluid name, values are True or False.
 
     balance : boolean
@@ -322,7 +327,7 @@ class FluidComposition(DataContainer):
         return {
             'val': collections.OrderedDict(),
             'val0': collections.OrderedDict(),
-            'val_set': collections.OrderedDict(),
+            'is_set': collections.OrderedDict(),
             'design': collections.OrderedDict(),
             'wrapper': collections.OrderedDict(),
             'engine': collections.OrderedDict(),
@@ -417,8 +422,8 @@ class FluidProperties(DataContainer):
     val_SI : float
         Value in SI_unit, default: val_SI=0.
 
-    val_set : boolean
-        Has the value for this property been set? default: val_set=False.
+    is_set : boolean
+        Has the value for this property been set? default: is_set=False.
 
     ref : tespy.connections.ref
         Reference object, default: ref=None.
@@ -450,9 +455,7 @@ class FluidProperties(DataContainer):
             'val': np.nan,
             'val0': np.nan,
             'val_SI': 0,
-            'val_set': False,
-            'ref': None,
-            'ref_set': False,
+            'is_set': False,
             'unit': None,
             'design': np.nan,
             "is_var": False,
@@ -476,7 +479,7 @@ class SimpleDataContainer(DataContainer):
         Value for the property, no predefined datatype.
 
     is_set : boolean
-        Has the value for this property been set? default: val_set=False.
+        Has the value for this property been set? default: is_set=False.
     """
 
     @staticmethod

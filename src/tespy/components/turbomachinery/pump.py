@@ -405,23 +405,23 @@ class Pump(Turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if not o[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not o[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
             o[0].p.val_SI = o[0].p.val_SI * 2
-        if not i[0].p.val_set and o[0].p.val_SI < i[0].p.val_SI:
+        if not i[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
             i[0].p.val_SI = o[0].p.val_SI * 0.5
 
-        if not o[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not o[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
             o[0].h.val_SI = o[0].h.val_SI * 1.1
-        if not i[0].h.val_set and o[0].h.val_SI < i[0].h.val_SI:
+        if not i[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
         if self.flow_char.is_set:
             expr = i[0].m.val_SI * v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI)
 
-            if expr > self.flow_char.char_func.x[-1] and not i[0].m.val_set:
+            if expr > self.flow_char.char_func.x[-1] and not i[0].m.is_set:
                 i[0].m.val_SI = (self.flow_char.char_func.x[-1] /
                                  v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
-            elif expr < self.flow_char.char_func.x[1] and not i[0].m.val_set:
+            elif expr < self.flow_char.char_func.x[1] and not i[0].m.is_set:
                 i[0].m.val_SI = (self.flow_char.char_func.x[0] /
                                  v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
             else:

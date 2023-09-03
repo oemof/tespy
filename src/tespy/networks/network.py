@@ -844,8 +844,8 @@ class Network:
 
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
-            any_fluids_set = [f for c in all_connections for f in c.fluid.val_set]
-            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.val_set}
+            any_fluids_set = [f for c in all_connections for f in c.fluid.is_set]
+            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.is_set}
             mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]
             mixing_rule = set(mixing_rules)
             if len(mixing_rule) > 1:
@@ -864,9 +864,9 @@ class Network:
                 c.mixing_rule = list(mixing_rule)[0]
                 c._potential_fluids = potential_fluids
                 for f in potential_fluids:
-                    if (f not in c.fluid.val_set and f not in c.fluid.val and f not in c.fluid.val0):
+                    if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
                         c.fluid.val[f] = 0
-                    elif f not in c.fluid.val_set and f in c.fluid.val0:
+                    elif f not in c.fluid.is_set and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
                     if f not in c.fluid.wrapper and f in fluid_set_wrappers:
                         c.fluid.wrapper[f] = fluid_set_wrappers[f]
@@ -882,13 +882,13 @@ class Network:
             num_massflow_specs = 0
             for c in branch["connections"]:
                 # number of specifications cannot exceed 1
-                num_massflow_specs += c.m.val_set
+                num_massflow_specs += c.m.is_set
 
-                if c.m.val_set:
+                if c.m.is_set:
                     main_conn = c
 
                 # self reference is not allowed
-                if c.m_ref.val_set:
+                if c.m_ref.is_set:
                     if c.m_ref.val.obj in branch["connections"]:
                         msg = (
                             "You cannot reference a mass flow in the same "
@@ -942,11 +942,11 @@ class Network:
                 c for b in branch for c in b["connections"]
             ]
             main_conn = all_connections[0]
-            fluid_specs = [f for c in all_connections for f in c.fluid.val_set]
+            fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
             if len(fluid_specs) == 0:
                 main_conn._fluid_tmp = dc_flu()
                 main_conn._fluid_tmp.val = main_conn.fluid.val.copy()
-                main_conn._fluid_tmp.val_set = main_conn.fluid.val_set.copy()
+                main_conn._fluid_tmp.is_set = main_conn.fluid.is_set.copy()
                 main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
                 main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
 
@@ -970,7 +970,7 @@ class Network:
                     f: c.fluid.val[f]
                     for c in all_connections
                     for f in fluid_specs
-                    if f in c.fluid.val_set
+                    if f in c.fluid.is_set
                 }
                 mass_fraction_sum = sum(fixed_fractions.values())
                 if mass_fraction_sum > 1 + ERR:
@@ -1006,7 +1006,7 @@ class Network:
 
                 main_conn._fluid_tmp = dc_flu()
                 main_conn._fluid_tmp.val = main_conn.fluid.val.copy()
-                main_conn._fluid_tmp.val_set = main_conn.fluid.val_set.copy()
+                main_conn._fluid_tmp.is_set = main_conn.fluid.is_set.copy()
                 main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
                 main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
 
@@ -1015,8 +1015,8 @@ class Network:
                     c.fluid = main_conn.fluid
 
                 main_conn.fluid.val.update(fixed_fractions)
-                main_conn.fluid.val_set = {f: False for f in variable}
-                main_conn.fluid.val_set.update({f: True for f in fixed_fractions})
+                main_conn.fluid.is_set = {f: False for f in variable}
+                main_conn.fluid.is_set.update({f: True for f in fixed_fractions})
                 main_conn.fluid.is_var = variable
 
             [c.build_fluid_data() for c in all_connections]
@@ -1054,7 +1054,7 @@ class Network:
                 else:
                     c.get_attr(key).unit = self.get_attr(key + '_unit')
                 # set SI value
-                if c.get_attr(key).val_set:
+                if c.get_attr(key).is_set:
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val, c.get_attr(key).unit)
                 if c.get_attr(key).ref_set:
@@ -1118,10 +1118,10 @@ class Network:
 
                 # unset design parameters
                 for var in c.design:
-                    c.get_attr(var).val_set = False
+                    c.get_attr(var).is_set = False
                 # set offdesign parameters
                 for var in c.offdesign:
-                    c.get_attr(var).val_set = True
+                    c.get_attr(var).is_set = True
 
                 # read design point information
                 df = self.init_read_connections(c.design_path)
@@ -1146,10 +1146,10 @@ class Network:
                 # switch connections to design mode
                 if self.redesign:
                     for var in c.design:
-                        c.get_attr(var).val_set = True
+                        c.get_attr(var).is_set = True
 
                     for var in c.offdesign:
-                        c.get_attr(var).val_set = False
+                        c.get_attr(var).is_set = False
 
         # unset design values for busses, count bus equations and
         # reindex bus dictionary
@@ -1409,11 +1409,11 @@ class Network:
             if not c.local_design:
                 # switch connections to offdesign mode
                 for var in c.design:
-                    c.get_attr(var).val_set = False
+                    c.get_attr(var).is_set = False
                     c.get_attr(var).ref_set = False
 
                 for var in c.offdesign:
-                    c.get_attr(var).val_set = True
+                    c.get_attr(var).is_set = True
                     c.get_attr(var).val_SI = c.get_attr(var).design
 
                 c.new_design = False
@@ -1486,7 +1486,7 @@ class Network:
 
         # fluid propagation from set values
         for c in self.conns['object']:
-            if any(c.fluid.val_set.values()):
+            if any(c.fluid.is_set.values()):
                 c.target.propagate_fluid_to_target(c, c, entry_point=True)
                 c.source.propagate_fluid_to_source(c, c, entry_point=True)
 
@@ -1538,7 +1538,7 @@ class Network:
                         data.unit = df.loc[conn_id, prop + '_unit']
 
                     for fluid in self.fluids:
-                        if not c.fluid.val_set[fluid]:
+                        if not c.fluid.is_set[fluid]:
                             c.fluid.val[fluid] = df.loc[conn_id, fluid]
                         c.fluid.val0[fluid] = c.fluid.val[fluid]
 
@@ -1563,7 +1563,7 @@ class Network:
             for key in ['m', 'p', 'h']:
                 if not c.good_starting_values:
                     self.init_val0(c, key)
-                if not c.get_attr(key).val_set:
+                if not c.get_attr(key).is_set:
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit)
 
@@ -1585,14 +1585,14 @@ class Network:
             # and state specification. These should be recalculated even with
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
-            if ((c.Td_bp.val_set or c.state.is_set) and
-                    not c.h.val_set):
-                if ((c.Td_bp.val_SI > 0 and c.Td_bp.val_set) or
+            if ((c.Td_bp.is_set or c.state.is_set) and
+                    not c.h.is_set):
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or
                         (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
-                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.val_set) or
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or
                       (c.state.val == 'l' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
@@ -1612,7 +1612,7 @@ class Network:
         """
         # variables 0 to 9: fluid properties
         local_vars = self.specifications['Connection'].columns[:9]
-        row = [c.get_attr(var).val_set for var in local_vars]
+        row = [c.get_attr(var).is_set for var in local_vars]
         # write information to specifaction dataframe
         self.specifications['Connection'].loc[c.label, local_vars] = row
 
@@ -1622,7 +1622,7 @@ class Network:
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
-        row = [True if f in c.fluid.val_set else False for f in fluids]
+        row = [True if f in c.fluid.is_set else False for f in fluids]
         self.specifications['Connection'].loc[c.label, fluids] = row
 
         # last one: fluid balance specification
@@ -1645,13 +1645,13 @@ class Network:
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
-        if c.x.val_set and not c.h.val_set:
+        if c.x.is_set and not c.h.is_set:
             try:
                 c.h.val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
             except ValueError:
                 pass
 
-        if c.T.val_set and not c.h.val_set:
+        if c.T.is_set and not c.h.is_set:
             try:
                 c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
             except ValueError:
@@ -2201,7 +2201,7 @@ class Network:
                 c.check_enthalpy_bounds(fl)
 
                 # two-phase related
-                if (c.Td_bp.val_set or c.state.is_set) and self.iter < 3:
+                if (c.Td_bp.is_set or c.state.is_set) and self.iter < 3:
                     c.check_two_phase_bounds(fl)
 
         # mixture
@@ -2227,15 +2227,15 @@ class Network:
                     logger.debug(c._property_range_message('h'))
 
                 # temperature
-                if c.T.val_set:
+                if c.T.is_set:
                     c.check_temperature_bounds()
 
         # mass flow
-        if c.m.val_SI <= self.m_range_SI[0] and not c.m.val_set:
+        if c.m.val_SI <= self.m_range_SI[0] and not c.m.is_set:
             c.m.val_SI = self.m_range_SI[0]
             logger.debug(self._property_range_message(c, 'm'))
 
-        elif c.m.val_SI >= self.m_range_SI[1] and not c.m.val_set:
+        elif c.m.val_SI >= self.m_range_SI[1] and not c.m.is_set:
             c.m.val_SI = self.m_range_SI[1]
             logger.debug(self._property_range_message(c, 'm'))
 
@@ -2470,7 +2470,7 @@ class Network:
             elif colored:
                 conn = self.get_conn(c)
                 for col in df.columns:
-                    if conn.get_attr(col).val_set:
+                    if conn.get_attr(col).is_set:
                         df.loc[c, col] = (
                             coloring['set'] + str(conn.get_attr(col).val) +
                             coloring['end'])

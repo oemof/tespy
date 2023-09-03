@@ -67,7 +67,7 @@ class TestNetworks:
         self.nw.solve('design')
         msg = ('This test must result in a calculation making no progress, as '
                'the pipe\'s outlet enthalpy is below fluid property range.')
-        assert self.nw.progress is False, msg
+        assert not self.nw.progress, msg
 
     def test_Network_max_iter(self):
         """Test reaching maximum iteration count."""
@@ -146,15 +146,15 @@ class TestNetworks:
         self.nw.save('tmp')
         msg = ('The exported network does not contain any char_line, there '
                'must be no file char_line.csv!')
-        assert os.path.isfile('tmp/components/char_line.csv') is False, msg
+        assert not os.path.isfile('tmp/components/char_line.csv'), msg
 
         msg = ('The exported network does not contain any char_map, there '
                'must be no file char_map.csv!')
-        assert os.path.isfile('tmp/components/char_map.csv') is False, msg
+        assert not os.path.isfile('tmp/components/char_map.csv'), msg
 
         msg = ('The exported network does not contain any busses, there '
                'must be no file bus.csv!')
-        assert os.path.isfile('tmp/components/bus.csv') is False, msg
+        assert not os.path.isfile('tmp/components/bus.csv'), msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_Network_reader_no_chars_busses(self):
@@ -439,7 +439,7 @@ class TestNetworkIndividualOffdesign:
 
         msg = ('Parameter v must be set for connection from solar collector1 '
                'to pump1.')
-        assert self.sc1_v1.v.val_set, msg
+        assert self.sc1_v1.v.is_set, msg
 
         shutil.rmtree('./design1', ignore_errors=True)
         shutil.rmtree('./design2', ignore_errors=True)

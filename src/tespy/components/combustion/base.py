@@ -1253,11 +1253,11 @@ class CombustionChamber(Component):
         ######################################################################
         # flue gas propagation
         if not outl.good_starting_values:
-            if outl.m.val_SI < 0 and not outl.m.val_set:
+            if outl.m.val_SI < 0 and not outl.m.is_set:
                 outl.m.val_SI = 10
             outl.target.propagate_fluid_to_target(outl, outl.target)
 
-            if outl.h.val_SI < 7.5e5 and not outl.h.val_set:
+            if outl.h.val_SI < 7.5e5 and not outl.h.is_set:
                 outl.h.val_SI = 1e6
 
         ######################################################################
@@ -1271,7 +1271,7 @@ class CombustionChamber(Component):
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
                     # found the fuel inlet
-                    if fuel > 0.75 and not i.m.val_set:
+                    if fuel > 0.75 and not i.m.is_set:
                         fuel_found = True
                         fuel_inlet = i
 

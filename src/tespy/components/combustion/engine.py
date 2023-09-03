@@ -1407,7 +1407,7 @@ class CombustionEngine(CombustionChamber):
 
         o = self.outl[2]
         for fluid, x in o.fluid.val.items():
-            if not o.fluid.val_set[fluid] and fluid in fg:
+            if not o.fluid.is_set[fluid] and fluid in fg:
                 o.fluid.val[fluid] = fg[fluid]
         o.target.propagate_fluid_to_target(o, o.target)
 
@@ -1488,8 +1488,8 @@ class CombustionEngine(CombustionChamber):
             return
         for outconn in self.outl[:2]:
             for fluid, x in inconn.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
+                if (not outconn.fluid.is_set[fluid] and
+                        not outconn.good_starting_values):
                     outconn.fluid.val[fluid] = x
             outconn.target.propagate_fluid_to_target(outconn, start)
 
@@ -1510,8 +1510,8 @@ class CombustionEngine(CombustionChamber):
             return
         for inconn in self.inl[:2]:
             for fluid, x in outconn.fluid.val.items():
-                if (inconn.fluid.val_set[fluid] is False and
-                        inconn.good_starting_values is False):
+                if (not inconn.fluid.is_set[fluid] and
+                        not inconn.good_starting_values):
                     inconn.fluid.val[fluid] = x
 
             inconn.source.propagate_fluid_to_source(inconn, start)

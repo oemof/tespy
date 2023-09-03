@@ -330,13 +330,13 @@ class Condenser(HeatExchanger):
         T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
         T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
 
-        if T_i1 <= T_o2 and not i1.T.val_set:
+        if T_i1 <= T_o2 and not i1.T.is_set:
             T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.val_set:
+        if T_i1 <= T_o2 and not o2.T.is_set:
             T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.val_set:
+        if T_o1 <= T_i2 and not o1.T.is_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.val_set:
+        if T_o1 <= T_i2 and not i2.T.is_set:
             T_i2 = T_o1 - 1
 
         ttd_u = T_i1 - T_o2

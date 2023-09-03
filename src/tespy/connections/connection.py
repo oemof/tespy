@@ -180,9 +180,9 @@ class Connection:
 
     >>> so_si1.m.val0
     10
-    >>> so_si1.m.val_set
+    >>> so_si1.m.is_set
     False
-    >>> so_si1.m.get_attr('val_set')
+    >>> so_si1.m.get_attr('is_set')
     False
     >>> type(so_si2.m_ref.val)
     <class 'tespy.connections.connection.Ref'>
@@ -190,7 +190,7 @@ class Connection:
     True
     >>> so_si2.m_ref.val.get_attr('delta')
     -5
-    >>> so_si2.m_ref.val_set
+    >>> so_si2.m_ref.is_set
     True
     >>> type(so_si2.m_ref.val.get_attr('obj'))
     <class 'tespy.connections.connection.Connection'>
@@ -198,15 +198,15 @@ class Connection:
     Unset the specified temperature and specify temperature difference to
     boiling point instead.
 
-    >>> so_si2.T.val_set
+    >>> so_si2.T.is_set
     True
     >>> so_si2.set_attr(Td_bp=5, T=np.nan)
-    >>> so_si2.T.val_set
+    >>> so_si2.T.is_set
     False
     >>> so_si2.Td_bp.val
     5
     >>> so_si2.set_attr(Td_bp=None)
-    >>> so_si2.Td_bp.val_set
+    >>> so_si2.Td_bp.is_set
     False
 
     Specify the state keyword: The fluid will be forced to liquid or gaseous
@@ -410,7 +410,7 @@ class Connection:
                         # specified parameters
                         else:
                             self.fluid.set_attr(val=kwargs[key].copy())
-                            self.fluid.val_set = {f for f in kwargs[key]}
+                            self.fluid.is_set = {f for f in kwargs[key]}
 
                     else:
                         # bad datatype
@@ -442,24 +442,24 @@ class Connection:
                         raise TypeError(msg)
 
                 elif kwargs[key] is None:
-                    self.get_attr(key).set_attr(val_set=False)
+                    self.get_attr(key).set_attr(is_set=False)
                     if f"{key}_ref" in self.property_data:
-                        self.get_attr(key).set_attr(val_set=False)
+                        self.get_attr(key).set_attr(is_set=False)
                     if key in ["m", "p", "h"]:
                         self.get_attr(key).is_var = True
 
                 elif is_numeric:
                     if np.isnan(kwargs[key]):
-                        self.get_attr(key).set_attr(val_set=False)
+                        self.get_attr(key).set_attr(is_set=False)
                         if f"{key}_ref" in self.property_data:
-                            self.get_attr(key).set_attr(val_set=False)
+                            self.get_attr(key).set_attr(is_set=False)
                         if key in ["m", "p", "h"]:
                             self.get_attr(key).is_var = True
                     else:
                         # value specification
                         if key in self.property_data:
                             self.get_attr(key).set_attr(
-                                val_set=True,
+                                is_set=True,
                                 val=kwargs[key])
                             if key in ["m", "p", "h"]:
                                 self.get_attr(key).is_var = False
@@ -476,7 +476,7 @@ class Connection:
                         raise NotImplementedError(msg)
                     else:
                         self.get_attr(f"{key}_ref").set_attr(val=kwargs[key])
-                        self.get_attr(f"{key}_ref").set_attr(val_set=True)
+                        self.get_attr(f"{key}_ref").set_attr(is_set=True)
 
                 # invalid datatype for keyword
                 else:
@@ -597,7 +597,7 @@ class Connection:
         self.num_eq = 0
         self.it = 0
         for parameter in self.parameters:
-            if self.get_attr(parameter).val_set:
+            if self.get_attr(parameter).is_set:
                 self.num_eq += self.parameters[parameter].num_eq
 
         self.residual = np.zeros(self.num_eq)
@@ -761,7 +761,7 @@ class Connection:
     def solve(self, increment_filter):
         k = 0
         for parameter, data in self.parameters.items():
-            if self.get_attr(parameter).val_set:
+            if self.get_attr(parameter).is_set:
                 data.func(k, **data.func_params)
                 data.deriv(k, **data.func_params)
 
@@ -793,9 +793,9 @@ class Connection:
             self.s.val_SI = self.calc_s()
 
         if number_fluids == 1:
-            if not self.x.val_set:
+            if not self.x.is_set:
                 self.x.val_SI = self.calc_x()
-            if not self.Td_bp.val_set:
+            if not self.Td_bp.is_set:
                 self.Td_bp.val_SI = self.calc_Td_bp()
 
         for prop in fpd.keys():

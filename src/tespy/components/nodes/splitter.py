@@ -227,9 +227,9 @@ class Splitter(NodeBase):
             i = 0
             for k in range(self.num_o):
                 for fluid in self.inl[0].fluid.val:
-                    if not self.inl[0].fluid.val_set[fluid]:
+                    if not self.inl[0].fluid.is_set[fluid]:
                         deriv[i, self.get_conn_var_pos(0, fluid)] = 1
-                    if not self.outl[k].fluid.val_set[fluid]:
+                    if not self.outl[k].fluid.is_set[fluid]:
                         deriv[i, self.get_conn_var_pos(k + 1, fluid)] = -1
                     i += 1
         return deriv
@@ -297,7 +297,7 @@ class Splitter(NodeBase):
             return
         for outconn in self.outl:
             for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.val_set[fluid] and
+                if (not outconn.fluid.is_set[fluid] and
                         not outconn.good_starting_values):
                     outconn.fluid.val[fluid] = x
 
@@ -323,8 +323,8 @@ class Splitter(NodeBase):
 
         inconn = self.inl[0]
         for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
+            if (not inconn.fluid.is_set[fluid] and
+                    not inconn.good_starting_values):
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)

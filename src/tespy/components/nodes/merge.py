@@ -337,12 +337,12 @@ class Merge(NodeBase):
 
             for c in ls:
                 for fluid in self.inl[0].fluid.val:
-                    if fluid not in self.outl[0].fluid.val_set:
-                        self.outl[0].fluid.val_set[fluid] = False
-                    if not self.outl[0].fluid.val_set[fluid]:
+                    if fluid not in self.outl[0].fluid.is_set:
+                        self.outl[0].fluid.is_set[fluid] = False
+                    if not self.outl[0].fluid.is_set[fluid]:
                         self.outl[0].fluid.val[fluid] = c.fluid.val[fluid]
                     for i in self.inl:
-                        if not i.fluid.val_set[fluid]:
+                        if not i.fluid.is_set[fluid]:
                             i.fluid.val[fluid] = c.fluid.val[fluid]
             self.outl[0].target.propagate_fluid_to_target(o, o, entry_point=True)
 
@@ -379,7 +379,7 @@ class Merge(NodeBase):
 
         for inconn in self.inl:
             for fluid, x in outconn.fluid.val.items():
-                if (not inconn.fluid.val_set[fluid] and
+                if (not inconn.fluid.is_set[fluid] and
                         not inconn.good_starting_values):
                     inconn.fluid.val[fluid] = x
 

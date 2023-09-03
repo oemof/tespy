@@ -407,19 +407,19 @@ class Turbine(Turbomachine):
         i, o = self.inl[0], self.outl[0]
 
         if not i.good_starting_values:
-            if i.p.val_SI <= 1e5 and not i.p.val_set:
+            if i.p.val_SI <= 1e5 and not i.p.is_set:
                 i.p.val_SI = 1e5
 
-            if i.h.val_SI < 10e5 and not i.h.val_set:
+            if i.h.val_SI < 10e5 and not i.h.is_set:
                 i.h.val_SI = 10e5
 
-            if o.h.val_SI < 5e5 and not o.h.val_set:
+            if o.h.val_SI < 5e5 and not o.h.is_set:
                 o.h.val_SI = 5e5
 
-        if i.h.val_SI <= o.h.val_SI and not o.h.val_set:
+        if i.h.val_SI <= o.h.val_SI and not o.h.is_set:
             o.h.val_SI = i.h.val_SI * 0.9
 
-        if i.p.val_SI <= o.p.val_SI and not o.p.val_set:
+        if i.p.val_SI <= o.p.val_SI and not o.p.is_set:
             o.p.val_SI = i.p.val_SI * 0.9
 
     @staticmethod

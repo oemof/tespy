@@ -70,11 +70,11 @@ class TestHeatExchangers:
         instance.kA_char_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert instance.hydro_group.is_set is False, msg
+        assert not instance.hydro_group.is_set, msg
         msg = ('kA group must no be set, if one parameter is missing!')
-        assert instance.kA_group.is_set is False, msg
+        assert not instance.kA_group.is_set, msg
         msg = ('kA char group must no be set, if one parameter is missing!')
-        assert instance.kA_char_group.is_set is False, msg
+        assert not instance.kA_char_group.is_set, msg
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
@@ -167,9 +167,9 @@ class TestHeatExchangers:
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert instance.hydro_group.is_set is False, msg
+        assert not instance.hydro_group.is_set, msg
         msg = ('Energy group must no be set, if one parameter is missing!')
-        assert instance.energy_group.is_set is False, msg
+        assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
         instance.set_attr(
@@ -272,9 +272,9 @@ class TestHeatExchangers:
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
         msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert instance.hydro_group.is_set is False, msg
+        assert not instance.hydro_group.is_set, msg
         msg = ('Energy group must no be set, if one parameter is missing!')
-        assert instance.energy_group.is_set is False, msg
+        assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
         instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',

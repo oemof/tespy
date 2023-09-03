@@ -53,7 +53,7 @@ ambient. You can see the plant topology in the figure below.
 The system consists of a consumer system, a valve, an evaporator system, a
 compressor and additionally an internal heat exchanger. In order to simulate
 this heat pump, the TESPy model has to be built up. First, the network has to
-be initialized and the refrigerants used have to be specified. This example
+be initialized, and the refrigerants used have to be specified. This example
 shows how to make the heat pump model work with a variety of working fluids
 with water on both the heat source and heat sink side of the system.
 

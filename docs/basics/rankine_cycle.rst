@@ -164,9 +164,9 @@ can disable the printout of the convergence history.
 Partload Simulation
 ^^^^^^^^^^^^^^^^^^^
 In the partload simulation part, we are starting with a specific design of the
-plant and calculate the partload perfomance with some assumptions on the
+plant and calculate the partload performance with some assumptions on the
 component's individual behavior. The table below summarizes the assumptions,
-which we will keep as simple as possible in this moment. For more insights
+which we will keep as simple as possible at this moment. For more insights
 have a look at the step by step
 :ref:`heat pump tutorial <tespy_tutorial_heat_pump_label>` or at the
 :ref:`Network documentation <tespy_modules_networks_label>`.
@@ -189,7 +189,7 @@ With these specifications, the following physics are applied to the model:
 
 - Due to the constant volumetric flow of water, the temperature of the cooling
   water returning from the condenser will react to the total heat transferred
-  in the condensation: Increased heat transfer means incresing temperature,
+  in the condensation: Increased heat transfer means increasing temperature,
   decreased heat transfer means decreased temperature.
 - The constant heat transfer coefficient of the condenser will calculate the
   condensation temperature (and therefore pressure) based on the temperature

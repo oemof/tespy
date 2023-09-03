@@ -489,9 +489,9 @@ def load_default_char(component, parameter, function_name, char_type):
         The characteristics (CharLine, CharMap) object.
     """
     if char_type == CharLine:
-        path = __datapath__ + 'char_lines.json'
+        path = os.path.join(__datapath__, 'char_lines.json')
     else:
-        path = __datapath__ + 'char_maps.json'
+        path = os.path.join(__datapath__, 'char_maps.json')
 
     with open(path) as f:
         data = json.loads(f.read())

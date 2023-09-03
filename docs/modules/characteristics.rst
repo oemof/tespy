@@ -24,10 +24,10 @@ the corresponding y-values.
 
 It is possible to specify an :code:`extrapolate` parameter. If the value is
 :code:`False` (default state) and the x-value is above the maximum or below the
-minimum value of the characteristic line the y-value corresponding to the the
+minimum value of the characteristic line the y-value corresponding to the
 maximum/minimum value is returned instead. If the :code:`extrapolate` is
-:code:`True` linear extrapolation is performed using the two lower most or
-upper most value pairs respectively.
+:code:`True` linear extrapolation is performed using the two lowermost or
+uppermost value pairs respectively.
 
 Characteristic maps
 -------------------

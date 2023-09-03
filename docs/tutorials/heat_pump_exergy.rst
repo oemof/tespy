@@ -231,10 +231,10 @@ saved with the code shown below.
 
 The resulting fluid property diagram is shown in the figure above. It can
 easily be seen, that the evaporator slightly overheats the working fluid, while
-the it leaves the condenser in saturated liquid state. The working fluid
-temperature after leaving the compressor is quite high with far more than
-100 °C given the heat sink only requires a temperature of only 40 °C. In
-comparison, the R410A leaves the compressor at about 75 °C.
+it leaves the condenser in saturated liquid state. The working fluid temperature
+after leaving the compressor is quite high with far more than 100 °C given the
+heat sink only requires a temperature of only 40 °C. In comparison, the R410A
+leaves the compressor at about 75 °C.
 
 More examples of creating fluid property diagrams can be found in the fluprodia
 documentation referenced above.

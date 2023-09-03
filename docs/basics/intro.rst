@@ -50,7 +50,7 @@ to specify parameters for the component, for example power :math:`P` for a pump
 or upper terminal temperature difference :math:`ttd_\mathrm{u}` of a heat
 exchanger. The full list of parameters for a specific component is stated in
 the respective class documentation. This example uses a compressor, a control
-valve two (simple) heat exchangers and a so called cycle closer.
+valve two (simple) heat exchangers and a so-called cycle closer.
 
 .. note::
 
@@ -76,8 +76,8 @@ Establish connections
 Connections are used to link two components (outlet of component 1 to inlet of
 component 2: source to target). If two components are connected with each other
 the fluid properties at the source will be equal to the properties at the
-target. It is possible to set the properties on each connection in a similar
-way as parameters are set for components. The basic specification options are:
+target. It is possible to set the properties on each connection similarly as
+parameters are set for components. The basic specification options are:
 
 * mass flow (m)
 * volumetric flow (v)
@@ -106,13 +106,13 @@ we do not need to pass the components to the network.
 .. note::
 
     The :code:`CycleCloser` is a necessary component when working with closed
-    cycles, because a system would always be overdetermined, if, for example,
+    cycles, because a system would always be over determined, if, for example,
     a mass flow is specified at some point within the cycle. It would propagate
-    through all of the components, since they have an equality constraint for
-    the mass flow at their inlet and their outlet. With the example here, that
-    would mean: **Without the cycle closer** specification of massflow at an
-    connection would lead to the following set of equations for massflow, which
-    is an overdetermination:
+    through all the components, since they have an equality constraint for the
+    mass flow at their inlet and their outlet. With the example here, that would
+    mean: **Without the cycle closer** specification of mass flow at a
+    connection would lead to the following set of equations for mass flow, which
+    is an over determination:
 
     .. math::
 
@@ -166,15 +166,15 @@ with the respective component parameters.
 Next steps
 ----------
 
-We highly recommend to check our other basic model examples on how to set up
+We highly recommend checking our other basic model examples on how to set up
 different standard thermodynamic cycles in TESPy. The heat pump cycle in that
-section builds on this heat pump. We will introduce couple of different inputs
+section builds on this heat pump. We will introduce a couple of different inputs
 and show, how to change the working fluid. The other tutorials show the usage
 of more components, for example the combustion chamber and the turbine or a
 condenser including the cooling water side of the system.
 
 In the more advanced tutorials, you will learn, how to set up more complex
-plants ste by step, make a design calculation of the plant as well as calculate
+plants step by step, make a design calculation of the plant as well as calculate
 offdesign/partload performance.
 
 In order to get a good overview of the TESPy functionalities, the sections on

@@ -1,7 +1,7 @@
 .. _tespy_tutorial_district_heating_label:
 
-Distric heating system
-----------------------
+District heating system
+-----------------------
 
 The district heating system is a great example for the usage of flexible
 user-defined subsystems. The example system and data are based on the district

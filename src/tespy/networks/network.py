@@ -151,6 +151,21 @@ class Network:
         self.set_defaults()
         self.set_attr(**kwargs)
 
+    def _serialize(self):
+        return {
+            "m_unit": self.m_unit,
+            "m_range": list(self.m_range),
+            "p_unit": self.p_unit,
+            "p_range": list(self.p_range),
+            "h_unit": self.h_unit,
+            "h_range": list(self.h_range),
+            "T_unit": self.T_unit,
+            "x_unit": self.x_unit,
+            "v_unit": self.v_unit,
+            "s_unit": self.s_unit,
+            "fluids": list(self.all_fluids),
+        }
+
     def set_defaults(self):
         """Set default network properties."""
         # connection dataframe
@@ -158,6 +173,7 @@ class Network:
             columns=['object', 'source', 'source_id', 'target', 'target_id'],
             dtype='object'
         )
+        self.all_fluids = set()
         # component dataframe
         self.comps = pd.DataFrame(dtype='object')
         # user defined function dictionary for fast access
@@ -929,12 +945,6 @@ class Network:
                     c._m_tmp = c.m
                     c.m = main_conn.m
 
-                main_conn.m.J_col = self.num_conn_vars
-                self.variables_dict[self.num_conn_vars] = {
-                    "obj": main_conn, "variable": "m"
-                }
-                self.num_conn_vars += 1
-
     def presolve_fluid_topology(self):
 
         for branch_name, branch in self.fluid_branches.items():
@@ -1032,16 +1042,6 @@ class Network:
         self.all_fluids = []
         # fluid property values
         for c in self.conns['object']:
-            c.preprocess()
-
-            for key in ["p", "h"]:
-                if c.get_attr(key).is_var:
-                    c.get_attr(key).J_col = self.num_conn_vars
-                    self.variables_dict[self.num_conn_vars] = {
-                        "obj": c, "variable": key
-                    }
-                    self.num_conn_vars += 1
-
             self.all_fluids += c.fluid.val.keys()
 
             if not self.init_previous:
@@ -1077,10 +1077,10 @@ class Network:
 
         # set up results dataframe for connections
         # this should be done based on the connections
-        cols = ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+        properties = list(fpd.keys())
         self.all_fluids = set(self.all_fluids)
         cols = (
-            ['m', 'p', 'h', 'T', 'v', 'vol', 's', 'x', 'Td_bp']
+            [col for prop in properties for col in [prop, f"{prop}_unit"]]
             + list(self.all_fluids)
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
@@ -1093,6 +1093,19 @@ class Network:
             'user specified connection parameters.')
         logger.debug(msg)
 
+    def _assign_variable_space(self, c):
+        for key in ["m", "p", "h"]:
+            variable = c.get_attr(key)
+            if variable.is_var and variable not in self._conn_variables:
+                variable.J_col = self.num_conn_vars
+                self.variables_dict[self.num_conn_vars] = {
+                    "obj": c, "variable": key
+                }
+                self._conn_variables += [variable]
+                self.num_conn_vars += 1
+
+        c.preprocess()
+
     def init_design(self):
         r"""
         Initialise a design calculation.
@@ -1104,6 +1117,7 @@ class Network:
         unset, the offdesign values set.
         """
         # connections
+        self._conn_variables = []
         for c in self.conns['object']:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
@@ -1150,6 +1164,8 @@ class Network:
 
                     for var in c.offdesign:
                         c.get_attr(var).is_set = False
+
+            self._assign_variable_space(c)
 
         # unset design values for busses, count bus equations and
         # reindex bus dictionary
@@ -1249,28 +1265,22 @@ class Network:
         (connections) handle the parameter specification.
         """
         # components without any parameters
-        not_required = [
-            'source', 'sink', 'node', 'merge', 'splitter', 'separator', 'drum',
-            'subsystem_interface', 'droplet_separator']
+        components_with_parameters = [
+            cp.label for cp in self.comps["object"] if len(cp.parameters) > 0
+        ]
         # fetch all components, reindex with label
-        df_comps = self.comps.copy()
-        df_comps = df_comps[~df_comps['comp_type'].isin(not_required)]
-
+        df_comps = self.comps.loc[components_with_parameters].copy()
         # iter through unique types of components (class names)
         for c in df_comps['comp_type'].unique():
-            path = hlp.modify_path_os(
-                self.design_path + '/components/' + c + '.csv')
+            path = hlp.modify_path_os(f"{self.design_path}/components/{c}.csv")
             msg = (
-                'Reading design point information for components of type '
-                + c + ' from path ' + path + '.')
+                f"Reading design point information for components of type {c}"
+                f"from path {path}."
+            )
             logger.debug(msg)
 
             # read data
-            df = pd.read_csv(
-                path, sep=';', decimal='.', converters={
-                    'busses': ast.literal_eval,
-                    'bus_P_ref': ast.literal_eval})
-            df.set_index('label', inplace=True)
+            df = pd.read_csv(path, sep=';', decimal='.', index_col=0)
             # iter through all components of this type and set data
             for c_label in df.index:
                 comp = df_comps.loc[c_label, 'object']
@@ -1358,30 +1368,25 @@ class Network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        conn = df.loc[
-            df['source'].isin([c.source.label]) &
-            df['target'].isin([c.target.label]) &
-            df['source_id'].isin([c.source_id]) &
-            df['target_id'].isin([c.target_id])]
-
-        try:
-            # read connection information
-            conn_id = conn.index[0]
-            for var in ['m', 'p', 'h', 'v', 'x', 'T', 'Td_bp']:
-                c.get_attr(var).design = hlp.convert_to_SI(
-                    var, df.loc[conn_id, var], df.loc[conn_id, var + '_unit'])
-            c.vol.design = c.v.design / c.m.design
-            for fluid in self.fluids:
-                c.fluid.design[fluid] = df.loc[conn_id, fluid]
-        except IndexError as iex:
+        if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
                 'Could not find connection %s in design case. '
                 'Please, make sure no connections have been modified or '
                 'components have been relabeled for your offdesign '
-                'calculation.')
+                'calculation.'
+            )
             logger.exception(msg, c.label)
-            raise hlp.TESPyNetworkError(msg) from iex
+            raise hlp.TESPyNetworkError(msg)
+
+        conn = df.loc[c.label]
+        for var in fpd.keys():
+            c.get_attr(var).design = hlp.convert_to_SI(
+                var, conn[var], conn[f"{var}_unit"]
+            )
+        c.vol.design = c.v.design / c.m.design
+        for fluid in c.fluid.val:
+            c.fluid.design[fluid] = conn[fluid]
 
     def init_offdesign(self):
         r"""
@@ -1405,18 +1410,24 @@ class Network:
         :code:`cp.offdesign` will be set instead. This does also affect
         referenced values!
         """
+        self._conn_variables = []
         for c in self.conns['object']:
             if not c.local_design:
                 # switch connections to offdesign mode
                 for var in c.design:
-                    c.get_attr(var).is_set = False
-                    c.get_attr(var).ref_set = False
+                    param = c.get_attr(var)
+                    param.is_set = False
+                    param.is_var = True
 
                 for var in c.offdesign:
-                    c.get_attr(var).is_set = True
-                    c.get_attr(var).val_SI = c.get_attr(var).design
+                    param = c.get_attr(var)
+                    param.is_set = True
+                    param.is_var = False
+                    param.val_SI = param.design
 
                 c.new_design = False
+
+            self._assign_variable_space(c)
 
         msg = 'Switched connections from design to offdesign.'
         logger.debug(msg)
@@ -1454,6 +1465,10 @@ class Network:
                     self.specifications[ct][spec].loc[cp.label] = (
                         cp.get_attr(self.specifications['lookup'][spec]))
 
+            i = self.num_conn_vars + self.num_comp_vars
+            for container, name in cp.vars.items():
+                self.variables_dict[i] = {"obj": container, "variable": name}
+                i += 1
             cp.new_design = False
             self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
@@ -1563,7 +1578,7 @@ class Network:
             for key in ['m', 'p', 'h']:
                 if not c.good_starting_values:
                     self.init_val0(c, key)
-                if not c.get_attr(key).is_set:
+                if c.get_attr(key).is_var:
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit)
 
@@ -1612,13 +1627,13 @@ class Network:
         """
         # variables 0 to 9: fluid properties
         local_vars = self.specifications['Connection'].columns[:9]
-        row = [c.get_attr(var).is_set for var in local_vars]
+        row = [c.get_attr(var).is_set for var in fpd.keys()]
         # write information to specifaction dataframe
         self.specifications['Connection'].loc[c.label, local_vars] = row
 
-        row = [c.get_attr(var).ref_set for var in local_vars]
+        # row = [c.get_attr(var).ref_set for var in local_vars]
         # write refrenced value information to specifaction dataframe
-        self.specifications['Ref'].loc[c.label, local_vars] = row
+        # self.specifications['Ref'].loc[c.label, local_vars] = row
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
@@ -2360,13 +2375,13 @@ class Network:
             c.good_starting_values = True
             c.calc_results()
 
-            prop_cols = self.results['Connection'].columns[:9]
-            fluid_cols = self.results['Connection'].columns[9:]
             self.results['Connection'].loc[c.label] = (
-              [c.get_attr(key).val for key in prop_cols]
-              + [
-                  c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
-                  for fluid in fluid_cols
+                [
+                    _ for key in fpd.keys()
+                    for _ in [c.get_attr(key).val, c.get_attr(key).unit]
+                ] + [
+                    c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
+                    for fluid in self.all_fluids
                 ]
             )
 
@@ -2537,11 +2552,11 @@ class Network:
             # else part
             if (val < comp.get_attr(param).min_val - ERR or
                     val > comp.get_attr(param).max_val + ERR ):
-                return coloring['err'] + ' ' + str(val) + ' ' + coloring['end']
+                return f"{coloring['err']} {val} {coloring['end']}"
             if comp.get_attr(args[0]).is_var:
-                return coloring['var'] + ' ' + str(val) + ' ' + coloring['end']
+                return f"{coloring['var']} {val} {coloring['end']}"
             if comp.get_attr(args[0]).is_set:
-                return coloring['set'] + ' ' + str(val) + ' ' + coloring['end']
+                return f"{coloring['set']} {val} {coloring['end']}"
             return str(val)
         else:
             return np.nan
@@ -2583,8 +2598,8 @@ class Network:
         self.save_network(path + 'network.json')
         self.save_connections(path + 'connections.csv')
         self.save_components(path_comps)
-        self.save_busses(path_comps + 'bus.csv')
-        self.save_characteristics(path_comps)
+        # self.save_busses(path_comps + 'bus.csv')
+        # self.save_characteristics(path_comps)
 
     def save_network(self, fn):
         r"""
@@ -2595,21 +2610,8 @@ class Network:
         fn : str
             Path/filename for the network configuration file.
         """
-        data = {}
-        data['m_unit'] = self.m_unit
-        data['m_range'] = list(self.m_range)
-        data['p_unit'] = self.p_unit
-        data['p_range'] = list(self.p_range)
-        data['h_unit'] = self.h_unit
-        data['h_range'] = list(self.h_range)
-        data['T_unit'] = self.T_unit
-        data['x_unit'] = self.x_unit
-        data['v_unit'] = self.v_unit
-        data['s_unit'] = self.s_unit
-        data['fluids'] = list(self.all_fluids)
-
         with open(fn, 'w') as f:
-            f.write(json.dumps(data, indent=4))
+            f.write(json.dumps(self._serialize(), indent=4))
 
         logger.debug('Network information saved to %s.', fn)
 
@@ -2630,65 +2632,9 @@ class Network:
         fn : str
             Path/filename for the file.
         """
-        f = Network.get_props
-        df = self.conns.copy()
-        df.set_index('object', inplace=True)
-        # connection id
-        df['id'] = df.apply(Network.get_id, axis=1)
-        cols = df.columns.tolist()
-        df = df[cols[-1:] + cols[:-1]]
-
-        # general connection parameters
-        # source
-        df['source'] = df.apply(f, axis=1, args=('source', 'label'))
-        # target
-        df['target'] = df.apply(f, axis=1, args=('target', 'label'))
-
-        # design and offdesign properties
-        cols = ['label', 'design', 'offdesign', 'design_path', 'local_design',
-                'local_offdesign', 'label']
-
-        for key in cols:
-            df[key] = df.apply(f, axis=1, args=(key,))
-
-        # fluid properties
-        cols = ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp']
-        for key in cols:
-            # values and units
-            df[key] = df.apply(f, axis=1, args=(key, 'val'))
-            df[key + '_unit'] = df.apply(f, axis=1, args=(key, 'unit'))
-            df[key + '0'] = df.apply(f, axis=1, args=(key, 'val0'))
-            df[key + '_set'] = df.apply(f, axis=1, args=(key, 'val_set'))
-            df[key + '_ref'] = df.apply(
-                f, axis=1, args=(key, 'ref', 'obj',)).astype(str)
-            df[key + '_ref'] = df[key + '_ref'].str.extract(
-                r' at (.*?)>', expand=False)
-            df[key + '_ref_f'] = df.apply(
-                f, axis=1, args=(key, 'ref', 'factor',))
-            df[key + '_ref_d'] = df.apply(
-                f, axis=1, args=(key, 'ref', 'delta',))
-            df[key + '_ref_set'] = df.apply(f, axis=1, args=(key, 'ref_set',))
-
-        # state property
-        key = 'state'
-        df[key] = df.apply(f, axis=1, args=(key, 'val'))
-        df[key + '_set'] = df.apply(f, axis=1, args=(key, 'is_set'))
-
-        # fluid composition
-        for val in self.all_fluids:
-            # fluid mass fraction
-            df[val] = df.apply(f, axis=1, args=('fluid', 'val', val))
-
-            # fluid mass fraction parametrisation
-            df[val + '0'] = df.apply(f, axis=1, args=('fluid', 'val0', val))
-            df[val + '_set'] = df.apply(
-                f, axis=1, args=('fluid', 'val_set', val)
-            )
-
-        # fluid balance
-        df['balance'] = df.apply(f, axis=1, args=('fluid', 'balance'))
-
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+        self.results["Connection"].to_csv(
+            fn, sep=';', decimal='.', index=True, na_rep='nan'
+        )
         logger.debug('Connection information saved to %s.', fn)
 
     def save_components(self, path):
@@ -2706,65 +2652,11 @@ class Network:
         path : str
             Path/filename for the file.
         """
-        busses = self.busses.values()
-        # create / overwrite csv file
-
-        df_comps = self.comps.copy()
-        df_comps.set_index('object', inplace=True)
-
-        # busses
-        df_comps['busses'] = df_comps.apply(
-            Network.get_busses, axis=1, args=(busses,))
-
-        for var in ['param', 'P_ref', 'char', 'base']:
-            df_comps['bus_' + var] = df_comps.apply(
-                Network.get_bus_data, axis=1, args=(busses, var))
-
-        pd.options.mode.chained_assignment = None
-        f = Network.get_props
-        for c in df_comps['comp_type'].unique():
-            df = df_comps[df_comps['comp_type'] == c]
-
-            # basic information
-            cols = ['label', 'design', 'offdesign', 'design_path',
-                    'local_design', 'local_offdesign']
-            for col in cols:
-                df[col] = df.apply(f, axis=1, args=(col,))
-
-            # attributes
-            for col, data in df.index[0].variables.items():
-                # component characteristics container
-                if isinstance(data, dc_cc) or isinstance(data, dc_cm):
-                    df[col] = df.apply(
-                        f, axis=1, args=(col, 'char_func')).astype(str)
-                    df[col] = df[col].str.extract(r' at (.*?)>', expand=False)
-                    df[col + '_set'] = df.apply(
-                        f, axis=1, args=(col, 'is_set'))
-                    df[col + '_param'] = df.apply(
-                        f, axis=1, args=(col, 'param'))
-
-                # component property container
-                elif isinstance(data, dc_cp):
-                    df[col] = df.apply(f, axis=1, args=(col, 'val'))
-                    df[col + '_set'] = df.apply(
-                        f, axis=1, args=(col, 'is_set'))
-                    df[col + '_var'] = df.apply(
-                        f, axis=1, args=(col, 'is_var'))
-
-                # component property container
-                elif isinstance(data, dc_simple):
-                    df[col] = df.apply(f, axis=1, args=(col, 'val'))
-                    df[col + '_set'] = df.apply(
-                        f, axis=1, args=(col, 'is_set'))
-
-                # component property container
-                elif isinstance(data, dc_gcp):
-                    df[col] = df.apply(f, axis=1, args=(col, 'method'))
-
-            df.set_index('label', inplace=True)
-            fn = path + c + '.csv'
-            df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-            logger.debug('Component information (%s) saved to %s.', c, fn)
+        for c in self.comps['comp_type'].unique():
+            if self.results[c].size > 0:
+                fn = path + c + '.csv'
+                self.results[c].to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
+                logger.debug('Component information (%s) saved to %s.', c, fn)
 
     def save_busses(self, fn):
         r"""

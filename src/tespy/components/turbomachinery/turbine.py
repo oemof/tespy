@@ -268,7 +268,7 @@ class Turbine(Turbomachine):
         n = 1
         i = self.inl[0]
         o = self.outl[0]
-        vol = v_mix_ph(i.get_flow(), T0=self.inl[0].T.val_SI)
+        vol = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, mixing_rule=i.mixing_rule, T0=i.T.val_SI)
         return (
             - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
             np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
@@ -312,13 +312,16 @@ class Turbine(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.cone_func
-        self.jacobian[k, 0, 0] = -1
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'p', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = -1
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
 
     def eta_s_char_func(self):
         r"""
@@ -338,18 +341,29 @@ class Turbine(Turbomachine):
         p = self.eta_s_char.param
         expr = self.get_char_expr(p)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
+            msg = (
+                "Please choose a valid parameter, you want to link the "
+                f"isentropic efficiency to at component {self.label}."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
-        i = self.inl[0]
-        o = self.outl[0]
+        inl = self.inl[0]
+        outl = self.outl[0]
         return (
-            -(o.h.val_SI - i.h.val_SI) + self.eta_s.design *
-            self.eta_s_char.char_func.evaluate(expr) * (isentropic(
-                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
-                i.h.val_SI))
+            -(outl.h.val_SI - inl.h.val_SI)
+            + self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            * (
+                isentropic(
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    inl.mixing_rule,
+                    T0=inl.T.val_SI
+                ) - inl.h.val_SI
+            )
+        )
 
     def eta_s_char_func_doc(self, label):
         r"""
@@ -384,16 +398,18 @@ class Turbine(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.eta_s_char_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, "p", i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, "p", o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, "h", o)
 
     def convergence_check(self):
         r"""

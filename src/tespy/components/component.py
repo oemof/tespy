@@ -471,16 +471,15 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return (
-                    self.inl[inconn].m.val_SI / self.inl[inconn].m.design)
+                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
             elif param == 'm_out':
-                return (
-                    self.outl[outconn].m.val_SI /
-                    self.outl[outconn].m.design)
+                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].get_flow(),
-                    T0=self.inl[inconn].T.val_SI)
+                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
+                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
+                    T0=self.inl[inconn].T.val_SI
+                )
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
                 return (
@@ -501,12 +500,12 @@ class Component:
                 return self.outl[outconn].m.val_SI
             elif param == 'v':
                 return self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].get_flow(),
-                    T0=self.inl[inconn].T.val_SI)
+                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
+                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
+                    T0=self.inl[inconn].T.val_SI
+                )
             elif param == 'pr':
-                return (
-                    self.outl[outconn].p.val_SI /
-                    self.inl[inconn].p.val_SI)
+                return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
 
@@ -592,7 +591,8 @@ class Component:
         for parameter, data in self.parameters.items():
             if data.is_set and data.func is not None:
                 self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                    **data.func_params)
+                    **data.func_params
+                )
                 data.deriv(increment_filter, sum_eq, **data.func_params)
 
                 sum_eq += data.num_eq
@@ -1064,7 +1064,7 @@ class Component:
             if self.outl[i].h.is_var:
                 self.jacobian[k + i, self.outl[i].h.J_col] = -1
 
-    def numeric_deriv(self, func, dx, conn, **kwargs):
+    def numeric_deriv(self, func, dx, conn=None, **kwargs):
         r"""
         Calculate partial derivative of the function func to dx.
 
@@ -1091,7 +1091,19 @@ class Component:
 
                 \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
         """
-        if dx in conn.fluid.is_var:
+        if conn is None:
+            d = self.get_attr(dx).d
+            exp = 0
+            self.get_attr(dx).val += d
+            exp += func(**kwargs)
+
+            self.get_attr(dx).val -= 2 * d
+            exp -= func(**kwargs)
+            deriv = exp / (2 * d)
+
+            self.get_attr(dx).val += d
+
+        elif dx in conn.fluid.is_var:
             d = 1e-5
 
             val = conn.fluid.val[dx]
@@ -1131,17 +1143,13 @@ class Component:
             conn.get_attr(dx).val_SI += d
 
         else:
-            d = self.get_attr(dx).d
-            exp = 0
-            self.get_attr(dx).val += d
-            exp += func(**kwargs)
-
-            self.get_attr(dx).val -= 2 * d
-            exp -= func(**kwargs)
-            deriv = exp / (2 * d)
-
-            self.get_attr(dx).val += d
-
+            msg = (
+                "Your variable specification for the numerical derivative "
+                "calculation seems to be wrong. It has to be a fluid name, m, "
+                "p, h or the name of a component variable."
+            )
+            logger.exception(msg)
+            raise ValueError(msg)
         return deriv
 
     def get_conn_var_pos(self, connection_number, variable):

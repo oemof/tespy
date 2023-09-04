@@ -286,10 +286,19 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.design *
-            self.eta_s_char.char_func.evaluate(expr) - (isentropic(
-                i.get_flow(), o.get_flow(), T0=self.inl[0].T.val_SI) -
-                i.h.val_SI))
+            (o.h.val_SI - i.h.val_SI)
+            * self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            - (
+                isentropic(
+                    i.p.val_SI,
+                    i.h.val_SI,
+                    o.p.val_SI,
+                    i.fluid_data,
+                    i.mixing_rule,
+                    T0=None
+                ) - i.h.val_SI
+            )
+        )
 
     def eta_s_char_func_doc(self, label):
         r"""
@@ -324,16 +333,18 @@ class Pump(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.eta_s_char_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
 
     def flow_char_func(self):
         r"""
@@ -385,14 +396,16 @@ class Pump(Turbomachine):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.flow_char_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
 
     def convergence_check(self):
         r"""
@@ -403,27 +416,31 @@ class Pump(Turbomachine):
         Manipulate enthalpies/pressure at inlet and outlet if not specified by
         user to match physically feasible constraints.
         """
-        i, o = self.inl, self.outl
+        i = self.inl[0]
+        o = self.outl[0]
 
-        if not o[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
-            o[0].p.val_SI = o[0].p.val_SI * 2
-        if not i[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
-            i[0].p.val_SI = o[0].p.val_SI * 0.5
+        if not o.p.is_set and o.p.val_SI < i.p.val_SI:
+            o.p.val_SI = o.p.val_SI * 2
+        if not i.p.is_set and o.p.val_SI < i.p.val_SI:
+            i.p.val_SI = o.p.val_SI * 0.5
 
-        if not o[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
-            o[0].h.val_SI = o[0].h.val_SI * 1.1
-        if not i[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
-            i[0].h.val_SI = o[0].h.val_SI * 0.9
+        if not o.h.is_set and o.h.val_SI < i.h.val_SI:
+            o.h.val_SI = o.h.val_SI * 1.1
+        if not i.h.is_set and o.h.val_SI < i.h.val_SI:
+            i.h.val_SI = o.h.val_SI * 0.9
 
         if self.flow_char.is_set:
-            expr = i[0].m.val_SI * v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI)
+            vol = v_mix_ph(
+                i.p.val_SI, i.h.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI
+            )
+            expr = i.m.val_SI * vol
 
-            if expr > self.flow_char.char_func.x[-1] and not i[0].m.is_set:
-                i[0].m.val_SI = (self.flow_char.char_func.x[-1] /
-                                 v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
-            elif expr < self.flow_char.char_func.x[1] and not i[0].m.is_set:
-                i[0].m.val_SI = (self.flow_char.char_func.x[0] /
-                                 v_mix_ph(i[0].get_flow(), T0=i[0].T.val_SI))
+            if expr > self.flow_char.char_func.x[-1] and i.m.is_var:
+                i.m.val_SI = self.flow_char.char_func.x[-1] / vol
+            elif expr < self.flow_char.char_func.x[1] and i.m.is_var:
+                i.m.val_SI = self.flow_char.char_func.x[0] / vol
             else:
                 pass
 

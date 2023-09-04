@@ -12,14 +12,12 @@ available from its original location tespy/tools/data_containers.py
 
 SPDX-License-Identifier: MIT
 """
-
 import collections
 
+import json
 import numpy as np
 
 from tespy.tools import logger
-
-# %%
 
 
 class DataContainer:
@@ -165,6 +163,9 @@ class DataContainer:
         """
         return {}
 
+    def serialize():
+        return {}
+
 
 class ComponentCharacteristics(DataContainer):
     """
@@ -284,9 +285,16 @@ class ComponentProperties(DataContainer):
         return {
             'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
-            'val_ref': 1, 'design': np.nan, 'is_result': False,
+            'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
-            'latex': None}
+            'latex': None
+        }
+
+    def _serializable_keys():
+        return [
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+            "design"
+        ]
 
 
 class FluidComposition(DataContainer):
@@ -467,6 +475,12 @@ class FluidProperties(DataContainer):
             "func_params": {},
             "J_col": None
         }
+
+    def _serializable_keys():
+        return [
+            "val", "val0", "val_SI", "is_set", "d", "min_val", "max_val",
+            "is_var", "design"
+        ]
 
 
 class SimpleDataContainer(DataContainer):

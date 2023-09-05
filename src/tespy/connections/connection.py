@@ -731,12 +731,17 @@ class Connection:
         if self.h.is_var: # and self.it == 0
             self.jacobian[k, self.h.J_col] = 1
 
+    def calc_T_sat(self):
+        try:
+            return T_sat_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
     def calc_Td_bp(self):
         try:
-            Td_bp = self.calc_T() - T_sat_p(self.p.val_SI, self.fluid_data)
+            return self.calc_T() - T_sat_p(self.p.val_SI, self.fluid_data)
         except NotImplementedError:
-            Td_bp = np.nan
-        return Td_bp
+            return np.nan
 
     def Td_bp_func(self, k, **kwargs):
 

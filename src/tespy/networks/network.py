@@ -750,8 +750,10 @@ class Network:
             # set up restults and specification dataframes
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
-                cols = [col for col, data in comp.parameters.items()
-                        if isinstance(data, dc_cp)]
+                cols = [
+                    col for col, data in comp.parameters.items()
+                    if isinstance(data, dc_cp)
+                ]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64')
             if comp_type not in self.specifications:

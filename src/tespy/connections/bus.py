@@ -176,12 +176,12 @@ class Bus:
     0.968
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
-
     def __init__(self, label, **kwargs):
 
         self.comps = pd.DataFrame(
             columns=['param', 'P_ref', 'char', 'efficiency', 'base'],
-            dtype='object')
+            dtype='object'
+        )
 
         self.label = label
         self.P = dc_simple(val=np.nan, is_set=False)
@@ -191,7 +191,7 @@ class Bus:
 
         self.set_attr(**kwargs)
 
-        msg = 'Created bus ' + self.label + '.'
+        msg = f"Created bus {self.label}."
         logger.debug(msg)
 
     def set_attr(self, **kwargs):
@@ -230,13 +230,13 @@ class Bus:
                 elif kwargs[key] is None:
                     self.P.set_attr(is_set=False)
                 else:
-                    msg = ('Keyword argument ' + key + ' must be numeric.')
+                    msg = f"Keyword argument {key} must be numeric."
                     logger.error(msg)
                     raise TypeError(msg)
 
             elif key == 'printout':
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
+                    msg = f"Please provide the {key} as boolean."
                     logger.error(msg)
                     raise TypeError(msg)
                 else:
@@ -244,7 +244,7 @@ class Bus:
 
             # invalid keyword
             else:
-                msg = 'A bus has no attribute ' + key + '.'
+                msg = f"A bus has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
 
@@ -265,7 +265,7 @@ class Bus:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Bus ' + self.label + ' has no attribute ' + key + '.'
+            msg = f"Bus {self.label} has no attribute {key}."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -346,8 +346,8 @@ class Bus:
                             self.comps.loc[comp, 'param'] = v
                         else:
                             msg = (
-                                'The bus parameter selection must be a '
-                                'string (at bus ' + self.label + ').')
+                                "The bus parameter selection must be a string "
+                                f"at bus {self.label}.")
                             logger.error(msg)
                             raise TypeError(msg)
 
@@ -400,9 +400,7 @@ class Bus:
                 logger.error(msg)
                 raise TypeError(msg)
 
-            msg = (
-                'Added component ' + comp.label + ' to bus ' +
-                self.label + '.')
+            msg = f"Added component {comp.label} to bus {self.label}."
             logger.debug(msg)
 
     def solve(self):

@@ -239,17 +239,22 @@ class SolarCollector(SimpleHeatExchanger):
 
             Reference: :cite:`Quaschning2013`.
         """
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
-               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+        T_m = 0.5 * (
+            T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
+            + T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+        )
 
-        return (i[0] * (o[2] - i[2]) -
-                self.A.val * (
-                    self.E.val * self.eta_opt.val -
-                    (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                    self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            - self.A.val * (
+                self.E.val * self.eta_opt.val
+                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val
+                - self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2
+            )
+        )
 
     def energy_group_func_doc(self, label):
         r"""
@@ -291,35 +296,39 @@ class SolarCollector(SimpleHeatExchanger):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.energy_group_func
-        self.jacobian[k, 0, 0] = (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
         # custom variables for the energy-group
-        for var in self.energy_group.elements:
-            var = self.get_attr(var)
-            if var == self.Tamb:
+        for variable_name in self.energy_group.elements:
+            parameter = self.get_attr(variable_name)
+            if parameter == self.Tamb:
                 continue
-            if var.is_var:
-                self.jacobian[k, 2 + var.var_pos, 0] = (
-                    self.numeric_deriv(f, self.vars[var], 2))
+            if parameter.is_var:
+                self.jacobian[k, parameter.J_col] = (
+                    self.numeric_deriv(f, variable_name, None)
+                )
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        self.Q.val = i[0] * (o[2] - i[2])
-        self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            ))
+        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.zeta.val = (
+            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+        )
         if self.energy_group.is_set:
             self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
             self.Q_loss.is_result = True

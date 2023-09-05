@@ -372,22 +372,25 @@ class SimpleHeatExchanger(Component):
         # darcy friction factor
         else:
             func = self.darcy_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(func, 'm', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(func, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(func, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(func, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(func, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
         # custom variables of hydro group
-        for var in self.hydro_group.elements:
-            var = self.get_attr(var)
-            if var.is_var:
-                self.jacobian[k, 2 + var.var_pos, 0] = (
-                    self.numeric_deriv(func, self.vars[var], 2))
+        for variable_name in self.hydro_group.elements:
+            parameter = self.get_attr(variable_name)
+            if parameter.is_var:
+                self.jacobian[k, parameter.J_col] = (
+                    self.numeric_deriv(func, variable_name, None)
+                )
 
     def darcy_func(self):
         r"""
@@ -410,21 +413,27 @@ class SimpleHeatExchanger(Component):
                 v: \text{specific volume}\\
                 \lambda: \text{darcy friction factor}
         """
-        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
+        if abs(i.m.val_SI) < 1e-4:
+            return i.p.val_SI - o.p.val_SI
 
-        visc_i = visc_mix_ph(i, T0=self.inl[0].T.val_SI)
-        visc_o = visc_mix_ph(o, T0=self.outl[0].T.val_SI)
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-        v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
+        args_i = i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule
+        args_o = o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule
+        visc_i = viscosity_mix_ph(*args_i, T0=i.T.val_SI)
+        visc_o = viscosity_mix_ph(*args_o, T0=o.T.val_SI)
+        v_i = v_mix_ph(*args_i, T0=i.T.val_SI)
+        v_o = v_mix_ph(*args_o, T0=o.T.val_SI)
 
-        Re = 4 * abs(i[0]) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
+        Re = 4 * abs(i.m.val_SI) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
 
-        return ((i[1] - o[1]) - 8 * abs(i[0]) * i[0] * (v_i + v_o) / 2 *
-                self.L.val * dff(Re, self.ks.val, self.D.val) /
-                (np.pi ** 2 * self.D.val ** 5))
+        return (
+            (i.p.val_SI - o.p.val_SI)
+            - 8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o)
+            / 2 * self.L.val * dff(Re, self.ks.val, self.D.val)
+            / (np.pi ** 2 * self.D.val ** 5)
+        )
 
     def darcy_func_doc(self, label):
         r"""
@@ -477,15 +486,19 @@ class SimpleHeatExchanger(Component):
         ----
         Gravity :math:`g` is set to :math:`9.81 \frac{m}{s^2}`
         """
-        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
+        if abs(i.m.val_SI) < 1e-4:
+            return i.p.val_SI - o.p.val_SI
 
-        v_i = v_mix_ph(i, T0=self.inl[0].T.val_SI)
-        v_o = v_mix_ph(o, T0=self.outl[0].T.val_SI)
+        args_i = i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule
+        args_o = o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule
+        v_i = v_mix_ph(*args_i, T0=i.T.val_SI)
+        v_o = v_mix_ph(*args_o, T0=o.T.val_SI)
 
-        return ((i[1] - o[1]) * np.sign(i[0]) -
+        return (
+            (i.p.val_SI - o.p.val_SI) * np.sign(i.m.val_SI) -
                 (10.67 * abs(i[0]) ** 1.852 * self.L.val /
                  (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
@@ -536,10 +549,11 @@ class SimpleHeatExchanger(Component):
 
                 T_{amb}: \text{ambient temperature}
         """
-        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-        ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_1 = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI) - self.Tamb.val_SI
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
@@ -553,7 +567,7 @@ class SimpleHeatExchanger(Component):
             # both values are equal
             td_log = ttd_2
 
-        return i[0] * (o[2] - i[2]) + self.kA.val * td_log
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
 
     def kA_group_func_doc(self, label):
         r"""
@@ -600,19 +614,20 @@ class SimpleHeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.kA_group_func
-        self.jacobian[k, 0, 0] = (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
         if self.kA.is_var:
-            self.jacobian[k, 2 + self.kA.var_pos, 0] = (
-                self.numeric_deriv(f, self.vars[self.kA], 2))
+            self.jacobian[k, self.kA.J_col] = self.numeric_deriv(f, self.vars[self.kA])
 
     def kA_char_group_func(self):
         r"""
@@ -647,13 +662,14 @@ class SimpleHeatExchanger(Component):
         """
         p = self.kA_char.param
         expr = self.get_char_expr(p, **self.kA_char.char_params)
-        i, o = self.inl[0].get_flow(), self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
 
-        ttd_1 = T_mix_ph(i, T0=self.inl[0].T.val_SI) - self.Tamb.val_SI
-        ttd_2 = T_mix_ph(o, T0=self.outl[0].T.val_SI) - self.Tamb.val_SI
+        ttd_1 = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI) - self.Tamb.val_SI
+        ttd_2 = T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI) - self.Tamb.val_SI
 
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2
@@ -667,7 +683,7 @@ class SimpleHeatExchanger(Component):
 
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
-        return i[0] * (o[2] - i[2]) + self.kA.design * fkA * td_log
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
 
     def kA_char_group_func_doc(self, label):
         r"""
@@ -716,16 +732,18 @@ class SimpleHeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.kA_char_group_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
 
     def bus_func(self, bus):
         r"""
@@ -935,10 +953,10 @@ class SimpleHeatExchanger(Component):
             \right) - \text{S\_Q}\\
             \text{T\_mQ}=\frac{\dot{Q}}{\text{S\_Q}}
         """
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        p1_star = i[1] * (o[1] / i[1]) ** 0.5
+        p1_star = i.p.val_SI * (o.p.val_SI / i.p.val_SI) ** 0.5
         s1_star = s_mix_ph([0, p1_star, i[2], i[3]], T0=self.inl[0].T.val_SI)
         s2_star = s_mix_ph([0, p1_star, o[2], o[3]], T0=self.outl[0].T.val_SI)
         self.S_Q = i[0] * (s2_star - s1_star)

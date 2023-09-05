@@ -1299,17 +1299,19 @@ class Component:
             {8 \cdot \dot{m}^2 \cdot v}
         """
         data = self.get_attr(zeta)
-        i = self.inl[inconn].get_flow()
-        o = self.outl[outconn].get_flow()
+        i = self.inl[inconn]
+        o = self.outl[outconn]
 
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
+        if abs(i.m.val_SI) < 1e-4:
+            return i.p.val_SI - o.p.val_SI
 
         else:
-            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
-            return (data.val - (i[1] - o[1]) * np.pi ** 2 /
-                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+            v_i = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
+            v_o = v_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+            return (
+                data.val - (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
+            )
 
     def zeta_func_doc(self, label, zeta='', inconn=0, outconn=0):
         r"""
@@ -1370,24 +1372,19 @@ class Component:
         """
         data = self.get_attr(zeta)
         f = self.zeta_func
-        outpos = self.num_i + outconn
-        if not increment_filter[inconn, 0]:
-            self.jacobian[k, inconn, 0] = self.numeric_deriv(
-                f, 'm', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[inconn, 2]:
-            self.jacobian[k, inconn, 1] = self.numeric_deriv(
-                f, 'p', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[inconn, 2]:
-            self.jacobian[k, inconn, 2] = self.numeric_deriv(
-                f, 'h', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[outpos, 1]:
-            self.jacobian[k, outpos, 1] = self.numeric_deriv(
-                f, 'p', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[outpos, 2]:
-            self.jacobian[k, outpos, 2] = self.numeric_deriv(
-                f, 'h', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
+        i = self.inl[inconn]
+        o = self.outl[outconn]
+        kwargs = dict(zeta=zeta, inconn=inconn, outconn=outconn)
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i, **kwargs)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i, **kwargs)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i, **kwargs)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o, **kwargs)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o, **kwargs)
         # custom variable zeta
         if data.is_var:
-            pos = self.num_i + self.num_o + data.var_pos
-            self.jacobian[k, pos, 0] = self.numeric_deriv(
-                f, zeta, 2, zeta=zeta, inconn=inconn, outconn=outconn)
+            self.jacobian[k, data.J_col] = self.numeric_deriv(f, zeta, None, **kwargs)

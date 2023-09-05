@@ -443,6 +443,13 @@ class Component:
     def outlets():
         return []
 
+    @staticmethod
+    def is_variable(var, increment_filter=None):
+        if var.is_var:
+            if increment_filter is None or not increment_filter[var.J_col]:
+                return True
+        return False
+
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
         r"""
         Generic method to access characteristic function parameters.
@@ -875,12 +882,6 @@ class Component:
 
                 else:
                     self.get_attr(key).design = np.nan
-
-    def is_variable(self, var, increment_filter):
-        if var.is_var:
-            if not increment_filter[var.J_col]:
-                return True
-        return False
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

@@ -2250,11 +2250,11 @@ class Network:
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and not c.m.is_set:
             c.m.val_SI = self.m_range_SI[0]
-            logger.debug(self._property_range_message(c, 'm'))
+            logger.debug(c._property_range_message('m'))
 
         elif c.m.val_SI >= self.m_range_SI[1] and not c.m.is_set:
             c.m.val_SI = self.m_range_SI[1]
-            logger.debug(self._property_range_message(c, 'm'))
+            logger.debug(c._property_range_message('m'))
 
     def solve_components(self):
         r"""

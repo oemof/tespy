@@ -20,7 +20,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import isentropic
 
 
@@ -375,9 +374,8 @@ class Compressor(Turbomachine):
         """
         i = self.inl[0]
         o = self.outl[0]
-        T = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
 
-        x = np.sqrt(i.T.design / T)
+        x = np.sqrt(i.T.design / i.calc_T(T0=i.T.val_SI))
         y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(x)
@@ -479,9 +477,8 @@ class Compressor(Turbomachine):
         """
         i = self.inl[0]
         o = self.outl[0]
-        T = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
 
-        x = np.sqrt(i.T.design / T)
+        x = np.sqrt(i.T.design / i.calc_T(T0=i.T.val_SI))
         y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)

@@ -18,7 +18,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.fluid_properties import v_mix_ph
 
 
 class Pump(Turbomachine):
@@ -430,11 +429,7 @@ class Pump(Turbomachine):
             i.h.val_SI = o.h.val_SI * 0.9
 
         if self.flow_char.is_set:
-            vol = v_mix_ph(
-                i.p.val_SI, i.h.val_SI,
-                i.fluid_data, i.mixing_rule,
-                T0=i.T.val_SI
-            )
+            vol = i.calc_vol(T0=i.T.val_SI)
             expr = i.m.val_SI * vol
 
             if expr > self.flow_char.char_func.x[-1] and i.m.is_var:

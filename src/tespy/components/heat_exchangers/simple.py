@@ -23,10 +23,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import darcy_friction_factor as dff
 
@@ -419,12 +416,10 @@ class SimpleHeatExchanger(Component):
         if abs(i.m.val_SI) < 1e-4:
             return i.p.val_SI - o.p.val_SI
 
-        args_i = i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule
-        args_o = o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule
-        visc_i = viscosity_mix_ph(*args_i, T0=i.T.val_SI)
-        visc_o = viscosity_mix_ph(*args_o, T0=o.T.val_SI)
-        v_i = v_mix_ph(*args_i, T0=i.T.val_SI)
-        v_o = v_mix_ph(*args_o, T0=o.T.val_SI)
+        visc_i = i.calc_viscosity(T0=i.T.val_SI)
+        visc_o = o.calc_viscosity(T0=o.T.val_SI)
+        v_i = i.calc_vol(T0=i.T.val_SI)
+        v_o = o.calc_vol(T0=o.T.val_SI)
 
         Re = 4 * abs(i.m.val_SI) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
 
@@ -492,10 +487,8 @@ class SimpleHeatExchanger(Component):
         if abs(i.m.val_SI) < 1e-4:
             return i.p.val_SI - o.p.val_SI
 
-        args_i = i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule
-        args_o = o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule
-        v_i = v_mix_ph(*args_i, T0=i.T.val_SI)
-        v_o = v_mix_ph(*args_o, T0=o.T.val_SI)
+        v_i = i.calc_vol(T0=i.T.val_SI)
+        v_o = o.calc_vol(T0=o.T.val_SI)
 
         return (
             (i.p.val_SI - o.p.val_SI) * np.sign(i.m.val_SI) -
@@ -552,8 +545,8 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        ttd_1 = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI) - self.Tamb.val_SI
-        ttd_2 = T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI) - self.Tamb.val_SI
+        ttd_1 = i.calc_T(T0=i.T.val_SI) - self.Tamb.val_SI
+        ttd_2 = o.calc_T(T0=o.T.val_SI) - self.Tamb.val_SI
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
@@ -668,8 +661,8 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
 
-        ttd_1 = T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI) - self.Tamb.val_SI
-        ttd_2 = T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI) - self.Tamb.val_SI
+        ttd_1 = i.calc_T(T0=i.T.val_SI) - self.Tamb.val_SI
+        ttd_2 = o.calc_T(T0=o.T.val_SI) - self.Tamb.val_SI
 
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2

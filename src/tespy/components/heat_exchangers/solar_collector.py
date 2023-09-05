@@ -19,7 +19,6 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 
 
 class SolarCollector(SimpleHeatExchanger):
@@ -242,10 +241,7 @@ class SolarCollector(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        T_m = 0.5 * (
-            T_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
-            + T_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
-        )
+        T_m = 0.5 * (i.calc_T(T0=i.T.val_SI) + o.calc_T(T0=o.T.val_SI))
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)

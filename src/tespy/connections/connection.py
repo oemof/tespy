@@ -33,6 +33,7 @@ from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
+from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
@@ -664,8 +665,8 @@ class Connection:
         if ref.obj.get_attr(variable).is_var:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
-    def calc_T(self):
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
+    def calc_T(self, T0=None):
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.T.val_SI - self.calc_T()
@@ -686,22 +687,25 @@ class Connection:
         #                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
         #             )
 
-    def calc_vol(self):
+    def calc_viscosity(self, T0=None):
         try:
-            vol = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
+            return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
         except NotImplementedError:
-            vol = np.nan
-        return vol
+            return np.nan
+
+
+    def calc_vol(self, T0=None):
+        try:
+            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+        except NotImplementedError:
+            return np.nan
 
     def v_func(self, k, **kwargs):
-        self.residual[k] = (
-            v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-            * self.m.val_SI - self.v.val_SI
-        )
+        self.residual[k] = self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
 
     def v_deriv(self, k, **kwargs):
         if self.m.is_var:
-            self.jacobian[k, self.m.J_col] = v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            self.jacobian[k, self.m.J_col] = self.calc_vol(T0=self.T.val_SI)
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
         if self.h.is_var:
@@ -709,10 +713,9 @@ class Connection:
 
     def calc_x(self):
         try:
-            x = Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         except NotImplementedError:
-            x = np.nan
-        return x
+            return np.nan
 
     def x_func(self, k, **kwargs):
         # saturated steam fraction

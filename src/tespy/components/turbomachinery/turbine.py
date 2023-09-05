@@ -20,7 +20,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.fluid_properties import v_mix_ph
 
 
 class Turbine(Turbomachine):
@@ -268,12 +267,17 @@ class Turbine(Turbomachine):
         n = 1
         i = self.inl[0]
         o = self.outl[0]
-        vol = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, mixing_rule=i.mixing_rule, T0=i.T.val_SI)
+        vol = i.calc_vol(T0=i.T.val_SI)
         return (
-            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design *
-            np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol)) *
-            np.sqrt(abs((1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n)) /
-                        (1 - (self.pr.design) ** ((n + 1) / n)))))
+            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
+            * np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol))
+            * np.sqrt(
+                abs(
+                    (1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n))
+                    / (1 - (self.pr.design) ** ((n + 1) / n))
+                )
+            )
+        )
 
     def cone_func_doc(self, label):
         r"""

@@ -766,6 +766,9 @@ class Connection:
     def calc_s(self):
         return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
 
+    def calc_Q(self):
+        return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+
     def solve(self, increment_filter):
         k = 0
         for parameter, data in self.parameters.items():

@@ -97,9 +97,7 @@ class Valve(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluid_list = ['CH4']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> v = Valve('valve')
@@ -234,18 +232,22 @@ class Valve(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(
-                self.dp_char_func, 'm', 0)
+        f = self.dp_char_func
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
         if self.dp_char.param == 'v':
             self.jacobian[k, 0, 1] = self.numeric_deriv(
                 self.dp_char_func, 'p', 0)
             self.jacobian[k, 0, 2] = self.numeric_deriv(
                 self.dp_char_func, 'h', 0)
         else:
+            # if
             self.jacobian[k, 0, 1] = 1
 
-        self.jacobian[k, 1, 1] = -1
+        if self.is_variable(o.p):
+            self.jacobian[k, o.p.J_col] = -1
 
     def initialise_source(self, c, key):
         r"""

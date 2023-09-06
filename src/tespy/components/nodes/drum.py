@@ -291,6 +291,7 @@ class Drum(DropletSeparator):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        # due to topology reduction this is the case quite often
         if self.inl[1].m == self.outl[0].m:
             if self.outl[0].m.is_var:
                 self.jacobian[k, self.outl[0].m.J_col] = (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
@@ -306,51 +307,7 @@ class Drum(DropletSeparator):
             if self.outl[1].h.is_var:
                 self.jacobian[k, self.outl[1].h.J_col] = -self.outl[1].m.val_SI
         else:
-            for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = i.h.val_SI
-                if i.h.is_var:
-                    self.jacobian[k, i.h.J_col] = i.m.val_SI
-
-            for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -o.h.val_SI
-                if o.h.is_var:
-                    self.jacobian[k, o.h.J_col] = -o.m.val_SI
-
-    @staticmethod
-    def initialise_source(c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=0 \right) & \text{key = 'h' at outlet 1}\\
-                h\left(p, x=1 \right) & \text{key = 'h' at outlet 2}
-                \end{cases}
-        """
-        if key == 'p':
-            return 10e5
-        elif key == 'h':
-            if c.source_id == 'out1':
-                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
-            else:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
+            super().energy_balance_deriv(increment_filter, k)
 
     @staticmethod
     def initialise_target(c, key):

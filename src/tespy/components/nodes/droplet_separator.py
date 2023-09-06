@@ -10,9 +10,6 @@ tespy/components/nodes/droplet_separator.py
 
 SPDX-License-Identifier: MIT
 """
-
-import numpy as np
-
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -84,10 +81,8 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import Q_ph, T_sat_p
     >>> import shutil
-    >>> nw = Network(fluids=['water'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')
@@ -114,14 +109,14 @@ class DropletSeparator(NodeBase):
 
     >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
     >>> nw.solve('design')
-    >>> Q_in = Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water')
+    >>> Q_in = so_ds.calc_Q()
     >>> round(Q_in * so_ds.m.val_SI, 6) == round(ds_sig.m.val_SI, 6)
     True
     >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
     True
-    >>> Q_ph(ds_sig.p.val_SI, ds_sig.h.val_SI, 'water')
+    >>> ds_sig.calc_Q()
     1.0
-    >>> Q_ph(ds_sil.p.val_SI, ds_sil.h.val_SI, 'water')
+    >>> ds_sil.calc_Q()
     0.0
 
     In a different setup, we unset pressure and enthalpy and specify gas
@@ -133,9 +128,9 @@ class DropletSeparator(NodeBase):
     >>> so_ds.set_attr(fluid={'water': 1}, p=None, h=None, T=150, m=10)
     >>> ds_sig.set_attr(m=9.5)
     >>> nw.solve('design')
-    >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
+    >>> round(so_ds.calc_Q(), 6)
     0.95
-    >>> T_boil = T_sat_p(so_ds.get_flow())
+    >>> T_boil = so_ds.calc_T_sat()
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
@@ -394,9 +389,9 @@ class DropletSeparator(NodeBase):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.get_flow(), 1)
+                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
             else:
-                return h_mix_pQ(c.get_flow(), 0)
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
 
     @staticmethod
     def initialise_target(c, key):
@@ -426,7 +421,7 @@ class DropletSeparator(NodeBase):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            return h_mix_pQ(c.get_flow(), 0.5)
+            return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

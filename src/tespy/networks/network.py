@@ -711,7 +711,13 @@ class Network:
         for branch_name, branch_data in self.fluid_wrapper_branches.items():
             if branch_name not in merged_fluid_wrapper_branches:
                 continue
-            merges = [cp for cp in branch_data["components"] if cp.component() == "merge" or cp.component() == "combustion chamber"]
+            merges = [
+                cp for cp in branch_data["components"]
+                if (
+                    cp.component() == "merge"
+                    or cp.component() == "combustion chamber"
+                )
+            ]
             if any(merges):
                 for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
                     if ob_name != branch_name:
@@ -878,6 +884,14 @@ class Network:
             any_fluids0 = [f for c in all_connections for f in c.fluid.val]
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
+            if len(potential_fluids) == 0:
+                msg = (
+                    "The follwing connections of your network are missing any "
+                    "kind of fluid composition information:"
+                    + ", ".join([c.label for c in all_connections]) + "."
+                )
+                raise hlp.TESPyNetworkError(msg)
+
             for c in all_connections:
                 c.mixing_rule = list(mixing_rule)[0]
                 c._potential_fluids = potential_fluids
@@ -1027,8 +1041,7 @@ class Network:
                     c.fluid = main_conn.fluid
 
                 main_conn.fluid.val.update(fixed_fractions)
-                main_conn.fluid.is_set = {f: False for f in variable}
-                main_conn.fluid.is_set.update({f: True for f in fixed_fractions})
+                main_conn.fluid.is_set = {f for f in fixed_fractions}
                 main_conn.fluid.is_var = variable
 
             [c.build_fluid_data() for c in all_connections]
@@ -1289,7 +1302,8 @@ class Network:
                 # read data of components with individual design_path
                 if comp.design_path is not None:
                     path_c = hlp.modify_path_os(
-                        comp.design_path + '/components/' + c + '.csv')
+                        f"{comp.design_path}/components/{c}.csv"
+                    )
                     df_c = pd.read_csv(
                         path_c, sep=';', decimal='.', converters={
                              'busses': ast.literal_eval,
@@ -1309,8 +1323,9 @@ class Network:
         # read connection design point information
         df = self.init_read_connections(self.design_path)
         msg = (
-            'Reading design point information for connections from path ' +
-            self.design_path + '/connections.csv.')
+            "Reading design point information for connections from "
+            f"{self.design_path}/connections.csv."
+        )
         logger.debug(msg)
 
         # iter through connections
@@ -1320,9 +1335,9 @@ class Network:
             if c.design_path is not None:
                 df_c = self.init_read_connections(c.design_path)
                 msg = (
-                    'Reading individual design point information for '
-                    'connection ' + c.label + ' from path ' + c.design_path +
-                    '/connections.csv.')
+                    "Reading connection design point information for "
+                    f"{c.label} from {c.design_path}/connections.csv."
+                )
                 logger.debug(msg)
 
                 # write data
@@ -1389,6 +1404,44 @@ class Network:
         c.vol.design = c.v.design / c.m.design
         for fluid in c.fluid.val:
             c.fluid.design[fluid] = conn[fluid]
+
+    def init_conn_params_from_path(self, c, df):
+        r"""
+        Write parameter information from init_path to connections.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Write init path information to this connection.
+
+        df : pandas.core.frame.DataFrame
+            Dataframe containing init path information.
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        if c.label not in df.index:
+            # no matches in the connections of the network and the design files
+            msg = (
+                'Could not find connection %s in design case. '
+                'Please, make sure no connections have been modified or '
+                'components have been relabeled for your offdesign '
+                'calculation.'
+            )
+            logger.exception(msg, c.label)
+            raise hlp.TESPyNetworkError(msg)
+
+        conn = df.loc[c.label]
+
+        for prop in ['m', 'p', 'h']:
+            data = c.get_attr(prop)
+            data.val0 = conn[prop]
+            data.unit = conn[prop + '_unit']
+
+        for fluid in c.fluid.is_var:
+            c.fluid.val[fluid] = conn[fluid]
+            c.fluid.val0[fluid] = c.fluid.val[fluid]
+
+        c.good_starting_values = True
 
     def init_offdesign(self):
         r"""
@@ -1501,18 +1554,22 @@ class Network:
         if len(self.all_fluids) == 1:
             return
 
-        # fluid propagation from set values
-        for c in self.conns['object']:
-            if any(c.fluid.is_set.values()):
-                c.target.propagate_fluid_to_target(c, c, entry_point=True)
-                c.source.propagate_fluid_to_source(c, c, entry_point=True)
+        # propagation runs based on fluid wrapper branches
+        for branch in self.fluid_wrapper_branches.values():
+            if len(branch["connections"][0].fluid.val) == 1:
+                continue
 
-        # To save resources:
-        # find empty fluid data and propagate from connections with data that
-        # are interfaced directly to those connections by a component
-            # if any(c.fluid.val0.values()):
-            #     c.target.propagate_fluid_to_target(c, c, entry_point=True)
-            #     c.source.propagate_fluid_to_source(c, c, entry_point=True)
+            branch_connections = [c.label for c in branch["connections"]]
+            connections = [
+                self.fluid_branches[name][0]["connections"][0]
+                for name in branch_connections
+                if name in self.fluid_branches
+            ]
+
+            for c in connections:
+                if len(c.fluid.is_set) > 0:
+                    c.target.propagate_fluid_to_target(c, c, entry_point=True)
+                    c.source.propagate_fluid_to_source(c, c, entry_point=True)
 
         # fluid starting value generation based on components
         for cp in self.comps['object']:
@@ -1540,32 +1597,7 @@ class Network:
         for c in self.conns['object']:
             c.build_fluid_data()
             if self.init_path is not None:
-                conn = df.loc[
-                    df['source'].isin([c.source.label]) &
-                    df['target'].isin([c.target.label]) &
-                    df['source_id'].isin([c.source_id]) &
-                    df['target_id'].isin([c.target_id])]
-                try:
-                    conn_id = conn.index[0]
-                    # overwrite SI-values with values from init_file,
-                    # except user specified values
-                    for prop in ['m', 'p', 'h']:
-                        data = c.get_attr(prop)
-                        data.val0 = df.loc[conn_id, prop]
-                        data.unit = df.loc[conn_id, prop + '_unit']
-
-                    for fluid in self.fluids:
-                        if not c.fluid.is_set[fluid]:
-                            c.fluid.val[fluid] = df.loc[conn_id, fluid]
-                        c.fluid.val0[fluid] = c.fluid.val[fluid]
-
-                    c.good_starting_values = True
-
-                except IndexError:
-                    msg = (
-                        'Could not find connection ' + c.label + ' in '
-                        'connections.csv of init_path ' + self.init_path + '.')
-                    logger.debug(msg)
+                self.init_conn_params_from_path(c, df)
 
             if sum(c.fluid.val.values()) == 0:
                 msg = (

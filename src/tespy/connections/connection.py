@@ -931,7 +931,7 @@ class Connection:
         )
         return msg
 
-    def get_physical_exergy(self, p0, T0):
+    def get_physical_exergy(self, pamb, Tamb):
         r"""
         Get the value of a connection's specific physical exergy.
 

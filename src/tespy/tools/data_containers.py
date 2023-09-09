@@ -335,12 +335,12 @@ class FluidComposition(DataContainer):
         return {
             'val': collections.OrderedDict(),
             'val0': collections.OrderedDict(),
-            'is_set': collections.OrderedDict(),
+            'is_set': set(),
             'design': collections.OrderedDict(),
             'wrapper': collections.OrderedDict(),
             'engine': collections.OrderedDict(),
             'back_end': collections.OrderedDict(),
-            "is_var": collections.OrderedDict(),
+            "is_var": set(),
             "J_col": collections.OrderedDict(),
             'balance': False
         }

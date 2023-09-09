@@ -176,21 +176,7 @@ class CycleCloser(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        if (not entry_point and inconn == start) or self._propagation_start:
-            return
-
-        self._propagation_start = True
-
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-
-        if not outconn.good_starting_values:
-            for fluid in outconn.fluid.is_var:
-                outconn.fluid.val[fluid] = inconn.fluid.val[fluid]
-
-        outconn.target.propagate_fluid_to_target(outconn, start)
-
-        self._propagation_start = False
+        return
 
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
         r"""
@@ -205,20 +191,7 @@ class CycleCloser(Component):
             This component is the fluid propagation starting point.
             The starting component is saved to prevent infinite looping.
         """
-        if (not entry_point and outconn == start) or self._propagation_start:
-            return
-
-        self._propagation_start = True
-        conn_idx = self.outl.index(outconn)
-        inconn = self.inl[conn_idx]
-
-        if not inconn.good_starting_values:
-            for fluid in inconn.fluid.is_var:
-                inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
-
-        inconn.source.propagate_fluid_to_source(inconn, start)
-
-        self._propagation_start = False
+        return
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

@@ -393,11 +393,6 @@ class Drum(DropletSeparator):
         self._propagation_start = True
 
         for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.is_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
-
             outconn.target.propagate_fluid_to_target(outconn, start)
 
         self._propagation_start = False
@@ -421,11 +416,6 @@ class Drum(DropletSeparator):
         self._propagation_start = True
 
         for inconn in self.inl:
-            for fluid, x in outconn.fluid.val.items():
-                if (not inconn.fluid.is_set[fluid] and
-                        not inconn.good_starting_values):
-                    inconn.fluid.val[fluid] = x
-
             inconn.source.propagate_fluid_to_source(inconn, start)
 
         self._propagation_start = False

@@ -126,8 +126,7 @@ class Pipe(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluid_list = ['ethanol']
-    >>> nw = Network(fluids=fluid_list)
+    >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source 1')
     >>> si = Sink('sink 1')

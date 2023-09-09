@@ -1509,10 +1509,9 @@ class CombustionEngine(CombustionChamber):
         if not entry_point and outconn == start:
             return
         for inconn in self.inl[:2]:
-            for fluid, x in outconn.fluid.val.items():
-                if (not inconn.fluid.is_set[fluid] and
-                        not inconn.good_starting_values):
-                    inconn.fluid.val[fluid] = x
+            if not inconn.good_starting_values:
+                for fluid in inconn.fluid.is_var:
+                    inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
 
             inconn.source.propagate_fluid_to_source(inconn, start)
 

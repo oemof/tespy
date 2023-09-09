@@ -106,11 +106,12 @@ def set_defaults(nw):
 
     for c in classes:
         rpt[c.__class__.__name__] = {'params': []}
-        rpt[c.__class__.__name__].update({
-            param: {'float_fmt': '{:,.2f}'}
-            for param, data in c.variables.items()
-            if isinstance(data, dc_cp)
-        })
+        if hasattr(c, "variables"):
+            rpt[c.__class__.__name__].update({
+                param: {'float_fmt': '{:,.2f}'}
+                for param, data in c.variables.items()
+                if isinstance(data, dc_cp)
+            })
 
     rpt['Connection']['fluid'] = {
         'float_fmt': '{:.3f}', 'include_results': True}

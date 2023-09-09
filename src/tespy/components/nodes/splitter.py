@@ -132,11 +132,6 @@ class Splitter(NodeBase):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            # 'fluid_constraints': {
-            #     'func': self.fluid_func, 'deriv': self.fluid_deriv,
-            #     'constant_deriv': True, 'latex': self.fluid_func_doc,
-            #     'num_eq': self.num_o * sum(self.inl[0].fluid.is_var)
-            # },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -170,69 +165,6 @@ class Splitter(NodeBase):
     def preprocess(self, num_eq=0):
         super().preprocess(num_eq)
         self._propagation_start = False
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = x_{fl,in} - x_{fl,out,j} \;
-                \forall fl \in \text{network fluids,} \; \forall j \in
-                \text{outlets}
-        """
-        residual = []
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - o.fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = x_{fl\mathrm{,in}} - x_{fl\mathrm{,out,}j}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-            r'\text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = self._build_subjacobian(self.fluid_constraints)
-        if self.inl[0].fluid.is_var:
-            i = 0
-            for k in range(self.num_o):
-                for fluid in self.inl[0].fluid.val:
-                    if not self.inl[0].fluid.is_set[fluid]:
-                        deriv[i, self.get_conn_var_pos(0, fluid)] = 1
-                    if not self.outl[k].fluid.is_set[fluid]:
-                        deriv[i, self.get_conn_var_pos(k + 1, fluid)] = -1
-                    i += 1
-        return deriv
 
     def energy_balance_func(self):
         r"""
@@ -296,11 +228,6 @@ class Splitter(NodeBase):
         if not entry_point and inconn == start:
             return
         for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.is_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
-
             outconn.target.propagate_fluid_to_target(outconn, start)
 
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
@@ -322,11 +249,6 @@ class Splitter(NodeBase):
         self._propagation_start = True
 
         inconn = self.inl[0]
-        for fluid, x in outconn.fluid.val.items():
-            if (not inconn.fluid.is_set[fluid] and
-                    not inconn.good_starting_values):
-                inconn.fluid.val[fluid] = x
-
         inconn.source.propagate_fluid_to_source(inconn, start)
 
         self._propagation_start = False

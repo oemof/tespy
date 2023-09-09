@@ -330,10 +330,6 @@ class DropletSeparator(NodeBase):
             return
 
         for outconn in self.outl:
-            if not outconn.good_starting_values:
-                for fluid in outconn.fluid.is_var:
-                    outconn.fluid.val[fluid] = inconn.fluid.val[fluid]
-
             outconn.target.propagate_fluid_to_target(outconn, start)
 
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
@@ -353,10 +349,6 @@ class DropletSeparator(NodeBase):
             return
 
         inconn = self.inl[0]
-        if not inconn.good_starting_values:
-            for fluid in inconn.fluid.is_var:
-                inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
-
         inconn.source.propagate_fluid_to_source(inconn, start)
 
     @staticmethod

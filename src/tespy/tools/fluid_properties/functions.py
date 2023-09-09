@@ -54,10 +54,10 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
     """
     h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
     s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
-    ex_therm = (h - h_T0_p) - T0 * (s - s_T0_p)
+    ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)
     h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
     s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
-    ex_mech = (h_T0_p - h0) - T0 * (s_T0_p - s0)
+    ex_mech = (h_T0_p - h0) - Tamb * (s_T0_p - s0)
     return ex_therm, ex_mech
 
 

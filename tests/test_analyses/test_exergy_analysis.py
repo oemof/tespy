@@ -243,23 +243,23 @@ class TestClausiusRankine:
         assert round(eps, 4) == 0.99, msg
 
     def test_exergy_analysis_missing_E_F_E_P_information(self):
-        """Test exergy analysis ERRors with missing information."""
-        with raises(TESPyNetworkERRor):
+        """Test exergy analysis errors with missing information."""
+        with raises(TESPyNetworkError):
             ExergyAnalysis(self.nw, E_P=[self.power], E_F=[])
 
-        with raises(TESPyNetworkERRor):
+        with raises(TESPyNetworkError):
             ExergyAnalysis(self.nw, E_P=[], E_F=[self.heat])
 
     def test_exergy_analysis_component_on_two_busses(self):
-        """Test exergy analysis ERRors with components on more than one bus."""
-        with raises(TESPyNetworkERRor):
+        """Test exergy analysis errors with components on more than one bus."""
+        with raises(TESPyNetworkError):
             ean = ExergyAnalysis(
                 self.nw, E_P=[self.power], E_F=[self.heat, self.power])
             ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
 
     def test_exergy_analysis_invalid_bus_name(self):
-        """Test exergy analysis ERRors with components on more than one bus."""
-        with raises(ValueERRor):
+        """Test exergy analysis errors with components on more than one bus."""
+        with raises(ValueError):
             self.power.label = "E_P"
             ean = ExergyAnalysis(
                 self.nw, E_P=[self.power], E_F=[self.heat]
@@ -451,7 +451,8 @@ class TestCompressedAirOut:
 
         exergy_balance = (
             ean.network_data.E_F - ean.network_data.E_P -
-            ean.network_data.E_L - ean.network_data.E_D)
+            ean.network_data.E_L - ean.network_data.E_D
+        )
         msg = (
             'Exergy balance must be closed (residual value smaller than ' +
             str(ERR ** 0.5) + ') for this test but is ' +

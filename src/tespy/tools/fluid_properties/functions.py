@@ -2,10 +2,11 @@ from .helpers import _check_mixing_rule
 from .helpers import get_pure_fluid
 from .helpers import get_number_of_fluids
 from .helpers import inverse_temperature_mixture
-from .mixtures import T_MIX_PH_REVERSE
-from .mixtures import T_MIX_PS_REVERSE
+from .mixtures import EXERGY_CHEMICAL
 from .mixtures import H_MIX_PT_DIRECT
 from .mixtures import S_MIX_PT_DIRECT
+from .mixtures import T_MIX_PH_REVERSE
+from .mixtures import T_MIX_PS_REVERSE
 from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
 
@@ -18,6 +19,57 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
         s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule)
         T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule)
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
+
+
+def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
+    r"""
+    Calculate specific physical exergy.
+
+    Physical exergy is allocated to a thermal and a mechanical share according
+    to :cite:`Morosuk2019`.
+
+    Parameters
+    ----------
+    pamb : float
+        Ambient pressure p0 / Pa.
+
+    Tamb : float
+        Ambient temperature T0 / K.
+
+    Returns
+    -------
+    e_ph : tuple
+        Specific thermal and mechanical exergy
+        (:math:`e^\mathrm{T}`, :math:`e^\mathrm{M}`) in J / kg.
+
+        .. math::
+
+            e^\mathrm{T} = \left( h - h \left( p, T_0 \right) \right) -
+            T_0 \cdot \left(s - s\left(p, T_0\right)\right)
+
+            e^\mathrm{M}=\left(h\left(p,T_0\right)-h\left(p_0,T_0\right)\right)
+            -T_0\cdot\left(s\left(p, T_0\right)-s\left(p_0,T_0\right)\right)
+
+            e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
+    """
+    h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
+    s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
+    ex_therm = (h - h_T0_p) - T0 * (s - s_T0_p)
+    h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
+    s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
+    ex_mech = (h_T0_p - h0) - T0 * (s_T0_p - s0)
+    return ex_therm, ex_mech
+
+
+def calc_chemical_exergy(pamb, Tamb, fluid_data, Chem_Ex, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        fluid_aliases = pure_fluid["wrapper"]._aliases
+        y = [Chem_Ex[k][Chem_Ex[k][4]] for k in fluid_aliases if k in Chem_Ex]
+        return y[0] / pure_fluid["wrapper"]._molar_mass * 1e3
+    else:
+        _check_mixing_rule(mixing_rule, EXERGY_CHEMICAL, "chemical exergy")
+        return EXERGY_CHEMICAL[mixing_rule](pamb, Tamb, fluid_data, Chem_Ex)
 
 
 def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):

@@ -1,9 +1,10 @@
 import CoolProp as CP
+import numpy as np
 
+from tespy.tools.global_vars import gas_constants
 from .helpers import _is_larger_than_precision
 from .helpers import calc_molar_mass_mixture
 from .helpers import get_molar_fractions
-
 
 
 def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -49,12 +50,9 @@ def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            if fluid == "H2O":
-                if pp >= data["wrapper"]._p_min:
-                    if T <= data["wrapper"].T_sat(pp):
-                        h += data["wrapper"].h_QT(1, T) * data["mass_fraction"]
-                    else:
-                        h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
+            if fluid == "H2O" and pp >= data["wrapper"]._p_min:
+                if T <= data["wrapper"].T_sat(pp):
+                    h += data["wrapper"].h_QT(1, T) * data["mass_fraction"]
                 else:
                     h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
             else:
@@ -220,6 +218,44 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     return viscosity
 
 
+def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
+
+    molar_fractions = get_molar_fractions(fluid_data)
+    water_alias = _water_in_mixture(fluid_data)
+    if water_alias:
+        water_alias = next(iter(water_alias))
+        _, molar_fractions_gas, _, molar_liquid = cond_check(
+            pamb, Tamb, fluid_data, water_alias
+        )
+    else:
+        molar_fractions_gas = molar_fractions
+        molar_liquid = 0
+
+    ex_cond = 0
+    ex_dry = 0
+    for fluid, x in molar_fractions_gas.items():
+        if x == 0:
+            continue
+
+        fluid_aliases = fluid_data[fluid]["wrapper"]._aliases
+
+        if molar_liquid > 0:
+            y = [
+                Chem_Ex[k][2] for k in fluid_aliases if k in Chem_Ex
+            ]
+            ex_cond += molar_liquid * y[0]
+
+        y = [Chem_Ex[k][3] for k in fluid_aliases if k in Chem_Ex]
+        ex_dry += x * y[0] + Tamb * gas_constants['uni'] * 1e-3 * x * np.log(x)
+
+    ex_chemical = ex_cond + ex_dry * (1 - molar_liquid)
+    ex_chemical *= 1 / calc_molar_mass_mixture(
+        fluid_data, molar_fractions
+    )
+
+    return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
+
+
 def _water_in_mixture(fluid_data):
     water_aliases = set(CP.CoolProp.get_aliases("H2O"))
     return water_aliases & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
@@ -323,4 +359,8 @@ VISCOSITY_MIX_PT_DIRECT = {
     "ideal": viscosity_mix_pT_ideal,
     "ideal-cond": viscosity_mix_pT_ideal,
     "incompressible": viscosity_mix_pT_incompressible
+}
+
+EXERGY_CHEMICAL = {
+    "ideal-cond": exergy_chemical_ideal_cond,
 }

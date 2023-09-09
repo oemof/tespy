@@ -952,14 +952,17 @@ class Connection:
                 E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}\\
                 E^\mathrm{PH} = \dot{m} \cdot e^\mathrm{PH}
         """
-        self.ex_therm, self.ex_mech = fp.calc_physical_exergy(self, p0, T0)
+        self.ex_therm, self.ex_mech = fp.functions.calc_physical_exergy(
+            self.h.val_SI, self.s.val_SI, self.p.val_SI, pamb, Tamb,
+            self.fluid_data, self.mixing_rule, self.T.val_SI
+        )
         self.Ex_therm = self.ex_therm * self.m.val_SI
         self.Ex_mech = self.ex_mech * self.m.val_SI
 
         self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
 
-    def get_chemical_exergy(self, p0, T0, Chem_Ex):
+    def get_chemical_exergy(self, pamb, Tamb, Chem_Ex):
         r"""
         Get the value of a connection's specific chemical exergy.
 
@@ -983,7 +986,10 @@ class Connection:
         if Chem_Ex is None:
             self.ex_chemical = 0
         else:
-            self.ex_chemical = fp.calc_chemical_exergy(self, p0, T0, Chem_Ex)
+            self.ex_chemical = fp.functions.calc_chemical_exergy(
+                pamb, Tamb, self.fluid_data, Chem_Ex, self.mixing_rule,
+                self.T.val_SI
+            )
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
 

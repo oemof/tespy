@@ -15,7 +15,6 @@ import numpy as np
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 # from tespy.tools.fluid_properties import dT_mix_ph_dfluid
@@ -127,7 +126,7 @@ class Separator(NodeBase):
     will leave the separator at the second outlet the case of 30 % oxygen
     mass fraction for this outlet.
 
-    >>> outg1.set_attr(m=np.nan)
+    >>> outg1.set_attr(m=None)
     >>> outg2.set_attr(fluid={'O2': 0.3})
     >>> nw.solve('design')
     >>> outg2.fluid.val['O2']
@@ -145,6 +144,13 @@ class Separator(NodeBase):
         return {'num_out': dc_simple()}
 
     def get_mandatory_constraints(self):
+        self.variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(self.variable_fluids)
+        if num_fluid_eq == 0:
+            num_fluid_eq = 1
+            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
@@ -153,7 +159,7 @@ class Separator(NodeBase):
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -182,6 +188,28 @@ class Separator(NodeBase):
     def is_branch_source():
         return True
 
+    def start_branch(self):
+        branches = {}
+        for outconn in self.outl:
+            branch = {
+                "connections": [outconn],
+                "components": [self, outconn.target],
+                "subbranches": {}
+            }
+            outconn.target.propagate_to_target(branch)
+
+            branches[outconn.label] = branch
+        return branches
+
+    def propagate_to_target(self, branch):
+        return
+
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            outconn.target.propagate_wrapper_to_target(branch)
+
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
@@ -198,9 +226,10 @@ class Separator(NodeBase):
                 \forall fl \in \text{network fluids,}
                 \; \forall j \in \text{outlets}
         """
+        i = self.inl[0]
         residual = []
-        for fluid, x in self.inl[0].fluid.val.items():
-            res = x * self.inl[0].m.val_SI
+        for fluid in self.variable_fluids:
+            res = i.fluid.val[fluid] * i.m.val_SI
             for o in self.outl:
                 res -= o.fluid.val[fluid] * o.m.val_SI
             residual += [res]
@@ -240,17 +269,20 @@ class Separator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        i = 0
-        for fluid in self.nw_fluids:
-            j = 0
+        i = self.inl[0]
+        for fluid in self.variable_fluids:
             for o in self.outl:
-                self.jacobian[k, j + 1, 0] = -o.fluid.val[fluid]
-                self.jacobian[k, j + 1, i + 3] = -o.m.val_SI
-                j += 1
-            self.jacobian[k, 0, 0] = self.inl[0].fluid.val[fluid]
-            self.jacobian[k, 0, i + 3] = self.inl[0].m.val_SI
+                if self.is_variable(o.m):
+                    self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
+                if fluid in o.fluid.is_var:
+                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
+
+            if self.is_variable(i.m):
+                self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+            if fluid in i.fluid.is_var:
+                self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+
             k += 1
-            i += 1
 
     def energy_balance_func(self):
         r"""
@@ -267,9 +299,9 @@ class Separator(NodeBase):
                 \forall j \in \text{outlets}
         """
         residual = []
-        T_in = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
+        T_in = self.inl[0].calc_T(T0=300)
         for o in self.outl:
-            residual += [T_in - T_mix_ph(o.get_flow(), T0=o.T.val_SI)]
+            residual += [T_in - o.calc_T(T0=300)]
         return residual
 
     def energy_balance_func_doc(self, label):
@@ -304,20 +336,24 @@ class Separator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        i = self.inl[0].get_flow()
-        dT_dp_in = dT_mix_dph(i)
-        dT_dh_in = dT_mix_pdh(i)
-        dT_dfluid_in = dT_mix_ph_dfluid(i)
-        j = 0
-        for c in self.outl:
-            o = c.get_flow()
-            self.jacobian[k, 0, 1] = dT_dp_in
-            self.jacobian[k, 0, 2] = dT_dh_in
-            self.jacobian[k, 0, 3:] = dT_dfluid_in
-            self.jacobian[k, j + 1, 1] = -dT_mix_dph(o)
-            self.jacobian[k, j + 1, 2] = -dT_mix_pdh(o)
-            self.jacobian[k, j + 1, 3:] = -np.array(dT_mix_ph_dfluid(o))
-            j += 1
+        i = self.inl[0]
+        dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
+        dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
+        # dT_dfluid_in = {}
+        # for fluid in i.fluid.is_var:
+        #     dT_dfluid_in[fluid] = dT_mix_ph_dfluid(i)
+        for o in self.outl:
+            if self.is_variable(i.p):
+                self.jacobian[k, i.p.J_col] = dT_dp_in
+            if self.is_variable(i.h):
+                self.jacobian[k, i.h.J_col] = dT_dh_in
+            # for fluid in i.fluid.is_var:
+            #     self.jacobian[k, i.fluid.J_col[fluid]] = dT_dfluid_in[fluid]
+            args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+            self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
+            self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
+            # for fluid in o.fluid.is_var:
+            #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
             k += 1
 
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):

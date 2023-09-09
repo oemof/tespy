@@ -968,10 +968,9 @@ class FuelCell(Component):
         if outconn == self.outl[0]:
             inconn = self.inl[0]
 
-            for fluid, x in outconn.fluid.val.items():
-                if (not inconn.fluid.is_set[fluid] and
-                        not inconn.good_starting_values):
-                    inconn.fluid.val[fluid] = x
+            if not inconn.good_starting_values:
+                for fluid in inconn.fluid.is_var:
+                    inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
 
             inconn.source.propagate_fluid_to_source(inconn, start)
 

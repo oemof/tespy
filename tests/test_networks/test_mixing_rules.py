@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 from pytest import approx
 
 from tespy.components import Compressor
-from tespy.components import HeatExchangerSimple
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Merge
 from tespy.components import Pipe
 from tespy.components import Sink

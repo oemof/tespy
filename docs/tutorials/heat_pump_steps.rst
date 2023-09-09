@@ -79,7 +79,7 @@ Components
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From the figure above you can determine the components of
 the consumer system: condenser, pump and the consumer
-(:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`).
+(:py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`).
 Additionally, we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment.

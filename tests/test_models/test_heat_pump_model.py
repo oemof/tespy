@@ -17,7 +17,7 @@ from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import HeatExchanger
-from tespy.components import HeatExchangerSimple
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
@@ -47,7 +47,7 @@ class TestHeatPump:
         # consumer system
         cd = HeatExchanger('condenser')
         rp = Pump('recirculation pump')
-        cons = HeatExchangerSimple('consumer')
+        cons = SimpleHeatExchanger('consumer')
 
         # evaporator system
         va = Valve('valve')

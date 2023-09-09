@@ -30,9 +30,7 @@ class TestHeatExchangers:
 
     def setup_method(self):
 
-        self.nw = Network(
-            ['H2O', 'Ar', 'INCOMP::S800'], T_unit='C', p_unit='bar',
-            v_unit='m3 / s')
+        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.inl1 = Source('inlet 1')
         self.outl1 = Sink('outlet 1')
 

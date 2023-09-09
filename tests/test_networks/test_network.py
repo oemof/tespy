@@ -357,7 +357,7 @@ class TestNetworkIndividualOffdesign:
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
 
-        self.sc1_v1.set_attr(m=np.nan)
+        self.sc1_v1.set_attr(m=None)
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 

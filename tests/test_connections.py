@@ -22,9 +22,7 @@ class TestConnections:
     def setup_method(self):
         """Set up the model."""
         # %% network setup
-        fluid_list = ['Air']
-        self.nw = Network(
-            fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 20])
+        self.nw = Network(p_unit='bar', T_unit='C')
 
         # %% components
         so1 = Source('source 1')

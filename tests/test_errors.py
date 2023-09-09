@@ -319,13 +319,14 @@ class TestCombustionEngineBusErrors:
 
 def test_compressor_missing_char_parameter():
     """Compressor with invalid parameter for eta_s_char function."""
-    nw = Network(['CH4'])
+    nw = Network()
     so = Source('source')
     si = Sink('sink')
     instance = Compressor('compressor')
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"CH4": 1})
     instance.set_attr(eta_s_char={
         'func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
@@ -351,13 +352,14 @@ def test_subsys_label_forbidden():
 
 def test_Turbine_missing_char_parameter():
     """Turbine with invalid parameter for eta_s_char function."""
-    nw = Network(['CH4'])
+    nw = Network()
     so = Source('source')
     si = Sink('sink')
     instance = Turbine('turbine')
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"CH4": 1})
     instance.set_attr(eta_s_char={
         'char_func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
@@ -579,11 +581,6 @@ def test_Network_instanciation_no_fluids():
     with raises(TESPyNetworkError):
         nw.solve('design', init_only=True)
 
-
-def test_Network_instanciation_single_fluid():
-    with raises(TypeError):
-        Network('water')
-
 ##############################################################################
 # test errors of characteristics classes
 
@@ -656,5 +653,8 @@ def test_missing_CharMap_files():
 
 
 def test_h_mix_pQ_on_mixtures():
+    c = Connection(Source("test"), "out1", Sink("test2"), "in1")
+    c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
+    c.build_fluid_data()
     with raises(ValueError):
-        h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)
+        h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)

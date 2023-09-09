@@ -99,10 +99,3 @@ class TestMixingRules:
             f"larger than using ideal mixing rule ({target})"
         )
         assert c6.h.val_SI > target, msg
-
-
-
-
-
-
-

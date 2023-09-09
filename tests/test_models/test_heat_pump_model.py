@@ -33,8 +33,7 @@ class TestHeatPump:
 
     def setup_method(self):
         # %% network setup
-        self.nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
-                          h_unit='kJ / kg', m_unit='kg / s')
+        self.nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
         # %% components
         # sources & sinks
@@ -225,10 +224,9 @@ class TestHeatPump:
         cd.set_attr(kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
                     design=['pr2'], offdesign=['zeta2', 'kA_char'])
 
-        # %% connection parametrization
         # condenser system
-        c_in_cd.set_attr(fluid={'water': 0, 'NH3': 1}, p=60)
-        rp_cd.set_attr(T=60, fluid={'water': 1, 'NH3': 0}, p=10)
+        c_in_cd.set_attr(fluid={'NH3': 1}, p=60)
+        rp_cd.set_attr(T=60, fluid={'water': 1}, p=10)
         self.cd_cons.set_attr(T=105)
         cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), Td_bp=-5, design=['Td_bp'])
 

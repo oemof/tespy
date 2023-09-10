@@ -227,55 +227,26 @@ class Connection:
     False
     """
 
-    def __init__(self, comp1, outlet_id, comp2, inlet_id,
+    def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
-        # check input parameters
-        if not (isinstance(comp1, Component) and
-                isinstance(comp2, Component)):
-            msg = ('Error creating connection. Check if comp1, comp2 are of '
-                   'type component.')
-            logger.error(msg)
-            raise TypeError(msg)
+        self._check_types(source, target)
+        self._check_self_connect(source, target)
+        self._check_connector_id(source, outlet_id, source.outlets())
+        self._check_connector_id(target, inlet_id, target.inlets())
 
-        if comp1 == comp2:
-            msg = ('Error creating connection. Cannot connect component ' +
-                   comp1.label + ' to itself.')
-            logger.error(msg)
-            raise TESPyConnectionError(msg)
-
-        if outlet_id not in comp1.outlets():
-            msg = ('Error creating connection. Specified oulet_id (' +
-                   outlet_id + ') is not valid for component ' +
-                   comp1.component() + '. Valid ids are: ' +
-                   str(comp1.outlets()) + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        if inlet_id not in comp2.inlets():
-            msg = (
-                'Error creating connection. Specified inlet_id (' + inlet_id +
-                ') is not valid for component ' + comp2.component() +
-                '. Valid ids are: ' + str(comp2.inlets()) + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        if label is None:
-            self.label = (
-                comp1.label + ':' + outlet_id + '_' +
-                comp2.label + ':' + inlet_id)
-        else:
+        self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
+        if label is not None:
             self.label = label
-
-        if not isinstance(self.label, str):
-            msg = 'Please provide the label as string.'
-            logger.error(msg)
-            raise TypeError(msg)
+            if not isinstance(label, str):
+                msg = "Please provide the label as string."
+                logger.error(msg)
+                raise TypeError(msg)
 
         # set specified values
-        self.source = comp1
+        self.source = source
         self.source_id = outlet_id
-        self.target = comp2
+        self.target = target
         self.target_id = inlet_id
 
         # defaults
@@ -296,12 +267,44 @@ class Connection:
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
+        msg = (
+            f"Created connection from {self.source.label} ({self.source_id}) "
+            f"to {self.target.label} ({self.target_id})."
+        )
+        logger.debug(msg)
+
         self.set_attr(**kwargs)
 
-        msg = (
-            'Created connection ' + self.source.label + ' (' + self.source_id +
-            ') -> ' + self.target.label + ' (' + self.target_id + ').')
-        logger.debug(msg)
+    def _check_types(self, source, target):
+        # check input parameters
+        if not (isinstance(source, Component) and
+                isinstance(target, Component)):
+            msg = (
+                "Error creating connection. Check if source and target are "
+                "tespy.components."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
+    def _check_self_connect(self, source, target):
+        if source == target:
+            msg = (
+                "Error creating connection. Cannot connect component "
+                f"{source.label} to itself."
+            )
+            logger.error(msg)
+            raise TESPyConnectionError(msg)
+
+    def _check_connector_id(self, component, connector_id, connecter_locations):
+        if connector_id not in connecter_locations:
+            msg = (
+                "Error creating connection. Specified connector for "
+                f"{component.label} ({connector_id} is not available. Choose "
+                f"from " + ", ".join(connecter_locations) + "."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
 
     def set_attr(self, **kwargs):
         r"""
@@ -328,10 +331,10 @@ class Connection:
             Starting value specification for enthalpy.
 
         fluid : dict
-            Fluid compostition specification.
+            Fluid composition specification.
 
         fluid0 : dict
-            Starting value specification for fluid compostition.
+            Starting value specification for fluid composition.
 
         fluid_balance : boolean
             Fluid balance equation specification.
@@ -374,8 +377,8 @@ class Connection:
         Note
         ----
         - The fluid balance parameter applies a balancing of the fluid vector
-          on the specified conntion to 100 %. For example, you have four fluid
-          components (a, b, c and d) in your vector, you set two of them
+          on the specified connection to 100 %. For example, you have four
+          fluid components (a, b, c and d) in your vector, you set two of them
           (a and b) and want the other two (components c and d) to be a result
           of your calculation. If you set this parameter to True, the equation
           (0 = 1 - a - b - c - d) will be applied.
@@ -392,7 +395,6 @@ class Connection:
         # set specified values
         for key in kwargs:
             if key == 'label':
-                # bad datatype
                 msg = 'Label can only be specified on instance creation.'
                 logger.error(msg)
                 raise TESPyConnectionError(msg)
@@ -403,23 +405,8 @@ class Connection:
                     is_numeric = True
                 except (TypeError, ValueError):
                     is_numeric = False
-                if 'fluid' in key and key != 'fluid_balance':
-                    if isinstance(kwargs[key], dict):
-                        # starting values
-                        if key in self.property_data0:
-                            self.fluid.set_attr(val0=kwargs[key].copy())
-                        # specified parameters
-                        else:
-                            self.fluid.set_attr(val=kwargs[key].copy())
-                            self.fluid.is_set = {f for f in kwargs[key]}
-
-                    else:
-                        # bad datatype
-                        msg = (
-                            'Datatype for fluid vector specification must be '
-                            'dict.')
-                        logger.error(msg)
-                        raise TypeError(msg)
+                if 'fluid' in key:
+                    self._fluid_specification(key, kwargs[key])
 
                 elif key == 'state':
                     if kwargs[key] in ['l', 'g']:
@@ -485,17 +472,6 @@ class Connection:
                     logger.error(msg)
                     raise TypeError(msg)
 
-            # fluid balance
-            elif key == 'fluid_balance':
-                if isinstance(kwargs[key], bool):
-                    self.get_attr('fluid').set_attr(balance=kwargs[key])
-                else:
-                    msg = (
-                        'Datatype for keyword argument fluid_balance must be '
-                        'boolean.')
-                    logger.error(msg)
-                    raise TypeError(msg)
-
             # design/offdesign parameter list
             elif key == 'design' or key == 'offdesign':
                 if not isinstance(kwargs[key], list):
@@ -545,11 +521,51 @@ class Connection:
                 logger.error(msg)
                 raise KeyError(msg)
 
-        if "fluid" in kwargs:
-            for fluid in kwargs["fluid"]:
-                engine = CoolPropWrapper
-                back_end = "HEOS"
-                self._create_fluid_wrapper(fluid, engine, back_end)
+    def _fluid_specification(self, key, value):
+
+        self._check_fluid_datatypes(key, value)
+
+        if key == "fluid":
+            for fluid, fraction in value.items():
+                if fraction is not None:
+                    self.fluid.val["fluid"] = fraction
+                    self.fluid.is_set.add(fluid)
+                    if fluid in self.fluid.is_var:
+                        self.fluid.is_var.remove(fluid)
+                else:
+                    if fluid in self.fluid.is_set:
+                        self.fluid.is_set.remove(fluid)
+                    self.fluid.is_var.add(fluid)
+
+        elif key == "fluid0":
+            self.fluid.val0.update(value)
+
+        elif key == "fluid_engines":
+            self.fluid.engine = value
+
+        elif key == "fluid_back_ends":
+            self.fluid.back_end = value
+
+        elif key == "fluid_balance":
+            self.fluid.set_attr(balance=value)
+
+        else:
+            msg = f"Connections do not have an attribute named {key}"
+            logger.error(msg)
+            raise KeyError(msg)
+
+    def _check_fluid_datatypes(key, value):
+        if key == "fluid_balance":
+            if not isinstance(value, bool):
+                msg = "Datatype for 'fluid_balance' must be boolean."
+                logger.error(msg)
+                raise TypeError(msg)
+        else:
+            if not isinstance(value, dict):
+                msg = "Datatype for fluid vector specification must be dict."
+                logger.error(msg)
+                raise TypeError(msg)
+
 
     def get_attr(self, key):
         r"""
@@ -572,27 +588,21 @@ class Connection:
             logger.error(msg)
             raise KeyError(msg)
 
-    @staticmethod
-    def attr():
-        r"""
-        Return available attributes of a connection.
+    def _create_fluid_wrapper(self):
+        for fluid in self.fluid.val:
+            if fluid in self.fluid.engine and fluid in self.fluid.back_end:
+                pass
+            elif fluid in self.fluid.engine:
+                self.fluid.back_end[fluid] = None
+            elif fluid in self.fluid.back_end:
+                self.fluid.engine[fluid] = CoolPropWrapper
+            else:
+                self.fluid.engine[fluid] = CoolPropWrapper
+                self.fluid.back_end[fluid] = "HEOS"
 
-        Returns
-        -------
-        out : list
-            List of available attributes of a connection.
-        """
-        return {
-            'm': dc_prop(), 'p': dc_prop(), 'h': dc_prop(), 'T': dc_prop(),
-            'x': dc_prop(), 'v': dc_prop(), 'vol': dc_prop(),
-            's': dc_prop(),
-            'fluid': dc_flu(), 'Td_bp': dc_prop(), 'state': dc_simple()
-        }
-
-    def _create_fluid_wrapper(self, fluid, engine, back_end):
-        self.fluid.back_end[fluid] = back_end
-        self.fluid.engine[fluid] = engine
-        self.fluid.wrapper[fluid] = engine(fluid, back_end)
+            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](
+                fluid, self.fluid.back_end[fluid]
+            )
 
     def preprocess(self):
         self.num_eq = 0

@@ -868,6 +868,10 @@ class Network:
 
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
+
+            for c in all_connections:
+                c._create_fluid_wrapper()
+
             any_fluids_set = [f for c in all_connections for f in c.fluid.is_set]
             fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.is_set}
             mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]

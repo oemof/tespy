@@ -1139,13 +1139,17 @@ class CombustionChamber(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 3, self.num_nw_vars))
         f = self.calc_bus_value
-        for i in range(3):
-            deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
-            deriv[0, i, 3:] = self.numeric_deriv(f, 'fluid', i, bus=bus)
+        for c in self.inl + self.outl:
+            if c.m.is_var:
+                if c.m.J_col not in bus.jacobian:
+                    bus.jacobian[c.m.J_col] = 0
+                bus.jacobian[c.m.J_col] = -self.numeric_deriv(f, 'm', c, bus=bus)
 
-        return deriv
+            for fluid in c.fluid.is_var:
+                if c.fluid.J_col[fluid] not in bus.jacobian:
+                    bus.jacobian[c.fluid.J_col[fluid]] = 0
+                bus.jacobian[c.fluid.J_col[fluid]] = -self.numeric_deriv(f, fluid, c, bus=bus)
 
     def initialise_fluids(self):
         """Calculate reaction balance for generic starting values at outlet."""

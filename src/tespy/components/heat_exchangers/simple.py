@@ -794,12 +794,21 @@ class SimpleHeatExchanger(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 2, self.num_nw_vars))
         f = self.calc_bus_value
-        deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
-        deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
-        return deriv
+        if self.inl[0].m.is_var:
+            if self.inl[0].m.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col] = 0
+            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+
+        if self.inl[0].h.is_var:
+            if self.inl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col] = 0
+            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+
+        if self.outl[0].h.is_var:
+            if self.outl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.outl[0].h.J_col] = 0
+            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
 
     def initialise_source(self, c, key):
         r"""

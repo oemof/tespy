@@ -620,38 +620,6 @@ class Component:
         """
         return 0
 
-    def bus_func_doc(self, bus):
-        r"""
-        Base method for LaTeX equation generation of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            Bus function in LaTeX format.
-        """
-        return None
-
-    def bus_deriv(self, bus):
-        r"""
-        Base method for partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
-
     def calc_bus_expr(self, bus):
         r"""
         Return the busses' characteristic line input expression.

@@ -106,10 +106,10 @@ def set_defaults(nw):
 
     for c in classes:
         rpt[c.__class__.__name__] = {'params': []}
-        if hasattr(c, "variables"):
+        if hasattr(c, "parameters"):
             rpt[c.__class__.__name__].update({
                 param: {'float_fmt': '{:,.2f}'}
-                for param, data in c.variables.items()
+                for param, data in c.parameters.items()
                 if isinstance(data, dc_cp)
             })
 
@@ -243,12 +243,13 @@ def document_connections(nw, rpt):
     ref_data = {'m': [], 'p': [], 'h': [], 'T': []}
 
     cols = nw.results['Connection'].columns
-    conn_data = nw.results['Connection'].copy().loc[:, ~cols.isin(nw.fluids)]
-    fluid_data = nw.results['Connection'].copy().loc[:, nw.fluids]
+    property_cols = [c for c in cols[~cols.isin(nw.all_fluids)] if "unit" not in c]
+    property_data = nw.results['Connection'].copy().loc[:, property_cols]
+    fluid_data = nw.results['Connection'].copy().loc[:, list(nw.all_fluids)]
 
     specs = nw.specifications['Connection'].copy()
     if not rpt['include_results']:
-        conn_data = conn_data[specs]
+        property_data = property_data[specs]
         fluid_data = fluid_data[specs]
     # it is possible to exclude fluid results
     elif not rpt['Connection']['fluid']['include_results']:
@@ -278,11 +279,11 @@ def document_connections(nw, rpt):
 
     # if list is empty, all parameters will be included
     if len(rpt['Connection']['params']) > 0:
-        for col in conn_data.columns:
+        for col in property_data.columns:
             if col not in rpt['Connection']['params'] and not any(specs[col]):
-                conn_data[col] = np.nan
+                property_data[col] = np.nan
 
-    df = data_to_df(conn_data)
+    df = data_to_df(property_data)
     if len(df) > 0:
         eqs = df[specs].dropna(how='all').dropna(how='all', axis=1).columns
         latex += document_connection_params(nw, df, specs, eqs, c, rpt)

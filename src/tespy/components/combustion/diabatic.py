@@ -386,8 +386,8 @@ class DiabaticCombustionChamber(CombustionChamber):
         for num, i in enumerate(self.inl):
             if i.p.val < self.outl[0].p.val:
                 msg = (
-                    f"The pressure at inlet {i + 1} is lower than the pressure "
-                    f"at the outlet of component {self.label}."
+                    f"The pressure at inlet {num + 1} is lower than the "
+                    f"pressure at the outlet of component {self.label}."
                 )
                 logger.warning(msg)
 

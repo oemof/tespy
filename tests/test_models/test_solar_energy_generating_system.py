@@ -282,7 +282,7 @@ class TestSEGS:
 
         # connection parameters
         # parabolic trough cycle
-        c70.set_attr(fluid={'TVP1': 1, 'water': 0, 'air': 0}, T=390, p=23.304)
+        c70.set_attr(fluid={'TVP1': 1}, fluid_back_ends={"TVP1": "INCOMP"}, T=390, p=23.304)
         c76.set_attr(m=Ref(c70, 0.1284, 0))
         c73.set_attr(p=22.753)
         c74.set_attr(p=21.167)
@@ -291,16 +291,16 @@ class TestSEGS:
 
         # cooling water
         c62.set_attr(
-            fluid={'TVP1': 0, 'water': 1, 'air': 0}, T=30, p=self.pamb)
+            fluid={'water': 1}, T=30, p=self.pamb)
         # cooling tower
         c64.set_attr(
-            fluid={'water': 0, 'TVP1': 0, 'air': 1}, p=self.pamb, T=self.Tamb)
+            fluid={'air': 1}, p=self.pamb, T=self.Tamb)
         c65.set_attr(p=self.pamb + 0.0005)
         c66.set_attr(p=self.pamb, T=30)
         # power cycle
         c32.set_attr(Td_bp=-2)
         c34.set_attr(x=0.5)
-        c1.set_attr(fluid={'water': 1, 'TVP1': 0, 'air': 0}, p=100, T=371)
+        c1.set_attr(fluid={'water': 1}, p=100, T=371)
 
         # steam generator pressure values
         c31.set_attr(p=103.56)

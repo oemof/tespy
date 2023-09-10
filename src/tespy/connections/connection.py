@@ -398,6 +398,8 @@ class Connection:
                 msg = 'Label can only be specified on instance creation.'
                 logger.error(msg)
                 raise TESPyConnectionError(msg)
+            elif 'fluid' in key:
+                self._fluid_specification(key, kwargs[key])
             elif key in self.property_data or key in self.property_data0:
                 # fluid specification
                 try:
@@ -405,10 +407,8 @@ class Connection:
                     is_numeric = True
                 except (TypeError, ValueError):
                     is_numeric = False
-                if 'fluid' in key:
-                    self._fluid_specification(key, kwargs[key])
 
-                elif key == 'state':
+                if key == 'state':
                     if kwargs[key] in ['l', 'g']:
                         self.state.set_attr(val=kwargs[key], is_set=True)
                     elif kwargs[key] is None:
@@ -528,7 +528,7 @@ class Connection:
         if key == "fluid":
             for fluid, fraction in value.items():
                 if fraction is not None:
-                    self.fluid.val["fluid"] = fraction
+                    self.fluid.val[fluid] = fraction
                     self.fluid.is_set.add(fluid)
                     if fluid in self.fluid.is_var:
                         self.fluid.is_var.remove(fluid)
@@ -554,7 +554,7 @@ class Connection:
             logger.error(msg)
             raise KeyError(msg)
 
-    def _check_fluid_datatypes(key, value):
+    def _check_fluid_datatypes(self, key, value):
         if key == "fluid_balance":
             if not isinstance(value, bool):
                 msg = "Datatype for 'fluid_balance' must be boolean."
@@ -590,6 +590,8 @@ class Connection:
 
     def _create_fluid_wrapper(self):
         for fluid in self.fluid.val:
+            if fluid in self.fluid.wrapper:
+                continue
             if fluid in self.fluid.engine and fluid in self.fluid.back_end:
                 pass
             elif fluid in self.fluid.engine:
@@ -814,10 +816,16 @@ class Connection:
             self.s.val_SI = self.calc_s()
 
         if number_fluids == 1:
-            if not self.x.is_set:
-                self.x.val_SI = self.calc_x()
-            if not self.Td_bp.is_set:
-                self.Td_bp.val_SI = self.calc_Td_bp()
+            try:
+                if not self.x.is_set:
+                    self.x.val_SI = self.calc_x()
+            except ValueError:
+                self.x.val_SI = np.nan
+            try:
+                if not self.Td_bp.is_set:
+                    self.Td_bp.val_SI = self.calc_Td_bp()
+            except ValueError:
+                self.x.val_SI = np.nan
 
         for prop in fpd.keys():
             self.get_attr(prop).val = convert_from_SI(

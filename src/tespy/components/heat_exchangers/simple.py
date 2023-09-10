@@ -492,7 +492,7 @@ class SimpleHeatExchanger(Component):
 
         return (
             (i.p.val_SI - o.p.val_SI) * np.sign(i.m.val_SI) -
-                (10.67 * abs(i[0]) ** 1.852 * self.L.val /
+                (10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
                  (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
 

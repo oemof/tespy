@@ -44,7 +44,7 @@ class TestTurbomachinery:
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'N2': 1, 'O2': 0, 'Ar': 0, 'DowQ': 0, 'NH3': 0}
+        fl = {'N2': 1}
         self.c1.set_attr(fluid=fl, v=1, p=1, T=5)
         self.c2.set_attr(p=6)
         instance.set_attr(eta_s=0.8)
@@ -54,7 +54,7 @@ class TestTurbomachinery:
 
         # test isentropic efficiency value
         eta_s_d = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -67,7 +67,7 @@ class TestTurbomachinery:
 
         # test calculated value
         eta_s = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -160,8 +160,9 @@ class TestTurbomachinery:
         """Test component properties of pumps."""
         instance = Pump('pump')
         self.setup_network(instance)
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'DowQ': 1, 'NH3': 0}
-        self.c1.set_attr(fluid=fl, v=1, p=5, T=50)
+        fl = {'DowQ': 1}
+        fbe = {'DowQ': 'INCOMP'}
+        self.c1.set_attr(fluid=fl, fluid_back_ends=fbe, v=1, p=5, T=50)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
         self.nw.solve('design')
@@ -169,7 +170,7 @@ class TestTurbomachinery:
 
         # test calculated value for efficiency
         eta_s = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -177,8 +178,8 @@ class TestTurbomachinery:
 
         # isentropic efficiency of 1 means inlet and outlet entropy are
         # identical
-        s1 = round(s_mix_ph(self.c1.get_flow()), 4)
-        s2 = round(s_mix_ph(self.c2.get_flow()), 4)
+        s1 = round(self.c1.calc_s(), 4)
+        s2 = round(self.c2.calc_s(), 4)
         msg = ('Value of entropy must be identical for inlet (' + str(s1) +
                ') and outlet (' + str(s2) +
                ') at 100 % isentropic efficiency.')
@@ -251,8 +252,7 @@ class TestTurbomachinery:
         """Test component properties of turbines."""
         instance = Turbine('turbine')
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
-              'NH3': 0}
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         self.c1.set_attr(fluid=fl, m=15, p=10)
         self.c2.set_attr(p=1, T=25)
         instance.set_attr(eta_s=0.85)
@@ -263,7 +263,7 @@ class TestTurbomachinery:
         # design value of isentropic efficiency
         eta_s_d = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+                isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' +
                str(round(eta_s_d, 3)) + ', is ' + str(instance.eta_s.val) +
@@ -276,7 +276,7 @@ class TestTurbomachinery:
         self.nw._convergence_check()
         eta_s = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+                isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -342,7 +342,7 @@ class TestTurbomachinery:
                instance.component() + '.')
         assert 'turbomachine' == instance.component(), msg
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0, 'NH3': 0}
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
         self.c2.set_attr(p=3, h=2e5)
 

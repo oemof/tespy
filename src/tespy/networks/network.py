@@ -763,6 +763,7 @@ class Network:
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64')
             if comp_type not in self.specifications:
+
                 cols, groups, chars = [], [], []
                 for col, data in comp.parameters.items():
                     if isinstance(data, dc_cp):
@@ -907,7 +908,13 @@ class Network:
                     if f not in c.fluid.wrapper and f in fluid_set_wrappers:
                         c.fluid.wrapper[f] = fluid_set_wrappers[f]
                     elif f not in c.fluid.wrapper:
-                        c._create_fluid_wrapper(f, fp.CoolPropWrapper, "HEOS")
+                        msg = (
+                            f"The fluid {f} seems to be a potential fluid for "
+                            "connection, however, there has is no fluid "
+                            "wrapper available for this fluid on the same "
+                            "branch. Creating a default wrapper."
+                        )
+                        c._create_fluid_wrapper()
 
     def presolve_massflow_topology(self):
 
@@ -1055,6 +1062,21 @@ class Network:
                     "obj": main_conn, "variable": "fluid", "fluid": fluid
                 }
                 self.num_conn_vars += 1
+
+    def _reset_topology_reduction_specifications(self):
+        for c in self.conns["object"]:
+            if hasattr(c, "_m_tmp"):
+                value = c.m.val_SI
+                unit = c.m.unit
+                c.m = c._m_tmp
+                c.m.val_SI = value
+                c.m.unit = unit
+                del c._m_tmp
+            if hasattr(c, "_fluid_tmp"):
+                val = c.fluid.val
+                c.fluid = c._fluid_tmp
+                c.fluid.val = val
+                del c._fluid_tmp
 
     def init_set_properties(self):
         """Specification of SI values for user set values."""
@@ -1887,6 +1909,7 @@ class Network:
         self.initialise()
 
         if init_only:
+            self._reset_topology_reduction_specifications()
             return
 
         msg = 'Starting solver.'
@@ -2396,20 +2419,9 @@ class Network:
 
     def process_connections(self):
         """Process the Connection results."""
-        for c in self.conns['object']:
-            if hasattr(c, "_m_tmp"):
-                value = c.m.val_SI
-                unit = c.m.unit
-                c.m = c._m_tmp
-                c.m.val_SI = value
-                c.m.unit = unit
-                del c._m_tmp
-            if hasattr(c, "_fluid_tmp"):
-                val = c.fluid.val
-                c.fluid = c._fluid_tmp
-                c.fluid.val = val
-                del c._fluid_tmp
+        self._reset_topology_reduction_specifications()
 
+        for c in self.conns['object']:
             c.good_starting_values = True
             c.calc_results()
 

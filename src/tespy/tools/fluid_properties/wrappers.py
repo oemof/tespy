@@ -77,7 +77,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
     def _set_constants(self):
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        self._aliases = CP.CoolProp.get_aliases(self.fluid)
+        try:
+            self._aliases = CP.CoolProp.get_aliases(self.fluid)
+        except RuntimeError:
+            self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
             self._p_min = 1e2

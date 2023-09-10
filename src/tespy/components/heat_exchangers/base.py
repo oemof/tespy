@@ -148,8 +148,7 @@ class HeatExchanger(Component):
     >>> from tespy.networks import Network
     >>> from tespy.tools import document_model
     >>> import shutil
-    >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> exhaust_hot = Source('Exhaust air outlet')
     >>> exhaust_cold = Sink('Exhaust air inlet')
     >>> cw_cold = Source('cooling water inlet')
@@ -169,9 +168,9 @@ class HeatExchanger(Component):
 
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
     ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_he.set_attr(fluid={'air': 0, 'water': 1}, T=10, p=3,
+    >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
     ... offdesign=['m'])
-    >>> ex_he.set_attr(fluid={'air': 1, 'water': 0}, v=0.1, T=35)
+    >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -700,7 +699,8 @@ class HeatExchanger(Component):
                 h_{out,1} - h_{in,1} \right)
         """
         return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
 
     def bus_func_doc(self, bus):
         r"""

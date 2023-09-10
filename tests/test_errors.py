@@ -655,6 +655,7 @@ def test_missing_CharMap_files():
 def test_h_mix_pQ_on_mixtures():
     c = Connection(Source("test"), "out1", Sink("test2"), "in1")
     c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
+    c._create_fluid_wrapper()
     c.build_fluid_data()
     with raises(ValueError):
         h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)

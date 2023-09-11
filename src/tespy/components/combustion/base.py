@@ -1442,12 +1442,13 @@ class CombustionChamber(Component):
         p_ref = 1e5
         o = self.outl[0]
         self.S_comb = o.m.val_SI * (
-            o.s.val_SI -
-            s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
-        for c in self.inl:
-            self.S_comb -= c.m.val_SI * (
-                c.s.val_SI -
-                s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
+            o.s.val_SI - s_mix_pT(p_ref, T_ref, o.fluid_data, "forced-gas")
+        )
+
+        for i in self.inl:
+            self.S_Qcomb -= i.m.val_SI * (
+                i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, "forced-gas")
+            )
 
         self.S_irr = 0
         self.T_mcomb = self.calc_ti() / self.S_comb

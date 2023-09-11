@@ -959,12 +959,15 @@ class SimpleHeatExchanger(Component):
         o = self.outl[0]
 
         p1_star = i.p.val_SI * (o.p.val_SI / i.p.val_SI) ** 0.5
-        s1_star = s_mix_ph([0, p1_star, i[2], i[3]], T0=self.inl[0].T.val_SI)
-        s2_star = s_mix_ph([0, p1_star, o[2], o[3]], T0=self.outl[0].T.val_SI)
-        self.S_Q = i[0] * (s2_star - s1_star)
-        self.S_irr = i[0] * (
-            self.outl[0].s.val_SI - self.inl[0].s.val_SI) - self.S_Q
-        self.T_mQ = (o[2] - i[2]) / (s2_star - s1_star)
+        s1_star = s_mix_ph(
+            p1_star, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI
+        )
+        s2_star = s_mix_ph(
+            p1_star, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI
+        )
+        self.S_Q = i.m.val_SI * (s2_star - s1_star)
+        self.S_irr = i.m.val_SI * (o.s.val_SI - i.s.val_SI) - self.S_Q
+        self.T_mQ = (o.h.val_SI - i.h.val_SI) / (s2_star - s1_star)
 
     def exergy_balance(self, T0):
         r"""

@@ -429,13 +429,14 @@ class Merge(NodeBase):
         """
         T_ref = 298.15
         p_ref = 1e5
-        self.S_irr = self.outl[0].m.val_SI * (
-            self.outl[0].s.val_SI -
-            s_mix_pT([0, p_ref, 0, self.outl[0].fluid.val], T_ref))
+        o = self.outl[0]
+        self.S_irr = o.m.val_SI * (
+            o.s.val_SI - s_mix_pT(p_ref, T_ref, o.fluid_data, o.mixing_rule)
+        )
         for i in self.inl:
             self.S_irr -= i.m.val_SI * (
-                i.s.val_SI -
-                s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+                i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, i.mixing_rule)
+            )
 
     def exergy_balance(self, T0):
         r"""

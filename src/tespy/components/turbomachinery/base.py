@@ -246,7 +246,8 @@ class Turbomachine(Component):
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (
-            self.outl[0].s.val_SI - self.inl[0].s.val_SI)
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI
+        )
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

@@ -331,7 +331,8 @@ class Valve(Component):
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (
-            self.outl[0].s.val_SI - self.inl[0].s.val_SI)
+            self.outl[0].s.val_SI - self.inl[0].s.val_SI
+        )
 
     def exergy_balance(self, T0):
         r"""

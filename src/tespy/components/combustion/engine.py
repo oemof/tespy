@@ -1636,13 +1636,13 @@ class CombustionEngine(CombustionChamber):
         p_ref = 1e5
         o = self.outl[2]
         self.S_Qcomb = o.m.val_SI * (
-            o.s.val_SI -
-            s_mix_pT([0, p_ref, 0, o.fluid.val], T_ref, force_gas=True))
+            o.s.val_SI - s_mix_pT(p_ref, T_ref, o.fluid_data, "forced-gas")
+        )
 
-        for c in self.inl[2:]:
-            self.S_Qcomb -= c.m.val_SI * (
-                c.s.val_SI -
-                s_mix_pT([0, p_ref, 0, c.fluid.val], T_ref, force_gas=True))
+        for i in self.inl[2:]:
+            self.S_Qcomb -= i.m.val_SI * (
+                i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, "forced-gas")
+            )
 
         # (virtual) thermodynamic temperature of combustion, use default value
         # if not specified
@@ -1655,17 +1655,27 @@ class CombustionEngine(CombustionChamber):
             p_star = inl.p.val_SI * (
                 self.get_attr('pr' + str(i + 1)).val) ** 0.5
             s_i_star = s_mix_ph(
-                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+                p_star, inl.h.val_SI, inl.fluid_data, inl.mixing_rule,
+                T0=inl.T.val_SI
+            )
             s_o_star = s_mix_ph(
-                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+                p_star, out.h.val_SI, out.fluid_data, out.mixing_rule,
+                T0=out.T.val_SI
+            )
 
-            setattr(self, 'S_Q' + str(i + 1) + '2',
-                    inl.m.val_SI * (s_o_star - s_i_star))
+            setattr(
+                self, 'S_Q' + str(i + 1) + '2',
+                inl.m.val_SI * (s_o_star - s_i_star)
+            )
             S_Q = self.get_attr('S_Q' + str(i + 1) + '2')
-            setattr(self, 'S_irr' + str(i + 1),
-                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
-            setattr(self, 'T_mQ' + str(i + 1),
-                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+            setattr(
+                self, 'S_irr' + str(i + 1),
+                inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q
+            )
+            setattr(
+            self, 'T_mQ' + str(i + 1),
+            inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q
+        )
 
         # internal irreversibilty
         self.P_irr_i = (1 / self.eta_mech.val - 1) * self.P.val
@@ -1682,15 +1692,17 @@ class CombustionEngine(CombustionChamber):
 
         # calculate entropy production of combustion
         self.S_comb = (
-            self.S_Qcomb - self.S_Q11 - self.S_Q21 - self.S_Qloss -
-            self.S_irr_i)
+            self.S_Qcomb - self.S_Q11 - self.S_Q21 - self.S_Qloss
+            - self.S_irr_i
+        )
 
         # thermodynamic temperature of heat input
         self.T_mcomb = self.calc_ti() / self.S_comb
         # total irreversibilty production
         self.S_irr = (
-            self.S_irr_i + self.S_irr2 + self.S_irr1 + self.S_Q1irr +
-            self.S_Q2irr)
+            self.S_irr_i + self.S_irr2 + self.S_irr1
+            + self.S_Q1irr + self.S_Q2irr
+        )
 
     def exergy_balance(self, T0):
 

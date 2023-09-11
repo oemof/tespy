@@ -91,7 +91,7 @@ class TestHeatExchangers:
         # make zeta system variable and use previously calculated diameter
         # to calculate zeta. The value for zeta must not change
         zeta = round(instance.zeta.val, 0)
-        instance.set_attr(D=instance.D.val, zeta='var', pr=np.nan)
+        instance.set_attr(D=instance.D.val, zeta='var', pr=None)
         instance.D.is_var = False
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -101,7 +101,7 @@ class TestHeatExchangers:
 
         # same test with pressure ratio as sytem variable
         pr = round(instance.pr.val, 3)
-        instance.set_attr(zeta=np.nan, pr='var')
+        instance.set_attr(zeta=None, pr='var')
         self.nw.solve('design')
         self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) +
@@ -110,7 +110,7 @@ class TestHeatExchangers:
 
         # test heat transfer coefficient as variable of the system (ambient
         # temperature required)
-        instance.set_attr(kA='var', pr=np.nan)
+        instance.set_attr(kA='var', pr=None)
         b.set_attr(P=-5e4)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -122,7 +122,7 @@ class TestHeatExchangers:
         assert 677 == round(instance.kA.val, 0), msg
 
         # test heat transfer as variable of the system
-        instance.set_attr(Q='var', kA=np.nan)
+        instance.set_attr(Q='var', kA=None)
         Q = -5e4
         b.set_attr(P=Q)
         self.nw.solve('design')
@@ -392,7 +392,7 @@ class TestHeatExchangers:
         assert ttd_u_calc == ttd_u, msg
 
         # check lower terminal temperature difference
-        self.c2.set_attr(T=np.nan)
+        self.c2.set_attr(T=None)
         instance.set_attr(ttd_l=20)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -406,7 +406,7 @@ class TestHeatExchangers:
         # check specified kA value (by offdesign parameter), reset temperatures
         # to design state
         self.c2.set_attr(T=70)
-        instance.set_attr(ttd_l=np.nan)
+        instance.set_attr(ttd_l=None)
         self.nw.solve('offdesign', design_path='tmp')
         self.nw._convergence_check()
         msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
@@ -417,7 +417,7 @@ class TestHeatExchangers:
         assert kA == round(instance.kA.val, 0), msg
 
         # trigger negative lower terminal temperature difference as result
-        self.c4.set_attr(T=np.nan)
+        self.c4.set_attr(T=None)
         self.c2.set_attr(T=30)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -428,10 +428,10 @@ class TestHeatExchangers:
 
         # trigger negative upper terminal temperature difference as result
         self.c4.set_attr(T=100)
-        self.c2.set_attr(h=200e3, T=np.nan)
-        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=np.nan,
+        self.c2.set_attr(h=200e3, T=None)
+        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=None,
                           design=['pr1', 'pr2'])
-        self.c1.set_attr(h=150e3, T=np.nan)
+        self.c1.set_attr(h=150e3, T=None)
         self.c3.set_attr(T=40)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -493,7 +493,7 @@ class TestHeatExchangers:
         assert ttd_u == round(instance.ttd_u.val, 1), msg
 
         # test lower terminal temperature difference
-        instance.set_attr(ttd_l=20, ttd_u=np.nan, design=['pr2', 'ttd_l'])
+        instance.set_attr(ttd_l=20, ttd_u=None, design=['pr2', 'ttd_l'])
         self.nw.solve('design')
         self.nw._convergence_check()
         msg = ('Value of terminal temperature difference must be ' +

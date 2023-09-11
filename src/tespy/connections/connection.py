@@ -201,7 +201,7 @@ class Connection:
 
     >>> so_si2.T.is_set
     True
-    >>> so_si2.set_attr(Td_bp=5, T=np.nan)
+    >>> so_si2.set_attr(Td_bp=5, T=None)
     >>> so_si2.T.is_set
     False
     >>> so_si2.Td_bp.val
@@ -216,7 +216,7 @@ class Connection:
     >>> so_si2.set_attr(state='l')
     >>> so_si2.state.is_set
     True
-    >>> so_si2.set_attr(state=np.nan)
+    >>> so_si2.set_attr(state=None)
     >>> so_si2.state.is_set
     False
     >>> so_si2.set_attr(state='g')
@@ -264,6 +264,7 @@ class Connection:
             k: v for k, v in self.get_parameters().items()
             if isinstance(v, dc_prop) and v.func is not None
         }
+        self.state = dc_simple()
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
@@ -400,82 +401,27 @@ class Connection:
                 raise TESPyConnectionError(msg)
             elif 'fluid' in key:
                 self._fluid_specification(key, kwargs[key])
+
             elif key in self.property_data or key in self.property_data0:
-                # fluid specification
-                try:
-                    float(kwargs[key])
-                    is_numeric = True
-                except (TypeError, ValueError):
-                    is_numeric = False
+                self._parameter_specification(key, kwargs[key])
 
-                if key == 'state':
-                    if kwargs[key] in ['l', 'g']:
-                        self.state.set_attr(val=kwargs[key], is_set=True)
-                    elif kwargs[key] is None:
-                        self.state.set_attr(is_set=False)
-                    elif is_numeric:
-                        if np.isnan(kwargs[key]):
-                            self.get_attr(key).set_attr(is_set=False)
-                        else:
-                            msg = (
-                                'To unset the state specification either use '
-                                'np.nan or None.')
-                            logger.error(msg)
-                            raise ValueError(msg)
-                    else:
-                        msg = (
-                            'Keyword argument "state" must either be '
-                            '"l" or "g" or be None or np.nan.')
-                        logger.error(msg)
-                        raise TypeError(msg)
-
+            elif key == 'state':
+                if kwargs[key] in ['l', 'g']:
+                    self.state.set_attr(val=kwargs[key], is_set=True)
                 elif kwargs[key] is None:
-                    self.get_attr(key).set_attr(is_set=False)
-                    if f"{key}_ref" in self.property_data:
-                        self.get_attr(key).set_attr(is_set=False)
-                    if key in ["m", "p", "h"]:
-                        self.get_attr(key).is_var = True
-
-                elif is_numeric:
-                    if np.isnan(kwargs[key]):
-                        self.get_attr(key).set_attr(is_set=False)
-                        if f"{key}_ref" in self.property_data:
-                            self.get_attr(key).set_attr(is_set=False)
-                        if key in ["m", "p", "h"]:
-                            self.get_attr(key).is_var = True
-                    else:
-                        # value specification
-                        if key in self.property_data:
-                            self.get_attr(key).set_attr(
-                                is_set=True,
-                                val=kwargs[key])
-                            if key in ["m", "p", "h"]:
-                                self.get_attr(key).is_var = False
-                        # starting value specification
-                        else:
-                            self.get_attr(key.replace('0', '')).set_attr(
-                                val0=kwargs[key])
-
-                # reference object
-                elif isinstance(kwargs[key], Ref):
-                    if f"{key}_ref" not in self.property_data:
-                        msg = f"Referencing {key} is not implemented."
-                        logger.error(msg)
-                        raise NotImplementedError(msg)
-                    else:
-                        self.get_attr(f"{key}_ref").set_attr(val=kwargs[key])
-                        self.get_attr(f"{key}_ref").set_attr(is_set=True)
-
-                # invalid datatype for keyword
+                    self.state.set_attr(is_set=False)
                 else:
-                    msg = 'Bad datatype for keyword argument ' + key + '.'
+                    msg = (
+                        'Keyword argument "state" must either be '
+                        '"l" or "g" or be None.'
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
 
             # design/offdesign parameter list
-            elif key == 'design' or key == 'offdesign':
+            elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):
-                    msg = 'Please provide the ' + key + ' parameters as list!'
+                    msg = f"Please provide the {key} parameters as list!"
                     logger.error(msg)
                     raise TypeError(msg)
                 elif set(kwargs[key]).issubset(self.property_data.keys()):
@@ -483,25 +429,21 @@ class Connection:
                 else:
                     params = ', '.join(self.property_data.keys())
                     msg = (
-                        'Available parameters for (off-)design specification '
-                        'are: ' + params + '.')
+                        "Available parameters for (off-)design specification "
+                        f"are: {params}."
+                    )
                     logger.error(msg)
                     raise ValueError(msg)
 
             # design path
             elif key == 'design_path':
-                if isinstance(kwargs[key], str):
+                if isinstance(kwargs[key], str) or kwargs[key] is None:
                     self.__dict__.update({key: kwargs[key]})
-                elif np.isnan(kwargs[key]):
-                    self.design_path = None
+                    self.new_design = True
                 else:
-                    msg = (
-                        'Please provide the design_path parameter as string '
-                        'or as nan.')
+                    msg = "Provide the a string or None for 'design_path'."
                     logger.error(msg)
                     raise TypeError(msg)
-
-                self.new_design = True
 
             # other boolean keywords
             elif key in ['printout', 'local_design', 'local_offdesign']:
@@ -566,6 +508,46 @@ class Connection:
                 logger.error(msg)
                 raise TypeError(msg)
 
+    def _parameter_specification(self, key, value):
+
+        try:
+            float(value)
+            is_numeric = True
+        except (TypeError, ValueError):
+            is_numeric = False
+
+        if value is None:
+            self.get_attr(key).set_attr(is_set=False)
+            if f"{key}_ref" in self.property_data:
+                self.get_attr(key).set_attr(is_set=False)
+            if key in ["m", "p", "h"]:
+                self.get_attr(key).is_var = True
+
+        elif is_numeric:
+            # value specification
+            if key in self.property_data:
+                self.get_attr(key).set_attr(is_set=True, val=value)
+                if key in ["m", "p", "h"]:
+                    self.get_attr(key).is_var = False
+            # starting value specification
+            else:
+                self.get_attr(key.replace('0', '')).set_attr(val0=value)
+
+        # reference object
+        elif isinstance(value, Ref):
+            if f"{key}_ref" not in self.property_data:
+                msg = f"Referencing {key} is not implemented."
+                logger.error(msg)
+                raise NotImplementedError(msg)
+            else:
+                self.get_attr(f"{key}_ref").set_attr(val=value)
+                self.get_attr(f"{key}_ref").set_attr(is_set=True)
+
+        # invalid datatype for keyword
+        else:
+            msg = f"Wrong datatype for keyword argument {key}."
+            logger.error(msg)
+            raise TypeError(msg)
 
     def get_attr(self, key):
         r"""
@@ -624,7 +606,6 @@ class Connection:
             'vol': dc_prop(),
             's': dc_prop(),
             'fluid': dc_flu(),
-            'state': dc_simple(),
             "T": dc_prop(**{
                 "func": self.T_func, "deriv": self.T_deriv, "num_eq": 1
             }),

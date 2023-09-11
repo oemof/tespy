@@ -201,7 +201,7 @@ def load_network(path):
     example in class :py:class:`tespy.connections.bus.Bus` provides more
     information on efficiencies of generators, for instance.
 
-    >>> inc.set_attr(m=np.nan)
+    >>> inc.set_attr(m=None)
     >>> power.set_attr(P=-1e6)
     >>> nw.solve('design')
     >>> nw.lin_dep

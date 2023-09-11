@@ -82,7 +82,7 @@ class TestCombustion:
         msg = ('Value of thermal input must be ' + str(b.P.val) + ', is ' +
                str(instance.ti.val) + '.')
         assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
-        b.set_attr(P=np.nan)
+        b.set_attr(P=None)
 
         # test specified thermal input for CombustionChamber
         instance.set_attr(ti=1e6)
@@ -95,7 +95,7 @@ class TestCombustion:
         assert round(ti, 1) == round(instance.ti.val, 1), msg
 
         # test specified lamb for CombustionChamber
-        self.c3.set_attr(T=np.nan)
+        self.c3.set_attr(T=None)
         instance.set_attr(lamb=1)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -202,7 +202,7 @@ class TestCombustion:
         assert round(TI.P.val, 1) == round(instance.ti.val, 1), msg
 
         # test specified thermal input in component
-        TI.set_attr(P=np.nan)
+        TI.set_attr(P=None)
         instance.set_attr(ti=ti)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -226,7 +226,7 @@ class TestCombustion:
         msg = ('Value of heat output 1 must be ' + str(-heat1) + ', is ' +
                str(instance.Q1.val) + '.')
         assert round(heat1, 1) == -round(instance.Q1.val, 1), msg
-        Q1.set_attr(P=np.nan)
+        Q1.set_attr(P=None)
 
         # test specified heat output 2 bus value
         Q2.set_attr(P=1.2 * instance.Q2.val)
@@ -240,7 +240,7 @@ class TestCombustion:
         assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test specified heat output 2 in component
-        Q2.set_attr(P=np.nan)
+        Q2.set_attr(P=None)
         instance.set_attr(Q2=-heat2)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -250,7 +250,7 @@ class TestCombustion:
         assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test total heat output bus value
-        instance.set_attr(Q2=np.nan)
+        instance.set_attr(Q2=None)
         Q.set_attr(P=1.5 * instance.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -261,7 +261,7 @@ class TestCombustion:
         assert round(Q.P.val, 1) == -round(heat, 1), msg
 
         # test specified heat loss bus value
-        Q.set_attr(P=np.nan)
+        Q.set_attr(P=None)
         Qloss.set_attr(P=-1e5)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()

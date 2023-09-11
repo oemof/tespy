@@ -374,7 +374,7 @@ class TestNetworkIndividualOffdesign:
 
         self.nw.solve('offdesign', design_path='design1')
         self.nw._convergence_check()
-        self.sc2_v2.set_attr(design_path=np.nan)
+        self.sc2_v2.set_attr(design_path=None)
 
         # volumetric flow comparison
         msg = ('Design path was set to None, is ' +
@@ -422,7 +422,7 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(local_offdesign=True, design_path='design1')
         self.sc1.set_attr(E=500)
 
-        self.sc2_v2.set_attr(T=95, m=np.nan)
+        self.sc2_v2.set_attr(T=95, m=None)
         self.nw.solve('design')
         self.nw._convergence_check()
         self.nw.save('design2')
@@ -464,7 +464,7 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(local_offdesign=True)
         self.sc1.set_attr(E=500)
 
-        self.sc2_v2.set_attr(T=95, m=np.nan)
+        self.sc2_v2.set_attr(T=95, m=None)
         try:
             self.nw.solve('design', init_only=True)
         except TESPyNetworkError:

@@ -65,7 +65,7 @@ class TestPiping:
             'char_func': dp_char, 'is_set': True})
         m = 11
         self.c1.set_attr(m=m)
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         self.nw.solve('design')
         self.nw._convergence_check()
         self.nw.print_results()

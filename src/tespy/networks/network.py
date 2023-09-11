@@ -889,7 +889,8 @@ class Network:
             any_fluids0 = [f for c in all_connections for f in c.fluid.val]
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
-            if len(potential_fluids) == 0:
+            num_potential_fluids = len(potential_fluids)
+            if num_potential_fluids == 0:
                 msg = (
                     "The follwing connections of your network are missing any "
                     "kind of fluid composition information:"
@@ -900,21 +901,27 @@ class Network:
             for c in all_connections:
                 c.mixing_rule = list(mixing_rule)[0]
                 c._potential_fluids = potential_fluids
-                for f in potential_fluids:
-                    if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
-                        c.fluid.val[f] = 0
-                    elif f not in c.fluid.is_set and f in c.fluid.val0:
+                if num_potential_fluids == 1:
+                    f = list(potential_fluids)[0]
+                    c.fluid.val[f] = 1
+                    c.fluid.wrapper[f] = fluid_set_wrappers[f]
+                else:
+                    for f in potential_fluids:
+                        if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
+                            c.fluid.val[f] = 0
+                        elif f not in c.fluid.is_set and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
-                    if f not in c.fluid.wrapper and f in fluid_set_wrappers:
-                        c.fluid.wrapper[f] = fluid_set_wrappers[f]
-                    elif f not in c.fluid.wrapper:
-                        msg = (
-                            f"The fluid {f} seems to be a potential fluid for "
-                            "connection, however, there has is no fluid "
-                            "wrapper available for this fluid on the same "
-                            "branch. Creating a default wrapper."
-                        )
-                        c._create_fluid_wrapper()
+                        if f not in c.fluid.wrapper and f in fluid_set_wrappers:
+                            c.fluid.wrapper[f] = fluid_set_wrappers[f]
+                        elif f not in c.fluid.wrapper:
+                            msg = (
+                                f"The fluid {f} seems to be a potential fluid for "
+                                "connection, however, there has is no fluid "
+                                "wrapper available for this fluid on the same "
+                                "branch. Creating a default wrapper."
+                            )
+                            c._create_fluid_wrapper()
+                            logger.warning(msg)
 
     def presolve_massflow_topology(self):
 

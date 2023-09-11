@@ -230,14 +230,14 @@ class CombustionEngine(CombustionChamber):
     25300000.0
     >>> round(chp.Q1.val, 0)
     -4980000.0
-    >>> chp.set_attr(Q1=-4e6, P=np.nan)
+    >>> chp.set_attr(Q1=-4e6, P=None)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val, 0)
     17794554.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.617
-    >>> chp.set_attr(P=chp.P.design * 0.75, Q1=np.nan)
+    >>> chp.set_attr(P=chp.P.design * 0.75, Q1=None)
     >>> mode = 'offdesign'
     >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
     >>> round(chp.ti.val, 0)

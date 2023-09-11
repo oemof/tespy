@@ -75,7 +75,7 @@ class TestTurbomachinery:
 
         # remove pressure at outlet, use characteristic map for pressure
         # rise calculation
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         instance.set_attr(
             char_map_pr={'char_func': ldc(
                 'compressor', 'char_map_pr', 'DEFAULT', CharMap),
@@ -83,7 +83,7 @@ class TestTurbomachinery:
             char_map_eta_s={'char_func': ldc(
                 'compressor', 'char_map_eta_s', 'DEFAULT', CharMap),
                 'is_set': True},
-            eta_s=np.nan, igva=0)
+            eta_s=None, igva=0)
 
         # offdesign test, efficiency value should be at design value
         self.nw.solve('offdesign', design_path='tmp')
@@ -94,7 +94,7 @@ class TestTurbomachinery:
 
         # move to highest available speedline, mass flow below lowest value
         # at that line
-        self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=-30)
+        self.c1.set_attr(v=None, m=self.c1.m.val * 0.8, T=-30)
         self.nw.solve('offdesign', design_path='tmp')
         self.nw._convergence_check()
 
@@ -117,7 +117,7 @@ class TestTurbomachinery:
 
         # back to design properties, test eta_s_char
         self.c2.set_attr(p=6)
-        self.c1.set_attr(v=1, T=5, m=np.nan)
+        self.c1.set_attr(v=1, T=5, m=None)
 
         # test parameter specification for eta_s_char with unset char map
         instance.set_attr(eta_s_char={'char_func': ldc(
@@ -192,7 +192,7 @@ class TestTurbomachinery:
         self.nw.solve('design')
         self.nw._convergence_check()
         self.nw.save('tmp')
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
 
         # flow char (pressure rise vs. volumetric flow)
         x = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]
@@ -200,7 +200,7 @@ class TestTurbomachinery:
         char = {'char_func': CharLine(x, y), 'is_set': True}
         # apply flow char and eta_s char
         instance.set_attr(
-            flow_char=char, eta_s=np.nan, eta_s_char={
+            flow_char=char, eta_s=None, eta_s_char={
                 'char_func': ldc('pump', 'eta_s_char', 'DEFAULT', CharLine),
                 'is_set': True})
         self.nw.solve('offdesign', design_path='tmp')
@@ -285,7 +285,7 @@ class TestTurbomachinery:
         # unset isentropic efficiency and inlet pressure,
         # use characteristcs and cone law instead, parameters have to be in
         # design state
-        self.c1.set_attr(p=np.nan)
+        self.c1.set_attr(p=None)
         instance.cone.is_set = True
         instance.eta_s_char.is_set = True
         instance.eta_s.is_set = False
@@ -360,7 +360,7 @@ class TestTurbomachinery:
         assert pr == instance.pr.val, msg
 
         # test pressure ratio specification
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         instance.set_attr(pr=5)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -370,7 +370,7 @@ class TestTurbomachinery:
         assert pr == instance.pr.val, msg
 
         # test power specification
-        self.c2.set_attr(h=np.nan)
+        self.c2.set_attr(h=None)
         instance.set_attr(P=1e5)
         self.nw.solve('design')
         self.nw._convergence_check()

@@ -148,7 +148,7 @@ class CombustionChamber(Component):
     >>> round(comb.lamb.val, 3)
     2.014
     >>> comb.set_attr(lamb=2)
-    >>> comb_fg.set_attr(T=np.nan)
+    >>> comb_fg.set_attr(T=None)
     >>> nw.solve('design')
     >>> round(comb_fg.T.val, 1)
     1206.6

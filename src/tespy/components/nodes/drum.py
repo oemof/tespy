@@ -343,6 +343,9 @@ class Drum(DropletSeparator):
             else:
                 return h_mix_pQ(c.p.val_SI, 0.7, c.fluid_data)
 
+    def propagate_wrapper_to_target(self, branch):
+        return super().propagate_wrapper_to_target(branch)
+
     def propagate_to_target(self, branch):
 
         if branch["connections"][-1].target_id == "in2":

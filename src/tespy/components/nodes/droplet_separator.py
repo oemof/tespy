@@ -313,6 +313,15 @@ class DropletSeparator(NodeBase):
         if o1.h.is_var and self.it == 0:
             self.jacobian[k + 1, o1.h.J_col] = -1
 
+    def propagate_wrapper_to_target(self, branch):
+        if self in branch["components"]:
+            return
+
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            branch["components"] += [self]
+            outconn.target.propagate_wrapper_to_target(branch)
+
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
         Propagate the fluids towards connection's target in recursion.

@@ -88,6 +88,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._p_crit = 1e2
             self._T_crit = None
             self._molar_mass = 1
+            self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
         else:
             self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
@@ -204,20 +205,12 @@ class PyromatIdealGasWrapper(FluidPropertyWrapper):
         self._set_constants()
 
     def _set_constants(self):
-        # self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
-        # self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
         self._p_min, self._p_max = 100, 1000e5
         self._T_min, self._T_max = self.AS.Tlim()
         self._molar_mass = self.AS.mw()
 
-    def T_ph(self, p, h):
-        return self.AS.T(p=p, h=h)[0]
-
-    def T_ps(self, p, s):
-        return self.AS.T(p=p, s=s)[0]
-
-    def h_pT(self, p, T):
-        return self.AS.h(p=p, T=T)[0]
+    def isentropic(self, p_1, h_1, p_2):
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
     def T_ph(self, p, h):
         return self.AS.T(p=p, h=h)[0]
@@ -227,6 +220,18 @@ class PyromatIdealGasWrapper(FluidPropertyWrapper):
 
     def h_pT(self, p, T):
         return self.AS.h(p=p, T=T)[0]
+
+    def T_ph(self, p, h):
+        return self.AS.T(p=p, h=h)[0]
+
+    def T_ps(self, p, s):
+        return self.AS.T(p=p, s=s)[0]
+
+    def h_pT(self, p, T):
+        return self.AS.h(p=p, T=T)[0]
+
+    def h_ps(self, p, s):
+        return self.AS.h(p=p, s=s)[0]
 
     def d_ph(self, p, h):
         return self.AS.d(p=p, h=h)[0]

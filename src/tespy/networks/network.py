@@ -909,7 +909,7 @@ class Network:
                     for f in potential_fluids:
                         if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
                             c.fluid.val[f] = 0
-                        elif f not in c.fluid.is_set and f in c.fluid.val0:
+                        elif f not in c.fluid.is_set and f not in c.fluid.val and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
                         if f not in c.fluid.wrapper and f in fluid_set_wrappers:
                             c.fluid.wrapper[f] = fluid_set_wrappers[f]
@@ -1924,6 +1924,7 @@ class Network:
 
         self.solve_determination()
         self.solve_loop(print_results=print_results)
+        self._reset_topology_reduction_specifications()
 
         if self.lin_dep:
             msg = (
@@ -1942,6 +1943,7 @@ class Network:
             return
 
         self.postprocessing()
+
         if not self.progress:
             msg = (
                 'The solver does not seem to make any progress, aborting '
@@ -2426,8 +2428,6 @@ class Network:
 
     def process_connections(self):
         """Process the Connection results."""
-        self._reset_topology_reduction_specifications()
-
         for c in self.conns['object']:
             c.good_starting_values = True
             c.calc_results()

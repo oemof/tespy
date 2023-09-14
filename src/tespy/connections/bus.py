@@ -54,9 +54,7 @@ class Bus:
     >>> from tespy.tools import CharLine
     >>> import numpy as np
     >>> import shutil
-    >>> fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... p_range=[0.5, 10], iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', p_range=[0.5, 10], iterinfo=False)
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -88,11 +86,9 @@ class Bus:
     ... offdesign=['zeta1', 'zeta2', 'kA_char'])
     >>> pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=30, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
-    ... 'O2': 0, 'H2O': 0, 'CH4': 1})
-    >>> cw_pu.set_attr(p=3, T=60, fluid={'CO2': 0, 'Ar': 0, 'N2': 0,
-    ... 'O2': 0, 'H2O': 1, 'CH4': 0})
+    ... 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=30, fluid={'CH4': 1})
+    >>> cw_pu.set_attr(p=3, T=60, fluid={'H2O': 1})
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
 
     Cooling water mass flow is calculated given the feed water temperature

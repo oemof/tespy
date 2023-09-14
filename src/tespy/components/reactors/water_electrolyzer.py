@@ -11,7 +11,6 @@ tespy/components/reactors/water_electrolyzer.py
 SPDX-License-Identifier: MIT
 """
 
-import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
@@ -19,12 +18,9 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.global_vars import molar_masses
-from tespy.tools.helpers import TESPyComponentError
 
 
 class WaterElectrolyzer(Component):
@@ -135,9 +131,7 @@ class WaterElectrolyzer(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluid_list = ['O2', 'H2O', 'H2']
-    >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
-    ... v_unit='l / s', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
     >>> fw = Source('feed water')
     >>> oxy = Sink('oxygen sink')
     >>> hydro = Sink('hydrogen sink')
@@ -164,7 +158,7 @@ class WaterElectrolyzer(Component):
     >>> el_cw = Connection(el, 'out1', cw_hot, 'in1')
     >>> nw.add_conns(fw_el, el_o, el_cmp, cmp_h, cw_el, el_cw)
     >>> fw_el.set_attr(p=10, T=15)
-    >>> cw_el.set_attr(p=5, T=15, fluid={'H2O': 1, 'H2': 0, 'O2': 0})
+    >>> cw_el.set_attr(p=5, T=15, fluid={'H2O': 1})
     >>> el_cw.set_attr(T=45)
     >>> cmp_h.set_attr(p=25)
     >>> el_cmp.set_attr(v=100, T=50)
@@ -224,15 +218,15 @@ class WaterElectrolyzer(Component):
         }
 
     def get_mandatory_constraints(self):
+        num_mass_eq = (
+            (self.inl[1].m.is_var or self.outl[1].m.is_var)
+            + (self.inl[1].m.is_var or self.outl[2].m.is_var)
+        )
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 3},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 4},
+                'num_eq': num_mass_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -269,23 +263,9 @@ class WaterElectrolyzer(Component):
                    self.label + ' as custom variable of the system.')
             logger.info(msg)
 
-        for fluid in ['o2', 'h2o', 'h2']:
-            try:
-                setattr(
-                    self, fluid, [x for x in nw.fluids if x in [
-                        a.replace(' ', '') for a in
-                        CP.get_aliases(fluid.upper())
-                    ]][0])
-            except IndexError:
-                msg = (
-                    'The component ' + self.label + ' (class ' +
-                    self.__class__.__name__ + ') requires that the fluid '
-                    '[fluid] is in the network\'s list of fluids.')
-                aliases = ', '.join(CP.get_aliases(fluid.upper()))
-                msg = msg.replace(
-                    '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logger.error(msg)
-                raise TESPyComponentError(msg)
+        self.o2 = "O2"
+        self.h2 = "H2"
+        self.h2o = "H2O"
 
         self.e0 = self.calc_e0()
 
@@ -312,7 +292,7 @@ class WaterElectrolyzer(Component):
         hf['H2O'] = -286000
         hf['H2'] = 0
         hf['O2'] = 0
-        M = molar_masses[self.h2]
+        M = self.outl[2].fluid.wrapper[self.h2]._molar_mass
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] - hf['O2']) / (2 * M)
 
         return e0
@@ -330,9 +310,7 @@ class WaterElectrolyzer(Component):
 
                 0 = T_\mathrm{out,2} - T_\mathrm{out,3}
         """
-        return (
-            T_mix_ph(self.outl[1].get_flow()) -
-            T_mix_ph(self.outl[2].get_flow()))
+        return self.outl[1].calc_T() -  self.outl[2].calc_T()
 
     def gas_temperature_func_doc(self, label):
         r"""
@@ -364,16 +342,18 @@ class WaterElectrolyzer(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         # derivatives for outlet 1
-        if not increment_filter[3, 1]:
-            self.jacobian[k, 3, 1] = dT_mix_dph(self.outl[1].get_flow())
-        if not increment_filter[3, 2]:
-            self.jacobian[k, 3, 2] = dT_mix_pdh(self.outl[1].get_flow())
+        o = self.outl[1]
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
 
         # derivatives for outlet 2
-        if not increment_filter[4, 1]:
-            self.jacobian[k, 4, 1] = -dT_mix_dph(self.outl[2].get_flow())
-        if not increment_filter[4, 2]:
-            self.jacobian[k, 4, 2] = -dT_mix_pdh(self.outl[2].get_flow())
+        o = self.outl[2]
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = -dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = -dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
 
     def eta_func(self):
         r"""
@@ -419,10 +399,11 @@ class WaterElectrolyzer(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 4, 0] = -self.e0
+        if self.outl[2].m.is_var:
+            self.jacobian[k, self.outl[2].m.J_col] = -self.e0
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = self.eta.val
+            self.jacobian[k, self.P.J_col] = self.eta.val
 
     def heat_func(self):
         r"""
@@ -471,9 +452,14 @@ class WaterElectrolyzer(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def specific_energy_consumption_func(self):
         r"""
@@ -519,13 +505,14 @@ class WaterElectrolyzer(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 4, 0] = -self.e.val
+        if self.outl[2].m.is_var:
+            self.jacobian[k, self.outl[2].m.J_col] = -self.e.val
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
+            self.jacobian[k, self.P.J_col] = 1
         # derivatives for variable e
         if self.e.is_var:
-            self.jacobian[k, 5 + self.e.var_pos, 0] = -self.outl[2].m.val_SI
+            self.jacobian[k, self.e.J_col] = -self.outl[2].m.val_SI
 
     def energy_balance_func(self):
         r"""
@@ -599,32 +586,46 @@ class WaterElectrolyzer(Component):
         # derivatives determined from calc_P function
         T_ref = 298.15
         p_ref = 1e5
-        h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
-        h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
-        h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
+        h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
 
         # derivatives cooling water inlet
-        self.jacobian[k, 0, 0] = self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        self.jacobian[k, 0, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = i.h.val_SI - self.outl[0].h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = i.m.val_SI
 
         # derivatives feed water inlet
-        self.jacobian[k, 1, 0] = (self.inl[1].h.val_SI - h_refh2o)
-        self.jacobian[k, 1, 2] = self.inl[1].m.val_SI
+        i = self.inl[1]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = i.h.val_SI - h_refh2o
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = i.m.val_SI
 
         # derivative cooling water outlet
-        self.jacobian[k, 2, 2] = -self.inl[0].m.val_SI
+        o = self.outl[0]
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = -self.inl[0].m.val_SI
 
         # derivatives oxygen outlet
-        self.jacobian[k, 3, 0] = -(self.outl[1].h.val_SI - h_refo2)
-        self.jacobian[k, 3, 2] = -self.outl[1].m.val_SI
+        o = self.outl[1]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refo2)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives hydrogen outlet
-        self.jacobian[k, 4, 0] = -(self.outl[2].h.val_SI - h_refh2 + self.e0)
-        self.jacobian[k, 4, 2] = -self.outl[2].m.val_SI
+        o = self.outl[2]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refh2 + self.e0)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
+            self.jacobian[k, self.P.J_col] = 1
 
     def eta_char_func(self):
         r"""
@@ -691,142 +692,13 @@ class WaterElectrolyzer(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 4, 0] = self.numeric_deriv(self.eta_char_func, 'm', 4)
-        # derivatives for variable P
+        o = self.outl[2]
+        if o.m.is_var:
+            f = self.eta_char_func
+            self.jacobian[k, o.m.J_col] = self.numeric_deriv(f, 'm', o)
+
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
-
-    def fluid_func(self):
-        r"""
-        Equations for fluid composition.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equation.
-
-            .. math::
-
-                0  = x_\mathrm{i,in,1} - x_\mathrm{i,out,1}
-                \forall i \in \text{network fluids}
-
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\
-                    x_\mathrm{i,in2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
-
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\
-                    x_\mathrm{i,out,2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
-
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\
-                    x_\mathrm{i,out,3} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
-        """
-        residual = []
-        # equations for fluid composition in cooling water
-        for fluid, x in self.inl[0].fluid.val.items():
-            residual += [x - self.outl[0].fluid.val[fluid]]
-
-        # equations to constrain fluids to inlets/outlets
-        residual += [1 - self.inl[1].fluid.val[self.h2o]]
-        residual += [1 - self.outl[1].fluid.val[self.o2]]
-        residual += [1 - self.outl[2].fluid.val[self.h2]]
-
-        # equations to ban other fluids off inlets/outlets
-        for fluid in self.inl[1].fluid.val.keys():
-            if fluid != self.h2o:
-                residual += [0 - self.inl[1].fluid.val[fluid]]
-            if fluid != self.o2:
-                residual += [0 - self.outl[1].fluid.val[fluid]]
-            if fluid != self.h2:
-                residual += [0 - self.outl[2].fluid.val[fluid]]
-
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Equations for fluid composition.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &x_\mathrm{i,in,1} - x_\mathrm{i,out,1}\\' + '\n'
-            r'0 = &\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\' + '\n'
-            r'x_\mathrm{i,in2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\' + '\n'
-            r'x_\mathrm{i,out,2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\' + '\n'
-            r'x_\mathrm{i,out,3} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'&\forall i \in \text{network fluids}' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate the partial derivatives for cooling loop fluid balance.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        # derivatives for cooling liquid composition
-        deriv = np.zeros((
-            self.num_nw_fluids * 4,
-            5 + self.num_vars,
-            self.num_nw_vars))
-
-        k = 0
-        for fluid, x in self.inl[0].fluid.val.items():
-            deriv[k, 0, 3 + k] = 1
-            deriv[k, 2, 3 + k] = -1
-            k += 1
-
-        # derivatives to constrain fluids to inlets/outlets
-        i = 0
-        for fluid in self.nw_fluids:
-            if fluid == self.h2o:
-                deriv[k, 1, 3 + i] = -1
-            elif fluid == self.o2:
-                deriv[k + 1, 3, 3 + i] = -1
-            elif fluid == self.h2:
-                deriv[k + 2, 4, 3 + i] = -1
-            i += 1
-        k += 3
-
-        # derivatives to ban fluids off inlets/outlets
-        i = 0
-        for fluid in self.nw_fluids:
-            if fluid != self.h2o:
-                deriv[k, 1, 3 + i] = -1
-                k += 1
-            if fluid != self.o2:
-                deriv[k, 3, 3 + i] = -1
-                k += 1
-            if fluid != self.h2:
-                deriv[k, 4, 3 + i] = -1
-                k += 1
-            i += 1
-
-        return deriv
+            self.jacobian[k, self.P.J_col] = 1
 
     def mass_flow_func(self):
         r"""
@@ -847,14 +719,16 @@ class WaterElectrolyzer(Component):
                 \dot{m}_\mathrm{H_2,out,3}
         """
         # calculate the ratio of o2 in water
-        o2 = molar_masses[self.o2] / (
-            molar_masses[self.o2] + 2 * molar_masses[self.h2])
-        # equation for mass flow balance cooling water
-        residual = []
-        residual += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
+        M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.outl[2].fluid.wrapper[self.h2]._molar_mass
+
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
         # equations for mass flow balance electrolyzer
-        residual += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
-        residual += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
+        residual = []
+        if self.inl[1].m.is_var or self.outl[1].m.is_var:
+            residual += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
+        if self.inl[1].m.is_var or self.outl[2].m.is_var:
+            residual += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
         return residual
 
     def mass_flow_func_doc(self, label):
@@ -883,7 +757,7 @@ class WaterElectrolyzer(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self):
+    def mass_flow_deriv(self, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -892,20 +766,25 @@ class WaterElectrolyzer(Component):
         deriv : ndarray
             Matrix with partial derivatives for the mass flow equations.
         """
-        # deritatives for mass flow balance in the heat exchanger
-        deriv = np.zeros((3, 5 + self.num_vars, self.num_nw_vars))
-        deriv[0, 0, 0] = 1
-        deriv[0, 2, 0] = -1
         # derivatives for mass flow balance for oxygen output
-        o2 = molar_masses[self.o2] / (
-            molar_masses[self.o2] + 2 * molar_masses[self.h2])
-        deriv[1, 1, 0] = o2
-        deriv[1, 3, 0] = -1
-        # derivatives for mass flow balance for hydrogen output
-        deriv[2, 1, 0] = (1 - o2)
-        deriv[2, 4, 0] = -1
+        M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.outl[2].fluid.wrapper[self.h2]._molar_mass
 
-        return deriv
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
+
+        # number of equations may vary here
+        if self.inl[1].m.is_var or self.outl[1].m.is_var:
+            if self.inl[1].m.is_var:
+                self.jacobian[k, self.inl[1].m.J_col] = o2
+            if self.outl[1].m.is_var:
+                self.jacobian[k, self.outl[1].m.J_col] = -1
+
+            k += 1
+        # derivatives for mass flow balance for hydrogen output
+        if self.inl[1].m.is_var:
+            self.jacobian[k, self.inl[1].m.J_col] = (1 - o2)
+        if self.outl[2].m.is_var:
+            self.jacobian[k, self.outl[2].m.J_col] = -1
 
     def reactor_pressure_func(self):
         r"""
@@ -923,7 +802,8 @@ class WaterElectrolyzer(Component):
         """
         return [
             self.inl[1].p.val_SI - self.outl[1].p.val_SI,
-            self.inl[1].p.val_SI - self.outl[2].p.val_SI]
+            self.inl[1].p.val_SI - self.outl[2].p.val_SI
+        ]
 
     def reactor_pressure_func_doc(self, label):
         r"""
@@ -946,7 +826,7 @@ class WaterElectrolyzer(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def reactor_pressure_deriv(self):
+    def reactor_pressure_deriv(self, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 
@@ -955,15 +835,13 @@ class WaterElectrolyzer(Component):
         deriv : ndarray
             Matrix with partial derivatives for the pressure equations.
         """
-        deriv = np.zeros((2, 5 + self.num_vars, self.num_nw_vars))
-        # derivatives for pressure oxygen outlet
-        deriv[0, 1, 1] = 1
-        deriv[0, 3, 1] = -1
-        # derivatives for pressure hydrogen outlet
-        deriv[1, 1, 1] = 1
-        deriv[1, 4, 1] = -1
-
-        return deriv
+        i = self.inl[1]
+        for o in self.outl[1:]:
+            if i.p.is_var:
+                self.jacobian[k, i.p.J_col] = 1
+            if o.p.is_var:
+                self.jacobian[k, o.p.J_col] = -1
+            k += 1
 
     def calc_P(self):
         r"""
@@ -1003,16 +881,16 @@ class WaterElectrolyzer(Component):
         p_ref = 1e5
 
         # equations to set a reference point for each h2o, h2 and o2
-        h_refh2o = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
-        h_refh2 = h_mix_pT([1, p_ref, 0, self.outl[2].fluid.val], T_ref)
-        h_refo2 = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
+        h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
 
-        val = (-self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refh2o) +
-               self.inl[0].m.val_SI * (
-                   self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
-               self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refo2) +
-               self.outl[2].m.val_SI * (
-                   self.outl[2].h.val_SI - h_refh2 + self.e0))
+        val = (
+            -self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refh2o)
+            + self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            + self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refo2)
+            + self.outl[2].m.val_SI * (self.outl[2].h.val_SI - h_refh2 + self.e0)
+        )
         return val
 
     def bus_func(self, bus):
@@ -1050,7 +928,8 @@ class WaterElectrolyzer(Component):
 
         elif bus['param'] == 'Q':
             val = -self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            )
 
         ######################################################################
         # missing/invalid bus parameter
@@ -1100,38 +979,49 @@ class WaterElectrolyzer(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 5 + self.num_vars, self.num_nw_vars))
         f = self.calc_bus_value
         b = bus.comps.loc[self]
 
         ######################################################################
         # derivatives for power on bus
         if b['param'] == 'P':
-            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
+            for c in self.inl + self.outl:
+                if c.m.is_var and c != self.outl[0]:
+                    if c.m.J_col not in bus.jacobian:
+                        bus.jacobian[c.m.J_col] = 0
+                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
 
-            deriv[0, 1, 0] = self.numeric_deriv(f, 'm', 1, bus=bus)
-            deriv[0, 1, 2] = self.numeric_deriv(f, 'h', 1, bus=bus)
+                if c.h.is_var:
+                    if c.h.J_col not in bus.jacobian:
+                        bus.jacobian[c.h.J_col] = 0
+                    bus.jacobian[c.h.J_col] -= self.numeric_deriv(f, 'h', c, bus=bus)
 
-            deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
-
-            deriv[0, 3, 0] = self.numeric_deriv(f, 'm', 3, bus=bus)
-            deriv[0, 3, 2] = self.numeric_deriv(f, 'h', 3, bus=bus)
-
-            deriv[0, 4, 0] = self.numeric_deriv(f, 'm', 4, bus=bus)
-            deriv[0, 4, 2] = self.numeric_deriv(f, 'h', 4, bus=bus)
             # variable power
             if self.P.is_var:
-                deriv[0, 5 + self.P.var_pos, 0] = (
-                        self.numeric_deriv(f, 'P', 5, bus=bus))
+                if self.P.J_col not in bus.jacobian:
+                    bus.jacobian[self.P.J_col] = 0
+                bus.jacobian[self.P.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
 
         ######################################################################
         # derivatives for heat on bus
         elif b['param'] == 'Q':
 
-            deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-            deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
-            deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
+            i = self.inl[0]
+            o = self.outl[0]
+            if i.m.is_var:
+                if i.m.J_col not in bus.jacobian:
+                    bus.jacobian[i.m.J_col] = 0
+                bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
+
+            if o.h.is_var:
+                if o.h.J_col not in bus.jacobian:
+                    bus.jacobian[o.h.J_col] = 0
+                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
+
+            if o.h.is_var:
+                if o.h.J_col not in bus.jacobian:
+                    bus.jacobian[o.h.J_col] = 0
+                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter
@@ -1144,17 +1034,75 @@ class WaterElectrolyzer(Component):
             logger.error(msg)
             raise ValueError(msg)
 
-        return deriv
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        branches = {}
+        for outconn in self.outl[1:]:
+            if outconn == self.outl[1] and "O2" not in outconn.fluid.val:
+                outconn.fluid.val["O2"] = 1
+            if outconn == self.outl[2] and "H2" not in outconn.fluid.val:
+                outconn.fluid.val["H2"] = 1
+            branch = {
+                "connections": [outconn],
+                "components": [self, outconn.target],
+                "subbranches": {}
+            }
+            outconn.target.propagate_to_target(branch)
+            branches.update({outconn.label: branch})
+
+        return branches
+
+    def start_fluid_wrapper_branch(self):
+        branches = {}
+        for outconn in self.outl[1:]:
+            branch = {
+                "connections": [outconn],
+                "components": [self]
+            }
+            outconn.target.propagate_wrapper_to_target(branch)
+            branches.update({outconn.label: branch})
+
+        return branches
+
+    def propagate_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        if inconn == self.inl[0]:
+            conn_idx = self.inl.index(inconn)
+            outconn = self.outl[conn_idx]
+
+            branch["connections"] += [outconn]
+            branch["components"] += [outconn.target]
+
+            outconn.target.propagate_to_target(branch)
+        else:
+            if "H2O" not in inconn.fluid.val:
+                inconn.fluid.val["H2O"] = 1
+            return
+
+    def propagate_wrapper_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        if inconn == self.inl[0]:
+            conn_idx = self.inl.index(inconn)
+            outconn = self.outl[conn_idx]
+
+            branch["connections"] += [outconn]
+            branch["components"] += [self]
+
+            outconn.target.propagate_wrapper_to_target(branch)
+        else:
+            branch["components"] += [self]
+            return
 
     def initialise_fluids(self):
         """Set values to pure fluid on water inlet and gas outlets."""
-        self.outl[1].fluid.val[self.o2] = 1
-        self.outl[2].fluid.val[self.h2] = 1
-        self.inl[1].fluid.val[self.h2o] = 1
         for c in self.outl[1:]:
             c.target.propagate_fluid_to_target(c, c.target)
         self.inl[1].source.propagate_fluid_to_source(
-            self.inl[1], self.inl[1].source)
+            self.inl[1], self.inl[1].source
+        )
 
     def initialise_source(self, c, key):
         r"""
@@ -1183,9 +1131,8 @@ class WaterElectrolyzer(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = c.get_flow()
             T = 50 + 273.15
-            return h_mix_pT(flow, T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -1214,9 +1161,8 @@ class WaterElectrolyzer(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = c.get_flow()
             T = 20 + 273.15
-            return h_mix_pT(flow, T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
@@ -1235,11 +1181,6 @@ class WaterElectrolyzer(Component):
             return
         if inconn == self.inl[0]:
             outconn = self.outl[0]
-
-            for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.is_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
 
             outconn.target.propagate_fluid_to_target(outconn, start)
 
@@ -1262,10 +1203,6 @@ class WaterElectrolyzer(Component):
         if outconn == self.outl[0]:
             inconn = self.inl[0]
 
-            if not inconn.good_starting_values:
-                for fluid in inconn.fluid.is_var:
-                    inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
-
             inconn.source.propagate_fluid_to_source(inconn, start)
 
     def calc_parameters(self):
@@ -1276,11 +1213,12 @@ class WaterElectrolyzer(Component):
         self.e.val = self.P.val / self.outl[2].m.val_SI
         self.eta.val = self.e0 / self.e.val
 
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            ))
+        i = self.inl[0]
+        o = self.outl[0]
+        self.zeta.val = (
+            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+        )
 
     def exergy_balance(self, T0):
         self.E_P = (

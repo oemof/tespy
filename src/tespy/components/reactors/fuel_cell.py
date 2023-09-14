@@ -158,8 +158,6 @@ class FuelCell(Component):
     def component():
         return 'fuel cell'
 
-# %% Variables
-
     def get_parameters(self):
         return {
             'P': dc_cp(max_val=0),
@@ -185,18 +183,16 @@ class FuelCell(Component):
                 latex=self.specific_energy_func_doc)
         }
 
-# %% Mandatory constraints
-
     def get_mandatory_constraints(self):
+        num_mass_eq = (
+            (self.inl[1].m.is_var or self.outl[1].m.is_var)
+            + (self.inl[1].m.is_var or self.outl[2].m.is_var)
+        )
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 3},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 4},
+                'num_eq': num_mass_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -210,17 +206,15 @@ class FuelCell(Component):
                 'num_eq': 2},
         }
 
-# %% Inlets and outlets
-
-    def inlets(self):
+    @staticmethod
+    def inlets():
         return ['in1', 'in2', 'in3']
 
-    def outlets(self):
+    @staticmethod
+    def outlets():
         return ['out1', 'out2']
 
-# %% Equations and derivatives
-
-    def preprocess(self, num_nw_vars):
+    def preprocess(self, nw):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -229,24 +223,9 @@ class FuelCell(Component):
                    self.label + ' as custom variable of the system.')
             logger.info(msg)
 
-        for fluid in ['H2', 'H2O', 'O2']:
-            try:
-                setattr(
-                    self, fluid, [x for x in nw.fluids if x in [
-                        a.replace(' ', '') for a in
-                        CP.get_aliases(fluid.upper())
-                    ]][0])
-            except IndexError:
-                msg = (
-                    'The component ' + self.label + ' (class ' +
-                    self.__class__.__name__ + ') requires that the fluid '
-                    '[fluid] is in the network\'s list of fluids.')
-                aliases = ', '.join(CP.get_aliases(fluid.upper()))
-                msg = msg.replace(
-                    '[fluid]', fluid.upper() + ' (aliases: ' + aliases + ')')
-                logger.error(msg)
-                raise TESPyComponentError(msg)
-
+        self.o2 = "O2"
+        self.h2 = "H2"
+        self.h2o = "H2O"
         self.e0 = self.calc_e0()
 
         super().preprocess(num_nw_vars)
@@ -532,135 +511,6 @@ class FuelCell(Component):
         if self.P.is_var:
             self.jacobian[k, 5 + self.P.var_pos, 0] = 1
 
-    def fluid_func(self):
-        r"""
-        Equations for fluid composition.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equation.
-
-            .. math::
-
-                0  = x_\mathrm{i,in,1} - x_\mathrm{i,out,1}
-                \forall i \in \text{network fluids}\\
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,in2} & \text{i=}H_{2}O\\
-                    x_\mathrm{i,in2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}\\
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,out,2} & \text{i=}O_{2}\\
-                    x_\mathrm{i,out,2} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}\\
-                0 = \begin{cases}
-                    1 - x_\mathrm{i,out,3} & \text{i=}H_{2}\\
-                    x_\mathrm{i,out,3} & \text{else}
-                \end{cases} \forall i \in \text{network fluids}
-        """
-        residual = []
-        # equations for fluid composition in cooling loop
-        for fluid, x in self.inl[0].fluid.val.items():
-            residual += [x - self.outl[0].fluid.val[fluid]]
-
-        # equations to constrain fluids to inlets/outlets
-        residual += [1 - self.inl[1].fluid.val[self.O2]]
-        residual += [1 - self.inl[2].fluid.val[self.H2]]
-        residual += [1 - self.outl[1].fluid.val[self.H2O]]
-
-        # equations to ban other fluids off inlets/outlets
-        for fluid in self.inl[1].fluid.val.keys():
-            if fluid != self.H2O:
-                residual += [0 - self.outl[1].fluid.val[fluid]]
-            if fluid != self.O2:
-                residual += [0 - self.inl[1].fluid.val[fluid]]
-            if fluid != self.H2:
-                residual += [0 - self.inl[2].fluid.val[fluid]]
-
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Equations for fluid composition.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &x_\mathrm{i,in,1} - x_\mathrm{i,out,1}\\' + '\n'
-            r'0 = &\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,out,2} & \text{i=}H_{2}O\\' + '\n'
-            r'x_\mathrm{i,out,2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,in,2} & \text{i=}O_{2}\\' + '\n'
-            r'x_\mathrm{i,in,2} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'0 =&\begin{cases}' + '\n'
-            r'1 - x_\mathrm{i,in,3} & \text{i=}H_{2}\\' + '\n'
-            r'x_\mathrm{i,in,3} & \text{else}\\' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'&\forall i \in \text{network fluids}' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate the partial derivatives for cooling loop fluid balance.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        # derivatives for cooling fluid composition
-        deriv = np.zeros((
-            self.num_nw_fluids * 4,
-            5 + self.num_vars,
-            self.num_nw_vars))
-
-        k = 0
-        for fluid, x in self.inl[0].fluid.val.items():
-            deriv[k, 0, 3 + k] = 1
-            deriv[k, 3, 3 + k] = -1
-            k += 1
-
-        # derivatives to constrain fluids to inlets/outlets
-        i = 0
-        for fluid in self.nw_fluids:
-            if fluid == self.H2O:
-                deriv[k, 4, 3 + i] = -1
-            elif fluid == self.O2:
-                deriv[k + 1, 1, 3 + i] = -1
-            elif fluid == self.H2:
-                deriv[k + 2, 2, 3 + i] = -1
-            i += 1
-        k += 3
-
-        # derivatives to ban fluids off inlets/outlets
-        i = 0
-        for fluid in self.nw_fluids:
-            if fluid != self.H2O:
-                deriv[k, 4, 3 + i] = -1
-                k += 1
-            if fluid != self.O2:
-                deriv[k, 1, 3 + i] = -1
-                k += 1
-            if fluid != self.H2:
-                deriv[k, 2, 3 + i] = -1
-                k += 1
-            i += 1
-
-        return deriv
-
     def mass_flow_func(self):
         r"""
         Equations for mass conservation.
@@ -754,7 +604,8 @@ class FuelCell(Component):
         """
         return [
             self.outl[1].p.val_SI - self.inl[1].p.val_SI,
-            self.outl[1].p.val_SI - self.inl[2].p.val_SI]
+            self.outl[1].p.val_SI - self.inl[2].p.val_SI
+        ]
 
     def reactor_pressure_func_doc(self, label):
         r"""
@@ -942,11 +793,6 @@ class FuelCell(Component):
         if inconn == self.inl[0]:
             outconn = self.outl[0]
 
-            for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.is_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
-
             outconn.target.propagate_fluid_to_target(outconn, start)
 
     def propagate_fluid_to_source(self, outconn, start, entry_point=False):
@@ -967,10 +813,6 @@ class FuelCell(Component):
 
         if outconn == self.outl[0]:
             inconn = self.inl[0]
-
-            if not inconn.good_starting_values:
-                for fluid in inconn.fluid.is_var:
-                    inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
 
             inconn.source.propagate_fluid_to_source(inconn, start)
 

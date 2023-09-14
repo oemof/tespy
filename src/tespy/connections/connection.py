@@ -630,6 +630,14 @@ class Connection:
                 "func": self.primary_ref_func, "deriv": self.primary_ref_deriv,
                 "num_eq": 1, "func_params": {"variable": "h"}
             }),
+            "T_ref": dc_prop(**{
+                "func": self.T_ref_func, "deriv": self.T_ref_deriv,
+                "num_eq": 1
+            }),
+            "v_ref": dc_prop(**{
+                "func": self.v_ref_func, "deriv": self.v_ref_deriv,
+                "num_eq": 1
+            }),
         }
 
     def build_fluid_data(self):
@@ -662,17 +670,42 @@ class Connection:
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, k, **kwargs):
-        self.residual[k] = self.T.val_SI - self.calc_T()
+        self.residual[k] = self.calc_T() - self.T.val_SI
 
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                -dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                -dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
+                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
             )
+        # if len(self.fluid.is_var.values()) > 1:
+        #     for fluid in self.fluid.val:
+        #         if self.fluid.is_var[fluid]:
+        #             self.jacobian[k], self.fluid.J_col[fluid] = dT_mix_ph_dfluid(
+        #                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+        #             )
+
+    def T_ref_func(self, k, **kwargs):
+        ref = self.T_ref.val
+        self.residual[k] = (
+            self.calc_T() - ref.obj.calc_T() * ref.factor + ref.delta
+        )
+
+    def T_ref_deriv(self, k, **kwargs):
+        # first part of sum is identical to direct temperature specification
+        self.T_deriv(k, **kwargs)
+        ref = self.T_ref.val
+        if ref.obj.p.is_var:
+            self.jacobian[k, ref.obj.p.J_col] = -(
+                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+            ) * ref.factor
+        if ref.obj.h.is_var:
+            self.jacobian[k, ref.obj.h.J_col] = -(
+                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+            ) * ref.factor
         # if len(self.fluid.is_var.values()) > 1:
         #     for fluid in self.fluid.val:
         #         if self.fluid.is_var[fluid]:
@@ -703,6 +736,33 @@ class Connection:
             self.jacobian[k, self.p.J_col] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+
+    def v_ref_func(self, k, **kwargs):
+        ref = self.v_ref.val
+        self.residual[k] = (
+            self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
+            - ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta
+        )
+
+    def v_ref_deriv(self, k, **kwargs):
+        # first part of sum is identical to direct flow specification
+        self.v_deriv(k, **kwargs)
+
+        ref = self.v_ref.val
+        if ref.obj.m.is_var:
+            self.jacobian[k, ref.obj.m.J_col] = -(
+                ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.factor
+            )
+        if ref.obj.p.is_var:
+            self.jacobian[k, ref.obj.p.J_col] = -(
+                dv_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data)
+                * ref.obj.m.val_SI * ref.factor
+            )
+        if ref.obj.h.is_var:
+            self.jacobian[k, ref.obj.h.J_col] = -(
+                dv_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data)
+                * ref.obj.m.val_SI * ref.factor
+            )
 
     def calc_x(self):
         try:

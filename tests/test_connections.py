@@ -21,26 +21,21 @@ class TestConnections:
 
     def setup_method(self):
         """Set up the model."""
-        # %% network setup
         self.nw = Network(p_unit='bar', T_unit='C')
 
-        # %% components
         so1 = Source('source 1')
         so2 = Source('source 2')
         si1 = Sink('sink 1')
         si2 = Sink('sink 2')
 
-        # %% connections
         c1 = Connection(so1, 'out1', si1, 'in1', label='Some example label')
         c2 = Connection(so2, 'out1', si2, 'in1')
 
         self.nw.add_conns(c1, c2)
 
-        # %% component parameters
         c1.set_attr(m=1, p=1, T=25, fluid={'Air': 1})
         c2.set_attr(m=0.5, p=10, T=25, fluid={'Air': 1})
 
-        # %% solving
         self.nw.solve('design')
 
     def test_volumetric_flow_reference(self):

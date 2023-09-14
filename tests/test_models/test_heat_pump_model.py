@@ -236,14 +236,14 @@ class TestHeatPump:
         su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
 
         # evaporator system hot side
-        self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1, 'NH3': 0})
+        self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})
         su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
         ev_amb_out.set_attr()
 
         # compressor-system
         cp1_he.set_attr(p=15)
         he_cp2.set_attr(T=40, p=Ref(cp1_he, 1, -0.01), design=['T', 'p'])
-        ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1, 'NH3': 0})
+        ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1})
         he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
     def test_model(self):
@@ -276,7 +276,8 @@ class TestHeatPump:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
                     self.nw.solve(
-                        'offdesign', design_path='tmp', init_path='tmp')
+                        'offdesign', design_path='tmp', init_path='tmp'
+                    )
 
                 else:
                     self.nw.solve('offdesign', design_path='tmp')

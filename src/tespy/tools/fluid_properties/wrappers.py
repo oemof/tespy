@@ -85,10 +85,14 @@ class CoolPropWrapper(FluidPropertyWrapper):
         if self.back_end == "INCOMP":
             self._p_min = 1e2
             self._p_max = 1e8
-            self._p_crit = 1e2
+            self._p_crit = 1e8
             self._T_crit = None
             self._molar_mass = 1
-            self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
+            try:
+                # how to know that we have a binary mixture?
+                self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
+            except ValueError:
+                pass
         else:
             self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             self._p_max = self.AS.trivial_keyed_output(CP.iP_max)

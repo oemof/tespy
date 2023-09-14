@@ -82,11 +82,10 @@ class DataContainer:
     <class 'tespy.tools.data_containers.GroupedComponentProperties'>
     >>> type(FluidComposition(
     ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
-    ... is_set={'CO2': False, 'H2O': False, 'N2': False, 'O2': True},
+    ... is_set={'O2'},
     ... balance=False))
     <class 'tespy.tools.data_containers.FluidComposition'>
-    >>> type(FluidProperties(val=5, val_SI=500000, is_set=True, unit='bar',
-    ...      ref=None, ref_set=False))
+    >>> type(FluidProperties(val=5, val_SI=500000, is_set=True, unit='bar'))
     <class 'tespy.tools.data_containers.FluidProperties'>
     >>> type(SimpleDataContainer(val=5, is_set=False))
     <class 'tespy.tools.data_containers.SimpleDataContainer'>

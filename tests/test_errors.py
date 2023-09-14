@@ -90,7 +90,6 @@ def test_set_attr_errors():
     set_attr_ValueError(nw, p_unit='kg')
     set_attr_ValueError(nw, T_unit='kg')
     set_attr_ValueError(nw, v_unit='kg')
-    set_attr_ValueError(conn, state=5)
 
     # TypeErrors
     set_attr_TypeError(comb, P=[5])
@@ -112,7 +111,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
-    set_attr_TypeError(conn, state='f')
+    set_attr_TypeError(conn, state=5)
 
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)
@@ -307,9 +306,8 @@ class TestCombustionEngineBusErrors:
         # both values do not matter, but are required for the test
         self.instance.num_nw_vars = 1
         self.instance.num_vars = 1
-        self.instance.inl = [Connection(self.instance, 'out1',
-                                        Sink('sink'), 'in1')]
-        self.instance.inl[0].fluid = dc_flu(val={'water': 1})
+        self.instance.inl = ["foo", "bar", "baz", "foo"]
+        self.instance.outl = ["bar", "baz", "foo"]
         with raises(ValueError):
             self.instance.bus_deriv(self.bus)
 
@@ -365,54 +363,6 @@ def test_Turbine_missing_char_parameter():
     nw.solve('design', init_only=True)
     with raises(ValueError):
         instance.eta_s_char_func()
-
-##############################################################################
-# WaterElectrolyzer
-
-
-class TestWaterElectrolyzerErrors:
-
-    def setup_electrolyzer_Network(self):
-        """Set up Network for electrolyzer tests."""
-        self.instance = WaterElectrolyzer('electrolyzer')
-
-        fw = Source('feed water')
-        cw_in = Source('cooling water')
-        o2 = Sink('oxygen sink')
-        h2 = Sink('hydrogen sink')
-        cw_out = Sink('cooling water sink')
-
-        cw_el = Connection(cw_in, 'out1', self.instance, 'in1')
-        el_cw = Connection(self.instance, 'out1', cw_out, 'in1')
-
-        self.nw.add_conns(cw_el, el_cw)
-
-        fw_el = Connection(fw, 'out1', self.instance, 'in2')
-        el_o2 = Connection(self.instance, 'out2', o2, 'in1')
-        el_h2 = Connection(self.instance, 'out3', h2, 'in1')
-
-        self.nw.add_conns(fw_el, el_o2, el_h2)
-
-    def test_missing_hydrogen_in_Network(self):
-        """Test missing hydrogen in Network fluids with water electrolyzer."""
-        self.nw = Network(['H2O', 'O2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
-
-    def test_missing_oxygen_in_Network(self):
-        """Test missing oxygen in Network fluids with water electrolyzer."""
-        self.nw = Network(['H2O', 'H2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
-
-    def test_missing_water_in_Network(self):
-        """Test missing water in Network fluids with water electrolyzer."""
-        self.nw = Network(['O2', 'H2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
 
 
 def test_wrong_Bus_param_func():

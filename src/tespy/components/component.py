@@ -34,8 +34,6 @@ from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton
 
-# %%
-
 
 class Component:
     r"""

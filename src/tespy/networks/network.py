@@ -679,14 +679,16 @@ class Network:
         self.check_conns()
         self.init_components()
         self.check_components()
-        self.create_branches()
+        self.create_massflow_and_fluid_branches()
+        self.create_fluid_wrapper_branches()
 
         # network checked
         self.checked = True
         msg = 'Networkcheck successful.'
         logger.info(msg)
 
-    def create_branches(self):
+    def create_massflow_and_fluid_branches(self):
+
         self.branches = {}
         mask = self.comps["object"].apply(lambda c: c.is_branch_source())
         start_components = self.comps["object"].loc[mask]
@@ -700,6 +702,16 @@ class Network:
         for start in start_components:
             self.branches.update(start.start_branch())
 
+        self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
+
+        self.fluid_branches = {}
+        for branch_name, branch_data in self.branches.items():
+            subbranches = hlp.get_all_subdictionaries(branch_data["subbranches"])
+            main = {k: v for k, v in branch_data.items() if k != "subbranches"}
+            self.fluid_branches[branch_name] = [main] + subbranches
+
+    def create_fluid_wrapper_branches(self):
+
         self.fluid_wrapper_branches = {}
         mask = self.comps["comp_type"].isin(
             ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
@@ -709,27 +721,27 @@ class Network:
         for start in start_components:
             self.fluid_wrapper_branches.update(start.start_fluid_wrapper_branch())
 
-        merged_fluid_wrapper_branches = self.fluid_wrapper_branches.copy()
+        merged = self.fluid_wrapper_branches.copy()
         for branch_name, branch_data in self.fluid_wrapper_branches.items():
-            if branch_name not in merged_fluid_wrapper_branches:
+            if branch_name not in merged:
                 continue
-            for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
+            for ob_name, ob_data in self.fluid_wrapper_branches.items():
                 if ob_name != branch_name:
-                    if len(list(set(branch_data["connections"]) & set(ob_data["connections"]))) > 0:
-                        merged_fluid_wrapper_branches[branch_name]["connections"] = list(set(branch_data["connections"] + ob_data["connections"]))
-                        merged_fluid_wrapper_branches[branch_name]["components"] = list(set(branch_data["components"] + ob_data["components"]))
-                        del merged_fluid_wrapper_branches[ob_name]
+                    common_connections = list(
+                        set(branch_data["connections"])
+                        & set(ob_data["connections"])
+                    )
+                    if len(common_connections) > 0:
+                        merged[branch_name]["connections"] = list(
+                            set(branch_data["connections"] + ob_data["connections"])
+                        )
+                        merged[branch_name]["components"] = list(
+                            set(branch_data["components"] + ob_data["components"])
+                        )
+                        del merged[ob_name]
                         break
 
-        self.fluid_wrapper_branches = merged_fluid_wrapper_branches
-
-        self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
-
-        self.fluid_branches = {}
-        for branch_name, branch_data in self.branches.items():
-            subbranches = hlp.get_all_subdictionaries(branch_data["subbranches"])
-            main = {k: v for k, v in branch_data.items() if k != "subbranches"}
-            self.fluid_branches[branch_name] = [main] + subbranches
+        self.fluid_wrapper_branches = merged
 
     def init_components(self):
         r"""Set up necessary component information."""
@@ -863,11 +875,21 @@ class Network:
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
 
-            any_fluids_set = [f for c in all_connections for f in c.fluid.is_set]
-            engines = {f: engine for c in all_connections for f, engine in c.fluid.engine.items() if c.fluid.is_set}
-            back_ends = {f: back_end for c in all_connections for f, back_end in c.fluid.back_end.items() if c.fluid.is_set}
+            any_fluids_set = []
+            engines = {}
+            back_ends = {}
+            for c in all_connections:
+                for f in c.fluid.is_set:
+                    any_fluids_set += [f]
+                    if f in c.fluid.engine:
+                        engines[f] = c.fluid.engine[f]
+                    if f in c.fluid.back_end:
+                        back_ends[f] = c.fluid.back_end[f]
 
-            mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]
+            mixing_rules = [
+                c.mixing_rule for c in all_connections
+                if c.mixing_rule is not None
+            ]
             mixing_rule = set(mixing_rules)
             if len(mixing_rule) > 1:
                 msg = "You have provided more than one mixing rule."

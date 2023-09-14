@@ -654,7 +654,7 @@ class Connection:
         ref = self.get_attr(f"{variable}_ref").val
         self.residual[k] = (
             self.get_attr(variable).val_SI
-            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta
+            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI
         )
 
     def primary_ref_deriv(self, k, **kwargs):
@@ -691,7 +691,7 @@ class Connection:
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.val
         self.residual[k] = (
-            self.calc_T() - ref.obj.calc_T() * ref.factor + ref.delta
+            self.calc_T() - ref.obj.calc_T() * ref.factor + ref.delta_SI
         )
 
     def T_ref_deriv(self, k, **kwargs):
@@ -741,7 +741,7 @@ class Connection:
         ref = self.v_ref.val
         self.residual[k] = (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
-            - ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta
+            - ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI
         )
 
     def v_ref_deriv(self, k, **kwargs):
@@ -1099,10 +1099,10 @@ class Ref:
         self.delta = delta
         self.delta_SI = None
 
-        msg = ('Created reference object with factor ' + str(self.factor) +
-               ' and delta ' + str(self.delta) + ' referring to connection ' +
-               ref_obj.source.label + ' (' + ref_obj.source_id + ') -> ' +
-               ref_obj.target.label + ' (' + ref_obj.target_id + ').')
+        msg = (
+            f"Created reference object with factor {self.factor} and delta "
+            f"{self.delta} referring to connection {ref_obj.label}"
+        )
         logger.debug(msg)
 
     def get_attr(self, key):

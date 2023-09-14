@@ -1083,25 +1083,32 @@ class Network:
             if not self.init_previous:
                 c.good_starting_values = False
 
-            for key in ['m', 'p', 'h', 'T', 'x', 'v', 'Td_bp', 'vol', 's']:
+            for key in c.property_data:
                 # read unit specifications
-                if key == 'Td_bp':
+                prop = key.split("_ref")[0]
+                if key == "fluid":
+                    continue
+                elif key == 'Td_bp':
                     c.get_attr(key).unit = self.get_attr('T_unit')
                 else:
-                    c.get_attr(key).unit = self.get_attr(key + '_unit')
+                    c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
                 # set SI value
                 if c.get_attr(key).is_set:
-                    c.get_attr(key).val_SI = hlp.convert_to_SI(
-                        key, c.get_attr(key).val, c.get_attr(key).unit)
-                if c.get_attr(key).ref_set:
-                    if key == 'T':
-                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                            'Td_bp', c.get_attr(key).ref.delta,
-                            c.get_attr(key).unit)
+                    if "ref" in key:
+                        if prop == 'T':
+                            c.get_attr(key).val.delta_SI = hlp.convert_to_SI(
+                                'Td_bp', c.get_attr(key).val.delta,
+                                c.get_attr(prop).unit
+                            )
+                        else:
+                            c.get_attr(key).val.delta_SI = hlp.convert_to_SI(
+                                prop, c.get_attr(key).val.delta,
+                                c.get_attr(prop).unit
+                            )
                     else:
-                        c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).ref.delta,
-                            c.get_attr(key).unit)
+                        c.get_attr(key).val_SI = hlp.convert_to_SI(
+                            key, c.get_attr(key).val, c.get_attr(key).unit
+                        )
 
         if len(self.all_fluids) == 0:
             msg = (
@@ -1635,7 +1642,8 @@ class Network:
                     self.init_val0(c, key)
                 if c.get_attr(key).is_var:
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
-                        key, c.get_attr(key).val0, c.get_attr(key).unit)
+                        key, c.get_attr(key).val0, c.get_attr(key).unit
+                    )
 
             self.init_count_connections_parameters(c)
 
@@ -1766,7 +1774,8 @@ class Network:
 
                 # change value according to specified unit system
                 c.get_attr(key).val0 = hlp.convert_from_SI(
-                    key, c.get_attr(key).val0, self.get_attr(key + '_unit'))
+                    key, c.get_attr(key).val0, self.get_attr(key + '_unit')
+                )
 
     @staticmethod
     def init_read_connections(base_path):

@@ -186,6 +186,125 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
 
 try:
+    import iapws
+except ModuleNotFoundError:
+    iapws = None
+
+
+class IAPWSWrapper(FluidPropertyWrapper):
+
+    def __init__(self, fluid, back_end=None) -> None:
+        if iapws is None:
+            msg = (
+                "To use the iapws fluid properties you need to install "
+                "iapws."
+            )
+            raise ModuleNotFoundError(msg)
+        self._aliases = CP.CoolProp.get_aliases("H2O")
+
+        if fluid not in self._aliases:
+            raise ValueError()
+
+        if back_end is None:
+            self.AS = iapws.IAPWS97
+        elif back_end == "IF97":
+            self.AS = iapws.IAPWS97
+        elif back_end == "IF95":
+            self.AS = iapws.IAPWS95
+        else:
+            raise NotImplementedError()
+        self._set_constants()
+
+    def _set_constants(self):
+        self._T_min = iapws._iapws.Tt
+        self._T_max = 2000
+        self._p_min = iapws._iapws.Pt * 1e6
+        self._p_max = 100e6
+        self._p_crit = iapws._iapws.Pc * 1e6
+        self._T_crit = iapws._iapws.Tc
+        self._molar_mass = iapws._iapws.M
+
+    def _is_below_T_critical(self, T):
+        return T < self._T_crit
+
+    def _make_p_subcritical(self, p):
+        if p > self._p_crit:
+            p = self._p_crit * 0.99
+        return p
+
+    def isentropic(self, p_1, h_1, p_2):
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
+
+    def T_ph(self, p, h):
+        return self.AS(h=h / 1e3, P=p / 1e6).T
+
+    def T_ps(self, p, s):
+        self.AS.update(CP.PSmass_INPUTS, p, s)
+        return self.AS.T()
+
+    def h_pQ(self, p, Q):
+        self.AS.update(CP.PQ_INPUTS, p, Q)
+        return self.AS.hmass()
+
+    def h_ps(self, p, s):
+        return self.AS(P=p / 1e6, s=s / 1e3).h * 1e3
+        self.AS.update(CP.PSmass_INPUTS, p, s)
+        return self.AS.hmass()
+
+    def h_pT(self, p, T):
+        return self.AS(P=p / 1e6, T=T).h * 1000
+
+    def h_QT(self, Q, T):
+        self.AS.update(CP.QT_INPUTS, Q, T)
+        return self.AS.hmass()
+
+    def s_QT(self, Q, T):
+        self.AS.update(CP.QT_INPUTS, Q, T)
+        return self.AS.smass()
+
+    def T_sat(self, p):
+        p = self._make_p_subcritical(p)
+        return self.AS(P=p / 1e6, x=0).T
+
+    def p_sat(self, T):
+        if T > self._T_crit:
+            T = self._T_crit * 0.99
+
+        self.AS.update(CP.QT_INPUTS, 1, T)
+        return self.AS.p()
+
+    def Q_ph(self, p, h):
+        p = self._make_p_subcritical(p)
+        return self.AS(h=h / 1e3, P=p / 1e6).x
+
+    def d_ph(self, p, h):
+        return self.AS(h=h / 1e3, P=p / 1e6).rho
+
+    def d_pT(self, p, T):
+        self.AS.update(CP.PT_INPUTS, p, T)
+        return self.AS.rhomass()
+
+    def d_QT(self, Q, T):
+        self.AS.update(CP.QT_INPUTS, Q, T)
+        return self.AS.rhomass()
+
+    def viscosity_ph(self, p, h):
+        self.AS.update(CP.HmassP_INPUTS, h, p)
+        return self.AS.viscosity()
+
+    def viscosity_pT(self, p, T):
+        self.AS.update(CP.PT_INPUTS, p, T)
+        return self.AS.viscosity()
+
+    def s_ph(self, p, h):
+        return self.AS(P=p / 1e6, h=h / 1e3).s * 1e3
+
+    def s_pT(self, p, T):
+        self.AS.update(CP.PT_INPUTS, p, T)
+        return self.AS.smass()
+
+
+try:
     import pyromat as pm
     pm.config['unit_energy'] = "J"
     pm.config['unit_pressure'] = "Pa"

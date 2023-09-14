@@ -162,8 +162,8 @@ class Splitter(NodeBase):
             branch["connections"] += [outconn]
             outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_eq=0):
-        super().preprocess(num_eq)
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self._propagation_start = False
 
     def energy_balance_func(self):

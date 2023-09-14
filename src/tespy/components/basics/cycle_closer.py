@@ -159,8 +159,8 @@ class CycleCloser(Component):
         branch["components"] += [self]
         return
 
-    def preprocess(self, num_eq=0):
-        super().preprocess(num_eq)
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self._propagation_start = False
 
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):

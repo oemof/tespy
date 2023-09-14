@@ -141,14 +141,14 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def T_sat(self, p):
         p = self._make_p_subcritical(p)
-        self.AS.update(CP.PQ_INPUTS, p, 1)
+        self.AS.update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
     def p_sat(self, T):
         if T > self._T_crit:
             T = self._T_crit * 0.99
 
-        self.AS.update(CP.QT_INPUTS, 1, T)
+        self.AS.update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):

@@ -254,7 +254,7 @@ class WaterElectrolyzer(Component):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def preprocess(self, nw):
+    def preprocess(self, num_nw_vars):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -269,7 +269,7 @@ class WaterElectrolyzer(Component):
 
         self.e0 = self.calc_e0()
 
-        super().preprocess(nw)
+        super().preprocess(num_nw_vars)
 
     def calc_e0(self):
         r"""
@@ -277,7 +277,7 @@ class WaterElectrolyzer(Component):
 
         Returns
         -------
-        val : float
+        float
             Minimum specific energy.
 
             .. math::
@@ -766,7 +766,6 @@ class WaterElectrolyzer(Component):
         deriv : ndarray
             Matrix with partial derivatives for the mass flow equations.
         """
-        # derivatives for mass flow balance for oxygen output
         M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
         M_h2 = self.outl[2].fluid.wrapper[self.h2]._molar_mass
 
@@ -778,8 +777,8 @@ class WaterElectrolyzer(Component):
                 self.jacobian[k, self.inl[1].m.J_col] = o2
             if self.outl[1].m.is_var:
                 self.jacobian[k, self.outl[1].m.J_col] = -1
-
             k += 1
+
         # derivatives for mass flow balance for hydrogen output
         if self.inl[1].m.is_var:
             self.jacobian[k, self.inl[1].m.J_col] = (1 - o2)

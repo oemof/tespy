@@ -10,9 +10,6 @@ tespy/components/reactors/fuel_cell.py
 
 SPDX-License-Identifier: MIT
 """
-
-
-import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
@@ -20,8 +17,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.global_vars import molar_masses
-from tespy.tools.helpers import TESPyComponentError
 
 
 class FuelCell(Component):
@@ -120,9 +115,7 @@ class FuelCell(Component):
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> import shutil
-    >>> fluid_list = ['H2O', 'O2', 'H2']
-    >>> nw = Network(fluids=fluid_list, T_unit='C', p_unit='bar',
-    ... v_unit='l / s', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
     >>> fc = FuelCell('fuel cell')
     >>> fc.component()
     'fuel cell'
@@ -144,7 +137,7 @@ class FuelCell(Component):
     the given power output. The cooling fluid is pure water.
 
     >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9)
-    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1, 'O2': 0, 'H2': 0})
+    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1})
     >>> oxygen_in.set_attr(T=25, p=1)
     >>> hydrogen_in.set_attr(T=25)
     >>> nw.solve('design')
@@ -214,7 +207,7 @@ class FuelCell(Component):
     def outlets():
         return ['out1', 'out2']
 
-    def preprocess(self, nw):
+    def preprocess(self, num_nw_vars):
 
         if not self.P.is_set:
             self.set_attr(P='var')
@@ -236,7 +229,7 @@ class FuelCell(Component):
 
         Returns
         -------
-        val : float
+        float
             Specific energy.
 
             .. math::
@@ -252,7 +245,7 @@ class FuelCell(Component):
         hf['H2O'] = -286000
         hf['H2'] = 0
         hf['O2'] = 0
-        M = molar_masses[self.H2]
+        M = self.inl[2].fluid.wrapper[self.h2]._molar_mass
         e0 = (2 * hf['H2O'] - 2 * hf['H2'] - hf['O2']) / (2 * M)
 
         return e0
@@ -301,11 +294,11 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        # derivative for m_H2,in:
-        self.jacobian[k, 2, 0] = -self.eta.val * self.e0
-        # derivatives for variable P:
+        if self.inl[2].m.is_var:
+            self.jacobian[k, self.inl[2].m.J_col] = -self.eta.val * self.e0
+        # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
+            self.jacobian[k, self.P.J_col] = 1
 
     def heat_func(self):
         r"""
@@ -354,11 +347,14 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = -(
-            self.inl[0].h.val_SI - self.outl[0].h.val_SI
-        )
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 3, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def specific_energy_func(self):
         r"""
@@ -404,13 +400,14 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 2, 0] = -self.e.val
+        if self.inl[2].m.is_var:
+            self.jacobian[k, self.inl[2].m.J_col] = -self.e.val
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
+            self.jacobian[k, self.P.J_col] = 1
         # derivatives for variable e
         if self.e.is_var:
-            self.jacobian[k, 5 + self.e.var_pos, 0] = -self.inl[2].m.val_SI
+            self.jacobian[k, self.e.J_col] = -self.inl[2].m.val_SI
 
     def energy_balance_func(self):
         r"""
@@ -484,32 +481,46 @@ class FuelCell(Component):
         # derivatives determined from calc_P function
         T_ref = 298.15
         p_ref = 1e5
-        h_refh2o = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
-        h_refh2 = h_mix_pT([1, p_ref, 0, self.inl[2].fluid.val], T_ref)
-        h_refo2 = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
+        h_refh2o = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        h_refo2 = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        h_refh2 = h_mix_pT(p_ref, T_ref, self.inl[2].fluid_data, self.inl[2].mixing_rule)
 
         # derivatives cooling water inlet
-        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
+        i = self.inl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = self.outl[0].h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
 
         # derivatives water outlet
-        self.jacobian[k, 4, 0] = (self.outl[1].h.val_SI - h_refh2o)
-        self.jacobian[k, 4, 2] = self.outl[1].m.val_SI
+        o = self.outl[1]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = o.h.val_SI - h_refh2o
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = o.m.val_SI
 
         # derivative cooling water outlet
-        self.jacobian[k, 3, 2] = self.inl[0].m.val_SI
+        o = self.outl[0]
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.inl[0].m.val_SI
 
         # derivatives oxygen inlet
-        self.jacobian[k, 1, 0] = -(self.inl[1].h.val_SI - h_refo2)
-        self.jacobian[k, 1, 2] = -self.inl[1].m.val_SI
+        i = self.inl[1]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refo2)
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
 
         # derivatives hydrogen inlet
-        self.jacobian[k, 2, 0] = -(self.inl[2].h.val_SI - h_refh2 - self.e0)
-        self.jacobian[k, 2, 2] = -self.inl[2].m.val_SI
+        i = self.inl[2]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refh2 - self.e0)
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, 5 + self.P.var_pos, 0] = 1
+            self.jacobian[k, self.P.J_col] = 1
 
     def mass_flow_func(self):
         r"""
@@ -529,14 +540,15 @@ class FuelCell(Component):
                 \dot{m}_\mathrm{H_2,in,1}
         """
         # calculate the ratio of o2 in water
-        o2 = molar_masses[self.O2] / (
-            molar_masses[self.O2] + 2 * molar_masses[self.H2])
-        # equation for mass flow balance cooling water
-        residual = []
-        residual += [self.inl[0].m.val_SI - self.outl[0].m.val_SI]
+        M_o2 = self.inl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.inl[2].fluid.wrapper[self.h2]._molar_mass
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
         # equations for mass flow balance of the fuel cell
-        residual += [o2 * self.outl[1].m.val_SI - self.inl[1].m.val_SI]
-        residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
+        residual = []
+        if self.inl[1].m.is_var or self.outl[1].m.is_var:
+            residual += [o2 * self.outl[1].m.val_SI - self.inl[1].m.val_SI]
+        if self.inl[2].m.is_var or self.outl[1].m.is_var:
+            residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
         return residual
 
     def mass_flow_func_doc(self, label):
@@ -564,7 +576,7 @@ class FuelCell(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self):
+    def mass_flow_deriv(self, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -573,20 +585,22 @@ class FuelCell(Component):
         deriv : ndarray
             Matrix with partial derivatives for the mass flow equations.
         """
-        # derivatives for mass flow balance in the heat exchanger
-        deriv = np.zeros((3, 5 + self.num_vars, self.num_nw_vars))
-        deriv[0, 0, 0] = 1
-        deriv[0, 3, 0] = -1
-        # derivatives for mass flow balance for oxygen input
-        o2 = molar_masses[self.O2] / (
-            molar_masses[self.O2] + 2 * molar_masses[self.H2])
-        deriv[1, 4, 0] = o2
-        deriv[1, 1, 0] = -1
-        # derivatives for mass flow balance for hydrogen input
-        deriv[2, 4, 0] = (1 - o2)
-        deriv[2, 2, 0] = -1
+        M_o2 = self.inl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.inl[2].fluid.wrapper[self.h2]._molar_mass
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
+        # number of equations may vary here
+        if self.inl[1].m.is_var or self.outl[1].m.is_var:
+            if self.inl[1].m.is_var:
+                self.jacobian[k, self.inl[1].m.J_col] = -1
+            if self.outl[1].m.is_var:
+                self.jacobian[k, self.outl[1].m.J_col] = o2
+            k += 1
 
-        return deriv
+        # derivatives for mass flow balance for hydrogen input
+        if self.outl[1].m.is_var:
+            self.jacobian[k, self.outl[1].m.J_col] = (1 - o2)
+        if self.inl[2].m.is_var:
+            self.jacobian[k, self.inl[2].m.J_col] = -1
 
     def reactor_pressure_func(self):
         r"""
@@ -628,7 +642,7 @@ class FuelCell(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def reactor_pressure_deriv(self):
+    def reactor_pressure_deriv(self, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 
@@ -637,15 +651,13 @@ class FuelCell(Component):
         deriv : ndarray
             Matrix with partial derivatives for the pressure equations.
         """
-        deriv = np.zeros((2, 5 + self.num_vars, self.num_nw_vars))
-        # derivatives for pressure oxygen inlet
-        deriv[0, 1, 1] = -1
-        deriv[0, 4, 1] = 1
-        # derivatives for pressure hydrogen inlet
-        deriv[1, 2, 1] = -1
-        deriv[1, 4, 1] = 1
-
-        return deriv
+        o = self.outl[1]
+        for i in self.inl[1:]:
+            if i.p.is_var:
+                self.jacobian[k, i.p.J_col] = -1
+            if o.p.is_var:
+                self.jacobian[k, o.p.J_col] = 1
+            k += 1
 
     def calc_P(self):
         r"""
@@ -683,35 +695,84 @@ class FuelCell(Component):
         T_ref = 298.15
         p_ref = 1e5
 
-        # equations to set a reference point for each h2o, h2 and o2
-        h_refh2o = h_mix_pT([1, p_ref, 0, self.outl[1].fluid.val], T_ref)
-        h_refh2 = h_mix_pT([1, p_ref, 0, self.inl[2].fluid.val], T_ref)
-        h_refo2 = h_mix_pT([1, p_ref, 0, self.inl[1].fluid.val], T_ref)
+        # equations to set a reference point for each h2o, h2 and o2        # derivatives determined from calc_P function
+        h_refh2o = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        h_refo2 = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        h_refh2 = h_mix_pT(p_ref, T_ref, self.inl[2].fluid_data, self.inl[2].mixing_rule)
 
         val = (
-            self.inl[2].m.val_SI * (
-                self.inl[2].h.val_SI - h_refh2 - self.e0
-            )
+            self.inl[2].m.val_SI * (self.inl[2].h.val_SI - h_refh2 - self.e0)
             + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2)
-            - self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            )
+            - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
             - self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refh2o)
         )
-
         return val
 
+
+
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        outconn = self.outl[1]
+        if "H2O" not in outconn.fluid.val:
+            outconn.fluid.val["H2O"] = 1
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target],
+            "subbranches": {}
+        }
+        outconn.target.propagate_to_target(branch)
+        return {outconn.label: branch}
+
+    def start_fluid_wrapper_branch(self):
+        outconn = self.outl[1]
+        branch = {
+            "connections": [outconn],
+            "components": [self]
+        }
+        outconn.target.propagate_wrapper_to_target(branch)
+        return {outconn.label: branch}
+
+    def propagate_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        if inconn == self.inl[0]:
+            conn_idx = self.inl.index(inconn)
+            outconn = self.outl[conn_idx]
+
+            branch["connections"] += [outconn]
+            branch["components"] += [outconn.target]
+
+            outconn.target.propagate_to_target(branch)
+        else:
+            if inconn == self.inl[1] and "O2" not in inconn.fluid.val:
+                inconn.fluid.val["O2"] = 1
+            if inconn == self.inl[2] and "H2" not in inconn.fluid.val:
+                inconn.fluid.val["H2"] = 1
+            return
+
+    def propagate_wrapper_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        if inconn == self.inl[0]:
+            conn_idx = self.inl.index(inconn)
+            outconn = self.outl[conn_idx]
+
+            branch["connections"] += [outconn]
+            branch["components"] += [self]
+
+            outconn.target.propagate_wrapper_to_target(branch)
+        else:
+            branch["components"] += [self]
+            return
+
     def initialise_fluids(self):
-        # Set values to pure fluid on gas inlets and water outlet.
-        self.inl[1].fluid.val[self.O2] = 1
-        self.inl[2].fluid.val[self.H2] = 1
-        self.outl[1].fluid.val[self.H2O] = 1
-        self.inl[1].source.propagate_fluid_to_source(
-            self.inl[1], self.inl[1].source)
-        self.inl[2].source.propagate_fluid_to_source(
-            self.inl[2], self.inl[2].source)
+        """Set values to pure fluid on water inlet and gas outlets."""
+        for c in self.inl[1:]:
+            c.source.propagate_fluid_to_source(c, c.source)
         self.outl[1].target.propagate_fluid_to_target(
-            self.outl[1], self.outl[1].target)
+            self.outl[1], self.outl[1].target
+        )
 
     def initialise_source(self, c, key):
         r"""
@@ -740,9 +801,8 @@ class FuelCell(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = c.get_flow()
             T = 20 + 273.15
-            return h_mix_pT(flow, T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -771,9 +831,8 @@ class FuelCell(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            flow = c.get_flow()
             T = 50 + 273.15
-            return h_mix_pT(flow, T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def propagate_fluid_to_target(self, inconn, start, entry_point=False):
         r"""
@@ -824,11 +883,9 @@ class FuelCell(Component):
         self.e.val = self.P.val / self.inl[2].m.val_SI
         self.eta.val = self.e.val / self.e0
 
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
         self.zeta.val = (
-            (i[1] - o[1]) * np.pi ** 2 / (
-                4 * i[0] ** 2 *
-                (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            )
+            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
         )

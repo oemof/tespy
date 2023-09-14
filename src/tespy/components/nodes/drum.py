@@ -197,8 +197,8 @@ class Drum(DropletSeparator):
                 'num_eq': 2}
         }
 
-    def preprocess(self, num_eq=0):
-        super().preprocess(num_eq)
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self._propagation_start = False
 
     def mass_flow_func(self):

@@ -701,7 +701,9 @@ class Network:
             self.branches.update(start.start_branch())
 
         self.fluid_wrapper_branches = {}
-        mask = self.comps["comp_type"].isin(["Source", "CycleCloser"])
+        mask = self.comps["comp_type"].isin(
+            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
+        )
         start_components = self.comps["object"].loc[mask]
 
         for start in start_components:
@@ -711,22 +713,13 @@ class Network:
         for branch_name, branch_data in self.fluid_wrapper_branches.items():
             if branch_name not in merged_fluid_wrapper_branches:
                 continue
-            merges = [
-                cp for cp in branch_data["components"]
-                if (
-                    cp.component() == "merge"
-                    or cp.component() == "combustion chamber"
-                )
-            ]
-            if any(merges):
-                for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
-                    if ob_name != branch_name:
-                        for merge in merges:
-                            if merge in ob_data["components"]:
-                                merged_fluid_wrapper_branches[branch_name]["connections"] = list(set(branch_data["connections"] + ob_data["connections"]))
-                                merged_fluid_wrapper_branches[branch_name]["components"] = list(set(branch_data["components"] + ob_data["components"]))
-                                del merged_fluid_wrapper_branches[ob_name]
-                                break
+            for ob_name, ob_data in self.fluid_wrapper_branches.copy().items():
+                if ob_name != branch_name:
+                    if len(list(set(branch_data["connections"]) & set(ob_data["connections"]))) > 0:
+                        merged_fluid_wrapper_branches[branch_name]["connections"] = list(set(branch_data["connections"] + ob_data["connections"]))
+                        merged_fluid_wrapper_branches[branch_name]["components"] = list(set(branch_data["components"] + ob_data["components"]))
+                        del merged_fluid_wrapper_branches[ob_name]
+                        break
 
         self.fluid_wrapper_branches = merged_fluid_wrapper_branches
 
@@ -870,11 +863,10 @@ class Network:
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
 
-            for c in all_connections:
-                c._create_fluid_wrapper()
-
             any_fluids_set = [f for c in all_connections for f in c.fluid.is_set]
-            fluid_set_wrappers = {f: w for c in all_connections for f, w in c.fluid.wrapper.items() if f in c.fluid.is_set}
+            engines = {f: engine for c in all_connections for f, engine in c.fluid.engine.items() if c.fluid.is_set}
+            back_ends = {f: back_end for c in all_connections for f, back_end in c.fluid.back_end.items() if c.fluid.is_set}
+
             mixing_rules = [c.mixing_rule for c in branch_data["connections"] if c.mixing_rule is not None]
             mixing_rule = set(mixing_rules)
             if len(mixing_rule) > 1:
@@ -904,24 +896,20 @@ class Network:
                 if num_potential_fluids == 1:
                     f = list(potential_fluids)[0]
                     c.fluid.val[f] = 1
-                    c.fluid.wrapper[f] = fluid_set_wrappers[f]
+
                 else:
                     for f in potential_fluids:
                         if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
                             c.fluid.val[f] = 0
                         elif f not in c.fluid.is_set and f not in c.fluid.val and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
-                        if f not in c.fluid.wrapper and f in fluid_set_wrappers:
-                            c.fluid.wrapper[f] = fluid_set_wrappers[f]
-                        elif f not in c.fluid.wrapper:
-                            msg = (
-                                f"The fluid {f} seems to be a potential fluid for "
-                                "connection, however, there has is no fluid "
-                                "wrapper available for this fluid on the same "
-                                "branch. Creating a default wrapper."
-                            )
-                            c._create_fluid_wrapper()
-                            logger.warning(msg)
+
+                for f, engine in engines.items():
+                    c.fluid.engine[f] = engine
+                for f, back_end in back_ends.items():
+                    c.fluid.back_end[f] = back_end
+
+                c._create_fluid_wrapper()
 
     def presolve_massflow_topology(self):
 
@@ -2710,10 +2698,9 @@ class Network:
             Path/filename for the file.
         """
         for c in self.comps['comp_type'].unique():
-            if self.results[c].size > 0:
-                fn = path + c + '.csv'
-                self.results[c].to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
-                logger.debug('Component information (%s) saved to %s.', c, fn)
+            fn = path + c + '.csv'
+            self.results[c].to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
+            logger.debug('Component information (%s) saved to %s.', c, fn)
 
     def save_busses(self, fn):
         r"""

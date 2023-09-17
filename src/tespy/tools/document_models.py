@@ -255,25 +255,23 @@ def document_connections(nw, rpt):
     elif not rpt['Connection']['fluid']['include_results']:
         fluid_data = fluid_data[specs]
 
-    ref_spec = nw.specifications['Ref'].dropna(
-        how='all').dropna(how='all', axis=1)
-
+    ref_spec = nw.specifications['Ref']
     # get some Connection object for equation generator
     c = nw.get_conn(specs.index[0])
 
-    for c in nw.get_conn(ref_spec.index):
-        for param in ref_data.keys():
-            if c.get_attr(param).ref_set:
+    for c in nw.get_conn(ref_spec.any(axis=1).index):
+        for param in ref_spec.columns:
+            if c.get_attr(param).is_set:
                 ref_dict = {'label': c.label.replace('_', r'\_')}
                 ref_dict.update(
                     {'reference':
-                     c.get_attr(param).ref.obj.label.replace('_', r'\_'),
-                     'factor in -': c.get_attr(param).ref.factor,
+                     c.get_attr(param).val.obj.label.replace('_', r'\_'),
+                     'factor in -': c.get_attr(param).val.factor,
                      'delta in ' + hlp.latex_unit(
-                         nw.get_attr(param + '_unit')):
-                     c.get_attr(param).ref.delta})
+                         nw.get_attr(param.split("_ref")[0] + '_unit')):
+                     c.get_attr(param).val.delta})
 
-                ref_data[param] += [ref_dict]
+                ref_data[param.split("_ref")[0]] += [ref_dict]
 
     latex = r'\section{Connections in ' + nw.mode + ' mode}' + '\n\n'
 

@@ -1151,6 +1151,7 @@ class Network:
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
         self.specifications['Connection'] = pd.DataFrame(columns=cols + ['balance'], dtype='bool')
+        cols = ["m_ref", "p_ref", "h_ref", "T_ref", "v_ref"]
         self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
 
         msg = (
@@ -1370,6 +1371,16 @@ class Network:
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
 
+        if len(self.busses) > 0:
+            path = hlp.modify_path_os(f"{self.design_path}/busses.json")
+            with open(path, "r", encoding="utf-8") as f:
+                bus_data = json.load(f)
+
+            for b in bus_data:
+                for comp, value in bus_data[b].items():
+                    comp = self.get_comp(comp)
+                    self.busses[b].comps.loc[comp, "P_ref"] = value
+
         # read connection design point information
         df = self.init_read_connections(self.design_path)
         msg = (
@@ -1414,12 +1425,6 @@ class Network:
         """
         # write component design data
         component.set_parameters(self.mode, data)
-        # write design values to busses
-        i = 0
-        for b in data.busses:
-            bus = self.busses[b].comps
-            bus.loc[component, 'P_ref'] = data['bus_P_ref'][i]
-            i += 1
 
     def init_conn_design_params(self, c, df):
         r"""
@@ -1523,6 +1528,8 @@ class Network:
                     param = c.get_attr(var)
                     param.is_set = False
                     param.is_var = True
+                    if f"{var}_ref" in c.property_data:
+                        c.get_attr(f"{var}_ref").is_set = False
 
                 for var in c.offdesign:
                     param = c.get_attr(var)
@@ -1671,13 +1678,15 @@ class Network:
 
         for c in self.conns['object']:
             if not c.good_starting_values:
-                for key in ['m', 'p', 'h', 'T']:
-                    if (c.get_attr(key).ref_set and
-                            not c.get_attr(key).val_set):
-                        c.get_attr(key).val_SI = (
-                                c.get_attr(key).ref.obj.get_attr(key).val_SI *
-                                c.get_attr(key).ref.factor +
-                                c.get_attr(key).ref.delta_SI)
+                if self.specifications["Ref"].loc[c.label].any():
+                    for key in self.specifications["Ref"].columns:
+                        prop = key.split("_ref")[0]
+                        if c.get_attr(key).is_set and not c.get_attr(prop).is_set:
+                            c.get_attr(prop).val_SI = (
+                                c.get_attr(key).val.obj.get_attr(prop).val_SI
+                                * c.get_attr(key).val.factor
+                                + c.get_attr(key).val.delta_SI
+                                )
 
                 self.init_precalc_properties(c)
 
@@ -1716,9 +1725,9 @@ class Network:
         # write information to specifaction dataframe
         self.specifications['Connection'].loc[c.label, local_vars] = row
 
-        # row = [c.get_attr(var).ref_set for var in local_vars]
+        row = [c.get_attr(var).is_set for var in self.specifications['Ref'].columns]
         # write refrenced value information to specifaction dataframe
-        # self.specifications['Ref'].loc[c.label, local_vars] = row
+        self.specifications['Ref'].loc[c.label] = row
 
         # variables 9 to last but one: fluid mass fractions
         fluids = self.specifications['Connection'].columns[9:-1]
@@ -2674,7 +2683,7 @@ class Network:
         self.save_network(path + 'network.json')
         self.save_connections(path + 'connections.csv')
         self.save_components(path_comps)
-        # self.save_busses(path_comps + 'bus.csv')
+        self.save_busses(path + 'busses.json')
         # self.save_characteristics(path_comps)
 
     def save_network(self, fn):
@@ -2743,17 +2752,12 @@ class Network:
             Path/filename for the file.
         """
         if len(self.busses) > 0:
-            df = pd.DataFrame(
-                {'id': self.busses.values()}, index=self.busses.values(),
-                dtype='object')
-            df['label'] = df.apply(Network.get_props, axis=1, args=('label',))
-            df['P'] = df.apply(Network.get_props, axis=1, args=('P', 'val'))
-            df['P_set'] = df.apply(Network.get_props, axis=1,
-                                   args=('P', 'is_set'))
-            df.drop('id', axis=1, inplace=True)
+            bus_data = {}
+            for label, bus in self.busses.items():
+                bus_data[label] = self.results[label]["design value"].to_dict()
 
-            df.set_index('label', inplace=True)
-            df.to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(json.dumps(bus_data, indent=4))
             logger.debug('Bus information saved to %s.', fn)
 
     def save_characteristics(self, path):

@@ -432,13 +432,6 @@ class FluidProperties(DataContainer):
     is_set : boolean
         Has the value for this property been set? default: is_set=False.
 
-    ref : tespy.connections.ref
-        Reference object, default: ref=None.
-
-    ref_set : boolean
-        Has a value for this property been referenced to another connection?
-        default: ref_set=False.
-
     unit : str
         Unit for this property, default: ref=None.
 

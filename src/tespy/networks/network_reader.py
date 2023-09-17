@@ -152,9 +152,7 @@ def load_network(path):
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import load_network, Network
     >>> import shutil
-    >>> fluid_list = ['CH4', 'O2', 'N2', 'CO2', 'H2O', 'Ar']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> air = Source('air')
     >>> f = Source('fuel')
     >>> c = Compressor('compressor')
@@ -180,10 +178,8 @@ def load_network(path):
     ... offdesign=['char_map_eta_s', 'char_map_pr'])
     >>> t.set_attr(eta_s=0.9, design=['eta_s'],
     ... offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'CH4': 0,
-    ... 'H2O': 0}, fluid_balance=True, T=25, p=1)
-    >>> fp.set_attr(fluid={'N2': 0, 'O2': 0, 'Ar': 0, 'CH4': 0.96, 'H2O': 0,
-    ... 'CO2': 0.04}, T=25, p=40)
+    >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}, T=25, p=1)
+    >>> fp.set_attr(fluid={'CH4': 0.96, 'CO2': 0.04}, T=25, p=40)
     >>> pc.set_attr(T=25)
     >>> ct.set_attr(T=1100)
     >>> outg.set_attr(p=Ref(inc, 1, 0))

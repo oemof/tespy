@@ -119,9 +119,7 @@ class CombustionChamber(Component):
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
-    >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -138,12 +136,13 @@ class CombustionChamber(Component):
     temperature of the flue gas determines the ratio of oxygen to fuel mass
     flow.
 
-    >>> comb.set_attr(ti=500000)
+    >>> comb.set_attr(ti=500000, lamb=1.5)
     >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'Ar': 0,
-    ... 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96})
+    ... 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96})
+    >>> nw.solve('design')
     >>> comb_fg.set_attr(T=1200)
+    >>> comb.set_attr(lamb=None)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014
@@ -1086,13 +1085,14 @@ class CombustionChamber(Component):
                 \right) - \dot{m}_{out,1} \cdot x_{fuel,out,1} \right]
                 \; \forall i \in [1,2]
         """
+        inl, outl = self._get_combustion_connections()
         ti = 0
         for f in self.fuel_list:
             m = 0
-            for i in self.inl:
+            for i in inl:
                 m += i.m.val_SI * i.fluid.val[f]
 
-            for o in self.outl:
+            for o in outl:
                 m -= o.m.val_SI * o.fluid.val[f]
 
             ti += m * self.fuels[f]['LHV']

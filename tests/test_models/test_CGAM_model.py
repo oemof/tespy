@@ -92,12 +92,11 @@ class TestCGAM:
         c10.set_attr(T=25, fluid=fuel, p=12)
         c7.set_attr(p=1.013)
         c3.set_attr(T=850 - 273.15)
-        c4.set_attr(T=1520 - 273.15)
         c8p.set_attr(Td_bp=-15)
         c11p.set_attr(x=0.5)
 
         cmp.set_attr(pr=10, eta_s=0.86)
-        cb.set_attr(eta=0.98, pr=0.95)
+        cb.set_attr(eta=0.98, pr=0.95, lamb=2)
         tur.set_attr(eta_s=0.86)
         aph.set_attr(pr1=0.97, pr2=0.95)
         eva.set_attr(pr1=0.95 ** 0.5)
@@ -121,7 +120,10 @@ class TestCGAM:
 
         power.set_attr(P=-30e6)
         c1.set_attr(m=None)
+        c4.set_attr(T=1520 - 273.15)
+        cb.set_attr(lamb=None)
         self.nwk.solve('design')
+        self.nwk._convergence_check()
 
         self.result = self.nwk.results["Connection"].copy()
 

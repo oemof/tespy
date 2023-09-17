@@ -25,6 +25,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
+from tespy.tools.fluid_properties.functions import dT_mix_ph_dfluid
 from tespy.tools.fluid_properties import dv_mix_dph
 from tespy.tools.fluid_properties import dv_mix_pdh
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -675,18 +676,16 @@ class Connection:
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
+                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
-        # if len(self.fluid.is_var.values()) > 1:
-        #     for fluid in self.fluid.val:
-        #         if self.fluid.is_var[fluid]:
-        #             self.jacobian[k], self.fluid.J_col[fluid] = dT_mix_ph_dfluid(
-        #                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
-        #             )
+        for fluid in self.fluid.is_var:
+            self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
+                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+            )
 
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.val

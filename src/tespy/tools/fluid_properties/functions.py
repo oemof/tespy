@@ -99,6 +99,16 @@ def dT_mix_dph(p, h, fluid_data, mixing_rule=None, T0=None):
     return (upper - lower) / (2 * d)
 
 
+def dT_mix_ph_dfluid(p, h, fluid, fluid_data, mixing_rule=None, T0=None):
+    d = 1e-5
+    fluid_data[fluid]["mass_fraction"] += d
+    upper = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=T0)
+    fluid_data[fluid]["mass_fraction"] -= 2 * d
+    lower = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=upper)
+    fluid_data[fluid]["mass_fraction"] += d
+    return (upper - lower) / (2 * d)
+
+
 def h_mix_pT(p, T, fluid_data, mixing_rule=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)

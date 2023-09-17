@@ -147,12 +147,13 @@ class DiabaticCombustionChamber(CombustionChamber):
     identical lambda or outlet temperature as in an adiabatic combustion
     chamber.
 
-    >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
+    >>> comb.set_attr(ti=500000, pr=0.95, eta=1, lamb=1.5)
     >>> amb_comb.set_attr(p=1.2, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'H2O': 0, 'CH4': 0, 'CO2': 0.0004, 'O2': 0.2314, 'H2': 0})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'Ar': 0,
-    ... 'N2': 0, 'O2': 0, 'H2O': 0, 'CH4': 0.96}, p=1.3)
+    ... 'CO2': 0.0004, 'O2': 0.2314})
+    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}, p=1.3)
+    >>> nw.solve('design')
     >>> comb_fg.set_attr(T=1200)
+    >>> comb.set_attr(lamb=None)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014

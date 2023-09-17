@@ -71,12 +71,15 @@ class TestCombustion:
         fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
-        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=1.5)
 
         # test specified bus value on CombustionChamber (must be equal to ti)
         b = Bus('thermal input', P=1e6)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
+        self.nw.solve('design')
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw._convergence_check()
         msg = ('Value of thermal input must be ' + str(b.P.val) + ', is ' +
@@ -116,10 +119,12 @@ class TestCombustion:
         fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1.2, T=30)
         self.c2.set_attr(fluid=fuel, T=30, p=1.5)
-        self.c3.set_attr(T=1200)
 
         pr = 0.97
-        instance.set_attr(pr=pr, eta=0.95, ti=1e6)
+        instance.set_attr(pr=pr, eta=0.95, ti=1e6, lamb=1.5)
+        self.nw.solve('design')
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw._convergence_check()
 

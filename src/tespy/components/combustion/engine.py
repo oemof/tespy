@@ -959,35 +959,6 @@ class CombustionEngine(CombustionChamber):
         if self.Qloss.is_var:
             self.jacobian[k, self.Qloss.J_col] = self.numeric_deriv(f, 'Qloss', None)
 
-    def calc_ti(self):
-        r"""
-        Calculate the thermal input of the combustion engine.
-
-        Returns
-        -------
-        ti : float
-            Thermal input.
-
-            .. math::
-
-                ti = LHV \cdot \left[\sum_i \left(\dot{m}_{in,i} \cdot x_{f,i}
-                \right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
-
-                \forall i \in [3,4]
-        """
-        ti = 0
-        for f in self.fuel_list:
-            m = 0
-            for i in self.inl[2:]:
-                m += i.m.val_SI * i.fluid.val[f]
-
-            for o in self.outl[2:]:
-                m -= o.m.val_SI * o.fluid.val[f]
-
-            ti += m * self.fuels[f]['LHV']
-
-        return ti
-
     def calc_P(self):
         r"""
         Calculate the power output of the combustion engine.
@@ -1213,7 +1184,9 @@ class CombustionEngine(CombustionChamber):
 
             # variable power
             if self.P.is_var:
-                bus.jacobian[self.P.J_col] = self.numeric_deriv(f, 'P', None, bus=bus)
+                if self.P.J_col not in bus.jacobian:
+                    bus.jacobian[self.P.J_col] = 0
+                bus.jacobian[self.P.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)

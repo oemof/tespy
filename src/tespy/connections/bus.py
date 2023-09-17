@@ -88,16 +88,17 @@ class Bus:
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'CO2': 0.0004, 'O2': 0.2314})
     >>> sf_comb.set_attr(T=30, fluid={'CH4': 1})
-    >>> cw_pu.set_attr(p=3, T=60, fluid={'H2O': 1})
+    >>> cw_pu.set_attr(p=3, T=60, fluid={'H2O': 1}, m=100)
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
 
     Cooling water mass flow is calculated given the feed water temperature
     (90 °C). The pressure at the cooling water outlet should be identical to
-    pressure before pump. The flue gases of the combustion engine leave the
-    flue gas cooler at 120 °C.
+    pressure before pump. The flue gases of the combustion engine should leave
+    the flue gas cooler at 120 °C. For a good start we specify the cooling water
+    mass flow in the first simulation run. Then we will solve a second time and
+    swtich the specification to the temperature value.
 
     >>> fgc_cw.set_attr(p=Ref(cw_pu, 1, 0), T=90)
-    >>> fgc_fg.set_attr(T=120, design=['T'])
 
     Now add the busses, pump and combustion engine generator will get a
     characteristic function for conversion efficiency. In case of the
@@ -139,6 +140,9 @@ class Bus:
     >>> nw.add_busses(power_bus, heat_bus, fuel_bus)
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
+    >>> cw_pu.set_attr(m=None)
+    >>> fgc_fg.set_attr(T=120, design=['T'])
+    >>> nw.solve(mode=mode)
     >>> nw.save('tmp')
 
     The heat bus characteristic for the combustion engine and the flue gas
@@ -156,9 +160,9 @@ class Bus:
     >>> round(chp.Q1.val + chp.Q2.val, 0)
     -8899014.0
     >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
-    12477089.0
+    12477091.0
     >>> round(heat_bus.P.val, 0)
-    12477089.0
+    12477091.0
     >>> round(pu.calc_bus_efficiency(power_bus), 2)
     0.98
     >>> power_bus.set_attr(P=-7.5e6)

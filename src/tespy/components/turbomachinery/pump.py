@@ -573,4 +573,4 @@ class Pump(Turbomachine):
             "chemical": 0, "physical": 0, "massless": self.P.val
         }
         self.E_D = self.E_F - self.E_P
-        self.epsilon = self.E_P / self.E_F
+        self.epsilon = self._calc_epsilon()

@@ -16,8 +16,10 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
+from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
@@ -32,6 +34,7 @@ from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import dT_sat_dp
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
@@ -39,6 +42,7 @@ from tespy.tools.fluid_properties.helpers import get_number_of_fluids
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
+from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import convert_from_SI
 
 

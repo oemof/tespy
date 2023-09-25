@@ -346,12 +346,20 @@ class ExergyAnalysis:
         Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
 
         # reset data
+        dtypes = {
+            "E_F": float,
+            "E_P": float,
+            "E_D": float,
+            "epsilon": float,
+            "group": str
+        }
         self.component_data = pd.DataFrame(
-            columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64'
-        )
+            columns=list(dtypes.keys())
+        ).astype(dtypes)
 
         self.bus_data = self.component_data.copy()
-        self.bus_data['base'] = np.nan
+        self.bus_data["base"] = np.nan
+        self.bus_data["base"] = self.bus_data["base"].astype(str)
         conn_exergy_data_cols = ['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M']
 
         if Chem_Ex is not None:
@@ -401,8 +409,6 @@ class ExergyAnalysis:
         for cp in self.nw.comps['object']:
             # save component information
             cp.exergy_balance(Tamb_SI)
-            if not hasattr(cp, 'fkt_group'):
-                cp.fkt_group = cp.label
             self.component_data.loc[cp.label] = [
                 cp.E_F, cp.E_P, cp.E_D, cp.epsilon, cp.fkt_group
             ]

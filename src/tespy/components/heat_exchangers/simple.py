@@ -1136,7 +1136,7 @@ class SimpleHeatExchanger(Component):
             self.E_D = self.E_F
         else:
             self.E_D = self.E_F - self.E_P
-        self.epsilon = self.E_P / self.E_F
+        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

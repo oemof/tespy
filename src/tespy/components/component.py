@@ -93,15 +93,17 @@ class Component:
     def __init__(self, label, **kwargs):
 
         # check if components label is of type str and for prohibited chars
+        _forbidden = [';', ',', '.']
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
             logger.error(msg)
             raise ValueError(msg)
 
-        elif len([x for x in [';', ',', '.'] if x in label]) > 0:
+        elif any([True for x in _forbidden if x in label]):
             msg = (
-                'You must not use ' + str([';', ',', '.']) + ' in label (' +
-                str(self.component()) + ').')
+                f"You cannot use any of " + ", ".join(_forbidden) + " in a "
+                f"component label ({self.component()}"
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -117,6 +119,7 @@ class Component:
         self.local_offdesign = False
         self.char_warnings = True
         self.printout = True
+        self.fkt_group = self.label
 
         # add container for components attributes
         self.parameters = OrderedDict(self.get_parameters().copy())
@@ -204,19 +207,6 @@ class Component:
                     if (isinstance(kwargs[key], CharLine) or
                             isinstance(kwargs[key], CharMap)):
                         data.char_func = kwargs[key]
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-                elif isinstance(data, dc_gcp):
-                    # value specification of grouped component parameter method
-                    if isinstance(kwargs[key], str):
-                        data.method = kwargs[key]
 
                     # invalid datatype for keyword
                     else:
@@ -395,8 +385,9 @@ class Component:
                     start = (
                         'All parameters of the component group have to be '
                         'specified! This component group uses the following '
-                        'parameters: ')
-                    end = ' at ' + self.label + '. Group will be set to False.'
+                        'parameters: '
+                    )
+                    end = f" at {self.label}. Group will be set to False."
                     logger.warning(start + ', '.join(val.elements) + end)
                     val.set_attr(is_set=False)
                 else:
@@ -423,8 +414,8 @@ class Component:
 
         # done
         msg = (
-            'The component ' + self.label + ' has ' + str(self.num_vars) +
-            ' custom variables.')
+            f"The component {self.label} has {self.num_vars} custom variables."
+        )
         logger.debug(msg)
 
     def get_parameters(self):
@@ -593,7 +584,7 @@ class Component:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        for parameter, data in self.parameters.items():
+        for data in self.parameters.values():
             if data.is_set and data.func is not None:
                 self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                     **data.func_params
@@ -774,40 +765,6 @@ class Component:
         """
         return 0
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-        outconn.target.propagate_fluid_to_target(outconn, start)
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        conn_idx = self.outl.index(outconn)
-        inconn = self.inl[conn_idx]
-        inconn.source.propagate_fluid_to_source(inconn, start)
-
     def set_parameters(self, mode, data):
         r"""
         Set or unset design values of component parameters.
@@ -869,9 +826,6 @@ class Component:
                         char_data.param, **char_data.char_params)
                     char_data.char_func.get_domain_errors(expr, self.label)
 
-    def initialise_fluids(self):
-        return
-
     def convergence_check(self):
         return
 
@@ -894,7 +848,13 @@ class Component:
             "chemical": np.nan, "physical": np.nan, "massless": np.nan
         }
         self.E_D = np.nan
-        self.epsilon = np.nan
+        self.epsilon = self._calc_epsilon()
+
+    def _calc_epsilon(self):
+        if self.E_F == 0:
+            return np.nan
+        else:
+            return self.E_P / self.E_F
 
     def get_plotting_data(self):
         return
@@ -1102,22 +1062,6 @@ class Component:
             logger.exception(msg)
             raise ValueError(msg)
         return deriv
-
-    def get_conn_var_pos(self, connection_number, variable):
-        conns = self.inl + self.outl
-        return (
-            sum(c.num_vars for c in conns[:connection_number])
-            + conns[connection_number].var_pos[variable]
-        )
-
-    def get_conn_pos(self, connection_number):
-        conns = self.inl + self.outl
-        start = sum(c.num_vars for c in conns[:connection_number])
-        end = start + conns[connection_number].num_vars
-        return start, end
-
-    def get_comp_var_pos(self, variable):
-        return self.num_conn_vars + self.get_attr(variable).var_pos
 
     def pr_func(self, pr='', inconn=0, outconn=0):
         r"""

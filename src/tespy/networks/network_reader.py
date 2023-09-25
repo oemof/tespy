@@ -12,7 +12,6 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
-import ast
 import json
 import os
 

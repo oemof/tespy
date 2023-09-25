@@ -13,7 +13,6 @@ available from its original location tespy/tools/characteristics.py
 
 SPDX-License-Identifier: MIT
 """
-
 import json
 import os
 
@@ -22,8 +21,6 @@ import numpy as np
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.helpers import extend_basic_path
-
-# %%
 
 
 class CharLine:
@@ -184,8 +181,6 @@ class CharLine:
         # export
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
-
-# %%
 
 
 class CharMap:

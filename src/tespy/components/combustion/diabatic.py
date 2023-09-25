@@ -403,5 +403,5 @@ class DiabaticCombustionChamber(CombustionChamber):
         )
 
         self.E_D = self.E_F - self.E_P
-        self.epsilon = self.E_P / self.E_F
+        self.epsilon = self._calc_epsilon()
         self.E_bus = {"chemical": np.nan, "physical": np.nan, "massless": np.nan}

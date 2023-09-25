@@ -103,4 +103,4 @@ class Sink(Component):
             "massless": 0
         }
         self.E_D = np.nan
-        self.epsilon = np.nan
+        self.epsilon = self._calc_epsilon()

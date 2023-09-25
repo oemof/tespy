@@ -76,21 +76,6 @@ class Sink(Component):
         branch["components"] += [self]
         return
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation to target stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a sink.
 

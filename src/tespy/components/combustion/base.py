@@ -1170,64 +1170,6 @@ class CombustionChamber(Component):
                     bus.jacobian[c.fluid.J_col[fluid]] = 0
                 bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
 
-    def initialise_fluids(self):
-        """Calculate reaction balance for generic starting values at outlet."""
-        inl, outl = self._get_combustion_connections()
-        N_2 = 0.7655
-        O_2 = 0.2345
-
-        n_fuel = 1
-        lamb = 3
-
-        fact_fuel = {}
-        sum_fuel = 0
-        for f in self.fuel_list:
-            fact_fuel[f] = 0
-            for i in inl:
-                fact_fuel[f] += i.fluid.val[f] / 2
-            sum_fuel += fact_fuel[f]
-
-        for f in self.fuel_list:
-            fact_fuel[f] /= sum_fuel
-
-        m_co2 = 0
-        m_h2o = 0
-        m_fuel = 0
-        for f in self.fuel_list:
-            m_co2 += (
-                n_fuel * self.fuels[f]['C']
-                * inl[0].fluid.wrapper[self.co2]._molar_mass * fact_fuel[f]
-            )
-            m_h2o += (
-                n_fuel * self.fuels[f]['H'] / 2
-                * inl[0].fluid.wrapper[self.h2o]._molar_mass * fact_fuel[f]
-            )
-            m_fuel += n_fuel * inl[0].fluid.wrapper[f]._molar_mass * fact_fuel[f]
-
-        n_o2 = (
-            m_co2 / inl[0].fluid.wrapper[self.co2]._molar_mass
-            + 0.5 * m_h2o / inl[0].fluid.wrapper[self.h2o]._molar_mass
-        ) * lamb
-
-        m_air = n_o2 * inl[0].fluid.wrapper[self.o2]._molar_mass / O_2
-        m_fg = m_air + m_fuel
-
-        m_o2 = n_o2 * inl[0].fluid.wrapper[self.o2]._molar_mass * (1 - 1 / lamb)
-        m_n2 = N_2 * m_air
-
-        fg = {
-            self.n2: m_n2 / m_fg,
-            self.co2: m_co2 / m_fg,
-            self.o2: m_o2 / m_fg,
-            self.h2o: m_h2o / m_fg
-        }
-
-        for o in outl:
-            for fluid, x in o.fluid.val.items():
-                if fluid in o.fluid.is_var and fluid in fg:
-                    o.fluid.val[fluid] = fg[fluid]
-            o.target.propagate_fluid_to_target(o, o.target)
-
     def convergence_check(self):
         r"""
         Perform a convergence check.
@@ -1240,58 +1182,60 @@ class CombustionChamber(Component):
         outlet.
         """
         # required to work with combustion chamber and engine
-        inl = self.inl[::-1][:2][::-1]
-        outl = self.outl[::-1][0]
+        inl, outl = self._get_combustion_connections()
 
         m = 0
         for i in inl:
-            if not i.good_starting_values:
-                if i.m.val_SI < 0 and i.m.is_var:
-                    i.m.val_SI = 0.01
-                m += i.m.val_SI
+            if i.m.val_SI < 0 and i.m.is_var:
+                i.m.val_SI = 0.01
+            m += i.m.val_SI
 
         ######################################################################
         # check fluid composition
-        if not outl.good_starting_values:
-            for f in outl.fluid.is_var:
-                if f == self.o2:
-                    if outl.fluid.val[f] > 0.25:
-                        outl.fluid.val[f] = 0.2
-                    if outl.fluid.val[f] < 0.001:
-                        outl.fluid.val[f] = 0.05
+        outl = outl[0]
+        for f in outl.fluid.is_var:
+            if f == self.o2:
+                if outl.fluid.val[f] > 0.25:
+                    outl.fluid.val[f] = 0.2
+                if outl.fluid.val[f] < 0.001:
+                    outl.fluid.val[f] = 0.05
 
-                elif f == self.co2:
-                    if outl.fluid.val[f] > 0.1:
-                        outl.fluid.val[f] = 0.075
-                    if outl.fluid.val[f] < 0.001:
-                        outl.fluid.val[f] = 0.02
+            elif f == self.co2:
+                if outl.fluid.val[f] > 0.1:
+                    outl.fluid.val[f] = 0.075
+                if outl.fluid.val[f] < 0.001:
+                    outl.fluid.val[f] = 0.02
 
-                elif f == self.h2o:
-                    if outl.fluid.val[f] > 0.1:
-                        outl.fluid.val[f] = 0.075
-                    if outl.fluid.val[f] < 0.001:
-                        outl.fluid.val[f] = 0.02
+            elif f == self.h2o:
+                if outl.fluid.val[f] > 0.1:
+                    outl.fluid.val[f] = 0.075
+                if outl.fluid.val[f] < 0.001:
+                    outl.fluid.val[f] = 0.02
 
-                elif f in self.fuel_list:
-                    if outl.fluid.val[f] > 0:
-                        outl.fluid.val[f] = 0
+            elif f in self.fuel_list:
+                if outl.fluid.val[f] > 0:
+                    outl.fluid.val[f] = 0
 
-                else:
-                    m_f = 0
-                    for i in inl:
-                        m_f += i.fluid.val[f] * i.m.val_SI
+            else:
+                m_f = 0
+                for i in inl:
+                    m_f += i.fluid.val[f] * i.m.val_SI
 
-                    if abs(outl.fluid.val[f] - m_f / m) > 0.03:
-                        outl.fluid.val[f] = m_f / m
+                if abs(outl.fluid.val[f] - m_f / m) > 0.03:
+                    outl.fluid.val[f] = m_f / m
+
+        total_mass_fractions = sum(outl.fluid.val.values())
+        for fluid in outl.fluid.is_var:
+            outl.fluid.val[fluid] /= total_mass_fractions
+        outl.build_fluid_data()
 
         ######################################################################
         # flue gas propagation
-        if not outl.good_starting_values:
-            if outl.m.val_SI < 0 and not outl.m.is_set:
-                outl.m.val_SI = 10
-            outl.target.propagate_fluid_to_target(outl, outl.target)
+        if outl.m.val_SI < 0 and outl.m.is_var:
+            outl.m.val_SI = 10
 
-            if outl.h.val_SI < 7.5e5 and not outl.h.is_set:
+        if not outl.good_starting_values:
+            if outl.h.val_SI < 7.5e5 and outl.h.is_var:
                 outl.h.val_SI = 1e6
 
         ######################################################################
@@ -1305,7 +1249,7 @@ class CombustionChamber(Component):
                     for f in self.fuel_list:
                         fuel += i.fluid.val[f]
                     # found the fuel inlet
-                    if fuel > 0.75 and not i.m.is_set:
+                    if fuel > 0.75 and i.m.is_var:
                         fuel_found = True
                         fuel_inlet = i
 
@@ -1375,36 +1319,6 @@ class CombustionChamber(Component):
             return 5e5
         elif key == 'h':
             return 5e5
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation to target stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Fluid propagation to source stops here.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

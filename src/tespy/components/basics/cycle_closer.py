@@ -163,36 +163,6 @@ class CycleCloser(Component):
         super().preprocess(num_nw_vars)
         self._propagation_start = False
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation to target stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Fluid propagation to source stops here.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow

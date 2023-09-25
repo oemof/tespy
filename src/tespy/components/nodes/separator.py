@@ -355,33 +355,3 @@ class Separator(NodeBase):
             # for fluid in o.fluid.is_var:
             #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
             k += 1
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return

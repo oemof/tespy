@@ -94,21 +94,6 @@ class Source(Component):
     def get_mandatory_constraints():
         return {}
 
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Fluid propagation to source stops here.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.
 

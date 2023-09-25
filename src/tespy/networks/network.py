@@ -860,9 +860,6 @@ class Network:
         else:
             # reset any preceding offdesign calculation
             self.init_design()
-            # generic fluid initialisation
-            # for offdesign cases good starting values should be available
-            self.init_fluids()
 
         # generic fluid property initialisation
         self.init_properties()
@@ -922,7 +919,7 @@ class Network:
                 else:
                     for f in potential_fluids:
                         if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
-                            c.fluid.val[f] = 0
+                            c.fluid.val[f] = 1 / len(potential_fluids)
                         elif f not in c.fluid.is_set and f not in c.fluid.val and f in c.fluid.val0:
                             c.fluid.val[f] = c.fluid.val0[f]
 
@@ -1010,6 +1007,10 @@ class Network:
 
                 if len(main_conn._potential_fluids) > 1:
                     main_conn.fluid.is_var = {f for f in main_conn.fluid.val}
+                    with_starting_value = sum(main_conn.fluid.val0.values())
+                    for f in main_conn.fluid.val:
+                        if f not in main_conn.fluid.val0:
+                            main_conn.fluid.val[f] = (1 - with_starting_value) / len(main_conn.fluid.is_var)
                 else:
                     main_conn.fluid.val[list(main_conn._potential_fluids)[0]] = 1
 
@@ -1063,6 +1064,8 @@ class Network:
                 main_conn._fluid_tmp.is_set = main_conn.fluid.is_set.copy()
                 main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
                 main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
+                main_conn._fluid_tmp.engine = main_conn.fluid.engine.copy()
+                main_conn._fluid_tmp.back_end = main_conn.fluid.back_end.copy()
 
                 for c in all_connections[1:]:
                     c._fluid_tmp = c.fluid
@@ -1071,6 +1074,9 @@ class Network:
                 main_conn.fluid.val.update(fixed_fractions)
                 main_conn.fluid.is_set = {f for f in fixed_fractions}
                 main_conn.fluid.is_var = variable
+                num_var = len(variable)
+                for f in variable:
+                    main_conn.fluid.val[f]: (1 - mass_fraction_sum) / num_var
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in main_conn.fluid.is_var:
@@ -1592,48 +1598,6 @@ class Network:
         for b in self.busses.values():
             self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
-
-    def init_fluids(self):
-        r"""
-        Initialise the fluid vector on every connection of the network.
-
-        - Create fluid vector for every component as dict,
-          index: nw.fluids,
-          values: 0 if not set by user.
-        - Create fluid_set vector with same logic,
-          index: nw.fluids,
-          values: False if not set by user.
-        - If there are any combustion chambers in the network, calculate fluid
-          vector starting from there.
-        - Propagate fluid vector in direction of sources and targets.
-        """
-        # stop fluid propagation for single fluid networks
-        if len(self.all_fluids) == 1:
-            return
-
-        # propagation runs based on fluid wrapper branches
-        for branch in self.fluid_wrapper_branches.values():
-            if len(branch["connections"][0].fluid.val) == 1:
-                continue
-
-            branch_connections = [c.label for c in branch["connections"]]
-            connections = [
-                self.fluid_branches[name][0]["connections"][0]
-                for name in branch_connections
-                if name in self.fluid_branches
-            ]
-
-            for c in connections:
-                if len(c.fluid.is_set) > 0:
-                    c.target.propagate_fluid_to_target(c, c, entry_point=True)
-                    c.source.propagate_fluid_to_source(c, c, entry_point=True)
-
-        # fluid starting value generation based on components
-        for cp in self.comps['object']:
-            cp.initialise_fluids()
-
-        msg = 'Fluid initialisation done.'
-        logger.debug(msg)
 
     def init_properties(self):
         """

@@ -1095,14 +1095,6 @@ class WaterElectrolyzer(Component):
             branch["components"] += [self]
             return
 
-    def initialise_fluids(self):
-        """Set values to pure fluid on water inlet and gas outlets."""
-        for c in self.outl[1:]:
-            c.target.propagate_fluid_to_target(c, c.target)
-        self.inl[1].source.propagate_fluid_to_source(
-            self.inl[1], self.inl[1].source
-        )
-
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
@@ -1162,47 +1154,6 @@ class WaterElectrolyzer(Component):
         elif key == 'h':
             T = 20 + 273.15
             return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and inconn == start:
-            return
-        if inconn == self.inl[0]:
-            outconn = self.outl[0]
-
-            outconn.target.propagate_fluid_to_target(outconn, start)
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and outconn == start:
-            return
-
-        if outconn == self.outl[0]:
-            inconn = self.inl[0]
-
-            inconn.source.propagate_fluid_to_source(inconn, start)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

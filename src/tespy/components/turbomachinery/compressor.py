@@ -574,15 +574,15 @@ class Compressor(Turbomachine):
         """
         i, o = self.inl, self.outl
 
-        if not o[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
+        if o[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
             o[0].p.val_SI = o[0].p.val_SI * 1.1
 
-        if not o[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
+        if o[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
             o[0].h.val_SI = o[0].h.val_SI * 1.1
 
-        if not i[0].p.is_set and o[0].p.val_SI < i[0].p.val_SI:
+        if i[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
             i[0].p.val_SI = o[0].p.val_SI * 0.9
-        if not i[0].h.is_set and o[0].h.val_SI < i[0].h.val_SI:
+        if i[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 
     @staticmethod

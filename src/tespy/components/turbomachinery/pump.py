@@ -418,14 +418,14 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        if not o.p.is_set and o.p.val_SI < i.p.val_SI:
+        if o.p.is_var and o.p.val_SI < i.p.val_SI:
             o.p.val_SI = o.p.val_SI * 2
-        if not i.p.is_set and o.p.val_SI < i.p.val_SI:
+        if i.p.is_var and o.p.val_SI < i.p.val_SI:
             i.p.val_SI = o.p.val_SI * 0.5
 
-        if not o.h.is_set and o.h.val_SI < i.h.val_SI:
+        if o.h.is_var and o.h.val_SI < i.h.val_SI:
             o.h.val_SI = o.h.val_SI * 1.1
-        if not i.h.is_set and o.h.val_SI < i.h.val_SI:
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
             i.h.val_SI = o.h.val_SI * 0.9
 
         if self.flow_char.is_set:

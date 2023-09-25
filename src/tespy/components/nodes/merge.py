@@ -320,67 +320,6 @@ class Merge(NodeBase):
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
-    def initialise_fluids(self):
-        """Fluid initialisation for fluid mixture at outlet of the node."""
-        num_fl = {}
-        for o in self.outl:
-            num_fl[o] = num_fluids(o.fluid.val)
-
-        for i in self.inl:
-            num_fl[i] = num_fluids(i.fluid.val)
-
-        ls = []
-        if any(num_fl.values()) and not all(num_fl.values()):
-            for conn, num in num_fl.items():
-                if num == 1:
-                    ls += [conn]
-
-            for c in ls:
-                for fluid in self.outl[0].fluid.is_var:
-                    self.outl[0].fluid.val[fluid] = c.fluid.val[fluid]
-                    for i in self.inl:
-                        if fluid in i.fluid.is_var:
-                            i.fluid.val[fluid] = c.fluid.val[fluid]
-            self.outl[0].target.propagate_fluid_to_target(o, o, entry_point=True)
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and outconn == start:
-            return
-
-        for inconn in self.inl:
-            if not inconn.good_starting_values:
-                for fluid in inconn.fluid.is_var:
-                    inconn.fluid.val[fluid] = outconn.fluid.val[fluid]
-
-            inconn.source.propagate_fluid_to_source(inconn, start)
-
     @staticmethod
     def is_branch_source():
         return True

@@ -190,15 +190,15 @@ class Connection:
     False
     >>> so_si1.m.get_attr('is_set')
     False
-    >>> type(so_si2.m_ref.val)
+    >>> type(so_si2.m_ref.ref)
     <class 'tespy.connections.connection.Ref'>
     >>> so_si2.fluid.get_attr('balance')
     True
-    >>> so_si2.m_ref.val.get_attr('delta')
+    >>> so_si2.m_ref.ref.get_attr('delta')
     -5
     >>> so_si2.m_ref.is_set
     True
-    >>> type(so_si2.m_ref.val.get_attr('obj'))
+    >>> type(so_si2.m_ref.ref.get_attr('obj'))
     <class 'tespy.connections.connection.Connection'>
 
     Unset the specified temperature and specify temperature difference to

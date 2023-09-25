@@ -48,7 +48,8 @@ class SimpleHeatExchanger(Component):
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
 
@@ -112,13 +113,18 @@ class SimpleHeatExchanger(Component):
         Length of the pipes, :math:`L/\text{m}`.
 
     ks : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
-        :math:`ks/\text{1}` for hazen-williams equation.
+        Pipe's roughness, :math:`ks/\text{m}`.
 
-    hydro_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions.
-        Choose 'HW' for hazen-williams equation, else darcy friction factor is
-        used.
+    darcy_group : str, dict
+        Parametergroup for pressure drop calculation based on pipes dimensions
+        using darcy weissbach equation.
+
+    ks_HW : float, dict, :code:`"var"`
+        Pipe's roughness, :math:`ks/\text{1}`.
+
+    hw_group : str, dict
+        Parametergroup for pressure drop calculation based on pipes dimensions
+        using hazen williams equation.
 
     kA : float, dict, :code:`"var"`
         Area independent heat transfer coefficient,
@@ -213,13 +219,18 @@ class SimpleHeatExchanger(Component):
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+            'ks_HW': dc_cp(val=10, min_val=1e-1, max_val=1e3, d=1e-2),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
             'dissipative': dc_simple(val=True),
-            'hydro_group': dc_gcp(
+            'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq=1,
-                latex=self.hydro_group_func_doc,
-                func=self.hydro_group_func, deriv=self.hydro_group_deriv),
+                latex=self.darcy_func_doc,
+                func=self.darcy_func, deriv=self.darcy_deriv),
+            'hw_group': dc_gcp(
+                elements=['L', 'ks_HW', 'D'], num_eq=1,
+                latex=self.hazen_williams_func_doc,
+                func=self.hazen_williams_func, deriv=self.hazen_williams_deriv),
             'kA_group': dc_gcp(
                 elements=['kA', 'Tamb'], num_eq=1,
                 latex=self.kA_group_func_doc,
@@ -304,91 +315,6 @@ class SimpleHeatExchanger(Component):
         if self.Q.is_var:
             self.jacobian[k, self.Q.J_col] = -1
 
-    def hydro_group_func(self):
-        r"""
-        Equation for pressure drop calculation.
-
-        Returns
-        -------
-        residual : float
-            Residual value of corresponding equation:
-
-            - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
-            - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
-        """
-        # hazen williams equation
-        if self.hydro_group.method == 'HW':
-            return self.hazen_williams_func()
-        # darcy friction factor
-        else:
-            return self.darcy_func()
-
-    def hydro_group_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        # hazen williams equation
-        if self.hydro_group.method == 'HW':
-            msg = (
-                "The Hazen-Williams equation will be accessible through its "
-                "own ks-value in the next major version. That means, you will "
-                "not need to specify hydro_group='HW' and ks. Instead of ks "
-                "specify ks_HW"
-            )
-            warnings.warn(msg, FutureWarning)
-            return self.hazen_williams_func_doc(label)
-        # darcy friction factor
-        else:
-            return self.darcy_func_doc(label)
-
-    def hydro_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        # hazen williams equation
-        if self.hydro_group.method == 'HW':
-            func = self.hazen_williams_func
-        # darcy friction factor
-        else:
-            func = self.darcy_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        # custom variables of hydro group
-        for variable_name in self.hydro_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
-
     def darcy_func(self):
         r"""
         Equation for pressure drop calculation from darcy friction factor.
@@ -456,6 +382,39 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
+    def darcy_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of hydro group (pressure drop).
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        func = self.darcy_func
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        # custom variables of hydro group
+        for variable_name in self.darcy_group.elements:
+            parameter = self.get_attr(variable_name)
+            if parameter.is_var:
+                self.jacobian[k, parameter.J_col] = (
+                    self.numeric_deriv(func, variable_name, None)
+                )
+
     def hazen_williams_func(self):
         r"""
         Equation for pressure drop calculation from Hazen-Williams equation.
@@ -493,7 +452,7 @@ class SimpleHeatExchanger(Component):
         return (
             (i.p.val_SI - o.p.val_SI) * np.sign(i.m.val_SI) -
                 (10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
-                 (self.ks.val ** 1.852 * self.D.val ** 4.871)) *
+                 (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)) *
                 (9.81 * ((v_i + v_o) / 2) ** 0.852))
 
     def hazen_williams_func_doc(self, label):
@@ -517,6 +476,39 @@ class SimpleHeatExchanger(Component):
             r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
         )
         return generate_latex_eq(self, latex, label)
+
+    def hazen_williams_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of hydro group (pressure drop).
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        func = self.hazen_williams_func
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        # custom variables of hydro group
+        for variable_name in self.hw_group.elements:
+            parameter = self.get_attr(variable_name)
+            if parameter.is_var:
+                self.jacobian[k, parameter.J_col] = (
+                    self.numeric_deriv(func, variable_name, None)
+                )
 
     def kA_group_func(self):
         r"""
@@ -1089,7 +1081,7 @@ class SimpleHeatExchanger(Component):
                     "chemical": np.nan, "physical": np.nan, "massless": np.nan
                 }
         elif self.Q.val > 0:
-            if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            if self.inl[0].T.val_SI >= T0 - 1e-6 and self.outl[0].T.val_SI >= T0 - 1e-6:
                 self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
                 self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm
                 self.E_bus = {

@@ -98,8 +98,7 @@ class Drum(DropletSeparator):
     >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> import shutil
     >>> import numpy as np
-    >>> nw = Network(fluids=['NH3', 'air'], T_unit='C', p_unit='bar',
-    ...     h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')
     >>> amb_out = Sink('air outlet')
@@ -134,8 +133,8 @@ class Drum(DropletSeparator):
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
     >>> f_dr.set_attr(p=5, T=-5)
-    >>> erp_ev.set_attr(m=Ref(f_dr, 4, 0), fluid={'air': 0, 'NH3': 1})
-    >>> amb_ev.set_attr(fluid={'air': 1, 'NH3': 0}, T=30)
+    >>> erp_ev.set_attr(m=Ref(f_dr, 4, 0), fluid={'NH3': 1})
+    >>> amb_ev.set_attr(fluid={'air': 1}, T=30)
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')

@@ -244,7 +244,7 @@ class UserDefinedEquation:
         >>> from tespy.tools.helpers import UserDefinedEquation
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
-        >>> nw = Network(fluids=['water'], p_unit='bar', T_unit='C')
+        >>> nw = Network(p_unit='bar', T_unit='C')
         >>> nw.set_attr(iterinfo=False)
         >>> so = Source('source')
         >>> si = Sink('sink')

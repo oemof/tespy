@@ -110,9 +110,8 @@ class Pump(Turbomachine):
     >>> from tespy.tools.characteristics import CharLine
     >>> import numpy as np
     >>> import shutil
-    >>> fluid_list = ['water']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ...     h_unit='kJ / kg', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
+    ... iterinfo=False)
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')

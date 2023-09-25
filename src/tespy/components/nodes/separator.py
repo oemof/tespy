@@ -93,8 +93,7 @@ class Separator(NodeBase):
     >>> from tespy.networks import Network
     >>> import shutil
     >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    >>> nw = Network(p_unit='bar', T_unit='C',
     ... iterinfo=False)
     >>> so = Source('source')
     >>> si1 = Sink('sink1')

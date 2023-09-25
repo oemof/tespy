@@ -159,8 +159,8 @@ class Condenser(HeatExchanger):
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
-    >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
+    ... m_range=[0.01, 1000], iterinfo=False)
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')
     >>> waste_steam = Source('waste steam')
@@ -180,8 +180,8 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
     ... offdesign=['zeta2', 'kA_char'])
-    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
+    >>> ws_he.set_attr(fluid={'water': 1}, h=2700, m=1)
+    >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')

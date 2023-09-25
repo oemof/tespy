@@ -275,7 +275,7 @@ class TestRefrigerator:
         self.Tamb = 20
         self.pamb = 1
         fluids = ['R134a']
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # create components
@@ -343,7 +343,7 @@ class TestCompressedAirIn:
         fluids = ['Air']
 
         # compressor part
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components
@@ -402,7 +402,7 @@ class TestCompressedAirOut:
         fluids = ['Air']
 
         # turbine part
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components
@@ -492,7 +492,7 @@ class TestCompression:
         fluids = ['Air']
 
         # turbine part
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components
@@ -571,7 +571,7 @@ class TestExpansion:
         fluids = ['Air']
 
         # turbine part
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # components

@@ -122,9 +122,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
-    >>> fluid_list = ['Ar', 'N2', 'H2', 'O2', 'CO2', 'CH4', 'H2O']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')

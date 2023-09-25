@@ -32,7 +32,7 @@ class TestCGAM:
 
     def setup_method(self):
         fluid_list = ['O2', 'H2O', 'N2', 'CO2', 'CH4']
-        self.nwk = Network(fluids=fluid_list, p_unit='bar', T_unit='C')
+        self.nwk = Network(p_unit='bar', T_unit='C')
 
         air_molar = {
             'O2': 0.2059, 'N2': 0.7748, 'CO2': 0.0003, 'H2O': 0.019, 'CH4': 0

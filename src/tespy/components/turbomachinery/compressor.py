@@ -117,9 +117,8 @@ class Compressor(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluid_list = ['air']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
-    ... h_unit='kJ / kg', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
+    ... iterinfo=False)
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> comp = Compressor('compressor')

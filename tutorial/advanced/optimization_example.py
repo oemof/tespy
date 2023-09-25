@@ -24,7 +24,7 @@ class SamplePlant:
     """Class template for TESPy model usage in optimization module."""
     def __init__(self):
 
-        self.nw = Network(fluids=["water"])
+        self.nw = Network()
         self.nw.set_attr(
             p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False
         )

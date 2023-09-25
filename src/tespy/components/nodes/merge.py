@@ -87,8 +87,7 @@ class Merge(NodeBase):
     >>> from tespy.networks import Network
     >>> import shutil
     >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', iterinfo=False)
+    >>> nw = Network(p_unit='bar', iterinfo=False)
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
     >>> so3 = Source('source3')
@@ -112,8 +111,8 @@ class Merge(NodeBase):
 
     >>> T = 293.15
     >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=T, m=5)
-    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=T, m=5)
-    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=T)
+    >>> inc2.set_attr(fluid={'O2': 1}, T=T, m=5)
+    >>> inc3.set_attr(fluid={'N2': 1}, T=T)
     >>> outg.set_attr(fluid={'N2': 0.4})
     >>> nw.solve('design')
     >>> round(inc3.m.val_SI, 2)

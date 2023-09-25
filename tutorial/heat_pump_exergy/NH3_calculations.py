@@ -27,8 +27,7 @@ Tamb = 2.8  # ambient temperature
 # mean geothermal temperature (mean value of ground feed and return flow)
 Tgeo = 9.5
 
-nw = Network(fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
-             h_unit='kJ / kg', m_unit='kg / s')
+nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
 # %% components
 
@@ -95,16 +94,16 @@ ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 # %% connection parametrization
 
 # heat pump system
-cc_cd.set_attr(fluid={'water': 0, 'NH3': 1})
+cc_cd.set_attr(fluid={'NH3': 1})
 ev_cp.set_attr(Td_bp=3)
 
 # geothermal heat collector
-gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1, 'NH3': 0},
+gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1},
                    )
 ev_gh_out.set_attr(T=Tgeo - 1.5, p=1.5)
 
 # heating system
-cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1, 'NH3': 0})
+cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1})
 hs_ret_hsp.set_attr(T=35, p=2)
 
 # starting values

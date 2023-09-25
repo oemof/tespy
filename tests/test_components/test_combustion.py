@@ -28,8 +28,7 @@ class TestCombustion:
 
     def setup_method(self):
 
-        self.nw = Network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'CH4'],
-                          T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.fuel = Source('fuel')
         self.air = Source('ambient air')
         self.fg = Sink('flue gas')
@@ -114,9 +113,8 @@ class TestCombustion:
         self.setup_CombustionChamber_network(instance)
 
         # connection parameter specification
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
-               'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1.2, T=30)
         self.c2.set_attr(fluid=fuel, T=30, p=1.5)
 
@@ -138,16 +136,11 @@ class TestCombustion:
         )
         assert valid == check, msg
 
-        # test invalid pressure specification -> leading to linear dependency
-        self.c2.set_attr(p=None)
-        self.c3.set_attr(p=1.3)
-        self.nw.solve('design')
-        assert self.nw.lin_dep, "Calculation must not converge in this case."
-
         # test invalid pressure ratio
         instance.set_attr(pr=None)
         self.c1.set_attr(p=1.2)
         self.c2.set_attr(p=1.5)
+        self.c3.set_attr(p=1.3)
         self.nw.solve('design')
         self.nw._convergence_check()
 
@@ -159,6 +152,13 @@ class TestCombustion:
         )
         assert valid == check, msg
 
+        # test invalid pressure specification -> leading to linear dependency
+        instance.set_attr(pr=pr)
+        self.c2.set_attr(p=None)
+        self.c3.set_attr(p=1.3)
+        self.nw.solve('design')
+        assert self.nw.lin_dep, "Calculation must not converge in this case."
+
     def test_CombustionEngine(self):
         """Test component properties of combustion engine."""
         instance = CombustionEngine('combustion engine')
@@ -166,9 +166,9 @@ class TestCombustion:
 
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
                'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
-        water1 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
-        water2 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
+        water1 = {'H2O': 1}
+        water2 = {'H2O': 1}
 
         # connection parametrisation
         instance.set_attr(pr1=0.99, pr2=0.99, lamb=1.0,

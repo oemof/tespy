@@ -168,7 +168,7 @@ class Connection:
     - a string (for attributes design_path and state).
     - a list (for attributes design and offdesign).
 
-    >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1, 'N2': 0})
+    >>> so_si1.set_attr(v=0.012, m0=10, p=5, h=400, fluid={'H2O': 1})
     >>> so_si2.set_attr(m=Ref(so_si1, 2, -5), h0=700, T=200,
     ... fluid={'N2': 1}, fluid_balance=True,
     ... design=['T'], offdesign=['m', 'v'])
@@ -752,10 +752,10 @@ class Connection:
                 dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
         for fluid in self.fluid.is_var:
-            if not self._increment_filter[self.fluid.J_col[fluid]]:
-                self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                    self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
-                )
+            # if not self._increment_filter[self.fluid.J_col[fluid]]:
+            self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
+                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+            )
 
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.ref

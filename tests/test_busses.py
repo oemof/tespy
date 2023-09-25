@@ -58,11 +58,8 @@ class TestBusses:
         # %% connection parameters
         amb_cp.set_attr(
             T=20, p=1, m=100,
-            fluid={'Ar': 0.0129, 'N2': 0.7553, 'H2O': 0, 'CH4': 0,
-                   'CO2': 0.0004, 'O2': 0.2314})
-        sf_cc.set_attr(
-            T=20, fluid={'CO2': 0.04, 'Ar': 0, 'N2': 0,
-                         'O2': 0, 'H2O': 0, 'CH4': 0.96})
+            fluid={'Ar': 0.0129, 'N2': 0.7553, 'CO2': 0.0004, 'O2': 0.2314})
+        sf_cc.set_attr(T=20, fluid={'CO2': 0.04, 'CH4': 0.96})
         gt_fg.set_attr(p=1)
 
         # motor efficiency

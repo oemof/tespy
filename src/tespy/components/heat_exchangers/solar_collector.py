@@ -149,8 +149,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = Network(fluids=fluids)
+    >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source')
     >>> si = Sink('sink')

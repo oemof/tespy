@@ -108,7 +108,7 @@ class TestCyclicMerging:
     def test_two_fluid_setup(self):
         c1, c3, c4, c5, c6 = self.nwk.get_conn(["1", "3", "4", "5", "6"])
 
-        c1.set_attr(p=1, h=200, m=10, fluid={"R134a": 1, "H2O": 0})
+        c1.set_attr(p=1, h=200, m=10, fluid={"R134a": 1})
         c3.set_attr(h=180)
         c4.set_attr(m=1)
         c5.set_attr(h=170)

@@ -128,8 +128,8 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> nw = Network(T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10], iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
+    ... m_range=[0.001, 10], iterinfo=False)
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
     >>> cw_in = Source('cooling water inlet')
@@ -152,10 +152,10 @@ class Desuperheater(HeatExchanger):
 
     >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
     ... offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_de.set_attr(fluid={'water': 1, 'ethanol': 0}, T=15, v=1,
+    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1,
     ... design=['v'])
     >>> de_cw.set_attr(p=1)
-    >>> et_de.set_attr(fluid={'water': 0, 'ethanol': 1}, Td_bp=100, v=10)
+    >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')

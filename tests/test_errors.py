@@ -74,7 +74,7 @@ def set_attr_ValueError(instance, **kwargs):
 
 def test_set_attr_errors():
     """Test errors of set_attr methods."""
-    nw = Network(['water', 'air'])
+    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
@@ -132,7 +132,7 @@ def test_set_attr_errors():
 
 def test_get_attr_errors():
     """Test errors of get_attr methods."""
-    nw = Network(['water', 'air'])
+    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
@@ -262,7 +262,7 @@ def test_UserDefinedEquation_errors():
 
 def test_CombustionChamber_missing_fuel():
     """Test no fuel in network."""
-    nw = Network(['H2O', 'N2', 'O2', 'Ar', 'CO2'])
+    nw = Network()
     instance = CombustionChamber('combustion chamber')
     c1 = Connection(Source('air'), 'out1', instance, 'in1')
     c2 = Connection(Source('fuel'), 'out1', instance, 'in2')
@@ -274,7 +274,7 @@ def test_CombustionChamber_missing_fuel():
 
 def test_CombustionChamber_missing_oxygen():
     """Test no oxygen in network."""
-    nw = Network(['H2O', 'N2', 'Ar', 'CO2', 'CH4'])
+    nw = Network()
     instance = CombustionChamber('combustion chamber')
     c1 = Connection(Source('air'), 'out1', instance, 'in1')
     c2 = Connection(Source('fuel'), 'out1', instance, 'in2')
@@ -290,7 +290,7 @@ def test_CombustionChamber_missing_oxygen():
 class TestCombustionEngineBusErrors:
 
     def setup_method(self):
-        self.nw = Network(['water', 'air'])
+        self.nw = Network()
         self.instance = CombustionEngine('combustion engine')
         self.bus = Bus('power')
         self.bus.add_comps({'comp': self.instance, 'param': 'Param'})
@@ -398,7 +398,7 @@ def test_wrong_Bus_param_deriv():
 class TestNetworkErrors:
 
     def setup_method(self):
-        self.nw = Network(['water'])
+        self.nw = Network()
 
     def test_add_conns_TypeError(self):
         with raises(TypeError):
@@ -519,16 +519,6 @@ class TestNetworkErrors:
             a = Bus('mybus')
             b = Bus('mybus')
             self.nw.add_busses(a, b)
-
-
-def test_Network_instanciation_no_fluids():
-    nw = Network([])
-    so = Source('source')
-    si = Sink('sink')
-    conn = Connection(so, 'out1', si, 'in1')
-    nw.add_conns(conn)
-    with raises(TESPyNetworkError):
-        nw.solve('design', init_only=True)
 
 ##############################################################################
 # test errors of characteristics classes

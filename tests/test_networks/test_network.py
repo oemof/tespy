@@ -274,7 +274,7 @@ class TestNetworkIndividualOffdesign:
 
     def setup_Network_individual_offdesign(self):
         """Set up network for individual offdesign tests."""
-        self.nw = Network(['H2O'], T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
 
         so = Source('source')
         sp = Splitter('splitter', num_out=2)

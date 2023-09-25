@@ -153,8 +153,7 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluids = ['N2']
-    >>> nw = Network(fluids=fluids)
+    >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')

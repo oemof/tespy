@@ -175,8 +175,7 @@ class ExergyAnalysis:
 
         >>> Tamb = 20
         >>> pamb = 1
-        >>> fluids = ['water']
-        >>> nw = Network(fluids=fluids)
+        >>> nw = Network()
         >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
         ... iterinfo=False)
 

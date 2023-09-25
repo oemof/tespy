@@ -26,7 +26,7 @@ class TestReactors:
 
     def setup_method(self):
         """Set up network for electrolyzer tests."""
-        self.nw = Network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
+        self.nw = Network(T_unit='C', p_unit='bar')
         self.instance = WaterElectrolyzer('electrolyzer')
 
         fw = Source('feed water')
@@ -37,8 +37,9 @@ class TestReactors:
 
         self.instance.set_attr(pr=0.99, eta=1)
 
-        cw_el = Connection(cw_in, 'out1', self.instance, 'in1',
-                           fluid={'H2O': 1, 'H2': 0, 'O2': 0}, T=20, p=1)
+        cw_el = Connection(
+            cw_in, 'out1', self.instance, 'in1', fluid={'H2O': 1}, T=20, p=1
+       )
         el_cw = Connection(self.instance, 'out1', cw_out, 'in1', T=45)
 
         self.nw.add_conns(cw_el, el_cw)

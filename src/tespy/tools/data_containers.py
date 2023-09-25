@@ -76,8 +76,9 @@ class DataContainer:
     ...      max_val=1000, min_val=1))
     <class 'tespy.tools.data_containers.ComponentProperties'>
     >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
-    >>> type(GroupedComponentProperties(is_set=True,
-    ...      elements=[pi.L, pi.D, pi.ks], method='default'))
+    >>> type(GroupedComponentProperties(
+    ... is_set=True, elements=["L", "D", "ks"]
+    ... ))
     <class 'tespy.tools.data_containers.GroupedComponentProperties'>
     >>> type(FluidComposition(
     ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
@@ -161,7 +162,7 @@ class DataContainer:
         """
         return {}
 
-    def serialize():
+    def serialize(self):
         return {}
 
 
@@ -201,6 +202,15 @@ class ComponentCharacteristics(DataContainer):
             'num_eq': 0
         }
 
+    def serialize(self):
+        export = {}
+        if self.char_func is not None:
+            export.update({"char_func": self.char_func.serialize()})
+
+        for k in ["is_set", "param", "char_params"]:
+            export.update({k: self.get_attr(k)})
+        return export
+
 
 class ComponentCharacteristicMaps(DataContainer):
     """
@@ -234,7 +244,17 @@ class ComponentCharacteristicMaps(DataContainer):
         return {
             'char_func': None, 'is_set': False, 'param': None, 'latex': None,
             'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq': 0}
+            'num_eq': 0
+        }
+
+    def serialize(self):
+        export = {}
+        if self.char_func is not None:
+            export.update({"char_func": self.char_func.serialize()})
+
+        for k in ["is_set", "param"]:
+            export.update({k: self.get_attr(k)})
+        return export
 
 
 class ComponentProperties(DataContainer):
@@ -288,10 +308,14 @@ class ComponentProperties(DataContainer):
             'latex': None
         }
 
+    def serialize(self):
+        keys = self._serializable_keys()
+        return {k: self.get_attr(k) for k in keys}
+
+    @staticmethod
     def _serializable_keys():
         return [
             "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
-            "design"
         ]
 
 
@@ -336,12 +360,20 @@ class FluidComposition(DataContainer):
             'is_set': set(),
             'design': collections.OrderedDict(),
             'wrapper': collections.OrderedDict(),
-            'engine': collections.OrderedDict(),
             'back_end': collections.OrderedDict(),
+            'engine': collections.OrderedDict(),
             "is_var": set(),
             "J_col": collections.OrderedDict(),
             'balance': False
         }
+
+    def serialize(self):
+        keys = ["val", "balance"]
+        export = {k: self.get_attr(k) for k in keys}
+        export["is_set"] = list(self.is_set)
+        export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
+        export["back_end"] = {k: b for k, b in self.back_end.items()}
+        return export
 
 
 class GroupedComponentProperties(DataContainer):
@@ -375,9 +407,11 @@ class GroupedComponentProperties(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'is_set': False, 'method': 'default', 'elements': [],
-                'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
-                'func_params': {}}
+        return {
+            'is_set': False, 'elements': [],
+            'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
+            'func_params': {}
+        }
 
 
 class GroupedComponentCharacteristics(DataContainer):
@@ -407,8 +441,10 @@ class GroupedComponentCharacteristics(DataContainer):
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {'is_set': False, 'elements': [], 'func': None, 'deriv': None,
-                'num_eq': 0, 'latex': None, 'func_params': {}}
+        return {
+            'is_set': False, 'elements': [], 'func': None, 'deriv': None,
+            'num_eq': 0, 'latex': None, 'func_params': {}
+        }
 
 
 class FluidProperties(DataContainer):
@@ -451,27 +487,64 @@ class FluidProperties(DataContainer):
             values.
         """
         return {
+            'design': np.nan,
             'val': np.nan,
             'val0': np.nan,
             'val_SI': 0,
-            'is_set': False,
             'unit': None,
-            'design': np.nan,
+            'is_set': False,
             "is_var": False,
             "func": None,
             "deriv": None,
             "constant_deriv": False,
             "latex": None,
             "num_eq": 0,
+            "J_col": None,
+            "systemvariable": False,
+            "presolve": False,
             "func_params": {},
-            "J_col": None
+            "solved": False
         }
 
-    def _serializable_keys():
-        return [
-            "val", "val0", "val_SI", "is_set", "d", "min_val", "max_val",
-            "is_var", "design"
-        ]
+    def serialize(self):
+        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        return {k: self.get_attr(k) for k in keys}
+
+
+class ReferencedFluidProperties(DataContainer):
+
+    @staticmethod
+    def attr():
+        r"""
+        Return the available attributes for a FluidProperties type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            "ref": None,
+            "is_set": False,
+            "unit": None,
+            "func": None,
+            "deriv": None,
+            "num_eq": 0,
+            "func_params": {},
+            "solved": False
+        }
+
+    def serialize(self):
+        if self.ref is not None:
+            keys = ["is_set", "unit"]
+            export = {k: self.get_attr(k) for k in keys}
+            export["conn"] = self.ref.obj.label
+            export["factor"] = self.ref.factor
+            export["delta"] = self.ref.delta
+            return export
+        else:
+            return {}
 
 
 class SimpleDataContainer(DataContainer):
@@ -499,6 +572,14 @@ class SimpleDataContainer(DataContainer):
             values.
         """
         return {
-            'val': np.nan, 'is_set': False,
-            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
-            'num_eq': 0}
+            'val': np.nan,
+            'is_set': False,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
+            'latex': None,
+            'num_eq': 0
+        }
+
+    def serialize(self):
+        return {"val": self.val, "is_set": self.is_set}

@@ -178,10 +178,16 @@ class Bus:
     """
     def __init__(self, label, **kwargs):
 
+        dtypes = {
+            "param": str,
+            "P_ref": float,
+            "char": object,
+            "efficiency": float,
+            "base": str,
+        }
         self.comps = pd.DataFrame(
-            columns=['param', 'P_ref', 'char', 'efficiency', 'base'],
-            dtype='object'
-        )
+            columns=list(dtypes.keys())
+        ).astype(dtypes)
 
         self.label = label
         self.P = dc_simple(val=np.nan, is_set=False)
@@ -402,6 +408,17 @@ class Bus:
 
             msg = f"Added component {comp.label} to bus {self.label}."
             logger.debug(msg)
+
+    def serialize(self):
+        export = {}
+        export["P"] = self.P.serialize()
+        for cp in self.comps.index:
+            export[cp.label] = {}
+            export[cp.label]["param"] = self.comps.loc[cp, "param"]
+            export[cp.label]["base"] = self.comps.loc[cp, "base"]
+            export[cp.label]["char"] = self.comps.loc[cp, "char"].serialize()
+
+        return {self.label: export}
 
     def solve(self):
         self.residual = self.P.val

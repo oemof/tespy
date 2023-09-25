@@ -60,15 +60,15 @@ class TestHeatExchangers:
         fl = {'H2O': 1}
         self.c1.set_attr(fluid=fl, m=1, p=10, T=100)
         # trigger heat exchanger parameter groups
-        instance.set_attr(hydro_group='HW', L=100, ks=100, pr=0.99, Tamb=20)
+        instance.set_attr(L=100, ks_HW=100, pr=0.99, Tamb=20)
 
         # test grouped parameter settings with missing parameters
-        instance.hydro_group.is_set = True
+        instance.darcy_group.is_set = True
         instance.kA_group.is_set = True
         instance.kA_char_group.is_set = True
         self.nw.solve('design', init_only=True)
-        msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert not instance.hydro_group.is_set, msg
+        msg = ('Darcy group must no be set, if one parameter is missing!')
+        assert not instance.darcy_group.is_set, msg
         msg = ('kA group must no be set, if one parameter is missing!')
         assert not instance.kA_group.is_set, msg
         msg = ('kA char group must no be set, if one parameter is missing!')
@@ -76,16 +76,14 @@ class TestHeatExchangers:
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
-        instance.set_attr(hydro_group='HW', D='var', L=100,
-                          ks=100, pr=0.99, Tamb=20)
+        instance.set_attr(D='var', L=100, ks_HW=100, pr=0.99, Tamb=20)
         b = Bus('heat', P=-1e5)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
         self.nw._convergence_check()
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 3)
-        msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
-               str(instance.pr.val) + '.')
+        msg = f"Value of pressure ratio must be {pr}, is {instance.pr.val}."
         assert pr == round(instance.pr.val, 3), msg
 
         # make zeta system variable and use previously calculated diameter
@@ -95,8 +93,7 @@ class TestHeatExchangers:
         instance.D.is_var = False
         self.nw.solve('design')
         self.nw._convergence_check()
-        msg = ('Value of zeta must be ' + str(zeta) + ', is ' +
-               str(round(instance.zeta.val, 0)) + '.')
+        msg = f"Value of pressure ratio must be {zeta}, is {instance.zeta.val}."
         assert zeta == round(instance.zeta.val, 0), msg
 
         # same test with pressure ratio as sytem variable
@@ -104,8 +101,7 @@ class TestHeatExchangers:
         instance.set_attr(zeta=None, pr='var')
         self.nw.solve('design')
         self.nw._convergence_check()
-        msg = ('Value of pressure ratio must be ' + str(pr) +
-               ', is ' + str(round(instance.pr.val, 3)) + '.')
+        msg = f"Value of pressure ratio must be {pr}, is {instance.pr.val}."
         assert pr == round(instance.pr.val, 3), msg
 
         # test heat transfer coefficient as variable of the system (ambient
@@ -117,8 +113,10 @@ class TestHeatExchangers:
 
         # due to heat output being half of reference (for Tamb) kA should be
         # somewhere near to that (actual value is 677)
-        msg = ('Value of heat transfer coefficient must be 677, is ' +
-               str(instance.kA.val) + '.')
+        msg = (
+            "Value of heat transfer coefficient must be 677, is "
+            f"{instance.kA.val}."
+        )
         assert 677 == round(instance.kA.val, 0), msg
 
         # test heat transfer as variable of the system
@@ -127,8 +125,7 @@ class TestHeatExchangers:
         b.set_attr(P=Q)
         self.nw.solve('design')
         self.nw._convergence_check()
-        msg = ('Value of heat transfer must be ' + str(Q) +
-               ', is ' + str(instance.Q.val) + '.')
+        msg = f"Value of heat transfer must be {Q}, is {instance.Q.val}."
         assert Q == round(instance.Q.val, 0), msg
 
         # test kA as network results parameter
@@ -156,17 +153,15 @@ class TestHeatExchangers:
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')
         self.setup_SimpleHeatExchanger_network(instance)
-        fl = {'S800': 1}
-        fbe = {"S800": "INCOMP"}
-        self.c1.set_attr(fluid=fl, fluid_back_ends=fbe, p=2, T=200)
+        self.c1.set_attr(fluid={'INCOMP::S800': 1}, p=2, T=200)
         self.c2.set_attr(T=350)
 
         # test grouped parameter settings with missing parameters
-        instance.hydro_group.is_set = True
+        instance.darcy_group.is_set = True
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
-        msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert not instance.hydro_group.is_set, msg
+        msg = ('Darcy group must no be set, if one parameter is missing!')
+        assert not instance.darcy_group.is_set, msg
         msg = ('Energy group must no be set, if one parameter is missing!')
         assert not instance.energy_group.is_set, msg
 
@@ -267,11 +262,11 @@ class TestHeatExchangers:
         self.c2.set_attr(T=70)
 
         # test grouped parameter settings with missing parameters
-        instance.hydro_group.is_set = True
+        instance.darcy_group.is_set = True
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
-        msg = ('Hydro group must no be set, if one parameter is missing!')
-        assert not instance.hydro_group.is_set, msg
+        msg = ('Darcy group must no be set, if one parameter is missing!')
+        assert not instance.darcy_group.is_set, msg
         msg = ('Energy group must no be set, if one parameter is missing!')
         assert not instance.energy_group.is_set, msg
 

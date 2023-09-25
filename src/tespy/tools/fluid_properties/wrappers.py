@@ -1,9 +1,19 @@
-
 import CoolProp as CP
 from CoolProp.CoolProp import AbstractState
 
+from tespy.tools.global_vars import ERR
+
 
 class FluidPropertyWrapper:
+
+    def __init__(self, fluid, back_end=None) -> None:
+        self.back_end = back_end
+        self.fluid = fluid
+        if "[" in self.fluid:
+            self.fluid, self._fractions = self.fluid.split("[")
+            self._fractions = self._fractions.replace("]", "")
+        else:
+            self._fractions = None
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -65,13 +75,12 @@ class FluidPropertyWrapper:
 class CoolPropWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
-        self.fluid = fluid
-        if back_end is None:
-            self.back_end = "HEOS"
-        else:
-            self.back_end = back_end
+        super().__init__(fluid, back_end)
 
-        self.AS = AbstractState(self.back_end, fluid)
+        if self.back_end is None:
+            self.back_end = "HEOS"
+
+        self.AS = AbstractState(self.back_end, self.fluid)
         self._set_constants()
 
     def _set_constants(self):
@@ -83,6 +92,11 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
+            if self._fractions is not None:
+                try:
+                    self.AS.set_volu_fractions([float(self._fractions)])
+                except ValueError:
+                    self.AS.set_mass_fractions([float(self._fractions)])
             self._p_min = 1e2
             self._p_max = 1e8
             self._p_crit = 1e8
@@ -108,6 +122,12 @@ class CoolPropWrapper(FluidPropertyWrapper):
             p = self._p_crit * 0.99
         return p
 
+    def get_T_max(self, p):
+        if self.back_end == "INCOMP":
+            return self.T_sat(p)
+        else:
+            return self._T_max
+
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
@@ -128,6 +148,9 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.hmass()
 
     def h_pT(self, p, T):
+        if self.back_end == "INCOMP":
+            if T == (self._T_max + self._T_min) / 2:
+                T += ERR
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
 
@@ -185,37 +208,40 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
 
-try:
-    import iapws
-except ModuleNotFoundError:
-    iapws = None
-
-
 class IAPWSWrapper(FluidPropertyWrapper):
 
+
     def __init__(self, fluid, back_end=None) -> None:
-        if iapws is None:
+        # avoid unncessary loading time if not used
+        try:
+            import iapws
+        except ModuleNotFoundError:
             msg = (
                 "To use the iapws fluid properties you need to install "
                 "iapws."
             )
             raise ModuleNotFoundError(msg)
+
+        super().__init__(fluid, back_end)
         self._aliases = CP.CoolProp.get_aliases("H2O")
 
-        if fluid not in self._aliases:
-            raise ValueError()
+        if self.fluid not in self._aliases:
+            msg = "The iapws wrapper only supports water as fluid."
+            raise ValueError(msg)
 
-        if back_end is None:
+        if self.back_end is None:
+            self.back_end = "IF97"
+
+        if self.back_end == "IF97":
             self.AS = iapws.IAPWS97
-        elif back_end == "IF97":
-            self.AS = iapws.IAPWS97
-        elif back_end == "IF95":
+        elif self.back_end == "IF95":
             self.AS = iapws.IAPWS95
         else:
-            raise NotImplementedError()
-        self._set_constants()
+            msg = f"The specified back_end {self.back_end} is not available."
+            raise NotImplementedError(msg)
+        self._set_constants(iapws)
 
-    def _set_constants(self):
+    def _set_constants(self, iapws):
         self._T_min = iapws._iapws.Tt
         self._T_max = 2000
         self._p_min = iapws._iapws.Pt * 1e6
@@ -248,8 +274,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
 
     def h_ps(self, p, s):
         return self.AS(P=p / 1e6, s=s / 1e3).h * 1e3
-        self.AS.update(CP.PSmass_INPUTS, p, s)
-        return self.AS.hmass()
 
     def h_pT(self, p, T):
         return self.AS(P=p / 1e6, T=T).h * 1000
@@ -304,28 +328,28 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
 
-try:
-    import pyromat as pm
-    pm.config['unit_energy'] = "J"
-    pm.config['unit_pressure'] = "Pa"
-    pm.config['unit_molar'] = "mol"
-except ModuleNotFoundError:
-    pm = None
+class PyromatWrapper(FluidPropertyWrapper):
 
-
-class PyromatIdealGasWrapper(FluidPropertyWrapper):
-
-    def __init__(self, fluid, backend=None) -> None:
-        if pm is None:
+    def __init__(self, fluid, back_end=None) -> None:
+        # avoid unnecessary loading time if not used
+        try:
+            import pyromat as pm
+            pm.config['unit_energy'] = "J"
+            pm.config['unit_pressure'] = "Pa"
+            pm.config['unit_molar'] = "mol"
+        except ModuleNotFoundError:
             msg = (
                 "To use the pyromat fluid properties you need to install "
                 "pyromat."
             )
             raise ModuleNotFoundError(msg)
-        self.fluid = fluid
 
-        self.AS = pm.get(f"ig.{fluid}")
+        super().__init__(fluid, back_end)
+        self._create_AS(pm)
         self._set_constants()
+
+    def _create_AS(self, pm):
+        self.AS = pm.get(f"{self.back_end}.{self.fluid}")
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
@@ -366,37 +390,36 @@ class PyromatIdealGasWrapper(FluidPropertyWrapper):
         return self.AS.s(p=p, h=h)[0]
 
     def s_pT(self, p, T):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.s(p=p, T=T)[0]
 
-
-class PyromatMulitphaseWrapper(PyromatIdealGasWrapper):
-
-    def __init__(self, fluid, backend=None) -> None:
-        if pm is None:
-            msg = (
-                "To use the pyromat fluid properties you need to install "
-                "pyromat."
-            )
-            raise ModuleNotFoundError(msg)
-        self.fluid = fluid
-
-        self.AS = pm.get(f"mp.{fluid}")
-        self._set_constants()
-
     def h_QT(self, Q, T):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.h(x=Q, T=T)[0]
 
     def s_QT(self, Q, T):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.s(x=Q, T=T)[0]
 
     def T_boiling(self, p):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.T(x=1, p=p)[0]
 
     def p_boiling(self, T):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.p(x=1, T=T)[0]
 
     def Q_ph(self, p, h):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.x(p=p, h=h)[0]
 
     def d_QT(self, Q, T):
+        if self.back_end == "ig":
+            self._not_implemented()
         return self.AS.d(x=Q, T=T)[0]

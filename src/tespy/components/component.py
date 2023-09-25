@@ -292,6 +292,23 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
+    def serialize(self):
+        export = {}
+        for k in self._serializable():
+            export.update({k: self.get_attr(k)})
+        for k in self.parameters:
+            data = self.get_attr(k)
+            export.update({k: data.serialize()})
+
+        return {self.label: export}
+
+    @staticmethod
+    def _serializable():
+        return [
+            "design", "offdesign", "local_design", "local_offdesign",
+            "design_path", "printout", "fkt_group", "char_warnings"
+        ]
+
     @staticmethod
     def is_branch_source():
         return False

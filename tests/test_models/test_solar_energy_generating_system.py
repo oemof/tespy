@@ -42,7 +42,7 @@ class TestSEGS:
         self.Tamb = 25
 
         # setting up network
-        self.nw = Network(fluids=['water', 'INCOMP::TVP1', 'air'])
+        self.nw = Network()
         self.nw.set_attr(
             T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
             s_unit="kJ / kgK")
@@ -282,7 +282,7 @@ class TestSEGS:
 
         # connection parameters
         # parabolic trough cycle
-        c70.set_attr(fluid={'TVP1': 1}, fluid_back_ends={"TVP1": "INCOMP"}, T=390, p=23.304)
+        c70.set_attr(fluid={'INCOMP::TVP1': 1}, T=390, p=23.304)
         c76.set_attr(m=Ref(c70, 0.1284, 0))
         c73.set_attr(p=22.753)
         c74.set_attr(p=21.167)

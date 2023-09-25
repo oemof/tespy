@@ -780,8 +780,6 @@ def fluid_structure(fluid):
 
     return parts
 
-# %%
-
 
 def darcy_friction_factor(re, ks, d):
     r"""

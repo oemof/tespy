@@ -100,7 +100,6 @@ def test_set_attr_errors():
     set_attr_TypeError(comb, design_path=7)
     set_attr_TypeError(comb, local_design=5)
     set_attr_TypeError(comb, local_offdesign=5)
-    set_attr_TypeError(pipeline, hydro_group=5)
     set_attr_TypeError(comb, printout=5)
 
     set_attr_TypeError(conn, design='h')

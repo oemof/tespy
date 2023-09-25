@@ -52,9 +52,10 @@ class TestMixingRules:
 
     def test_ideal_ideal_cond(self):
 
-        c1, c2, c6, c7 = self.nwk.get_conn(["1", "2", "6", "7"])
+        c1, c2, c3, c6, c7 = self.nwk.get_conn(["1", "2", "3", "6", "7"])
         c1.set_attr(fluid={"N2": 0.76, "O2": 0.23, "Ar": 0.01}, m=10, T=400, p=1, mixing_rule="ideal-cond")
         c2.set_attr(fluid={"H2O": 1}, m=.5, T=400)
+        c3.set_attr(fluid0={"H2O": 0.05})
         c7.set_attr(m=4)
 
         p, t, cp = self.nwk.get_comp(["Pipe", "Turbine", "Compressor"])

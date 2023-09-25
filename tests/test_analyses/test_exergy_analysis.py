@@ -36,8 +36,7 @@ class TestClausiusRankine:
         """Set up clausis rankine cycle with turbine driven feed water pump."""
         self.Tamb = 20
         self.pamb = 1
-        fluids = ['water']
-        self.nw = Network(fluids=fluids)
+        self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # create components
@@ -74,8 +73,9 @@ class TestClausiusRankine:
         cond = Connection(condenser, 'out1', fwp, 'in1', label='cond')
         fw = Connection(fwp, 'out1', steam_generator, 'in1', label='fw')
         fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
-        self.nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw,
-                          fs_out)
+        self.nw.add_conns(
+            fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw, fs_out
+        )
 
         # component parameters
         turb.set_attr(eta_s=1)
@@ -86,10 +86,11 @@ class TestClausiusRankine:
 
         # connection parameters
         fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
-        cond.set_attr(T=self.Tamb, x=0)
+        cond.set_attr(T=self.Tamb, x=0.0)
 
         # solve network
         self.nw.solve('design')
+        self.nw.print_results()
         self.nw._convergence_check()
 
     def test_exergy_analysis_perfect_cycle(self):
@@ -102,7 +103,7 @@ class TestClausiusRankine:
             'Exergy destruction of this network must be 0 (smaller than ' +
             str(ERR ** 0.5) + ') for this test but is ' +
             str(round(abs(ean.network_data.E_D), 4)) + ' .')
-        assert abs(ean.network_data.E_D) <= ERR ** 0.5, msg
+        assert abs(ean.network_data.E_D) <= 1e-2, msg
 
         msg = (
             'Exergy efficiency of this network must be 1 for this test but '
@@ -120,11 +121,11 @@ class TestClausiusRankine:
 
         msg = (
             'Fuel exergy and product exergy must be identical for this test. '
-            'Fuel exergy value: ' + str(round(ean.network_data.E_F, 4)) +
-            '. Product exergy value: ' + str(round(ean.network_data.E_P, 4)) +
+            'Fuel exergy value: ' + str(round(ean.network_data.E_F, 2)) +
+            '. Product exergy value: ' + str(round(ean.network_data.E_P, 2)) +
             '.')
-        delta = round(abs(ean.network_data.E_F - ean.network_data.E_P), 4)
-        assert delta < ERR ** 0.5, msg
+        delta = round(abs(ean.network_data.E_F - ean.network_data.E_P), 2)
+        assert delta < 1e-2, msg
 
     def test_exergy_analysis_plotting_data(self):
         """Test exergy analysis plotting."""

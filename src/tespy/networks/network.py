@@ -151,7 +151,7 @@ class Network:
         self.set_defaults()
         self.set_attr(**kwargs)
 
-    def _serialize(self):
+    def serialize(self):
         return {
             "m_unit": self.m_unit,
             "m_range": list(self.m_range),
@@ -163,19 +163,31 @@ class Network:
             "x_unit": self.x_unit,
             "v_unit": self.v_unit,
             "s_unit": self.s_unit,
-            "fluids": list(self.all_fluids),
         }
 
     def set_defaults(self):
         """Set default network properties."""
         # connection dataframe
+
+        dtypes={
+            "object": object,
+            "source": object,
+            "source_id": str,
+            "target": object,
+            "target_id": str
+        }
         self.conns = pd.DataFrame(
-            columns=['object', 'source', 'source_id', 'target', 'target_id'],
-            dtype='object'
-        )
+            columns=list(dtypes.keys())
+        ).astype(dtypes)
         self.all_fluids = set()
         # component dataframe
-        self.comps = pd.DataFrame(dtype='object')
+        dtypes = {
+            "comp_type": str,
+            "object": object,
+        }
+        self.comps = pd.DataFrame(
+            columns=list(dtypes.keys())
+        ).astype(dtypes)
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -613,7 +625,8 @@ class Network:
                         'component value', 'bus value', 'efficiency',
                         'design value'
                     ],
-                    dtype='float64')
+                    dtype='float64'
+                )
 
     def del_busses(self, *args):
         r"""
@@ -846,8 +859,7 @@ class Network:
             self.redesign = True
             if self.design_path is None:
                 # must provide design_path
-                msg = ('Please provide "design_path" for every offdesign '
-                       'calculation.')
+                msg = "Please provide a design_path for offdesign mode."
                 logger.error(msg)
                 raise hlp.TESPyNetworkError(msg)
 
@@ -946,12 +958,12 @@ class Network:
 
                 # self reference is not allowed
                 if c.m_ref.is_set:
-                    if c.m_ref.val.obj in branch["connections"]:
+                    if c.m_ref.ref.obj in branch["connections"]:
                         msg = (
                             "You cannot reference a mass flow in the same "
                             f"linear branch. The connection {c.label} "
                             "references the connection "
-                            f"{c.m_ref.val.obj.label}."
+                            f"{c.m_ref.ref.obj.label}."
                         )
                         raise hlp.TESPyNetworkError(msg)
 
@@ -1124,13 +1136,13 @@ class Network:
                 if c.get_attr(key).is_set:
                     if "ref" in key:
                         if prop == 'T':
-                            c.get_attr(key).val.delta_SI = hlp.convert_to_SI(
-                                'Td_bp', c.get_attr(key).val.delta,
+                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                                'Td_bp', c.get_attr(key).ref.delta,
                                 c.get_attr(prop).unit
                             )
                         else:
-                            c.get_attr(key).val.delta_SI = hlp.convert_to_SI(
-                                prop, c.get_attr(key).val.delta,
+                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                                prop, c.get_attr(key).ref.delta,
                                 c.get_attr(prop).unit
                             )
                     else:
@@ -1156,27 +1168,36 @@ class Network:
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
-        self.specifications['Connection'] = pd.DataFrame(columns=cols + ['balance'], dtype='bool')
+        self.specifications['Connection'] = pd.DataFrame(
+            columns=cols + ['balance'], dtype='bool'
+        )
         cols = ["m_ref", "p_ref", "h_ref", "T_ref", "v_ref"]
         self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
 
         msg = (
-            'Updated fluid property SI values and fluid mass fraction for '
-            'user specified connection parameters.')
+            "Updated fluid property SI values and fluid mass fraction for user "
+            "specified connection parameters."
+        )
         logger.debug(msg)
 
     def _assign_variable_space(self, c):
         for key in ["m", "p", "h"]:
             variable = c.get_attr(key)
-            if variable.is_var and variable not in self._conn_variables:
-                variable.J_col = self.num_conn_vars
-                self.variables_dict[self.num_conn_vars] = {
-                    "obj": c, "variable": key
-                }
-                self._conn_variables += [variable]
-                self.num_conn_vars += 1
-
-        c.preprocess()
+            if not variable.is_set and variable not in self._conn_variables:
+                if not variable.solved:
+                    variable.is_var = True
+                    variable.J_col = self.num_conn_vars
+                    self.variables_dict[self.num_conn_vars] = {
+                        "obj": c, "variable": key
+                    }
+                    self._conn_variables += [variable]
+                    self.num_conn_vars += 1
+                else:
+                    variable.is_var = False
+                    # reset presolve flag
+                    variable.solved = False
+            elif variable.is_set:
+                variable.is_var = False
 
     def init_design(self):
         r"""
@@ -1190,15 +1211,17 @@ class Network:
         """
         # connections
         self._conn_variables = []
+        _local_designs = {}
         for c in self.conns['object']:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
             if c.local_offdesign:
                 if c.design_path is None:
                     msg = (
-                        'The parameter local_offdesign is True for the '
-                        'connection ' + c.label + ', an individual '
-                        'design_path must be specified in this case!')
+                        "The parameter local_offdesign is True for the "
+                        f"connection {c.label}, an individual design_path must "
+                        "be specified in this case!"
+                    )
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
 
@@ -1210,13 +1233,16 @@ class Network:
                     c.get_attr(var).is_set = True
 
                 # read design point information
-                df = self.init_read_connections(c.design_path)
                 msg = (
-                    'Reading individual design point information for '
-                    'connection ' + c.label + ' from path ' + c.design_path +
-                    'connections.')
+                    "Reading individual design point information for "
+                    f"connection {c.label} from {c.design_path}/connections.csv."
+                )
                 logger.debug(msg)
-
+                if c.design_path not in _local_designs:
+                    _local_designs[c.design_path] = self.init_read_connections(
+                        c.design_path
+                    )
+                df = _local_designs[c.design_path]
                 # write data to connections
                 self.init_conn_design_params(c, df)
 
@@ -1237,34 +1263,42 @@ class Network:
                     for var in c.offdesign:
                         c.get_attr(var).is_set = False
 
+            if not c.fluid.is_var:
+                c.simplify_specifications()
             self._assign_variable_space(c)
+            c.preprocess()
 
         # unset design values for busses, count bus equations and
         # reindex bus dictionary
         for b in self.busses.values():
             self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
-            for cp in b.comps.index:
-                b.comps.loc[cp, 'P_ref'] = np.nan
+            b.comps['P_ref'] = np.nan
 
         series = pd.Series(dtype='float64')
+        _local_design_paths = {}
         for cp in self.comps['object']:
+            c = cp.__class__.__name__
             # read design point information of components with
             # local_offdesign activated from their respective design path
             if cp.local_offdesign:
                 if cp.design_path is not None:
-                    # get type of component (class name)
-                    c = cp.__class__.__name__
                     # read design point information
                     path = hlp.modify_path_os(
-                        cp.design_path + '/components/' + c + '.csv')
-                    df = pd.read_csv(
-                        path, sep=';', decimal='.', converters={
-                            'busses': ast.literal_eval,
-                            'bus_P_ref': ast.literal_eval})
-                    df.set_index('label', inplace=True)
+                        f"{cp.design_path}/components/{c}.csv"
+                    )
+                    msg = (
+                        f"Reading design point information for component "
+                        f"{cp.label} of type {c} from path {path}."
+                    )
+                    logger.debug(msg)
+                    if path not in _local_design_paths:
+                        _local_design_paths[path] = pd.read_csv(
+                            path, sep=';', decimal='.', index_col=0
+                        )
+                    data = _local_design_paths[path].loc[cp.label]
                     # write data
-                    self.init_comp_design_params(cp, df.loc[cp.label])
+                    self.init_comp_design_params(cp, data)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1283,11 +1317,10 @@ class Network:
                     if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
                         switched = True
-                        msg += var + ', '
+                        msg += var + ", "
 
                 if switched:
-                    msg = (msg[:-2] + ' to design value at component ' +
-                           cp.label + '.')
+                    msg = f"{msg[:-2]} to design value at component {cp.label}."
                     logger.debug(msg)
 
                 cp.new_design = False
@@ -1306,10 +1339,9 @@ class Network:
             # component initialisation
             cp.preprocess(self.num_conn_vars + self.num_comp_vars)
 
-            ct = cp.__class__.__name__
-            for spec in self.specifications[ct].keys():
+            for spec in self.specifications[c].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
-                    self.specifications[ct][spec].loc[cp.label] = (
+                    self.specifications[c][spec].loc[cp.label] = (
                         cp.get_attr(self.specifications['lookup'][spec]))
 
             # count number of component equations and variables
@@ -1346,27 +1378,31 @@ class Network:
         for c in df_comps['comp_type'].unique():
             path = hlp.modify_path_os(f"{self.design_path}/components/{c}.csv")
             msg = (
-                f"Reading design point information for components of type {c}"
+                f"Reading design point information for components of type {c} "
                 f"from path {path}."
             )
             logger.debug(msg)
-
-            # read data
             df = pd.read_csv(path, sep=';', decimal='.', index_col=0)
+
             # iter through all components of this type and set data
+            _individual_design_paths = {}
             for c_label in df.index:
-                comp = df_comps.loc[c_label, 'object']
+                comp = self.comps.loc[c_label, 'object']
                 # read data of components with individual design_path
                 if comp.design_path is not None:
                     path_c = hlp.modify_path_os(
                         f"{comp.design_path}/components/{c}.csv"
                     )
-                    df_c = pd.read_csv(
-                        path_c, sep=';', decimal='.', converters={
-                             'busses': ast.literal_eval,
-                             'bus_P_ref': ast.literal_eval})
-                    df_c.set_index('label', inplace=True)
-                    data = df_c.loc[comp.label]
+                    msg = (
+                        f"Reading design point information for component "
+                        f"{comp.label} of type {c} from path {path_c}."
+                    )
+                    logger.debug(msg)
+                    if path_c not in _individual_design_paths:
+                        _individual_design_paths[path_c] = pd.read_csv(
+                            path_c, sep=';', decimal='.', index_col=0
+                        )
+                    data = _individual_design_paths[path_c].loc[comp.label]
 
                 else:
                     data = df.loc[comp.label]
@@ -1388,24 +1424,24 @@ class Network:
                     self.busses[b].comps.loc[comp, "P_ref"] = value
 
         # read connection design point information
-        df = self.init_read_connections(self.design_path)
         msg = (
             "Reading design point information for connections from "
             f"{self.design_path}/connections.csv."
         )
         logger.debug(msg)
+        df = self.init_read_connections(self.design_path)
 
         # iter through connections
         for c in self.conns['object']:
 
             # read data of connections with individual design_path
             if c.design_path is not None:
-                df_c = self.init_read_connections(c.design_path)
                 msg = (
                     "Reading connection design point information for "
                     f"{c.label} from {c.design_path}/connections.csv."
                 )
                 logger.debug(msg)
+                df_c = self.init_read_connections(c.design_path)
 
                 # write data
                 self.init_conn_design_params(c, df_c)
@@ -1453,8 +1489,8 @@ class Network:
                 'Please, make sure no connections have been modified or '
                 'components have been relabeled for your offdesign '
                 'calculation.'
-            )
-            logger.exception(msg, c.label)
+            ).format(c.label)
+            logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)
 
         conn = df.loc[c.label]
@@ -1482,14 +1518,9 @@ class Network:
         # connection objects of design file
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
-            msg = (
-                'Could not find connection %s in design case. '
-                'Please, make sure no connections have been modified or '
-                'components have been relabeled for your offdesign '
-                'calculation.'
-            )
-            logger.exception(msg, c.label)
-            raise hlp.TESPyNetworkError(msg)
+            msg = ('Could not find connection %s in init path file.').format(c.label)
+            logger.debug(msg)
+            return
 
         conn = df.loc[c.label]
 
@@ -1545,7 +1576,10 @@ class Network:
 
                 c.new_design = False
 
+            if not c.fluid.is_var:
+                c.simplify_specifications()
             self._assign_variable_space(c)
+            c.preprocess()
 
         msg = 'Switched connections from design to offdesign.'
         logger.debug(msg)
@@ -1631,9 +1665,9 @@ class Network:
                 logger.warning(msg)
 
             for key in ['m', 'p', 'h']:
-                if not c.good_starting_values:
-                    self.init_val0(c, key)
                 if c.get_attr(key).is_var:
+                    if not c.good_starting_values:
+                        self.init_val0(c, key)
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit
                     )
@@ -1647,9 +1681,9 @@ class Network:
                         prop = key.split("_ref")[0]
                         if c.get_attr(key).is_set and not c.get_attr(prop).is_set:
                             c.get_attr(prop).val_SI = (
-                                c.get_attr(key).val.obj.get_attr(prop).val_SI
-                                * c.get_attr(key).val.factor
-                                + c.get_attr(key).val.delta_SI
+                                c.get_attr(key).ref.obj.get_attr(prop).val_SI
+                                * c.get_attr(key).ref.factor
+                                + c.get_attr(key).ref.delta_SI
                                 )
 
                 self.init_precalc_properties(c)
@@ -1658,8 +1692,7 @@ class Network:
             # and state specification. These should be recalculated even with
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
-            if ((c.Td_bp.is_set or c.state.is_set) and
-                    not c.h.is_set):
+            if (c.Td_bp.is_set or c.state.is_set) and c.h.is_var:
                 if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or
                         (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
@@ -1684,8 +1717,8 @@ class Network:
             Connection count parameters of.
         """
         # variables 0 to 9: fluid properties
-        local_vars = self.specifications['Connection'].columns[:9]
-        row = [c.get_attr(var).is_set for var in fpd.keys()]
+        local_vars = list(fpd.keys())
+        row = [c.get_attr(var).is_set for var in local_vars]
         # write information to specifaction dataframe
         self.specifications['Connection'].loc[c.label, local_vars] = row
 
@@ -1694,7 +1727,7 @@ class Network:
         self.specifications['Ref'].loc[c.label] = row
 
         # variables 9 to last but one: fluid mass fractions
-        fluids = self.specifications['Connection'].columns[9:-1]
+        fluids = list(self.all_fluids)
         row = [True if f in c.fluid.is_set else False for f in fluids]
         self.specifications['Connection'].loc[c.label, fluids] = row
 
@@ -1718,17 +1751,18 @@ class Network:
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
-        if c.x.is_set and not c.h.is_set:
-            try:
-                c.h.val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
-            except ValueError:
-                pass
+        if c.h.is_var:
+            if c.x.is_set:
+                try:
+                    c.h.val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
+                except ValueError:
+                    pass
 
-        if c.T.is_set and not c.h.is_set:
-            try:
-                c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
-            except ValueError:
-                pass
+            if c.T.is_set:
+                try:
+                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                except ValueError:
+                    pass
 
     def init_val0(self, c, key):
         r"""
@@ -1977,7 +2011,7 @@ class Network:
 
             if (
                     (self.iter >= self.min_iter - 1
-                     and self.residual_history[-1] < ERR ** 0.5)
+                     and (self.residual_history[-2:] < ERR ** 0.5).all())
                     or self.lin_dep
                 ):
                 self.converged = not self.lin_dep
@@ -2308,11 +2342,11 @@ class Network:
                     c.check_temperature_bounds()
 
         # mass flow
-        if c.m.val_SI <= self.m_range_SI[0] and not c.m.is_set:
+        if c.m.val_SI <= self.m_range_SI[0] and c.m.is_var:
             c.m.val_SI = self.m_range_SI[0]
             logger.debug(c._property_range_message('m'))
 
-        elif c.m.val_SI >= self.m_range_SI[1] and not c.m.is_set:
+        elif c.m.val_SI >= self.m_range_SI[1] and c.m.is_var:
             c.m.val_SI = self.m_range_SI[1]
             logger.debug(c._property_range_message('m'))
 
@@ -2517,7 +2551,7 @@ class Network:
 
                     if len(df) > 0:
                         # printout with tabulate
-                        result += ('\n##### RESULTS (' + cp + ') #####\n')
+                        result += f"\n##### RESULTS ({cp}) #####\n"
                         result += (
                             tabulate(
                                 df, headers='keys', tablefmt='psql',
@@ -2526,7 +2560,8 @@ class Network:
                         )
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
+        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']].copy()
+        df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:
                 df.drop([c], axis=0, inplace=True)
@@ -2548,14 +2583,18 @@ class Network:
         for b in self.busses.values():
             if b.printout:
                 df = self.results[b.label].loc[
-                    :, ['component value', 'bus value', 'efficiency']]
+                    :, ['component value', 'bus value', 'efficiency']
+                ].copy()
                 df.loc['total'] = df.sum()
                 df.loc['total', 'efficiency'] = np.nan
-                if colored and b.P.is_set:
-                    df.loc['total', 'bus value'] = (
-                        coloring['set'] + str(df.loc['total', 'bus value']) +
-                        coloring['end'])
-                result += ('\n##### RESULTS (Bus: ' + b.label + ') #####\n')
+                if colored:
+                    df["bus value"] = df["bus value"].astype(str)
+                    if b.P.is_set:
+                        df.loc['total', 'bus value'] = (
+                            coloring['set'] + str(df.loc['total', 'bus value']) +
+                            coloring['end']
+                        )
+                result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
                 result += (
                     tabulate(
                         df, headers='keys', tablefmt='psql',
@@ -2610,6 +2649,14 @@ class Network:
         else:
             return np.nan
 
+    def export(self, path):
+        """Export the network structure and parametrization."""
+        path, path_comps = self._modify_export_paths(path)
+        self.export_network(path)
+        self.export_connections(path)
+        self.export_components(path_comps)
+        self.export_busses(path)
+
     def save(self, path, **kwargs):
         r"""
         Save the results to results files.
@@ -2629,6 +2676,15 @@ class Network:
           characteristics as well as .csv files for all types of components
           within your network.
         """
+        path, path_comps = self._modify_export_paths(path)
+
+        # save relevant design point information
+        self.save_connections(path)
+        self.save_components(path_comps)
+        self.save_busses(path)
+
+    def _modify_export_paths(self, path):
+
         if path[-1] != '/' and path[-1] != '\\':
             path += '/'
         path = hlp.modify_path_os(path)
@@ -2643,14 +2699,9 @@ class Network:
         if not os.path.exists(path_comps):
             os.makedirs(path_comps)
 
-        # save all network information
-        self.save_network(path + 'network.json')
-        self.save_connections(path + 'connections.csv')
-        self.save_components(path_comps)
-        self.save_busses(path + 'busses.json')
-        # self.save_characteristics(path_comps)
+        return path, path_comps
 
-    def save_network(self, fn):
+    def export_network(self, fn):
         r"""
         Save basic network configuration.
 
@@ -2659,8 +2710,8 @@ class Network:
         fn : str
             Path/filename for the network configuration file.
         """
-        with open(fn, 'w') as f:
-            f.write(json.dumps(self._serialize(), indent=4))
+        with open(fn + 'network.json', 'w') as f:
+            f.write(json.dumps(self.serialize(), indent=4))
 
         logger.debug('Network information saved to %s.', fn)
 
@@ -2682,7 +2733,7 @@ class Network:
             Path/filename for the file.
         """
         self.results["Connection"].to_csv(
-            fn, sep=';', decimal='.', index=True, na_rep='nan'
+            fn + "connections.csv", sep=';', decimal='.', index=True, na_rep='nan'
         )
         logger.debug('Connection information saved to %s.', fn)
 
@@ -2719,132 +2770,38 @@ class Network:
             bus_data = {}
             for label, bus in self.busses.items():
                 bus_data[label] = self.results[label]["design value"].to_dict()
-
+            fn = fn + 'busses.json'
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(json.dumps(bus_data, indent=4))
             logger.debug('Bus information saved to %s.', fn)
 
-    def save_characteristics(self, path):
-        r"""
-        Save the characteristics.
+    def export_connections(self, fn):
+        connections = {}
+        for c in self.conns["object"]:
+            connections.update(c.serialize())
 
-        Parameters
-        ----------
-        fn : str
-            Path/filename for the file.
-        """
-        # characteristic lines in components
-        char_lines = []
-        char_maps = []
-        for c in self.comps['object']:
-            for _col, data in c.variables.items():
-                if isinstance(data, dc_cc):
-                    char_lines += [data.char_func]
-                elif isinstance(data, dc_cm):
-                    char_maps += [data.char_func]
+        fn = fn + "connections.json"
+        with open(fn, "w", encoding="utf-8") as f:
+            f.write(json.dumps(connections, indent=4).replace("NaN", "null"))
+        logger.debug('Connection information exported to %s.', fn)
 
-        # characteristic lines in busses
-        for bus in self.busses.values():
-            for c in bus.comps.index:
-                ch = bus.comps.loc[c, 'char']
-                if ch not in char_lines:
-                    char_lines += [ch]
+    def export_components(self, fn):
+        for c in self.comps["comp_type"].unique():
+            components = {}
+            for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
+                components.update(cp.serialize())
 
-        # characteristic line export
-        if len(char_lines) > 0:
-            # get id and data
-            df = pd.DataFrame(
-                {'id': char_lines}, index=char_lines, dtype='object')
-            df['id'] = df.apply(Network.get_id, axis=1)
-            df['type'] = df.apply(Network.get_class_base, axis=1)
+            fname = f"{fn}{c}.json"
+            with open(fname, "w", encoding="utf-8") as f:
+                f.write(json.dumps(components, indent=4).replace("NaN", "null"))
+            logger.debug('Component information exported to %s.', fname)
 
-            cols = ['x', 'y', 'extrapolate']
-            for val in cols:
-                df[val] = df.apply(Network.get_props, axis=1, args=(val,))
-
-            # write to char.csv
-            fn = path + 'char_line.csv'
-            df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logger.debug('Characteristic line information saved to %s.', fn)
-
-        if len(char_maps) > 0:
-            # get id and data
-            df = pd.DataFrame(
-                {'id': char_maps}, index=char_maps, dtype='object')
-            df['id'] = df.apply(Network.get_id, axis=1)
-            df['type'] = df.apply(Network.get_class_base, axis=1)
-
-            cols = ['x', 'y', 'z']
-            for val in cols:
-                df[val] = df.apply(Network.get_props, axis=1, args=(val,))
-
-            # write to char_map.csv
-            fn = path + 'char_map.csv'
-            df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
-            logger.debug('Characteristic map information saved to %s.', fn)
-
-    @staticmethod
-    def get_id(c):
-        """Return the id of the python object."""
-        return str(c.name)[str(c.name).find(' at ') + 4:-1]
-
-    @staticmethod
-    def get_class_base(c):
-        """Return the class name."""
-        return c.name.__class__.__name__
-
-    @staticmethod
-    def get_props(c, *args):
-        """Return properties."""
-        if hasattr(c.name, args[0]):
-            if (not isinstance(c.name.get_attr(args[0]), int) and
-                    not isinstance(c.name.get_attr(args[0]), str) and
-                    not isinstance(c.name.get_attr(args[0]), float) and
-                    not isinstance(c.name.get_attr(args[0]), list) and
-                    not isinstance(c.name.get_attr(args[0]), np.ndarray) and
-                    not isinstance(c.name.get_attr(args[0]), con.Connection)):
-                if len(args) == 1:
-                    return c.name.get_attr(args[0])
-                elif args[0] == 'fluid' and args[1] != 'balance':
-                    return c.name.fluid.get_attr(args[1])[args[2]]
-                elif args[1] == 'ref':
-                    obj = c.name.get_attr(args[0]).get_attr(args[1])
-                    if obj is not None:
-                        return obj.get_attr(args[2])
-                    else:
-                        return np.nan
-                else:
-                    return c.name.get_attr(args[0]).get_attr(args[1])
-            elif isinstance(c.name.get_attr(args[0]), np.ndarray):
-                if len(c.name.get_attr(args[0]).shape) > 1:
-                    return tuple(c.name.get_attr(args[0]).tolist())
-                else:
-                    return c.name.get_attr(args[0]).tolist()
-            else:
-                return c.name.get_attr(args[0])
-
-    @staticmethod
-    def get_busses(c, *args):
-        """Return the list of busses a component is integrated in."""
-        busses = []
-        for bus in args[0]:
-            if c.name in bus.comps.index:
-                busses += [bus.label]
-        return busses
-
-    @staticmethod
-    def get_bus_data(c, *args):
-        """Return bus information of a component."""
-        items = []
-        if args[1] == 'char':
-            for bus in args[0]:
-                if c.name in bus.comps.index:
-                    val = bus.comps.loc[c.name, args[1]]
-                    items += [str(val)[str(val).find(' at ') + 4:-1]]
-
-        else:
-            for bus in args[0]:
-                if c.name in bus.comps.index:
-                    items += [bus.comps.loc[c.name, args[1]]]
-
-        return items
+    def export_busses(self, fn):
+        if len(self.busses) > 0:
+            busses = {}
+            for bus in self.busses.values():
+                busses.update(bus.serialize())
+            fn = fn + 'busses.json'
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(json.dumps(busses, indent=4).replace("NaN", "null"))
+            logger.debug('Bus information exported to %s.', fn)

@@ -160,9 +160,7 @@ class TestTurbomachinery:
         """Test component properties of pumps."""
         instance = Pump('pump')
         self.setup_network(instance)
-        fl = {'DowQ': 1}
-        fbe = {'DowQ': 'INCOMP'}
-        self.c1.set_attr(fluid=fl, fluid_back_ends=fbe, v=1, p=5, T=50)
+        self.c1.set_attr(fluid={'INCOMP::DowQ': 1}, v=1, p=5, T=50)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
         self.nw.solve('design')

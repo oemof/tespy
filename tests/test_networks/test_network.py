@@ -122,6 +122,7 @@ class TestNetworks:
         """Test debug message for missing connection in init_path."""
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
+        a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
         self.nw.save('tmp')
@@ -131,6 +132,7 @@ class TestNetworks:
         self.nw.del_conns(a)
         a = Connection(self.source, 'out1', IF, 'in1')
         b = Connection(IF, 'out1', self.sink, 'in1')
+        a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a, b)
         self.nw.solve('design', init_path='tmp', init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
@@ -138,53 +140,29 @@ class TestNetworks:
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_Network_export_no_chars_busses(self):
+    def test_Network_export_no_busses(self):
         """Test export of network without characteristics or busses."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
         self.nw.save('tmp')
-        msg = ('The exported network does not contain any char_line, there '
-               'must be no file char_line.csv!')
-        assert not os.path.isfile('tmp/components/char_line.csv'), msg
 
-        msg = ('The exported network does not contain any char_map, there '
-               'must be no file char_map.csv!')
-        assert not os.path.isfile('tmp/components/char_map.csv'), msg
-
-        msg = ('The exported network does not contain any busses, there '
-               'must be no file bus.csv!')
-        assert not os.path.isfile('tmp/components/bus.csv'), msg
+        msg = (
+            'The exported network does not contain any busses, there must be '
+            'no file busses.csv!'
+        )
+        assert not os.path.isfile('tmp/busses.csv'), msg
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_Network_reader_no_chars_busses(self):
+    def test_Network_reader_checked(self):
         """Test import of network without characteristics or busses."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
+        self.nw.export('tmp')
 
-        imported_nwk = load_network('tmp')
-        imported_nwk.solve('design', init_only=True)
-        msg = ('If the network import was successful the network check '
-               'should have been successful, too, but it is not.')
-        assert imported_nwk.checked, msg
-        shutil.rmtree('./tmp', ignore_errors=True)
-
-    def test_Network_reader_deleted_chars(self):
-        """Test import of network with missing characteristics."""
-        comp = Compressor('compressor')
-        a = Connection(self.source, 'out1', comp, 'in1')
-        b = Connection(comp, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a, b)
-        self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
-
-        # # remove char_line and char_map folders
-        os.unlink('tmp/components/char_line.csv')
-        os.unlink('tmp/components/char_map.csv')
-
-        # import network with missing files
         imported_nwk = load_network('tmp')
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
@@ -377,26 +355,31 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(design_path=None)
 
         # volumetric flow comparison
-        msg = ('Design path was set to None, is ' +
-               str(self.sc2_v2.design_path) + '.')
+        msg = f"Design path was set to None, is {self.sc2_v2.design_path}."
         assert self.sc2_v2.design_path is None, msg
 
         # volumetric flow comparison
-        msg = ('Value of volumetric flow must be ' + str(v1_design) + ', is ' +
-               str(self.sc1_v1.v.val_SI) + '.')
+        msg = (
+            f"Value of volumetric flow must be {v1_design}, is "
+            f"{self.sc1_v1.v.val_SI}."
+        )
         assert round(v1_design, 5) == round(self.sc1_v1.v.val_SI, 5), msg
 
-        msg = ('Value of volumetric flow must be ' + str(v2_design) + ', is ' +
-               str(self.sc2_v2.v.val_SI) + '.')
+        msg = (
+            f"Value of volumetric flow must be {v2_design}, is "
+            f"{self.sc2_v2.v.val_SI}."
+        )
         assert round(v2_design, 5) == round(self.sc2_v2.v.val_SI, 5), msg
 
         # zeta value of solar collector comparison
-        msg = ('Value of zeta must be ' + str(zeta_sc1_design) + ', is ' +
-               str(self.sc1.zeta.val) + '.')
+        msg = (
+            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
+        )
         assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
 
-        msg = ('Value of zeta must be ' + str(zeta_sc2_design) + ', is ' +
-               str(self.sc2.zeta.val) + '.')
+        msg = (
+            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
+        )
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
         shutil.rmtree('./design1', ignore_errors=True)
@@ -434,11 +417,13 @@ class TestNetworkIndividualOffdesign:
                ', is ' + str(round(self.sc1_v1.T.val, 1)) + '.')
         assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
 
-        msg = ('Parameter eta_s_char must be set for pump one.')
+        msg = "Parameter eta_s_char must be set for pump one."
         assert self.pump1.eta_s_char.is_set, msg
 
-        msg = ('Parameter v must be set for connection from solar collector1 '
-               'to pump1.')
+        msg = (
+            "Parameter v must be set for connection from solar collector1 to "
+            "pump1."
+        )
         assert self.sc1_v1.v.is_set, msg
 
         shutil.rmtree('./design1', ignore_errors=True)

@@ -164,6 +164,13 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["extrapolate"] = self.extrapolate
+        return export
+
     def plot(self, path, title, xlabel, ylabel):
 
         from matplotlib import pyplot as plt
@@ -439,6 +446,13 @@ class CharMap:
             msg = 'Char_map has no attribute \"' + key + '\".'
             logger.error(msg)
             raise KeyError(msg)
+
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["z"] = self.z.tolist()
+        return export
 
     def plot(self, path, title, xlabel, ylabel):
 

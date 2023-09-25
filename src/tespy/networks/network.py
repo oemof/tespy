@@ -1012,6 +1012,8 @@ class Network:
                 main_conn._fluid_tmp.is_set = main_conn.fluid.is_set.copy()
                 main_conn._fluid_tmp.is_var = main_conn.fluid.is_var.copy()
                 main_conn._fluid_tmp.wrapper = main_conn.fluid.wrapper.copy()
+                main_conn._fluid_tmp.engine = main_conn.fluid.engine.copy()
+                main_conn._fluid_tmp.back_end = main_conn.fluid.back_end.copy()
 
                 for c in all_connections[1:]:
                     c._fluid_tmp = c.fluid
@@ -1019,10 +1021,6 @@ class Network:
 
                 if len(main_conn._potential_fluids) > 1:
                     main_conn.fluid.is_var = {f for f in main_conn.fluid.val}
-                    with_starting_value = sum(main_conn.fluid.val0.values())
-                    for f in main_conn.fluid.val:
-                        if f not in main_conn.fluid.val0:
-                            main_conn.fluid.val[f] = (1 - with_starting_value) / len(main_conn.fluid.is_var)
                 else:
                     main_conn.fluid.val[list(main_conn._potential_fluids)[0]] = 1
 

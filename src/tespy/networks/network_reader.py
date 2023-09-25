@@ -51,6 +51,7 @@ from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer as dc
+from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
 from tespy.tools.fluid_properties.wrappers import PyromatWrapper
@@ -338,6 +339,8 @@ def construct_components(component, data):
                     param_data["char_func"] = CharLine(**param_data["char_func"])
                 elif isinstance(container, dc_cm):
                     param_data["char_func"] = CharMap(**param_data["char_func"])
+                if isinstance(container, dc_prop):
+                    param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})

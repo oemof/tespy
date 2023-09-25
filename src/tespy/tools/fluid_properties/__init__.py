@@ -7,9 +7,9 @@ from .functions import T_sat_p  # noqa: F401
 from .functions import dh_mix_dpQ  # noqa: F401
 from .functions import dT_mix_dph  # noqa: F401
 from .functions import dT_mix_pdh  # noqa: F401
-from .functions import dv_mix_pdh  # noqa: F401
-from .functions import dv_mix_dph  # noqa: F401
 from .functions import dT_sat_dp  # noqa: F401
+from .functions import dv_mix_dph  # noqa: F401
+from .functions import dv_mix_pdh  # noqa: F401
 from .functions import h_mix_pQ  # noqa: F401
 from .functions import h_mix_pT  # noqa: F401
 from .functions import isentropic  # noqa: F401

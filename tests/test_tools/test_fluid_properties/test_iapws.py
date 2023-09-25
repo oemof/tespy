@@ -1,8 +1,8 @@
-from tespy.networks import Network
-from tespy.connections import Connection
-from tespy.components import Source
 from tespy.components import Sink
+from tespy.components import Source
 from tespy.components import Turbine
+from tespy.connections import Connection
+from tespy.networks import Network
 from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
 
 

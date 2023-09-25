@@ -17,8 +17,8 @@ from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import HeatExchanger
-from tespy.components import SimpleHeatExchanger
 from tespy.components import Pump
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve

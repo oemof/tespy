@@ -1,6 +1,6 @@
 from .helpers import _check_mixing_rule
-from .helpers import get_pure_fluid
 from .helpers import get_number_of_fluids
+from .helpers import get_pure_fluid
 from .helpers import inverse_temperature_mixture
 from .mixtures import EXERGY_CHEMICAL
 from .mixtures import H_MIX_PT_DIRECT

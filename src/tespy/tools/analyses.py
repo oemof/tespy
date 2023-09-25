@@ -20,8 +20,8 @@ from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
-from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import combustion_gases
 
 idx = pd.IndexSlice
 

@@ -2,6 +2,7 @@ import CoolProp as CP
 import numpy as np
 
 from tespy.tools.global_vars import gas_constants
+
 from .helpers import _is_larger_than_precision
 from .helpers import calc_molar_mass_mixture
 from .helpers import get_molar_fractions

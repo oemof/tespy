@@ -67,6 +67,8 @@ dev = [
     "build",
     "flit",
     "furo",
+    "iapws",
+    "pyromat",
     "pytest",
     "sphinx>=7.2.2",
     "sphinx-copybutton",

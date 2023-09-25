@@ -2,7 +2,6 @@
 from tespy.networks import Network
 
 # create a network object with R134a as fluid
-fluid_list = ['R134a']
 my_plant = Network()
 # %%[sec_2]
 # set the unitsystem for temperatures to °C and for pressure to bar

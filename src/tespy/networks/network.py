@@ -1381,6 +1381,7 @@ class Network:
             )
             logger.debug(msg)
             df = pd.read_csv(path, sep=';', decimal='.', index_col=0)
+            df.index = df.index.astype(str)
 
             # iter through all components of this type and set data
             _individual_design_paths = {}
@@ -1399,6 +1400,9 @@ class Network:
                     if path_c not in _individual_design_paths:
                         _individual_design_paths[path_c] = pd.read_csv(
                             path_c, sep=';', decimal='.', index_col=0
+                        )
+                        _individual_design_paths[path_c].index = (
+                            _individual_design_paths[path_c].index.astype(str)
                         )
                     data = _individual_design_paths[path_c].loc[comp.label]
 
@@ -1480,14 +1484,14 @@ class Network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
+        df.index = df.index.astype(str)
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                'Could not find connection %s in design case. '
-                'Please, make sure no connections have been modified or '
-                'components have been relabeled for your offdesign '
-                'calculation.'
-            ).format(c.label)
+                f"Could not find connection {c.label} in design case. Please "
+                "make sure no connections have been modified or components "
+                "havebeen relabeled for your offdesign calculation."
+            )
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)
 
@@ -1514,9 +1518,10 @@ class Network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
+        df.index = df.index.astype(str)
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
-            msg = ('Could not find connection %s in init path file.').format(c.label)
+            msg = f"Could not find connection {c.label} in init path file."
             logger.debug(msg)
             return
 

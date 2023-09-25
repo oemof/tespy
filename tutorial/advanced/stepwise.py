@@ -42,8 +42,8 @@ cons.set_attr(pr=0.99)
 # %%[sec_5]
 from CoolProp.CoolProp import PropsSI as PSI
 p_cond = PSI("P", "Q", 1, "T", 273.15 + 95, working_fluid) / 1e5
-c0.set_attr(T=170, p=p_cond, fluid={"water": 0, working_fluid: 1})
-c20.set_attr(T=60, p=2, fluid={"water": 1, working_fluid: 0})
+c0.set_attr(T=170, p=p_cond, fluid={working_fluid: 1})
+c20.set_attr(T=60, p=2, fluid={"water": 1})
 c22.set_attr(T=90)
 
 # key design paramter
@@ -96,7 +96,7 @@ h_sat = PSI("H", "Q", 1, "T", 273.15 + 15, working_fluid) / 1e3
 c6.set_attr(h=h_sat)
 
 # evaporator system hot side
-c17.set_attr(T=15, fluid={"water": 1, working_fluid: 0})
+c17.set_attr(T=15, fluid={"water": 1})
 c19.set_attr(T=9, p=1.013)
 # %%[sec_11]
 nw.solve("design")
@@ -140,7 +140,7 @@ cp1.set_attr(pr=pr)
 ic.set_attr(pr1=0.99, pr2=0.98)
 hsp.set_attr(eta_s=0.75)
 # %%[sec_15]
-c0.set_attr(p=p_cond, fluid={"water": 0, working_fluid: 1})
+c0.set_attr(p=p_cond, fluid={working_fluid: 1})
 
 c6.set_attr(h=c5.h.val + 10)
 c8.set_attr(h=c5.h.val + 10)
@@ -148,7 +148,7 @@ c8.set_attr(h=c5.h.val + 10)
 c7.set_attr(h=c5.h.val * 1.2)
 c9.set_attr(h=c5.h.val * 1.2)
 
-c11.set_attr(p=1.013, T=15, fluid={"water": 1, working_fluid: 0})
+c11.set_attr(p=1.013, T=15, fluid={"water": 1})
 c14.set_attr(T=30)
 # %% [sec_16]
 nw.solve("design")

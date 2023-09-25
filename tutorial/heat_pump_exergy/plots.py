@@ -6,8 +6,9 @@ import matplotlib.pyplot as plt
 
 
 # color range
-colors = ['#00395b', '#74adc1', '#b54036', '#ec6707',
-          '#bfbfbf', '#999999', '#010101']
+colors = [
+    '#00395b', '#74adc1', '#b54036', '#ec6707', '#bfbfbf', '#999999', '#010101'
+]
 
 
 # %% figure 1: plot component exergy destruction

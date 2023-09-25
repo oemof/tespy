@@ -11,10 +11,7 @@ from tespy.connections import Connection, Bus
 wf = "NH3"
 
 # network
-nw = Network(
-    fluids=["water", wf],
-    T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s"
-    )
+nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s")
 
 # components
 cycle_closer = CycleCloser("Refrigerant Cycle Closer")
@@ -50,10 +47,7 @@ c4 = Connection(condenser, "out1", int_heatex, "in1", label="4")
 c5 = Connection(int_heatex, "out1", valve, "in1", label="5")
 c6 = Connection(valve, "out1", cycle_closer, "in1", label="6")
 
-nw.add_conns(
-    c0, c1, c2, c3, c4,
-    c5, c6
-    )
+nw.add_conns(c0, c1, c2, c3, c4, c5, c6)
 
 # heat source
 c11 = Connection(heatsource_feedflow, "out1", heatsource_pump, "in1", label="11")
@@ -78,15 +72,15 @@ T_cons_bf = 50
 T_cons_ff = 90
 
 # consumer cycle
-c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1, wf: 0})
+c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1})
 c24.set_attr(T=T_cons_bf)
 
 # heat source cycle
-c11.set_attr(T=T_hs_ff, p=1, fluid={"water": 1, wf: 0})
+c11.set_attr(T=T_hs_ff, p=1, fluid={"water": 1})
 c13.set_attr(T=T_hs_bf, p=1)
 
 # evaporation to fully saturated gas
-c1.set_attr(x=1, fluid={"water": 0, wf: 1})
+c1.set_attr(x=1, fluid={wf: 1})
 # degree of overheating after internal heat exchanger (evaporation side)
 c2.set_attr(Td_bp=10)
 
@@ -113,6 +107,7 @@ try:
     nw.solve("design")
 except ValueError as e:
     print(e)
+    nw._reset_topology_reduction_specifications()
 # %%[sec_4]
 import CoolProp.CoolProp as CP
 
@@ -157,7 +152,6 @@ print(cop)
 def generate_network_with_starting_values(wf):
     # network
     nw = Network(
-        fluids=["water", wf],
         T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s",
         iterinfo=False
     )
@@ -196,10 +190,7 @@ def generate_network_with_starting_values(wf):
     c5 = Connection(int_heatex, "out1", valve, "in1", label="5")
     c6 = Connection(valve, "out1", cycle_closer, "in1", label="6")
 
-    nw.add_conns(
-        c0, c1, c2, c3, c4,
-        c5, c6
-        )
+    nw.add_conns(c0, c1, c2, c3, c4, c5, c6)
 
     # heat source
     c11 = Connection(heatsource_feedflow, "out1", heatsource_pump, "in1", label="11")
@@ -223,15 +214,15 @@ def generate_network_with_starting_values(wf):
     T_cons_ff = 90
 
     # consumer cycle
-    c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1, wf: 0})
+    c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1})
     c24.set_attr(T=T_cons_bf)
 
     # heat source cycle
-    c11.set_attr(T=T_hs_ff, p=1, fluid={"water": 1, wf: 0})
+    c11.set_attr(T=T_hs_ff, p=1, fluid={"water": 1})
     c13.set_attr(T=T_hs_bf, p=1)
 
     # evaporation to fully saturated gas
-    c1.set_attr(x=1, fluid={"water": 0, wf: 1})
+    c1.set_attr(x=1, fluid={wf: 1})
 
     # parametrization components
     # isentropic efficiency

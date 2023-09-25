@@ -22,8 +22,7 @@ Tamb = 2.8  # ambient temperature
 # mean geothermal temperature (mean value of ground feed and return flow)
 Tgeo = 9.5
 
-nw = Network(fluids=['water', 'R410A'], T_unit='C', p_unit='bar',
-             h_unit='kJ / kg', m_unit='kg / s')
+nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
 # %% components
 
@@ -90,15 +89,15 @@ ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 # %% connection parametrization
 
 # heat pump system
-cc_cd.set_attr(fluid={'water': 0, 'R410A': 1})
+cc_cd.set_attr(fluid={'R410A': 1})
 ev_cp.set_attr(Td_bp=3)
 
 # geothermal heat collector
-gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1, 'R410A': 0})
+gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1})
 ev_gh_out.set_attr(T=Tgeo - 1.5, p=1.5)
 
 # heating system
-cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1, 'R410A': 0})
+cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1})
 hs_ret_hsp.set_attr(T=35, p=2)
 
 # starting values
@@ -114,9 +113,11 @@ y = np.array([0, 0.86, 0.9, 0.93, 0.95, 0.96, 0.95])
 # power bus
 char = CharLine(x=x, y=y)
 power = Bus('power input')
-power.add_comps({'comp': cp, 'char': char, 'base': 'bus'},
-                {'comp': ghp, 'char': char, 'base': 'bus'},
-                {'comp': hsp, 'char': char, 'base': 'bus'})
+power.add_comps(
+    {'comp': cp, 'char': char, 'base': 'bus'},
+    {'comp': ghp, 'char': char, 'base': 'bus'},
+    {'comp': hsp, 'char': char, 'base': 'bus'}
+)
 
 # consumer heat bus
 heat_cons = Bus('heating system')
@@ -124,8 +125,7 @@ heat_cons.add_comps({'comp': hs_ret, 'base': 'bus'}, {'comp': hs_feed})
 
 # geothermal heat bus
 heat_geo = Bus('geothermal heat')
-heat_geo.add_comps({'comp': gh_in, 'base': 'bus'},
-                   {'comp': gh_out})
+heat_geo.add_comps({'comp': gh_in, 'base': 'bus'}, {'comp': gh_out})
 
 
 nw.add_busses(power, heat_cons, heat_geo)

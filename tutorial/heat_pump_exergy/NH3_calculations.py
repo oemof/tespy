@@ -119,9 +119,11 @@ y = np.array([0, 0.86, 0.9, 0.93, 0.95, 0.96, 0.95, 0.93])
 # power bus
 char = CharLine(x=x, y=y)
 power = Bus('power input')
-power.add_comps({'comp': cp, 'char': char, 'base': 'bus'},
-                {'comp': ghp, 'char': char, 'base': 'bus'},
-                {'comp': hsp, 'char': char, 'base': 'bus'})
+power.add_comps(
+    {'comp': cp, 'char': char, 'base': 'bus'},
+    {'comp': ghp, 'char': char, 'base': 'bus'},
+    {'comp': hsp, 'char': char, 'base': 'bus'}
+)
 
 # consumer heat bus
 heat_cons = Bus('heating system')
@@ -129,8 +131,7 @@ heat_cons.add_comps({'comp': hs_ret, 'base': 'bus'}, {'comp': hs_feed})
 
 # geothermal heat bus
 heat_geo = Bus('geothermal heat')
-heat_geo.add_comps({'comp': gh_in, 'base': 'bus'},
-                   {'comp': gh_out})
+heat_geo.add_comps({'comp': gh_in, 'base': 'bus'}, {'comp': gh_out})
 
 
 nw.add_busses(power, heat_cons, heat_geo)
@@ -178,9 +179,7 @@ diagram.save('NH3_logph.svg')
 
 # %% exergy analysis
 
-ean = ExergyAnalysis(network=nw,
-                     E_F=[power, heat_geo],
-                     E_P=[heat_cons])
+ean = ExergyAnalysis(network=nw, E_F=[power, heat_geo], E_P=[heat_cons])
 ean.analyse(pamb, Tamb)
 print("\n##### EXERGY ANALYSIS #####\n")
 ean.print_results()

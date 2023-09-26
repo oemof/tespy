@@ -384,7 +384,7 @@ class Network:
         try:
             return self.conns.loc[label, 'object']
         except KeyError:
-            logger.warning('Connection with label %s not found.', label)
+            logger.warning(f"Connection with label {label} not found.")
             return None
 
     def get_comp(self, label):
@@ -586,7 +586,7 @@ class Network:
                 raise ValueError(msg)
 
             self.user_defined_eq[c.label] = c
-            msg = 'Added UserDefinedEquation ' + c.label + ' to network.'
+            msg = f"Added UserDefinedEquation {c.label} to network."
             logger.debug(msg)
 
     def del_ude(self, *args):

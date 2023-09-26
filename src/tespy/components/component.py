@@ -176,18 +176,11 @@ class Component:
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
                     if is_numeric:
-                        if np.isnan(kwargs[key]):
-                            data.set_attr(is_set=False)
-                            if isinstance(data, dc_cp):
-                                data.set_attr(is_var=False)
+                        data.set_attr(val=kwargs[key], is_set=True)
+                        if isinstance(data, dc_cp):
+                            data.set_attr(is_var=False)
 
-                        else:
-                            data.set_attr(val=kwargs[key], is_set=True)
-                            if isinstance(data, dc_cp):
-                                data.set_attr(is_var=False)
-
-                    elif (kwargs[key] == 'var' and
-                          isinstance(data, dc_cp)):
+                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, is_var=True)
 
                     elif isinstance(data, dc_simple):
@@ -196,8 +189,9 @@ class Component:
                     # invalid datatype for keyword
                     else:
                         msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
+                            f"Bad datatype for keyword argument {key} for "
+                            f"component {self.label}."
+                        )
                         logger.error(msg)
                         raise TypeError(msg)
 
@@ -210,26 +204,29 @@ class Component:
                     # invalid datatype for keyword
                     else:
                         msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
+                            f"Bad datatype for keyword argument {key} for "
+                            f"component {self.label}."
+                        )
                         logger.error(msg)
                         raise TypeError(msg)
 
             elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):
                     msg = (
-                        'Please provide the ' + key + ' parameters as list '
-                        'at ' + self.label + '.')
+                        f"Please provide the {key} parameters as list for "
+                        f"component {self.label}."
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
                 if set(kwargs[key]).issubset(list(self.parameters.keys())):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
+                    keys = ", ".join(self.parameters.keys())
                     msg = (
-                        'Available parameters for (off-)design specification '
-                        'are: ' + str(list(self.parameters.keys())) + ' at ' +
-                        self.label + '.')
+                        "Available parameters for (off-)design specification "
+                        f"of component {self.label} are: {keys}."
+                    )
                     logger.error(msg)
                     raise ValueError(msg)
 
@@ -237,8 +234,9 @@ class Component:
                          'printout', 'char_warnings']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
-                        'Please provide the parameter ' + key + ' as boolean '
-                        'at component ' + self.label + '.')
+                        f"Please provide the {key} parameters as bool for "
+                        f"component {self.label}."
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
 
@@ -255,7 +253,8 @@ class Component:
                 else:
                     msg = (
                         'Please provide the design_path parameter as string. '
-                        'For unsetting use np.nan or None.')
+                        'For unsetting use None.'
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
 
@@ -263,9 +262,7 @@ class Component:
 
             # invalid keyword
             else:
-                msg = (
-                    'Component ' + self.label + ' has no attribute ' +
-                    str(key) + '.')
+                msg = f"Component {self.label} has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
 
@@ -286,8 +283,7 @@ class Component:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = ('Component ' + self.label + ' has no attribute \"' +
-                   key + '\".')
+            msg = f"Component {self.label} has no attribute {key}."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -429,9 +425,7 @@ class Component:
             sum_eq += num_eq
 
         # done
-        msg = (
-            f"The component {self.label} has {self.num_vars} custom variables."
-        )
+        msg = f"The component {self.label} has {self.num_vars} variables."
         logger.debug(msg)
 
     def get_parameters(self):
@@ -501,8 +495,9 @@ class Component:
                      self.outl[outconn].p.design))
             else:
                 msg = (
-                    'The parameter ' + str(param) + ' is not available '
-                    'for characteristic function evaluation.')
+                    f"The parameter {param}) is not available for "
+                    "characteristic function evaluation."
+                )
                 logger.error(msg)
                 raise ValueError(msg)
         else:

@@ -13,7 +13,6 @@ available from its original location tespy/networks/networks.py
 
 SPDX-License-Identifier: MIT
 """
-import ast
 import json
 import os
 from collections import OrderedDict

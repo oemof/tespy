@@ -13,6 +13,7 @@ import logging
 import os
 import sys
 from logging import handlers
+import warnings
 
 import tespy
 
@@ -29,6 +30,20 @@ logging._nameToLevel['RESULT'] = TESPY_RESULT_LOG_LEVEL
 logging.captureWarnings(True)
 logger = logging.getLogger(TESPY_LOGGER_ID)
 logger.setLevel(logging.DEBUG)
+
+
+class FutureWarningHandler:
+    def __init__(self, logger):
+        self.logger = logger
+
+    def __call__(self, message, category, filename, lineno, file=None, line=None):
+        self.logger.warning(
+            f"FutureWarning: {message}",
+            stacklevel=2  # Adjust the stack level accordingly
+        )
+
+# Register the custom warning handler for FutureWarnings
+warnings.showwarning = FutureWarningHandler(logger)
 
 
 # Create a bunch of shorthand functions, this is mostly

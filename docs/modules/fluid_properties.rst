@@ -8,7 +8,7 @@ Since version 0.7 of TESPy it is possible to use other engines. TESPy comes with
 two additional predefined engines, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
-- the `pyromat <https://pyromat.org>`_ library.
+- the `pyromat <http://pyromat.org>`_ library.
 
 For each fluid you can specify, which library should be used, and you can easily
 implement your own engine, for example, if your fluid is not available through

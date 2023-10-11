@@ -15,8 +15,6 @@ SPDX-License-Identifier: MIT
 
 from tespy.tools import logger
 
-# %%
-
 
 class Subsystem:
     r"""

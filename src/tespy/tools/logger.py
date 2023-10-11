@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 import logging
 import os
 import sys
+import warnings
 from logging import handlers
 
 import tespy
@@ -29,6 +30,20 @@ logging._nameToLevel['RESULT'] = TESPY_RESULT_LOG_LEVEL
 logging.captureWarnings(True)
 logger = logging.getLogger(TESPY_LOGGER_ID)
 logger.setLevel(logging.DEBUG)
+
+
+class FutureWarningHandler:
+    def __init__(self, logger):
+        self.logger = logger
+
+    def __call__(self, message, category, filename, lineno, file=None, line=None):
+        self.logger.warning(
+            f"FutureWarning: {message}",
+            stacklevel=2  # Adjust the stack level accordingly
+        )
+
+# Register the custom warning handler for FutureWarnings
+warnings.showwarning = FutureWarningHandler(logger)
 
 
 # Create a bunch of shorthand functions, this is mostly
@@ -269,6 +284,9 @@ def add_file_logging(
     logfile_setting = os.path.join(logpath_setting, 'tespy.log')
     if logfile is not None:
         logfile_setting = os.path.join(logpath_setting, logfile)
+
+    if not os.path.isdir(logpath_setting):
+        os.makedirs(logpath_setting)
 
     logrotation_setting = {'when': 'midnight', 'backupCount': 10}
     if logrotation is not None:

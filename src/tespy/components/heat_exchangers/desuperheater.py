@@ -23,8 +23,6 @@ class Desuperheater(HeatExchanger):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
@@ -129,10 +127,9 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.components import Sink, Source, Desuperheater
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import T_bp_p
     >>> import shutil
-    >>> nw = Network(fluids=['water', 'ethanol'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', v_unit='l / s', m_range=[0.001, 10], iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
+    ... m_range=[0.001, 10], iterinfo=False)
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
     >>> cw_in = Source('cooling water inlet')
@@ -155,10 +152,10 @@ class Desuperheater(HeatExchanger):
 
     >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
     ... offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_de.set_attr(fluid={'water': 1, 'ethanol': 0}, T=15, v=1,
+    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1,
     ... design=['v'])
     >>> de_cw.set_attr(p=1)
-    >>> et_de.set_attr(fluid={'water': 0, 'ethanol': 1}, Td_bp=100, v=10)
+    >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -171,7 +168,7 @@ class Desuperheater(HeatExchanger):
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', design_path='tmp', init_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp')
     >>> round(cw_de.v.val, 2)
     0.41
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -183,14 +180,6 @@ class Desuperheater(HeatExchanger):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 2},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 2},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -216,7 +205,8 @@ class Desuperheater(HeatExchanger):
 
                 0 = h_{out,1} - h\left(p_{out,1}, x=1 \right)
         """
-        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].get_flow(), 1)
+        o = self.outl[0]
+        return o.h.val_SI - h_mix_pQ(o.p.val_SI, 1, o.fluid_data)
 
     def saturated_gas_func_doc(self, label):
         r"""
@@ -247,6 +237,8 @@ class Desuperheater(HeatExchanger):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        o1 = self.outl[0].get_flow()
-        self.jacobian[k, 2, 1] = -dh_mix_dpQ(o1, 1)
-        self.jacobian[k, 2, 2] = 1
+        o = self.outl[0]
+        if self.is_variable(o.p):
+            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o, 1, o.fluid_data)
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = 1

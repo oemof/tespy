@@ -19,8 +19,8 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_bp_p
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
@@ -156,10 +156,10 @@ class Condenser(HeatExchanger):
     >>> from tespy.components import Sink, Source, Condenser
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import T_bp_p
+    >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import shutil
-    >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', m_range=[0.01, 1000], iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
+    ... m_range=[0.01, 1000], iterinfo=False)
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')
     >>> waste_steam = Source('waste steam')
@@ -179,8 +179,8 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
     ... offdesign=['zeta2', 'kA_char'])
-    >>> ws_he.set_attr(fluid={'water': 1, 'air': 0}, h=2700, m=1)
-    >>> amb_he.set_attr(fluid={'water': 0, 'air': 1}, T=20, offdesign=['v'])
+    >>> ws_he.set_attr(fluid={'water': 1}, h=2700, m=1)
+    >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -188,14 +188,14 @@ class Condenser(HeatExchanger):
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     66.9
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     11.3
 
     It is possible to activate subcooling. The difference to boiling point
@@ -206,7 +206,7 @@ class Condenser(HeatExchanger):
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
-    >>> round(T_bp_p(ws_he.get_flow()) - 273.15 - he_amb.T.val, 1)
+    >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
@@ -215,7 +215,7 @@ class Condenser(HeatExchanger):
     def component():
         return 'condenser'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 max_val=0, func=self.energy_balance_hot_func, num_eq=1,
@@ -260,11 +260,11 @@ class Condenser(HeatExchanger):
                 deriv=self.subcooling_deriv, func=self.subcooling_func)
         }
 
-    def preprocess(self, nw):
+    def preprocess(self, num_nw_vars):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        super().preprocess(nw)
+        super().preprocess(num_nw_vars)
 
     def subcooling_func(self):
         r"""
@@ -283,7 +283,8 @@ class Condenser(HeatExchanger):
         ----
         This equation is applied in case subcooling is False!
         """
-        return self.outl[0].h.val_SI - h_mix_pQ(self.outl[0].get_flow(), 0)
+        o = self.outl[0]
+        return o.h.val_SI - h_mix_pQ(o.p.val_SI, 0, o.fluid_data)
 
     def subcooling_func_doc(self, label):
         r"""
@@ -314,8 +315,11 @@ class Condenser(HeatExchanger):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 2, 1] = -dh_mix_dpQ(self.outl[0].get_flow(), 0)
-        self.jacobian[k, 2, 2] = 1
+        o = self.outl[0]
+        if self.is_variable(o.p):
+            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data)
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = 1
 
     def calculate_td_log(self):
 
@@ -324,18 +328,18 @@ class Condenser(HeatExchanger):
         o1 = self.outl[0]
         o2 = self.outl[1]
 
-        T_i1 = T_bp_p(i1.get_flow())
-        T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
+        T_i1 = i1.calc_T_sat()
+        T_i2 = i2.calc_T(T0=i2.T.val_SI)
+        T_o1 = o1.calc_T(T0=o1.T.val_SI)
+        T_o2 = o2.calc_T(T0=o2.T.val_SI)
 
-        if T_i1 <= T_o2 and not i1.T.val_set:
+        if T_i1 <= T_o2 and not i1.T.is_set:
             T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.val_set:
+        if T_i1 <= T_o2 and not o2.T.is_set:
             T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.val_set:
+        if T_o1 <= T_i2 and not o1.T.is_set:
             T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.val_set:
+        if T_o1 <= T_i2 and not i2.T.is_set:
             T_i2 = T_o1 - 1
 
         ttd_u = T_i1 - T_o2
@@ -447,8 +451,10 @@ class Condenser(HeatExchanger):
         The upper terminal temperature difference ttd_u refers to boiling
         temperature at hot side inlet.
         """
-        T_i1 = T_bp_p(self.inl[0].get_flow())
-        T_o2 = T_mix_ph(self.outl[1].get_flow(), T0=self.outl[1].T.val_SI)
+        i = self.inl[0]
+        o = self.outl[1]
+        T_i1 = i.calc_T_sat()
+        T_o2 = o.calc_T(T0=self.outl[1].T.val_SI)
         return self.ttd_u.val - T_i1 + T_o2
 
     def ttd_u_func_doc(self, label):
@@ -473,20 +479,21 @@ class Condenser(HeatExchanger):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         # component parameters
-        self.Q.val = self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.ttd_u.val = T_bp_p(self.inl[0].get_flow()) - self.outl[1].T.val_SI
-        self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+        self.Q.val = i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI)
+        self.ttd_u.val = i1.calc_T_sat() - o2.T.val_SI
+        self.ttd_l.val = o1.T.val_SI - i2.T.val_SI
 
         # pr and zeta
-        for i in range(2):
-            self.get_attr('pr' + str(i + 1)).val = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = (
-                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
-                    4 * self.inl[i].m.val_SI ** 2 *
-                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
-                ))
+        for num, (i, o) in enumerate(zip(self.inl, self.outl)):
+            self.get_attr(f"pr{num + 1}").val = o.p.val_SI / i.p.val_SI
+            self.get_attr(f"zeta{num + 1}").val = (
+                (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+            )
 
         # kA and logarithmic temperature difference
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
@@ -494,6 +501,8 @@ class Condenser(HeatExchanger):
         elif self.ttd_l.val == self.ttd_u.val:
             self.td_log.val = self.ttd_l.val
         else:
-            self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
-                               np.log(self.ttd_l.val / self.ttd_u.val))
+            self.td_log.val = (
+                (self.ttd_l.val - self.ttd_u.val)
+                / np.log(self.ttd_l.val / self.ttd_u.val)
+            )
         self.kA.val = -self.Q.val / self.td_log.val

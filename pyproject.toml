@@ -67,6 +67,8 @@ dev = [
     "build",
     "flit",
     "furo",
+    "iapws",
+    "pyromat",
     "pytest",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
@@ -85,13 +87,16 @@ addopts = """
     -ra
     --strict-markers
     --doctest-modules
-    --doctest-glob=/*.rst
+    --doctest-glob=\"*.rst\"
     --tb=short
     --pyargs
+    --ignore=docs/conf.py
+    --ignore=docs/scripts
 """
 testpaths = [
-    "tespy",
+    "src/",
     "tests/",
+    "docs/",
 ]
 
 [tool.isort]
@@ -100,7 +105,6 @@ line_length = 120
 known_first_party = "tespy"
 default_section = "THIRDPARTY"
 forced_separate = "test_tespy"
-not_skip = "__init__.py"
 skip = "migrations"
 
 [tool.coverage.run]

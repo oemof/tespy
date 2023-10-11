@@ -51,10 +51,7 @@ documentation.
 
 In this tutorial, we will use the
 :py:class:`tespy.components.combustion.diabatic.DiabaticCombustionChamber`.
-First, we set up a network and the components. The network's fluid list must
-contain all fluid components used for the combustion chamber. **These are at**
-**least the fuel, oxygen, carbon-dioxide and water**. For this example we
-add Nitrogen, since it is the most important fresh air component.
+First, we set up a network and the components.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
@@ -70,8 +67,8 @@ combustion chamber is directly connected to the flue gas sink.
     :start-after: [sec_2]
     :end-before: [sec_3]
 
-There are many different specifications possible. For the combustion chamber
-we will specify its air to stoichiometric air ratio lamb and the thermal input
+There are many specifications possible. For the combustion chamber we will
+specify its air to stoichiometric air ratio lamb and the thermal input
 (:math:`LHV \cdot \dot{m}_{f}`).
 
 Furthermore, we specify the efficiency :code:`eta` of the component, which
@@ -85,9 +82,9 @@ parameter specification. In this example, we set it directly. Initially, we
 assume adiabatic behavior :code:`eta=1` and no pressure losses :code:`pr=1`.
 
 The ambient conditions as well as the fuel gas inlet temperature are defined
-in the next step. The full vector for the air and the fuel gas composition
-have to be defined. The component can not handle "Air" as input fluid. We can
-run the code after the specifications.
+in the next step. The vectors for the air and the fuel gas composition have to
+be specified using the individual fluids. The component can not handle `"Air"`
+as input fluid. We can run the code after the specifications.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
@@ -148,17 +145,19 @@ generator, assuming 98 % mechanical-electrical efficiency.
 Since we deleted the connection 2 and 3, all specifications for those
 connections have to be added again. The air fluid composition is specified on
 connection 1 with ambient pressure and temperature. The compressor pressure
-ratio is set to 15 bar, the turbine inlet temperature to 1200 °C. Finally, set
-the gas turbine outlet pressure to ambient pressure as well as the
-compressor's and turbine's efficiency.
+ratio is set to 15 bar. Finally, set the gas turbine outlet pressure to ambient
+pressure as well as the compressor's and turbine's efficiency. We start with
+simulation which specifies a fixed value for the flue gas mass flow to generate
+good starting values. After that, the turbine inlet temperature is set to
+1200 °C.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python
     :start-after: [sec_9]
     :end-before: [sec_10]
 
-Note, that the pressure of the fuel is lower than the pressure of the air at
-the combustion chamber as we did not change the pressure of connection 5. A
+Note, that the pressure of the fuel is lower than the pressure of the air at the
+combustion chamber as we did not change the pressure of connection 5. A
 respective warning is printed after the calculation. We can fix it like so:
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py

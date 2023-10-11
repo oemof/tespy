@@ -38,10 +38,34 @@ tespy.tools.document_models module
     :undoc-members:
     :show-inheritance:
 
-tespy.tools.fluid_properties module
------------------------------------
+tespy.tools.fluid_properties.functions module
+---------------------------------------------
 
-.. automodule:: tespy.tools.fluid_properties
+.. automodule:: tespy.tools.fluid_properties.functions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.tools.fluid_properties.helpers module
+-------------------------------------------
+
+.. automodule:: tespy.tools.fluid_properties.helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.tools.fluid_properties.mixtures module
+--------------------------------------------
+
+.. automodule:: tespy.tools.fluid_properties.mixtures
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.tools.fluid_properties.wrappers module
+--------------------------------------------
+
+.. automodule:: tespy.tools.fluid_properties.wrappers
     :members:
     :undoc-members:
     :show-inheritance:

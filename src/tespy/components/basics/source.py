@@ -66,23 +66,33 @@ class Source(Component):
         return ['out1']
 
     @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target],
+            "subbranches": {}
+        }
+        outconn.target.propagate_to_target(branch)
+
+        return {outconn.label: branch}
+
+    def start_fluid_wrapper_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self]
+        }
+        outconn.target.propagate_wrapper_to_target(branch)
+
+        return {outconn.label: branch}
+
+    @staticmethod
     def get_mandatory_constraints():
         return {}
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Fluid propagation to source stops here.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        return
 
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.
@@ -111,4 +121,4 @@ class Source(Component):
             "massless": 0
         }
         self.E_D = np.nan
-        self.epsilon = np.nan
+        self.epsilon = self._calc_epsilon()

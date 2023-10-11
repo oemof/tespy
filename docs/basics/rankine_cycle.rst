@@ -161,10 +161,10 @@ can disable the printout of the convergence history.
 
     Figure: Parametric analysis of the efficiency and power output
 
-Partload Simulation
-^^^^^^^^^^^^^^^^^^^
-In the partload simulation part, we are starting with a specific design of the
-plant and calculate the partload performance with some assumptions on the
+Part load Simulation
+^^^^^^^^^^^^^^^^^^^^
+In the part load simulation part, we are starting with a specific design of the
+plant and calculate the part load performance with some assumptions on the
 component's individual behavior. The table below summarizes the assumptions,
 which we will keep as simple as possible at this moment. For more insights
 have a look at the step by step
@@ -239,14 +239,14 @@ Finally, we can alter the mass flow from its design value of 20 kg/s to only
 
 .. figure:: /_static/images/basics/rankine_partload.svg
     :align: center
-    :alt: Partload electric efficiency of the rankine cycle
+    :alt: Part load electric efficiency of the Rankine cycle
     :figclass: only-light
 
-    Figure: Partload electric efficiency of the rankine cycle
+    Figure: Part load electric efficiency of the Rankine cycle
 
 .. figure:: /_static/images/basics/rankine_partload_darkmode.svg
     :align: center
-    :alt: Partload electric efficiency of the rankine cycle
+    :alt: Part load electric efficiency of the Rankine cycle
     :figclass: only-dark
 
-    Figure: Partload electric efficiency of the rankine cycle
+    Figure: Part load electric efficiency of the Rankine cycle

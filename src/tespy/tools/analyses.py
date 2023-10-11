@@ -20,18 +20,19 @@ from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
+from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import combustion_gases
-from tespy.tools.global_vars import err
 
 idx = pd.IndexSlice
 
 
 def categorize_fluids(conn):
-    fluid = hlp.single_fluid(conn.fluid.val)
+    fluid = single_fluid(conn.fluid_data)
     if fluid is None:
         cat = "non-combustion-gas"
         for f, x in conn.fluid.val.items():
-            if x > err:
+            if x > ERR :
                 try:
                     if hlp.fluidalias_in_list(f, combustion_gases):
                         cat = "combustion-gas"
@@ -175,8 +176,7 @@ class ExergyAnalysis:
 
         >>> Tamb = 20
         >>> pamb = 1
-        >>> fluids = ['water']
-        >>> nw = Network(fluids=fluids)
+        >>> nw = Network()
         >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
         ... iterinfo=False)
 
@@ -346,12 +346,20 @@ class ExergyAnalysis:
         Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
 
         # reset data
+        dtypes = {
+            "E_F": float,
+            "E_P": float,
+            "E_D": float,
+            "epsilon": float,
+            "group": str
+        }
         self.component_data = pd.DataFrame(
-            columns=['E_F', 'E_P', 'E_D', 'epsilon', 'group'], dtype='float64'
-        )
+            columns=list(dtypes.keys())
+        ).astype(dtypes)
 
         self.bus_data = self.component_data.copy()
-        self.bus_data['base'] = np.nan
+        self.bus_data["base"] = np.nan
+        self.bus_data["base"] = self.bus_data["base"].astype(str)
         conn_exergy_data_cols = ['e_PH', 'e_T', 'e_M', 'E_PH', 'E_T', 'E_M']
 
         if Chem_Ex is not None:
@@ -401,8 +409,6 @@ class ExergyAnalysis:
         for cp in self.nw.comps['object']:
             # save component information
             cp.exergy_balance(Tamb_SI)
-            if not hasattr(cp, 'fkt_group'):
-                cp.fkt_group = cp.label
             self.component_data.loc[cp.label] = [
                 cp.E_F, cp.E_P, cp.E_D, cp.epsilon, cp.fkt_group
             ]
@@ -473,11 +479,11 @@ class ExergyAnalysis:
             self.network_data.loc['E_D'] - self.network_data.loc['E_L']
         )
 
-        if residual >= err ** 0.5:
+        if residual >= ERR ** 0.5:
             msg = (
                 'The exergy balance of your network is not closed (residual '
                 'value is ' + str(round(residual, 6)) + ', but should be '
-                'smaller than ' + str(err ** 0.5) + '), you should check the '
+                'smaller than ' + str(ERR ** 0.5) + '), you should check the '
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
             logger.error(msg)

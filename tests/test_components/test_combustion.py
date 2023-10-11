@@ -28,8 +28,7 @@ class TestCombustion:
 
     def setup_method(self):
 
-        self.nw = Network(['H2O', 'N2', 'O2', 'Ar', 'CO2', 'CH4'],
-                          T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.fuel = Source('fuel')
         self.air = Source('ambient air')
         self.fg = Sink('flue gas')
@@ -67,23 +66,25 @@ class TestCombustion:
         self.setup_CombustionChamber_network(instance)
 
         # connection parameter specification
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
-               'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
-        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=1.5)
 
         # test specified bus value on CombustionChamber (must be equal to ti)
         b = Bus('thermal input', P=1e6)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
         self.nw.solve('design')
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
+        self.nw.solve('design')
         self.nw._convergence_check()
         msg = ('Value of thermal input must be ' + str(b.P.val) + ', is ' +
                str(instance.ti.val) + '.')
         assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
-        b.set_attr(P=np.nan)
+        b.set_attr(P=None)
 
         # test specified thermal input for CombustionChamber
         instance.set_attr(ti=1e6)
@@ -96,7 +97,7 @@ class TestCombustion:
         assert round(ti, 1) == round(instance.ti.val, 1), msg
 
         # test specified lamb for CombustionChamber
-        self.c3.set_attr(T=np.nan)
+        self.c3.set_attr(T=None)
         instance.set_attr(lamb=1)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -112,15 +113,16 @@ class TestCombustion:
         self.setup_CombustionChamber_network(instance)
 
         # connection parameter specification
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
-               'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1.2, T=30)
         self.c2.set_attr(fluid=fuel, T=30, p=1.5)
-        self.c3.set_attr(T=1200)
 
         pr = 0.97
-        instance.set_attr(pr=pr, eta=0.95, ti=1e6)
+        instance.set_attr(pr=pr, eta=0.95, ti=1e6, lamb=1.5)
+        self.nw.solve('design')
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw._convergence_check()
 
@@ -134,16 +136,11 @@ class TestCombustion:
         )
         assert valid == check, msg
 
-        # test invalid pressure specification -> leading to linear dependency
-        self.c2.set_attr(p=None)
-        self.c3.set_attr(p=1.3)
-        self.nw.solve('design')
-        assert self.nw.lin_dep, "Calculation must not converge in this case."
-
         # test invalid pressure ratio
         instance.set_attr(pr=None)
         self.c1.set_attr(p=1.2)
         self.c2.set_attr(p=1.5)
+        self.c3.set_attr(p=1.3)
         self.nw.solve('design')
         self.nw._convergence_check()
 
@@ -155,6 +152,13 @@ class TestCombustion:
         )
         assert valid == check, msg
 
+        # test invalid pressure specification -> leading to linear dependency
+        instance.set_attr(pr=pr)
+        self.c2.set_attr(p=None)
+        self.c3.set_attr(p=1.3)
+        self.nw.solve('design')
+        assert self.nw.lin_dep, "Calculation must not converge in this case."
+
     def test_CombustionEngine(self):
         """Test component properties of combustion engine."""
         instance = CombustionEngine('combustion engine')
@@ -162,9 +166,9 @@ class TestCombustion:
 
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
                'CH4': 0}
-        fuel = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 0, 'CO2': 0.04, 'CH4': 0.96}
-        water1 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
-        water2 = {'N2': 0, 'O2': 0, 'Ar': 0, 'H2O': 1, 'CO2': 0, 'CH4': 0}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
+        water1 = {'H2O': 1}
+        water2 = {'H2O': 1}
 
         # connection parametrisation
         instance.set_attr(pr1=0.99, pr2=0.99, lamb=1.0,
@@ -203,7 +207,7 @@ class TestCombustion:
         assert round(TI.P.val, 1) == round(instance.ti.val, 1), msg
 
         # test specified thermal input in component
-        TI.set_attr(P=np.nan)
+        TI.set_attr(P=None)
         instance.set_attr(ti=ti)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -227,7 +231,7 @@ class TestCombustion:
         msg = ('Value of heat output 1 must be ' + str(-heat1) + ', is ' +
                str(instance.Q1.val) + '.')
         assert round(heat1, 1) == -round(instance.Q1.val, 1), msg
-        Q1.set_attr(P=np.nan)
+        Q1.set_attr(P=None)
 
         # test specified heat output 2 bus value
         Q2.set_attr(P=1.2 * instance.Q2.val)
@@ -241,7 +245,7 @@ class TestCombustion:
         assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test specified heat output 2 in component
-        Q2.set_attr(P=np.nan)
+        Q2.set_attr(P=None)
         instance.set_attr(Q2=-heat2)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -251,7 +255,7 @@ class TestCombustion:
         assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
         # test total heat output bus value
-        instance.set_attr(Q2=np.nan)
+        instance.set_attr(Q2=None)
         Q.set_attr(P=1.5 * instance.Q1.val)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()
@@ -262,7 +266,7 @@ class TestCombustion:
         assert round(Q.P.val, 1) == -round(heat, 1), msg
 
         # test specified heat loss bus value
-        Q.set_attr(P=np.nan)
+        Q.set_attr(P=None)
         Qloss.set_attr(P=-1e5)
         self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
         self.nw._convergence_check()

@@ -17,7 +17,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 
@@ -149,8 +148,7 @@ class HeatExchanger(Component):
     >>> from tespy.networks import Network
     >>> from tespy.tools import document_model
     >>> import shutil
-    >>> nw = Network(fluids=['water', 'air'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> exhaust_hot = Source('Exhaust air outlet')
     >>> exhaust_cold = Sink('Exhaust air inlet')
     >>> cw_cold = Source('cooling water inlet')
@@ -170,9 +168,9 @@ class HeatExchanger(Component):
 
     >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
     ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_he.set_attr(fluid={'air': 0, 'water': 1}, T=10, p=3,
+    >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
     ... offdesign=['m'])
-    >>> ex_he.set_attr(fluid={'air': 1, 'water': 0}, v=0.1, T=35)
+    >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -198,7 +196,7 @@ class HeatExchanger(Component):
     def component():
         return 'heat exchanger'
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'Q': dc_cp(
                 max_val=0, func=self.energy_balance_hot_func, num_eq=1,
@@ -242,14 +240,6 @@ class HeatExchanger(Component):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 2},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 2},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -280,10 +270,11 @@ class HeatExchanger(Component):
                 \dot{m}_{in,2} \cdot \left(h_{out,2} - h_{in,2} \right)
         """
         return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI) +
-            self.inl[1].m.val_SI * (
-                self.outl[1].h.val_SI - self.inl[1].h.val_SI))
+            self.inl[0].m.val_SI
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            + self.inl[1].m.val_SI
+            * (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+        )
 
     def energy_balance_func_doc(self, label):
         r"""
@@ -317,13 +308,14 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        for i in range(2):
-            self.jacobian[k, i, 0] = (
-                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
-            self.jacobian[k, i, 2] = -self.inl[i].m.val_SI
-
-        self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
-        self.jacobian[k, 3, 2] = self.inl[1].m.val_SI
+        for _c_num, i in enumerate(self.inl):
+            o = self.outl[_c_num]
+            if self.is_variable(i.m, increment_filter):
+                self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            if self.is_variable(i.h, increment_filter):
+                self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            if self.is_variable(o.h, increment_filter):
+                self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def energy_balance_hot_func(self):
         r"""
@@ -339,7 +331,8 @@ class HeatExchanger(Component):
                 0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-h_{in,1}\right)-\dot{Q}
         """
         return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q.val
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        ) - self.Q.val
 
     def energy_balance_hot_func_doc(self, label):
         r"""
@@ -372,9 +365,14 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 2, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def calculate_td_log(self):
         i1 = self.inl[0]
@@ -383,10 +381,10 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         # temperature value manipulation for convergence stability
-        T_i1 = T_mix_ph(i1.get_flow(), T0=i1.T.val_SI)
-        T_i2 = T_mix_ph(i2.get_flow(), T0=i2.T.val_SI)
-        T_o1 = T_mix_ph(o1.get_flow(), T0=o1.T.val_SI)
-        T_o2 = T_mix_ph(o2.get_flow(), T0=o2.T.val_SI)
+        T_i1 = i1.calc_T(T0=i1.T.val_SI)
+        T_i2 = i2.calc_T(T0=i2.T.val_SI)
+        T_o1 = o1.calc_T(T0=o1.T.val_SI)
+        T_o2 = o2.calc_T(T0=o2.T.val_SI)
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -466,12 +464,15 @@ class HeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.kA_func
-        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        for i in range(4):
-            if not increment_filter[i, 1]:
-                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-            if not increment_filter[i, 2]:
-                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def kA_char_func(self):
         r"""
@@ -556,15 +557,14 @@ class HeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.kA_char_func
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(f, 'm', 0)
-        if not increment_filter[1, 0]:
-            self.jacobian[k, 1, 0] = self.numeric_deriv(f, 'm', 1)
-        for i in range(4):
-            if not increment_filter[i, 1]:
-                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-            if not increment_filter[i, 2]:
-                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+        for i in self.inl:
+            if self.is_variable(i.m):
+                self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def ttd_u_func(self):
         r"""
@@ -579,8 +579,10 @@ class HeatExchanger(Component):
 
                 0 = ttd_{u} - T_{in,1} + T_{out,2}
         """
-        T_i1 = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
-        T_o2 = T_mix_ph(self.outl[1].get_flow(), T0=self.outl[1].T.val_SI)
+        i = self.inl[0]
+        o = self.outl[1]
+        T_i1 = i.calc_T(T0=i.T.val_SI)
+        T_o2 = o.calc_T(T0=o.T.val_SI)
         return self.ttd_u.val - T_i1 + T_o2
 
     def ttd_u_func_doc(self, label):
@@ -613,11 +615,11 @@ class HeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.ttd_u_func
-        for i in [0, 3]:
-            if not increment_filter[i, 1]:
-                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-            if not increment_filter[i, 2]:
-                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+        for c in [self.inl[0], self.outl[1]]:
+            if self.is_variable(c.p, increment_filter):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def ttd_l_func(self):
         r"""
@@ -632,8 +634,10 @@ class HeatExchanger(Component):
 
                 0 = ttd_{l} - T_{out,1} + T_{in,2}
         """
-        T_i2 = T_mix_ph(self.inl[1].get_flow(), T0=self.inl[1].T.val_SI)
-        T_o1 = T_mix_ph(self.outl[0].get_flow(), T0=self.outl[0].T.val_SI)
+        i = self.inl[1]
+        o = self.outl[0]
+        T_i2 = i.calc_T(T0=i.T.val_SI)
+        T_o1 = o.calc_T(T0=o.T.val_SI)
         return self.ttd_l.val - T_o1 + T_i2
 
     def ttd_l_func_doc(self, label):
@@ -666,11 +670,11 @@ class HeatExchanger(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.ttd_l_func
-        for i in [1, 2]:
-            if not increment_filter[i, 1]:
-                self.jacobian[k, i, 1] = self.numeric_deriv(f, 'p', i)
-            if not increment_filter[i, 2]:
-                self.jacobian[k, i, 2] = self.numeric_deriv(f, 'h', i)
+        for c in [self.inl[1], self.outl[0]]:
+            if self.is_variable(c.p, increment_filter):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def bus_func(self, bus):
         r"""
@@ -695,7 +699,8 @@ class HeatExchanger(Component):
                 h_{out,1} - h_{in,1} \right)
         """
         return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
 
     def bus_func_doc(self, bus):
         r"""
@@ -729,12 +734,21 @@ class HeatExchanger(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((1, 4, self.num_nw_vars))
         f = self.calc_bus_value
-        deriv[0, 0, 0] = self.numeric_deriv(f, 'm', 0, bus=bus)
-        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
-        deriv[0, 2, 2] = self.numeric_deriv(f, 'h', 2, bus=bus)
-        return deriv
+        if self.inl[0].m.is_var:
+            if self.inl[0].m.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col] = 0
+            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+
+        if self.inl[0].h.is_var:
+            if self.inl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col] = 0
+            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+
+        if self.outl[0].h.is_var:
+            if self.outl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.outl[0].h.J_col] = 0
+            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
 
     def initialise_source(self, c, key):
         r"""
@@ -766,10 +780,9 @@ class HeatExchanger(Component):
         elif key == 'h':
             if c.source_id == 'out1':
                 T = 200 + 273.15
-                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 250 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -801,10 +814,9 @@ class HeatExchanger(Component):
         elif key == 'h':
             if c.target_id == 'in1':
                 T = 300 + 273.15
-                return h_mix_pT(c.get_flow(), T)
             else:
                 T = 220 + 273.15
-                return h_mix_pT(c.get_flow(), T)
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
@@ -887,17 +899,27 @@ class HeatExchanger(Component):
             p_star = inl.p.val_SI * (
                 self.get_attr('pr' + str(i + 1)).val) ** 0.5
             s_i_star = s_mix_ph(
-                [0, p_star, inl.h.val_SI, inl.fluid.val], T0=inl.T.val_SI)
+                p_star, inl.h.val_SI, inl.fluid_data, inl.mixing_rule,
+                T0=inl.T.val_SI
+            )
             s_o_star = s_mix_ph(
-                [0, p_star, out.h.val_SI, out.fluid.val], T0=out.T.val_SI)
+                p_star, out.h.val_SI, out.fluid_data, out.mixing_rule,
+                T0=out.T.val_SI
+            )
 
-            setattr(self, 'S_Q' + str(i + 1),
-                    inl.m.val_SI * (s_o_star - s_i_star))
+            setattr(
+                self, 'S_Q' + str(i + 1),
+                inl.m.val_SI * (s_o_star - s_i_star)
+            )
             S_Q = self.get_attr('S_Q' + str(i + 1))
-            setattr(self, 'S_irr' + str(i + 1),
-                    inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q)
-            setattr(self, 'T_mQ' + str(i + 1),
-                    inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q)
+            setattr(
+                self, 'S_irr' + str(i + 1),
+                inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q
+            )
+            setattr(
+                self, 'T_mQ' + str(i + 1),
+                inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q
+            )
 
             self.S_irr += self.get_attr('S_irr' + str(i + 1))
 
@@ -1014,7 +1036,7 @@ class HeatExchanger(Component):
             self.E_D = self.E_F
         else:
             self.E_D = self.E_F - self.E_P
-        self.epsilon = self.E_P / self.E_F
+        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

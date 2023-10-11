@@ -13,7 +13,6 @@ available from its original location tespy/tools/characteristics.py
 
 SPDX-License-Identifier: MIT
 """
-
 import json
 import os
 
@@ -22,8 +21,6 @@ import numpy as np
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.helpers import extend_basic_path
-
-# %%
 
 
 class CharLine:
@@ -167,6 +164,13 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["extrapolate"] = self.extrapolate
+        return export
+
     def plot(self, path, title, xlabel, ylabel):
 
         from matplotlib import pyplot as plt
@@ -184,8 +188,6 @@ class CharLine:
         # export
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
-
-# %%
 
 
 class CharMap:
@@ -444,6 +446,13 @@ class CharMap:
             msg = 'Char_map has no attribute \"' + key + '\".'
             logger.error(msg)
             raise KeyError(msg)
+
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["z"] = self.z.tolist()
+        return export
 
     def plot(self, path, title, xlabel, ylabel):
 

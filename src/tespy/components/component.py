@@ -28,12 +28,11 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
+from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton
-
-# %%
 
 
 class Component:
@@ -94,15 +93,17 @@ class Component:
     def __init__(self, label, **kwargs):
 
         # check if components label is of type str and for prohibited chars
+        _forbidden = [';', ',', '.']
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
             logger.error(msg)
             raise ValueError(msg)
 
-        elif len([x for x in [';', ',', '.'] if x in label]) > 0:
+        elif any([True for x in _forbidden if x in label]):
             msg = (
-                'You must not use ' + str([';', ',', '.']) + ' in label (' +
-                str(self.component()) + ').')
+                f"You cannot use any of " + ", ".join(_forbidden) + " in a "
+                f"component label ({self.component()}"
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -118,10 +119,11 @@ class Component:
         self.local_offdesign = False
         self.char_warnings = True
         self.printout = True
+        self.fkt_group = self.label
 
         # add container for components attributes
-        self.variables = OrderedDict(self.get_variables().copy())
-        self.__dict__.update(self.variables)
+        self.parameters = OrderedDict(self.get_parameters().copy())
+        self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
     def set_attr(self, **kwargs):
@@ -151,7 +153,7 @@ class Component:
         """
         # set specified values
         for key in kwargs:
-            if key in self.variables:
+            if key in self.parameters:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
@@ -175,18 +177,11 @@ class Component:
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
                     if is_numeric:
-                        if np.isnan(kwargs[key]):
-                            data.set_attr(is_set=False)
-                            if isinstance(data, dc_cp):
-                                data.set_attr(is_var=False)
+                        data.set_attr(val=kwargs[key], is_set=True)
+                        if isinstance(data, dc_cp):
+                            data.set_attr(is_var=False)
 
-                        else:
-                            data.set_attr(val=kwargs[key], is_set=True)
-                            if isinstance(data, dc_cp):
-                                data.set_attr(is_var=False)
-
-                    elif (kwargs[key] == 'var' and
-                          isinstance(data, dc_cp)):
+                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, is_var=True)
 
                     elif isinstance(data, dc_simple):
@@ -195,8 +190,9 @@ class Component:
                     # invalid datatype for keyword
                     else:
                         msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
+                            f"Bad datatype for keyword argument {key} for "
+                            f"component {self.label}."
+                        )
                         logger.error(msg)
                         raise TypeError(msg)
 
@@ -209,39 +205,29 @@ class Component:
                     # invalid datatype for keyword
                     else:
                         msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-                elif isinstance(data, dc_gcp):
-                    # value specification of grouped component parameter method
-                    if isinstance(kwargs[key], str):
-                        data.method = kwargs[key]
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            'Bad datatype for keyword argument ' + key +
-                            ' at ' + self.label + '.')
+                            f"Bad datatype for keyword argument {key} for "
+                            f"component {self.label}."
+                        )
                         logger.error(msg)
                         raise TypeError(msg)
 
             elif key in ['design', 'offdesign']:
                 if not isinstance(kwargs[key], list):
                     msg = (
-                        'Please provide the ' + key + ' parameters as list '
-                        'at ' + self.label + '.')
+                        f"Please provide the {key} parameters as list for "
+                        f"component {self.label}."
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(self.variables.keys())):
+                if set(kwargs[key]).issubset(list(self.parameters.keys())):
                     self.__dict__.update({key: kwargs[key]})
 
                 else:
+                    keys = ", ".join(self.parameters.keys())
                     msg = (
-                        'Available parameters for (off-)design specification '
-                        'are: ' + str(list(self.variables.keys())) + ' at ' +
-                        self.label + '.')
+                        "Available parameters for (off-)design specification "
+                        f"of component {self.label} are: {keys}."
+                    )
                     logger.error(msg)
                     raise ValueError(msg)
 
@@ -249,8 +235,9 @@ class Component:
                          'printout', 'char_warnings']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
-                        'Please provide the parameter ' + key + ' as boolean '
-                        'at component ' + self.label + '.')
+                        f"Please provide the {key} parameters as bool for "
+                        f"component {self.label}."
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
 
@@ -267,7 +254,8 @@ class Component:
                 else:
                     msg = (
                         'Please provide the design_path parameter as string. '
-                        'For unsetting use np.nan or None.')
+                        'For unsetting use None.'
+                    )
                     logger.error(msg)
                     raise TypeError(msg)
 
@@ -275,9 +263,7 @@ class Component:
 
             # invalid keyword
             else:
-                msg = (
-                    'Component ' + self.label + ' has no attribute ' +
-                    str(key) + '.')
+                msg = f"Component {self.label} has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
 
@@ -298,12 +284,52 @@ class Component:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = ('Component ' + self.label + ' has no attribute \"' +
-                   key + '\".')
+            msg = f"Component {self.label} has no attribute {key}."
             logger.error(msg)
             raise KeyError(msg)
 
-    def preprocess(self, nw, num_eq=0):
+    def serialize(self):
+        export = {}
+        for k in self._serializable():
+            export.update({k: self.get_attr(k)})
+        for k in self.parameters:
+            data = self.get_attr(k)
+            export.update({k: data.serialize()})
+
+        return {self.label: export}
+
+    @staticmethod
+    def _serializable():
+        return [
+            "design", "offdesign", "local_design", "local_offdesign",
+            "design_path", "printout", "fkt_group", "char_warnings"
+        ]
+
+    @staticmethod
+    def is_branch_source():
+        return False
+
+    def propagate_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        branch["connections"] += [outconn]
+        branch["components"] += [outconn.target]
+
+        outconn.target.propagate_to_target(branch)
+
+    def propagate_wrapper_to_target(self, branch):
+        inconn = branch["connections"][-1]
+        conn_idx = self.inl.index(inconn)
+        outconn = self.outl[conn_idx]
+
+        branch["connections"] += [outconn]
+        branch["components"] += [self]
+
+        outconn.target.propagate_wrapper_to_target(branch)
+
+    def preprocess(self, num_nw_vars):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -312,10 +338,6 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        self.num_nw_fluids = len(nw.fluids)
-        self.nw_fluids = nw.fluids
-        self.always_all_equations = nw.always_all_equations
-        self.num_nw_vars = self.num_nw_fluids + 3
         self.it = 0
         self.num_eq = 0
         self.vars = {}
@@ -330,11 +352,11 @@ class Component:
         for constraint in self.constraints.values():
             self.num_eq += constraint['num_eq']
 
-        for key, val in self.variables.items():
+        for key, val in self.parameters.items():
             data = self.get_attr(key)
             if isinstance(val, dc_cp):
                 if data.is_var:
-                    data.var_pos = self.num_vars
+                    data.J_col = num_nw_vars + self.num_vars
                     self.num_vars += 1
                     self.vars[data] = key
 
@@ -376,8 +398,9 @@ class Component:
                     start = (
                         'All parameters of the component group have to be '
                         'specified! This component group uses the following '
-                        'parameters: ')
-                    end = ' at ' + self.label + '. Group will be set to False.'
+                        'parameters: '
+                    )
+                    end = f" at {self.label}. Group will be set to False."
                     logger.warning(start + ', '.join(val.elements) + end)
                     val.set_attr(is_set=False)
                 else:
@@ -392,40 +415,25 @@ class Component:
             if data.is_set and data.func is not None:
                 self.num_eq += data.num_eq
 
-        # set up Jacobian matrix and residual vector
-        self.jacobian = np.zeros((
-            self.num_eq,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
+        self.jacobian = OrderedDict()
         self.residual = np.zeros(self.num_eq)
 
         sum_eq = 0
         for constraint in self.constraints.values():
             num_eq = constraint['num_eq']
             if constraint['constant_deriv']:
-                self.jacobian[sum_eq:sum_eq + num_eq] = constraint['deriv']()
+                constraint["deriv"](sum_eq)
             sum_eq += num_eq
 
         # done
-        msg = (
-            'The component ' + self.label + ' has ' + str(self.num_vars) +
-            ' custom variables.')
+        msg = f"The component {self.label} has {self.num_vars} variables."
         logger.debug(msg)
 
-    def get_variables(self):
+    def get_parameters(self):
         return {}
 
     def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': self.num_i},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * self.num_i}
-        }
+        return {}
 
     @staticmethod
     def inlets():
@@ -434,6 +442,13 @@ class Component:
     @staticmethod
     def outlets():
         return []
+
+    @staticmethod
+    def is_variable(var, increment_filter=None):
+        if var.is_var:
+            if increment_filter is None or not increment_filter[var.J_col]:
+                return True
+        return False
 
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
         r"""
@@ -463,16 +478,15 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return (
-                    self.inl[inconn].m.val_SI / self.inl[inconn].m.design)
+                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
             elif param == 'm_out':
-                return (
-                    self.outl[outconn].m.val_SI /
-                    self.outl[outconn].m.design)
+                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].get_flow(),
-                    T0=self.inl[inconn].T.val_SI)
+                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
+                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
+                    T0=self.inl[inconn].T.val_SI
+                )
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
                 return (
@@ -482,8 +496,9 @@ class Component:
                      self.outl[outconn].p.design))
             else:
                 msg = (
-                    'The parameter ' + str(param) + ' is not available '
-                    'for characteristic function evaluation.')
+                    f"The parameter {param}) is not available for "
+                    "characteristic function evaluation."
+                )
                 logger.error(msg)
                 raise ValueError(msg)
         else:
@@ -493,12 +508,12 @@ class Component:
                 return self.outl[outconn].m.val_SI
             elif param == 'v':
                 return self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].get_flow(),
-                    T0=self.inl[inconn].T.val_SI)
+                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
+                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
+                    T0=self.inl[inconn].T.val_SI
+                )
             elif param == 'pr':
-                return (
-                    self.outl[outconn].p.val_SI /
-                    self.inl[inconn].p.val_SI)
+                return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
 
@@ -575,15 +590,17 @@ class Component:
         sum_eq = 0
         for constraint in self.constraints.values():
             num_eq = constraint['num_eq']
-            self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
+            if num_eq > 0:
+                self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
             if not constraint['constant_deriv']:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        for parameter, data in self.variables.items():
+        for data in self.parameters.values():
             if data.is_set and data.func is not None:
                 self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                    **data.func_params)
+                    **data.func_params
+                )
                 data.deriv(increment_filter, sum_eq, **data.func_params)
 
                 sum_eq += data.num_eq
@@ -603,38 +620,6 @@ class Component:
             Residual value of bus equation.
         """
         return 0
-
-    def bus_func_doc(self, bus):
-        r"""
-        Base method for LaTeX equation generation of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            Bus function in LaTeX format.
-        """
-        return None
-
-    def bus_deriv(self, bus):
-        r"""
-        Base method for partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        return np.zeros((1, self.num_i + self.num_o, self.num_nw_vars))
 
     def calc_bus_expr(self, bus):
         r"""
@@ -792,58 +777,6 @@ class Component:
         """
         return 0
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and inconn == start:
-            return
-
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-
-        for fluid, x in inconn.fluid.val.items():
-            if (not outconn.fluid.val_set[fluid] and
-                    not outconn.good_starting_values):
-                outconn.fluid.val[fluid] = x
-
-        outconn.target.propagate_fluid_to_target(outconn, start)
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and outconn == start:
-            return
-
-        conn_idx = self.outl.index(outconn)
-        inconn = self.inl[conn_idx]
-
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
-
-        inconn.source.propagate_fluid_to_source(inconn, start)
-
     def set_parameters(self, mode, data):
         r"""
         Set or unset design values of component parameters.
@@ -860,7 +793,7 @@ class Component:
         if mode == 'design' or self.local_design:
             self.new_design = True
 
-        for key, dc in self.variables.items():
+        for key, dc in self.parameters.items():
             if isinstance(dc, dc_cp):
                 if ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)):
@@ -875,10 +808,10 @@ class Component:
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        for p in self.variables.keys():
+        for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                if data.val > data.max_val + err:
+                if data.val > data.max_val + ERR :
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(data.val) + ' above maximum value (' +
@@ -886,7 +819,7 @@ class Component:
                         '.')
                     logger.warning(msg)
 
-                elif data.val < data.min_val - err:
+                elif data.val < data.min_val - ERR :
                     msg = (
                         'Invalid value for ' + p + ': ' + p + ' = ' +
                         str(data.val) + ' below minimum value (' +
@@ -904,9 +837,6 @@ class Component:
                     expr = self.get_char_expr(
                         char_data.param, **char_data.char_params)
                     char_data.char_func.get_domain_errors(expr, self.label)
-
-    def initialise_fluids(self):
-        return
 
     def convergence_check(self):
         return
@@ -930,135 +860,16 @@ class Component:
             "chemical": np.nan, "physical": np.nan, "massless": np.nan
         }
         self.E_D = np.nan
-        self.epsilon = np.nan
+        self.epsilon = self._calc_epsilon()
+
+    def _calc_epsilon(self):
+        if self.E_F == 0:
+            return np.nan
+        else:
+            return self.E_P / self.E_F
 
     def get_plotting_data(self):
         return
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = x_{fl,in,i} - x_{fl,out,i} \; \forall fl \in
-                \text{network fluids,} \; \forall i \in \text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - self.outl[0].fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Get fluid balance equations in LaTeX format.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=x_{fl\mathrm{,in,}i}-x_{fl\mathrm{,out,}i}\;'
-            r'\forall fl \in\text{network fluids,}'
-            r'\; \forall i \in [' + indices + r']')
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.fluid_constraints['num_eq'],
-                          2 * self.num_i + self.num_vars,
-                          self.num_nw_vars))
-        for i in range(self.num_i):
-            for j in range(self.num_nw_fluids):
-                deriv[i * self.num_nw_fluids + j, i, j + 3] = 1
-                deriv[i * self.num_nw_fluids + j, self.num_i + i, j + 3] = -1
-        return deriv
-
-    def mass_flow_func(self):
-        r"""
-        Calculate the residual value for mass flow balance equation.
-
-        Returns
-        -------
-        residual : list
-            Vector with residual value for component's mass flow balance.
-
-            .. math::
-
-                0 = \dot{m}_{in,i} -\dot{m}_{out,i} \;\forall i\in\text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            residual += [self.inl[i].m.val_SI - self.outl[i].m.val_SI]
-        return residual
-
-    def mass_flow_func_doc(self, label):
-        r"""
-        Get mass flow equations in LaTeX format.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=\dot{m}_{\mathrm{in,}i}-\dot{m}_{\mathrm{out,}i}'
-            r'\; \forall i \in [' + indices + r']')
-        return generate_latex_eq(self, latex, label)
-
-    def mass_flow_deriv(self):
-        r"""
-        Calculate partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the mass flow balance
-            equations.
-        """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
-        for i in range(self.num_i):
-            deriv[i, i, 0] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 0] = -1
-        return deriv
 
     def pressure_equality_func(self):
         r"""
@@ -1102,7 +913,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self):
+    def pressure_equality_deriv(self, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -1112,15 +923,11 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
         for i in range(self.num_i):
-            deriv[i, i, 1] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 1] = -1
-        return deriv
+            if self.inl[i].p.is_var:
+                self.jacobian[k + i, self.inl[i].p.J_col] = 1
+            if self.outl[i].p.is_var:
+                self.jacobian[k + i, self.outl[i].p.J_col] = -1
 
     def enthalpy_equality_func(self):
         r"""
@@ -1164,7 +971,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def enthalpy_equality_deriv(self):
+    def enthalpy_equality_deriv(self, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -1174,92 +981,19 @@ class Component:
             Matrix with partial derivatives for the mass flow balance
             equations.
         """
-        deriv = np.zeros((
-            self.num_i,
-            self.num_i + self.num_o + self.num_vars,
-            self.num_nw_vars))
         for i in range(self.num_i):
-            deriv[i, i, 2] = 1
-        for j in range(self.num_o):
-            deriv[j, j + i + 1, 2] = -1
-        return deriv
+            if self.inl[i].h.is_var:
+                self.jacobian[k + i, self.inl[i].h.J_col] = 1
+            if self.outl[i].h.is_var:
+                self.jacobian[k + i, self.outl[i].h.J_col] = -1
 
-    def numeric_deriv(self, func, dx, pos, **kwargs):
+    def numeric_deriv(self, func, dx, conn=None, **kwargs):
         r"""
         Calculate partial derivative of the function func to dx.
 
-        Parameters
-        ----------
-        func : function
-            Function :math:`f` to calculate the partial derivative for.
-
-        dx : str
-            Partial derivative.
-
-        pos : int
-            Position of connection regarding to inlets and outlet of the
-            component, logic: ['in1', 'in2', ..., 'out1', ...] ->
-            0, 1, ..., n, n + 1, ..., n + m
-
-        Returns
-        -------
-        deriv : float/list
-            Partial derivative(s) of the function :math:`f` to variable(s)
-            :math:`x`.
-
-            .. math::
-
-                \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
         """
-        if dx == 'fluid':
-            d = 1e-5
-            conns = self.inl + self.outl
-            deriv = []
-            for f in conns[0].fluid.val.keys():
-                val = conns[pos].fluid.val[f]
-                if conns[pos].fluid.val[f] + d <= 1:
-                    conns[pos].fluid.val[f] += d
-                else:
-                    conns[pos].fluid.val[f] = 1
-                exp = func(**kwargs)
-                if conns[pos].fluid.val[f] - 2 * d >= 0:
-                    conns[pos].fluid.val[f] -= 2 * d
-                else:
-                    conns[pos].fluid.val[f] = 0
-                exp -= func(**kwargs)
-                conns[pos].fluid.val[f] = val
-
-                deriv += [exp / (2 * d)]
-
-        elif dx in ['m', 'p', 'h']:
-
-            if dx == 'm':
-                d = 1e-4
-            else:
-                d = 1e-1
-            conns = self.inl + self.outl
-            conns[pos].get_attr(dx).val_SI += d
-            exp = func(**kwargs)
-
-            conns[pos].get_attr(dx).val_SI -= 2 * d
-            exp -= func(**kwargs)
-            deriv = exp / (2 * d)
-
-            conns[pos].get_attr(dx).val_SI += d
-
-        else:
-            d = self.get_attr(dx).d
-            exp = 0
-            self.get_attr(dx).val += d
-            exp += func(**kwargs)
-
-            self.get_attr(dx).val -= 2 * d
-            exp -= func(**kwargs)
-            deriv = exp / (2 * d)
-
-            self.get_attr(dx).val += d
-
-        return deriv
+        return _numeric_deriv(self, func, dx, conn, **kwargs)
 
     def pr_func(self, pr='', inconn=0, outconn=0):
         r"""
@@ -1340,11 +1074,14 @@ class Component:
             Connection index of outlet.
         """
         pr = self.get_attr(pr)
-        self.jacobian[k, inconn, 1] = pr.val
-        self.jacobian[k, self.num_i + outconn, 1] = -1
+        i = self.inl[inconn]
+        o = self.outl[inconn]
+        if i.p.is_var:
+            self.jacobian[k, i.p.J_col] = pr.val
+        if o.p.is_var:
+            self.jacobian[k, o.p.J_col] = -1
         if pr.is_var:
-            pos = self.num_i + self.num_o + pr.var_pos
-            self.jacobian[k, pos, 0] = self.inl[inconn].p.val_SI
+            self.jacobian[k, self.pr.J_col] = i.p.val_SI
 
     def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
@@ -1389,17 +1126,19 @@ class Component:
             {8 \cdot \dot{m}^2 \cdot v}
         """
         data = self.get_attr(zeta)
-        i = self.inl[inconn].get_flow()
-        o = self.outl[outconn].get_flow()
+        i = self.inl[inconn]
+        o = self.outl[outconn]
 
-        if abs(i[0]) < 1e-4:
-            return i[1] - o[1]
+        if abs(i.m.val_SI) < 1e-4:
+            return i.p.val_SI - o.p.val_SI
 
         else:
-            v_i = v_mix_ph(i, T0=self.inl[inconn].T.val_SI)
-            v_o = v_mix_ph(o, T0=self.outl[outconn].T.val_SI)
-            return (data.val - (i[1] - o[1]) * np.pi ** 2 /
-                    (8 * abs(i[0]) * i[0] * (v_i + v_o) / 2))
+            v_i = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
+            v_o = v_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+            return (
+                data.val - (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
+            )
 
     def zeta_func_doc(self, label, zeta='', inconn=0, outconn=0):
         r"""
@@ -1460,24 +1199,19 @@ class Component:
         """
         data = self.get_attr(zeta)
         f = self.zeta_func
-        outpos = self.num_i + outconn
-        if not increment_filter[inconn, 0]:
-            self.jacobian[k, inconn, 0] = self.numeric_deriv(
-                f, 'm', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[inconn, 2]:
-            self.jacobian[k, inconn, 1] = self.numeric_deriv(
-                f, 'p', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[inconn, 2]:
-            self.jacobian[k, inconn, 2] = self.numeric_deriv(
-                f, 'h', inconn, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[outpos, 1]:
-            self.jacobian[k, outpos, 1] = self.numeric_deriv(
-                f, 'p', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
-        if not increment_filter[outpos, 2]:
-            self.jacobian[k, outpos, 2] = self.numeric_deriv(
-                f, 'h', outpos, zeta=zeta, inconn=inconn, outconn=outconn)
+        i = self.inl[inconn]
+        o = self.outl[outconn]
+        kwargs = dict(zeta=zeta, inconn=inconn, outconn=outconn)
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i, **kwargs)
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i, **kwargs)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i, **kwargs)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o, **kwargs)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o, **kwargs)
         # custom variable zeta
         if data.is_var:
-            pos = self.num_i + self.num_o + data.var_pos
-            self.jacobian[k, pos, 0] = self.numeric_deriv(
-                f, zeta, 2, zeta=zeta, inconn=inconn, outconn=outconn)
+            self.jacobian[k, data.J_col] = self.numeric_deriv(f, zeta, None, **kwargs)

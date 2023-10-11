@@ -84,8 +84,7 @@ class Splitter(NodeBase):
     >>> from tespy.networks import Network
     >>> import shutil
     >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C',
+    >>> nw = Network(p_unit='bar', T_unit='C',
     ... iterinfo=False)
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
@@ -123,7 +122,7 @@ class Splitter(NodeBase):
         return 'splitter'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_out': dc_simple()}
 
     def get_mandatory_constraints(self):
@@ -132,10 +131,6 @@ class Splitter(NodeBase):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -160,72 +155,15 @@ class Splitter(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
-    def preprocess(self, nw, num_eq=0):
-        super().preprocess(nw, num_eq)
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            outconn.target.propagate_wrapper_to_target(branch)
+
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self._propagation_start = False
-
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = x_{fl,in} - x_{fl,out,j} \;
-                \forall fl \in \text{network fluids,} \; \forall j \in
-                \text{outlets}
-        """
-        residual = []
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - o.fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = x_{fl\mathrm{,in}} - x_{fl\mathrm{,out,}j}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-            r'\text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((self.num_nw_fluids * self.num_o, 1 + self.num_o,
-                          self.num_nw_vars))
-        k = 0
-        for o in self.outl:
-            i = 0
-            for fluid in self.nw_fluids:
-                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + 1, i + 3] = -1
-                i += 1
-            k += 1
-        return deriv
 
     def energy_balance_func(self):
         r"""
@@ -258,7 +196,7 @@ class Splitter(NodeBase):
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self):
+    def energy_balance_deriv(self, k):
         r"""
         Calculate partial derivatives for energy balance equation.
 
@@ -267,61 +205,8 @@ class Splitter(NodeBase):
         deriv : list
             Matrix of partial derivatives.
         """
-        deriv = np.zeros((self.num_o, 1 + self.num_o, self.num_nw_vars))
-        k = 0
-        for o in self.outl:
-            deriv[k, 0, 2] = 1
-            deriv[k, k + 1, 2] = -1
-            k += 1
-        return deriv
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and inconn == start:
-            return
-        for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if (not outconn.fluid.val_set[fluid] and
-                        not outconn.good_starting_values):
-                    outconn.fluid.val[fluid] = x
-
-            outconn.target.propagate_fluid_to_target(outconn, start)
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if (not entry_point and outconn == start) or self._propagation_start:
-            return
-
-        self._propagation_start = True
-
-        inconn = self.inl[0]
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
-
-        inconn.source.propagate_fluid_to_source(inconn, start)
-
-        self._propagation_start = False
+        for eq, o in enumerate(self.outl):
+            if self.inl[0].h.is_var:
+                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
+            if o.h.is_var:
+                self.jacobian[k + eq, o.h.J_col] = -1

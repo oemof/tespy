@@ -1823,7 +1823,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, always_all_equations=True, print_results=True):
+              use_cuda=False, print_results=True, prepare_fast_lane=False):
         r"""
         Solve the network.
 
@@ -1946,7 +1946,9 @@ class Network:
         self.solve_determination()
 
         self.solve_loop(print_results=print_results)
-        self._reset_topology_reduction_specifications()
+
+        if not prepare_fast_lane:
+            self._reset_topology_reduction_specifications()
 
         if self.lin_dep:
             msg = (

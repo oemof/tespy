@@ -35,28 +35,26 @@ create an instance with the respective data. First, we set up the TESPy model.
 
 .. code-block:: python
 
-    from tespy.networks import Network
-    from tespy.components import Sink, Source
-    from tespy.connections import Connection
-    from tespy.tools.helpers import UserDefinedEquation
+    >>> from tespy.networks import Network
+    >>> from tespy.components import Sink, Source
+    >>> from tespy.connections import Connection
+    >>> from tespy.tools.helpers import UserDefinedEquation
 
-    fluids = ['water']
+    >>> nw = Network(iterinfo=False)
+    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
-    nw = Network(fluids=fluids)
-    nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> so1 = Source('source 1')
+    >>> so2 = Source('source 2')
+    >>> si1 = Sink('sink 1')
+    >>> si2 = Sink('sink 2')
 
-    so1 = Source('source 1')
-    so2 = Source('source 2')
-    si1 = Sink('sink 1')
-    si2 = Sink('sink 2')
+    >>> c1 = Connection(so1, 'out1', si1, 'in1')
+    >>> c2 = Connection(so2, 'out1', si2, 'in1')
 
-    c1 = Connection(so1, 'out1', si1, 'in1')
-    c2 = Connection(so2, 'out1', si2, 'in1')
+    >>> nw.add_conns(c1, c2)
 
-    nw.add_conns(c1, c2)
-
-    c1.set_attr(fluid={'water': 1}, p=1, T=50)
-    c2.set_attr(fluid={'water': 1}, p=5, T=250, v=4)
+    >>> c1.set_attr(fluid={'water': 1}, p=1, T=50)
+    >>> c2.set_attr(fluid={'water': 1}, p=5, T=250, v=4)
 
 In the model both streams are well-defined regarding pressure, enthalpy and
 fluid composition. The second stream's mass flow is defined through
@@ -67,8 +65,8 @@ equation in a function which returns the residual value of the equation.
 
 .. code-block:: python
 
-    def my_ude(self):
-        return self.conns[0].m.val_SI - self.conns[1].m.val_SI ** 2
+    >>> def my_ude(self):
+    ...     return self.conns[0].m.val_SI - self.conns[1].m.val_SI ** 2
 
 
 .. note::
@@ -112,14 +110,17 @@ derivatives to mass flow are not zero.
 
 - The derivative to mass flow of connection :code:`c1` is equal to :math:`1`
 - The derivative to mass flow of connection :code:`c2` is equal to
-  :math:`2 \cdot \dot{m}_2`.
+  :math:`-2 \cdot \dot{m}_2`.
 
 .. code-block:: python
 
-    def my_ude_deriv(self):
-        self.jacobian[self.conns[0]][0] = 1
-        self.jacobian[self.conns[1]][0] = 2 * self.conns[1].m.val_SI
-        return self.jacobian
+    >>> def my_ude_deriv(self):
+    ...     c0 = self.conns[0]
+    ...     c1 = self.conns[1]
+    ...     if c0.m.is_var:
+    ...         ude.jacobian[c0.m.J_col] = 1
+    ...     if c1.m.is_var:
+    ...         self.jacobian[c1.m.J_col] = -2 * self.conns[1].m.val_SI
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
@@ -135,10 +136,12 @@ the network. The class requires four mandatory arguments to be passed:
 
 .. code-block:: python
 
-    ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, [c1, c2])
-    nw.add_ude(ude)
-    nw.solve('design')
-    nw.print_results()
+    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, [c1, c2])
+    >>> nw.add_ude(ude)
+    >>> nw.solve('design')
+    >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
+    True
+    >>> nw.del_ude(ude)
 
 More examples
 -------------
@@ -158,13 +161,13 @@ the logarithmic value.
 
 .. code-block:: python
 
-    from tespy.tools.fluid_properties import T_mix_ph
-    import numpy as np
+    >>> import numpy as np
 
-    def my_ude(self):
-        return (
-            T_mix_ph(self.conns[1].get_flow()) ** 0.5 -
-            np.log(abs(self.conns[0].p.val_SI ** 2 / self.conns[0].m.val_SI)))
+    >>> def my_ude(ude):
+    ...     return (
+    ...         ude.conns[1].calc_T() ** 0.5
+    ...         - np.log(abs(ude.conns[0].p.val_SI ** 2 / ude.conns[0].m.val_SI))
+    ...     )
 
 .. note::
 
@@ -179,18 +182,27 @@ respectively to calculate the partial derivatives.
 
 .. code-block:: python
 
-    from tespy.tools.fluid_properties import dT_mix_dph
-    from tespy.tools.fluid_properties import dT_mix_pdh
+    >>> from tespy.tools.fluid_properties import dT_mix_dph
+    >>> from tespy.tools.fluid_properties import dT_mix_pdh
 
-    def my_ude_deriv(self):
-        self.jacobian[self.conns[0]][0] = 1 / self.conns[0].m.val_SI
-        self.jacobian[self.conns[0]][1] = - 2 / self.conns[0].p.val_SI
-        T = T_mix_ph(self.conns[1].get_flow())
-        self.jacobian[self.conns[1]][1] = (
-            dT_mix_dph(self.conns[1].get_flow()) * 0.5 / (T ** 0.5))
-        self.jacobian[self.conns[1]][2] = (
-            dT_mix_pdh(self.conns[1].get_flow()) * 0.5 / (T ** 0.5))
-        return self.jacobian
+    >>> def my_ude_deriv(self):
+    ...     c0 = self.conns[0]
+    ...     c1 = self.conns[1]
+    ...     if c0.m.is_var:
+    ...         self.jacobian[c0.m.J_col] = 1 / self.conns[0].m.val_SI
+    ...     if c0.p.is_var:
+    ...         self.jacobian[c0.p.J_col] = - 2 / self.conns[0].p.val_SI
+    ...     T = c1.calc_T()
+    ...     if c1.p.is_var:
+    ...         self.jacobian[c1.p.J_col] = (
+    ...             dT_mix_dph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data, c1.mixing_rule)
+    ...             * 0.5 / (T ** 0.5)
+    ...         )
+    ...     if c1.h.is_var:
+    ...         self.jacobian[c1.h.J_col] = (
+    ...             dT_mix_pdh(c1.p.val_SI, c1.h.val_SI, c1.fluid_data, c1.mixing_rule)
+    ...             * 0.5 / (T ** 0.5)
+    ...         )
 
 But, what if the analytical derivative is not available? You can make use of
 generic numerical derivatives using the inbuilt method :code:`numeric_deriv`.
@@ -201,12 +213,35 @@ for the above derivatives would therefore look like this:
 
 .. code-block:: python
 
-    def my_ude_deriv(self):
-        self.jacobian[self.conns[0]][0] = self.numeric_deriv('m', 0)
-        self.jacobian[self.conns[0]][1] = self.numeric_deriv('p', 0)
-        self.jacobian[self.conns[1]][1] = self.numeric_deriv('p', 1)
-        self.jacobian[self.conns[1]][2] = self.numeric_deriv('h', 1)
-        return self.jacobian
+    >>> def my_ude_deriv(ude):
+    ...     c0 = ude.conns[0]
+    ...     c1 = ude.conns[1]
+    ...     if c0.m.is_var:
+    ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
+    ...     if c0.p.is_var:
+    ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
+    ...     if c1.p.is_var:
+    ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
+    ...     if c1.h.is_var:
+    ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
+
+    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
+    >>> nw.add_ude(ude)
+    >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
+    >>> nw.solve('design')
+    >>> round(c1.m.val, 2)
+    1.17
+
+    >>> c1.set_attr(p=None, m=1)
+    >>> nw.solve('design')
+    >>> round(c1.p.val, 3)
+    0.926
+
+    >>> c1.set_attr(p=1)
+    >>> c2.set_attr(T=None)
+    >>> nw.solve('design')
+    >>> round(c2.T.val, 1)
+    257.0
 
 Obviously, the downside is a slower performance of the solver, as for every
 :code:`numeric_deriv` call the function will be evaluated fully twice
@@ -227,27 +262,34 @@ instance must therefore be changed as below.
 
 .. code-block:: python
 
-    from tespy.tools.fluid_properties import h_mix_pQ
-    from tespy.tools.fluid_properties import dh_mix_dpQ
+    >>> from tespy.tools.fluid_properties import h_mix_pQ
+    >>> from tespy.tools.fluid_properties import dh_mix_dpQ
 
-    def my_ude(self):
-        a = self.params['a']
-        b = self.params['b']
-        return (
-            a * (self.conns[1].h.val_SI - self.conns[0].h.val_SI) -
-            (self.conns[1].h.val_SI - h_mix_pQ(self.conns[0].get_flow(), b)))
+    >>> def my_ude(self):
+    ...     a = self.params['a']
+    ...     b = self.params['b']
+    ...     c0 = self.conns[0]
+    ...     c1 = self.conns[1]
+    ...     return (
+    ...         a * (c1.h.val_SI - c0.h.val_SI) -
+    ...         (c1.h.val_SI - h_mix_pQ(c0.p.val_SI, b, c0.fluid_data))
+    ...     )
 
-    def my_ude_deriv(self):
-        a = self.params['a']
-        b = self.params['b']
-        self.jacobian[self.conns[0]][1] = dh_mix_dpQ(
-            self.conns[0].get_flow(), b)
-        self.jacobian[self.conns[0]][2] = -a
-        self.jacobian[self.conns[1]][2] = a - 1
-        return self.jacobian
+    >>> def my_ude_deriv(self):
+    ...     a = self.params['a']
+    ...     b = self.params['b']
+    ...     c0 = self.conns[0]
+    ...     c1 = self.conns[1]
+    ...     if c0.p.is_var:
+    ...         self.jacobian[c0.p.J_col] = dh_mix_dpQ(c0.p.val_SI, b, c0.fluid_data)
+    ...     if c0.h.is_var:
+    ...         self.jacobian[c0.h.J_col] = -a
+    ...     if c1.p.is_var:
+    ...         self.jacobian[c1.p.J_col] = a - 1
 
-    ude = UserDefinedEquation(
-        'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1})
+    >>> ude = UserDefinedEquation(
+    ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}
+    ... )
 
 
 One more example (using a CharLine for data point interpolation) can be found in
@@ -264,12 +306,14 @@ latex equation string. For example, the last equation from above:
 .. code-block:: python
 
     latex = (
-        r'0 = a \cdot \left(h_2 - h_1 \right) - '
-        r'\left(h_2 - h\left(p_1, x=b \right)\right)')
+       r'0 = a \cdot \left(h_2 - h_1 \right) - '
+       r'\left(h_2 - h\left(p_1, x=b \right)\right)'
+    )
 
     ude = UserDefinedEquation(
-        'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-        latex={'equation': latex})
+       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
+       latex={'equation': latex}
+    )
 
 The documentation will also create figures of :code:`CharLine` and
 :code:`CharMap` objects provided. To add these, adjust the code like this.
@@ -278,10 +322,10 @@ Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
 .. code-block:: python
 
     ude = UserDefinedEquation(
-        'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-        latex={
-            'equation': latex,
-            'lines': [charline1, charline2],
-            'maps': [map1]
-        }
+       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
+       latex={
+           'equation': latex,
+           'lines': [charline1, charline2],
+           'maps': [map1]
+       }
     )

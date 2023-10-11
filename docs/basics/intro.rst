@@ -19,19 +19,15 @@ Set up a plant
 
 In order to simulate a plant we start by creating the network
 (:py:class:`tespy.networks.network.Network`). The network is the main container
-for the model. You need to specify a list of the fluids you require for the
-calculation in your plant. For more information on the fluid properties go to
-the :ref:`corresponding section <tespy_fluid_properties_label>` in the
-documentation.
+for the model.
 
 .. literalinclude:: /../tutorial/basics/heat_pump.py
     :language: python
     :start-after: [sec_1]
     :end-before: [sec_2]
 
-On top of that, it is possible to specify a unit system and value ranges for
-the network's variables. If you do not specify these, TESPy will use SI-units.
-We will thus only specify the unit systems, in this case.
+It is possible to specify a unit system and value ranges for the network's
+variables. If you do not specify these, TESPy will use SI-units.
 
 .. literalinclude:: /../tutorial/basics/heat_pump.py
     :language: python
@@ -136,7 +132,7 @@ compressor. On top of that, the heat production of the heat pump can be set
 with :code:`Q` for the condenser. Since we are working in **subcritical**
 regime in this tutorial, we set the state of the fluid at the evaporator's
 outlet to fully saturated steam (:code:`x=1`) and at the condenser's outlet to
-fully saturated liqud (:code:`x=0`). On top of that, we want to set the
+fully saturated liquid (:code:`x=0`). On top of that, we want to set the
 condensation and the evaporation temperature levels. Last, we have to specify
 the fluid vector at one point in our network.
 
@@ -175,7 +171,7 @@ condenser including the cooling water side of the system.
 
 In the more advanced tutorials, you will learn, how to set up more complex
 plants step by step, make a design calculation of the plant as well as calculate
-offdesign/partload performance.
+offdesign/part load performance.
 
 In order to get a good overview of the TESPy functionalities, the sections on
 the :ref:`TESPy modules <tespy_modules_label>` will guide you in detail.

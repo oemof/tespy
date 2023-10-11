@@ -160,4 +160,38 @@ ax.set_xlabel('Oxygen mass fraction in flue gas in %')
 plt.tight_layout()
 fig.savefig('gas_turbine_oxygen.svg')
 plt.close()
+
 # %%[sec_13]
+# fix mass fractions of all potential fluids except combustion gases
+c5.set_attr(fluid={"CO2": 0.03, "O2": 0, "H2O": 0, "Ar": 0, "N2": 0, "CH4": None, "H2": None})
+c5.set_attr(fluid_balance=True)
+
+
+data = np.linspace(50, 60, 11)
+
+CH4 = []
+H2 = []
+
+for ti in data:
+    cc.set_attr(ti=ti * 1e6)
+    nw.solve('design')
+    CH4 += [c5.fluid.val["CH4"] * 100]
+    H2 += [c5.fluid.val["H2"] * 100]
+
+nw._convergence_check()
+
+fig, ax = plt.subplots(1, figsize=(16, 8))
+
+ax.scatter(data, CH4, s=100, color="#1f567d", label="CH4 mass fraction")
+ax.scatter(data, H2, s=100, color="#18a999", label="H2 mass fraction")
+ax.grid()
+ax.legend()
+
+ax.set_ylabel('Mass fraction of the fuel in %')
+ax.set_xlabel('Thermal input in MW')
+ax.set_ybound([0, 100])
+
+plt.tight_layout()
+fig.savefig('gas_turbine_fuel_composition.svg')
+plt.close()
+# %%[sec_14]

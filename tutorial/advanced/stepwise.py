@@ -3,13 +3,12 @@ from tespy.networks import Network
 working_fluid = "NH3"
 
 nw = Network(
-    fluids=["water", working_fluid],
     T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s"
 )
 # %%[sec_2]
 from tespy.components import Condenser
 from tespy.components import CycleCloser
-from tespy.components import HeatExchangerSimple
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
@@ -22,7 +21,7 @@ va = Sink("valve")
 # consumer system
 cd = Condenser("condenser")
 rp = Pump("recirculation pump")
-cons = HeatExchangerSimple("consumer")
+cons = SimpleHeatExchanger("consumer")
 # %%[sec_3]
 from tespy.connections import Connection
 
@@ -89,8 +88,7 @@ ev.set_attr(pr1=0.99)
 su.set_attr(pr1=0.99, pr2=0.99)
 # %%[sec_10]
 # evaporator system cold side
-p_evap = PSI("P", "Q", 1, "T", 273.15 + 5, working_fluid) / 1e5
-c4.set_attr(x=0.9, p=p_evap)
+c4.set_attr(x=0.9, T=5)
 
 h_sat = PSI("H", "Q", 1, "T", 273.15 + 15, working_fluid) / 1e3
 c6.set_attr(h=h_sat)
@@ -156,7 +154,7 @@ nw.solve("design")
 c0.set_attr(p=None)
 cd.set_attr(ttd_u=5)
 
-c4.set_attr(p=None)
+c4.set_attr(T=None)
 ev.set_attr(ttd_l=5)
 
 c6.set_attr(h=None)

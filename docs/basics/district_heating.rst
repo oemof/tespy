@@ -30,10 +30,9 @@ Setting up the System
 For this model we have to import the :code:`Network` and :code:`Connection`
 classes as well as the respective components. After setting up the network we
 can create the components, connect them to the network (as shown in the other)
-examples. As a fluid, we will use the incompressibles back-end of CoolProp,
-since we only need liquid water. The incompressible back-end has much higher
+examples. As a fluid, we will use the incompressibles back end of CoolProp,
+since we only need liquid water. The incompressible back end has much higher
 access speed while preserving high accuracy.
-
 
 .. tip::
 

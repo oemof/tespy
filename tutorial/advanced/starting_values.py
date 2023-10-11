@@ -3,7 +3,7 @@ from tespy.networks import Network
 
 from tespy.components import (
     Condenser, Compressor, CycleCloser,  HeatExchanger,
-    HeatExchangerSimple, Pump, Sink, Source, Valve
+    SimpleHeatExchanger, Pump, Sink, Source, Valve
     )
 
 from tespy.connections import Connection, Bus
@@ -28,7 +28,7 @@ compressor = Compressor("Compressor")
 # heat sink
 cons_pump = Pump("Heat Sink Recirculation Pump")
 condenser = Condenser("Heat Sink Condenser")
-cons_heatsink = HeatExchangerSimple("Heat Consumer")
+cons_heatsink = SimpleHeatExchanger("Heat Consumer")
 cons_cycle_closer = CycleCloser("Consumer Feed Flow")
 
 # internal heat exchange
@@ -171,7 +171,7 @@ def generate_network_with_starting_values(wf):
     # heat sink
     cons_pump = Pump("Heat Sink Recirculation Pump")
     condenser = Condenser("Heat Sink Condenser")
-    cons_heatsink = HeatExchangerSimple("Heat Consumer")
+    cons_heatsink = SimpleHeatExchanger("Heat Consumer")
     cons_cycle_closer = CycleCloser("Consumer Feed Flow")
 
     # internal heat exchange

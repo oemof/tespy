@@ -6,11 +6,11 @@ my_plant = Network()
 my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
 # %%[sec_2]
 from tespy.components import (
-    CycleCloser, Pump, Condenser, Turbine, HeatExchangerSimple, Source, Sink
+    CycleCloser, Pump, Condenser, Turbine, SimpleHeatExchanger, Source, Sink
 )
 
 cc = CycleCloser('cycle closer')
-sg = HeatExchangerSimple('steam generator')
+sg = SimpleHeatExchanger('steam generator')
 mc = Condenser('main condenser')
 tu = Turbine('steam turbine')
 fp = Pump('feed pump')

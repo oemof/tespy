@@ -20,6 +20,7 @@ from tabulate import tabulate
 
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import combustion_gases
 
@@ -27,7 +28,7 @@ idx = pd.IndexSlice
 
 
 def categorize_fluids(conn):
-    fluid = hlp.single_fluid(conn.fluid.val)
+    fluid = single_fluid(conn.fluid_data)
     if fluid is None:
         cat = "non-combustion-gas"
         for f, x in conn.fluid.val.items():

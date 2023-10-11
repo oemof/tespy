@@ -19,4 +19,5 @@ from .functions import v_mix_ph  # noqa: F401
 from .functions import v_mix_pT  # noqa: F401
 from .functions import viscosity_mix_ph  # noqa: F401
 from .functions import viscosity_mix_pT  # noqa: F401
+from .helpers import single_fluid  # noqa: F401
 from .wrappers import CoolPropWrapper  # noqa: F401

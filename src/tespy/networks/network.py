@@ -31,7 +31,6 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
@@ -347,7 +346,7 @@ class Network:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Network has no attribute \"' + str(key) + '\".'
+            msg = f"Network has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -404,7 +403,7 @@ class Network:
         try:
             return self.comps.loc[label, 'object']
         except KeyError:
-            logger.warning('Component with label %s not found.', label)
+            logger.warning(f"Component with label {label} not found.")
             return None
 
     def add_conns(self, *args):
@@ -567,7 +566,7 @@ class Network:
         ----------
         c : tespy.tools.helpers.UserDefinedEquation
             The objects to be added to the network, UserDefinedEquation objects
-            ci :code:`del_conns(c1, c2, c3, ...)`.
+            ci :code:`add_ude(c1, c2, c3, ...)`.
         """
         for c in args:
             if not isinstance(c, hlp.UserDefinedEquation):
@@ -595,12 +594,12 @@ class Network:
         Parameters
         ----------
         c : tespy.tools.helpers.UserDefinedEquation
-            The objects to be added deleted from the network,
-            UserDefinedEquation objects ci :code:`del_conns(c1, c2, c3, ...)`.
+            The objects to be deleted from the network,
+            UserDefinedEquation objects ci :code:`del_ude(c1, c2, c3, ...)`.
         """
         for c in args:
             del self.user_defined_eq[c.label]
-            msg = 'Deleted UserDefinedEquation ' + c.label + ' from network.'
+            msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
 
     def add_busses(self, *args):
@@ -1123,7 +1122,7 @@ class Network:
             for key in c.property_data:
                 # read unit specifications
                 prop = key.split("_ref")[0]
-                if key == "fluid":
+                if "fluid" in key:
                     continue
                 elif key == 'Td_bp':
                     c.get_attr(key).unit = self.get_attr('T_unit')
@@ -1181,7 +1180,7 @@ class Network:
         for key in ["m", "p", "h"]:
             variable = c.get_attr(key)
             if not variable.is_set and variable not in self._conn_variables:
-                if not variable.solved:
+                if not variable._solved:
                     variable.is_var = True
                     variable.J_col = self.num_conn_vars
                     self.variables_dict[self.num_conn_vars] = {
@@ -1192,7 +1191,7 @@ class Network:
                 else:
                     variable.is_var = False
                     # reset presolve flag
-                    variable.solved = False
+                    variable._solved = False
             elif variable.is_set:
                 variable.is_var = False
 
@@ -1735,7 +1734,7 @@ class Network:
 
         # last one: fluid balance specification
         self.specifications['Connection'].loc[
-            c.label, 'balance'] = c.fluid.balance
+            c.label, 'balance'] = c.fluid_balance.is_set
 
         # get number of equations
         self.num_conn_eq += c.num_eq
@@ -1868,11 +1867,6 @@ class Network:
             Use cuda instead of numpy for matrix inversion, default:
             :code:`False`.
 
-        always_all_equations : boolean
-            Calculate all equations in every iteration. Disabling this flag,
-            will increase calculation speed, especially for mixtures, default:
-            :code:`True`.
-
         Note
         ----
         For more information on the solution process have a look at the online
@@ -1902,7 +1896,6 @@ class Network:
         self.init_previous = init_previous
         self.iter = 0
         self.use_cuda = use_cuda
-        self.always_all_equations = always_all_equations
 
         if self.use_cuda and cu is None:
             msg = (
@@ -1951,6 +1944,7 @@ class Network:
         logger.info(msg)
 
         self.solve_determination()
+
         self.solve_loop(print_results=print_results)
         self._reset_topology_reduction_specifications()
 
@@ -2103,7 +2097,6 @@ class Network:
         self.iterinfo_fmt += '| {massflow:10s} | {pressure:10s} | {enthalpy:10s} '
         self.iterinfo_fmt += '| {fluid:10s} | {component:10s} '
         # Use the format to create the first logging entry
-        component = '' if self.num_comp_vars == 0 else 'component'
         msg = self.iterinfo_fmt.format(
             iter='iter',
             residual='residual',
@@ -2112,12 +2105,10 @@ class Network:
             pressure='pressure',
             enthalpy='enthalpy',
             fluid='fluid',
-            component=component
+            component='component'
         )
         logger.progress(0, msg)
-        msg2 = '-' * 7 + '+------------' * 6 + "+"
-        if self.num_comp_vars > 0:
-            msg2 += '-------------'
+        msg2 = '-' * 7 + '+------------' * 7
 
         logger.progress(0, msg2)
         if print_results:
@@ -2143,18 +2134,18 @@ class Network:
         fluid = 'NaN'
         component = 'NaN'
 
+        progress_val = -1
+
         if not np.isnan(residual_norm):
             residual = '{:.2e}'.format(residual_norm)
 
-        if not self.lin_dep and not np.isnan(residual_norm):
-            massflow = '{:.2e}'.format(norm(self.increment[m]))
-            pressure = '{:.2e}'.format(norm(self.increment[p]))
-            enthalpy = '{:.2e}'.format(norm(self.increment[h]))
-            fluid = '{:.2e}'.format(norm(self.increment[fl]))
-            component  = '{:.2e}'.format(norm(self.increment[cp]))
+            if not self.lin_dep:
+                massflow = '{:.2e}'.format(norm(self.increment[m]))
+                pressure = '{:.2e}'.format(norm(self.increment[p]))
+                enthalpy = '{:.2e}'.format(norm(self.increment[h]))
+                fluid = '{:.2e}'.format(norm(self.increment[fl]))
+                component  = '{:.2e}'.format(norm(self.increment[cp]))
 
-        progress_val = -1
-        if not np.isnan(residual_norm):
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
                 progress_min = np.log(ERR)
@@ -2195,7 +2186,10 @@ class Network:
         num_ips = num_iter / clc_time if clc_time > 1e-10 else np.Inf
         msg = '-' * 7 + '+------------' * 7
         logger.progress(100, msg)
-        msg = 'Total iterations: {0:d}, Calculation time: {1:.2f} s, Iterations per second: {2:.2f}'.format(num_iter, clc_time, num_ips)
+        msg = (
+            "Total iterations: {0:d}, Calculation time: {1:.2f} s, "
+            "Iterations per second: {2:.2f}"
+        ).format(num_iter, clc_time, num_ips)
         logger.debug(msg)
         if print_results:
             print(msg)
@@ -2301,7 +2295,7 @@ class Network:
         c : tespy.connections.connection.Connection
             Connection to check fluid properties.
         """
-        fl = hlp.single_fluid(c.fluid.val)
+        fl = fp.single_fluid(c.fluid_data)
 
         # pure fluid
         if fl is not None:
@@ -2355,11 +2349,6 @@ class Network:
     def solve_components(self):
         r"""
         Calculate the residual and derivatives of component equations.
-
-        - Iterate through components in network to get residuals and
-          derivatives.
-        - Place residual values in residual value vector of the network.
-        - Place partial derivatives in Jacobian matrix of the network.
         """
         # fetch component equation residuals and component partial derivatives
         sum_eq = 0
@@ -2379,14 +2368,8 @@ class Network:
     def solve_connections(self):
         r"""
         Calculate the residual and derivatives of connection equations.
-
-        - Iterate through connections in network to get residuals and
-          derivatives.
-        - Place residual values in residual value vector of the network.
-        - Place partial derivatives in Jacobian matrix of the network.
         """
         sum_eq = self.num_comp_eq
-
         for c in self.conns['object']:
             c.solve(self.increment_filter)
             self.residual[sum_eq:sum_eq + c.num_eq] = c.residual
@@ -2396,7 +2379,6 @@ class Network:
                 columns = [k[1] for k in c.jacobian]
                 data = list(c.jacobian.values())
                 self.jacobian[rows, columns] = data
-
                 sum_eq += c.num_eq
 
             c.it += 1
@@ -2404,12 +2386,6 @@ class Network:
     def solve_user_defined_eq(self):
         """
         Calculate the residual and jacobian of user defined equations.
-
-        - Iterate through user defined functions and calculate residual value
-          and corresponding jacobian.
-        - Place residual values in residual value vector of the network.
-        - Place partial derivatives regarding connection parameters in Jacobian
-          matrix of the network.
         """
         sum_eq = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
         for ude in self.user_defined_eq.values():
@@ -2425,10 +2401,6 @@ class Network:
     def solve_busses(self):
         r"""
         Calculate the equations and the partial derivatives for the busses.
-
-        - Iterate through busses in network to get residuals and derivatives.
-        - Place residual values in residual value vector of the network.
-        - Place partial derivatives in jacobian matrix of the network.
         """
         sum_eq = self.num_comp_eq + self.num_conn_eq
         for bus in self.busses.values():
@@ -2721,14 +2693,6 @@ class Network:
         r"""
         Save the connection properties.
 
-        - Uses connections object id as row identifier and saves
-
-            - connections source and target as well as
-            - properties with references and
-            - fluid vector (including user specification if structure is True).
-
-        - Connections source and target are identified by its labels.
-
         Parameters
         ----------
         fn : str
@@ -2742,12 +2706,6 @@ class Network:
     def save_components(self, path):
         r"""
         Save the component properties.
-
-        - Uses components labels as row identifier.
-        - Writes:
-
-            - component's incomming and outgoing connections (object id) and
-            - component's parametrisation.
 
         Parameters
         ----------

@@ -7,7 +7,6 @@ available from its original location
 tests/test_networks/test_mixing_rules.py
 SPDX-License-Identifier: MIT
 """
-
 from pytest import approx
 
 from tespy.components import Compressor
@@ -22,7 +21,7 @@ from tespy.connections import Connection
 from tespy.networks import Network
 
 
-class TestMixingRules:
+class TestGasMixingRules:
 
     def setup_method(self):
 
@@ -100,3 +99,60 @@ class TestMixingRules:
             f"larger than using ideal mixing rule ({target})"
         )
         assert c6.h.val_SI > target, msg
+
+class TestIncompressibleMixingRule:
+
+    def setup_method(self):
+
+        self.nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C')
+
+        source = Source('source')
+        boiler = SimpleHeatExchanger('boiler')
+        sink = Sink('sink')
+
+        c1 = Connection(source, 'out1', boiler, 'in1', label="1")
+        c2 = Connection(boiler, 'out1', sink, 'in1', label="2")
+
+        self.nw.add_conns(c1,c2)
+
+    def test_binary_mixture(self):
+        """"""
+        c1, c2 = self.nw.get_conn(["1", "2"])
+        c1.set_attr(
+            fluid={'INCOMP::Water': 0.8,'INCOMP::PHE': 0.2},
+            m=100, T=40, p=2, mixing_rule="incompressible"
+        )
+        c2.set_attr(T=60, p=2)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+        expected = {
+            c.label: sum([
+                c.fluid.wrapper[fl].h_pT(c.p.val_SI, c.T.val_SI) * x
+                for fl, x in c.fluid.val.items()
+            ]) for c in [c1, c2]
+        }
+        for c, h in expected.items():
+            result = self.nw.get_conn(c).h.val_SI
+            msg = f"Enthalpy of mixture should be {h} but is {result}."
+            assert round(h, 6) == round(result, 6), msg
+
+    def test_ternary_mixture(self):
+        """"""
+        c1, c2 = self.nw.get_conn(["1", "2"])
+        c1.set_attr(
+            fluid={'INCOMP::Water': 0.81,'INCOMP::PHE': 0.163,'INCOMP::S800': 0.027},
+            m=100, T=40, p=2, mixing_rule="incompressible"
+        )
+        c2.set_attr(T=60, p=2)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+        expected = {
+            c.label: sum([
+                c.fluid.wrapper[fl].h_pT(c.p.val_SI, c.T.val_SI) * x
+                for fl, x in c.fluid.val.items()
+            ]) for c in [c1, c2]
+        }
+        for c, h in expected.items():
+            result = self.nw.get_conn(c).h.val_SI
+            msg = f"Enthalpy of mixture should be {h} but is {result}."
+            assert round(h, 6) == round(result, 6), msg

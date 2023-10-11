@@ -1,5 +1,17 @@
+# -*- coding: utf-8
+
+"""Module for fluid property wrappers.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/tools/fluid_properties/wrappers.py
+
+SPDX-License-Identifier: MIT
+"""
+
 import CoolProp as CP
-from CoolProp.CoolProp import AbstractState
 
 from tespy.tools.global_vars import ERR
 
@@ -7,6 +19,15 @@ from tespy.tools.global_vars import ERR
 class FluidPropertyWrapper:
 
     def __init__(self, fluid, back_end=None) -> None:
+        """Base class for fluid property wrappers
+
+        Parameters
+        ----------
+        fluid : str
+            Name of the fluid.
+        back_end : str, optional
+            Name of the back end, by default None
+        """
         self.back_end = back_end
         self.fluid = fluid
         if "[" in self.fluid:
@@ -19,6 +40,9 @@ class FluidPropertyWrapper:
         raise NotImplementedError(
             f"Method is not implemented for {self.__class__.__name__}."
         )
+
+    def isentropic(self, p_1, h_1, p_2):
+        self._not_implemented()
 
     def _is_below_T_critical(self, T):
         self._not_implemented()
@@ -75,12 +99,20 @@ class FluidPropertyWrapper:
 class CoolPropWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
+        """Wrapper for CoolProp.CoolProp.AbstractState instance calls
+
+        Parameters
+        ----------
+        fluid : str
+            Name of the fluid
+        back_end : str, optional
+            CoolProp back end for the AbstractState object, by default "HEOS"
+        """
+        if back_end is None:
+            back_end = "HEOS"
+
         super().__init__(fluid, back_end)
-
-        if self.back_end is None:
-            self.back_end = "HEOS"
-
-        self.AS = AbstractState(self.back_end, self.fluid)
+        self.AS = CP.CoolProp.AbstractState(self.back_end, self.fluid)
         self._set_constants()
 
     def _set_constants(self):
@@ -93,6 +125,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
         if self.back_end == "INCOMP":
             if self._fractions is not None:
+                # how to find if a mixture is volumetric of mass based?
                 try:
                     self.AS.set_volu_fractions([float(self._fractions)])
                 except ValueError:
@@ -218,6 +251,15 @@ class IAPWSWrapper(FluidPropertyWrapper):
 
 
     def __init__(self, fluid, back_end=None) -> None:
+        """Wrapper for iapws library calls
+
+        Parameters
+        ----------
+        fluid : str
+            Name of the fluid
+        back_end : str, optional
+            CoolProp back end for the AbstractState object, by default "IF97"
+        """
         # avoid unncessary loading time if not used
         try:
             import iapws
@@ -228,15 +270,14 @@ class IAPWSWrapper(FluidPropertyWrapper):
             )
             raise ModuleNotFoundError(msg)
 
+        if back_end is None:
+            back_end = "IF97"
         super().__init__(fluid, back_end)
         self._aliases = CP.CoolProp.get_aliases("H2O")
 
         if self.fluid not in self._aliases:
             msg = "The iapws wrapper only supports water as fluid."
             raise ValueError(msg)
-
-        if self.back_end is None:
-            self.back_end = "IF97"
 
         if self.back_end == "IF97":
             self.AS = iapws.IAPWS97
@@ -271,26 +312,22 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(h=h / 1e3, P=p / 1e6).T
 
     def T_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
-        return self.AS.T()
+        return self.AS(s=s / 1e3, P=p / 1e6).T
 
     def h_pQ(self, p, Q):
-        self.AS.update(CP.PQ_INPUTS, p, Q)
-        return self.AS.hmass()
+        return self.AS(P=p / 1e6, x=Q).h * 1e3
 
     def h_ps(self, p, s):
         return self.AS(P=p / 1e6, s=s / 1e3).h * 1e3
 
     def h_pT(self, p, T):
-        return self.AS(P=p / 1e6, T=T).h * 1000
+        return self.AS(P=p / 1e6, T=T).h * 1e3
 
     def h_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.hmass()
+        return self.AS(T=T, x=Q).h * 1e3
 
     def s_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.smass()
+        return self.AS(T=T, x=Q).s * 1e3
 
     def T_sat(self, p):
         p = self._make_p_subcritical(p)
@@ -300,8 +337,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if T > self._T_crit:
             T = self._T_crit * 0.99
 
-        self.AS.update(CP.QT_INPUTS, 1, T)
-        return self.AS.p()
+        return self.AS(T=T / 1e6, x=0).P * 1e6
 
     def Q_ph(self, p, h):
         p = self._make_p_subcritical(p)
@@ -311,32 +347,36 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(h=h / 1e3, P=p / 1e6).rho
 
     def d_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.rhomass()
+        return self.AS(T=T, P=p / 1e6).rho
 
     def d_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
-        return self.AS.rhomass()
+        return self.AS(T=T, x=Q).rho
 
     def viscosity_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.viscosity()
+        return self.AS(P=p / 1e6, h=h / 1e3).mu
 
     def viscosity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.viscosity()
+        return self.AS(T=T, P=p / 1e6).mu
 
     def s_ph(self, p, h):
         return self.AS(P=p / 1e6, h=h / 1e3).s * 1e3
 
     def s_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
-        return self.AS.smass()
+        return self.AS(P=p / 1e6, T=T).s * 1e3
 
 
 class PyromatWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        fluid : str
+            Name of the fluid
+        back_end : str, optional
+            CoolProp back end for the AbstractState object, by default None
+        """
         # avoid unnecessary loading time if not used
         try:
             import pyromat as pm

@@ -81,9 +81,8 @@ class DataContainer:
     ... ))
     <class 'tespy.tools.data_containers.GroupedComponentProperties'>
     >>> type(FluidComposition(
-    ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03},
-    ... is_set={'O2'},
-    ... balance=False))
+    ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03}, is_set={'O2'}
+    ... ))
     <class 'tespy.tools.data_containers.FluidComposition'>
     >>> type(FluidProperties(val=5, val_SI=500000, is_set=True, unit='bar'))
     <class 'tespy.tools.data_containers.FluidProperties'>
@@ -364,12 +363,10 @@ class FluidComposition(DataContainer):
             'engine': collections.OrderedDict(),
             "is_var": set(),
             "J_col": collections.OrderedDict(),
-            'balance': False
         }
 
     def serialize(self):
-        keys = ["val", "balance"]
-        export = {k: self.get_attr(k) for k in keys}
+        export = {"val": self.val}
         export["is_set"] = list(self.is_set)
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
         export["back_end"] = {k: b for k, b in self.back_end.items()}
@@ -500,10 +497,8 @@ class FluidProperties(DataContainer):
             "latex": None,
             "num_eq": 0,
             "J_col": None,
-            "systemvariable": False,
-            "presolve": False,
             "func_params": {},
-            "solved": False
+            "_solved": False
         }
 
     def serialize(self):
@@ -532,7 +527,7 @@ class ReferencedFluidProperties(DataContainer):
             "deriv": None,
             "num_eq": 0,
             "func_params": {},
-            "solved": False
+            "_solved": False
         }
 
     def serialize(self):
@@ -572,13 +567,14 @@ class SimpleDataContainer(DataContainer):
             values.
         """
         return {
-            'val': np.nan,
-            'is_set': False,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'latex': None,
-            'num_eq': 0
+            "val": np.nan,
+            "is_set": False,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "latex": None,
+            "num_eq": 0,
+            "_solved": False
         }
 
     def serialize(self):

@@ -163,7 +163,7 @@ class TestBusses:
             ti.label + ' (' + str(eta_ti) + ') must be equal to 1.0.')
         assert eta_ti == 1.0, msg
 
-        # test partload for bus functions
+        # test part load for bus functions
         # first test in identical conditions
 
         self.nw.get_conn('ambient air flow').set_attr(m=None)

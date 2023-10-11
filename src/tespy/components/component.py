@@ -29,6 +29,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import ERR
+from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton
@@ -990,89 +991,9 @@ class Component:
         r"""
         Calculate partial derivative of the function func to dx.
 
-        Parameters
-        ----------
-        func : function
-            Function :math:`f` to calculate the partial derivative for.
-
-        dx : str
-            Partial derivative.
-
-        pos : int
-            Position of connection regarding to inlets and outlet of the
-            component, logic: ['in1', 'in2', ..., 'out1', ...] ->
-            0, 1, ..., n, n + 1, ..., n + m
-
-        Returns
-        -------
-        deriv : float/list
-            Partial derivative(s) of the function :math:`f` to variable(s)
-            :math:`x`.
-
-            .. math::
-
-                \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
         """
-        if conn is None:
-            d = self.get_attr(dx).d
-            exp = 0
-            self.get_attr(dx).val += d
-            exp += func(**kwargs)
-
-            self.get_attr(dx).val -= 2 * d
-            exp -= func(**kwargs)
-            deriv = exp / (2 * d)
-
-            self.get_attr(dx).val += d
-
-        elif dx in conn.fluid.is_var:
-            d = 1e-5
-
-            val = conn.fluid.val[dx]
-            if conn.fluid.val[dx] + d <= 1:
-                conn.fluid.val[dx] += d
-            else:
-                conn.fluid.val[dx] = 1
-
-            conn.build_fluid_data()
-            exp = func(**kwargs)
-            if conn.fluid.val[dx] - 2 * d >= 0:
-                conn.fluid.val[dx] -= 2 * d
-            else:
-                conn.fluid.val[dx] = 0
-
-            conn.build_fluid_data()
-            exp -= func(**kwargs)
-
-            conn.fluid.val[dx] = val
-            conn.build_fluid_data()
-
-            deriv = exp / (2 * d)
-
-        elif dx in ['m', 'p', 'h']:
-
-            if dx == 'm':
-                d = 1e-4
-            else:
-                d = 1e-1
-            conn.get_attr(dx).val_SI += d
-            exp = func(**kwargs)
-
-            conn.get_attr(dx).val_SI -= 2 * d
-            exp -= func(**kwargs)
-            deriv = exp / (2 * d)
-
-            conn.get_attr(dx).val_SI += d
-
-        else:
-            msg = (
-                "Your variable specification for the numerical derivative "
-                "calculation seems to be wrong. It has to be a fluid name, m, "
-                "p, h or the name of a component variable."
-            )
-            logger.exception(msg)
-            raise ValueError(msg)
-        return deriv
+        return _numeric_deriv(self, func, dx, conn, **kwargs)
 
     def pr_func(self, pr='', inconn=0, outconn=0):
         r"""

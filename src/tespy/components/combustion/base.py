@@ -21,9 +21,9 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import fluid_structure
 from tespy.tools.helpers import fluidalias_in_list
 
 
@@ -609,12 +609,14 @@ class CombustionChamber(Component):
 
             # stoichiometric oxygen requirement for each fuel
             n_oxy_stoich[f] = n_fuel[f] * (
-                self.fuels[f]['H'] / 4 + self.fuels[f]['C'])
+                self.fuels[f]['H'] / 4 + self.fuels[f]['C']
+            )
 
         n_oxygen = 0
         for i in inl:
             n_oxygen += (
-                i.m.val_SI * i.fluid.val[self.o2] / inl[0].fluid.wrapper[self.o2]._molar_mass)
+                i.m.val_SI * i.fluid.val[self.o2] / inl[0].fluid.wrapper[self.o2]._molar_mass
+            )
 
         ###################################################################
         # calculate stoichiometric oxygen
@@ -657,10 +659,9 @@ class CombustionChamber(Component):
         elif fluid in self.fuel_list:
             if self.lamb.val < 1:
                 n_fuel_exc = (
-                    -(n_oxygen / n_oxygen_stoich - 1) *
-                    n_oxy_stoich[fluid] / (
-                        self.fuels[fluid]['H'] / 4 +
-                        self.fuels[fluid]['C']))
+                    -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
+                    / (self.fuels[fluid]['H'] / 4 + self.fuels[fluid]['C'])
+                )
             else:
                 n_fuel_exc = 0
             dm = -(n_fuel[fluid] - n_fuel_exc) * inl[0].fluid.wrapper[fluid]._molar_mass
@@ -837,14 +838,12 @@ class CombustionChamber(Component):
 
         res = 0
         for i in inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
@@ -1229,8 +1228,6 @@ class CombustionChamber(Component):
             outl.fluid.val[fluid] /= total_mass_fractions
         outl.build_fluid_data()
 
-        ######################################################################
-        # flue gas propagation
         if outl.m.val_SI < 0 and outl.m.is_var:
             outl.m.val_SI = 10
 
@@ -1322,7 +1319,7 @@ class CombustionChamber(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        inl, oult = self._get_combustion_connections()
+        inl, _ = self._get_combustion_connections()
         self.ti.val = self.calc_ti()
 
         n_h = 0

@@ -458,32 +458,187 @@ class TestNetworkIndividualOffdesign:
         shutil.rmtree('./design1', ignore_errors=True)
 
 
-@mark.skip(reason="Not implemented")
 class TestNetworkPreprocessing:
 
     def setup_method(self):
         self.nwk = Network(T_unit="C", p_unit="bar", h_unit='kJ / kg')
 
+    def _create_linear_branch(self):
+        a = Source("source")
+        b = Pipe("pipe")
+        c = Sink("sink")
+
+        c1 = Connection(a, "out1", b, "in1", label="1")
+        c2 = Connection(b, "out1", c, "in1", label="2")
+
+        self.nwk.add_conns(c1, c2)
+
+    def _create_recirculation(self):
+        self.nwk = Network()
+
+        self.nwk.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+
+        source = Source('source')
+        merge = Merge('merge')
+        component1 = SimpleHeatExchanger('comp1', pr=1)
+        splitter = Splitter('splitter')
+        component2 = SimpleHeatExchanger('comp2')
+        sink = Sink('sink')
+
+        c1 = Connection(source, 'out1', merge, 'in1', label="1")
+        c2 = Connection(merge, 'out1', component1, 'in1', label="2")
+        c3 = Connection(component1, 'out1', splitter, 'in1', label="3")
+        c4 = Connection(splitter, 'out1', component2, 'in1', label="4")
+        c5 = Connection(component2, 'out1', merge, 'in2', label="5")
+        c6 = Connection(splitter, 'out2', sink, 'in1', label="6")
+
+        self.nwk.add_conns(c1, c2, c3, c4, c5, c6)
+
+        c1.set_attr(p=1, h=200, m=10)
+        c3.set_attr(h=180)
+        c4.set_attr(m=1)
+        c5.set_attr(h=170)
+
+    @mark.skip("Not implemented")
     def test_fluid_linear_branch_distribution(self):
-        raise NotImplementedError(self)
+        raise NotImplementedError()
 
+    @mark.skip("Not implemented")
     def test_fluid_connected_branches_distribution(self):
-        raise NotImplementedError(self)
+        raise NotImplementedError()
 
+    @mark.skip("Not implemented")
     def test_fluid_independent_branches_distribution(self):
-        raise NotImplementedError(self)
+        raise NotImplementedError()
 
     def test_linear_branch_massflow_presolve(self):
-        raise NotImplementedError(self)
+        self._create_linear_branch()
+        c1, c2 = self.nwk.get_conn(["1", "2"])
+        b = self.nwk.get_comp("pipe")
+        c1.set_attr(fluid={"O2": 1}, p=10, T=-20, m=5)
+        c2.set_attr(T=-15)
+        b.set_attr(pr=1)
+        self.nwk.solve("design")
+        self.nwk._convergence_check()
+        variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
+        # no mass flow is variable
+        assert c1.m not in variables
+        assert c2.m not in variables
+        # first connection pressure and enthalpy not variable
+        assert c1.p not in variables
+        assert c1.h not in variables
+        # second connection pressure and enthalpy are variable
+        assert c2.p in variables
+        assert c2.h in variables
 
+    @mark.skip("Not implemented")
     def test_splitting_branch_massflow_presolve(self):
         raise NotImplementedError()
 
+    def test_double_massflow_specification_linear_branch(self):
+        self._create_linear_branch()
+        c1, c2 = self.nwk.get_conn(["1", "2"])
+        c1.set_attr(fluid={"O2": 1}, m=5)
+        c2.set_attr(m=5)
+        with raises(TESPyNetworkError):
+            self.nwk.solve("design")
+
+    def test_missing_fluid_information(self):
+        self._create_linear_branch()
+        with raises(TESPyNetworkError):
+            self.nwk.solve("design")
+
+    def test_referencing_massflow_specification_linear_branch(self):
+        self._create_linear_branch()
+        c1, c2 = self.nwk.get_conn(["1", "2"])
+        c1.set_attr(fluid={"O2": 1})
+        c2.set_attr(m=Ref(c1, 1, 0))
+        with raises(TESPyNetworkError):
+            self.nwk.solve("design")
+
+    @mark.skip("Not implemented")
     def test_linear_branch_fluid_presolve(self):
         raise NotImplementedError()
 
+    @mark.skip("Not implemented")
     def test_splitting_branch_fluid_presolve(self):
         raise NotImplementedError()
 
-    def test_independant_branch_fluid_presolve(self):
+    @mark.skip("Not implemented")
+    def test_independent_branch_fluid_presolve(self):
         raise NotImplementedError()
+
+    def test_recirculation_structure_two_fluids_without_starting(self):
+        self._create_recirculation()
+        c1, c2 = self.nwk.get_conn(["1", "2"])
+        c1.set_attr(fluid={"water": 0, "R134a": 1})
+        self.nwk.solve("design", init_only=True)
+        assert c2.fluid.val["R134a"] == 0.5
+        assert c2.fluid.val["water"] == 0.5
+
+    def test_recirculation_structure_two_fluids_with_starting(self):
+        self._create_recirculation()
+        c1, c2, c6 = self.nwk.get_conn(["1", "2", "6"])
+        c1.set_attr(fluid={"water": 0, "R134a": 1})
+        c2.set_attr(fluid0={"water": 0, "R134a": 1})
+        self.nwk.solve("design", init_only=True)
+        assert c6.fluid.val["R134a"] == 1
+
+    def test_recirculation_structure_single_fluids(self):
+        self._create_recirculation()
+        c1, c2 = self.nwk.get_conn(["1", "2"])
+        c1.set_attr(fluid={"R134a": 1})
+        self.nwk.solve("design", init_only=True)
+        assert c2.fluid.val["R134a"] == 1
+
+def test_use_cuda_without_it_being_installed():
+    nw = Network()
+
+    a = Source("turbine")
+    b = Sink("Compressor")
+
+    c1 = Connection(a, "out1", b, "in1")
+
+    nw.add_conns(c1)
+
+    c1.set_attr(m=1, p=1e5, T=300, fluid={"INCOMP::Water": 1})
+    nw.solve("design", use_cuda=True)
+    nw._convergence_check()
+    assert not nw.use_cuda
+
+def test_component_not_found():
+    nw = Network()
+
+    a = Turbine("turbine")
+    b = Compressor("Compressor")
+
+    c1 = Connection(a, "out1", b, "in1")
+    c2 = Connection(b, "out1", a, "in1")
+
+    nw.add_conns(c1, c2)
+    assert nw.get_comp("Turbine") is None
+
+def test_connection_not_found():
+    nw = Network()
+
+    a = Turbine("turbine")
+    b = Compressor("Compressor")
+
+    c1 = Connection(a, "out1", b, "in1")
+    c2 = Connection(b, "out1", a, "in1")
+
+    nw.add_conns(c1, c2)
+    assert nw.get_conn("1") is None
+
+def test_missing_source_sink_cycle_closer():
+    nw = Network()
+
+    a = Turbine("turbine")
+    b = Compressor("Compressor")
+
+    c1 = Connection(a, "out1", b, "in1")
+    c2 = Connection(b, "out1", a, "in1")
+
+    nw.add_conns(c1, c2)
+    with raises(TESPyNetworkError):
+        nw.check_network()

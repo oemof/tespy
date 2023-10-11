@@ -12,8 +12,8 @@ SPDX-License-Identifier: MIT
 import logging
 import os
 import sys
-from logging import handlers
 import warnings
+from logging import handlers
 
 import tespy
 
@@ -284,6 +284,9 @@ def add_file_logging(
     logfile_setting = os.path.join(logpath_setting, 'tespy.log')
     if logfile is not None:
         logfile_setting = os.path.join(logpath_setting, logfile)
+
+    if not os.path.isdir(logpath_setting):
+        os.makedirs(logpath_setting)
 
     logrotation_setting = {'when': 'midnight', 'backupCount': 10}
     if logrotation is not None:

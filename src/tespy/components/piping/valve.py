@@ -116,7 +116,7 @@ class Valve(Component):
     >>> round(v.pr.val, 3)
     0.188
 
-    The simulation determined the area independant zeta value
+    The simulation determined the area independent zeta value
     :math:`\frac{\zeta}{D^4}`. This zeta remains constant if the cross
     sectional area of the valve opening does not change. Using the zeta value
     we can determine the pressure ratio at a different feed pressure.
@@ -238,13 +238,17 @@ class Valve(Component):
         if self.is_variable(i.m, increment_filter):
             self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
         if self.dp_char.param == 'v':
-            self.jacobian[k, 0, 1] = self.numeric_deriv(
-                self.dp_char_func, 'p', 0)
-            self.jacobian[k, 0, 2] = self.numeric_deriv(
-                self.dp_char_func, 'h', 0)
+            if self.is_variable(i.p, increment_filter):
+                self.jacobian[k, i.p.J_col] = self.numeric_deriv(
+                    self.dp_char_func, 'p', i
+                )
+            if self.is_variable(i.h, increment_filter):
+                self.jacobian[k, i.h.J_col] = self.numeric_deriv(
+                    self.dp_char_func, 'h', i
+                )
         else:
-            # if
-            self.jacobian[k, 0, 1] = 1
+            if self.is_variable(i.p, increment_filter):
+                self.jacobian[k, i.p.J_col] = 1
 
         if self.is_variable(o.p):
             self.jacobian[k, o.p.J_col] = -1

@@ -1,3 +1,16 @@
+# -*- coding: utf-8
+
+"""Module for fluid property mixture routines.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/tools/fluid_properties/mixtures.py
+
+SPDX-License-Identifier: MIT
+"""
+
 import CoolProp as CP
 import numpy as np
 

@@ -1,3 +1,16 @@
+# -*- coding: utf-8
+
+"""Module for fluid property functions.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/tools/fluid_properties/functions.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from .helpers import _check_mixing_rule
 from .helpers import get_number_of_fluids
 from .helpers import get_pure_fluid

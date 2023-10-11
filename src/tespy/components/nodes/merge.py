@@ -16,7 +16,6 @@ from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.helpers import num_fluids
 
 
 class Merge(NodeBase):

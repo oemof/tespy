@@ -16,7 +16,7 @@ using a standard industry software in parallel. **The comparison showed**
 **identical results**. For the other two applications we have compared the
 results of the TESPy model with the data published in the respective research
 paper and found very well matching results. Differences can be explained by
-different implementations of the fluid property back-end.
+different implementations of the fluid property back end.
 
 Finally, in the extension of the exergy analysis to chemical exergy
 :cite:`Hofmann2022` we have also compared results of the CGAM process

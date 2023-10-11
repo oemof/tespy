@@ -101,16 +101,18 @@ def set_defaults(nw):
     }
 
     classes = [
-        nw.comps[nw.comps['comp_type'] == cp]['object'][0]
-        for cp in nw.comps['comp_type'].unique()]
+        nw.comps[nw.comps['comp_type'] == cp]['object'].iloc[0]
+        for cp in nw.comps['comp_type'].unique()
+    ]
 
     for c in classes:
         rpt[c.__class__.__name__] = {'params': []}
-        rpt[c.__class__.__name__].update({
-            param: {'float_fmt': '{:,.2f}'}
-            for param, data in c.variables.items()
-            if isinstance(data, dc_cp)
-        })
+        if hasattr(c, "parameters"):
+            rpt[c.__class__.__name__].update({
+                param: {'float_fmt': '{:,.2f}'}
+                for param, data in c.parameters.items()
+                if isinstance(data, dc_cp)
+            })
 
     rpt['Connection']['fluid'] = {
         'float_fmt': '{:.3f}', 'include_results': True}
@@ -242,46 +244,45 @@ def document_connections(nw, rpt):
     ref_data = {'m': [], 'p': [], 'h': [], 'T': []}
 
     cols = nw.results['Connection'].columns
-    conn_data = nw.results['Connection'].copy().loc[:, ~cols.isin(nw.fluids)]
-    fluid_data = nw.results['Connection'].copy().loc[:, nw.fluids]
+    property_cols = [c for c in cols[~cols.isin(nw.all_fluids)] if "unit" not in c]
+    property_data = nw.results['Connection'].copy().loc[:, property_cols]
+    fluid_data = nw.results['Connection'].copy().loc[:, list(nw.all_fluids)]
 
     specs = nw.specifications['Connection'].copy()
     if not rpt['include_results']:
-        conn_data = conn_data[specs]
+        property_data = property_data[specs]
         fluid_data = fluid_data[specs]
     # it is possible to exclude fluid results
     elif not rpt['Connection']['fluid']['include_results']:
         fluid_data = fluid_data[specs]
 
-    ref_spec = nw.specifications['Ref'].dropna(
-        how='all').dropna(how='all', axis=1)
-
+    ref_spec = nw.specifications['Ref']
     # get some Connection object for equation generator
     c = nw.get_conn(specs.index[0])
 
-    for c in nw.get_conn(ref_spec.index):
-        for param in ref_data.keys():
-            if c.get_attr(param).ref_set:
+    for c in nw.get_conn(ref_spec.any(axis=1).index):
+        for param in ref_spec.columns:
+            if c.get_attr(param).is_set:
                 ref_dict = {'label': c.label.replace('_', r'\_')}
                 ref_dict.update(
                     {'reference':
-                     c.get_attr(param).ref.obj.label.replace('_', r'\_'),
-                     'factor in -': c.get_attr(param).ref.factor,
+                     c.get_attr(param).val.obj.label.replace('_', r'\_'),
+                     'factor in -': c.get_attr(param).val.factor,
                      'delta in ' + hlp.latex_unit(
-                         nw.get_attr(param + '_unit')):
-                     c.get_attr(param).ref.delta})
+                         nw.get_attr(param.split("_ref")[0] + '_unit')):
+                     c.get_attr(param).val.delta})
 
-                ref_data[param] += [ref_dict]
+                ref_data[param.split("_ref")[0]] += [ref_dict]
 
     latex = r'\section{Connections in ' + nw.mode + ' mode}' + '\n\n'
 
     # if list is empty, all parameters will be included
     if len(rpt['Connection']['params']) > 0:
-        for col in conn_data.columns:
+        for col in property_data.columns:
             if col not in rpt['Connection']['params'] and not any(specs[col]):
-                conn_data[col] = np.nan
+                property_data[col] = np.nan
 
-    df = data_to_df(conn_data)
+    df = data_to_df(property_data)
     if len(df) > 0:
         eqs = df[specs].dropna(how='all').dropna(how='all', axis=1).columns
         latex += document_connection_params(nw, df, specs, eqs, c, rpt)
@@ -333,6 +334,7 @@ def document_connection_params(nw, df, specs, eqs, c, rpt):
         label = 'Specified connection parameters'
     latex = r'\subsection{' + label + '}' + '\n\n'
 
+    df_out = df.astype(str)
     equations = ''
     for col in df.columns:
         unit = col + '_unit'
@@ -350,15 +352,15 @@ def document_connection_params(nw, df, specs, eqs, c, rpt):
         for row in df.index:
             fmt = rpt['Connection'][col]['float_fmt']
             if specs.loc[row, col] and rpt['include_results']:
-                df.loc[row, col] = r'\bftab ' + fmt.format(df.loc[row, col])
+                df_out.loc[row, col] = r'\bftab ' + fmt.format(df.loc[row, col])
             else:
-                df.loc[row, col] = fmt.format(df.loc[row, col])
+                df_out.loc[row, col] = fmt.format(df.loc[row, col])
 
-        df.rename(columns={col: col_header}, inplace=True)
+        df_out.rename(columns={col: col_header}, inplace=True)
 
-    num_col = len(df.columns)
+    num_col = len(df_out.columns)
 
-    latex += create_latex_table(df, label, col_fmt='l' + num_col * 'r')
+    latex += create_latex_table(df_out, label, col_fmt='l' + num_col * 'r')
     latex += r'\subsection{Equations applied}' + '\n\n'
     latex += equations
     return latex
@@ -392,6 +394,7 @@ def document_connection_fluids(df, specs, eqs, c, rpt):
     label = 'Specified fluids'
     latex = r'\subsection{' + label + '}' + '\n\n'
 
+    df_out = df.astype(str)
     equations = ''
     fmt = rpt['Connection']['fluid']['float_fmt']
     for col in eqs:
@@ -406,19 +409,20 @@ def document_connection_fluids(df, specs, eqs, c, rpt):
 
             for row in df.index:
                 if specs.loc[row, col] and rpt['include_results']:
-                    df.loc[row, col] = r'\bftab ' + fmt.format(
-                        df.loc[row, col])
+                    df_out.loc[row, col] = r'\bftab ' + fmt.format(
+                        df.loc[row, col]
+                    )
                 else:
-                    df.loc[row, col] = fmt.format(df.loc[row, col])
+                    df_out.loc[row, col] = fmt.format(df.loc[row, col])
 
         col_header = (
             col.replace('_', r'\_') + ' ('
             r'\ref{eq:Connection_' + col + '})')
-        df.rename(columns={col: col_header}, inplace=True)
+        df_out.rename(columns={col: col_header}, inplace=True)
 
-    num_col = len(df.columns)
+    num_col = len(df_out.columns)
 
-    latex += create_latex_table(df, label, col_fmt='l' + num_col * 'r')
+    latex += create_latex_table(df_out, label, col_fmt='l' + num_col * 'r')
     latex += r'\subsection{Equations applied}' + '\n\n'
     latex += equations
     return latex
@@ -577,7 +581,7 @@ def get_component_mandatory_constraints(cp, component_list, path):
     num_mandatory_eq = 0
     mandatory_eq = ''
     figures = []
-    for label, data in component_list[0].constraints.items():
+    for label, data in component_list.iloc[0].constraints.items():
         if 'char' in data:
             for component in component_list:
                 local_path = (
@@ -641,20 +645,22 @@ def get_component_specifications(nw, cp, rpt):
                     and not any(specs['variables'][col])):
                 result[col] = np.nan
 
-    result = result.dropna(how='all', axis=1)
+    result_out = result.dropna(how='all', axis=1).astype(str)
     cols = result.columns.tolist()
 
     for col in cols:
         fmt = rpt[cp][col]['float_fmt']
         for row in result.index:
             if specs['variables'].loc[row, col]:
-                result.loc[row, col] = (
-                    r'\iftab ' + fmt.format(result.loc[row, col]))
+                result_out.loc[row, col] = (
+                    r'\iftab ' + fmt.format(result.loc[row, col])
+                )
             elif specs['properties'].loc[row, col] and rpt['include_results']:
-                result.loc[row, col] = (
-                    r'\bftab ' + fmt.format(result.loc[row, col]))
+                result_out.loc[row, col] = (
+                    r'\bftab ' + fmt.format(result.loc[row, col])
+                )
             else:
-                result.loc[row, col] = fmt.format(result.loc[row, col])
+                result_out.loc[row, col] = fmt.format(result.loc[row, col])
 
     group_data = specs['groups'][specs['groups']].dropna(how='all', axis=1)
     char_data = specs['chars'][specs['chars']].dropna(how='all', axis=1)
@@ -663,7 +669,7 @@ def get_component_specifications(nw, cp, rpt):
         [specs['properties'] | specs['variables'],
          specs['groups'], specs['chars']], axis=1)
 
-    df_data = pd.concat([result, group_data, char_data], axis=1)
+    df_data = pd.concat([result_out, group_data, char_data], axis=1)
 
     for col in char_data.columns:
         for row in char_data.index:

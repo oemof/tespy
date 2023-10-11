@@ -11,7 +11,7 @@ ground-coupled heat pump (GCHP). In addition, various post-processing options
 are presented. To investigate the impact of refrigerant choice on COP and
 exergetic efficiency, two Python scripts of the same network with different
 refrigerants (NH3 and R410A) are created. Finally, the influence of varying
-different parameters on COP and exergetic efficiency is investigated and
+different parameters on COP and exergy efficiency is investigated and
 plotted.
 
 .. note::
@@ -26,7 +26,7 @@ plotted.
 
 Since there is an existing tutorial for
 :ref:`creating a heat pump <tespy_tutorial_heat_pump_label>`, this tutorial
-starts with the explanations for setting up the exergy analysis. However note,
+starts with the explanations for setting up the exergy analysis. Note however,
 that the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
@@ -87,11 +87,10 @@ is modeled using :code:`HeatExchanger` instance. In total, the TESPy model
 consists of 11 components.
 
 In real systems, the circulating brine in the geothermal collector usually
-consists of a mixture of water and antifreeze. Since the calculation with
-mixtures of incompressible fluids is not yet fully implemented in TESPy, pure
-water is used as the circulating fluid in this network. In fact, some
-geothermal collectors are filled with water, provided that the ground
-temperature is high enough throughout the year, such as in :cite:`Chen2015`.
+consists of a mixture of water and antifreeze. Pure water is used as the
+circulating fluid in this example. In fact, some geothermal collectors are
+filled with water, provided that the ground temperature is high enough
+throughout the year, such as in :cite:`Chen2015`.
 
 The following parameter specifications were made for the design case
 calculation:
@@ -113,12 +112,12 @@ values is necessary to obtain a numerical solution for the first calculation.
 In this tutorial, the given code examples are shown exemplary for the model
 with NH3 as refrigerant only.
 
-The units used and the ambient state are defined as follows:
+The units used, and the ambient state are defined as follows:
 
 .. code-block:: python
 
     nw = Network(
-        fluids=['water', 'NH3'], T_unit='C', p_unit='bar',
+        T_unit='C', p_unit='bar',
         h_unit='kJ / kg', m_unit='kg / s'
     )
 
@@ -128,9 +127,9 @@ The units used and the ambient state are defined as follows:
 For the model using R410A as refrigerant, the fluid definition is accordingly
 :code:`'R410A'` instead of :code:`'NH3'`.
 
-The temperature of the heating system feed flow is set to 40°C in design
+The temperature of the heating system feed flow is set to 40 °C in design
 calculation. The difference between feed and return flow temperature is kept
-constant at 5°C. Therefore the return flow is set to 35°C.
+constant at 5 °C. Therefore, the return flow is set to 35 °C.
 
 The geothermal heat collector temperature is defined as follows:
 
@@ -139,9 +138,9 @@ The geothermal heat collector temperature is defined as follows:
     Tgeo = 9.5
 
 :code:`Tgeo` is the mean geothermal temperature. The difference between
-feed and return flow temperature is kept constant at 3°C. Therefore, the feed
-flow temperature in the design calculation is set to :code:`Tgeo + 1.5°C` and
-the return flow temperature is set to :code:`Tgeo - 1.5°C`.
+feed and return flow temperature is kept constant at 3 °C. Therefore, the feed
+flow temperature in the design calculation is set to :code:`Tgeo + 1.5 °C` and
+the return flow temperature is set to :code:`Tgeo - 1.5 °C`.
 
 The complete Python code of the TESPy models is available in the scripts
 :download:`NH3.py </../tutorial/heat_pump_exergy/NH3.py>` with NH3 as
@@ -231,10 +230,10 @@ saved with the code shown below.
 
 The resulting fluid property diagram is shown in the figure above. It can
 easily be seen, that the evaporator slightly overheats the working fluid, while
-the it leaves the condenser in saturated liquid state. The working fluid
-temperature after leaving the compressor is quite high with far more than
-100 °C given the heat sink only requires a temperature of only 40 °C. In
-comparison, the R410A leaves the compressor at about 75 °C.
+it leaves the condenser in saturated liquid state. The working fluid temperature
+after leaving the compressor is quite high with far more than 100 °C given the
+heat sink only requires a temperature of only 40 °C. In comparison, the R410A
+leaves the compressor at about 75 °C.
 
 More examples of creating fluid property diagrams can be found in the fluprodia
 documentation referenced above.

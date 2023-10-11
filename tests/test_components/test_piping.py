@@ -23,7 +23,7 @@ from tespy.tools.characteristics import CharLine
 class TestPiping:
 
     def setup_piping_network(self, instance):
-        self.nw = Network(['CH4'], T_unit='C', p_unit='bar')
+        self.nw = Network(T_unit='C', p_unit='bar')
         self.source = Source('source')
         self.sink = Sink('sink')
         self.c1 = Connection(self.source, 'out1', instance, 'in1')
@@ -65,7 +65,7 @@ class TestPiping:
             'char_func': dp_char, 'is_set': True})
         m = 11
         self.c1.set_attr(m=m)
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         self.nw.solve('design')
         self.nw._convergence_check()
         self.nw.print_results()

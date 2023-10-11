@@ -16,7 +16,6 @@ from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_pT
-from tespy.tools.helpers import num_fluids
 
 
 class Merge(NodeBase):
@@ -87,8 +86,7 @@ class Merge(NodeBase):
     >>> from tespy.networks import Network
     >>> import shutil
     >>> import numpy as np
-    >>> fluid_list = ['O2', 'N2']
-    >>> nw = Network(fluids=fluid_list, p_unit='bar', iterinfo=False)
+    >>> nw = Network(p_unit='bar', iterinfo=False)
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
     >>> so3 = Source('source3')
@@ -112,8 +110,8 @@ class Merge(NodeBase):
 
     >>> T = 293.15
     >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=T, m=5)
-    >>> inc2.set_attr(fluid={'O2': 1, 'N2':0}, T=T, m=5)
-    >>> inc3.set_attr(fluid={'O2': 0, 'N2': 1}, T=T)
+    >>> inc2.set_attr(fluid={'O2': 1}, T=T, m=5)
+    >>> inc3.set_attr(fluid={'N2': 1}, T=T)
     >>> outg.set_attr(fluid={'N2': 0.4})
     >>> nw.solve('design')
     >>> round(inc3.m.val_SI, 2)
@@ -134,19 +132,29 @@ class Merge(NodeBase):
         return 'merge'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {'num_in': dc_simple()}
 
     def get_mandatory_constraints(self):
+        variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(variable_fluids)
+
+        if num_fluid_eq == 0:
+            num_fluid_eq = len(self.inl[0].fluid.val)
+            num_m_eq = 0
+        else:
+            num_m_eq = 1
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
+                'num_eq': num_m_eq},
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -170,6 +178,10 @@ class Merge(NodeBase):
     @staticmethod
     def outlets():
         return ['out1']
+
+    @staticmethod
+    def is_branch_source():
+        return True
 
     def fluid_func(self):
         r"""
@@ -229,16 +241,17 @@ class Merge(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        i = 0
+        o = self.outl[0]
         for fluid, x in self.outl[0].fluid.val.items():
-            j = 0
-            for inl in self.inl:
-                self.jacobian[k, j, 0] = inl.fluid.val[fluid]
-                self.jacobian[k, j, i + 3] = inl.m.val_SI
-                j += 1
-            self.jacobian[k, j, 0] = -x
-            self.jacobian[k, j, i + 3] = -self.outl[0].m.val_SI
-            i += 1
+            for i in self.inl:
+                if i.m.is_var:
+                    self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+                if fluid in i.fluid.is_var:
+                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -x
+            if fluid in o.fluid.is_var:
+                self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
             k += 1
 
     def energy_balance_func(self):
@@ -294,76 +307,43 @@ class Merge(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, self.num_i, 0] = -self.outl[0].h.val_SI
-        self.jacobian[k, self.num_i, 2] = -self.outl[0].m.val_SI
-        j = 0
         for i in self.inl:
-            self.jacobian[k, j, 0] = i.h.val_SI
-            self.jacobian[k, j, 2] = i.m.val_SI
-            j += 1
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
+            if i.h.is_var:
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
+        o = self.outl[0]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -o.h.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
-    def initialise_fluids(self):
-        """Fluid initialisation for fluid mixture at outlet of the node."""
-        num_fl = {}
-        for o in self.outl:
-            num_fl[o] = num_fluids(o.fluid.val)
+    @staticmethod
+    def is_branch_source():
+        return True
 
-        for i in self.inl:
-            num_fl[i] = num_fluids(i.fluid.val)
+    def start_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target],
+            "subbranches": {}
+        }
+        outconn.target.propagate_to_target(branch)
 
-        ls = []
-        if any(num_fl.values()) and not all(num_fl.values()):
-            for conn, num in num_fl.items():
-                if num == 1:
-                    ls += [conn]
+        return {outconn.label: branch}
 
-            for c in ls:
-                for fluid in self.nw_fluids:
-                    if not self.outl[0].fluid.val_set[fluid]:
-                        self.outl[0].fluid.val[fluid] = c.fluid.val[fluid]
-                    for i in self.inl:
-                        if not i.fluid.val_set[fluid]:
-                            i.fluid.val[fluid] = c.fluid.val[fluid]
-            self.outl[0].target.propagate_fluid_to_target(o, o, entry_point=True)
-
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation stops here.
-
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
+    def propagate_to_target(self, branch):
         return
 
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and outconn == start:
+    def propagate_wrapper_to_target(self, branch):
+        if self in branch["components"]:
             return
 
-        for inconn in self.inl:
-            for fluid, x in outconn.fluid.val.items():
-                if (not inconn.fluid.val_set[fluid] and
-                        not inconn.good_starting_values):
-                    inconn.fluid.val[fluid] = x
-
-            inconn.source.propagate_fluid_to_source(inconn, start)
+        outconn = self.outl[0]
+        branch["connections"] += [outconn]
+        branch["components"] += [self]
+        outconn.target.propagate_wrapper_to_target(branch)
 
     def entropy_balance(self):
         r"""
@@ -386,13 +366,14 @@ class Merge(NodeBase):
         """
         T_ref = 298.15
         p_ref = 1e5
-        self.S_irr = self.outl[0].m.val_SI * (
-            self.outl[0].s.val_SI -
-            s_mix_pT([0, p_ref, 0, self.outl[0].fluid.val], T_ref))
+        o = self.outl[0]
+        self.S_irr = o.m.val_SI * (
+            o.s.val_SI - s_mix_pT(p_ref, T_ref, o.fluid_data, o.mixing_rule)
+        )
         for i in self.inl:
             self.S_irr -= i.m.val_SI * (
-                i.s.val_SI -
-                s_mix_pT([0, p_ref, 0, i.fluid.val], T_ref))
+                i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, i.mixing_rule)
+            )
 
     def exergy_balance(self, T0):
         r"""
@@ -496,7 +477,7 @@ class Merge(NodeBase):
             "chemical": np.nan, "physical": np.nan, "massless": np.nan
         }
         self.E_D = self.E_F - self.E_P
-        self.epsilon = self.E_P / self.E_F
+        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

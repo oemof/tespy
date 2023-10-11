@@ -69,19 +69,11 @@ class Sink(Component):
     def get_mandatory_constraints():
         return {}
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation to target stops here.
+    def propagate_to_target(self, branch):
+        return
 
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
         return
 
     def exergy_balance(self, T0):
@@ -111,4 +103,4 @@ class Sink(Component):
             "massless": 0
         }
         self.E_D = np.nan
-        self.epsilon = np.nan
+        self.epsilon = self._calc_epsilon()

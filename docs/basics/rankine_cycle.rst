@@ -161,12 +161,12 @@ can disable the printout of the convergence history.
 
     Figure: Parametric analysis of the efficiency and power output
 
-Partload Simulation
-^^^^^^^^^^^^^^^^^^^
-In the partload simulation part, we are starting with a specific design of the
-plant and calculate the partload perfomance with some assumptions on the
+Part load Simulation
+^^^^^^^^^^^^^^^^^^^^
+In the part load simulation part, we are starting with a specific design of the
+plant and calculate the part load performance with some assumptions on the
 component's individual behavior. The table below summarizes the assumptions,
-which we will keep as simple as possible in this moment. For more insights
+which we will keep as simple as possible at this moment. For more insights
 have a look at the step by step
 :ref:`heat pump tutorial <tespy_tutorial_heat_pump_label>` or at the
 :ref:`Network documentation <tespy_modules_networks_label>`.
@@ -189,7 +189,7 @@ With these specifications, the following physics are applied to the model:
 
 - Due to the constant volumetric flow of water, the temperature of the cooling
   water returning from the condenser will react to the total heat transferred
-  in the condensation: Increased heat transfer means incresing temperature,
+  in the condensation: Increased heat transfer means increasing temperature,
   decreased heat transfer means decreased temperature.
 - The constant heat transfer coefficient of the condenser will calculate the
   condensation temperature (and therefore pressure) based on the temperature
@@ -239,14 +239,14 @@ Finally, we can alter the mass flow from its design value of 20 kg/s to only
 
 .. figure:: /_static/images/basics/rankine_partload.svg
     :align: center
-    :alt: Partload electric efficiency of the rankine cycle
+    :alt: Part load electric efficiency of the Rankine cycle
     :figclass: only-light
 
-    Figure: Partload electric efficiency of the rankine cycle
+    Figure: Part load electric efficiency of the Rankine cycle
 
 .. figure:: /_static/images/basics/rankine_partload_darkmode.svg
     :align: center
-    :alt: Partload electric efficiency of the rankine cycle
+    :alt: Part load electric efficiency of the Rankine cycle
     :figclass: only-dark
 
-    Figure: Partload electric efficiency of the rankine cycle
+    Figure: Part load electric efficiency of the Rankine cycle

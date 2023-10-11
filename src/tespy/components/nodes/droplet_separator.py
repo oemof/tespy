@@ -10,9 +10,6 @@ tespy/components/nodes/droplet_separator.py
 
 SPDX-License-Identifier: MIT
 """
-
-import numpy as np
-
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -84,10 +81,8 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.fluid_properties import Q_ph, T_bp_p
     >>> import shutil
-    >>> nw = Network(fluids=['water'], T_unit='C', p_unit='bar',
-    ... h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')
@@ -114,14 +109,14 @@ class DropletSeparator(NodeBase):
 
     >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
     >>> nw.solve('design')
-    >>> Q_in = Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water')
+    >>> Q_in = so_ds.calc_Q()
     >>> round(Q_in * so_ds.m.val_SI, 6) == round(ds_sig.m.val_SI, 6)
     True
     >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
     True
-    >>> Q_ph(ds_sig.p.val_SI, ds_sig.h.val_SI, 'water')
+    >>> ds_sig.calc_Q()
     1.0
-    >>> Q_ph(ds_sil.p.val_SI, ds_sil.h.val_SI, 'water')
+    >>> ds_sil.calc_Q()
     0.0
 
     In a different setup, we unset pressure and enthalpy and specify gas
@@ -133,9 +128,9 @@ class DropletSeparator(NodeBase):
     >>> so_ds.set_attr(fluid={'water': 1}, p=None, h=None, T=150, m=10)
     >>> ds_sig.set_attr(m=9.5)
     >>> nw.solve('design')
-    >>> round(Q_ph(so_ds.p.val_SI, so_ds.h.val_SI, 'water'), 6)
+    >>> round(so_ds.calc_Q(), 6)
     0.95
-    >>> T_boil = T_bp_p(so_ds.get_flow())
+    >>> T_boil = so_ds.calc_T_sat()
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
@@ -150,10 +145,6 @@ class DropletSeparator(NodeBase):
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
                 'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids * 2},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -181,65 +172,6 @@ class DropletSeparator(NodeBase):
     def outlets():
         return ['out1', 'out2']
 
-    def fluid_func(self):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Returns
-        -------
-        residual : list
-            Vector of residual values for component's fluid balance.
-
-            .. math::
-
-                0 = fluid_{i,in,1} - fluid_{i,out,j}\\
-                \forall i \in \text{network fluids}, \; \forall j \in
-                \text{outlets}
-        """
-        residual = []
-        for o in self.outl:
-            for fluid, x in self.inl[0].fluid.val.items():
-                residual += [x - o.fluid.val[fluid]]
-        return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = x_{fl\mathrm{,in,1}} - x_{fl\mathrm{,out,}j}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-            r'\text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self):
-        r"""
-        Calculate partial derivatives for all fluid balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        deriv = np.zeros((
-            2 * self.num_nw_fluids, self.num_i + self.num_o, self.num_nw_vars))
-        for k in range(2):
-            for i in range(self.num_nw_fluids):
-                deriv[i + k * self.num_nw_fluids, 0, i + 3] = 1
-                deriv[i + k * self.num_nw_fluids, k + self.num_i, i + 3] = -1
-        return deriv
-
     def energy_balance_func(self):
         r"""
         Calculate energy balance.
@@ -260,6 +192,7 @@ class DropletSeparator(NodeBase):
             res += i.m.val_SI * i.h.val_SI
         for o in self.outl:
             res -= o.m.val_SI * o.h.val_SI
+
         return res
 
     def energy_balance_func_doc(self, label):
@@ -296,16 +229,18 @@ class DropletSeparator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        j = 0
         for i in self.inl:
-            self.jacobian[k, j, 0] = i.h.val_SI
-            self.jacobian[k, j, 2] = i.m.val_SI
-            j += 1
-        j = 0
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
+            if i.h.is_var:
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
+
         for o in self.outl:
-            self.jacobian[k, j + self.num_i, 0] = -o.h.val_SI
-            self.jacobian[k, j + self.num_i, 2] = -o.m.val_SI
-            j += 1
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -o.h.val_SI
+            if o.h.is_var:
+                self.jacobian[k, o.h.J_col] = -o.m.val_SI
+
 
     def outlet_states_func(self):
         r"""
@@ -321,9 +256,12 @@ class DropletSeparator(NodeBase):
                 0 = h_{out,1} - h\left(p, x=0 \right)\\
                 0 = h_{out,2} - h\left(p, x=1 \right)
         """
+        o0 = self.outl[0]
+        o1 = self.outl[1]
         return [
-            h_mix_pQ(self.outl[0].get_flow(), 0) - self.outl[0].h.val_SI,
-            h_mix_pQ(self.outl[1].get_flow(), 1) - self.outl[1].h.val_SI]
+            h_mix_pQ(o0.p.val_SI, 0, o0.fluid_data) - o0.h.val_SI,
+            h_mix_pQ(o1.p.val_SI, 1, o1.fluid_data) - o1.h.val_SI
+        ]
 
     def outlet_states_func_doc(self, label):
         r"""
@@ -359,57 +297,30 @@ class DropletSeparator(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, self.num_i, 1] = dh_mix_dpQ(self.outl[0].get_flow(), 0)
-        self.jacobian[k, self.num_i, 2] = -1
-        self.jacobian[k + 1, self.num_i + 1, 1] = (
-            dh_mix_dpQ(self.outl[1].get_flow(), 1))
-        self.jacobian[k + 1, self.num_i + 1, 2] = -1
+        o0 = self.outl[0]
+        o1 = self.outl[1]
+        if o0.p.is_var:
+            self.jacobian[k, o0.p.J_col] = (
+                dh_mix_dpQ(o0.p.val_SI, 0, o0.fluid_data)
+            )
+        if o0.h.is_var and self.it == 0:
+            self.jacobian[k, o0.h.J_col] = -1
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's target in recursion.
+        if o1.p.is_var:
+            self.jacobian[k + 1, o1.p.J_col] = (
+                dh_mix_dpQ(o1.p.val_SI, 1, o1.fluid_data)
+            )
+        if o1.h.is_var and self.it == 0:
+            self.jacobian[k + 1, o1.h.J_col] = -1
 
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and inconn == start:
+    def propagate_wrapper_to_target(self, branch):
+        if self in branch["components"]:
             return
+
         for outconn in self.outl:
-            for fluid, x in inconn.fluid.val.items():
-                if (outconn.fluid.val_set[fluid] is False and
-                        outconn.good_starting_values is False):
-                    outconn.fluid.val[fluid] = x
-
-            outconn.target.propagate_fluid_to_target(outconn, start)
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Propagate the fluids towards connection's source in recursion.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if not entry_point and outconn == start:
-            return
-        inconn = self.inl[0]
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
-
-        inconn.source.propagate_fluid_to_source(inconn, start)
+            branch["connections"] += [outconn]
+            branch["components"] += [self]
+            outconn.target.propagate_wrapper_to_target(branch)
 
     @staticmethod
     def initialise_source(c, key):
@@ -441,9 +352,9 @@ class DropletSeparator(NodeBase):
             return 10e5
         elif key == 'h':
             if c.source_id == 'out1':
-                return h_mix_pQ(c.get_flow(), 1)
+                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
             else:
-                return h_mix_pQ(c.get_flow(), 0)
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
 
     @staticmethod
     def initialise_target(c, key):
@@ -473,7 +384,7 @@ class DropletSeparator(NodeBase):
         if key == 'p':
             return 10e5
         elif key == 'h':
-            return h_mix_pQ(c.get_flow(), 0.5)
+            return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

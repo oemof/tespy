@@ -118,7 +118,16 @@ html_sidebars = {
 html_theme_options = {
     "light_logo": "./images/logo_tespy_mid.svg",
     "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
+    "announcement": """
+    <div oemof-announcement=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
+    """,
 }
+
+html_js_files = [
+    'js/custom.js',
+]
+
+
 html_favicon = './_static/images/logo_tespy_small.svg'
 
 napoleon_use_ivar = True

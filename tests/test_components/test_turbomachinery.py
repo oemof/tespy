@@ -31,8 +31,7 @@ from tespy.tools.fluid_properties import s_mix_ph
 class TestTurbomachinery:
 
     def setup_network(self, instance):
-        self.nw = Network(['INCOMP::DowQ', 'NH3', 'N2', 'O2', 'Ar'],
-                          T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
         self.source = Source('source')
         self.sink = Sink('sink')
         self.c1 = Connection(self.source, 'out1', instance, 'in1')
@@ -45,7 +44,7 @@ class TestTurbomachinery:
         self.setup_network(instance)
 
         # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'N2': 1, 'O2': 0, 'Ar': 0, 'DowQ': 0, 'NH3': 0}
+        fl = {'N2': 1}
         self.c1.set_attr(fluid=fl, v=1, p=1, T=5)
         self.c2.set_attr(p=6)
         instance.set_attr(eta_s=0.8)
@@ -55,7 +54,7 @@ class TestTurbomachinery:
 
         # test isentropic efficiency value
         eta_s_d = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s_d) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -68,7 +67,7 @@ class TestTurbomachinery:
 
         # test calculated value
         eta_s = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -76,7 +75,7 @@ class TestTurbomachinery:
 
         # remove pressure at outlet, use characteristic map for pressure
         # rise calculation
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         instance.set_attr(
             char_map_pr={'char_func': ldc(
                 'compressor', 'char_map_pr', 'DEFAULT', CharMap),
@@ -84,7 +83,7 @@ class TestTurbomachinery:
             char_map_eta_s={'char_func': ldc(
                 'compressor', 'char_map_eta_s', 'DEFAULT', CharMap),
                 'is_set': True},
-            eta_s=np.nan, igva=0)
+            eta_s=None, igva=0)
 
         # offdesign test, efficiency value should be at design value
         self.nw.solve('offdesign', design_path='tmp')
@@ -95,7 +94,7 @@ class TestTurbomachinery:
 
         # move to highest available speedline, mass flow below lowest value
         # at that line
-        self.c1.set_attr(v=np.nan, m=self.c1.m.val * 0.8, T=-30)
+        self.c1.set_attr(v=None, m=self.c1.m.val * 0.8, T=-30)
         self.nw.solve('offdesign', design_path='tmp')
         self.nw._convergence_check()
 
@@ -118,7 +117,7 @@ class TestTurbomachinery:
 
         # back to design properties, test eta_s_char
         self.c2.set_attr(p=6)
-        self.c1.set_attr(v=1, T=5, m=np.nan)
+        self.c1.set_attr(v=1, T=5, m=None)
 
         # test parameter specification for eta_s_char with unset char map
         instance.set_attr(eta_s_char={'char_func': ldc(
@@ -161,8 +160,7 @@ class TestTurbomachinery:
         """Test component properties of pumps."""
         instance = Pump('pump')
         self.setup_network(instance)
-        fl = {'N2': 0, 'O2': 0, 'Ar': 0, 'DowQ': 1, 'NH3': 0}
-        self.c1.set_attr(fluid=fl, v=1, p=5, T=50)
+        self.c1.set_attr(fluid={'INCOMP::DowQ': 1}, v=1, p=5, T=50)
         self.c2.set_attr(p=7)
         instance.set_attr(eta_s=1)
         self.nw.solve('design')
@@ -170,7 +168,7 @@ class TestTurbomachinery:
 
         # test calculated value for efficiency
         eta_s = (
-            (isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+            (isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
              self.c1.h.val_SI) / (self.c2.h.val_SI - self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -178,8 +176,8 @@ class TestTurbomachinery:
 
         # isentropic efficiency of 1 means inlet and outlet entropy are
         # identical
-        s1 = round(s_mix_ph(self.c1.get_flow()), 4)
-        s2 = round(s_mix_ph(self.c2.get_flow()), 4)
+        s1 = round(self.c1.calc_s(), 4)
+        s2 = round(self.c2.calc_s(), 4)
         msg = ('Value of entropy must be identical for inlet (' + str(s1) +
                ') and outlet (' + str(s2) +
                ') at 100 % isentropic efficiency.')
@@ -192,7 +190,7 @@ class TestTurbomachinery:
         self.nw.solve('design')
         self.nw._convergence_check()
         self.nw.save('tmp')
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
 
         # flow char (pressure rise vs. volumetric flow)
         x = [0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]
@@ -200,7 +198,7 @@ class TestTurbomachinery:
         char = {'char_func': CharLine(x, y), 'is_set': True}
         # apply flow char and eta_s char
         instance.set_attr(
-            flow_char=char, eta_s=np.nan, eta_s_char={
+            flow_char=char, eta_s=None, eta_s_char={
                 'char_func': ldc('pump', 'eta_s_char', 'DEFAULT', CharLine),
                 'is_set': True})
         self.nw.solve('offdesign', design_path='tmp')
@@ -252,8 +250,7 @@ class TestTurbomachinery:
         """Test component properties of turbines."""
         instance = Turbine('turbine')
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0,
-              'NH3': 0}
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         self.c1.set_attr(fluid=fl, m=15, p=10)
         self.c2.set_attr(p=1, T=25)
         instance.set_attr(eta_s=0.85)
@@ -264,7 +261,7 @@ class TestTurbomachinery:
         # design value of isentropic efficiency
         eta_s_d = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+                isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' +
                str(round(eta_s_d, 3)) + ', is ' + str(instance.eta_s.val) +
@@ -277,7 +274,7 @@ class TestTurbomachinery:
         self.nw._convergence_check()
         eta_s = (
             (self.c2.h.val_SI - self.c1.h.val_SI) / (
-                isentropic(self.c1.get_flow(), self.c2.get_flow()) -
+                isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule) -
                 self.c1.h.val_SI))
         msg = ('Value of isentropic efficiency must be ' + str(eta_s) +
                ', is ' + str(instance.eta_s.val) + '.')
@@ -286,7 +283,7 @@ class TestTurbomachinery:
         # unset isentropic efficiency and inlet pressure,
         # use characteristcs and cone law instead, parameters have to be in
         # design state
-        self.c1.set_attr(p=np.nan)
+        self.c1.set_attr(p=None)
         instance.cone.is_set = True
         instance.eta_s_char.is_set = True
         instance.eta_s.is_set = False
@@ -343,7 +340,7 @@ class TestTurbomachinery:
                instance.component() + '.')
         assert 'turbomachine' == instance.component(), msg
         self.setup_network(instance)
-        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'DowQ': 0, 'NH3': 0}
+        fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         self.c1.set_attr(fluid=fl, m=10, p=1, h=1e5)
         self.c2.set_attr(p=3, h=2e5)
 
@@ -361,7 +358,7 @@ class TestTurbomachinery:
         assert pr == instance.pr.val, msg
 
         # test pressure ratio specification
-        self.c2.set_attr(p=np.nan)
+        self.c2.set_attr(p=None)
         instance.set_attr(pr=5)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -371,7 +368,7 @@ class TestTurbomachinery:
         assert pr == instance.pr.val, msg
 
         # test power specification
-        self.c2.set_attr(h=np.nan)
+        self.c2.set_attr(h=None)
         instance.set_attr(P=1e5)
         self.nw.solve('design')
         self.nw._convergence_check()

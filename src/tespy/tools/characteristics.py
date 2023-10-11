@@ -13,7 +13,6 @@ available from its original location tespy/tools/characteristics.py
 
 SPDX-License-Identifier: MIT
 """
-
 import json
 import os
 
@@ -22,8 +21,6 @@ import numpy as np
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.helpers import extend_basic_path
-
-# %%
 
 
 class CharLine:
@@ -167,6 +164,13 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["extrapolate"] = self.extrapolate
+        return export
+
     def plot(self, path, title, xlabel, ylabel):
 
         from matplotlib import pyplot as plt
@@ -184,8 +188,6 @@ class CharLine:
         # export
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
-
-# %%
 
 
 class CharMap:
@@ -445,6 +447,13 @@ class CharMap:
             logger.error(msg)
             raise KeyError(msg)
 
+    def serialize(self):
+        export = {}
+        export["x"] = self.x.tolist()
+        export["y"] = self.y.tolist()
+        export["z"] = self.z.tolist()
+        return export
+
     def plot(self, path, title, xlabel, ylabel):
 
         from matplotlib import pyplot as plt
@@ -489,9 +498,9 @@ def load_default_char(component, parameter, function_name, char_type):
         The characteristics (CharLine, CharMap) object.
     """
     if char_type == CharLine:
-        path = __datapath__ + 'char_lines.json'
+        path = os.path.join(__datapath__, 'char_lines.json')
     else:
-        path = __datapath__ + 'char_maps.json'
+        path = os.path.join(__datapath__, 'char_maps.json')
 
     with open(path) as f:
         data = json.loads(f.read())

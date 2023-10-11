@@ -74,7 +74,7 @@ class CycleCloser(Component):
     >>> from tespy.components import CycleCloser, Pipe, Pump
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(['water'], p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
@@ -97,7 +97,7 @@ class CycleCloser(Component):
         return 'cycle closer'
 
     @staticmethod
-    def get_variables():
+    def get_parameters():
         return {
             'mass_deviation': dc_cp(val=0, max_val=1e-3, is_result=True),
             'fluid_deviation': dc_cp(val=0, max_val=1e-5, is_result=True)
@@ -127,67 +127,40 @@ class CycleCloser(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, nw, num_eq=0):
-        super().preprocess(nw, num_eq)
-        self._propagation_start = False
+    @staticmethod
+    def is_branch_source():
+        return True
 
-    def propagate_fluid_to_target(self, inconn, start, entry_point=False):
-        r"""
-        Fluid propagation to target stops here.
+    def start_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self, outconn.target],
+            "subbranches": {}
+        }
+        outconn.target.propagate_to_target(branch)
 
-        Parameters
-        ----------
-        inconn : tespy.connections.connection.Connection
-            Connection to initialise.
+        return {outconn.label: branch}
 
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if (not entry_point and inconn == start) or self._propagation_start:
-            return
+    def start_fluid_wrapper_branch(self):
+        outconn = self.outl[0]
+        branch = {
+            "connections": [outconn],
+            "components": [self]
+        }
+        outconn.target.propagate_wrapper_to_target(branch)
 
-        self._propagation_start = True
+        return {outconn.label: branch}
 
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
+    def propagate_to_target(self, branch):
+        return
 
-        for fluid, x in inconn.fluid.val.items():
-            if (not outconn.fluid.val_set[fluid] and
-                    not outconn.good_starting_values):
-                outconn.fluid.val[fluid] = x
+    def propagate_wrapper_to_target(self, branch):
+        branch["components"] += [self]
+        return
 
-        outconn.target.propagate_fluid_to_target(outconn, start)
-
-        self._propagation_start = False
-
-    def propagate_fluid_to_source(self, outconn, start, entry_point=False):
-        r"""
-        Fluid propagation to source stops here.
-
-        Parameters
-        ----------
-        outconn : tespy.connections.connection.Connection
-            Connection to initialise.
-
-        start : tespy.components.component.Component
-            This component is the fluid propagation starting point.
-            The starting component is saved to prevent infinite looping.
-        """
-        if (not entry_point and outconn == start) or self._propagation_start:
-            return
-
-        self._propagation_start = True
-        conn_idx = self.outl.index(outconn)
-        inconn = self.inl[conn_idx]
-
-        for fluid, x in outconn.fluid.val.items():
-            if (inconn.fluid.val_set[fluid] is False and
-                    inconn.good_starting_values is False):
-                inconn.fluid.val[fluid] = x
-
-        inconn.source.propagate_fluid_to_source(inconn, start)
-
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
         self._propagation_start = False
 
     def calc_parameters(self):

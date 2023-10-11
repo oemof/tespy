@@ -18,7 +18,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
 
 
 class SolarCollector(SimpleHeatExchanger):
@@ -35,7 +34,8 @@ class SolarCollector(SimpleHeatExchanger):
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hydro_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
     - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func`
 
     Inlets/Outlets
@@ -98,13 +98,18 @@ class SolarCollector(SimpleHeatExchanger):
         Length of the pipes, :math:`L/\text{m}`.
 
     ks : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{m}` for darcy friction,
-        :math:`ks/\text{1}` for hazen-williams equation.
+        Pipe's roughness, :math:`ks/\text{m}`.
 
-    hydro_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions.
-        Choose 'HW' for hazen-williams equation, else darcy friction factor is
-        used.
+    darcy_group : str, dict
+        Parametergroup for pressure drop calculation based on pipes dimensions
+        using darcy weissbach equation.
+
+    ks_HW : float, dict, :code:`"var"`
+        Pipe's roughness, :math:`ks/\text{1}`.
+
+    hw_group : str, dict
+        Parametergroup for pressure drop calculation based on pipes dimensions
+        using hazen williams equation.
 
     E : float, dict, :code:`"var"`
         irradiance at tilted collector surface area,
@@ -143,8 +148,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> fluids = ['H2O']
-    >>> nw = Network(fluids=fluids)
+    >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -183,39 +187,25 @@ class SolarCollector(SimpleHeatExchanger):
     def component():
         return 'solar collector'
 
-    def get_variables(self):
-        return {
-            'Q': dc_cp(
-                deriv=self.energy_balance_deriv,
-                latex=self.energy_balance_func_doc, num_eq=1,
-                func=self.energy_balance_func),
-            'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr'}),
-            'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                latex=self.zeta_func_doc,
-                func_params={'zeta': 'zeta'}),
-            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-            'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+    def get_parameters(self):
+        data = super().get_parameters()
+        for k in ["kA_group", "kA_char_group", "kA", "kA_char"]:
+            del data[k]
+
+        data.update({
             'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
-            'lkf_lin': dc_cp(min_val=0), 'lkf_quad': dc_cp(min_val=0),
+            'lkf_lin': dc_cp(min_val=0),
+            'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_cp(),
             'Q_loss': dc_cp(max_val=0, val=0),
-            'dissipative': dc_simple(val=True),
-            'hydro_group': dc_gcp(
-                elements=['L', 'ks', 'D'], num_eq=1,
-                latex=self.hydro_group_func_doc,
-                func=self.hydro_group_func, deriv=self.hydro_group_deriv),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq=1, latex=self.energy_group_func_doc,
-                func=self.energy_group_func, deriv=self.energy_group_deriv)
-        }
+                func=self.energy_group_func, deriv=self.energy_group_deriv
+            )
+        })
+        return data
 
     def energy_group_func(self):
         r"""
@@ -238,17 +228,19 @@ class SolarCollector(SimpleHeatExchanger):
 
             Reference: :cite:`Quaschning2013`.
         """
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        T_m = (T_mix_ph(i, T0=self.inl[0].T.val_SI) +
-               T_mix_ph(o, T0=self.outl[0].T.val_SI)) / 2
+        T_m = 0.5 * (i.calc_T(T0=i.T.val_SI) + o.calc_T(T0=o.T.val_SI))
 
-        return (i[0] * (o[2] - i[2]) -
-                self.A.val * (
-                    self.E.val * self.eta_opt.val -
-                    (T_m - self.Tamb.val_SI) * self.lkf_lin.val -
-                    self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2))
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            - self.A.val * (
+                self.E.val * self.eta_opt.val
+                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val
+                - self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2
+            )
+        )
 
     def energy_group_func_doc(self, label):
         r"""
@@ -290,35 +282,39 @@ class SolarCollector(SimpleHeatExchanger):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         f = self.energy_group_func
-        self.jacobian[k, 0, 0] = (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        if not increment_filter[0, 1]:
-            self.jacobian[k, 0, 1] = self.numeric_deriv(f, 'p', 0)
-        if not increment_filter[0, 2]:
-            self.jacobian[k, 0, 2] = self.numeric_deriv(f, 'h', 0)
-        if not increment_filter[1, 1]:
-            self.jacobian[k, 1, 1] = self.numeric_deriv(f, 'p', 1)
-        if not increment_filter[1, 2]:
-            self.jacobian[k, 1, 2] = self.numeric_deriv(f, 'h', 1)
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.p, increment_filter):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+        if self.is_variable(i.h, increment_filter):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+        if self.is_variable(o.p, increment_filter):
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+        if self.is_variable(o.h, increment_filter):
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
         # custom variables for the energy-group
-        for var in self.energy_group.elements:
-            var = self.get_attr(var)
-            if var == self.Tamb:
+        for variable_name in self.energy_group.elements:
+            parameter = self.get_attr(variable_name)
+            if parameter == self.Tamb:
                 continue
-            if var.is_var:
-                self.jacobian[k, 2 + var.var_pos, 0] = (
-                    self.numeric_deriv(f, self.vars[var], 2))
+            if parameter.is_var:
+                self.jacobian[k, parameter.J_col] = (
+                    self.numeric_deriv(f, variable_name, None)
+                )
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0].get_flow()
-        o = self.outl[0].get_flow()
+        i = self.inl[0]
+        o = self.outl[0]
 
-        self.Q.val = i[0] * (o[2] - i[2])
-        self.pr.val = o[1] / i[1]
-        self.zeta.val = ((i[1] - o[1]) * np.pi ** 2 / (
-            4 * i[0] ** 2 * (self.inl[0].vol.val_SI + self.outl[0].vol.val_SI)
-            ))
+        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.zeta.val = (
+            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+        )
         if self.energy_group.is_set:
             self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
             self.Q_loss.is_result = True

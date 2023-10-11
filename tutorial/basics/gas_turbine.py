@@ -6,8 +6,7 @@ from tespy.components import (
 from tespy.connections import Connection, Ref, Bus
 
 # define full fluid list for the network"s variable space
-fluid_list = ["Ar", "N2", "O2", "CO2", "CH4", "H2O", "H2"]
-nw = Network(fluids=fluid_list, p_unit="bar", T_unit="C")
+nw = Network(p_unit="bar", T_unit="C")
 
 cp = Compressor("Compressor")
 cc = DiabaticCombustionChamber("combustion chamber")
@@ -25,18 +24,9 @@ cc.set_attr(pr=1, eta=1, lamb=1.5, ti=10e6)
 
 c2.set_attr(
     p=1, T=20,
-    fluid={
-        "Ar": 0.0129, "N2": 0.7553, "H2O": 0,
-        "CH4": 0, "CO2": 0.0004, "O2": 0.2314, "H2": 0
-    }
+    fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
 )
-c5.set_attr(
-    p=1, T=20,
-    fluid={
-        "CO2": 0.04, "Ar": 0, "N2": 0, "O2": 0,
-        "H2O": 0, "CH4": 0.96, "H2": 0
-    }
-)
+c5.set_attr(p=1, T=20, fluid={"CO2": 0.04, "CH4": 0.96, "H2": 0})
 
 nw.solve(mode="design")
 nw.print_results()
@@ -49,12 +39,7 @@ cc.set_attr(lamb=None)
 c3.set_attr(T=1400)
 nw.solve(mode="design")
 # %%[sec_6]
-c5.set_attr(
-    fluid={
-        "CO2": 0.03, "Ar": 0, "N2": 0, "O2": 0,
-        "H2O": 0, "CH4": 0.92, "H2": 0.05
-    }
-)
+c5.set_attr(fluid={"CO2": 0.03, "CH4": 0.92, "H2": 0.05})
 nw.solve(mode="design")
 # %%[sec_7]
 print(nw.results["Connection"])
@@ -77,13 +62,12 @@ cp.set_attr(eta_s=0.85, pr=15)
 tu.set_attr(eta_s=0.90)
 c1.set_attr(
     p=1, T=20,
-    fluid={
-        "Ar": 0.0129, "N2": 0.7553, "H2O": 0,
-        "CH4": 0, "CO2": 0.0004, "O2": 0.2314, "H2": 0
-    }
+    fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
 )
-c3.set_attr(T=1200)
+c3.set_attr(m=30)
 c4.set_attr(p=Ref(c1, 1, 0))
+nw.solve("design")
+c3.set_attr(m=None, T=1200)
 nw.solve("design")
 nw.print_results()
 # %%[sec_10]
@@ -153,9 +137,7 @@ plt.close()
 # %%[sec_12]
 c3.set_attr(T=None)
 
-
-data = np.linspace(0.025, 0.15, 6)
-
+data = np.linspace(0.1, 0.2, 6)
 T3 = []
 
 for oxy in data[::-1]:
@@ -164,7 +146,7 @@ for oxy in data[::-1]:
     T3 += [c3.T.val]
 
 # reset to base value
-c3.fluid.val_set["O2"] = False
+c3.fluid.is_set.remove("O2")
 c3.set_attr(T=1200)
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
@@ -178,11 +160,12 @@ ax.set_xlabel('Oxygen mass fraction in flue gas in %')
 plt.tight_layout()
 fig.savefig('gas_turbine_oxygen.svg')
 plt.close()
+
 # %%[sec_13]
-# retain starting values for CH4 and H2 with this variant
-c5.fluid.val_set["CH4"] = False
-c5.fluid.val_set["H2"] = False
+# fix mass fractions of all potential fluids except combustion gases
+c5.set_attr(fluid={"CO2": 0.03, "O2": 0, "H2O": 0, "Ar": 0, "N2": 0, "CH4": None, "H2": None})
 c5.set_attr(fluid_balance=True)
+
 
 data = np.linspace(50, 60, 11)
 
@@ -194,6 +177,8 @@ for ti in data:
     nw.solve('design')
     CH4 += [c5.fluid.val["CH4"] * 100]
     H2 += [c5.fluid.val["H2"] * 100]
+
+nw._convergence_check()
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 

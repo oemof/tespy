@@ -74,7 +74,7 @@ def set_attr_ValueError(instance, **kwargs):
 
 def test_set_attr_errors():
     """Test errors of set_attr methods."""
-    nw = Network(['water', 'air'])
+    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
@@ -90,7 +90,6 @@ def test_set_attr_errors():
     set_attr_ValueError(nw, p_unit='kg')
     set_attr_ValueError(nw, T_unit='kg')
     set_attr_ValueError(nw, v_unit='kg')
-    set_attr_ValueError(conn, state=5)
 
     # TypeErrors
     set_attr_TypeError(comb, P=[5])
@@ -101,7 +100,6 @@ def test_set_attr_errors():
     set_attr_TypeError(comb, design_path=7)
     set_attr_TypeError(comb, local_design=5)
     set_attr_TypeError(comb, local_offdesign=5)
-    set_attr_TypeError(pipeline, hydro_group=5)
     set_attr_TypeError(comb, printout=5)
 
     set_attr_TypeError(conn, design='h')
@@ -112,7 +110,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_design=5)
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
-    set_attr_TypeError(conn, state='f')
+    set_attr_TypeError(conn, state=5)
 
     set_attr_TypeError(nw, m_range=5)
     set_attr_TypeError(nw, p_range=5)
@@ -134,7 +132,7 @@ def test_set_attr_errors():
 
 def test_get_attr_errors():
     """Test errors of get_attr methods."""
-    nw = Network(['water', 'air'])
+    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
@@ -264,7 +262,7 @@ def test_UserDefinedEquation_errors():
 
 def test_CombustionChamber_missing_fuel():
     """Test no fuel in network."""
-    nw = Network(['H2O', 'N2', 'O2', 'Ar', 'CO2'])
+    nw = Network()
     instance = CombustionChamber('combustion chamber')
     c1 = Connection(Source('air'), 'out1', instance, 'in1')
     c2 = Connection(Source('fuel'), 'out1', instance, 'in2')
@@ -276,7 +274,7 @@ def test_CombustionChamber_missing_fuel():
 
 def test_CombustionChamber_missing_oxygen():
     """Test no oxygen in network."""
-    nw = Network(['H2O', 'N2', 'Ar', 'CO2', 'CH4'])
+    nw = Network()
     instance = CombustionChamber('combustion chamber')
     c1 = Connection(Source('air'), 'out1', instance, 'in1')
     c2 = Connection(Source('fuel'), 'out1', instance, 'in2')
@@ -292,7 +290,7 @@ def test_CombustionChamber_missing_oxygen():
 class TestCombustionEngineBusErrors:
 
     def setup_method(self):
-        self.nw = Network(['water', 'air'])
+        self.nw = Network()
         self.instance = CombustionEngine('combustion engine')
         self.bus = Bus('power')
         self.bus.add_comps({'comp': self.instance, 'param': 'Param'})
@@ -307,9 +305,8 @@ class TestCombustionEngineBusErrors:
         # both values do not matter, but are required for the test
         self.instance.num_nw_vars = 1
         self.instance.num_vars = 1
-        self.instance.inl = [Connection(self.instance, 'out1',
-                                        Sink('sink'), 'in1')]
-        self.instance.inl[0].fluid = dc_flu(val={'water': 1})
+        self.instance.inl = ["foo", "bar", "baz", "foo"]
+        self.instance.outl = ["bar", "baz", "foo"]
         with raises(ValueError):
             self.instance.bus_deriv(self.bus)
 
@@ -319,13 +316,14 @@ class TestCombustionEngineBusErrors:
 
 def test_compressor_missing_char_parameter():
     """Compressor with invalid parameter for eta_s_char function."""
-    nw = Network(['CH4'])
+    nw = Network()
     so = Source('source')
     si = Sink('sink')
     instance = Compressor('compressor')
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"CH4": 1})
     instance.set_attr(eta_s_char={
         'func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
@@ -351,66 +349,19 @@ def test_subsys_label_forbidden():
 
 def test_Turbine_missing_char_parameter():
     """Turbine with invalid parameter for eta_s_char function."""
-    nw = Network(['CH4'])
+    nw = Network()
     so = Source('source')
     si = Sink('sink')
     instance = Turbine('turbine')
     c1 = Connection(so, 'out1', instance, 'in1')
     c2 = Connection(instance, 'out1', si, 'in1')
     nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"CH4": 1})
     instance.set_attr(eta_s_char={
         'char_func': CharLine([0, 1], [1, 2]), 'is_set': True, 'param': None})
     nw.solve('design', init_only=True)
     with raises(ValueError):
         instance.eta_s_char_func()
-
-##############################################################################
-# WaterElectrolyzer
-
-
-class TestWaterElectrolyzerErrors:
-
-    def setup_electrolyzer_Network(self):
-        """Set up Network for electrolyzer tests."""
-        self.instance = WaterElectrolyzer('electrolyzer')
-
-        fw = Source('feed water')
-        cw_in = Source('cooling water')
-        o2 = Sink('oxygen sink')
-        h2 = Sink('hydrogen sink')
-        cw_out = Sink('cooling water sink')
-
-        cw_el = Connection(cw_in, 'out1', self.instance, 'in1')
-        el_cw = Connection(self.instance, 'out1', cw_out, 'in1')
-
-        self.nw.add_conns(cw_el, el_cw)
-
-        fw_el = Connection(fw, 'out1', self.instance, 'in2')
-        el_o2 = Connection(self.instance, 'out2', o2, 'in1')
-        el_h2 = Connection(self.instance, 'out3', h2, 'in1')
-
-        self.nw.add_conns(fw_el, el_o2, el_h2)
-
-    def test_missing_hydrogen_in_Network(self):
-        """Test missing hydrogen in Network fluids with water electrolyzer."""
-        self.nw = Network(['H2O', 'O2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
-
-    def test_missing_oxygen_in_Network(self):
-        """Test missing oxygen in Network fluids with water electrolyzer."""
-        self.nw = Network(['H2O', 'H2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
-
-    def test_missing_water_in_Network(self):
-        """Test missing water in Network fluids with water electrolyzer."""
-        self.nw = Network(['O2', 'H2'])
-        self.setup_electrolyzer_Network()
-        with raises(TESPyComponentError):
-            self.nw.solve('design')
 
 
 def test_wrong_Bus_param_func():
@@ -447,7 +398,7 @@ def test_wrong_Bus_param_deriv():
 class TestNetworkErrors:
 
     def setup_method(self):
-        self.nw = Network(['water'])
+        self.nw = Network()
 
     def test_add_conns_TypeError(self):
         with raises(TypeError):
@@ -569,21 +520,6 @@ class TestNetworkErrors:
             b = Bus('mybus')
             self.nw.add_busses(a, b)
 
-
-def test_Network_instanciation_no_fluids():
-    nw = Network([])
-    so = Source('source')
-    si = Sink('sink')
-    conn = Connection(so, 'out1', si, 'in1')
-    nw.add_conns(conn)
-    with raises(TESPyNetworkError):
-        nw.solve('design', init_only=True)
-
-
-def test_Network_instanciation_single_fluid():
-    with raises(TypeError):
-        Network('water')
-
 ##############################################################################
 # test errors of characteristics classes
 
@@ -656,5 +592,9 @@ def test_missing_CharMap_files():
 
 
 def test_h_mix_pQ_on_mixtures():
+    c = Connection(Source("test"), "out1", Sink("test2"), "in1")
+    c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
+    c._create_fluid_wrapper()
+    c.build_fluid_data()
     with raises(ValueError):
-        h_mix_pQ([0, 0, 0, {'O2': 0.24, 'N2': 0.76}], 0.75)
+        h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)

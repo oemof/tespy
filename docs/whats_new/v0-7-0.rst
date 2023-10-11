@@ -1,0 +1,85 @@
+v0.7.0 - Development in progress
+++++++++++++++++++++++++++++++++
+
+For version 0.7.0 TESPy has undergone a large refactoring of its back end:
+
+New Features
+############
+
+Fluid Properties
+----------------
+
+The implementation of the fluid property back end was modularized and is now
+much more flexible. The most notable new features are:
+
+- It is possible to use the same fluid name with different fluid property back
+  ends in different parts of a single network, e.g. in a Rankine Cycle the main
+  cycle can be calculated using standard water fluid properties and in the
+  cooling cycle water may be used as incompressible medium.
+- CoolProp's binary incompressible mixtures are now supported.
+- The user can implement their own fluid property equations or toolboxes by
+  masquerading the calls in a standard API inheriting from the new
+  `FluidPropertyWrapper` class. CoolProp remains the standard back end, but you
+  may also use other back ends with this feature.
+- Similarly, the mixture model can be exchanged by implementing custom mixing
+  rules for fluid mixtures.
+- It is not necessary anymore, to specify the full fluid vector if the sum of
+  all fixed fluid mass fractions is equal to 1, e.g. if the old specification
+  was :code:`fluid={"H2O": 1, "Air": 0}` you can now specify
+  :code:`fluid={"H2O": 1}`. The list of fluids is passed to the `Network` class
+  anymore, :code:`Network(fluids["H2O", "Air"])` becomes :code:`Network()`.
+
+Performance Improvements
+------------------------
+
+Several performance improvements have been made:
+
+- Primary variables are not strictly tied to all connections anymore:
+
+  - Any directly specified value removes the respective variable from the
+    system's variables. For example, a user specified pressure value was part of
+    the system's variables previously but not touched in the Newton iterations.
+    Now the variable is directly eliminated effectively reducing the size of the
+    problem. The same is true for all variables, i.e. mass flow, pressure,
+    enthalpy and fluid mass fractions.
+  - If combinations of pressure and temperature, vapor quality or similar are
+    specified on a single connection, the pressure and enthalpy are pre-solved
+    if feasible eliminating them from the variable space and eliminating the
+    respective (e.g. temperature) equation from the equations.
+  - The plant is subdivided into two types of branches:
+
+    1. Branches with a single mass flow (connections related to each other in a
+       way, that their mass flow must be the same). Here the variable space is
+       reduced to a single mass flow variable.
+    2. Branches with identical fluid composition (similar to mass flows, but
+       e.g. splitters, drums, droplet separators do not change the fluid
+       composition as well) can also only have a single fluid vector as a
+       variable and not one per connection.
+
+- Together with the above changes all partial derivatives now only need to be
+  calculated, in case a mass flow, pressure, enthalpy or the fluid mass fraction
+  is a system variable.
+
+General Improvements
+--------------------
+
+The code has been simplified and clean up in a lot of places to improve
+readability and maintenance.
+
+
+Breaking Changes
+################
+
+The release introduces two (known) breaking changes:
+
+- The structure for saved network states has changed to the minimum necessary
+  export. Connections only need their label, their parameter values and the
+  respective units. For that reason, the export of networks to import them at a
+  different place using the `load_network` functionality has changed as well. If
+  you want to export a network to load it again, you have to use the `export`
+  method instead of the `save` method of the network.
+- Support for older Python versions (smaller than 3.9) has been dropped.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

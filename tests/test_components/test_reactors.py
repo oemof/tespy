@@ -26,7 +26,7 @@ class TestReactors:
 
     def setup_method(self):
         """Set up network for electrolyzer tests."""
-        self.nw = Network(['O2', 'H2', 'H2O'], T_unit='C', p_unit='bar')
+        self.nw = Network(T_unit='C', p_unit='bar')
         self.instance = WaterElectrolyzer('electrolyzer')
 
         fw = Source('feed water')
@@ -37,8 +37,9 @@ class TestReactors:
 
         self.instance.set_attr(pr=0.99, eta=1)
 
-        cw_el = Connection(cw_in, 'out1', self.instance, 'in1',
-                           fluid={'H2O': 1, 'H2': 0, 'O2': 0}, T=20, p=1)
+        cw_el = Connection(
+            cw_in, 'out1', self.instance, 'in1', fluid={'H2O': 1}, T=20, p=1
+       )
         el_cw = Connection(self.instance, 'out1', cw_out, 'in1', T=45)
 
         self.nw.add_conns(cw_el, el_cw)
@@ -74,7 +75,7 @@ class TestReactors:
         assert round(self.instance.Q.val, 4) == 0.0, msg
 
         # reset power, change efficiency value and specify heat bus value
-        power.set_attr(P=np.nan)
+        power.set_attr(P=None)
         self.nw.get_conn('h2o').set_attr(T=25, p=1)
         self.nw.get_conn('h2').set_attr(T=50)
         self.instance.set_attr(eta=0.8)
@@ -118,7 +119,7 @@ class TestReactors:
 
         # test efficiency value > 1, Q must be larger than 0
         e = 130e6
-        self.instance.set_attr(e=np.nan, eta=np.nan)
+        self.instance.set_attr(e=None, eta=None)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -135,7 +136,7 @@ class TestReactors:
 
         # test specific energy consumption
         e = 150e6
-        self.instance.set_attr(e=np.nan, eta=np.nan)
+        self.instance.set_attr(e=None, eta=None)
         self.instance.set_attr(e=e)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -157,7 +158,7 @@ class TestReactors:
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
-        self.instance.set_attr(zeta=np.nan, offdesign=['zeta'])
+        self.instance.set_attr(zeta=None, offdesign=['zeta'])
         self.nw.solve('offdesign', design_path='tmp')
         self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
@@ -166,7 +167,7 @@ class TestReactors:
 
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
-        self.instance.set_attr(Q=Q, P=np.nan)
+        self.instance.set_attr(Q=Q, P=None)
         self.nw.solve('offdesign', design_path='tmp')
         self.nw._convergence_check()
         msg = ('Value of heat must be ' + str(Q) + ', is ' +

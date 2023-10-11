@@ -16,13 +16,27 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 import CoolProp.CoolProp as CP
-import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.global_vars import err
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data
-from tespy.tools.global_vars import molar_masses
+
+
+def get_all_subdictionaries(data):
+    subdictionaries = []
+    for value in data.values():
+        if len(value["subbranches"]) == 0:
+            subdictionaries.append(
+                {k: v for k, v in value.items() if k != "subbranches"}
+            )
+        else:
+            subdictionaries.append(
+                {k: v for k, v in value.items() if k != "subbranches"}
+            )
+            subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
+
+    return subdictionaries
 
 
 def get_chem_ex_lib(name):
@@ -216,7 +230,7 @@ class UserDefinedEquation:
         >>> from tespy.tools.helpers import UserDefinedEquation
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
-        >>> nw = Network(fluids=['water'], p_unit='bar', T_unit='C')
+        >>> nw = Network(p_unit='bar', T_unit='C')
         >>> nw.set_attr(iterinfo=False)
         >>> so = Source('source')
         >>> si = Sink('sink')
@@ -243,10 +257,11 @@ class UserDefinedEquation:
         >>> def myfunc(ude):
         ...    char = ude.params['char']
         ...    return (
-        ...        T_mix_ph(ude.conns[0].get_flow()) -
-        ...        T_mix_ph(ude.conns[1].get_flow()) - char.evaluate(
+        ...        ude.conns[0].calc_T() - ude.conns[1].calc_T()
+        ...        - char.evaluate(
         ...            ude.conns[0].m.val_SI *
-        ...            v_mix_ph(ude.conns[0].get_flow()))
+        ...            ude.conns[0].calc_vol()
+        ...        )
         ...    )
 
         The function does only take one parameter, we name it :code:`ude` in
@@ -263,30 +278,38 @@ class UserDefinedEquation:
         pressure, enthalpy and fluid composition. In this case, the derivatives
         to the mass flow, pressure and enthalpy of the inflow as well as the
         derivatives to the pressure and enthalpy of the outflow will be
-        required. Similar to the equation definition, define a function
-        returning the corresponding jacobian matrix. The jacobian is a
-        dictionary containing numpy arrays for every connection. Therefore
-        the first key is the connection you want to calculate the derivative
-        for and the second key is the index of the variable in the jacobian.
-        The indices correspond to
-
-        - 0: mass flow
-        - 1: pressure
-        - 2: enthalpy
-        - 3 until end (:code:`3:`): fluid composition
+        required. You have to define a function placing the derivatives in the
+        Jacobian matrix. The Jacobian is a dictionary containing tuples as keys
+        with the derivative as their value. The tuples indicate the equation
+        number (always 0 for user defined equations, since there is only a
+        single equation) and the position of the variable in the system matrix.
+        The position of the variables is stored in the :code:`J_col` attribute.
+        Before calculating and placing a result in the Jacobian, you have to
+        make sure, that the variable you want to calculate the partial
+        derivative for is actually a variable. For example, in case you
+        specified a value for the mass flow, it will not be part of the
+        variables' space, since it has a constant value, and thus, no derivate
+        needs to be calculated. You can use the :code:`is_var` keyword to check,
+        whether a mass flow, pressure or enthalpy is actually variable.
 
         We can calculate the derivatives numerically, if an easy analytical
         solution is not available. Simply use the :code:`numeric_deriv` method
         passing the variable ('m', 'p', 'h', 'fluid') as well as the
-        connection's index.
+        connection.
 
         >>> def myjacobian(ude):
-        ...    ude.jacobian[ude.conns[0]][0] = ude.numeric_deriv('m', 0)
-        ...    ude.jacobian[ude.conns[0]][1] = ude.numeric_deriv('p', 0)
-        ...    ude.jacobian[ude.conns[0]][2] = ude.numeric_deriv('h', 0)
-        ...    ude.jacobian[ude.conns[1]][1] = ude.numeric_deriv('p', 1)
-        ...    ude.jacobian[ude.conns[1]][2] = ude.numeric_deriv('h', 1)
-        ...    return ude.jacobian
+        ...     c0 = ude.conns[0]
+        ...     c1 = ude.conns[1]
+        ...     if c0.m.is_var:
+        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
+        ...     if c0.p.is_var:
+        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
+        ...     if c0.h.is_var:
+        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
+        ...     if c1.p.is_var:
+        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
+        ...     if c1.h.is_var:
+        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -366,71 +389,152 @@ class UserDefinedEquation:
             logger.error(msg)
             raise TypeError(msg)
 
-    def numeric_deriv(self, param, idx):
+    def solve(self):
+        self.residual = self.func(self)
+        self.deriv(self)
+
+    def numeric_deriv(self, dx, conn):
         r"""
-        Calculate partial derivative of the function func to dx numerically.
+        Calculate partial derivative of the user defined function to dx.
 
-        Parameters
-        ----------
-        param : str
-            Parameter to calculate partial derivative for.
-
-        idx : int
-            Position of the connection to calculate the partial derivative for
-            within the list of the connections :code:`conns`.
-
-        Returns
-        -------
-        deriv : float/list
-            Partial derivative(s) of the function :math:`f` to variable(s)
-            :math:`x`.
-
-            .. math::
-
-                \frac{\partial f}{\partial x}=\frac{f(x+d)+f(x-d)}{2\cdot d}
+        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
         """
-        if param == 'fluid':
-            d = 1e-5
-            deriv = []
-            for f in self.conns[0].fluid.val.keys():
-                val = self.conns[idx].fluid.val[f]
-                if self.conns[idx].fluid.val[f] + d <= 1:
-                    self.conns[idx].fluid.val[f] += d
-                else:
-                    self.conns[idx].fluid.val[f] = 1
-                exp = self.func(self)
-                if self.conns[idx].fluid.val[f] - 2 * d >= 0:
-                    self.conns[idx].fluid.val[f] -= 2 * d
-                else:
-                    self.conns[idx].fluid.val[f] = 0
-                exp -= self.func(self)
-                self.conns[idx].fluid.val[f] = val
+        return _numeric_deriv(self, self.func, dx, conn, ude=self)
 
-                deriv += [exp / (2 * d)]
 
-        elif param in ['m', 'p', 'h']:
+def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
+    r"""
+    Calculate partial derivative of the function func to dx.
 
-            if param == 'm':
-                d = 1e-4
-            else:
-                d = 1e-1
+    Parameters
+    ----------
+    obj : object
+        Instance, which provides the equation to calculate the derivative for.
 
-            self.conns[idx].get_attr(param).val_SI += d
-            exp = self.func(self)
-            self.conns[idx].get_attr(param).val_SI -= 2 * d
-            exp -= self.func(self)
-            self.conns[idx].get_attr(param).val_SI += d
+    func : function
+        Function :math:`f` to calculate the partial derivative for.
 
-            deriv = exp / (2 * d)
+    dx : str
+        Partial derivative.
 
+    conn : tespy.connections.connection.Connection
+        Connection to calculate the numeric derivative for.
+
+    Returns
+    -------
+    deriv : float/list
+        Partial derivative(s) of the function :math:`f` to variable(s)
+        :math:`x`.
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+    """
+    if conn is None:
+        d = obj.get_attr(dx).d
+        exp = 0
+        obj.get_attr(dx).val += d
+        exp += func(**kwargs)
+
+        obj.get_attr(dx).val -= 2 * d
+        exp -= func(**kwargs)
+        deriv = exp / (2 * d)
+
+        obj.get_attr(dx).val += d
+
+    elif dx in conn.fluid.is_var:
+        d = 1e-5
+
+        val = conn.fluid.val[dx]
+        if conn.fluid.val[dx] + d <= 1:
+            conn.fluid.val[dx] += d
         else:
-            msg = (
-                'Can only calculate numerical derivative to primary variables.'
-                'Please specify "m", "p", "h" or "fluid" as param.')
-            logger.error(msg)
-            raise ValueError(msg)
+            conn.fluid.val[dx] = 1
 
-        return deriv
+        conn.build_fluid_data()
+        exp = func(**kwargs)
+
+        if conn.fluid.val[dx] - 2 * d >= 0:
+            conn.fluid.val[dx] -= 2 * d
+        else:
+            conn.fluid.val[dx] = 0
+
+        conn.build_fluid_data()
+        exp -= func(**kwargs)
+
+        conn.fluid.val[dx] = val
+        conn.build_fluid_data()
+
+        deriv = exp / (2 * d)
+
+    elif dx in ['m', 'p', 'h']:
+
+        if dx == 'm':
+            d = 1e-4
+        else:
+            d = 1e-1
+        conn.get_attr(dx).val_SI += d
+        exp = func(**kwargs)
+
+        conn.get_attr(dx).val_SI -= 2 * d
+        exp -= func(**kwargs)
+        deriv = exp / (2 * d)
+
+        conn.get_attr(dx).val_SI += d
+
+    else:
+        msg = (
+            "Your variable specification for the numerical derivative "
+            "calculation seems to be wrong. It has to be a fluid name, m, "
+            "p, h or the name of a component variable."
+        )
+        logger.exception(msg)
+        raise ValueError(msg)
+    return deriv
+
+
+def bus_char_evaluation(params, bus_value):
+    r"""
+    Calculate the value of a bus.
+
+    Parameters
+    ----------
+    comp_value : float
+        Value of the energy transfer at the component.
+
+    reference_value : float
+        Value of the bus in reference state.
+
+    char_func : tespy.tools.characteristics.char_line
+        Characteristic function of the bus.
+
+    Returns
+    -------
+    residual : float
+        Residual of the equation.
+
+        .. math::
+
+            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
+            {f\left(\frac{\dot{E}_\mathrm{bus}}
+            {\dot{E}_\mathrm{bus,ref}}\right)}
+    """
+    comp_value = params[0]
+    reference_value = params[1]
+    char_func = params[2]
+    return bus_value - comp_value / char_func.evaluate(
+        bus_value / reference_value)
+
+
+def bus_char_derivative(params, bus_value):
+    """Calculate derivative for bus char evaluation."""
+    reference_value = params[1]
+    char_func = params[2]
+    d = 1e-3
+    return (1 - (
+        1 / char_func.evaluate((bus_value + d) / reference_value) -
+        1 / char_func.evaluate((bus_value - d) / reference_value)
+    ) / (2 * d))
 
 
 def newton(func, deriv, params, y, **kwargs):
@@ -497,8 +601,8 @@ def newton(func, deriv, params, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
-    tol_rel = kwargs.get('tol_rel', err)
-    tol_abs = kwargs.get('tol_abs', err)
+    tol_rel = kwargs.get('tol_rel', ERR )
+    tol_abs = kwargs.get('tol_abs', ERR )
     tol_mode = kwargs.get('tol_mode', 'abs')
 
     # start newton loop
@@ -533,422 +637,65 @@ def newton(func, deriv, params, y, **kwargs):
 
     return x
 
-# %%
 
-
-def reverse_2d(params, y):
-    r"""
-    Calculate the residual value of an inverse function.
-
-    Parameters
-    ----------
-    params : list
-        Variable function parameters.
-
-    y : float
-        Function value of function :math:`y = f \left( x_1, x_2 \right)`.
-
-    Returns
-    -------
-    deriv : float
-        Residual value of inverse function :math:`x_2 - f\left(x_1, y \right)`.
-    """
-    func, x1, x2 = params[0], params[1], params[2]
-    return x2 - func.ev(x1, y)
-
-
-def reverse_2d_deriv(params, y):
-    r"""
-    Calculate derivative of an inverse function.
-
-    Parameters
-    ----------
-    params : list
-        Variable function parameters.
-
-    y : float
-        Function value of function :math:`y = f \left( x_1, x_2 \right)`,
-        so that :math:`x_2 - f\left(x_1, y \right) = 0`
-
-    Returns
-    -------
-    deriv : float
-        Partial derivative :math:`\frac{\partial f}{\partial y}`.
-    """
-    func, x1 = params[0], params[1]
-    return - func.ev(x1, y, dy=1)
-
-
-def bus_char_evaluation(params, bus_value):
-    r"""
-    Calculate the value of a bus.
-
-    Parameters
-    ----------
-    comp_value : float
-        Value of the energy transfer at the component.
-
-    reference_value : float
-        Value of the bus in reference state.
-
-    char_func : tespy.tools.characteristics.char_line
-        Characteristic function of the bus.
-
-    Returns
-    -------
-    residual : float
-        Residual of the equation.
-
-        .. math::
-
-            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
-            {f\left(\frac{\dot{E}_\mathrm{bus}}
-            {\dot{E}_\mathrm{bus,ref}}\right)}
-    """
-    comp_value = params[0]
-    reference_value = params[1]
-    char_func = params[2]
-    return bus_value - comp_value / char_func.evaluate(
-        bus_value / reference_value)
-
-
-def bus_char_derivative(params, bus_value):
-    """Calculate derivative for bus char evaluation."""
-    reference_value = params[1]
-    char_func = params[2]
-    d = 1e-3
-    return (1 - (
-        1 / char_func.evaluate((bus_value + d) / reference_value) -
-        1 / char_func.evaluate((bus_value - d) / reference_value)) / (2 * d))
-
-
-def molar_mass_flow(flow):
-    r"""
-    Calculate molar mass flow.
-
-    Parameters
-    ----------
-    flow : list
-        Fluid property vector containing mass flow, pressure, enthalpy and
-        fluid composition.
-
-    Returns
-    -------
-    m_m : float
-        Molar mass flow m_m / (mol/s).
-
-        .. math::
-
-            \dot{m}_\mathrm{m} = \sum_{i} \left( \frac{x_{i}}{M_{i}} \right)
-    """
-    mm = 0
-    for fluid, x in flow.items():
-        if x > err:
-            mm += x / molar_masses[fluid]
-    return mm
-
-# %%
-
-
-def num_fluids(fluids):
-    r"""
-    Return number of fluids in fluid mixture.
-
-    Parameters
-    ----------
-    fluids : dict
-        Fluid mass fractions.
-
-    Returns
-    -------
-    n : int
-        Number of fluids in fluid mixture n / 1.
-
-        .. math::
-
-            n = \sum_{i} \left( \begin{cases}
-            0 & x_{i} < \epsilon \\
-            1 & x_{i} \geq \epsilon
-            \end{cases} \right)\;
-            \forall i \in \text{network fluids}
-    """
-    n = 0
-    for fluid, x in fluids.items():
-        if x > err:
-            n += 1
-
-    return n
-
-# %%
-
-
-def single_fluid(fluids):
-    r"""
-    Return the name of the pure fluid in a fluid vector.
-
-    Parameters
-    ----------
-    fluids : dict
-        Fluid mass fractions.
-
-    Returns
-    -------
-    fluid : str
-        Name of the single fluid or None in case of mixtures.
-    """
-    if num_fluids(fluids) == 1:
-        for fluid, x in fluids.items():
-            if x > err:
-                return fluid
-    else:
-        return None
-
-# %%
-
-
-def fluid_structure(fluid):
-    r"""
-    Return the checmical formula of fluid.
-
-    Parameters
-    ----------
-    fluid : str
-        Name of the fluid.
-
-    Returns
-    -------
-    parts : dict
-        Dictionary of the chemical base elements as keys and the number of
-        atoms in a molecule as values.
-
-    Example
-    -------
-    Get the chemical formula of methane.
-
-    >>> from tespy.tools.helpers import fluid_structure
-    >>> elements = fluid_structure('methane')
-    >>> elements['C'], elements['H']
-    (1, 4)
-    """
-    parts = {}
-    for element in CP.get_fluid_param_string(
-            fluid, 'formula').split('}'):
-        if element != '':
-            el = element.split('_{')
-            parts[el[0]] = int(el[1])
-
-    return parts
-
-# %%
-
-
-def darcy_friction_factor(re, ks, d):
-    r"""
-    Calculate the Darcy friction factor.
-
-    Parameters
-    ----------
-    re : float
-        Reynolds number re / 1.
-
-    ks : float
-        Pipe roughness ks / m.
-
-    d : float
-        Pipe diameter/characteristic lenght d / m.
-
-    Returns
-    -------
-    darcy_friction_factor : float
-        Darcy friction factor :math:`\lambda` / 1
-
-    Note
-    ----
-    **Laminar flow** (:math:`re \leq 2320`)
-
-    .. math::
-
-        \lambda = \frac{64}{re}
-
-    **turbulent flow** (:math:`re > 2320`)
-
-    *hydraulically smooth:* :math:`\frac{re \cdot k_{s}}{d} < 65`
-
-    .. math::
-
-        \lambda = \begin{cases}
-        0.03164 \cdot re^{-0.25} & re \leq 10^4\\
-        \left(1.8 \cdot \log \left(re\right) -1.5 \right)^{-2} &
-        10^4 < re < 10^6\\
-        solve \left(0 = 2 \cdot \log\left(re \cdot \sqrt{\lambda} \right) -0.8
-        - \frac{1}{\sqrt{\lambda}}\right) & re \geq 10^6\\
-        \end{cases}
-
-    *transition zone and hydraulically rough:*
-
-    .. math::
-
-        \lambda = solve \left( 0 = 2 \cdot \log \left( \frac{2.51}{re \cdot
-        \sqrt{\lambda}} + \frac{k_{s}}{d \cdot 3.71} \right) -
-        \frac{1}{\sqrt{\lambda}} \right)
-
-    Reference: :cite:`Nirschl2018`.
-
-    Example
-    -------
-    Calculate the Darcy friction factor at different hydraulic states.
-
-    >>> from tespy.tools.helpers import darcy_friction_factor
-    >>> ks = 5e-5
-    >>> d = 0.05
-    >>> re_laminar = 2000
-    >>> re_turb_smooth = 5000
-    >>> re_turb_trans = 70000
-    >>> re_high = 1000000
-    >>> d_high = 0.8
-    >>> re_very_high = 6000000
-    >>> d_very_high = 1
-    >>> ks_low = 1e-5
-    >>> ks_rough = 1e-3
-    >>> darcy_friction_factor(re_laminar, ks, d)
-    0.032
-    >>> round(darcy_friction_factor(re_turb_smooth, ks, d), 3)
-    0.038
-    >>> round(darcy_friction_factor(re_turb_trans, ks, d), 3)
-    0.023
-    >>> round(darcy_friction_factor(re_turb_trans, ks_rough, d), 3)
-    0.049
-    >>> round(darcy_friction_factor(re_high, ks, d_high), 3)
-    0.012
-    >>> round(darcy_friction_factor(re_very_high, ks_low, d_very_high), 3)
-    0.009
-    """
-    if re <= 2320:
-        return 64 / re
-    else:
-        if re * ks / d < 65:
-            if re <= 1e4:
-                return blasius(re)
-            elif re < 1e6:
-                return hanakov(re)
-            else:
-                l0 = 0.02
-                return newton(
-                    prandtl_karman, prandtl_karman_derivative, [re],
-                    0, val0=l0, valmin=0.00001, valmax=0.2)
-
+def newton_with_kwargs(
+        derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
+        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
+    ):
+
+    # start newton loop
+    iteration = 0
+    expr = True
+    x = val0
+    parameter = function_kwargs["parameter"]
+    function = function_kwargs["function"]
+    relax = 1
+
+    while expr:
+        # calculate function residual and new value
+        function_kwargs[parameter] = x
+        residual = target_value - function(**function_kwargs)
+        x += residual / derivative(**function_kwargs) * relax
+
+        # check for value ranges
+        if x < valmin:
+            x = valmin
+        if x > valmax:
+            x = valmax
+
+        iteration += 1
+        # relaxation to help convergence in case of jumping
+        if iteration == 5:
+            relax = 0.75
+            max_iter = 12
+
+        if iteration > max_iter:
+            msg = (
+                'The Newton algorithm was not able to find a feasible value '
+                f'for function {function}. Current value with x={x} is '
+                f'{function(**function_kwargs)}, target value is '
+                f'{target_value}, residual is {residual} after {iteration} '
+                'iterations.'
+            )
+            logger.debug(msg)
+
+            break
+        if tol_mode == 'abs':
+            expr = abs(residual) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(residual / target_value) >= tol_rel
         else:
-            l0 = 0.002
-            return newton(
-                colebrook, colebrook_derivative, [re, ks, d], 0,
-                val0=l0, valmin=0.0001, valmax=0.2)
+            expr = abs(residual / target_value) >= tol_rel or abs(residual) >= tol_abs
+
+    return x
 
 
-def blasius(re):
-    """
-    Calculate friction coefficient according to Blasius.
-
-    Parameters
-    ----------
-    re : float
-        Reynolds number.
-
-    Returns
-    -------
-    darcy_friction_factor : float
-        Darcy friction factor.
-    """
-    return 0.3164 * re ** (-0.25)
-
-
-def hanakov(re):
-    """
-    Calculate friction coefficient according to Hanakov.
-
-    Parameters
-    ----------
-    re : float
-        Reynolds number.
-
-    Returns
-    -------
-    darcy_friction_factor : float
-        Darcy friction factor.
-    """
-    return (1.8 * np.log10(re) - 1.5) ** (-2)
-
-
-def prandtl_karman(params, darcy_friction_factor):
-    """
-    Calculate friction coefficient according to Prandtl and v. Kármán.
-
-    Applied in smooth conditions.
-
-    Parameters
-    ----------
-    re : float
-        Reynolds number.
-
-    darcy_friction_factor : float
-        Darcy friction factor.
-
-    Returns
-    -------
-    darcy_friction_factor : float
-        Darcy friction factor.
-    """
-    re = params[0]
-    return (
-        2 * np.log10(re * darcy_friction_factor ** 0.5) - 0.8 -
-        1 / darcy_friction_factor ** 0.5)
-
-
-def prandtl_karman_derivative(params, darcy_friction_factor):
-    """Calculate derivative for Prandtl and v. Kármán equation."""
-    return (
-        1 / (darcy_friction_factor * np.log(10)) +
-        1 / 2 * darcy_friction_factor ** (-1.5))
-
-
-def colebrook(params, darcy_friction_factor):
-    """
-    Calculate friction coefficient accroding to Colebrook-White equation.
-
-    Applied in transition zone and rough conditions.
-
-    Parameters
-    ----------
-    re : float
-        Reynolds number.
-
-    ks : float
-        Equivalent sand roughness.
-
-    d : float
-        Pipe's diameter.
-
-    darcy_friction_factor : float
-        Darcy friction factor.
-
-    Returns
-    -------
-    darcy_friction_factor : float
-        Darcy friction factor.
-    """
-    re, ks, d = params[0], params[1], params[2]
-    return (
-        2 * np.log10(
-            2.51 / (re * darcy_friction_factor ** 0.5) + ks / (3.71 * d)) +
-        1 / darcy_friction_factor ** 0.5)
-
-
-def colebrook_derivative(params, darcy_friction_factor):
-    """Calculate derivative for Colebrook-White equation."""
-    d = 0.001
-    return (colebrook(params, darcy_friction_factor + d) -
-            colebrook(params, darcy_friction_factor - d)) / (2 * d)
-
-# %%
+def central_difference(function=None, parameter=None, delta=None, **kwargs):
+    upper = kwargs.copy()
+    upper[parameter] += delta
+    lower = kwargs
+    lower[parameter] -= delta
+    return (function(**upper) - function(**lower)) / (2 * delta)
 
 
 def modify_path_os(path):
@@ -982,8 +729,6 @@ def modify_path_os(path):
             path = './' + path
 
     return path
-
-# %%
 
 
 def get_basic_path():

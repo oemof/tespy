@@ -59,7 +59,7 @@ your project.
       :class: only-dark
       :target: https://github.com/fwitte/ORCSimulator
 
-    An ORC power plant using two-phase geothermal sources is designed and an
+    An ORC power plant using two-phase geothermal sources is designed, and an
     optimization is carried out. The plant's performance is investigated for
     six different working fluids. Gross and net power output are optimized.
     The open source library pygmo :cite:`Biscani2020` is applied in combination

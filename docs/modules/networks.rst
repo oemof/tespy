@@ -2,7 +2,7 @@
 
 Networks
 ========
-The network class handles preprocessing, solving and postprocessing.
+The network class handles preprocessing, solving and post-processing.
 We will walk you through all the important steps.
 
 Setup
@@ -11,19 +11,21 @@ Network container
 ^^^^^^^^^^^^^^^^^
 The TESPy network contains all data of your plant, which in terms of the
 calculation is represented by a nonlinear system of equations. The system
-variables of your TESPy network are:
+variables of your TESPy network are a subset of the following:
 
 * mass flow,
 * pressure,
 * enthalpy and
-* the mass fractions of the network's fluids.
+* the mass fractions of the fluids
 
-The solver will solve for these variables. As stated in the introduction the
-list of fluids is passed to your network on creation. If your **system**
-**includes fluid mixtures**, you should **always make use of the value ranges**
-for the system variables. This improves the stability of the algorithm. Try to
-fit the boundaries as tight as possible, for instance, if you know that the
-maximum pressure in the system will be at 10 bar, use it as upper boundary.
+of every connection.
+
+The solver will simplify the variable space in a presolving step and then solve
+for the remaining variables. If your **system includes fluid mixtures**, you
+might want to **make use of the value ranges** for the system variables. This
+improves the stability of the algorithm. Try to fit the boundaries as tight as
+possible, for instance, if you know that the maximum pressure in the system will
+be at 10 bar, use it as upper boundary.
 
 .. note::
 
@@ -32,34 +34,17 @@ maximum pressure in the system will be at 10 bar, use it as upper boundary.
 
 .. code-block:: python
 
-    from tespy.networks import Network
+    >>> from tespy.networks import Network
 
-    fluid_list = ['CO2', 'H2O', 'N2', 'O2', 'Ar']
-    my_plant = Network(fluids=fluid_list)
-    my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
-    my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
-
-.. note::
-
-    It is possible to specify the fluid property back-end of the network fluids
-    by adding the name of the back-end in front of the fluid's name within the
-    list of fluids of your network. For example:
-
-    .. code-block:: python
-
-        from tespy.networks import Network
-
-        fluid_list = ['CO2', 'BICUBIC::H2O', 'INCOMP::DowQ']
-        Network(fluids=fluid_list)
-
-    If you do not specify a back-end, the **default back-end** :code:`HEOS`
-    will be used (as for :code:`CO2`). In this example, :code:`H2O` will be
-    using the :code:`BICUBIC` back-end and :code:`DowQ` the back-end for
-    incompressible fluids :code:`INCOMP`. For an overview of the back-ends
-    available please refer to the
-    :ref:`fluid property section <tespy_fluid_properties_label>`.
-
-    **It is not possible to use the same fluid in different back-ends!**
+    >>> my_plant = Network()
+    >>> my_plant.p_unit
+    'Pa'
+    >>> my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
+    >>> my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+    >>> my_plant.p_unit
+    'bar'
+    >>> my_plant.p_range_SI.tolist()
+    [5000.0, 1000000.0]
 
 .. _printout_logging_label:
 
@@ -72,12 +57,13 @@ lines:
 
 .. code-block:: python
 
-    from tespy.tools import logger
-    import logging
-    logger.define_logging(
-        log_path=True, log_version=True,
-        screen_level=logging.INFO, file_level=logging.DEBUG
-    )
+    >>> from tespy.tools import logger
+    >>> import logging
+    >>> ();logger.define_logging(
+    ...     logpath="myloggings", log_the_path=True, log_the_version=True,
+    ...     screen_level=logging.INFO, file_level=logging.DEBUG
+    ... );()  # +doctest: ELIPSIS
+    (...)
 
 The log-file will be saved to :code:`~/.tespy/log_files/` by default. All
 available options are documented in the
@@ -89,10 +75,16 @@ disable convergence progress printouts:
 
 .. code-block:: python
 
+    >>> my_plant.iterinfo
+    True
+
     # disable iteration information printout
-    myplant.set_attr(iterinfo=False)
+    >>> my_plant.set_attr(iterinfo=False)
+    >>> my_plant.iterinfo
+    False
+
     # enable iteration information printout
-    myplant.set_attr(iterinfo=True)
+    >>> my_plant.set_attr(iterinfo=True)
 
 Adding connections
 ++++++++++++++++++
@@ -102,8 +94,8 @@ or via subsystems using the corresponding methods:
 
 .. code-block:: python
 
-    myplant.add_conns()
-    myplant.add_subsys()
+    >>> my_plant.add_conns()
+    >>> my_plant.add_subsys()
 
 .. note::
 
@@ -114,13 +106,13 @@ or via subsystems using the corresponding methods:
 Busses: Energy Connectors
 +++++++++++++++++++++++++
 Another type of connection is the bus: Busses are connections for massless
-transfer of energy e.g. in turbomachines or heat exchangers. They can be used
+transfer of energy e.g. in turbomachinery or heat exchangers. They can be used
 to model motors or generators, too. Add them to your network with the following
 method:
 
 .. code-block:: python
 
-    myplant.add_busses()
+    >>> my_plant.add_busses()
 
 You will learn more about busses and how they work in
 :ref:`this part <tespy_busses_label>`.
@@ -131,7 +123,7 @@ You can start the solution process with the following line:
 
 .. code-block:: python
 
-    myplant.solve(mode='design')
+    my_plant.solve(mode='design')
 
 This starts the initialisation of your network and proceeds to its calculation.
 The specification of the **calculation mode is mandatory**, This is the list of
@@ -154,9 +146,6 @@ available keywords:
   simulation in some cases by outsourcing calculation to graphics card. For
   more information please visit the
   `cupy documentation <https://docs.cupy.dev/en/stable/index.html>`_.
-- :code:`always_all_equations` you can skip recalculation of converged
-  equations in the calculation process if you specify this parameter to be
-  :code:`False`. Default value is :code:`True`.
 
 There are two calculation modes available (:code:`'design'` and
 :code:`'offdesign'`), which are explained in the subsections below. If you
@@ -191,7 +180,7 @@ Offdesign mode
 The offdesign mode is used to **calculate the performance of your plant, if**
 **parameters deviate from the plant's design point**. This can be partload
 operation, operation at different temperature or pressure levels etc.. Thus,
-before starting an offdesing calculation you have to design your plant first.
+before starting an offdesign calculation you have to design your plant first.
 By stating :code:`'offdesign'` as calculation mode, **components and**
 **connections will switch to the offdesign mode.** This means that all
 parameters provided as design parameters will be unset and all parameters
@@ -209,8 +198,9 @@ with zeta values.
 
 .. code-block:: python
 
-    mycomponent.set_attr(design=['ttd_u', 'pr1', 'pr2'],
-                         offdesign=['kA', 'zeta1', 'zeta2'])
+    mycomponent.set_attr(
+        design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2']
+    )
 
 .. note::
 
@@ -235,85 +225,117 @@ To solve your offdesign calculation, use:
 
 .. code-block:: python
 
-    myplant.solve(mode='offdesign', design_path='path/to/network_designpoint')
+    my_plant.solve(mode='offdesign', design_path='path/to/network_designpoint')
 
 Solving
 -------
 A TESPy network can be represented as a linear system of nonlinear equations,
 consequently the solution is obtained with numerical methods. TESPy uses the
-n-dimensional Newton–Raphson method to find the systems solution, which may
-only be found, if the network is parameterized correctly. **The number of
-variables n** is :math:`n = num_{conn} \cdot (3 + num_{fluids})`.
+n-dimensional Newton-Raphson method to find the system's solution, which may
+only be found, if the network is parameterized correctly. **The number of**
+**variables n changes depending on your system's topology and your**
+**specifications**. Generally, masA presolving step reduces the amount of variables, see below
+for more information.
 
-The algorithm requires starting values for all variables of the system, thus an
-initialisation of the system is run prior to calculating the solution. **High**
-**quality initial values are crutial for convergence speed and stability**, bad
-starting values might lead to instability and diverging calculation can be the
-result. There are different levels for the initialisation.
-
-Initialisation
-^^^^^^^^^^^^^^
-The initialisation is performed in the following steps.
-
-**General preprocessing:**
+**General preprocessing**
 
 * check network consistency and initialise components (if network topology is
   changed to a prior calculation only).
+* create a topology representation of the components and the connections.
+* simplify the variable space based on the plant's topology.
 * perform design/offdesign switch (for offdesign calculations only).
 * preprocessing of offdesign case using the information from the
   :code:`design_path` argument.
 
-**Finding starting values:**
+The network check is used to find errors in the network topology, the
+calculation can not start without a successful check. The design/offdesign
+switch is described in the network setup section. For offdesign calculation the
+:code:`design_path` argument is required. The design point information is
+extracted from that path in preprocessing. For this, you will need to save
+your network's design point information using:
 
-* fluid propagation.
+.. code-block:: python
+
+    my_plant.save('path/for/savestate')
+
+**Simplifying the variable space**
+
+To reduce the size of the system of equations a reduction of the variable space
+is performed in the initialisation of a calculation. For every of the primary
+variables (mass flow, pressure, enthalpy and fluid mass fractions), if a value
+is directly specified by the user, the respective variable is removed from the
+variable space, because it does not need to be solved.
+
+Furthermore, there are three steps to simplify the variable space, i.e.
+regarding mass flow, regarding the fluid composition and regarding pressure and
+enthalpy.
+
+First, based on the topology of the network, different branches are created.
+These are:
+
+- branches, in which the mass flow is equal in every of its connections and
+- branches, in which the fluid composition is equal in every of its connections.
+
+For every mass flow branch, the variable space is reduced to a single mass flow.
+For example, in a simple Clausius Rankine cycle there will only be a single
+mass flow in the variable space. Analogously in every fluid composition branch,
+the variable space is reduced to a single vector containing the variable fluids
+of that branch. For example, if a mass flow is split in two streams using a
+splitter, the fluid composition remains constant downstream of the splitter.
+Therefore, all connections downstream of the splitter share the same fluid
+composition as upstream of the splitter.
+
+The next step is a reduction of the fluid vector specifications: Consider a case
+with a couple of potential fluids on a fluid branch, e.g. oxygen, nitrogen,
+argon, carbon dioxide and water at the outlet of a combustion chamber. All fluid
+mass fractions specified by the user will be fixed and removed from the variable
+space. If then, only a single fluid remains with "unknown" mass fraction, we can
+assign a mass fraction to that fluid, which is equal to 1 minus the sum of all
+other fluids' mass fractions.
+
+Finally, presolving is applied to pressure and enthalpy, whenever the fluid
+composition is fixed. If either pressure or enthalpy is specified by the user
+and on top of that temperature, vapor quality or temperature difference to
+saturation temperature, the respective variable (enthalpy or pressure) can
+directly be calculated. Similarly, if temperature and temperature difference to
+saturation temperature or vapor quality are specified, both pressure and
+enthalpy can be deducted.
+
+**Finding starting values**
+
+The algorithm requires starting values for all variables of the system, thus an
+initialisation of the system is run prior to calculating the solution. **High**
+**quality initial values are crucial for convergence speed and stability**, bad
+starting values might lead to instability and diverging calculation can be the
+result. The following steps are performed in finding starting values:
+
+* fluid composition guessing.
 * fluid property initialisation.
 * initialisation from previous simulation run (:code:`ìnit_previous`).
 * initialisation from .csv (setting starting values from :code:`init_path`
   argument).
 
-The network check is used to find errors in the network topology, the
-calculation can not start without a successful check. For components, a
-preprocessing of some parameters is necessary. It is performed by the
-:code:`comp_init` method of the components. You will find the methods in the
-:py:mod:`components module <tespy.components>`. The design/offdesign switch is
-described in the network setup section. For offdesign calculation the
-:code:`design_path` argument is required. The design point information is
-extracted from that path in preprocessing. For this, you will need to export
-your network's design point information using:
-
-.. code-block:: python
-
-    myplant.save('path/for/export')
-
 Starting value generation for your calculations starts with the fluid
-propagation. **The fluid propagation is a very important step in the**
-**initialisation.** Often, you will specify the fluid at one point of the
-network only, all other connections are missing an initial information on the
-fluid, if you are not using an :code:`init_path`. The fluid propagation will
-push/pull the specified fluid through the network. If you are using combustion
-chambers these will be starting points and a generic flue gas composition will
-be calculated prior to the propagation. You do not necessarily need to state a
-starting value for the fluid at every point of the network.
+composition guessing in case the fluid composition is not fixed. The available
+fluids will be assigned the same mass fraction :math:`x`, if no starting value
+is supplied. The mass fractions are distributed to 1 minus the sum of all user
+specified mass fractions: :math:`x=\frac{1-\sum\text{x_spec}}{n}`. If you are
+using combustion chambers these will be replaced by a generic flue gas
+composition will be calculated prior to the propagation.
 
-.. note::
-
-    If the fluid propagation fails, you often experience an error, where the
-    fluid property database can not find a value, because the fluid is 'nan'.
-    Providing starting values manually can fix this problem.
-
-If available, the fluid property initialisation uses the user specified starting
-values or the results from the previous simulation. Otherwise generic starting
-values are generated on basis of which components a connection is linked to.
-If you do not want to use the results of a previous calculation, you need to
-specify :code:`init_previous=False` on the :code:`Network.solve` method call.
+Next the fluid property initialisation uses user specified starting values or
+the results from the previous simulation to set starting values for mass flow,
+pressure and enthalpy. Otherwise, generic starting values are generated on basis
+of which components a connection is linked to. If you **do not want** to use the
+results of a previous calculation, you need to specify
+:code:`init_previous=False` on the :code:`Network.solve` method call.
 
 Last step in starting value generation is the initialisation from a saved
-network structure. In order to initialise your calculation from the
-:code:`init_path`, you need to provide the path to the saved/exported network.
-If you specify an :code:`init_path` TESPy searches through the connections file
-for the network topology and if the corresponding connection is found, the
-starting values for the system variables are extracted from the connections
-file.
+network state. In order to initialise your calculation with this method, you
+need to provide the path to the saved network in the :code:`init_path` argument
+of the `solve` method. TESPy searches through the connections.csv file. If a
+connection with the respective label is found, the starting values for the
+system variables are taken over from that file.
 
 .. note::
 
@@ -324,15 +346,14 @@ file.
     in parts of the network you have not touched until now, you will need to
     state all fluids from the beginning.
 
-
 Algorithm
 ^^^^^^^^^
 In this section we will give you an introduction to the solving algorithm
 implemented.
 
-Newton–Raphson method
+Newton-Raphson method
 +++++++++++++++++++++
-The Newton–Raphson method requires the calculation of residual values for the
+The Newton-Raphson method requires the calculation of residual values for the
 equations and of the partial derivatives to all system variables (Jacobian
 matrix). In the next step the matrix is inverted and multiplied with the
 residual vector to calculate the increment for the system variables. This
@@ -400,10 +421,10 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 Convergence stability
 +++++++++++++++++++++
-One of the main downsides of the Newton–Raphson method is that the initial
-stepwidth is very large and that it does not know physical boundaries, for
+One of the main downsides of the Newton-Raphson method is that the initial
+step width is very large and that it does not know physical boundaries, for
 example mass fractions smaller than 0 and larger than 1 or negative pressure.
-Also, the large stepwidth can adjust enthalpy or pressure to quantities that
+Also, the large step width can adjust enthalpy or pressure to quantities that
 are not covered by the fluid property databases. This would cause an inability
 e.g. to calculate a temperature from pressure and enthalpy in the next
 iteration of the algorithm. In order to improve convergence stability, we have
@@ -414,7 +435,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid components never exceeds these boundaries.
+  mass fraction of a single fluid component never exceeds these boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -448,37 +469,13 @@ after the third iteration, further checks are usually not required.
 Calculation speed improvement
 +++++++++++++++++++++++++++++
 For improvement of calculation speed, the calculation of specific derivatives
-is skipped if possible. If you specify :code:`always_all_equations=False` for
-your simulation, equations may also be skipped: There are two criteria for
-equations and one criterion for derivatives that are checked for calculation
-intensive operations, e.g. whenever fluid property library calls are necessary:
+is skipped, if the change of the corresponding variable was below a
+threshold of :code:`1e-12` in the iteration before.
 
-For component equations the recalculation of the residual value is skipped,
-
-- only if you specified :code:`always_all_equations=False` and
-- if the absolute of the residual value of that equations is lower than the
-  threshold of :code:`1e-12` in the iteration before and
-- the iteration count is not a multiple of 4.
-
-Connections equations are skipped
-
-- if you specified :code:`always_all_equations=False` and
-- if the absolute of the residual value of that equations is lower than the
-  threshold of :code:`1e-12` in the iteration before and
-- the iteration count is not a multiple of 2 and
-- the specified property is not temperature.
-
-The calculation of derivatives is skipped, if the change of the corresponding
-variable was below a threshold of :code:`1e-12` in the iteration before.
-Again, this does not apply to temperature value specification, as especially
-when using fluid mixtures, the convergence stability is very sensitive to
-these equations and derivatives.
-
-.. note::
-
-    In order to make sure, that every equation is evaluated at least twice,
-    the minimum amount of iterations before convergence can be accepted is at
-    4.
+As a user you can take two more measures to improve calculation speed: Specify
+primary variables whenever possible/reasonable. This will not only reduce the
+variable space but also remove the necessity to calculate partial derivatives
+towards them.
 
 Troubleshooting
 +++++++++++++++
@@ -487,51 +484,40 @@ up common mistakes. If you want to debug your code, make sure to enable the
 logger and have a look at the log-file at :code:`~/.tespy/` (or at your
 specified location).
 
-First of all, make sure your network topology is set up correctly, TESPy will
-prompt an Error, if not. TESPy will prompt an error, too, if you did not
-provide enough or if you provide too many parameters for your calculation, but
-you will not be given an information which specific parameters are under- or
-overdetermined.
+First, make sure your network topology is set up correctly, TESPy will prompt
+an Error, if not. TESPy will prompt an error, too, if you did not provide
+enough or if you provide too many parameters for your calculation, but you will
+not be given an information which specific parameters are under- or
+over-determined.
 
 .. note::
 
     Always keep in mind, that the system has to find a value for mass flow,
     pressure, enthalpy and the fluid mass fractions. Try to build up your
     network step by step and have in mind, what parameters will be determined
-    by adding an additional component without any parametrisation. This way,
-    you can easily determine, which parameters are still to be specified.
-
-When using multiple fluids in your network, e.g.
-:code:`fluids=['water', 'air', 'methane']` and at some point you want to have
-water only, you still need to specify the mass fractions for both air and
-methane (although beeing zero) at that point
-:code:`fluid={'water': 1, 'air': 0, 'methane': 0}`. Also, setting
-:code:`fluid={water: 1}, fluid_balance=True` will still not be sufficient, as
-the fluid_balance parameter adds only one equation to your system.
+    by adding a component without any parametrisation. This way, you can easily
+    determine, which parameters are still to be specified.
 
 If you are modeling a cycle, e.g. the Clausius Rankine cylce, you need to make
 a cut in the cycle using the cycle_closer or a sink and a source not to
-overdetermine the system. Have a look in the
+over-determine the system. Have a look in the
 :ref:`tutorial section <tespy_basics_label>` to understand why this is
 important and how it can be implemented.
 
 If you have provided the correct number of parameters in your system and the
-calculations stops after or even before the first iteration, there are four
-frequent reasons for that:
+calculations stops after or even before the first iteration, there might be a
+couple reasons for that:
 
 - Sometimes, the fluid property database does not find a specific fluid
   property in the initialisation process, have you specified the values in the
   correct unit?
-- Also, fluid property calculation might fail, if the fluid propagation
-  failed. Provide starting values for the fluid composition, especially, if
-  you are using drums, merges and splitters.
 - A linear dependency in the Jacobian matrix due to bad parameter settings
-  stops the calculation (overdetermining one variable, while missing out on
+  stops the calculation (over-determining one variable, while missing out on
   another).
 - A linear dependency in the Jacobian matrix due to bad starting values stops
   the calculation.
 
-The first reason can be eliminated by carefully choosing the parametrization.
+The first reason can be eliminated by carefully choosing the parametrisation.
 **A linear dependency due to bad starting values is often more difficult to**
 **resolve, and it may require some experience.** In many cases, the linear
 dependency is caused by equations, that require the **calculation of a**
@@ -561,9 +547,9 @@ Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
 for other users!
 
-Postprocessing
---------------
-A postprocessing is performed automatically after the calculation finished. You
+Post-processing
+---------------
+A post-processing is performed automatically after the calculation finished. You
 have further options:
 
 - Automatically create a documentation of your model.
@@ -645,7 +631,7 @@ Results printing
 ^^^^^^^^^^^^^^^^
 To print the results in your console use the :code:`print_results()` method.
 It will print tables containing the component, connection and bus properties.
-Some of the results will be colored, the colored results indicate
+Some results will be colored, the colored results indicate
 
 * if a parameter was specified as value before calculation.
 * if a parameter is out of its predefined value bounds (e.g. efficiency > 1).
@@ -657,7 +643,7 @@ you can instead call the method the following way:
 
 .. code-block:: python
 
-    myplant.print_results(colored=False)
+    my_plant.print_results(colored=False)
 
 If you want to limit your printouts to a specific subset of components,
 connections and busses, you can specify the :code:`printout` parameter to block
@@ -716,20 +702,20 @@ provides a results dictionary.
 .. code:: python
 
     # key for connections is 'Connection'
-    results_for_conns = myplant.results['Connection']
+    results_for_conns = my_plant.results['Connection']
     # keys for components are the respective class name, e.g.
-    results_for_turbines = myplant.results['Turbine']
-    results_for_heat_exchangers = myplant.results['HeatExchanger']
+    results_for_turbines = my_plant.results['Turbine']
+    results_for_heat_exchangers = my_plant.results['HeatExchanger']
     # keys for busses are the labels, e.g. a Bus labeled 'power input'
-    results_for_mybus = myplant.results['power input']
+    results_for_mybus = my_plant.results['power input']
 
 The index of the DataFrames is the connection's or component's label.
 
 .. code:: python
 
-    results_for_specific_conn = myplant.results['Connection'].loc['myconn']
-    results_for_specific_turbine = myplant.results['Turbine'].loc['turbine 1']
-    results_for_component_on_bus = myplant.results['power input'].loc['turbine 1']
+    results_for_specific_conn = my_plant.results['Connection'].loc['myconn']
+    results_for_specific_turbine = my_plant.results['Turbine'].loc['turbine 1']
+    results_for_component_on_bus = my_plant.results['power input'].loc['turbine 1']
 
 The full list of connection and component parameters can be obtained from the
 respective API documentation.
@@ -742,7 +728,7 @@ save the network first.
 
 .. code:: python
 
-    myplant.save('mynetwork')
+    my_plant.export('mynetwork')
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,

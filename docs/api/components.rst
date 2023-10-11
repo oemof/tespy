@@ -78,14 +78,6 @@ tespy.components.combustion.engine module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.customs.orc_evaporator module
-----------------------------------------------
-
-.. automodule:: tespy.components.customs.orc_evaporator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 tespy.components.heat_exchangers.condenser module
 -------------------------------------------------
 

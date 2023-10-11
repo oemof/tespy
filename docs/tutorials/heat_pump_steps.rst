@@ -23,12 +23,12 @@ We provide the full script presented in this tutorial here:
 Task
 ^^^^
 This tutorial introduces you in how to model a heat pump in TESPy. You can see
-the plants topology in the figure.
+the plant's topology in the figure.
 
 The main purpose of the heat pump is to deliver heat e.g. for the consumers of
 a heating system. Thus, the heat pump's parameters will be set in a way, which
 supports this target. Generally, if systems are getting more complex, it is
-highly recommended to set up your plant in incremental steps. This tutorial
+highly recommended setting up your plant in incremental steps. This tutorial
 divides the plant in three sections: The consumer part, the valve and the
 evaporator and the compressor as last element. Each new section will be
 appended to the existing ones.
@@ -41,12 +41,11 @@ Set up a Network
 ^^^^^^^^^^^^^^^^
 First, we have to create an instance of the
 :py:class:`tespy.networks.network.Network` class. The network is the main
-container of the model and will be required in all following sections. First,
-it is necessary to specify a list of the fluids used in the plant. In this
+container of the model and will be required in all following sections. In this
 example we will work with water (H\ :sub:`2`\O) and ammonia (NH\ :sub:`3`\).
 Water is used for the cold side of the heat exchanger, for the consumer and
 for the hot side of the environmental temperature. Ammonia is used as
-refrigerant within the heat pump circuit. If you don’t specify the unit
+refrigerant within the heat pump circuit. If you don't specify the unit
 system, the variables are set to SI-Units. We also keep the working fluid a
 variable to make reusing the script with a different working fluid easy.
 
@@ -78,9 +77,9 @@ Components
 ++++++++++
 We will start with the consumer as the plant will be designed to deliver a
 specific heat flow. From the figure above you can determine the components of
-the consumer system: condenser, pump and the consumer (
-:py:class:`tespy.components.heat_exchangers.simple.HeatExchangerSimple`
-). Additionally we need a source and a sink for the consumer and the heat pump
+the consumer system: condenser, pump and the consumer
+(:py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`).
+Additionally, we need a source and a sink for the consumer and the heat pump
 circuit respectively. We will import all necessary components already in the
 first step, so the imports will not need further adjustment.
 
@@ -153,17 +152,17 @@ decides the overall mass flow in the systems.
 
 In order to calculate this network further parametrization is necessary, as
 e.g. the fluids are not determined yet: At the hot inlet of the condenser we
-define the temperature, pressure and the fluid vector. A good guess for
+define the temperature, pressure and the fluid informaton. A good guess for
 pressure can be obtained from CoolProp's PropsSI function. We know that the
 condensation temperature must be higher than the consumer's feed flow
-temperature. Therefore we can set the pressure to a slightly higher value of
+temperature. Therefore, we can set the pressure to a slightly higher value of
 that temperature's corresponding condensation pressure.
 
-The same needs to be done for the consumer cycle. We suggest to set
-the parameters at the pump's inlet. On top, we assume that the consumer
-requires a constant inlet temperature. The :code:`CycleCloser` automatically
-makes sure, that the fluid's state at the consumer's outlet is the same as at
-the pump's inlet.
+The same needs to be done for the consumer cycle. We suggest setting the
+parameters at the pump's inlet. On top, we assume that the consumer requires a
+constant inlet temperature. The :code:`CycleCloser` automatically makes sure,
+that the fluid's state at the consumer's outlet is the same as at the pump's
+inlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -258,7 +257,7 @@ connections to the model:
 
 .. attention::
 
-    The drum is special component, it has an inbuilt CycleCloser, therefore
+    The drum is special component, it has an inbuilt CycleCloser, therefore,
     although we are technically forming a cycle at the drum's outlet 1 to its
     inlet 2, we do not need to include a CycleCloser here.
 
@@ -285,7 +284,7 @@ Next step is the connection parametrization: The pressure in the drum and the
 enthalpy of the wet steam reentering the drum need to be determined. For the
 enthalpy we can specify the vapor mass fraction :code:`x` determining the
 degree of evaporation. On the hot side inlet of the superheater we define the
-temperature, pressure and the fluid. At last we have to fully determine the
+temperature, pressure and the fluid. At last, we have to fully determine the
 state of the incoming fluid at the superheater's hot side.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
@@ -385,7 +384,7 @@ For the ambient side, we set temperature, pressure and fluid
 at connection 11. On top of that, we can specify the temperature of the
 ambient water after leaving the intermittent cooler.
 
-With readding of connection 0 we have to set the fluid and the pressure again,
+With re-adding of connection 0 we have to set the fluid and the pressure again,
 but not the temperature value, because this value will be a result of the
 condensation pressure and the given enthalpy at the compressor's outlet.
 
@@ -417,21 +416,21 @@ working fluid does not start to condensate at the intermittent cooler.
     :start-after: [sec_16]
     :end-before: [sec_17]
 
-Calculate Partload Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-After setting up the full system, we want to predict partload operation at
-different values for the consumer's heat demand. Some of the values utilized
-in the previous setup will change, if a component is not operated at its
-design point. This is individual to every system, so the designer has to
-answer the question: Which parameters are design point parameters and how does
-the component perform at a different operation point.
+Calculate Part Load Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+After setting up the full system, we want to predict part load operation at
+different values for the consumer's heat demand. Some values utilized in the
+previous setup will change, if a component is not operated at its design point.
+This is individual to every system, so the designer has to answer the question:
+Which parameters are design point parameters and how does the component perform
+at a different operation point.
 
 .. tip::
 
     To make the necessary changes to the model, we can specify a design and an
     offdesign attribute, both lists containing component or connection
     parameter names. All parameters specified in the design attribute of a
-    component or connection, will be unset in a offdesign calculation, all
+    component or connection, will be unset in an offdesign calculation, all
     parameters specified in the offdesign attribute of a component or
     connection will be set for the offdesign calculation. The value for these
     parameters is the value derived from the design-calculation.
@@ -440,7 +439,7 @@ The changes we want to apply can be summarized as follows:
 
 - All heat exchangers should be calculated based on their heat transfer
   coefficient with a characteristic for correction of that value depending
-  on the change of mass flow (:code:`kA_char`). Therefore terminal temperature
+  on the change of mass flow (:code:`kA_char`). Therefore, terminal temperature
   value specifications need to be added to the design parameters. Also, the
   temperature at connection 14 cannot be specified anymore, since it will be a
   result of the intermittent cooler's characteristics.
@@ -475,7 +474,7 @@ are available in the :ref:`tespy.data <tespy_data_label>` module.
     :ref:`TESPy components section <tespy_modules_components_label>`.
 
 Finally, we can change the heat demand and run several offdesign calculations
-to calculate the partload COP value.
+to calculate the part load COP value.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python

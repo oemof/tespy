@@ -195,7 +195,8 @@ specified range.
     # benefit: specification of bounds will increase stability
     my_pipe.set_attr(D={
         'val': 0.2, 'is_set': True, 'is_var': True,
-        'min_val': 0.1, 'max_val': 0.3})
+        'min_val': 0.1, 'max_val': 0.3}
+    )
 
 .. _component_characteristic_specification_label:
 
@@ -257,7 +258,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     # flow for kA_char1 and volumetric flow for kA_char2
     he.set_attr(
         kA_char1={'char_func': kA_char1, 'param': 'm'},
-        kA_char2={'char_func': kA_char2, 'param': 'v'})
+        kA_char2={'char_func': kA_char2, 'param': 'v'}
+    )
 
     # or use custom values for the characteristic line e.g. kA vs volumetric
     # flow
@@ -276,8 +278,7 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     from tespy.tools.characteristics import CharLine
     import numpy as np
 
-    fluid_list = ['water']
-    nw = Network(fluids=fluid_list, p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg')
     si = Sink('sink')
     so = Source('source')
     t = Turbine('turbine')
@@ -393,14 +394,14 @@ Extend components with new equations
 You can easily add custom equations to the existing components. In order to do
 this, you need to implement four changes to the desired component class:
 
-- modify the :code:`get_variables(self)` method.
+- modify the :code:`get_parameters(self)` method.
 - add a method, that returns the result of your equation.
-- add a method, that places the partial derivatives in the jacobian matrix of
+- add a method, that places the partial derivatives in the Jacobian matrix of
   your component.
 - add a method, that returns the LaTeX code of your equation for the automatic
   documentation feature.
 
-In the :code:`get_variables(self)` method, add an entry for your new equation.
+In the :code:`get_parameters(self)` method, add an entry for your new equation.
 If the equation uses a single parameter, use the :code:`ComponentProperties`
 type DataContainer (or the :code:`ComponentCharacteristics` type in case you
 only apply a characteristic curve). If your equations requires multiple
@@ -428,7 +429,6 @@ should be applied for the corresponding purpose. For more information on
 defining the equations, derivatives and the LaTeX equation you will find the
 information in the next section on custom components.
 
-
 Custom components
 -----------------
 
@@ -440,7 +440,7 @@ custom component. Now create a class for your component and at least add the
 following methods.
 
 - :code:`component(self)`,
-- :code:`get_variables(self)`,
+- :code:`get_parameters(self)`,
 - :code:`get_mandatory_constraints(self)`,
 - :code:`inlets(self)`,
 - :code:`outlets(self)` and
@@ -454,7 +454,7 @@ The starting lines of your file should look like this:
     from tespy.tools import ComponentCharacteristics as dc_cc
     from tespy.tools import ComponentProperties as dc_cp
 
-    class my_custom_component(Component):
+    class MyCustomComponent(Component):
         """
         This is a custom component.
 
@@ -486,11 +486,6 @@ For example, the mandatory equations of a valve look are the following:
 
 .. math::
 
-    0=\dot{m}_{\mathrm{in,1}}-\dot{m}_{\mathrm{out,1}}
-
-    0=x_{fl\mathrm{,in,1}}-x_{fl\mathrm{,out,1}}\;\forall fl
-    \in\text{network fluids}
-
     0=h_{\mathrm{in,1}}-h_{\mathrm{out,1}}
 
 The corresponding method looks like this. The equations, derivatives and
@@ -501,14 +496,6 @@ LaTeX string generation are individual methods you need to define
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
             'enthalpy_equality_constraints': {
                 'func': self.enthalpy_equality_func,
                 'deriv': self.enthalpy_equality_deriv,
@@ -524,7 +511,7 @@ LaTeX string generation are individual methods you need to define
 Attributes
 ^^^^^^^^^^
 
-The :code:`get_variables()` method must return a dictionary with the attributes
+The :code:`get_parameters()` method must return a dictionary with the attributes
 you want to use for your component. The keys represent the attributes and the
 respective values the type of data container used for this attribute. By using
 the data container attributes, it is possible to add defaults. Defaults for
@@ -539,7 +526,7 @@ DataContainers instead of dictionaries, e.g. for the Valve:
 
 .. code:: python
 
-    def get_variables(self):
+    def get_parameters(self):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,
@@ -656,34 +643,43 @@ equation, too. The Valve's dp_char parameter methods are the following.
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        if not increment_filter[0, 0]:
-            self.jacobian[k, 0, 0] = self.numeric_deriv(
-                self.dp_char_func, 'm', 0)
+        f = self.dp_char_func
+        i = self.inl[0]
+        o = self.outl[0]
+        if self.is_variable(i.m, increment_filter):
+            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
         if self.dp_char.param == 'v':
-            self.jacobian[k, 0, 1] = self.numeric_deriv(
-                self.dp_char_func, 'p', 0)
-            self.jacobian[k, 0, 2] = self.numeric_deriv(
-                self.dp_char_func, 'h', 0)
+            if self.is_variable(i.p, increment_filter):
+                self.jacobian[k, i.p.J_col] = self.numeric_deriv(
+                    self.dp_char_func, 'p', i
+                )
+            if self.is_variable(i.h, increment_filter):
+                self.jacobian[k, i.h.J_col] = self.numeric_deriv(
+                    self.dp_char_func, 'h', i
+                )
         else:
-            self.jacobian[k, 0, 1] = 1
+            if self.is_variable(i.p, increment_filter):
+                self.jacobian[k, i.p.J_col] = 1
 
-        self.jacobian[k, 1, 1] = -1
+        if self.is_variable(o.p):
+            self.jacobian[k, o.p.J_col] = -1
 
-For the derivative, the partial derivatives to all variables of the network
+For the Jacobian, the partial derivatives to all variables of the network
 are required. This means, that you have to calculate the partial derivatives
 to mass flow, pressure, enthalpy and all fluids in the fluid vector on each
-connection affecting the equation defined before.
+connection affecting the equation defined before. To check, whether these are
+actually variable (e.g. not user specified or presolved), you can use the
+`is_variable` method. You have to then assign the result of the derivative to
+the correct location in the Jacobian. The row is the k-th equation and the
+column is given in the `J_col` attribute of the variable.
 
 The derivatives can be calculated analytically (preferred if possible) or
 numerically by using the inbuilt method
 :py:meth:`tespy.components.component.Component.numeric_deriv`, where
 
-- :code:`func` is the function you want to calculate the derivatives for,
-- :code:`dx` is the variable you want to calculate the derivative to and
-- :code:`pos` indicates the connection you want to calculate the derivative
-  for, e.g. :code:`pos=1` means, that counting your inlets and outlets from
-  low index to high index (first inlets, then outlets), the connection to be
-  used is the second connection in that list.
+- :code:`func` is the function you want to calculate the derivatives for.
+- :code:`dx` is the variable you want to calculate the derivative to.
+- :code:`conn` is the connection you want to calculate the derivative for.
 - :code:`kwargs` are additional keyword arguments required for the function.
 
 LaTeX documentation
@@ -701,14 +697,14 @@ You are very welcome to submit an issue on our GitHub!
 
 .. _tespy_subsystems_label:
 
-Component Groups: Subystems
-===========================
+Component Groups: Subsystems
+============================
 
 Subsystems are an easy way to add frequently used component groups such as a
 drum with evaporator or a preheater with desuperheater to your system. In this
 section you will learn how to create a subsystem and implement it in your work.
 The subsystems are highly customizable and thus a very powerful tool, if you
-require to use specific component groups frequently. We provide an example, of
+require using specific component groups frequently. We provide an example, of
 how to create a simple subsystem and use it in a simulation.
 
 Custom subsystems
@@ -807,8 +803,7 @@ within the same folder as your script.
 
     # %% network definition
 
-    fluid_list = ['air', 'water']
-    nw = Network(fluid_list, p_unit='bar', T_unit='C')
+    nw = Network(p_unit='bar', T_unit='C')
 
     # %% component definition
 
@@ -832,8 +827,8 @@ within the same folder as your script.
 
     # %% connection parameters
 
-    fw_sg.set_attr(fluid={'air': 0, 'water': 1}, T=25)
-    fg_sg.set_attr(fluid={'air': 1, 'water': 0}, T=650, m=100)
+    fw_sg.set_attr(fluid={'water': 1}, T=25)
+    fg_sg.set_attr(fluid={'air': 1}, T=650, m=100)
 
     sg_ls.set_attr(p=130)
     sg_ch.set_attr(p=1)
@@ -842,16 +837,20 @@ within the same folder as your script.
 
     # %% component parameters
 
-    sg.comps['eco'].set_attr(pr1=0.999,  pr2=0.97,
-                             design=['pr1', 'pr2', 'ttd_u'],
-                             offdesign=['zeta1', 'zeta2', 'kA_char'])
+    sg.comps['eco'].set_attr(
+        pr1=0.999,  pr2=0.97, design=['pr1', 'pr2', 'ttd_u'],
+        offdesign=['zeta1', 'zeta2', 'kA_char']
+    )
 
-    sg.comps['eva'].set_attr(pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
-                             offdesign=['zeta1', 'kA_char'])
+    sg.comps['eva'].set_attr(
+        pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
+        offdesign=['zeta1', 'kA_char']
+    )
 
-    sg.comps['sup'].set_attr(pr1=0.999,  pr2=0.99, ttd_u=50,
-                             design=['pr1', 'pr2', 'ttd_u'],
-                             offdesign=['zeta1', 'zeta2', 'kA_char'])
+    sg.comps['sup'].set_attr(
+        pr1=0.999,  pr2=0.99, ttd_u=50, design=['pr1', 'pr2', 'ttd_u'],
+        offdesign=['zeta1', 'zeta2', 'kA_char']
+    )
 
     sg.conns['eco_dr'].set_attr(Td_bp=-5, design=['Td_bp'])
 

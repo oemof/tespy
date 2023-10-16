@@ -34,6 +34,38 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     return h
 
 
+def xsat_pT_incomp_solution(p=None, T=None, fluid_data=None, **kwargs):
+    X_min = 0
+    X_max = 0.75
+    X = .3
+    d = 1e-5
+    iter = 0
+    while True:
+        res = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X) - p
+        upper = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X + d)
+        lower = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X - d)
+
+        deriv = (upper - lower) / (2 * d)
+        X -= res / deriv
+
+        if abs(res) < 1e-6:
+            if X < X_min:
+                return X_min
+            elif X > X_max:
+                return X_max
+            break
+
+        if X >= X_max:
+            X = X_max - d
+        elif X <= X_min:
+            X = X_min + d
+
+        iter += 1
+        if iter > 10:
+            break
+    return X
+
+
 def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
     water_alias = _water_in_mixture(fluid_data)
@@ -83,6 +115,19 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
             h += data["wrapper"].h_pT(p, T) * data["mass_fraction"]
 
     return h
+
+
+def h_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
+    if p < fluid_data["LiBr"]["wrapper"].p_sat(T):
+        x_old = fluid_data["LiBr"]["mass_fraction"]
+        x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
+        x_water_gas = x_new - x_old
+        h = fluid_data["LiBr"]["wrapper"].h_pT(p, T - .005) * (1 - x_water_gas)
+        h += fluid_data["water"]["wrapper"].h_QT(1, T) * x_water_gas
+        fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([x_old])
+        return h
+    else:
+        return fluid_data["LiBr"]["wrapper"].h_pT(p, T)
 
 
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -336,7 +381,8 @@ def cond_check(p, T, fluid_data, water_alias):
 T_MIX_PH_REVERSE = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
-    "incompressible": h_mix_pT_incompressible
+    "incompressible": h_mix_pT_incompressible,
+    "incomp-solution": h_mix_pT_incompressible_solution
 }
 
 

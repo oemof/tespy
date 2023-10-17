@@ -16,20 +16,20 @@ libr.p()
 
 # saturation pressure by temperature and libr mass fraction x
 
-def psat_TX(libr, T, X):
+def psat_TX(T, X):
     libr.set_mass_fractions([X])
     libr.update(CP.QT_INPUTS, 0, T)
     return libr.p()
 
 
-def Xsat_Tp(libr, T, p):
+def Xsat_Tp(T, p):
     X_min = 0
     X_max = 0.75
     X = .3
     d = 1e-5
     while True:
-        res = psat_TX(libr, T, X) - p
-        deriv = (psat_TX(libr, T, X + d) - psat_TX(libr, T, X - d)) / (2 * d)
+        res = psat_TX(T, X) - p
+        deriv = (psat_TX(T, X + d) - psat_TX(T, X - d)) / (2 * d)
         X -= res / deriv
         # print(X)
 
@@ -77,14 +77,14 @@ def newton(func, p, X):
 #     Tsat_pX(1e4, x)
 
 
-def Xsat_Tp(libr, T, p):
+def Xsat_Tp(T, p):
     X_min = 0
     X_max = 0.75
     X = .3
     d = 1e-5
     while True:
-        res = psat_TX(libr, T, X) - p
-        deriv = (psat_TX(libr, T, X + d) - psat_TX(libr, T, X - d)) / (2 * d)
+        res = psat_TX(T, X) - p
+        deriv = (psat_TX(T, X + d) - psat_TX(T, X - d)) / (2 * d)
         X -= res / deriv
         # print(X)
 
@@ -126,52 +126,46 @@ def Xsat_Tp(libr, T, p):
 T_evap = 275.15
 p_evap = CP.CoolProp.PropsSI("P", "Q", 0, "T", T_evap, "water")
 
-# T_cond = 309.15
-# p_cond = CP.CoolProp.PropsSI("P", "Q", 0, "T", T_cond, "water")
+T_cond = 309.15
+p_cond = CP.CoolProp.PropsSI("P", "Q", 0, "T", T_cond, "water")
 
-# # heat source temperature
-# T_sol_des_out = 350
+# heat source temperature
+T_sol_des_out = 350
 
-# # heat sink temperature
-# T_sol_abs_out = 306.15
+# heat sink temperature
+T_sol_abs_out = 306.15
 
-# x_rich = Xsat_Tp(T_sol_abs_out, p_evap)
-# print(x_rich)
-# x_water_rich = 1 - x_rich
-# T_water_abs_in = T_evap
-# h_water_abs_in = CP.CoolProp.PropsSI("H", "Q", 1, "T", T_water_abs_in, "water")
+x_rich = Xsat_Tp(T_sol_abs_out, p_evap)
 
-# h_sol_abs_out = libr.hmass()
-# s_sol_abs_out = libr.smass()
+x_water_rich = 1 - x_rich
+T_water_abs_in = T_evap
+h_water_abs_in = CP.CoolProp.PropsSI("H", "Q", 1, "T", T_water_abs_in, "water")
 
-# eta_s_pump = 0.9
-# libr.update(CP.PSmass_INPUTS, p_cond, s_sol_abs_out)
-# h_pump_out_s = libr.hmass()
-# h_pump_out = h_sol_abs_out + (h_pump_out_s - h_sol_abs_out) / eta_s_pump
+h_sol_abs_out = libr.hmass()
+s_sol_abs_out = libr.smass()
 
-# x_poor = Xsat_Tp(T_sol_des_out, p_cond)
-# h_poor = libr.hmass()#update(CP.PT_INPUTS, p_cond, T_sol_des_out)
+eta_s_pump = 0.9
+libr.update(CP.PSmass_INPUTS, p_cond, s_sol_abs_out)
+h_pump_out_s = libr.hmass()
+h_pump_out = h_sol_abs_out + (h_pump_out_s - h_sol_abs_out) / eta_s_pump
 
-# delta_T = 0
-# T_water_des_out = T_sol_des_out - delta_T
-# h_water_des_out = CP.CoolProp.PropsSI("H", "Q", 1, "T", T_water_des_out, "water")
-# print(x_poor)
-# x_water_poor = 1 - x_poor
+x_poor = Xsat_Tp(T_sol_des_out, p_cond)
+h_poor = libr.hmass()#update(CP.PT_INPUTS, p_cond, T_sol_des_out)
 
-# m_water = 1
+delta_T = 0
+T_water_des_out = T_sol_des_out - delta_T
+h_water_des_out = CP.CoolProp.PropsSI("H", "Q", 1, "T", T_water_des_out, "water")
 
-# m_rich = (m_water - m_water * x_water_poor) / (x_water_rich - 1)
-# m_poor = m_rich - m_water
+x_water_poor = 1 - x_poor
 
-# delta_H_abs = -m_water * h_water_abs_in - m_poor * h_poor + m_rich * h_sol_abs_out
-# delta_H_des = m_water * h_water_des_out + m_poor * h_poor - m_rich * h_pump_out
+m_water = 1
+m_rich = m_water * (1 - x_water_poor) / (x_water_rich - x_water_poor)
 
-# print(delta_H_abs)
-# print(delta_H_des)
+m_poor = m_rich - m_water
 
-#libr.update(CP.PT_INPUTS, p_cond, T_sol_des_out)
-#print(libr.hmass())
-#print(Tsat_pX(p_cond, .5))
+delta_H_abs = -m_water * h_water_abs_in - m_poor * h_poor + m_rich * h_sol_abs_out
+delta_H_des = m_water * h_water_des_out + m_poor * h_poor - m_rich * h_pump_out
+
 
 from tespy.tools.fluid_properties.mixtures import xsat_pT_incomp_solution
 
@@ -208,12 +202,12 @@ class Absorber(Component):
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
                 'num_eq': 2},
-            "saturation_constraints": {
-                "func": self.saturated_solution_out_func,
-                "deriv": self.saturated_solution_out_deriv,
-                "constant_deriv": False,
-                "num_eq": 2
-            }
+            # "saturation_constraints": {
+            #     "func": self.saturated_solution_out_func,
+            #     "deriv": self.saturated_solution_out_deriv,
+            #     "constant_deriv": False,
+            #     "num_eq": 2
+            # }
         }
 
     def mass_flow_func(self):
@@ -261,19 +255,36 @@ class Absorber(Component):
                 self.jacobian[k, self.outl[0].p.J_col] = -1
             k += 1
 
-    def saturated_solution_out_func(self):
+    def saturated_solution_water_func(self):
+        outl = self.outl[0]
+        return 1 - outl.fluid.val["LiBr"] - outl.fluid.val["water"]
+
+    def saturated_solution_water_deriv(self, increment_filter, k):
+        outl = self.outl[0]
+        if "water" in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col["water"]] = -1
+        if "LiBr" in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col["LiBr"]] = -1
+        # pass
+
+    def saturated_solution_libr_func(self):
         outl = self.outl[0]
         x_previous = outl.fluid.val["LiBr"]
         T = outl.calc_T()
         x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data)
-        return [x_libr - outl.fluid.val["LiBr"], 1 - x_libr - outl.fluid.val["water"]]
+        outl.fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([x_previous])
+        return x_libr - outl.fluid.val["LiBr"]
 
-    def saturated_solution_out_deriv(self, increment_filter, k):
+    def saturated_solution_libr_deriv(self, increment_filter, k):
         outl = self.outl[0]
-        self.jacobian[k, outl.fluid.J_col["LiBr"]] = -1
-        self.jacobian[k + 1, outl.fluid.J_col["water"]] = -1
-        # pass
-
+        if outl.p.is_var:
+            deriv = self.numeric_deriv(self.saturated_solution_libr_func, "p", outl)
+            self.jacobian[k, outl.p.J_col] = deriv
+        if outl.h.is_var:
+            deriv = self.numeric_deriv(self.saturated_solution_libr_func, "h", outl)
+            self.jacobian[k, outl.h.J_col] = deriv
+        if "LiBr" in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col["LiBr"]] = -1
 
     @staticmethod
     def is_branch_source():
@@ -304,6 +315,38 @@ class Absorber(Component):
         branch["connections"] += [outconn]
         outconn.target.propagate_wrapper_to_target(branch)
 
+    def new_constraints(self):
+        constraints = {
+            'mass_flow_constraints': {
+                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,# 'latex': self.mass_flow_func_doc,
+                'num_eq': 1},
+            'fluid_constraints': {
+                'func': self.fluid_func, 'deriv': self.fluid_deriv,
+                'constant_deriv': False,# 'latex': self.fluid_func_doc,
+                'num_eq': 1},
+            'pressure_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': True,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': 2},
+            "saturation_constraints_libr": {
+                "func": self.saturated_solution_libr_func,
+                "deriv": self.saturated_solution_libr_deriv,
+                "constant_deriv": False,
+                "num_eq": 1
+            },
+        }
+        if "LiBr" in self.outl[0].fluid.is_var:
+            constraints["saturation_constraints_water"] = {
+                "func": self.saturated_solution_water_func,
+                "deriv": self.saturated_solution_water_deriv,
+                "constant_deriv": False,
+                "num_eq": 1
+            }
+        return constraints
+
 
 from tespy.components import Source, Sink
 from tespy.networks import Network
@@ -324,12 +367,43 @@ c3 = Connection(absorber, "out1", rich, "in1", label="3")
 
 nw.add_conns(c1, c2, c3)
 
-c1.set_attr(fluid={"water": 1}, p=p_evap, x=1)
-c2.set_attr(fluid={"INCOMP::LiBr": 0.6, "water": 0.4}, m=1, h=110000, mixing_rule="incomp-solution")
-c3.set_attr(h=21000, p0=p_evap)
-
+c1.set_attr(fluid={"water": 1}, p=p_evap, m=1, x=1)
+c2.set_attr(fluid={"water": x_water_poor}, h=h_poor, mixing_rule="incomp-solution")
+c3.set_attr(fluid={"INCOMP::LiBr": x_rich}, h=h_sol_abs_out, p0=p_evap)
+nw.set_attr()
 nw.solve("design")
-# nw.solve("design", init_only=True)
 
-nw
+# how does the reference temperature affect the energy balance
+p_ref = 1e5
+for T_ref in range(274, 400):
+    h_water_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, "water")
+    h_poor_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_poor}]")
+    h_rich_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_rich}]")
+    print((c1.h.val_SI - h_water_ref) * c1.m.val_SI + (c2.h.val_SI - h_poor_ref) * c2.m.val_SI - (c3.h.val_SI - h_rich_ref) * c3.m.val_SI)
 
+# some checks
+assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
+assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
+
+# replace initial draft of constraints -> maybe add saturation constraint as parameter
+absorber.get_mandatory_constraints = absorber.new_constraints
+# now there is two additional equations in case both fluids at outlet 1 are variable
+# and one additional equation if none of the fluids is variale
+# fluid composition as function of saturation temperature and pressure
+c3.fluid.is_set = set()
+c1.set_attr(p=None)
+c3.set_attr(h=None, T=306.15, p=p_evap)
+c3.h.val0 = c3.h.val_SI
+nw.solve("design")
+# check results, should be identical to previous ones
+assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
+assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
+
+# fix the either the water or the libr mass fraction and the temperature or pressure
+# gives us the other respective value, pressure in this case
+c3.set_attr(fluid={"INCOMP::LiBr": 0.5}, T=295, p=None)
+nw.solve("design")
+assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
+assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
+
+print(f"T3: {c3.T.val_SI}, p3: {c3.p.val_SI}, fluid3: {c3.fluid.val}")

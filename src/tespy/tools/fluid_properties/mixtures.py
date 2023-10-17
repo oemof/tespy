@@ -44,6 +44,7 @@ def xsat_pT_incomp_solution(p=None, T=None, fluid_data=None, **kwargs):
         res = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X) - p
         upper = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X + d)
         lower = fluid_data["LiBr"]["wrapper"].psat_Tx(T, X - d)
+        fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([X])
 
         deriv = (upper - lower) / (2 * d)
         X -= res / deriv
@@ -122,12 +123,15 @@ def h_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
         x_old = fluid_data["LiBr"]["mass_fraction"]
         x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
         x_water_gas = x_new - x_old
-        h = fluid_data["LiBr"]["wrapper"].h_pT(p, T - .005) * (1 - x_water_gas)
+        h = fluid_data["LiBr"]["wrapper"].h_pT(p + 1e-6, T) * (1 - x_water_gas)
         h += fluid_data["water"]["wrapper"].h_QT(1, T) * x_water_gas
         fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([x_old])
         return h
     else:
-        return fluid_data["LiBr"]["wrapper"].h_pT(p, T)
+        try:
+            return fluid_data["LiBr"]["wrapper"].h_pT(p, T)
+        except ValueError:
+            return fluid_data["LiBr"]["wrapper"].h_pT(p + 1e-6, T)
 
 
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):

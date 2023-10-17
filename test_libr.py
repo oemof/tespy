@@ -183,6 +183,11 @@ class Absorber(Component):
     def outlets():
         return ["out1"]
 
+    def preprocess(self, num_vars):
+        self.h2o = "water"
+        self.solvent = "LiBr"
+        super().preprocess(num_vars)
+
     def get_parameters(self):
         return {}
 
@@ -202,12 +207,6 @@ class Absorber(Component):
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
                 'num_eq': 2},
-            # "saturation_constraints": {
-            #     "func": self.saturated_solution_out_func,
-            #     "deriv": self.saturated_solution_out_deriv,
-            #     "constant_deriv": False,
-            #     "num_eq": 2
-            # }
         }
 
     def mass_flow_func(self):
@@ -222,16 +221,19 @@ class Absorber(Component):
             self.jacobian[k, self.outl[0].m.J_col] = -1
 
     def fluid_func(self):
-        return self.inl[0].m.val_SI + self.inl[1].m.val_SI * self.inl[1].fluid.val["water"] - self.outl[0].m.val_SI * self.outl[0].fluid.val["water"]
+        return (
+            self.inl[0].m.val_SI
+            + self.inl[1].m.val_SI * self.inl[1].fluid.val[self.h2o]
+            - self.outl[0].m.val_SI * self.outl[0].fluid.val[self.h2o]
+        )
 
     def fluid_deriv(self, increment_filter, k):
         if self.inl[0].m.is_var:
             self.jacobian[k, self.inl[0].m.J_col] = 1
         if self.inl[1].m.is_var:
-            self.jacobian[k, self.inl[1].m.J_col] = self.inl[1].fluid.val["water"]
+            self.jacobian[k, self.inl[1].m.J_col] = self.inl[1].fluid.val[self.h2o]
         if self.outl[0].m.is_var:
-            self.jacobian[k, self.outl[0].m.J_col] = -self.outl[0].fluid.val["water"]
-
+            self.jacobian[k, self.outl[0].m.J_col] = -self.outl[0].fluid.val[self.h2o]
 
     def pressure_equality_func(self):
         residual = []
@@ -257,23 +259,23 @@ class Absorber(Component):
 
     def saturated_solution_water_func(self):
         outl = self.outl[0]
-        return 1 - outl.fluid.val["LiBr"] - outl.fluid.val["water"]
+        return 1 - outl.fluid.val[self.solvent] - outl.fluid.val[self.h2o]
 
     def saturated_solution_water_deriv(self, increment_filter, k):
         outl = self.outl[0]
-        if "water" in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col["water"]] = -1
-        if "LiBr" in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col["LiBr"]] = -1
+        if self.h2o in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[self.h2o]] = -1
+        if self.solvent in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[self.solvent]] = -1
         # pass
 
     def saturated_solution_libr_func(self):
         outl = self.outl[0]
-        x_previous = outl.fluid.val["LiBr"]
-        T = outl.calc_T()
-        x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data)
-        outl.fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([x_previous])
-        return x_libr - outl.fluid.val["LiBr"]
+        x_previous = outl.fluid.val[self.solvent]
+        T = outl.calc_T(solvent=self.solvent)
+        x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data, solvent=self.solvent)
+        outl.fluid_data[self.solvent]["wrapper"].AS.set_mass_fractions([x_previous])
+        return x_libr - outl.fluid.val[self.solvent]
 
     def saturated_solution_libr_deriv(self, increment_filter, k):
         outl = self.outl[0]
@@ -283,8 +285,8 @@ class Absorber(Component):
         if outl.h.is_var:
             deriv = self.numeric_deriv(self.saturated_solution_libr_func, "h", outl)
             self.jacobian[k, outl.h.J_col] = deriv
-        if "LiBr" in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col["LiBr"]] = -1
+        if self.solvent in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[self.solvent]] = -1
 
     @staticmethod
     def is_branch_source():

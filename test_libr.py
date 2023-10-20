@@ -185,7 +185,6 @@ class Absorber(Component):
 
     def preprocess(self, num_vars):
         self.h2o = "water"
-        self.solvent = "LiBr"
         super().preprocess(num_vars)
 
     def get_parameters(self):
@@ -259,23 +258,24 @@ class Absorber(Component):
 
     def saturated_solution_water_func(self):
         outl = self.outl[0]
-        return 1 - outl.fluid.val[self.solvent] - outl.fluid.val[self.h2o]
+        return 1 - outl.fluid.val[outl.solvent] - outl.fluid.val[self.h2o]
+
 
     def saturated_solution_water_deriv(self, increment_filter, k):
         outl = self.outl[0]
         if self.h2o in outl.fluid.is_var:
             self.jacobian[k, outl.fluid.J_col[self.h2o]] = -1
-        if self.solvent in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[self.solvent]] = -1
+        if outl.solvent in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[outl.solvent]] = -1
         # pass
 
     def saturated_solution_libr_func(self):
         outl = self.outl[0]
-        x_previous = outl.fluid.val[self.solvent]
-        T = outl.calc_T(solvent=self.solvent)
-        x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data, solvent=self.solvent)
-        outl.fluid_data[self.solvent]["wrapper"].AS.set_mass_fractions([x_previous])
-        return x_libr - outl.fluid.val[self.solvent]
+        x_previous = outl.fluid.val[outl.solvent]
+        T = outl.calc_T()
+        x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data, solvent=outl.solvent)
+        outl.fluid_data[outl.solvent]["wrapper"].AS.set_mass_fractions([x_previous])
+        return x_libr - outl.fluid.val[outl.solvent]
 
     def saturated_solution_libr_deriv(self, increment_filter, k):
         outl = self.outl[0]
@@ -285,8 +285,8 @@ class Absorber(Component):
         if outl.h.is_var:
             deriv = self.numeric_deriv(self.saturated_solution_libr_func, "h", outl)
             self.jacobian[k, outl.h.J_col] = deriv
-        if self.solvent in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[self.solvent]] = -1
+        if outl.solvent in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[outl.solvent]] = -1
 
     @staticmethod
     def is_branch_source():
@@ -370,7 +370,7 @@ c3 = Connection(absorber, "out1", rich, "in1", label="3")
 nw.add_conns(c1, c2, c3)
 
 c1.set_attr(fluid={"water": 1}, p=p_evap, m=1, x=1)
-c2.set_attr(fluid={"water": x_water_poor}, h=h_poor, mixing_rule="incomp-solution")
+c2.set_attr(fluid={"water": x_water_poor}, h=h_poor, mixing_rule="incomp-solution", solvent="LiBr")
 c3.set_attr(fluid={"INCOMP::LiBr": x_rich}, h=h_sol_abs_out, p0=p_evap)
 nw.set_attr()
 nw.solve("design")
@@ -403,7 +403,7 @@ assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fl
 
 # fix the either the water or the libr mass fraction and the temperature or pressure
 # gives us the other respective value, pressure in this case
-c3.set_attr(fluid={"INCOMP::LiBr": 0.5}, T=295, p=None)
+c3.set_attr(fluid={"INCOMP::LiBr": 0.45}, T=295, p=None)
 nw.solve("design")
 assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
 assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)

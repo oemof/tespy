@@ -85,39 +85,39 @@ def calc_chemical_exergy(pamb, Tamb, fluid_data, Chem_Ex, mixing_rule=None, T0=N
         return EXERGY_CHEMICAL[mixing_rule](pamb, Tamb, fluid_data, Chem_Ex)
 
 
-def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].T_ph(p, h)
     else:
         _check_mixing_rule(mixing_rule, T_MIX_PH_REVERSE, "temperature (from enthalpy)")
-        kwargs = {
+        kwargs.update({
             "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
             "f": T_MIX_PH_REVERSE[mixing_rule]
-        }
+        })
         return inverse_temperature_mixture(**kwargs)
 
 
-def dT_mix_pdh(p, h, fluid_data, mixing_rule=None, T0=None):
+def dT_mix_pdh(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
     d = 1e-1
-    upper = T_mix_ph(p, h + d, fluid_data, mixing_rule=mixing_rule, T0=T0)
-    lower = T_mix_ph(p, h - d, fluid_data, mixing_rule=mixing_rule, T0=upper)
+    upper = T_mix_ph(p, h + d, fluid_data, mixing_rule=mixing_rule, T0=T0, **kwargs)
+    lower = T_mix_ph(p, h - d, fluid_data, mixing_rule=mixing_rule, T0=upper, **kwargs)
     return (upper - lower) / (2 * d)
 
 
-def dT_mix_dph(p, h, fluid_data, mixing_rule=None, T0=None):
+def dT_mix_dph(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
     d = 1e-1
-    upper = T_mix_ph(p + d, h, fluid_data, mixing_rule=mixing_rule, T0=T0)
-    lower = T_mix_ph(p - d, h, fluid_data, mixing_rule=mixing_rule, T0=upper)
+    upper = T_mix_ph(p + d, h, fluid_data, mixing_rule=mixing_rule, T0=T0, **kwargs)
+    lower = T_mix_ph(p - d, h, fluid_data, mixing_rule=mixing_rule, T0=upper, **kwargs)
     return (upper - lower) / (2 * d)
 
 
-def dT_mix_ph_dfluid(p, h, fluid, fluid_data, mixing_rule=None, T0=None):
+def dT_mix_ph_dfluid(p, h, fluid, fluid_data, mixing_rule=None, T0=None, **kwargs):
     d = 1e-5
     fluid_data[fluid]["mass_fraction"] += d
-    upper = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=T0)
+    upper = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=T0, **kwargs)
     fluid_data[fluid]["mass_fraction"] -= 2 * d
-    lower = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=upper)
+    lower = T_mix_ph(p, h, fluid_data, mixing_rule=mixing_rule, T0=upper, **kwargs)
     fluid_data[fluid]["mass_fraction"] += d
     return (upper - lower) / (2 * d)
 

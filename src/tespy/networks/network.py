@@ -893,16 +893,30 @@ class Network:
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
 
+            solvents = [
+                c.solvent for c in all_connections
+                if c.solvent is not None
+            ]
             mixing_rules = [
                 c.mixing_rule for c in all_connections
                 if c.mixing_rule is not None
             ]
             mixing_rule = set(mixing_rules)
+            solvent = set(solvents)
+            if len(solvent) > 1:
+                msg = "You have provided more than one solvent."
+                raise hlp.TESPyNetworkError(msg)
+            elif len(solvent) == 0:
+                solvent = None
+            else:
+                solvent = solvent.pop()
             if len(mixing_rule) > 1:
                 msg = "You have provided more than one mixing rule."
                 raise hlp.TESPyNetworkError(msg)
             elif len(mixing_rule) == 0:
-                mixing_rule = set(["ideal-cond"])
+                mixing_rule = "ideal-cond"
+            else:
+                mixing_rule = mixing_rule.pop()
 
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
@@ -920,7 +934,8 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             for c in all_connections:
-                c.mixing_rule = list(mixing_rule)[0]
+                c.solvent = solvent
+                c.mixing_rule = mixing_rule
                 c._potential_fluids = potential_fluids
                 if num_potential_fluids == 1:
                     f = list(potential_fluids)[0]

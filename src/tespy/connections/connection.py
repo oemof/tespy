@@ -271,6 +271,7 @@ class Connection:
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
+        self.solvent = None
         msg = (
             f"Created connection from {self.source.label} ({self.source_id}) "
             f"to {self.target.label} ({self.target_id})."
@@ -457,8 +458,8 @@ class Connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
-            elif key == "mixing_rule":
-                self.mixing_rule = kwargs[key]
+            elif key in ["mixing_rule", "solvent"]:
+                self.__dict__.update({key: kwargs[key]})
 
             # invalid keyword
             else:
@@ -720,7 +721,7 @@ class Connection:
             } for fluid in self.fluid.val
         }
         if self.mixing_rule == "incomp-solution":
-            self.fluid_data["LiBr"]["wrapper"].AS.set_mass_fractions([self.fluid.val["LiBr"]])
+            self.fluid_data[self.solvent]["wrapper"].AS.set_mass_fractions([self.fluid.val[self.solvent]])
 
     def primary_ref_func(self, k, **kwargs):
         variable = kwargs["variable"]
@@ -741,7 +742,7 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self, T0=None):
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.calc_T() - self.T.val_SI
@@ -749,15 +750,15 @@ class Connection:
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, solvent=self.solvent)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, solvent=self.solvent)
             )
         for fluid in self.fluid.is_var:
             self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule, solvent=self.solvent
             )
 
     def T_ref_func(self, k, **kwargs):
@@ -772,16 +773,16 @@ class Connection:
         ref = self.T_ref.ref
         if ref.obj.p.is_var:
             self.jacobian[k, ref.obj.p.J_col] = -(
-                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent)
             ) * ref.factor
         if ref.obj.h.is_var:
             self.jacobian[k, ref.obj.h.J_col] = -(
-                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent)
             ) * ref.factor
         for fluid in ref.obj.fluid.is_var:
             if not self._increment_filter[ref.obj.fluid.J_col[fluid]]:
                 self.jacobian[k, ref.obj.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(
-                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule
+                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent
                 )
 
     def calc_viscosity(self, T0=None):

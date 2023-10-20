@@ -182,6 +182,23 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     return s
 
 
+def s_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
+    solvent = kwargs["solvent"]
+    if p < fluid_data[solvent]["wrapper"].p_sat(T):
+        x_old = fluid_data[solvent]["mass_fraction"]
+        x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
+        x_water_gas = x_new - x_old
+        s = fluid_data[solvent]["wrapper"].s_pT(p + 1e-6, T) * (1 - x_water_gas)
+        s += fluid_data["water"]["wrapper"].s_QT(1, T) * x_water_gas
+        fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x_old])
+        return s
+    else:
+        try:
+            return fluid_data[solvent]["wrapper"].s_pT(p, T)
+        except ValueError:
+            return fluid_data[solvent]["wrapper"].s_pT(p + 1e-6, T)
+
+
 def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     molar_fractions = get_molar_fractions(fluid_data)
 
@@ -395,7 +412,8 @@ T_MIX_PH_REVERSE = {
 T_MIX_PS_REVERSE = {
     "ideal": s_mix_pT_ideal,
     "ideal-cond": s_mix_pT_ideal_cond,
-    "incompressible": s_mix_pT_incompressible
+    "incompressible": s_mix_pT_incompressible,
+    "incomp-solution": s_mix_pT_incompressible_solution
 }
 
 
@@ -403,6 +421,7 @@ H_MIX_PT_DIRECT = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
     "incompressible": h_mix_pT_incompressible,
+    "incomp-solution": h_mix_pT_incompressible_solution,
     "forced-gas": h_mix_pT_forced_gas
 }
 
@@ -410,7 +429,8 @@ H_MIX_PT_DIRECT = {
 S_MIX_PT_DIRECT = {
     "ideal": s_mix_pT_ideal,
     "ideal-cond": s_mix_pT_ideal_cond,
-    "incompressible": s_mix_pT_incompressible
+    "incompressible": s_mix_pT_incompressible,
+    "incomp-solution": s_mix_pT_incompressible_solution
 }
 
 

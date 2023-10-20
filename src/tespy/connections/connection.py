@@ -787,14 +787,14 @@ class Connection:
 
     def calc_viscosity(self, T0=None):
         try:
-            return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+            return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
         except NotImplementedError:
             return np.nan
 
 
     def calc_vol(self, T0=None):
         try:
-            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
         except NotImplementedError:
             return np.nan
 

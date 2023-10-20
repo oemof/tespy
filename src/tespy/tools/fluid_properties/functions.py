@@ -24,14 +24,14 @@ from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
 
 
-def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
+def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
     else:
-        s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule)
-        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule)
-        return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
+        s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule, **kwargs)
+        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, **kwargs)
+        return h_mix_pT(p_2, T_2, fluid_data, mixing_rule, **kwargs)
 
 
 def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
@@ -122,13 +122,13 @@ def dT_mix_ph_dfluid(p, h, fluid, fluid_data, mixing_rule=None, T0=None, **kwarg
     return (upper - lower) / (2 * d)
 
 
-def h_mix_pT(p, T, fluid_data, mixing_rule=None):
+def h_mix_pT(p, T, fluid_data, mixing_rule=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].h_pT(p, T)
     else:
         _check_mixing_rule(mixing_rule, H_MIX_PT_DIRECT, "enthalpy")
-        return H_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
+        return H_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data, **kwargs)
 
 
 def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
@@ -181,39 +181,39 @@ def dT_sat_dp(p, fluid_data, mixing_rule=None):
     return (upper - lower) / (2 * d)
 
 
-def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].s_ph(p, h)
     else:
-        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
-        return s_mix_pT(p, T, fluid_data, mixing_rule)
+        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0, **kwargs)
+        return s_mix_pT(p, T, fluid_data, mixing_rule, **kwargs)
 
 
 
-def s_mix_pT(p, T, fluid_data, mixing_rule=None):
+def s_mix_pT(p, T, fluid_data, mixing_rule=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].s_pT(p, T)
     else:
         _check_mixing_rule(mixing_rule, S_MIX_PT_DIRECT, "entropy")
-        return S_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
+        return S_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data, **kwargs)
 
 
-def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
+def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].T_ps(p, s)
     else:
         _check_mixing_rule(mixing_rule, T_MIX_PS_REVERSE, "temperature (from entropy)")
-        kwargs = {
+        kwargs.update({
             "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,
             "f": T_MIX_PS_REVERSE[mixing_rule]
-        }
+        })
         return inverse_temperature_mixture(**kwargs)
 
 
-def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return 1 / pure_fluid["wrapper"].d_ph(p, h)
@@ -236,7 +236,7 @@ def dv_mix_pdh(p, h, fluid_data, mixing_rule=None, T0=None):
     return (upper - lower) / (2 * d)
 
 
-def v_mix_pT(p, T, fluid_data, mixing_rule=None):
+def v_mix_pT(p, T, fluid_data, mixing_rule=None, **kwargs):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return 1 / pure_fluid["wrapper"].d_pT(p, T)

@@ -211,7 +211,8 @@ class Pump(Turbomachine):
                     o.p.val_SI,
                     i.fluid_data,
                     i.mixing_rule,
-                    T0=None
+                    T0=None,
+                    solvent=i.solvent
                 ) - self.inl[0].h.val_SI
             )
         )
@@ -511,7 +512,7 @@ class Pump(Turbomachine):
                 o.p.val_SI,
                 i.fluid_data,
                 i.mixing_rule,
-                T0=None
+                T0=None, solvent=i.solvent
             ) - self.inl[0].h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
 

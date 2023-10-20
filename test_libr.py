@@ -191,7 +191,7 @@ class Absorber(Component):
         return {}
 
     def get_mandatory_constraints(self):
-        return {
+        constraints = {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True,# 'latex': self.mass_flow_func_doc,
@@ -206,7 +206,21 @@ class Absorber(Component):
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
                 'num_eq': 2},
+            "saturation_constraints_libr": {
+                "func": self.saturated_solution_libr_func,
+                "deriv": self.saturated_solution_libr_deriv,
+                "constant_deriv": False,
+                "num_eq": 1
+            },
         }
+        if "LiBr" in self.outl[0].fluid.is_var:
+            constraints["saturation_constraints_water"] = {
+                "func": self.saturated_solution_water_func,
+                "deriv": self.saturated_solution_water_deriv,
+                "constant_deriv": False,
+                "num_eq": 1
+            }
+        return constraints
 
     def mass_flow_func(self):
         return self.inl[0].m.val_SI + self.inl[1].m.val_SI - self.outl[0].m.val_SI

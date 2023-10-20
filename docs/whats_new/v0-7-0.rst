@@ -1,5 +1,5 @@
-v0.7.0 - Newtons's Nature (October, 11, 2023)
-+++++++++++++++++++++++++++++++++++++++++++++
+v0.7.0 - Newton's Nature (October, 11, 2023)
+++++++++++++++++++++++++++++++++++++++++++++
 
 For version 0.7.0 TESPy has undergone a large refactoring of its back end:
 

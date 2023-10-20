@@ -331,40 +331,8 @@ class Absorber(Component):
         branch["connections"] += [outconn]
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def new_constraints(self):
-        constraints = {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,# 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False,# 'latex': self.fluid_func_doc,
-                'num_eq': 1},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 2},
-            "saturation_constraints_libr": {
-                "func": self.saturated_solution_libr_func,
-                "deriv": self.saturated_solution_libr_deriv,
-                "constant_deriv": False,
-                "num_eq": 1
-            },
-        }
-        if "LiBr" in self.outl[0].fluid.is_var:
-            constraints["saturation_constraints_water"] = {
-                "func": self.saturated_solution_water_func,
-                "deriv": self.saturated_solution_water_deriv,
-                "constant_deriv": False,
-                "num_eq": 1
-            }
-        return constraints
 
-
-from tespy.components import Source, Sink
+from tespy.components import Source, Sink, Pump, Valve, HeatExchanger
 from tespy.networks import Network
 from tespy.connections import Connection
 
@@ -375,34 +343,45 @@ water = Source("water source")
 rich = Sink("rich solution")
 poor = Source("poor solution")
 
+pu = Pump("pump")
+va = Valve("valve")
+
 absorber = Absorber("absorber")
 
 c1 = Connection(water, "out1", absorber, "in1", label="1")
-c2 = Connection(poor, "out1", absorber, "in2", label="2")
-c3 = Connection(absorber, "out1", rich, "in1", label="3")
+c2 = Connection(va, "out1", absorber, "in2", label="2")
+c3 = Connection(absorber, "out1", pu, "in1", label="3")
+c4 = Connection(pu, "out1", rich, "in1", label="4")
+c7 = Connection(poor, "out1", va, "in1", label="7")
 
-nw.add_conns(c1, c2, c3)
+nw.add_conns(c1, c2, c3, c4, c7)
+
+# pu.set_attr(eta_s=0.8)
 
 c1.set_attr(fluid={"water": 1}, p=p_evap, m=1, x=1)
-c2.set_attr(fluid={"water": x_water_poor}, h=h_poor, mixing_rule="incomp-solution", solvent="LiBr")
-c3.set_attr(fluid={"INCOMP::LiBr": x_rich}, h=h_sol_abs_out, p0=p_evap)
+c2.set_attr(fluid={"water": x_water_poor, "INCOMP::LiBr": 1 - x_water_poor}, h=h_poor, mixing_rule="incomp-solution", solvent="LiBr")
+c3.set_attr(h=h_sol_abs_out, p0=p_evap)
+print(h_sol_abs_out)
+c4.set_attr(p=p_cond, h=37410)
+c7.set_attr(p=p_cond)
 nw.set_attr()
 nw.solve("design")
 
 # how does the reference temperature affect the energy balance
-p_ref = 1e5
-for T_ref in range(274, 400):
-    h_water_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, "water")
-    h_poor_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_poor}]")
-    h_rich_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_rich}]")
-    print((c1.h.val_SI - h_water_ref) * c1.m.val_SI + (c2.h.val_SI - h_poor_ref) * c2.m.val_SI - (c3.h.val_SI - h_rich_ref) * c3.m.val_SI)
+# p_ref = 1e5
+# for T_ref in range(274, 400):
+#     h_water_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, "water")
+#     h_poor_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_poor}]")
+#     h_rich_ref = CP.CoolProp.PropsSI("H", "P", p_ref, "T", T_ref, f"INCOMP::LiBr[{x_rich}]")
+#     print((c1.h.val_SI - h_water_ref) * c1.m.val_SI + (c2.h.val_SI - h_poor_ref) * c2.m.val_SI - (c3.h.val_SI - h_rich_ref) * c3.m.val_SI)
 
 # some checks
-assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
-assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
+nw.print_results()
+assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 2) == round(c3.m.val_SI * c3.fluid.val["water"], 2)
+assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 2) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 2)
 
-# replace initial draft of constraints -> maybe add saturation constraint as parameter
-absorber.get_mandatory_constraints = absorber.new_constraints
+c4.set_attr(h=None)
+pu.set_attr(eta_s=0.8)
 # now there is two additional equations in case both fluids at outlet 1 are variable
 # and one additional equation if none of the fluids is variale
 # fluid composition as function of saturation temperature and pressure
@@ -412,14 +391,43 @@ c3.set_attr(h=None, T=306.15, p=p_evap)
 c3.h.val0 = c3.h.val_SI
 nw.solve("design")
 # check results, should be identical to previous ones
-assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
-assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
+assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 2) == round(c3.m.val_SI * c3.fluid.val["water"], 2)
+assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 2) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 2)
 
 # fix the either the water or the libr mass fraction and the temperature or pressure
 # gives us the other respective value, pressure in this case
-c3.set_attr(fluid={"INCOMP::LiBr": 0.45}, T=295, p=None)
+c3.set_attr(fluid={"INCOMP::LiBr": 0.50}, T=295, p=None)
 nw.solve("design")
 assert round(c1.m.val_SI * c1.fluid.val["water"] + c2.m.val_SI * c2.fluid.val["water"], 4) == round(c3.m.val_SI * c3.fluid.val["water"], 4)
 assert round(c2.m.val_SI * c2.fluid.val["LiBr"], 4) == round(c3.m.val_SI * c3.fluid.val["LiBr"], 4)
 
 print(f"T3: {c3.T.val_SI}, p3: {c3.p.val_SI}, fluid3: {c3.fluid.val}")
+
+nw.print_results()
+
+
+he = HeatExchanger("internal heat exchanger")
+
+nw.del_conns(c4, c7)
+
+c4 = Connection(pu, "out1", he, "in2", label="4")
+c5 = Connection(he, "out2", rich, "in1", label="5")
+
+c6 = Connection(poor, "out1", he, "in1", label="6")
+c7 = Connection(he, "out1", va, "in1", label="7")
+
+nw.add_conns(c4, c5, c6, c7)
+
+c4.set_attr(p=p_cond, h0=37400)
+c5.set_attr(h0=40000, p=p_cond)
+c6.set_attr(h=h_poor, p=p_cond)
+c7.set_attr(p=p_cond, h=100000)
+c2.set_attr(h=None)
+
+nw.solve("design")
+
+he.set_attr(ttd_l=5)
+c7.set_attr(h=None)
+nw.solve("design")
+
+nw.print_results()

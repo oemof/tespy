@@ -906,52 +906,52 @@ class Connection:
 
     def calc_results(self):
         _converged = True
+        self.T.val_SI = self.calc_T()
+        number_fluids = get_number_of_fluids(self.fluid_data)
+        if number_fluids > 1:
+            h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, solvent=self.solvent)
+            print(h_from_T, self.h.val_SI)
+            if abs(h_from_T - self.h.val_SI) > 1e-1:
+                self.T.val_SI = np.nan
+                self.vol.val_SI = np.nan
+                self.v.val_SI = np.nan
+                self.s.val_SI = np.nan
+                msg = (
+                    "Could not find a feasible value for mixture temperature at "
+                    f"connection {self.label}. The values for temperature, "
+                    "specific volume, volumetric flow and entropy are set to nan."
+                )
+                logger.error(msg)
+                _converged = False
+
+        else:
+            try:
+                if not self.x.is_set:
+                    self.x.val_SI = self.calc_x()
+            except ValueError:
+                self.x.val_SI = np.nan
+            try:
+                if not self.Td_bp.is_set:
+                    self.Td_bp.val_SI = self.calc_Td_bp()
+            except ValueError:
+                self.x.val_SI = np.nan
+
         try:
-            self.T.val_SI = self.calc_T()
-            number_fluids = get_number_of_fluids(self.fluid_data)
-            if number_fluids > 1:
-                h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-                if abs(h_from_T - self.h.val_SI) > ERR ** .5:
-                    self.T.val_SI = np.nan
-                    self.vol.val_SI = np.nan
-                    self.v.val_SI = np.nan
-                    self.s.val_SI = np.nan
-                    msg = (
-                        "Could not find a feasible value for mixture temperature at "
-                        f"connection {self.label}. The values for temperature, "
-                        "specific volume, volumetric flow and entropy are set to nan."
-                    )
-                    logger.error(msg)
-                    _converged = False
-
-            else:
-                try:
-                    if not self.x.is_set:
-                        self.x.val_SI = self.calc_x()
-                except ValueError:
-                    self.x.val_SI = np.nan
-                try:
-                    if not self.Td_bp.is_set:
-                        self.Td_bp.val_SI = self.calc_Td_bp()
-                except ValueError:
-                    self.x.val_SI = np.nan
-
             if _converged:
                 self.vol.val_SI = self.calc_vol()
                 self.v.val_SI = self.vol.val_SI * self.m.val_SI
                 self.s.val_SI = self.calc_s()
-
-            for prop in fpd.keys():
-                self.get_attr(prop).val = convert_from_SI(
-                    prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
-                )
-
-            self.m.val0 = self.m.val
-            self.p.val0 = self.p.val
-            self.h.val0 = self.h.val
-            self.fluid.val0 = self.fluid.val.copy()
-        except (ValueError, KeyError):
+        except KeyError:
             pass
+        for prop in fpd.keys():
+            self.get_attr(prop).val = convert_from_SI(
+                prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
+            )
+
+        self.m.val0 = self.m.val
+        self.p.val0 = self.p.val
+        self.h.val0 = self.h.val
+        self.fluid.val0 = self.fluid.val.copy()
 
     def check_pressure_bounds(self, fluid):
         if self.p.val_SI > self.fluid.wrapper[fluid]._p_max:

@@ -910,8 +910,7 @@ class Connection:
         number_fluids = get_number_of_fluids(self.fluid_data)
         if number_fluids > 1:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, solvent=self.solvent)
-            print(h_from_T, self.h.val_SI)
-            if abs(h_from_T - self.h.val_SI) > 1e-1:
+            if abs(h_from_T - self.h.val_SI) > ERR ** 0.5:
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
                 self.v.val_SI = np.nan
@@ -1029,8 +1028,8 @@ class Connection:
         Tmax = min(
             [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
         ) * 0.99
-        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule)
-        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule)
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule, solvent=self.solvent)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule, solvent=self.solvent)
 
         if self.h.val_SI < hmin:
             self.h.val_SI = hmin

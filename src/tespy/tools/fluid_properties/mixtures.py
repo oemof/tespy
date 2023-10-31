@@ -35,37 +35,37 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def xsat_pT_incomp_solution(p=None, T=None, fluid_data=None, **kwargs):
-    X_min = 0
-    X_max = 0.75
-    X = .3
+    x_min = 0
+    x_max = 0.75
+    x = kwargs["x0"]
     d = 1e-5
     iter = 0
     solvent = kwargs["solvent"]
     while True:
-        res = fluid_data[solvent]["wrapper"].psat_Tx(T, X) - p
-        upper = fluid_data[solvent]["wrapper"].psat_Tx(T, X + d)
-        lower = fluid_data[solvent]["wrapper"].psat_Tx(T, X - d)
-        fluid_data[solvent]["wrapper"].AS.set_mass_fractions([X])
+        res = fluid_data[solvent]["wrapper"].psat_Tx(T, x) - p
+        upper = fluid_data[solvent]["wrapper"].psat_Tx(T, x + d)
+        lower = fluid_data[solvent]["wrapper"].psat_Tx(T, x - d)
+        fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x])
 
         deriv = (upper - lower) / (2 * d)
-        X -= res / deriv
+        x -= res / deriv
 
         if abs(res) < 1e-6:
-            if X < X_min:
-                return X_min
-            elif X > X_max:
-                return X_max
+            if x < x_min:
+                return x_min
+            elif x > x_max:
+                return x_max
             break
 
-        if X >= X_max:
-            X = X_max - d
-        elif X <= X_min:
-            X = X_min + d
+        if x >= x_max:
+            x = x_max - d
+        elif x <= x_min:
+            x = x_min + d
 
         iter += 1
         if iter > 10:
             break
-    return X
+    return x
 
 
 def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
@@ -123,17 +123,16 @@ def h_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
     solvent = kwargs["solvent"]
     if p < fluid_data[solvent]["wrapper"].p_sat(T):
         x_old = fluid_data[solvent]["mass_fraction"]
+        kwargs["x0"] = x_old
         x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
+        fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x_new])
         x_water_gas = x_new - x_old
         h = fluid_data[solvent]["wrapper"].h_pT(p + 1e-6, T) * (1 - x_water_gas)
         h += fluid_data["water"]["wrapper"].h_QT(1, T) * x_water_gas
         fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x_old])
         return h
     else:
-        try:
-            return fluid_data[solvent]["wrapper"].h_pT(p, T)
-        except ValueError:
-            return fluid_data[solvent]["wrapper"].h_pT(p + 1e-6, T)
+        return fluid_data[solvent]["wrapper"].h_pT(p, T)
 
 
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -186,6 +185,7 @@ def s_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
     solvent = kwargs["solvent"]
     if p < fluid_data[solvent]["wrapper"].p_sat(T):
         x_old = fluid_data[solvent]["mass_fraction"]
+        kwargs["x0"] = x_old
         x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
         x_water_gas = x_new - x_old
         s = fluid_data[solvent]["wrapper"].s_pT(p + 1e-6, T) * (1 - x_water_gas)
@@ -193,10 +193,7 @@ def s_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
         fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x_old])
         return s
     else:
-        try:
-            return fluid_data[solvent]["wrapper"].s_pT(p, T)
-        except ValueError:
-            return fluid_data[solvent]["wrapper"].s_pT(p + 1e-6, T)
+        return fluid_data[solvent]["wrapper"].s_pT(p, T)
 
 
 def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):

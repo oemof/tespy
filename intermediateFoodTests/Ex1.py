@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tespy.components import Separator,Merge,CycleCloser,Valve
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits,SimpleHeatExchanger
 
 import logging
 #logging.basicConfig(level=logging.DEBUG)
@@ -45,7 +45,9 @@ p0 = 2        # global guess value in bar
 # set conditions around boiler
 # fluid_back_ends={'Water': "INCOMP", "PHE": "INCOMP", "S800": "INCOMP"}
 c1.set_attr(fluid={'INCOMP::Water': 0.80,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05}, m=100, h=h0, p=p0, mixing_rule="incompressible")
-c2.set_attr(h=h0,p=p0)
+#c2.set_attr(h=h0,p=p0)
+c2.set_attr(h=h0)
+boiler.set_attr(pr=1)
 
 # solve and print results
 network.solve('design')

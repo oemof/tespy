@@ -24,10 +24,7 @@ import logging
 #logging.basicConfig(level=logging.DEBUG)
 
 
-#network = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
-fluid_list = ['INCOMP::Water','INCOMP::PHE','INCOMP::S800']
-network = Network(fluids=fluid_list, m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
-
+network = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
 
 # Objects
 source           = Source('source')
@@ -46,7 +43,8 @@ h0 = 1e2      # global guess value in kJ/kg
 p0 = 2        # global guess value in bar
 
 # set conditions around boiler
-c1.set_attr(fluid={'Water': 0.80,'PHE': 0.15,'S800': 0.05}, m=m0, h=h0, p=p0)
+# fluid_back_ends={'Water': "INCOMP", "PHE": "INCOMP", "S800": "INCOMP"}
+c1.set_attr(fluid={'INCOMP::Water': 0.80,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05}, m=100, h=h0, p=p0, mixing_rule="incompressible")
 c2.set_attr(h=h0,p=p0)
 
 # solve and print results

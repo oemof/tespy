@@ -149,6 +149,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def h_pT(self, p, T):
         if self.back_end == "INCOMP":
+            if self.fluid == "Water":
+                T = min(T,CP.CoolProp.PropsSI("T","P",p,"Q",0,"HEOS::"+self.fluid))
             if T == (self._T_max + self._T_min) / 2:
                 T += ERR
         self.AS.update(CP.PT_INPUTS, p, T)

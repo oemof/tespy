@@ -28,8 +28,8 @@ so = Source("Source")
 #  Variant 2: Q is m (h_2 - h_1), Q_total is taking efficiency into account and represents the heat transfer over system
 # boundary. For heat transfer into the system: Q = Q_total * eta, for heat transfer from the system: Q_total = Q * eta
 
-#he = SimpleHeatExchangerLossFactor("Heater")
 he = SimpleHeatExchangerDeltaP("Heater")
+#he = SimpleHeatExchangerDeltaPLossFactor("Heater")
 
 
 si = Sink("Sink")
@@ -48,9 +48,14 @@ c2.set_attr(T=95) #,p=1)
 he.set_attr(deltaP=0.1)
 #he.set_attr(pr=1.1)
 
+#he.set_attr(Tamb=10)
 
+#he.set_attr(L=10)
+#he.set_attr(D=0.3)
+
+#he.set_attr(Q=74000)
 #he.set_attr(LF=0.1) # MRK so eta is (1-hlf) heat loss factor
-#he.set_attr(Q_total=86371.13607253956) # MRK so eta is (1-hlf) heat loss factor
+#he.set_attr(Q_total=8.16e4) # MRK so eta is (1-hlf) heat loss factor
 #he.set_attr(Q_loss=-7851.921461139966) # MRK so eta is (1-hlf) heat loss factor
 
 nw.solve("design")

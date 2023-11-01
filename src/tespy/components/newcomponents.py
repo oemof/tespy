@@ -174,75 +174,52 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
 
     def get_parameters(self):
         variables = super().get_parameters()
-        variables["LF"] = dc_cp(min_val=0, val=0, max_val=1,is_result=True)
-        variables["Q_loss"] = dc_cp(is_result=True)
-        variables["Q_total"] = dc_cp(is_result=True)
+        variables["LF"] = dc_cp(min_val=0, val=0, max_val=1, is_result=True)
+        variables["Q_total"] = dc_cp(is_result=True)       
         variables["energy_group"] = dc_gcp(
-            elements=['Q_total', 'LF', 'Q_loss'],
-            num_eq=1,
-            latex=self.energy_balance_func_doc,
-            func=self.energy_balance2_func, deriv=self.energy_balance2_deriv
-        )
-
+                elements=['LF', 'Q_total'],
+                func=self.Q_total_func,
+                deriv=self.Q_total_deriv,
+                latex=self.energy_balance_func_doc, num_eq=1)
         return variables
 
-    def energy_balance2_func(self):
+    def Q_total_func(self):
         r"""
-        Equation for pressure drop calculation.
+        Equation for total heat flow rate
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation:
-
-            .. math::
-
-                0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
+
         # self.Q_loss.val is negative and Q_total is positive (and vice versa)
-        if self.Q_loss.is_var:
-            self.LF.val = -self.Q_loss/self.Q.val
-        else:
-            return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q_total.val
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q_total.val
 
-
-    def energy_balance2_deriv(self, increment_filter, k):
+    def Q_total_deriv(self, increment_filter, k):
         r"""
-        Calculate partial derivatives of energy balance.
+        Calculate partial derivatives of Q_total
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
         """
-        if self.Q_loss.is_var:
-            self.LF.val = -self.Q_loss/self.Q.val
-        self.jacobian[k, 0, 0] = (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val)
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI*(1+self.LF.val)
-        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI*(1+self.LF.val)
+
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = (o.h.val_SI - i.h.val_SI)*(1+self.LF.val)
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI*(1+self.LF.val)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI*(1+self.LF.val)
         # custom variable Q
         if self.Q_total.is_var:
-            self.jacobian[k, 2 + self.Q.var_pos, 0] = -1
-
+            self.jacobian[k, self.Q.J_col] = -1
         if self.LF.is_var:
-            self.jacobian[k, 2 + self.LF.var_pos, 0] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.jacobian[k, self.LF.J_col] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
     def calc_parameters(self):
         super().calc_parameters()
 
         if self.Q_total.is_set:
-            self.Q_loss.val = self.Q.val-self.Q_total.val
-            self.LF.val = -self.Q_loss.val / self.Q.val
-        elif self.LF.is_set:
+            self.LF.val = (self.Q_total.val-self.Q.val) / self.Q.val
+        if self.LF.is_set:
             self.Q_total.val = self.Q.val * (1+self.LF.val)
-            self.Q_loss.val = self.Q.val-self.Q_total.val
-        else:
-            self.Q_total.val = self.Q.val-self.Q_loss.val
-            self.LF.val = -self.Q_loss.val/self.Q.val
-
+        
 
 
 class MergeWithPressureLoss(Merge):

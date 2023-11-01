@@ -2,7 +2,6 @@ import logging
 
 from tespy.components import HeatExchangerSimple, Merge, Separator, Splitter
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import ComponentPropertiesArray as dc_cpa
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
 
@@ -16,8 +15,8 @@ class DiabaticSimpleHeatExchanger(HeatExchangerSimple):
     def component():
         return 'diabatic simple heat exchanger'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["eta"] = dc_cp(min_val=1e-5, val=1, max_val=1)
         variables["Q_loss"] = dc_cp(max_val=0, val=0, is_result=True)
         variables["Q_total"] = dc_cp(is_result=True)
@@ -101,17 +100,17 @@ class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
     def component():
         return 'diabatic simple heat exchanger'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=1,
-        ) 
+        )
         return variables
-         
+
     def pr_func(self):
         r"""
         Equation for pressure drop.
@@ -125,7 +124,7 @@ class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
 
                 0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
-        
+
         return self.inl[0].p.val_SI - self.deltaP.val*1e5 - self.outl[0].p.val_SI
 
     def pr_deriv(self, increment_filter, k):
@@ -146,7 +145,7 @@ class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
     def calc_parameters(self):
         super().calc_parameters()
         self.deltaP.val = (self.inl[0].p.val_SI - self.outl[0].p.val_SI)/1e5
-  
+
 
 class HeatExchangerSimpleDeltaPLossFactor(HeatExchangerSimpleDeltaP):
 
@@ -154,8 +153,8 @@ class HeatExchangerSimpleDeltaPLossFactor(HeatExchangerSimpleDeltaP):
     def component():
         return 'diabatic simple heat exchanger'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["LF"] = dc_cp(min_val=0, val=0, max_val=1,is_result=True)
         variables["Q_loss"] = dc_cp(is_result=True)
         variables["Q_total"] = dc_cp(is_result=True)
@@ -186,7 +185,7 @@ class HeatExchangerSimpleDeltaPLossFactor(HeatExchangerSimpleDeltaP):
             self.LF.val = -self.Q_loss/self.Q.val
         else:
             return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q_total.val
-        
+
 
     def energy_balance2_deriv(self, increment_filter, k):
         r"""
@@ -224,7 +223,7 @@ class HeatExchangerSimpleDeltaPLossFactor(HeatExchangerSimpleDeltaP):
         else:
             self.Q_total.val = self.Q.val-self.Q_loss.val
             self.LF.val = -self.Q_loss.val/self.Q.val
-          
+
 
 
 class MergeWithPressureLoss(Merge):
@@ -233,27 +232,40 @@ class MergeWithPressureLoss(Merge):
     def component():
         return 'merge with pressure losses'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=1,
-        )         
+        )
         return variables
 
+
     def get_mandatory_constraints(self):
+
+
+        variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(variable_fluids)
+
+        if num_fluid_eq == 0:
+            num_fluid_eq = len(self.inl[0].fluid.val)
+            num_m_eq = 0
+        else:
+            num_m_eq = 1
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
+                'num_eq': num_m_eq},
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -311,15 +323,15 @@ class SplitterWithPressureLoss(Splitter):
     def component():
         return 'Splitter with pressure losses'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=self.num_out,
-        )   
+        )
         return variables
 
     def get_mandatory_constraints(self):
@@ -357,7 +369,7 @@ class SplitterWithPressureLoss(Splitter):
         p_in = self.inl[0].p.val_SI
         for o in self.outl:
             residual += [p_in - self.deltaP.val*1e5 - o.p.val_SI]
-        return residual        
+        return residual
 
     def pr_deriv(self, increment_filter, k):
         r"""
@@ -376,9 +388,9 @@ class SplitterWithPressureLoss(Splitter):
         j = 0
         for c in self.outl:
             self.jacobian[k, 0, 1] = 1
-            self.jacobian[k, j + 1, 1] = -1 
+            self.jacobian[k, j + 1, 1] = -1
             j += 1
-            k += 1        
+            k += 1
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -407,8 +419,8 @@ class SeparatorWithSpeciesSplits(Separator):
     def component():
         return 'separator with species flow splits'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["SFS"] = dc_cp_SFS(
             min_val=0,
             deriv=self.SFS_deriv,
@@ -441,9 +453,11 @@ class SeparatorWithSpeciesSplits(Separator):
 
         fluid = self.SFS.split_fluid
         out_i = int(self.SFS.split_outlet[3:]) - 1
+        inl = self.inl[0]
+        outl = self.outl[out_i]
 
-        res = self.inl[0].fluid.val[fluid] * self.inl[0].m.val_SI * self.SFS.val \
-            - self.outl[out_i].fluid.val[fluid] * self.outl[out_i].m.val_SI 
+        res = inl.fluid.val[fluid] * inl.m.val_SI * self.SFS.val \
+            - outl.fluid.val[fluid] * outl.m.val_SI
 
         #print(res)
         return res
@@ -461,9 +475,9 @@ class SeparatorWithSpeciesSplits(Separator):
             Position of equation in Jacobian matrix.
         """
 
-        # j=0 
+        # j=0
         # self.jacobian[k, j, 0] = self.inl[j].fluid.val[self.split_fluid] * self.TS.val
-        # self.jacobian[k, j, i + 3] = self.inl[j].m.val_SI * self.TS.val             
+        # self.jacobian[k, j, i + 3] = self.inl[j].m.val_SI * self.TS.val
 
         # i = 0
         # for fluid, x in self.outl[0].fluid.val.items():
@@ -482,13 +496,20 @@ class SeparatorWithSpeciesSplits(Separator):
         out_i = int(self.SFS.split_outlet[3:]) - 1
 
         i = fluid_index
-        j = 0 
-        self.jacobian[k, j, 0]     = self.inl[0].fluid.val[fluid] * self.SFS.val 
-        self.jacobian[k, j, i + 3] = self.inl[0].m.val_SI * self.SFS.val 
-        j = 1 + out_i 
-        self.jacobian[k, j, 0]     = -self.outl[out_i].fluid.val[fluid]
-        self.jacobian[k, j, i + 3] = -self.outl[out_i].m.val_SI 
-        
+        j = 0
+        inl = self.inl[0]
+        outl = self.outl[out_i]
+        if inl.m.is_var:
+            self.jacobian[k, inl.m.J_col] = inl.fluid.val[fluid] * self.SFS.val
+
+        if fluid in inl.fluid.is_var:
+            self.jacobian[k, inl.fluid.J_col[fluid]] = inl.m.val_SI * self.SFS.val
+
+        if outl.m.is_var:
+            self.jacobian[k, outl.m.J_col] = -outl.fluid.val[fluid]
+        if fluid in outl.fluid.is_var:
+            self.jacobian[k, outl.fluid.J_col[fluid]] = -outl.m.val_SI
+
         #print(self.jacobian)
         #print(self.jacobian[k,:,:])
 
@@ -503,19 +524,26 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
     def component():
         return 'separator with species flow splits and dT on outlets'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["deltaT"] = dc_cp(
             deriv=self.energy_balance_deriv, # same as before
             func=self.energy_balance_deltaT_func,
             latex=self.pr_func_doc,
             num_eq=self.num_out
         )
-        variables["Q"] = dc_cp(is_result=True)       
-        #variables["Qout"] = dc_cpa()               
+        variables["Q"] = dc_cp(is_result=True)
+        #variables["Qout"] = dc_cpa()
         return variables
 
     def get_mandatory_constraints(self):
+        self.variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(self.variable_fluids)
+        if num_fluid_eq == 0:
+            num_fluid_eq = 1
+            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
@@ -524,7 +552,7 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             # 'energy_balance_constraints': {
             #     'func': self.energy_balance_func,
             #     'deriv': self.energy_balance_deriv,
@@ -563,7 +591,7 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
     def calc_parameters(self):
         super().calc_parameters()
         self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI) for o in self.outl])
-        
+
         Tmin = min([i.T.val_SI for i in self.outl])
         Tmax = max([i.T.val_SI for i in self.outl])
         if abs(self.inl[0].T.val_SI - Tmin) >= abs(self.inl[0].T.val_SI - Tmax):
@@ -578,15 +606,15 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
     def component():
         return 'separator with species flow splits and dT and Pr on outlets'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=self.num_out,
-        )          
+        )
         return variables
 
     def pr_func(self):
@@ -623,7 +651,7 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
         j = 0
         for c in self.outl:
             self.jacobian[k, 0, 1] = 1
-            self.jacobian[k, j + 1, 1] = -1 
+            self.jacobian[k, j + 1, 1] = -1
             j += 1
             k += 1
 
@@ -668,11 +696,18 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDelt
     def component():
         return 'separator with species flow splits and dT and Pr on outlets'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
 
     def get_mandatory_constraints(self):
+        self.variable_fluids = set(
+            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        )
+        num_fluid_eq = len(self.variable_fluids)
+        if num_fluid_eq == 0:
+            num_fluid_eq = 1
+            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
         return {
             'mass_flow_constraints': {
                 'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
@@ -681,7 +716,7 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDelt
             'fluid_constraints': {
                 'func': self.fluid_func, 'deriv': self.fluid_deriv,
                 'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
+                'num_eq': num_fluid_eq},
             # 'energy_balance_constraints': {
             #     'func': self.energy_balance_func,
             #     'deriv': self.energy_balance_deriv,
@@ -702,8 +737,8 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
     def component():
         return 'separator with species flow splits and dT and Pr on outlets + Bus connection on Q'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
 
     def bus_func(self, bus):
@@ -762,8 +797,8 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
             Matrix of partial derivatives.
         """
 #        for o in self.outl:
-#            self.Qout.val += [o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI)]        
-#        return np.sum(self.Qout.val)      
+#            self.Qout.val += [o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI)]
+#        return np.sum(self.Qout.val)
 
         deriv = np.zeros((1, len(self.outl)+1, self.num_nw_vars))
         f = self.calc_bus_value
@@ -784,8 +819,8 @@ class SplitWithFlowSplitter(Splitter):
     def component():
         return 'splitter with flow split ratios'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["FS"] = dc_cp_FS(
             min_val=0,
             deriv=self.FS_deriv,
@@ -810,7 +845,7 @@ class SplitWithFlowSplitter(Splitter):
         """
 
         out_i = int(self.FS.split_outlet[3:]) - 1
-        res = self.inl[0].m.val_SI * self.FS.val - self.outl[out_i].m.val_SI 
+        res = self.inl[0].m.val_SI * self.FS.val - self.outl[out_i].m.val_SI
 
         #print(res)
         return res
@@ -830,11 +865,14 @@ class SplitWithFlowSplitter(Splitter):
 
         out_i = int(self.FS.split_outlet[3:]) - 1
 
-        j = 0 
-        self.jacobian[k, j, 0]     = self.FS.val 
-        j = 1 + out_i 
-        self.jacobian[k, j, 0]     = -1
-        
+        inl = self.inl[0]
+        outl = self.outl[out_i]
+        j = 0
+        if inl.m.is_var:
+            self.jacobian[k, inl.m.J_col]     = self.FS.val
+        if outl.m.is_var:
+            self.jacobian[k, outl.m.J_col]     = -1
+
         #print(self.jacobian)
         #print(self.jacobian[k,:,:])
 
@@ -843,7 +881,7 @@ class SplitWithFlowSplitter(Splitter):
 
 class dc_cp_SFS(dc_cp):
     """
-    Data container for simple properties. 
+    Data container for simple properties.
     + SFS_fluid
     + SFS_outlet
     """
@@ -855,7 +893,7 @@ class dc_cp_SFS(dc_cp):
 
 class dc_cp_FS(dc_cp):
     """
-    Data container for component properties. 
+    Data container for component properties.
     + FS_outlet
     """
     @staticmethod
@@ -872,8 +910,8 @@ class MassFactorVCC(Splitter):
     def component():
         return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances)'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["COP"] = dc_cp(
             min_val=0,
             deriv=self.COP_deriv,
@@ -885,14 +923,6 @@ class MassFactorVCC(Splitter):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
@@ -934,8 +964,12 @@ class MassFactorVCC(Splitter):
         k : int
             Position of equation in Jacobian matrix.
         """
-        self.jacobian[k  ,            0, 0] = self.COP.val
-        self.jacobian[k  ,   self.num_i, 0] = -1
+        inl = self.inl[0]
+        outl = self.outl[0]
+        if inl.m.is_var:
+            self.jacobian[k, inl.m.J_col] = self.COP.val
+        if outl.m.is_var:
+            self.jacobian[k, outl.m.J_col] = -1
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -949,15 +983,15 @@ class MassFactorVCCWithPressureLoss(MassFactorVCC):
     def component():
         return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances)'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["pr"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=1
-        )          
+        )
         return variables
 
     def pr_func(self):
@@ -1016,7 +1050,7 @@ class MassFactorVCCWithPressureLoss(MassFactorVCC):
                     f"The pressure at inlet {i + 1} is lower than the pressure "
                     f"at the outlet of component {self.label}."
                 )
-                logging.warning(msg)        
+                logging.warning(msg)
 
 
 
@@ -1027,8 +1061,8 @@ class MassFactorLossModel(Splitter):
     def component():
         return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances)'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["Loss"] = dc_cp(
             min_val=0,
             deriv=self.Loss_deriv,
@@ -1081,15 +1115,15 @@ class MassFactorLossModelWithPressureLoss(MassFactorLossModel):
     def component():
         return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances)'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         variables["pr"] = dc_cp(
             min_val=0,
             deriv=self.pr_deriv,
             func=self.pr_func,
             latex=self.pr_func_doc,
             num_eq=1
-        )          
+        )
         return variables
 
     def pr_func(self):
@@ -1148,7 +1182,7 @@ class MassFactorLossModelWithPressureLoss(MassFactorLossModel):
                     f"The pressure at inlet {i + 1} is lower than the pressure "
                     f"at the outlet of component {self.label}."
                 )
-                logging.warning(msg)        
+                logging.warning(msg)
 
 
 
@@ -1161,8 +1195,8 @@ class MergeEnergySupply(Merge):
     def component():
         return 'merge without pressure/energy constraints'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
 
     def get_mandatory_constraints(self):
@@ -1183,8 +1217,8 @@ class SplitterEnergySupply(Splitter):
     def component():
         return 'Splitter without pressure/energy constraints'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
 
     def get_mandatory_constraints(self):
@@ -1207,21 +1241,9 @@ class MassFactorVCCEnergySupply(MassFactorVCC):
     def component():
         return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances, without pressure/enthalpy constraints)'
 
-    def get_variables(self):
-        variables = super().get_variables()
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
-
-    def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
-        }
 
 
 class MassFactorLossModelEnergySupply(MassFactorLossModel):
@@ -1230,8 +1252,8 @@ class MassFactorLossModelEnergySupply(MassFactorLossModel):
     def component():
         return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances, without pressure/enthalpy constraints)'
 
-    def get_variables(self):
-        variables = super().get_variables()       
+    def get_parameters(self):
+        variables = super().get_parameters()
         return variables
 
     def get_mandatory_constraints(self):

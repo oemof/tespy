@@ -49,8 +49,8 @@ c1.set_attr(m=1, p=2.2, T=30)
 he.set_attr(deltaP=1)
 
 he.set_attr(LF=0.1) # MRK so eta is (1-hlf) heat loss factor
-he.set_attr(Q_total=8.16e+04) # MRK so eta is (1-hlf) heat loss factor
-#he.set_attr(Q_loss=-7851.921461139966) # MRK so eta is (1-hlf) heat loss factor
+#he.set_attr(Q_total=8.16e+04) # MRK so eta is (1-hlf) heat loss factor
+he.set_attr(Q_loss=-7.42e+03) # MRK so eta is (1-hlf) heat loss factor
 
 nw.solve("design")
 nw.print_results()

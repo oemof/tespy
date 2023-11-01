@@ -175,12 +175,23 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
     def get_parameters(self):
         variables = super().get_parameters()
         variables["LF"] = dc_cp(min_val=0, val=0, max_val=1, is_result=True)
+        variables["Q_loss"] = dc_cp(is_result=True)
         variables["Q_total"] = dc_cp(is_result=True)       
-        variables["energy_group"] = dc_gcp(
+        variables["energy_group1"] = dc_gcp(
                 elements=['LF', 'Q_total'],
                 func=self.Q_total_func,
                 deriv=self.Q_total_deriv,
                 latex=self.energy_balance_func_doc, num_eq=1)
+        variables["energy_group2"] = dc_gcp(
+                elements=['Q_loss', 'Q_total'],
+                func=self.Q_total_func,
+                deriv=self.Q_total_deriv,
+                latex=self.energy_balance_func_doc, num_eq=1)
+        variables["energy_group3"] = dc_gcp(
+                elements=['Q_loss', 'LF'],
+                func=self.Q_total_func,
+                deriv=self.Q_total_deriv,
+                latex=self.energy_balance_func_doc, num_eq=1)                
         return variables
 
     def Q_total_func(self):
@@ -188,9 +199,16 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
         Equation for total heat flow rate
 
         """
-
         # self.Q_loss.val is negative and Q_total is positive (and vice versa)
+
+        if self.energy_group2.is_set:
+            self.LF.val = -self.Q_loss.val/(self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
+        if self.energy_group3.is_set:
+            self.Q_total.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q_loss.val
+
         return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q_total.val
+
+        
 
     def Q_total_deriv(self, increment_filter, k):
         r"""
@@ -206,20 +224,24 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
             self.jacobian[k, i.h.J_col] = -i.m.val_SI*(1+self.LF.val)
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = i.m.val_SI*(1+self.LF.val)
-        # custom variable Q
         if self.Q_total.is_var:
             self.jacobian[k, self.Q.J_col] = -1
-        if self.LF.is_var:
+        if self.LF.is_var or self.Q_loss.is_var: # if Q_loss solve LF equation
             self.jacobian[k, self.LF.J_col] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
     def calc_parameters(self):
         super().calc_parameters()
 
+        # repeat calculations to ensure variables are assigned
         if self.Q_total.is_set:
-            self.LF.val = (self.Q_total.val-self.Q.val) / self.Q.val
-        if self.LF.is_set:
+            self.Q_loss.val = self.Q.val-self.Q_total.val
+            self.LF.val = -self.Q_loss.val / self.Q.val
+        elif self.LF.is_set:
             self.Q_total.val = self.Q.val * (1+self.LF.val)
-        
+            self.Q_loss.val = self.Q.val-self.Q_total.val
+        else:
+            self.Q_total.val = self.Q.val-self.Q_loss.val
+            self.LF.val = -self.Q_loss.val/self.Q.val        
 
 
 class MergeWithPressureLoss(Merge):

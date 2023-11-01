@@ -12,8 +12,7 @@ from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWith
 import logging
 #logging.basicConfig(level=logging.DEBUG)
 
-fluid_list = ['HEOS::Water','INCOMP::PHE','INCOMP::S800']
-network = Network(fluids=fluid_list, m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
+network = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
 
 # Objects
 source              = Source('source')
@@ -56,24 +55,24 @@ c13 = Connection(drier, 'out2', vapourextract2, 'in1')
 network.add_conns(c1,c2,c3,c4a,c4b,c5,c6,c7,c8,c9,c10,c11,c12,c13)
 
 # set global guess values
-m0 = 100    # transform unit at some point 
+m0 = 100    # transform unit at some point [this is kt/yr]
 h0 = 1e2    # global guess value in kJ/kg
 p0 = 5      # global guess value in bar
 
 for c in network.conns['object']:
-    n_fl = len(network.fluids)
-    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'Water': 1/n_fl, 'S800': 1/n_fl, 'PHE': 1/n_fl})
+    # n_fl = len(network.fluids)
+    c.set_attr(m0=m0,h0=h0,p0=p0)#,fluid0={'Water': 1/n_fl, 'INCOMP::S800': 1/n_fl, 'INCOMP::PHE': 1/n_fl})
     c.set_attr(p=p0)
 
 # set conditions around boiler
-c1.set_attr(fluid={'Water': 0.80,'PHE': 0.15,'S800': 0.05}, m=m0, T=5)
+c1.set_attr(fluid={'Water': 0.8,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05}, m=m0, T=5, mixing_rule="incompressible")
 c2.set_attr(T=95)
 
 # set conditions around press
 press.set_attr(SFS={
     'val': 0.7, 'is_set': True,
     'split_fluid' : 'PHE', 'split_outlet' : "out1"})
-c3.set_attr(fluid={'Water': 0.5, 'S800': 0.05, 'PHE': 0.45})
+c3.set_attr(fluid={'Water': 0.50, 'INCOMP::S800': 0.05, 'INCOMP::PHE': 0.45})
 c3.set_attr(T=85)
 c4a.set_attr(T=85)
 c4b.set_attr(T=95)
@@ -83,7 +82,7 @@ c4b.set_attr(T=95)
 decanter.set_attr(SFS={
     'val': 0.3, 'is_set': True,
     'split_fluid' : 'PHE', 'split_outlet' : "out1"})
-c5.set_attr(fluid={'Water': 0.60, 'S800': 0.05, 'PHE': 0.35})
+c5.set_attr(fluid={'Water': 0.60, 'INCOMP::S800': 0.05, 'INCOMP::PHE': 0.35})
 c5.set_attr(T=90)
 c6.set_attr(T=90)
 
@@ -91,13 +90,13 @@ c6.set_attr(T=90)
 centrifuge.set_attr(SFS={
     'val': 0.8, 'is_set': True,
     'split_fluid' : 'S800', 'split_outlet' : "out2"})
-c8.set_attr(fluid={'Water': 0, 'S800': 0.99, 'PHE': 0.01})
+c8.set_attr(fluid={'Water': 0, 'INCOMP::S800': 0.99, 'INCOMP::PHE': 0.01})
 c7.set_attr(T=45)
 c8.set_attr(T=80)
 
 # set conditions around thickener
-c10.set_attr(fluid={'Water': 1, 'S800': 0, 'PHE': 0})
-c9.set_attr(fluid={'PHE': 0.25})
+c10.set_attr(fluid={'Water': 1, 'INCOMP::S800': 0, 'INCOMP::PHE': 0})
+c9.set_attr(fluid={'INCOMP::PHE': 0.25})
 c10.set_attr(T=105)
 c9.set_attr(T=105)
 
@@ -108,7 +107,7 @@ c10.set_attr(p=p0)
 
 # set conditions around drier
 c12.set_attr(fluid={'Water': 0.1})
-c13.set_attr(fluid={'Water': 1, 'S800': 0, 'PHE': 0})
+c13.set_attr(fluid={'Water': 1, 'INCOMP::S800': 0, 'INCOMP::PHE': 0})
 c12.set_attr(T=100)
 c13.set_attr(T=100)
 

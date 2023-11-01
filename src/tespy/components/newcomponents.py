@@ -1,6 +1,6 @@
 import logging
 
-from tespy.components import HeatExchangerSimple, Merge, Separator, Splitter
+from tespy.components import SimpleHeatExchanger, Merge, Separator, Splitter
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
@@ -9,7 +9,7 @@ from tespy.components.component import Component
 
 import numpy as np
 
-class DiabaticSimpleHeatExchanger(HeatExchangerSimple):
+class DiabaticSimpleHeatExchanger(SimpleHeatExchanger):
 
     @staticmethod
     def component():
@@ -94,24 +94,24 @@ class DiabaticSimpleHeatExchanger(HeatExchangerSimple):
             self.Q_total.val = self.Q.val - self.Q_loss.val
 
 
-class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
+class SimpleHeatExchangerDeltaP(SimpleHeatExchanger):
 
     @staticmethod
     def component():
-        return 'diabatic simple heat exchanger'
+        return 'simple heat exchanger with pressure drop'
 
     def get_parameters(self):
         variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
+            deriv=self.deltaP_deriv,
+            func=self.deltaP_func,
             latex=self.pr_func_doc,
             num_eq=1,
         )
         return variables
 
-    def pr_func(self):
+    def deltaP_func(self):
         r"""
         Equation for pressure drop.
 
@@ -127,9 +127,9 @@ class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
 
         return self.inl[0].p.val_SI - self.deltaP.val*1e5 - self.outl[0].p.val_SI
 
-    def pr_deriv(self, increment_filter, k):
+    def deltaP_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
         r"""
-        Calculate the partial derivatives for combustion pressure ratio.
+        Calculate the partial derivatives for pressure drop.
 
         Parameters
         ----------
@@ -138,16 +138,35 @@ class HeatExchangerSimpleDeltaP(HeatExchangerSimple):
 
         k : int
             Position of equation in Jacobian matrix.
+
+        pr : str
+            Component parameter to evaluate the pr_func on, e.g.
+            :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
         """
-        self.jacobian[k, 0, 1] = 1 #self.pr.val
-        self.jacobian[k, self.num_i, 1] = -1
+        
+        deltaP = self.get_attr("deltaP")
+        i = self.inl[inconn]
+        o = self.outl[inconn]
+        if i.p.is_var:
+            self.jacobian[k, i.p.J_col] = 1
+        if o.p.is_var:
+            self.jacobian[k, o.p.J_col] = -1
+        if deltaP.is_var:
+            self.jacobian[k, self.pr.J_col] = 1
+
 
     def calc_parameters(self):
         super().calc_parameters()
         self.deltaP.val = (self.inl[0].p.val_SI - self.outl[0].p.val_SI)/1e5
 
 
-class HeatExchangerSimpleDeltaPLossFactor(HeatExchangerSimpleDeltaP):
+class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
 
     @staticmethod
     def component():

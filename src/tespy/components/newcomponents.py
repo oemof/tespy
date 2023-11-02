@@ -511,22 +511,6 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
         r"""
         Calculate the value of the bus function.
 
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
         """
         return np.sum([o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI) for o in self.outl])
 
@@ -552,29 +536,28 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
         r"""
         Calculate partial derivatives of the bus function.
 
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
         """
-#        for o in self.outl:
-#            self.Qout.val += [o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI)]
-#        return np.sum(self.Qout.val)
 
-        deriv = np.zeros((1, len(self.outl)+1, self.num_nw_vars))
         f = self.calc_bus_value
-        deriv[0, 0, 2] = self.numeric_deriv(f, 'h', 0, bus=bus)
-        i = 0
+        if self.inl[0].m.is_var:
+            if self.inl[0].m.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col] = 0
+            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+
+        if self.inl[0].h.is_var:
+            if self.inl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col] = 0
+            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+
         for o in self.outl:
-            i = i+1
-            deriv[0, i, 0] = self.numeric_deriv(f, 'm', i, bus=bus)
-            deriv[0, i, 2] = self.numeric_deriv(f, 'h', i, bus=bus)
-        return deriv
+            if o.h.is_var:
+                if o.h.J_col not in bus.jacobian:
+                    bus.jacobian[o.h.J_col] = 0
+                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)        
+            if o.m.is_var:
+                if o.m.J_col not in bus.jacobian:
+                    bus.jacobian[o.m.J_col] = 0
+                bus.jacobian[o.m.J_col] -= self.numeric_deriv(f, 'm', o, bus=bus)        
 
 
 class SplitterWithPressureLoss(Splitter):

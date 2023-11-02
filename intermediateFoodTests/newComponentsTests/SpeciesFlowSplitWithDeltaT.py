@@ -13,6 +13,8 @@ from tespy.components.newcomponents import \
     DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsAndDeltaT
 
+logging.basicConfig(level=logging.DEBUG)
+
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
@@ -35,9 +37,6 @@ nw.add_conns(c1, c2, c3)
 m0 = 1    # transform unit at some point [this is kt/yr]
 h0 = 1e2        # global guess value in kJ/kg
 p0 = 5        # global guess value in bar
-
-# for c in nw.conns['object']:
-#     c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'INCOMP::Water': 1/3, 'INCOMP::FoodFat': 1/3, 'INCOMP::T66': 1/3}, mixing_rule="incompressible")
 
 # set some generic data for starting values
 c1.set_attr(m=1, p=1.2, h=1e2, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")

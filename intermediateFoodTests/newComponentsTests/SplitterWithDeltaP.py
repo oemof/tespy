@@ -11,6 +11,8 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
 from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits,SplitterWithPressureLoss
 
+logging.basicConfig(level=logging.DEBUG)
+
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?

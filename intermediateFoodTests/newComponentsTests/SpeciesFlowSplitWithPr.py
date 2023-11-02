@@ -13,10 +13,12 @@ from tespy.components.newcomponents import \
     DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsAndDeltaT, SeparatorWithSpeciesSplitsAndDeltaTAndPr, SeparatorWithSpeciesSplitsAndPr
 
+logging.basicConfig(level=logging.DEBUG)
+
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
-fluids = ["INCOMP::FoodWater", "INCOMP::FoodProtein"]
+fluids = ["INCOMP::Water", "INCOMP::T66"]
 nw = Network(fluids=fluids, m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e3], iterinfo=True)
 
 so = Source("Source")
@@ -37,47 +39,42 @@ p0 = 5        # global guess value in bar
 
 for c in nw.conns['object']:
     n_fl = 2 # len(nw.fluids)
-    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'INCOMP::FoodWater': 1/n_fl, 'INCOMP::FoodProtein': 1/n_fl})
+    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'INCOMP::Water': 1/n_fl, 'INCOMP::T66': 1/n_fl})
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=5, h=h0, fluid={"INCOMP::FoodWater": 0.9, "INCOMP::FoodProtein": 0.1}, mixing_rule="incompressible")
-c2.set_attr(fluid={"INCOMP::FoodWater": 0.8, "INCOMP::FoodProtein": 0.2})
-#c3.set_attr(fluid={"FoodProtein": 0.1})
+c1.set_attr(m=1, p=5, h=h0, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
+c2.set_attr(fluid={"INCOMP::Water": 0.8, "INCOMP::T66": 0.2})
+#c3.set_attr(fluid={"T66": 0.1})
 
 se.set_attr(SFS={
     'val': 0.65, 'is_set': True, 
-    'split_fluid' : 'FoodProtein', 'split_outlet' : "out1"})
+    'split_fluid' : 'T66', 'split_outlet' : "out1"})
 
 
-# Now it is possible to set the temperatures out of the separator differently
-#c2.set_attr(p=5)
-#c3.set_attr(p=5)
-
-se.set_attr(deltaP=0)
-
-# Or to use a deltaT array instead
-#se.set_attr(deltaT=[-10,-20])
-#se.set_attr(deltaT=[0,0])
-
-# # add some guess values
-# c2.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"FoodWater": 0.5, "FoodProtein": 0.5})
-# c3.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"FoodWater": 0.5, "FoodProtein": 0.5})
+se.set_attr(deltaP=1.2)
 
 nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
 nw.print_results()
-
 print(nw.results['Connection'])
-
-m_FoodProtein_c1 = c1.m.val * c1.fluid.val['FoodProtein']
-m_FoodProtein_c2 = c2.m.val * c2.fluid.val['FoodProtein']
-
-
-print(f"\n Species flow split is {m_FoodProtein_c2/m_FoodProtein_c1}")
-
-#print(f"\n heat flows are  {se.Q.val}")
-#print(se.Qout.val)
-
+m_T66_c1 = c1.m.val * c1.fluid.val['T66']
+m_T66_c2 = c2.m.val * c2.fluid.val['T66']
+print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
 print(f"\n")
 
 
+# Now it is possible to set the pressures
+c2.set_attr(p=4)
+c3.set_attr(p=3)
+se.set_attr(deltaP=None)
 
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+m_T66_c1 = c1.m.val * c1.fluid.val['T66']
+m_T66_c2 = c2.m.val * c2.fluid.val['T66']
+print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
+print(f"\n")

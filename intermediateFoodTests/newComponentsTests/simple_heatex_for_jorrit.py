@@ -5,6 +5,8 @@ from tespy.components import HeatExchangerSimple, Source, Sink
 from tespy.connections import Connection
 from tespy.networks import Network
 
+logging.basicConfig(level=logging.DEBUG)
+
 # fluid and network
 fluids = ["INCOMP::Water", "INCOMP::T66"]
 nw = Network(fluids=fluids, p_unit="bar", T_unit="C")

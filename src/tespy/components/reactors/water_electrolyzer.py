@@ -1037,6 +1037,10 @@ class WaterElectrolyzer(Component):
     def is_branch_source():
         return True
 
+    @staticmethod
+    def is_wrapper_branch_source():
+        return True
+
     def start_branch(self):
         branches = {}
         for outconn in self.outl[1:]:

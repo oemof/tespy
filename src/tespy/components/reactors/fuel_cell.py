@@ -708,10 +708,12 @@ class FuelCell(Component):
         )
         return val
 
-
-
     @staticmethod
     def is_branch_source():
+        return True
+
+    @staticmethod
+    def is_wrapper_branch_source():
         return True
 
     def start_branch(self):

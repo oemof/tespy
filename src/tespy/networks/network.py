@@ -724,9 +724,7 @@ class Network:
     def create_fluid_wrapper_branches(self):
 
         self.fluid_wrapper_branches = {}
-        mask = self.comps["comp_type"].isin(
-            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
-        )
+        mask = self.comps["object"].apply(lambda c: c.is_wrapper_branch_source())
         start_components = self.comps["object"].loc[mask]
 
         for start in start_components:

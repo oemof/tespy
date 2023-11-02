@@ -131,6 +131,10 @@ class CycleCloser(Component):
     def is_branch_source():
         return True
 
+    @staticmethod
+    def is_wrapper_branch_source():
+        return True
+
     def start_branch(self):
         outconn = self.outl[0]
         branch = {

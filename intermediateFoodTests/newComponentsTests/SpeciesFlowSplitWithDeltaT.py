@@ -16,7 +16,7 @@ from tespy.components.newcomponents import \
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
-fluids = ["INCOMP::FoodWater", "INCOMP::FoodProtein"]
+fluids = ["INCOMP::Water", "INCOMP::T66"]
 nw = Network(fluids=fluids, m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e3], iterinfo=True)
 
 so = Source("Source")
@@ -36,50 +36,46 @@ m0 = 1    # transform unit at some point [this is kt/yr]
 h0 = 1e2        # global guess value in kJ/kg
 p0 = 5        # global guess value in bar
 
-for c in nw.conns['object']:
-    n_fl = len(nw.fluids)
-    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'FoodWater': 1/n_fl, 'FoodFat': 1/n_fl, 'FoodProtein': 1/n_fl})
+# for c in nw.conns['object']:
+#     c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'INCOMP::Water': 1/3, 'INCOMP::FoodFat': 1/3, 'INCOMP::T66': 1/3}, mixing_rule="incompressible")
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, T=50, fluid={"FoodWater": 0.9, "FoodProtein": 0.1})
-c2.set_attr(fluid={"FoodWater": 0.8, "FoodProtein": 0.2})
-#c3.set_attr(fluid={"FoodProtein": 0.1})
+c1.set_attr(m=1, p=1.2, h=1e2, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
+#c1.set_attr(m=1, p=1.2, T=50, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1})
+#c1.set_attr(T0=10) # it seems guess values are SI 
+
+c2.set_attr(fluid={"INCOMP::Water": 0.8, "INCOMP::T66": 0.2})
 
 se.set_attr(SFS={
     'val': 0.6, 'is_set': True, 
-    'split_fluid' : 'FoodProtein', 'split_outlet' : "out1"})
+    'split_fluid' : 'T66', 'split_outlet' : "out1"})
 
+se.set_attr(deltaT=5)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+m_T66_c1 = c1.m.val * c1.fluid.val['T66']
+m_T66_c2 = c2.m.val * c2.fluid.val['T66']
+print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
+print(f"\n")
 
-se.set_attr(deltaT=2)
-#se.set_attr(Q_loss=0)
 
 # Now it is possible to set the temperatures out of the separator differently
-# c2.set_attr(T=20)
-# c3.set_attr(T=10)
+se.set_attr(deltaT=None)
+c2.set_attr(T=20)
+c3.set_attr(T=10)
 
-# Or to use a deltaT array instead
-#se.set_attr(deltaT=[-10,-20])
-#se.set_attr(deltaT=[0,0])
-
-# # add some guess values
-# c2.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"FoodWater": 0.5, "FoodProtein": 0.5})
-# c3.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"FoodWater": 0.5, "FoodProtein": 0.5})
 
 nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
 nw.print_results()
-
 print(nw.results['Connection'])
-
-m_FoodProtein_c1 = c1.m.val * c1.fluid.val['FoodProtein']
-m_FoodProtein_c2 = c2.m.val * c2.fluid.val['FoodProtein']
-
-
-print(f"\n Species flow split is {m_FoodProtein_c2/m_FoodProtein_c1}")
-
-print(f"\n Q loss  {se.Q_loss.val}")
-
-
-
+m_T66_c1 = c1.m.val * c1.fluid.val['T66']
+m_T66_c2 = c2.m.val * c2.fluid.val['T66']
+print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
 print(f"\n")
 
 

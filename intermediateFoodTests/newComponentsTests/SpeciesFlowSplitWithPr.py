@@ -36,12 +36,12 @@ h0 = 1e2        # global guess value in kJ/kg
 p0 = 5        # global guess value in bar
 
 for c in nw.conns['object']:
-    n_fl = len(nw.fluids)
-    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'FoodWater': 1/n_fl, 'FoodFat': 1/n_fl, 'FoodProtein': 1/n_fl})
+    n_fl = 2 # len(nw.fluids)
+    c.set_attr(m0=m0,h0=h0,p0=p0,fluid0={'INCOMP::FoodWater': 1/n_fl, 'INCOMP::FoodProtein': 1/n_fl})
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=5, h=h0, fluid={"FoodWater": 0.9, "FoodProtein": 0.1})
-c2.set_attr(fluid={"FoodWater": 0.8, "FoodProtein": 0.2})
+c1.set_attr(m=1, p=5, h=h0, fluid={"INCOMP::FoodWater": 0.9, "INCOMP::FoodProtein": 0.1}, mixing_rule="incompressible")
+c2.set_attr(fluid={"INCOMP::FoodWater": 0.8, "INCOMP::FoodProtein": 0.2})
 #c3.set_attr(fluid={"FoodProtein": 0.1})
 
 se.set_attr(SFS={
@@ -50,8 +50,8 @@ se.set_attr(SFS={
 
 
 # Now it is possible to set the temperatures out of the separator differently
-# c2.set_attr(p=5)
-# c3.set_attr(p=4)
+#c2.set_attr(p=5)
+#c3.set_attr(p=5)
 
 se.set_attr(deltaP=0)
 

@@ -335,23 +335,15 @@ class SeparatorWithSpeciesSplits(Separator):
         Equation for SFS.
 
         """
-        # residual = []
-        # for fluid, x in self.inl[0].fluid.val.items():
-        #     res = x * self.inl[0].m.val_SI
-        #     for o in self.outl:
-        #         res -= o.fluid.val[fluid] * o.m.val_SI
-        #     residual += [res]
-        # return residual
 
         fluid = self.SFS.split_fluid
         out_i = int(self.SFS.split_outlet[3:]) - 1
-        inl = self.inl[0]
-        outl = self.outl[out_i]
+        i = self.inl[0]
+        o = self.outl[out_i]
 
-        res = inl.fluid.val[fluid] * inl.m.val_SI * self.SFS.val \
-            - outl.fluid.val[fluid] * outl.m.val_SI
+        res = i.fluid.val[fluid] * i.m.val_SI * self.SFS.val \
+            - o.fluid.val[fluid] * o.m.val_SI
 
-        #print(res)
         return res
 
     def SFS_deriv(self, increment_filter, k):
@@ -360,50 +352,22 @@ class SeparatorWithSpeciesSplits(Separator):
 
         """
 
-        # j=0
-        # self.jacobian[k, j, 0] = self.inl[j].fluid.val[self.split_fluid] * self.TS.val
-        # self.jacobian[k, j, i + 3] = self.inl[j].m.val_SI * self.TS.val
-
-        # i = 0
-        # for fluid, x in self.outl[0].fluid.val.items():
-        #     j = 0
-        #     for inl in self.inl:
-        #         self.jacobian[k, j, 0] = inl.fluid.val[fluid]
-        #         self.jacobian[k, j, i + 3] = inl.m.val_SI
-        #         j += 1
-        #     self.jacobian[k, j, 0] = -x
-        #     self.jacobian[k, j, i + 3] = -self.outl[0].m.val_SI
-        #     i += 1
-        #     k += 1
-
-        fluid_index = list(self.inl[0].fluid.val.keys()).index(self.SFS.split_fluid)
         fluid = self.SFS.split_fluid
         out_i = int(self.SFS.split_outlet[3:]) - 1
 
-        i = fluid_index
-        j = 0
-        inl = self.inl[0]
-        outl = self.outl[out_i]
-        if inl.m.is_var:
-            self.jacobian[k, inl.m.J_col] = inl.fluid.val[fluid] * self.SFS.val
-
-        if fluid in inl.fluid.is_var:
-            self.jacobian[k, inl.fluid.J_col[fluid]] = inl.m.val_SI * self.SFS.val
-
-        if outl.m.is_var:
-            self.jacobian[k, outl.m.J_col] = -outl.fluid.val[fluid]
-        if fluid in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[fluid]] = -outl.m.val_SI
-
-        #print(self.jacobian)
-        #print(self.jacobian[k,:,:])
-
-
+        i = self.inl[0]
+        o = self.outl[out_i]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = i.fluid.val[fluid] * self.SFS.val
+        if fluid in i.fluid.is_var:
+            self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI * self.SFS.val
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
+        if fluid in o.fluid.is_var:
+            self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
 
 
 class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
-
-
 
     @staticmethod
     def component():
@@ -428,28 +392,35 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
 
     def energy_balance_deltaT_func(self):
         r"""
-        Calculate delta T derivatives.
+        Calculate deltaT residuals.
 
         """
+        i = self.inl[0]
+        if i.T.is_set:
+            T_in = i.T.val_SI
+        else:
+            # calculate T_in
+            if i.T.val0 > 0:
+                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule,i.T.val0) 
+            else:
+                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule) 
+        
         residual = []
-        T_in = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
-        i=0
         for o in self.outl:
-            residual += [T_in - self.deltaT.val - T_mix_ph(o.get_flow(), T0=o.T.val_SI)]
-            i+=1
+            residual += [T_in - self.deltaT.val - T_mix_ph(o.p.val_SI,o.h.val_SI,o.fluid_data,o.mixing_rule, T0=T_in)] # use T_in as guess
         return residual
 
     def calc_parameters(self):
         super().calc_parameters()
-        self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - self.inl[0].h.val_SI) for o in self.outl])
+        i = self.inl[0]
+        self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl])
 
-        Tmin = min([i.T.val_SI for i in self.outl])
-        Tmax = max([i.T.val_SI for i in self.outl])
-        if abs(self.inl[0].T.val_SI - Tmin) >= abs(self.inl[0].T.val_SI - Tmax):
-            self.deltaT.val = self.inl[0].T.val_SI - Tmin
+        Tmin = min([o.T.val_SI for o in self.outl])
+        Tmax = max([o.T.val_SI for o in self.outl])
+        if abs(i.T.val_SI - Tmin) >= abs(i.T.val_SI - Tmax):
+            self.deltaT.val = i.T.val_SI - Tmin
         else:
-            self.deltaT.val = self.inl[0].T.val_SI - Tmax
-        # self.inl[0].T.val_SI - min([i.T.val_SI for i in self.outl])
+            self.deltaT.val = i.T.val_SI - Tmax
 
 class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
 
@@ -489,12 +460,14 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
         Calculate the partial derivatives for pressure drop
 
         """
-        j = 0
-        for c in self.outl:
-            self.jacobian[k, 0, 1] = 1
-            self.jacobian[k, j + 1, 1] = -1
-            j += 1
-            k += 1
+
+        i = self.inl[0]
+        for o in self.outl:
+            if i.p.is_var:
+                self.jacobian[k, i.p.J_col] = 1
+            if o.p.is_var:                
+                self.jacobian[k, o.p.J_col] = -1
+            k += 1            
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -519,8 +492,8 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDelt
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        del constraints['pressure_constraints']
-        del constraints['energy_balance_constraints']
+        #del constraints['pressure_constraints']
+        #del constraints['energy_balance_constraints']
         return constraints
 
 

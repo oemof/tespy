@@ -33,7 +33,7 @@ c2 = Connection(he, "out1", si, "in1", label="4")
 nw.add_conns(c1, c2)
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, T=30, fluid={'INCOMP::Water': 0.80,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05})
+c1.set_attr(m=1, p=1.2, T=30, fluid={'INCOMP::Water': 0.80,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05}, mixing_rule="incompressible")
 c2.set_attr(T=50)
 
 # set pressure ratios of heater and merge

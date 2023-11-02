@@ -29,41 +29,25 @@ c3 = Connection(se, "out2", si2, "in1", label="3")
 nw.add_conns(c1, c2, c3)
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, T=30, fluid={"Water": 0.9, "T66": 0.1})
+c1.set_attr(m=1, p=1.2, T=30, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 
 # set compositions 
-c2.set_attr(fluid={"Water": 0.85, "T66": 0.15})
-# or others 
-#c3.set_attr(fluid={"Water": 0.85, "T66": 0.15})
-# or others
-#c2.set_attr(fluid={"Water": 0.85})
-#c3.set_attr(fluid={"Water": 1})
+c2.set_attr(fluid={"INCOMP::Water": 0.85, "INCOMP::T66": 0.15})
 
-# This one produce error because T66 is 0 and the equation cannot be solved.. 
-#c2.set_attr(fluid={"Water": 1, "T66": 0.0})
-
-# specify this one to avoid using the species flow split : SFS  
-#c2.set_attr(m=0.5)
-# set the species flow split, specify the fluid and the outlet too.. (we might need some checks of this)
 se.set_attr(SFS={
     'val': 0.6, 'is_set': True, 
     'split_fluid' : 'T66', 'split_outlet' : "out1"})
-
-# add some guess values
-c2.set_attr(m0=0.5,p0=1.2,h0=1e5,T0=50,fluid0={"Water": 0.5, "T66": 0.5})
-c3.set_attr(m0=0.5,p0=1.2,h0=1e5,T0=50,fluid0={"Water": 0.5, "T66": 0.5})
-
 nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
 nw.print_results()
-
 print(nw.results['Connection'])
 
-m_T66_c1 = c1.m.val * c1.fluid.val['T66']
-m_T66_c2 = c2.m.val * c2.fluid.val['T66']
-
-print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
-
-print(f"\n heat flows are  {se.Q.val}")
-print(f"\n")
-
-
+se.set_attr(SFS={
+    'val': 0.6, 'is_set': True, 
+    'split_fluid' : 'Water', 'split_outlet' : "out1"})
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])

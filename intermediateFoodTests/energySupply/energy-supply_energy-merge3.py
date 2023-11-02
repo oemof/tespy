@@ -16,7 +16,7 @@ from CoolProp.CoolProp import PropsSI
 
 
 
-fluid_list = ['INCOMP::FoodWater']
+fluid_list = ['INCOMP::Water']
 network = Network(fluids=fluid_list, m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e3], iterinfo=True)
 
 # Objects
@@ -42,11 +42,11 @@ c2.set_attr(m=m0/4)
 
 # guess
 for c in network.conns['object']:
-    c.set_attr(m0=m0,h0=0,p0=1,fluid0={'FoodWater': 1})
+    c.set_attr(m0=m0,h0=0,p0=1,fluid0={'INCOMP::Water': 1}, mixing_rule="incompressible")
 
 # arbitray values
-c1.set_attr(h=0,p=1,fluid={'FoodWater': 1})
-c2.set_attr(h=0,p=1,fluid={'FoodWater': 1})
+c1.set_attr(h=0,p=1,fluid={'INCOMP::Water': 1})
+c2.set_attr(h=0,p=1,fluid={'INCOMP::Water': 1})
 c3.set_attr(h=0,p=1)
 # merge already propergate h, p and fluid
 

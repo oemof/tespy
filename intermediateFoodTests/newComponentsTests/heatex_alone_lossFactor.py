@@ -20,8 +20,8 @@ logging.basicConfig(level=logging.DEBUG)
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
-fluids = ["INCOMP::FoodWater", "INCOMP::FoodProtein"]
-nw = Network(fluids=fluids, p_unit="bar", T_unit="C")
+
+nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
 
 so = Source("Source")
 #  Variant 2: Q is m (h_2 - h_1), Q_total is taking efficiency into account and represents the heat transfer over system
@@ -48,12 +48,33 @@ c1.set_attr(m=1, p=2.2, T=30)
 # set pressure ratios of heater and merge
 he.set_attr(deltaP=1)
 
-he.set_attr(LF=0.1) # MRK so eta is (1-hlf) heat loss factor
-#he.set_attr(Q_total=8.16e+04) # MRK so eta is (1-hlf) heat loss factor
-he.set_attr(Q_loss=-7.42e+03) # MRK so eta is (1-hlf) heat loss factor
-
+he.set_attr(LF=0.1) 
+he.set_attr(Q_total=8.16e+04) 
+#he.set_attr(Q_loss=-7.42e+03)
 nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
 nw.print_results()
+
+he.set_attr(LF=None)
+he.set_attr(Q_total=8.16e+04) 
+he.set_attr(Q_loss=-7.42e+03) 
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+
+he.set_attr(LF=0.1)
+he.set_attr(Q_total=None) 
+he.set_attr(Q_loss=-7.42e+03) 
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+
+
+
+
 
 # print(nw.results['Connection'])
 # he.Q.val

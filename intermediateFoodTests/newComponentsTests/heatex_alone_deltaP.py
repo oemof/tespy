@@ -2,7 +2,6 @@
 
 import logging
 
-
 from tespy.components import SimpleHeatExchanger, Source, Sink, Merge, Separator 
 from tespy.tools import ComponentProperties
 from tespy.connections import Connection
@@ -19,10 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
-#fluids = ["INCOMP::FoodWater", "INCOMP::FoodProtein"]
-#nw = Network(p_unit="bar", T_unit="C", iterinfo=True)
 nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
-
 
 so = Source("Source")
 #  Variant 2: Q is m (h_2 - h_1), Q_total is taking efficiency into account and represents the heat transfer over system
@@ -59,9 +55,18 @@ he.set_attr(deltaP=0.1)
 #he.set_attr(Q_loss=-7851.921461139966) # MRK so eta is (1-hlf) heat loss factor
 
 nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
 nw.print_results()
 
-# print(nw.results['Connection'])
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+
 # he.Q.val
 # he.Q_loss.val
 # he.Q_total.val

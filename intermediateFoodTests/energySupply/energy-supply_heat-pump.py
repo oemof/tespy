@@ -21,7 +21,7 @@ network = Network(fluids=fluid_list, m_unit='kg / s', p_unit='bar', T_unit='C',h
 
 # Objects
 PurchasedElectricity  = Source('PurchasedElectricity')
-HeatPump              = MassFactorVCCEnergySupply('HeatPump')
+HeatPump              = MassFactorEnergySupply('HeatPump')
 Heating             = Sink('Consumer1')
 Cooling             = Sink('Consumer2')
 

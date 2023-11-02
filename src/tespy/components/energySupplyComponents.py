@@ -7,7 +7,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 # Fictious Energy Supply models (energy flows modelled as mass flows)
 # No real use for tespy I guess
 
-class MassFactorVCC(Splitter):
+class MassFactorEnergySupply(Splitter):
 
     @staticmethod
     def component():
@@ -70,90 +70,11 @@ class MassFactorVCC(Splitter):
         self.COP.val = self.outl[0].m.val_SI / (self.outl[0].m.val_SI - (-self.outl[1].m.val_SI))
 
 
-
-class MassFactorVCCWithPressureLoss(MassFactorVCC):
-
-    @staticmethod
-    def component():
-        return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances)'
-
-    def get_parameters(self):
-        variables = super().get_parameters()
-        variables["pr"] = dc_cp(
-            min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
-            latex=self.pr_func_doc,
-            num_eq=1
-        )
-        return variables
-
-    def pr_func(self):
-        r"""
-        Equation for pressure drop.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
-        """
-        return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
-
-    def pr_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure ratio.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        self.jacobian[k, 0, 1] = self.pr.val
-        self.jacobian[k, self.num_i, 1] = -1
-
-    def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': True, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
-        }
-
-    def calc_parameters(self):
-        super().calc_parameters()
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        for i in range(self.num_i):
-            if self.inl[i].p.val < self.outl[0].p.val:
-                msg = (
-                    f"The pressure at inlet {i + 1} is lower than the pressure "
-                    f"at the outlet of component {self.label}."
-                )
-                logging.warning(msg)
-
-
-
-
-class MassFactorLossModel(Splitter):
+class MassLossEnergySupply(Splitter):
 
     @staticmethod
     def component():
-        return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances)'
+        return 'mass loss model for splitting energy flows (modelled using tespy mass balances)'
 
     def get_parameters(self):
         variables = super().get_parameters()
@@ -187,82 +108,6 @@ class MassFactorLossModel(Splitter):
         super().calc_parameters()
         self.Loss.val = (self.inl[0].m.val_SI - self.outl[0].m.val_SI)/self.inl[0].m.val_SI
 
-
-class MassFactorLossModelWithPressureLoss(MassFactorLossModel):
-
-    @staticmethod
-    def component():
-        return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances)'
-
-    def get_parameters(self):
-        variables = super().get_parameters()
-        variables["pr"] = dc_cp(
-            min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
-            latex=self.pr_func_doc,
-            num_eq=1
-        )
-        return variables
-
-    def pr_func(self):
-        r"""
-        Equation for pressure drop.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
-        """
-        return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
-
-    def pr_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure ratio.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        self.jacobian[k, 0, 1] = self.pr.val
-        self.jacobian[k, self.num_i, 1] = -1
-
-    def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': True, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
-        }
-
-    def calc_parameters(self):
-        super().calc_parameters()
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        for i in range(self.num_i):
-            if self.inl[i].p.val < self.outl[0].p.val:
-                msg = (
-                    f"The pressure at inlet {i + 1} is lower than the pressure "
-                    f"at the outlet of component {self.label}."
-                )
-                logging.warning(msg)
-
 class MergeEnergySupply(Merge):
 
     @staticmethod
@@ -294,24 +139,3 @@ class SplitterEnergySupply(Splitter):
         del constraints['pressure_constraints']
         del constraints['energy_balance_constraints']
         return constraints   
-
-class MassFactorVCCEnergySupply(MassFactorVCC):
-
-    @staticmethod
-    def component():
-        return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances, without pressure/enthalpy constraints)'
-
-    def get_parameters(self):
-        variables = super().get_parameters()
-        return variables
-
-class MassFactorLossModelEnergySupply(MassFactorLossModel):
-
-    @staticmethod
-    def component():
-        return 'mass factor loss model for splitting energy flows (modelled using tespy mass balances, without pressure/enthalpy constraints)'
-
-    def get_parameters(self):
-        variables = super().get_parameters()
-        return variables
-    

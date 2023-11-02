@@ -692,49 +692,39 @@ class SplitWithFlowSplitter(Splitter):
 
     def FS_func(self):
         r"""
-        Equation for pressure drop.
+        Equation for flow split.
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
 
         out_i = int(self.FS.split_outlet[3:]) - 1
         res = self.inl[0].m.val_SI * self.FS.val - self.outl[out_i].m.val_SI
-
-        #print(res)
         return res
 
     def FS_deriv(self, increment_filter, k):
         r"""
-        Calculate the partial derivatives for combustion pressure ratio.
+        Calculate the partial derivatives for flow split
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
         """
 
         out_i = int(self.FS.split_outlet[3:]) - 1
 
-        inl = self.inl[0]
-        outl = self.outl[out_i]
-        j = 0
-        if inl.m.is_var:
-            self.jacobian[k, inl.m.J_col]     = self.FS.val
-        if outl.m.is_var:
-            self.jacobian[k, outl.m.J_col]     = -1
+        i = self.inl[0]
+        o = self.outl[out_i]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col]     = self.FS.val
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col]     = -1
 
-        #print(self.jacobian)
-        #print(self.jacobian[k,:,:])
+
+class SplitWithFlowSplitterDeltaP(SplitWithFlowSplitter, SplitterWithPressureLoss):
+
+    @staticmethod
+    def component():
+        return 'splitter with flow split ratios and pressure drop'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        return variables
 
 
 #%% Class containers

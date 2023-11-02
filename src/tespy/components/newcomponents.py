@@ -63,24 +63,30 @@ class DiabaticSimpleHeatExchanger(SimpleHeatExchanger):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
+
+
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = (o.h.val_SI - i.h.val_SI)
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
         # custom variable Q
         if self.Q_total.is_var:
             if self.Q_total.val < 0:
-                self.jacobian[k, 2 + self.Q.var_pos, 0] = -1
+                self.jacobian[k, self.Q_total.J_col] = -1
             else:
-                self.jacobian[k, 2 + self.Q.var_pos, 0] = -self.eta.val
+                self.jacobian[k, self.Q_total.J_col] = -self.eta.val
 
         if self.eta.is_var:
             if self.Q_total.val < 0:
-                self.jacobian[k, 2 + self.eta.var_pos, 0] = self.inl[0].m.val_SI * (
+                self.jacobian[k, self.eta.J_col] = self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI
                 )
             else:
-                self.jacobian[k, 2 + self.eta.var_pos, 0] = -self.Q_total.val
+                self.jacobian[k, self.eta.J_col] = -self.Q_total.val
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -204,11 +210,10 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
         if self.energy_group2.is_set:
             self.LF.val = -self.Q_loss.val/(self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI))
         if self.energy_group3.is_set:
-            self.Q_total.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.Q_loss.val
+            self.Q_total.val = -self.Q_loss.val*(1+self.LF.val)/self.LF.val 
 
         return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q_total.val
-
-        
+      
 
     def Q_total_deriv(self, increment_filter, k):
         r"""
@@ -225,9 +230,11 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = i.m.val_SI*(1+self.LF.val)
         if self.Q_total.is_var:
-            self.jacobian[k, self.Q.J_col] = -1
-        if self.LF.is_var or self.Q_loss.is_var: # if Q_loss solve LF equation
+            self.jacobian[k, self.Q_total.J_col] = -1
+        if self.LF.is_var: 
             self.jacobian[k, self.LF.J_col] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        if self.Q_loss.is_var:
+            self.jacobian[k, self.Q_loss.J_col] = -(1+self.LF.val)/self.LF.val
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -254,8 +261,8 @@ class MergeWithPressureLoss(Merge):
         variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
+            deriv=self.deltaP_deriv,
+            func=self.deltaP_func,
             latex=self.pr_func_doc,
             num_eq=1,
         )
@@ -291,39 +298,26 @@ class MergeWithPressureLoss(Merge):
                 'num_eq': 1}
         }
 
-    def pr_func(self):
+    def deltaP_func(self):
         r"""
         Equation for pressure drop.
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
         p_in_min = min([i.p.val_SI for i in self.inl])
         return p_in_min - self.deltaP.val*1e5 - self.outl[0].p.val_SI
 
-    def pr_deriv(self, increment_filter, k):
+    def deltaP_deriv(self, increment_filter, k):
         r"""
-        Calculate the partial derivatives for combustion pressure ratio.
+        Calculate the partial derivatives for pressure drop.
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
         """
         p_in = [i.p.val_SI for i in self.inl]
         p_min_index = p_in.index(min(p_in))
 
-        self.jacobian[k, p_min_index, 1] = 1 #self.pr.val
-        self.jacobian[k, self.num_i, 1] = -1
+        if self.inl[p_min_index].p.is_var:
+            self.jacobian[k, self.inl[p_min_index].p.J_col] = 1 #self.pr.val
+        if self.outl[0].p.is_var:
+            self.jacobian[k, self.outl[0].p.J_col] = -1
 
     def calc_parameters(self):
         super().calc_parameters()

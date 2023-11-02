@@ -2,8 +2,6 @@
 from tespy.components.component import Component
 
 from tespy.tools.fluid_properties.mixtures import xsat_pT_incomp_solution
-# this runs the references calculations and imports all variables from there
-from sorption_reference import *
 
 
 class Absorber(Component):
@@ -168,6 +166,7 @@ class Absorber(Component):
 
         outconn = self.outl[0]
         branch["connections"] += [outconn]
+        branch["components"] += [self]
         outconn.target.propagate_wrapper_to_target(branch)
 
 
@@ -177,6 +176,8 @@ if __name__ == "__main__":
     from tespy.networks import Network
     from tespy.connections import Connection
 
+    # this runs the references calculations and imports all variables from there
+    from sorption_reference import *
 
     nw = Network()
 
@@ -197,14 +198,14 @@ if __name__ == "__main__":
     c3.set_attr(h=h_sol_abs_out, p0=0.01e5, m0=m_rich)
 
     nw.solve("design")
+    nw.print_results()
+    print(c3.fluid.val)
 
     c2.set_attr(m=10)
     c3.set_attr(h=None)
 
     nw.solve("design")
     nw.print_results()
-    print(c3.fluid.val)
-    print(c2.fluid.val)
 
     print(c1.m.val_SI * c1.h.val_SI + c2.m.val_SI * c2.h.val_SI - c3.m.val_SI * c3.h.val_SI)
 

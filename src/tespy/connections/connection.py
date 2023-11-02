@@ -918,7 +918,8 @@ class Connection:
                 msg = (
                     "Could not find a feasible value for mixture temperature at "
                     f"connection {self.label}. The values for temperature, "
-                    "specific volume, volumetric flow and entropy are set to nan."
+                    "specific volume, volumetric flow and entropy are set to nan. "
+                    f"The deviation is {h_from_T - self.h.val_SI} J/kg."
                 )
                 logger.error(msg)
                 _converged = False

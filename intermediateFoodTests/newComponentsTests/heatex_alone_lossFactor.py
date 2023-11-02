@@ -39,7 +39,6 @@ c2 = Connection(he, "out1", si, "in1", label="4")
 nw.add_conns(c1, c2)
 
 # set some generic data for starting values
-#c1.set_attr(m=1, p=2.2, T=30, fluid={"FoodWater": 0.9, "FoodProtein": 0.1})
 c1.set_attr(fluid={'INCOMP::Water': 0.80,'INCOMP::PHE': 0.15,'INCOMP::S800': 0.05}, mixing_rule="incompressible")
 c1.set_attr(m=1, p=2.2, T=30)
 

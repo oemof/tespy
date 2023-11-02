@@ -13,6 +13,8 @@ from tespy.components.newcomponents import \
     DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsAndDeltaT, SeparatorWithSpeciesSplitsAndDeltaTAndPr
 
+logging.basicConfig(level=logging.DEBUG)
+
 # %%
 
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
@@ -62,7 +64,7 @@ print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
 print(f"\n")
 
 # deltaT
-se.set_attr(deltaT=0)
+se.set_attr(deltaT=5)
 c2.set_attr(T=None)
 c3.set_attr(T=None)
 
@@ -107,32 +109,3 @@ print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
 print(f"\n")
 
 
-# se.set_attr(deltaT=2)
-# se.set_attr(deltaP=1)
-
-# Or to use a deltaT array instead
-#se.set_attr(deltaT=[-10,-20])
-#se.set_attr(deltaT=[0,0])
-
-# # add some guess values
-# c2.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"Water": 0.5, "T66": 0.5})
-# c3.set_attr(m0=0.5,p0=1.2,T0=50,fluid0={"Water": 0.5, "T66": 0.5})
-
-# nw.solve("design")
-# nw.print_results()
-
-# print(nw.results['Connection'])
-
-# m_T66_c1 = c1.m.val * c1.fluid.val['T66']
-# m_T66_c2 = c2.m.val * c2.fluid.val['T66']
-
-
-# print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
-
-# print(f"\n heat flows are  {se.Q_loss.val}")
-# print(f"\n")
-
-
-
-
-# %%

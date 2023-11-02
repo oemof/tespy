@@ -20,7 +20,7 @@ c2 = Connection(he, "out1", si, "in1", label="4")
 nw.add_conns(c1, c2)
 
 # set some conditions on connections
-c1.set_attr(m=1, p=1.2, T=30, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1})
+c1.set_attr(m=1, p=1.2, T=30, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 c2.set_attr(T=50)
 
 # set some conditions on component

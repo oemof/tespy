@@ -35,7 +35,7 @@ c4 = Connection(me, "out1", si, "in1", label="4")
 nw.add_conns(c1, c2, c3, c4)
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, h=0.5e5, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1})
+c1.set_attr(m=1, p=1.2, h=0.5e5, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 c2.set_attr(h=2.2e5)
 # mix with pure water
 c3.set_attr(m=0.05, p=1.1, h=0.5e5, fluid={"INCOMP::Water": 1, "INCOMP::T66": 0})

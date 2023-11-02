@@ -147,12 +147,17 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
+    def _ensure_incomp_is_liquid(self,p,T):
+        self.AS.update(CP.QT_INPUTS, 0, T)
+        psat = self.AS.p() # pressure must always be greater than saturation for incompressibles
+        p = max(p,psat*(1+ERR))
+        if T == (self._T_max + self._T_min) / 2:
+            T += ERR
+        return p,T
+
     def h_pT(self, p, T):
         if self.back_end == "INCOMP":
-            if self.fluid == "Water":
-                T = min(T,CP.CoolProp.PropsSI("T","P",p,"Q",0,"HEOS::"+self.fluid))
-            if T == (self._T_max + self._T_min) / 2:
-                T += ERR
+            p,T = self._ensure_incomp_is_liquid(p,T)
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
 
@@ -186,6 +191,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.rhomass()
 
     def d_pT(self, p, T):
+        if self.back_end == "INCOMP":
+            p,T = self._ensure_incomp_is_liquid(p,T)        
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.rhomass()
 
@@ -198,6 +205,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.viscosity()
 
     def viscosity_pT(self, p, T):
+        if self.back_end == "INCOMP":
+            p,T = self._ensure_incomp_is_liquid(p,T)        
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.viscosity()
 
@@ -206,6 +215,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
     def s_pT(self, p, T):
+        if self.back_end == "INCOMP":
+            p,T = self._ensure_incomp_is_liquid(p,T)        
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.smass()
 

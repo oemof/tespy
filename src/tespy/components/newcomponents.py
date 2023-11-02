@@ -304,73 +304,6 @@ class MergeWithPressureLoss(Merge):
             self.deltaP.val = (Pmax - self.outl[0].p.val_SI)/1e5
 
 
-class SplitterWithPressureLoss(Splitter):
-
-    def __init__(self, label, **kwargs):
-        #self.set_attr(**kwargs)
-        # need to assign the number of outlets before the variables are set
-        for key in kwargs:
-            if key == 'num_out':
-                self.num_out=kwargs[key]
-        super().__init__(label, **kwargs)    
-
-    @staticmethod
-    def component():
-        return 'Splitter with pressure losses'
-
-    def get_parameters(self):
-        variables = super().get_parameters()
-        variables["deltaP"] = dc_cp(
-            min_val=0,
-            deriv=self.deltaP_deriv,
-            func=self.deltaP_func,
-            latex=self.pr_func_doc,
-            num_eq=self.num_out,
-        )
-        return variables
-
-    def get_mandatory_constraints(self):
-        constraints = super().get_mandatory_constraints()
-        del constraints['pressure_constraints']
-        return constraints
-
-    def deltaP_func(self):
-        r"""
-        Equation for pressure drop.
-
-        """
-        #return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
-        residual = []
-        p_in = self.inl[0].p.val_SI
-        for o in self.outl:
-            residual += [p_in - self.deltaP.val*1e5 - o.p.val_SI]
-        return residual
-
-    def deltaP_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure ratio.
-
-        """
-
-        i = self.inl[0]
-        for o in self.outl:
-            if i.p.is_var:
-                self.jacobian[k, i.p.J_col] = 1
-            if o.p.is_var:                
-                self.jacobian[k, o.p.J_col] = -1
-            k += 1
-
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        Pmin = min([i.p.val_SI for i in self.outl])
-        Pmax = max([i.p.val_SI for i in self.outl])
-        if abs(self.inl[0].p.val_SI - Pmin) >= abs(self.inl[0].p.val_SI - Pmax):
-            self.deltaP.val = (self.inl[0].p.val_SI - Pmin)/1e5
-        else:
-            self.deltaP.val = (self.inl[0].p.val_SI - Pmax)/1e5
-
-
 class SeparatorWithSpeciesSplits(Separator):
 
     def __init__(self, label, **kwargs):
@@ -671,7 +604,71 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
         return deriv
 
 
+class SplitterWithPressureLoss(Splitter):
 
+    def __init__(self, label, **kwargs):
+        #self.set_attr(**kwargs)
+        # need to assign the number of outlets before the variables are set
+        for key in kwargs:
+            if key == 'num_out':
+                self.num_out=kwargs[key]
+        super().__init__(label, **kwargs)    
+
+    @staticmethod
+    def component():
+        return 'Splitter with pressure losses'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["deltaP"] = dc_cp(
+            min_val=0,
+            deriv=self.deltaP_deriv,
+            func=self.deltaP_func,
+            latex=self.pr_func_doc,
+            num_eq=self.num_out,
+        )
+        return variables
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        return constraints
+
+    def deltaP_func(self):
+        r"""
+        Equation for pressure drop.
+
+        """
+        #return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
+        residual = []
+        p_in = self.inl[0].p.val_SI
+        for o in self.outl:
+            residual += [p_in - self.deltaP.val*1e5 - o.p.val_SI]
+        return residual
+
+    def deltaP_deriv(self, increment_filter, k):
+        r"""
+        Calculate the partial derivatives for combustion pressure ratio.
+
+        """
+
+        i = self.inl[0]
+        for o in self.outl:
+            if i.p.is_var:
+                self.jacobian[k, i.p.J_col] = 1
+            if o.p.is_var:                
+                self.jacobian[k, o.p.J_col] = -1
+            k += 1
+
+    def calc_parameters(self):
+        super().calc_parameters()
+
+        Pmin = min([i.p.val_SI for i in self.outl])
+        Pmax = max([i.p.val_SI for i in self.outl])
+        if abs(self.inl[0].p.val_SI - Pmin) >= abs(self.inl[0].p.val_SI - Pmax):
+            self.deltaP.val = (self.inl[0].p.val_SI - Pmin)/1e5
+        else:
+            self.deltaP.val = (self.inl[0].p.val_SI - Pmax)/1e5
 
 class SplitWithFlowSplitter(Splitter):
 

@@ -268,35 +268,10 @@ class MergeWithPressureLoss(Merge):
         )
         return variables
 
-
     def get_mandatory_constraints(self):
-
-
-        variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        num_fluid_eq = len(variable_fluids)
-
-        if num_fluid_eq == 0:
-            num_fluid_eq = len(self.inl[0].fluid.val)
-            num_m_eq = 0
-        else:
-            num_m_eq = 1
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': num_m_eq},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': num_fluid_eq},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1}
-        }
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        return constraints
 
     def deltaP_func(self):
         r"""
@@ -331,6 +306,14 @@ class MergeWithPressureLoss(Merge):
 
 class SplitterWithPressureLoss(Splitter):
 
+    def __init__(self, label, **kwargs):
+        #self.set_attr(**kwargs)
+        # need to assign the number of outlets before the variables are set
+        for key in kwargs:
+            if key == 'num_out':
+                self.num_out=kwargs[key]
+        super().__init__(label, **kwargs)    
+
     @staticmethod
     def component():
         return 'Splitter with pressure losses'
@@ -339,42 +322,22 @@ class SplitterWithPressureLoss(Splitter):
         variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
+            deriv=self.deltaP_deriv,
+            func=self.deltaP_func,
             latex=self.pr_func_doc,
             num_eq=self.num_out,
         )
         return variables
 
     def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': True, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_o * self.num_nw_fluids},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': True, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
-        }
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        return constraints
 
-    def pr_func(self):
+    def deltaP_func(self):
         r"""
         Equation for pressure drop.
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
         #return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
         residual = []
@@ -383,25 +346,18 @@ class SplitterWithPressureLoss(Splitter):
             residual += [p_in - self.deltaP.val*1e5 - o.p.val_SI]
         return residual
 
-    def pr_deriv(self, increment_filter, k):
+    def deltaP_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for combustion pressure ratio.
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
         """
-        # self.jacobian[k, 0, 1] = self.pr.val
-        # self.jacobian[k, self.num_i, 1] = -1
-        j = 0
-        for c in self.outl:
-            self.jacobian[k, 0, 1] = 1
-            self.jacobian[k, j + 1, 1] = -1
-            j += 1
+
+        i = self.inl[0]
+        for o in self.outl:
+            if i.p.is_var:
+                self.jacobian[k, i.p.J_col] = 1
+            if o.p.is_var:                
+                self.jacobian[k, o.p.J_col] = -1
             k += 1
 
     def calc_parameters(self):
@@ -426,7 +382,6 @@ class SeparatorWithSpeciesSplits(Separator):
         super().__init__(label, **kwargs)
 
 
-
     @staticmethod
     def component():
         return 'separator with species flow splits'
@@ -444,16 +399,8 @@ class SeparatorWithSpeciesSplits(Separator):
 
     def SFS_func(self):
         r"""
-        Equation for pressure drop.
+        Equation for SFS.
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
         # residual = []
         # for fluid, x in self.inl[0].fluid.val.items():
@@ -476,15 +423,8 @@ class SeparatorWithSpeciesSplits(Separator):
 
     def SFS_deriv(self, increment_filter, k):
         r"""
-        Calculate the partial derivatives for combustion pressure ratio.
+        Calculate the partial derivatives for SFS.
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
         """
 
         # j=0
@@ -549,48 +489,14 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
         return variables
 
     def get_mandatory_constraints(self):
-        self.variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        num_fluid_eq = len(self.variable_fluids)
-        if num_fluid_eq == 0:
-            num_fluid_eq = 1
-            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': num_fluid_eq},
-            # 'energy_balance_constraints': {
-            #     'func': self.energy_balance_func,
-            #     'deriv': self.energy_balance_deriv,
-            #     'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-            #     'num_eq': self.num_o},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1}
-        }
+        constraints = super().get_mandatory_constraints()
+        del constraints['energy_balance_constraints']
+        return constraints
 
     def energy_balance_deltaT_func(self):
         r"""
-        Calculate energy balance.
+        Calculate delta T derivatives.
 
-        Returns
-        -------
-        residual : list
-            Residual value of energy balance.
-
-            .. math::
-
-                0 = T_{in} - T_{out,j}\\
-                \forall j \in \text{outlets}
         """
         residual = []
         T_in = T_mix_ph(self.inl[0].get_flow(), T0=self.inl[0].T.val_SI)
@@ -622,25 +528,22 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
         variables = super().get_parameters()
         variables["deltaP"] = dc_cp(
             min_val=0,
-            deriv=self.pr_deriv,
-            func=self.pr_func,
+            deriv=self.deltaP_deriv,
+            func=self.deltaP_func,
             latex=self.pr_func_doc,
             num_eq=self.num_out,
         )
         return variables
 
-    def pr_func(self):
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        return constraints   
+
+    def deltaP_func(self):
         r"""
         Equation for pressure drop.
 
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
         """
         residual = []
         p_in = self.inl[0].p.val_SI
@@ -648,17 +551,10 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
             residual += [p_in - self.deltaP.val*1e5 - o.p.val_SI]
         return residual
 
-    def pr_deriv(self, increment_filter, k):
+    def deltaP_deriv(self, increment_filter, k):
         r"""
-        Calculate the partial derivatives for combustion pressure ratio.
+        Calculate the partial derivatives for pressure drop
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
         """
         j = 0
         for c in self.outl:
@@ -678,30 +574,6 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
             self.deltaP.val = (self.inl[0].p.val_SI - Pmax)/1e5
 
 
-    def get_mandatory_constraints(self):
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': self.num_nw_fluids},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
-            # 'pressure_constraints': {
-            #     'func': self.pressure_equality_func,
-            #     'deriv': self.pressure_equality_deriv,
-            #     'constant_deriv': True,
-            #     'latex': self.pressure_equality_func_doc,
-            #     'num_eq': self.num_i + self.num_o - 1}
-        }
-
-
 class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDeltaT, SeparatorWithSpeciesSplitsAndPr):
 
     @staticmethod
@@ -713,34 +585,10 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDelt
         return variables
 
     def get_mandatory_constraints(self):
-        self.variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        num_fluid_eq = len(self.variable_fluids)
-        if num_fluid_eq == 0:
-            num_fluid_eq = 1
-            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': num_fluid_eq},
-            # 'energy_balance_constraints': {
-            #     'func': self.energy_balance_func,
-            #     'deriv': self.energy_balance_deriv,
-            #     'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-            #     'num_eq': self.num_o},
-            # 'pressure_constraints': {
-            #     'func': self.pressure_equality_func,
-            #     'deriv': self.pressure_equality_deriv,
-            #     'constant_deriv': True,
-            #     'latex': self.pressure_equality_func_doc,
-            #     'num_eq': self.num_i + self.num_o - 1}
-        }
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        del constraints['energy_balance_constraints']
+        return constraints
 
 
 class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsAndDeltaTAndPr):

@@ -27,3 +27,6 @@ from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401
+
+# New components
+from .newcomponents import *

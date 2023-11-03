@@ -1689,7 +1689,7 @@ class Network:
                     'network.')
                 logger.warning(msg)
 
-            for key in ['m', 'p', 'h']:
+            for key in ['m', 'p', 'h', 'T']: # maybe add all properties to be initialized (maybe also initialize those from init_path)
                 if c.get_attr(key).is_var:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
@@ -1789,7 +1789,7 @@ class Network:
                 except ValueError:
                     pass
 
-    def init_val0(self, c, key):
+    def init_val0(self, c: con.Connection, key: str):
         r"""
         Set starting values for fluid properties.
 
@@ -1813,11 +1813,18 @@ class Network:
                 val_s = c.source.initialise_source(c, key)
                 val_t = c.target.initialise_target(c, key)
 
+                if val_s is None:
+                    val_s = 0
+                if val_t is None:
+                    val_t = 0
+
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
                         c.get_attr(key).val0 = 1e5
                     elif key == 'h':
                         c.get_attr(key).val0 = 1e6
+                    elif key == 'T':                # should probably add other paratemeter too ?
+                        c.get_attr(key).val0 = 300 
 
                 elif val_s == 0:
                     c.get_attr(key).val0 = val_t

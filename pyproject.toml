@@ -1,29 +1,4 @@
-[build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
-
-[tool.flit.sdist]
-include = [
-    "CHANGELOG.rst",
-    "CODE_OF_CONDUCT.md",
-    "CONTRIBUTING.md",
-    "MANIFEST.in",
-    "LICENSE*",
-    "PULL_REQUEST_TEMPLATE.md",
-    ".coveragerc",
-    ".editorconfig",
-    ".pep8speaks.yml",
-    ".readthedocs.yml",
-    "paper.bib",
-    "paper.md",
-    "tox.ini",
-    "docs/",
-    "tests/",
-    "tutorial/",
-]
-exclude = ["docs/_build"]
-
-[project]
+[tool.poetry]
 name = "tespy"
 version = "0.7.3"
 description = "Thermal Engineering Systems in Python (TESPy)"
@@ -56,25 +31,28 @@ dependencies = [
 ]
 license = {text = "MIT"}
 
-[project.urls]
-Homepage = "https://github.com/oemof/tespy"
-Documentation = "https://tespy.readthedocs.io/"
-Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
-"Issue Tracker" = "https://github.com/oemof/tespy/issues"
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.25.1"
+matplotlib = "^3.7.2"
+pandas = "^2.0.3"
+tabulate = "^0.9.0"
 
-[project.optional-dependencies]
-dev = [
-    "build",
-    "flit",
-    "furo",
-    "iapws",
-    "pyromat",
-    "pytest",
-    "sphinx>=7.2.2",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinxcontrib.bibtex",
-    "tox",
+[tool.poetry.group.coolprop.dependencies]
+cython = "^0.29.35"
+setuptools = "^67.8.0"
+wheel = "^0.40.0"
+requests = "^2.31.0"
+jinja2 = "^3.1.2"
+pyyaml = "^6.0"
+
+
+[build-system]
+requires = [
+    "poetry-core",
+    "setuptools>=30.3.0",
+    "wheel",
+    "setuptools_scm>=3.3.1",
 ]
 
 [tool.pytest.ini_options]

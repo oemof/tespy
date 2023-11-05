@@ -45,9 +45,12 @@ for c in nw.conns['object']:
 c1.set_attr(m=1, p=5, h=h0, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 c2.set_attr(fluid={"INCOMP::Water": 0.8, "INCOMP::T66": 0.2})
 
-se.set_attr(SFS={
-    'val': 0.6, 'is_set': True, 
-    'split_fluid' : 'T66', 'split_outlet' : "out1"})
+# se.set_attr(SFS={
+#     'val': 0.6, 'is_set': True, 
+#     'split_fluid' : 'T66', 'split_outlet' : "out1"})
+
+c3.set_attr(fluid={"INCOMP::Water": 0.95})
+#c3.set_attr(m=0.5)
 
 # Now it is possible to set the temperatures out of the separator differently
 c2.set_attr(T=20,p=5)

@@ -1068,17 +1068,17 @@ class Network:
                     # remaining fluids are variable, create wrappers for them
                     all_fluids = main_conn.fluid.val.keys()
                     num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
-                    if num_remaining_fluids == 1:
-                        missing_fluid = list(
-                            main_conn.fluid.val.keys() - fixed_fractions.keys()
-                        )[0]
-                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
-                        variable = set()
-                    else:
-                        missing_fluids = (
-                            main_conn.fluid.val.keys() - fixed_fractions.keys()
-                        )
-                        variable = {f for f in missing_fluids}
+                    # if num_remaining_fluids == 1:
+                    #     missing_fluid = list(
+                    #         main_conn.fluid.val.keys() - fixed_fractions.keys()
+                    #     )[0]
+                    #     fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
+                    #     variable = set()
+                    # else:
+                    missing_fluids = (
+                        main_conn.fluid.val.keys() - fixed_fractions.keys()
+                    )
+                    variable = {f for f in missing_fluids}
 
                 else:
                     # fluid mass fraction is 100 %, all other fluids are 0 %

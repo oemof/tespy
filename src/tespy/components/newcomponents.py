@@ -387,6 +387,12 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
+        self.variable_fluids = self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
+        num_fluid_eq = len(self.variable_fluids)
+        constraints['fluid_constraints'] = {
+            'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            'constant_deriv': False, 'latex': self.fluid_func_doc,
+            'num_eq': num_fluid_eq}
         del constraints['energy_balance_constraints']
         return constraints
 
@@ -441,6 +447,12 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
+        self.variable_fluids = self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
+        num_fluid_eq = len(self.variable_fluids)
+        constraints['fluid_constraints'] = {
+            'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            'constant_deriv': False, 'latex': self.fluid_func_doc,
+            'num_eq': num_fluid_eq}        
         del constraints['pressure_constraints']
         return constraints   
 

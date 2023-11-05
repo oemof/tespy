@@ -159,6 +159,7 @@ class Absorber(Component):
 
     def propagate_wrapper_to_target(self, branch):
         if branch["connections"][-1] == self.inl[0]:
+            branch["components"] += [self]
             return
 
         if self in branch["components"]:

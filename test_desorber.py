@@ -91,7 +91,7 @@ class Desorber(Component):
 
     def pressure_equality_func(self):
         residual = []
-        for c in self.outl :
+        for c in self.outl:
             residual += [c.p.val_SI - self.inl[0].p.val_SI]
         return residual
 
@@ -163,14 +163,16 @@ class Desorber(Component):
         return branches
 
     def start_fluid_wrapper_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self]
-        }
-        outconn.target.propagate_wrapper_to_target(branch)
+        branches = {}
+        for outconn in self.outl:
+            branch = {
+                "connections": [outconn],
+                "components": [self]
+            }
+            outconn.target.propagate_wrapper_to_target(branch)
+            branches[outconn.label] = branch
 
-        return {outconn.label: branch}
+        return branches
 
     def propagate_to_target(self, branch):
         return

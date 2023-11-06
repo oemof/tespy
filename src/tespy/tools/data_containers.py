@@ -116,7 +116,10 @@ class DataContainer:
         for key in kwargs:
             if key in var:
                 if key == "split_fluid":
-                    back_end, fluid = kwargs[key].split("::")
+                    if "::" in kwargs[key]:
+                        _, fluid = kwargs[key].split("::")
+                    else:
+                        fluid = kwargs[key]                    
                     self.__dict__.update({key: fluid})
                 else:
                     self.__dict__.update({key: kwargs[key]})

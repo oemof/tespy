@@ -38,7 +38,7 @@ c2.set_attr(fluid={"INCOMP::Water": 0.85, "INCOMP::T66": 0.15})
 
 se.set_attr(SFS={
     'val': 0.6, 'is_set': True, 
-    'split_fluid' : 'T66', 'split_outlet' : "out1"})
+    'split_fluid' : 'INCOMP::T66', 'split_outlet' : "out1"})
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
@@ -47,7 +47,7 @@ print(nw.results['Connection'])
 
 se.set_attr(SFS={
     'val': 0.6, 'is_set': True, 
-    'split_fluid' : 'Water', 'split_outlet' : "out1"})
+    'split_fluid' : 'INCOMP::Water', 'split_outlet' : "out1"})
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")

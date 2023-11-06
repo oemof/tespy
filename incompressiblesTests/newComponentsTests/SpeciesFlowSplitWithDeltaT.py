@@ -47,7 +47,7 @@ c2.set_attr(fluid={"INCOMP::Water": 0.8, "INCOMP::T66": 0.2})
 
 se.set_attr(SFS={
     'val': 0.6, 'is_set': True, 
-    'split_fluid' : 'T66', 'split_outlet' : "out1"})
+    'split_fluid' : 'INCOMP::T66', 'split_outlet' : "out1"})
 
 se.set_attr(deltaT=5)
 nw.solve("design")

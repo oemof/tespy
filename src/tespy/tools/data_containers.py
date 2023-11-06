@@ -112,8 +112,11 @@ class DataContainer:
         # specify values
         for key in kwargs:
             if key in var:
-                self.__dict__.update({key: kwargs[key]})
-
+                if key == "split_fluid":
+                    back_end, fluid = kwargs[key].split("::")
+                    self.__dict__.update({key: fluid})
+                else:
+                    self.__dict__.update({key: kwargs[key]})
             else:
                 msg = (
                     f"Datacontainer of type {self.__class__.__name__} has no "

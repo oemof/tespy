@@ -8,7 +8,7 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits
+from tespy.components.newcomponents import SimpleHeatExchangerDeltaPLossFactor,MergeWithPressureLoss,SeparatorWithSpeciesSplits
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -16,14 +16,13 @@ logging.basicConfig(level=logging.DEBUG)
 fluids = ["INCOMP::Water", "INCOMP::T66"]
 
 
-nw = Network(fluids=fluids, p_unit="bar", T_unit="C")
+nw = Network(fluids=fluids, p_unit="bar", T_unit="C",h_range=[-5.e5, 3.e+06])
 
 so = Source("Source")
 so2 = Source("Source2")
 
-#  Variant 2: Q is m (h_2 - h_1), Q_total is taking efficiency into account and represents the heat transfer over system
-# boundary. For heat transfer into the system: Q = Q_total * eta, for heat transfer from the system: Q_total = Q * eta
-he = DiabaticSimpleHeatExchanger("Heater")
+#  Variant 2: Q is m (h_2 - h_1), Q_total is taking loss factor into account and represents the heat transfer over system
+he = SimpleHeatExchangerDeltaPLossFactor("Heater")
 me = MergeWithPressureLoss("Merge")
 si = Sink("Sink")
 
@@ -34,15 +33,20 @@ c4 = Connection(me, "out1", si, "in1", label="4")
 
 nw.add_conns(c1, c2, c3, c4)
 
+for c in nw.conns['object']:
+    n_fl=2
+    c.set_attr(m0=0.1,h0=0.5e5,p0=1.2,fluid0={"INCOMP::Water": 1/n_fl, 'INCOMP::T66': 1/n_fl}, mixing_rule="incompressible")
+    c.set_attr(force_state='l')
+
 # set some generic data for starting values
 c1.set_attr(m=1, p=1.2, h=0.5e5, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 c2.set_attr(h=2.2e5)
 # mix with pure water
-c3.set_attr(m=0.05, p=1.1, h=0.5e5, fluid={"INCOMP::Water": 1, "INCOMP::T66": 0})
+c3.set_attr(m=0.05, p=1.2, h=0.5e5, fluid={"INCOMP::Water": 1, "INCOMP::T66": 0})
 
 # set pressure ratios of heater and merge
-he.set_attr(pr=0.9)
-me.set_attr(deltaP=0.15)
+he.set_attr(deltaP=0)
+me.set_attr(deltaP=0)
 #c2.set_attr(p=2.2)
 #c4.set_attr(p=2.2)
 
@@ -50,6 +54,7 @@ nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
+
 
 # use temperature to make it relatable
 c1.set_attr(h=None, T=30)
@@ -63,13 +68,13 @@ nw.print_results()
 # add some heat
 c2.set_attr(T=None)
 # # efficiency is used for postprocessing here
-he.set_attr(Q=1e5, eta=0.9)
+he.set_attr(Q=1e5, LF=0.1)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 
-he.set_attr(Q=1e5, Q_total=1.1e5, eta=None)
+he.set_attr(Q=1e5, Q_total=1.1e5, LF=None)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
@@ -82,10 +87,9 @@ if not nw.converged:
 nw.print_results()
 
 c2.set_attr(T=50)
-
 # impose over system boundary heat transfer (cannot be lower than actual heat transfer, efficiency value cannot be > 1!)
 # In this case, efficiency decreases
-he.set_attr(Q=None, Q_total=1.1e5, eta=None)
+he.set_attr(Q=None, Q_total=1.1e5, LF=None)
 
 nw.solve("design")
 if not nw.converged:
@@ -94,19 +98,18 @@ nw.print_results()
 
 # with set efficiency, temperature cannot be set anymore
 c2.set_attr(T=None)
-he.set_attr(Q_total=1.1e5, eta=.5)
+he.set_attr(Q_total=1.1e5, LF=.5)
 
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 
+
 # now cooling instead of heating, CoolProp or TESPy have issues with freezing temperatures, so > 0°C
-
-
-
-c2.set_attr(T=5)
-he.set_attr(Q_total=None, eta=1)
+#c2.set_attr(T0=5)
+c2.set_attr(h=-1e3)
+he.set_attr(Q=None, LF=0.1, Q_total=None)
 
 #nw.solve("design",init_only=True)
 nw.solve("design")
@@ -114,7 +117,17 @@ if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 
-he.set_attr(Q_total=-.6e5, eta="var")
+c2.set_attr(h=None)
+c2.set_attr(T=5)
+he.set_attr(Q_total=None, LF=0.1)
+
+#nw.solve("design",init_only=True)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+
+he.set_attr(Q_total=-.6e5, LF=None)
 
 nw.solve("design")
 if not nw.converged:

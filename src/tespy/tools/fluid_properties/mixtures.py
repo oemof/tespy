@@ -29,7 +29,7 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            h += data["wrapper"].h_pT(pp, T) * data["mass_fraction"]
+            h += data["wrapper"].h_pT(pp, T, **kwargs) * data["mass_fraction"]
 
     return h
 
@@ -93,7 +93,7 @@ def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            s += data["wrapper"].s_pT(pp, T) * data["mass_fraction"]
+            s += data["wrapper"].s_pT(pp, T, **kwargs) * data["mass_fraction"]
 
     return s
 
@@ -139,7 +139,7 @@ def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            d += data["wrapper"].d_pT(pp, T)
+            d += data["wrapper"].d_pT(pp, T, **kwargs)
 
     return 1 / d
 

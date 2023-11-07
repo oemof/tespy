@@ -102,9 +102,13 @@ if not nw.converged:
 nw.print_results()
 
 # now cooling instead of heating, CoolProp or TESPy have issues with freezing temperatures, so > 0°C
-c2.set_attr(T=5)
-he.set_attr(Q_total=None, eta=None)
 
+
+
+c2.set_attr(T=5)
+he.set_attr(Q_total=None, eta=1)
+
+#nw.solve("design",init_only=True)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")

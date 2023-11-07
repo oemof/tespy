@@ -92,17 +92,17 @@ def central_difference(function=None, parameter=None, delta=None, **kwargs):
     return (function(**upper) - function(**lower)) / (2 * delta)
 
 
-def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
+def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None, **function_kwargs):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
     if T0 is None:
         T0 = (valmin + valmax) / 2.0
     T0 = max(valmin,min(valmax,T0)) 
 
-    function_kwargs = {
+    function_kwargs.update({
         "p": p, "fluid_data": fluid_data, "T": T0,
         "function": f, "parameter": "T" , "delta": 0.01
-    }
+    })
     return newton_with_kwargs(
         central_difference,
         target_value,

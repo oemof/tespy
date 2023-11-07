@@ -309,6 +309,7 @@ class SeparatorWithSpeciesSplits(Separator):
     def __init__(self, label, **kwargs):
         #self.set_attr(**kwargs)
         # need to assign the number of outlets before the variables are set
+        self.num_out = 2 # default
         for key in kwargs:
             if key == 'num_out':
                 self.num_out=kwargs[key]
@@ -703,8 +704,15 @@ class dc_cp_SFS(dc_cp):
     @staticmethod
     def attr():
         attributes = dc_cp.attr()
-        attributes.update({'split_fluid' : str, 'split_outlet' : str})
+        attributes.update({'split_fluid' : None, 'split_outlet' : None})
         return attributes
+    
+    @staticmethod
+    def _serializable_keys():
+        keys = dc_cp._serializable_keys()
+        keys.append("split_fluid")
+        keys.append("split_outlet")
+        return keys
 
 class dc_cp_FS(dc_cp):
     """
@@ -714,6 +722,11 @@ class dc_cp_FS(dc_cp):
     @staticmethod
     def attr():
         attributes = dc_cp.attr()
-        attributes.update({'split_outlet' : str})
+        attributes.update({'split_outlet' : None})
         return attributes
 
+    @staticmethod
+    def _serializable_keys():
+        keys = dc_cp._serializable_keys()
+        keys.append("split_outlet")
+        return keys

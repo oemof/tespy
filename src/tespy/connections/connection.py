@@ -263,6 +263,9 @@ class Connection:
         self.local_offdesign = False
         self.printout = True
 
+        self.force_state = None
+        self.good_starting_values = None
+
         # set default values for kwargs
         self.property_data = self.get_parameters()
         self.parameters = {
@@ -462,6 +465,12 @@ class Connection:
             elif key == "mixing_rule":
                 self.mixing_rule = kwargs[key]
 
+            elif key == "force_state":
+                self.force_state = kwargs[key]
+                
+            elif key == "good_starting_values":
+                self.good_starting_values = kwargs[key]
+                
             # invalid keyword
             else:
                 msg = 'Connection has no attribute ' + key + '.'
@@ -596,7 +605,7 @@ class Connection:
         return [
             "source_id", "target_id",
             "design_path", "design", "offdesign", "local_design", "local_design",
-            "printout", "mixing_rule"
+            "printout", "mixing_rule","good_starting_values","force_state"
         ]
 
     def _create_fluid_wrapper(self):
@@ -654,12 +663,12 @@ class Connection:
 
         if not self.h.is_set and self.p.is_set:
             if self.T.is_set:
-                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
+                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, self.force_state)
                 self.h.solved = True
                 self.T.solved = True
             elif self.Td_bp.is_set:
                 T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data)
+                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data, self.force_state)
                 self.h.solved = True
                 self.Td_bp.solved = True
             elif self.x.is_set:
@@ -737,7 +746,7 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self, T0=None):
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, force_state=self.force_state)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.calc_T() - self.T.val_SI
@@ -745,16 +754,16 @@ class Connection:
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, force_state=self.force_state)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, force_state=self.force_state)
             )
         for fluid in self.fluid.is_var:
             # if not self._increment_filter[self.fluid.J_col[fluid]]:
             self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule, force_state=self.force_state
             )
 
     def T_ref_func(self, k, **kwargs):
@@ -790,7 +799,7 @@ class Connection:
 
     def calc_vol(self, T0=None):
         try:
-            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, force_state=self.force_state)
         except NotImplementedError:
             return np.nan
 
@@ -876,7 +885,7 @@ class Connection:
             )
 
     def calc_s(self):
-        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
+        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI, force_state=self.force_state)
 
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
@@ -893,7 +902,7 @@ class Connection:
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
         if number_fluids > 1:
-            h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
+            h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, force_state=self.force_state)
             if abs(h_from_T - self.h.val_SI) > ERR ** .5:
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
@@ -953,7 +962,7 @@ class Connection:
         # enthalpy
         try:
             hmin = self.fluid.wrapper[fluid].h_pT(
-                self.p.val_SI, self.fluid.wrapper[fluid]._T_min + 1e-1
+                self.p.val_SI, self.fluid.wrapper[fluid]._T_min + 1e-1,force_state=self.force_state
             )
         except ValueError:
             f = 1.05
@@ -971,7 +980,7 @@ class Connection:
             T = self.fluid.wrapper[fluid]._T_max
             while True:
                 try:
-                    hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
+                    hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T, force_state=self.force_state)
                     break
                 except ValueError as e:
                     T *= 0.99
@@ -1010,8 +1019,8 @@ class Connection:
         Tmax = min(
             [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
         ) * 0.99
-        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule)
-        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule)
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule, force_state=self.force_state)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule, force_state=self.force_state)
 
         if self.h.val_SI < hmin:
             self.h.val_SI = hmin

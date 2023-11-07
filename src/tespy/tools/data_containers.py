@@ -112,7 +112,7 @@ class DataContainer:
         # specify values
         for key in kwargs:
             if key in var:
-                if key == "split_fluid":
+                if key == "split_fluid" and kwargs[key]:
                     if "::" in kwargs[key]:
                         _, fluid = kwargs[key].split("::")
                     else:

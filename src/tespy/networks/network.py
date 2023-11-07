@@ -1689,7 +1689,7 @@ class Network:
                     'network.')
                 logger.warning(msg)
 
-            for key in ['m', 'p', 'h', 'T']: # maybe add all properties to be initialized (maybe also initialize those from init_path)
+            for key in ['m', 'p', 'h']:
                 if c.get_attr(key).is_var:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
@@ -1785,7 +1785,7 @@ class Network:
 
             if c.T.is_set:
                 try:
-                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule, force_state=c.force_state)
                 except ValueError:
                     pass
 
@@ -1813,18 +1813,11 @@ class Network:
                 val_s = c.source.initialise_source(c, key)
                 val_t = c.target.initialise_target(c, key)
 
-                if val_s is None:
-                    val_s = 0
-                if val_t is None:
-                    val_t = 0
-
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
                         c.get_attr(key).val0 = 1e5
                     elif key == 'h':
                         c.get_attr(key).val0 = 1e6
-                    elif key == 'T':                # should probably add other paratemeter too ?
-                        c.get_attr(key).val0 = 300 
 
                 elif val_s == 0:
                     c.get_attr(key).val0 = val_t
@@ -2245,36 +2238,92 @@ class Network:
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0
 
+    def _limit_increments(self,valmin,valmax,val,increment):
+        inc_min = valmin-val
+        inc_max = valmax-val
+
+        if increment < inc_min:
+            # need to limit the increment
+            if inc_min < -0.01/(valmax-valmin):
+                # if we are not close the the bound we limit it half way to the bound
+                increment = inc_min/2
+            else:
+                # othervice we set the increment to the bound
+                increment = inc_min
+
+        if increment > inc_max:
+            # need to limit the increment
+            if inc_max > 0.01/(valmax-valmin):
+                # if we are not close the the bound we limit it half way to the bound
+                increment = inc_max/2
+            else:
+                # othervice we set the increment to the bound
+                increment = inc_max
+        return increment
+
     def update_variables(self):
+        
+        if self.iter < 2: 
+            RobustRelax = 0.1
+        elif self.iter < 4:             
+            RobustRelax = 0.25
+        elif self.iter < 6:             
+            RobustRelax = 0.5            
+        else: 
+            RobustRelax = 1
+
+        #RobustRelax = 1            
+
         # add the increment
         for data in self.variables_dict.values():
-            if data["variable"] in ["m", "h"]:
+            if data["variable"] == "m":
                 container = data["obj"].get_attr(data["variable"])
-                container.val_SI += self.increment[container.J_col]
+                increment = self.increment[container.J_col]
+                container.val_SI += RobustRelax * self._limit_increments(self.m_range_SI[0],self.m_range_SI[1],container.val_SI,increment)
+                #print(container.val_SI)
+            elif data["variable"] == "h":
+                container = data["obj"].get_attr(data["variable"])
+                increment = self.increment[container.J_col]
+                container.val_SI += RobustRelax * self._limit_increments(self.h_range_SI[0],self.h_range_SI[1],container.val_SI,increment)
+                #print(container.val_SI)
             elif data["variable"] == "p":
                 container = data["obj"].p
                 increment = self.increment[container.J_col]
                 relax = max(1, -2 * increment / container.val_SI)
-                container.val_SI += increment / relax
+                container.val_SI += RobustRelax * increment / relax
+                # increment = self.increment[container.J_col]
+                # container.val_SI += self._limit_increments(self.p_range_SI[0],self.p_range_SI[1],container.val_SI,increment)
+                #print(container.val_SI)
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-                container.val[data["fluid"]] += self.increment[
-                    container.J_col[data["fluid"]]
-                ]
 
-                if container.val[data["fluid"]] < ERR :
-                    container.val[data["fluid"]] = 0
-                elif container.val[data["fluid"]] > 1 - ERR :
-                    container.val[data["fluid"]] = 1
+                increment = self.increment[container.J_col[data["fluid"]]]
+                val = container.val[data["fluid"]]
+                container.val[data["fluid"]] += RobustRelax * self._limit_increments(0,1,val,increment)
+
+                #print(container.val[data["fluid"]])
+               
+                # if container.val[data["fluid"]] < ERR :
+                #     container.val[data["fluid"]] = 0
+                # elif container.val[data["fluid"]] > 1 - ERR :
+                #     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                data["obj"].val += self.increment[data["obj"].J_col]
+                
+                increment = self.increment[data["obj"].J_col]
+                val = data["obj"].val
+                data["obj"].val += RobustRelax * self._limit_increments(data["obj"].min_val,data["obj"].max_val,val,increment)
 
-                # keep value within specified value range
-                if data["obj"].val < data["obj"].min_val:
-                    data["obj"].val = data["obj"].min_val
-                elif data["obj"].val > data["obj"].max_val:
-                    data["obj"].val = data["obj"].max_val
+                #data["obj"].val += RobustRelax * self.increment[data["obj"].J_col]
+
+
+
+
+                # # keep value within specified value range
+                # if data["obj"].val < data["obj"].min_val:
+                #     data["obj"].val = data["obj"].min_val
+                # elif data["obj"].val > data["obj"].max_val:
+                #     data["obj"].val = data["obj"].max_val
 
     def check_variable_bounds(self):
 

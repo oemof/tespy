@@ -80,8 +80,8 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
     h = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            h += data["wrapper"].h_pT(p, T) * data["mass_fraction"]
-
+            h += data["wrapper"].h_pT(p, T, **kwargs) * data["mass_fraction"]
+        
     return h
 
 
@@ -126,7 +126,7 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     for data in fluid_data.values():
 
         if _is_larger_than_precision(data["mass_fraction"]):
-            s += data["wrapper"].s_pT(p, T) * data["mass_fraction"]
+            s += data["wrapper"].s_pT(p, T, **kwargs) * data["mass_fraction"]
 
     return s
 
@@ -171,7 +171,7 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     v = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            v += 1 / data["wrapper"].d_pT(p, T) * data["mass_fraction"]
+            v += 1 / data["wrapper"].d_pT(p, T, **kwargs) * data["mass_fraction"]
 
     return v
 
@@ -227,7 +227,7 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     viscosity = 0
     for data in fluid_data.values():
         if _is_larger_than_precision(data["mass_fraction"]):
-            viscosity += data["wrapper"].viscosity_pT(p, T) * data["mass_fraction"]
+            viscosity += data["wrapper"].viscosity_pT(p, T, **kwargs) * data["mass_fraction"]
 
     return viscosity
 

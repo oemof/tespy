@@ -190,18 +190,34 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
-    def _ensure_incomp_is_liquid(self,p,T):
-        self.AS.update(CP.QT_INPUTS, 0, T)
-        psat = self.AS.p() # pressure must always be greater than saturation for incompressibles
-        p = max(p,psat*(1+ERR))
-        if T == (self._T_max + self._T_min) / 2:
-            T += ERR
-        return p,T
-
-    def h_pT(self, p, T):
+    def _check_imposed_state(self,p,T,**kwargs):
+        # correct INCOMP interpolation origin
         if self.back_end == "INCOMP":
-            p,T = self._ensure_incomp_is_liquid(p,T)
-        self.AS.update(CP.PT_INPUTS, p, T)
+            if T == (self._T_max + self._T_min) / 2:
+                T += ERR
+        if kwargs['force_state'] == "l" or self.back_end == "INCOMP": # incomp is always liquid
+            self.AS.update(CP.QT_INPUTS, 0, T)
+            if p > self.AS.p(): 
+                try:
+                    self.AS.update(CP.PT_INPUTS, p, T)
+                except:
+                    print("allowing state to move up on the liquid saturation curve")
+                    self.AS.update(CP.QT_INPUTS, 0, T)
+                    pass
+        elif kwargs['force_state'] == "g":
+            self.AS.update(CP.QT_INPUTS, 0, T)
+            if p < self.AS.p(): 
+                try:
+                    self.AS.update(CP.PT_INPUTS, p, T)
+                except:
+                    print("allowing state to move further down on the gas curve")
+                    self.AS.update(CP.QT_INPUTS, 0, T)
+                    pass
+        else:
+            self.AS.update(CP.PT_INPUTS, p, T)
+
+    def h_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p,T,**kwargs)
         return self.AS.hmass()
 
     def h_QT(self, Q, T):
@@ -233,10 +249,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.rhomass()
 
-    def d_pT(self, p, T):
-        if self.back_end == "INCOMP":
-            p,T = self._ensure_incomp_is_liquid(p,T)        
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def d_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p,T, **kwargs)
         return self.AS.rhomass()
 
     def d_QT(self, Q, T):
@@ -247,20 +261,16 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.viscosity()
 
-    def viscosity_pT(self, p, T):
-        if self.back_end == "INCOMP":
-            p,T = self._ensure_incomp_is_liquid(p,T)        
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def viscosity_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p,T, **kwargs)
         return self.AS.viscosity()
 
     def s_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.smass()
 
-    def s_pT(self, p, T):
-        if self.back_end == "INCOMP":
-            p,T = self._ensure_incomp_is_liquid(p,T)        
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def s_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p,T, **kwargs)
         return self.AS.smass()
 
 

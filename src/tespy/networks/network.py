@@ -2398,7 +2398,7 @@ class Network:
 
                 # temperature
                 if c.T.is_set:
-                    c.check_temperature_bounds()
+                    c.check_temperature_bounds(self.iter)
 
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and c.m.is_var:

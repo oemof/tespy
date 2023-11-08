@@ -1004,7 +1004,7 @@ class Connection:
                 self.h.val_SI = h * 0.99
                 logger.debug(self._property_range_message('h'))
 
-    def check_temperature_bounds(self):
+    def check_temperature_bounds(self, iter):
         r"""
         Check if temperature is within user specified limits.
 
@@ -1017,24 +1017,15 @@ class Connection:
         Tmaxlist=[]
         for f, w in self.fluid.wrapper.items():
             if self.fluid.val[f] > ERR and self.fluid.val[f] < 1-ERR:
-                if self.force_state == 'l':
-                    Tminlist.append(w._T_min)
-                    if not w.back_end == 'INCOMP':
-                        Tmaxlist.append(w.T_sat(self.p.val_SI))
-                    else:
-                        Tmaxlist.append(w._T_max)
-                elif self.force_state == 'g':
-                    Tmaxlist.append(w._T_max)
-                    if not w.back_end == 'INCOMP':
-                        Tminlist.append(w.T_sat(self.p.val_SI))
-                    else:
-                        Tminlist.append(w._T_min)
-                else:
-                    Tminlist.append(w._T_min)
-                    Tmaxlist.append(w._T_max)            
+                Tminlist.append(w._T_min)
+                Tmaxlist.append(w._T_max)            
 
-        Tmin = max(Tminlist) * (1+ERR)
-        Tmax = min(Tmaxlist) * (1-ERR)
+        if iter < 8:
+            Tmin = max(Tminlist) * 1.01 
+            Tmax = min(Tmaxlist) * 0.99
+        else:
+            Tmin = max(Tminlist) * (1+ERR)
+            Tmax = min(Tmaxlist) * (1-ERR)
         hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule, force_state=self.force_state)
         hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule, force_state=self.force_state)
 

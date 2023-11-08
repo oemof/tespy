@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tespy.components import Separator,Merge,CycleCloser,Valve
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits,SplitWithFlowSplitter,SeparatorWithSpeciesSplitsAndDeltaT,SeparatorWithSpeciesSplitsAndDeltaTAndPr
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits,SplitterWithFlowSplitter,SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaTDeltaP
 
 import logging
 #logging.basicConfig(level=logging.DEBUG)
@@ -17,19 +17,19 @@ network = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_
 # Objects
 source              = Source('source')
 boiler              = HeatExchangerSimple('boiler')
-press               = SeparatorWithSpeciesSplitsAndDeltaTAndPr('press', num_out=2)
+press               = SeparatorWithSpeciesSplitsDeltaTDeltaP('press', num_out=2)
 #presswater          = Sink('presswater')
 #presscake           = Sink('presscake')
-decanter            = SeparatorWithSpeciesSplitsAndDeltaTAndPr('decanter', num_out=2)
+decanter            = SeparatorWithSpeciesSplitsDeltaTDeltaP('decanter', num_out=2)
 #grax                = Sink('grax')
 oil                = Sink('oil')
-centrifuge          = SeparatorWithSpeciesSplitsAndDeltaTAndPr('centrifuge',num_out=2)
-thickener        = SeparatorWithSpeciesSplitsAndDeltaTAndPr('thickener',num_out=2)
+centrifuge          = SeparatorWithSpeciesSplitsDeltaTDeltaP('centrifuge',num_out=2)
+thickener        = SeparatorWithSpeciesSplitsDeltaTDeltaP('thickener',num_out=2)
 vapourextract1    = Sink('vapourextract1')
 #solubles          = Sink('solubles')
-liquidmerge      = MergeWithPressureLoss('liquidmerge', num_in = 3)
+liquidmerge      = MergeDeltaP('liquidmerge', num_in = 3)
 wetproduct     = Sink('wetproduct')
-drier            = SeparatorWithSpeciesSplitsAndDeltaTAndPr('drier',num_out=2)
+drier            = SeparatorWithSpeciesSplitsDeltaTDeltaP('drier',num_out=2)
 meal             = Sink('meal')
 vapourextract2   = Sink('vapourextract2')
 
@@ -128,12 +128,12 @@ network.results["Connection"].to_csv(f"{__file__.replace('.py', '')}tespy070.csv
 # MJ to kwh
 #
 for o in network.comps['object']:
-    if isinstance(o,SeparatorWithSpeciesSplitsAndDeltaTAndPr):
+    if isinstance(o,SeparatorWithSpeciesSplitsDeltaTDeltaP):
         print(f"heat exchange for {o.label} = {o.Q.val}")
 print(f"\n")
 
 for o in network.comps['object']:
-    if isinstance(o,SeparatorWithSpeciesSplitsAndDeltaTAndPr):
+    if isinstance(o,SeparatorWithSpeciesSplitsDeltaTDeltaP):
         print(f"Total heat for {o.label} = {o.Q.val / (3.6*1e6)}")
 print(f"\n")
 

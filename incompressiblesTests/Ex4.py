@@ -85,6 +85,6 @@ network.solve('design')
 # network.print_results()
 print(network.results['Connection'].loc[:, [c for c in network.results["Connection"] if "unit" not in c]])
 
-print(0.65 * c1.m.val_SI * c1.fluid.val["S800"] / c3.fluid.val["S800"] == network.results['Connection'].loc["press:out1_presscake:in1", "m"])
+print(0.7 * c1.m.val_SI * c1.fluid.val["S800"] / c3.fluid.val["S800"] == network.results['Connection'].loc["press:out1_presscake:in1", "m"])
 
 network.results["Connection"].to_csv(f"{__file__.replace('.py', '')}tespy070.csv")

@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 fluids = ["INCOMP::Water", "INCOMP::T66"]
 
 
+#nw = Network(fluids=fluids, p_unit="bar", T_unit="C",h_range=[1.e3, 3.e+06]) 
 nw = Network(fluids=fluids, p_unit="bar", T_unit="C",h_range=[-5.e5, 3.e+06])
 
 so = Source("Source")

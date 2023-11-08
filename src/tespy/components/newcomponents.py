@@ -254,6 +254,85 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
             self.LF.val = -self.Q_loss.val/self.Q.val        
 
 
+class SimpleHeatExchangerDeltaPLfKpi(SimpleHeatExchangerDeltaP):
+
+    @staticmethod
+    def component():
+        return 'simple heat exchanger with loss factor and KPI'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["LF"] = dc_cp(min_val=0, val=0, max_val=1, is_result=True)
+        variables["Q_loss"] = dc_cp(is_result=True)
+        variables["KPI"] = dc_cp(
+            deriv=self.KPI_deriv,
+            func=self.KPI_func,
+            latex=self.pr_func_doc,
+            num_eq=1)
+        return variables
+
+    def energy_balance_func(self):
+        r"""
+        Equation for total heat flow rate
+
+        """
+
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.Q.val
+
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of Q_total
+
+        """
+
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = (o.h.val_SI - i.h.val_SI)*(1+self.LF.val) 
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI*(1+self.LF.val) 
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI*(1+self.LF.val) 
+        if self.Q.is_var:
+            self.jacobian[k, self.Q.J_col] = -1
+        if self.LF.is_var: 
+            self.jacobian[k, self.LF.J_col] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def KPI_func(self):
+        r"""
+        Equation for total heat flow rate
+
+        """
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val) - self.KPI.val * self.inl[0].m.val_SI 
+
+    def KPI_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of Q_total
+
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = (o.h.val_SI - i.h.val_SI)*(1+self.LF.val) - self.KPI.val
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI*(1+self.LF.val) 
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI*(1+self.LF.val) 
+        if self.LF.is_var: 
+            self.jacobian[k, self.LF.J_col] = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        if self.KPI.is_var:
+            self.jacobian[k, self.Q_loss.J_col] = -self.inl[0].m.val_SI 
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        self.Q.val = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)*(1+self.LF.val)
+        # repeat calculations to ensure variables are assigned
+        if self.KPI.is_set:
+            self.Q.val = self.KPI.val * self.inl[0].m.val_SI 
+        else:
+            self.KPI.val = self.Q.val / self.inl[0].m.val_SI 
+        self.Q_loss.val = - self.LF.val * self.Q.val
+
 class MergeDeltaP(Merge):
 
     @staticmethod

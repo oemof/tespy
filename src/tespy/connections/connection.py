@@ -1036,11 +1036,11 @@ class Connection:
             Connection to check fluid properties.
         """
         Tmin = max(
-            [w._T_min for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
-        ) * 1.01
+            [w._T_min for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR and self.fluid.val[f] < 1-ERR]
+        ) * (1+ERR)
         Tmax = min(
-            [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
-        ) * 0.99
+            [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR and self.fluid.val[f] < 1-ERR]
+        ) * (1-ERR)
         hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule, force_state=self.force_state)
         hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule, force_state=self.force_state)
 

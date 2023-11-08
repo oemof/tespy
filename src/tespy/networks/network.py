@@ -2394,7 +2394,7 @@ class Network:
                     c.check_two_phase_bounds(fl)
 
         # mixture
-        elif self.iter < 4 and not c.good_starting_values:
+        else: #if self.iter < 4 and not c.good_starting_values:
             # pressure
             if c.p.is_var:
                 if c.p.val_SI <= self.p_range_SI[0]:
@@ -2407,11 +2407,11 @@ class Network:
 
             # enthalpy
             if c.h.is_var:
-                if c.h.val_SI < self.h_range_SI[0]:
+                if c.h.val_SI <= self.h_range_SI[0]:
                     c.h.val_SI = self.h_range_SI[0]
                     logger.debug(c._property_range_message('h'))
 
-                elif c.h.val_SI > self.h_range_SI[1]:
+                elif c.h.val_SI >= self.h_range_SI[1]:
                     c.h.val_SI = self.h_range_SI[1]
                     logger.debug(c._property_range_message('h'))
 

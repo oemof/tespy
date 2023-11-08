@@ -17,7 +17,7 @@ from tespy.networks import Network
 
 
 from tespy.components import Separator,Merge,CycleCloser,Valve
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits
 
 import logging
 #logging.basicConfig(level=logging.DEBUG)

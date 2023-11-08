@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tespy.components import Separator,Merge,CycleCloser,Valve
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits,SplitWithFlowSplitter
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits,SplitterWithFlowSplitter
 
 import logging
 #logging.basicConfig(level=logging.DEBUG)
@@ -27,7 +27,7 @@ centrifuge          = SeparatorWithSpeciesSplits('centrifuge',num_out=2)
 thickener        = SeparatorWithSpeciesSplits('thickener',num_out=2)
 vapourextract1    = Sink('vapourextract1')
 #solubles          = Sink('solubles')
-liquidmerge      = MergeWithPressureLoss('liquidmerge', num_in = 3)
+liquidmerge      = MergeDeltaP('liquidmerge', num_in = 3)
 wetproduct     = Sink('wetproduct')
 drier            = SeparatorWithSpeciesSplits('drier',num_out=2)
 meal             = Sink('meal')
@@ -113,10 +113,10 @@ network2 = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h
 # Objects
 sourceFat           = Source('Fat')
 sourceCitricAcid    = Source('CitricAcid')
-centimerge          = MergeWithPressureLoss('centimerge', num_in=2)
-T2                  = SplitWithFlowSplitter('T2', num_out=2)
+centimerge          = MergeDeltaP('centimerge', num_in=2)
+T2                  = SplitterWithFlowSplitter('T2', num_out=2)
 Oil1                = Sink('Oil1')
-stripper            = SplitWithFlowSplitter('stripper', num_out=2)
+stripper            = SplitterWithFlowSplitter('stripper', num_out=2)
 Oil2                = Sink('Oil2')
 scrubOil            = Sink('scrubOil')
 

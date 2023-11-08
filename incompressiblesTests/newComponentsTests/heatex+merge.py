@@ -8,7 +8,7 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import SimpleHeatExchangerDeltaPLossFactor,MergeWithPressureLoss,SeparatorWithSpeciesSplits
+from tespy.components.newcomponents import SimpleHeatExchangerDeltaPLossFactor,MergeDeltaP,SeparatorWithSpeciesSplits
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,7 +24,7 @@ so2 = Source("Source2")
 
 #  Variant 2: Q is m (h_2 - h_1), Q_total is taking loss factor into account and represents the heat transfer over system
 he = SimpleHeatExchangerDeltaPLossFactor("Heater")
-me = MergeWithPressureLoss("Merge")
+me = MergeDeltaP("Merge")
 si = Sink("Sink")
 
 c1 = Connection(so, "out1", he, "in1", label="1")

@@ -9,7 +9,7 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits,SplitterWithPressureLoss
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits,SplitterDeltaP
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -20,7 +20,7 @@ fluids = ["INCOMP::Water", "INCOMP::T66"]
 nw = Network(fluids=fluids, p_unit="bar", T_unit="C")
 
 so = Source("Source")
-se = SplitterWithPressureLoss("Splitter",num_out=2)
+se = SplitterDeltaP("Splitter",num_out=2)
 si1 = Sink("Sink 1")
 si2 = Sink("Sink 2")
 

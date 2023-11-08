@@ -9,7 +9,7 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeWithPressureLoss,SeparatorWithSpeciesSplits
+from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,7 +22,7 @@ nw = Network(p_unit="bar", T_unit="C")
 so = Source("Source")
 so2 = Source("Source2")
 
-me = MergeWithPressureLoss("Merge")
+me = MergeDeltaP("Merge")
 si = Sink("Sink")
 
 c1 = Connection(so, "out1", me, "in1", label="2")

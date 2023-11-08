@@ -7,6 +7,9 @@ from tespy.tools.fluid_properties import T_mix_ph
 
 from tespy.components.component import Component
 
+
+import warnings
+
 import numpy as np
 
 class DiabaticSimpleHeatExchanger(SimpleHeatExchanger):
@@ -251,7 +254,7 @@ class SimpleHeatExchangerDeltaPLossFactor(SimpleHeatExchangerDeltaP):
             self.LF.val = -self.Q_loss.val/self.Q.val        
 
 
-class MergeWithPressureLoss(Merge):
+class MergeDeltaP(Merge):
 
     @staticmethod
     def component():
@@ -368,7 +371,7 @@ class SeparatorWithSpeciesSplits(Separator):
             self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
 
 
-class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
+class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
 
     @staticmethod
     def component():
@@ -429,7 +432,7 @@ class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplits):
         else:
             self.deltaT.val = i.T.val_SI - Tmax
 
-class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
+class SeparatorWithSpeciesSplitsDeltaP(SeparatorWithSpeciesSplits):
 
     @staticmethod
     def component():
@@ -493,7 +496,7 @@ class SeparatorWithSpeciesSplitsAndPr(SeparatorWithSpeciesSplits):
             self.deltaP.val = (self.inl[0].p.val_SI - Pmax)/1e5
 
 
-class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDeltaT, SeparatorWithSpeciesSplitsAndPr):
+class SeparatorWithSpeciesSplitsDeltaTDeltaP(SeparatorWithSpeciesSplitsDeltaT, SeparatorWithSpeciesSplitsDeltaP):
 
     @staticmethod
     def component():
@@ -510,7 +513,7 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsAndDelt
         return constraints
 
 
-class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsAndDeltaTAndPr):
+class SeparatorWithSpeciesSplitsDeltaTDeltaPBus(SeparatorWithSpeciesSplitsDeltaTDeltaP):
 
     @staticmethod
     def component():
@@ -573,7 +576,7 @@ class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsA
                 bus.jacobian[o.m.J_col] -= self.numeric_deriv(f, 'm', o, bus=bus)        
 
 
-class SplitterWithPressureLoss(Splitter):
+class SplitterDeltaP(Splitter):
 
     def __init__(self, label, **kwargs):
         #self.set_attr(**kwargs)
@@ -639,7 +642,7 @@ class SplitterWithPressureLoss(Splitter):
         else:
             self.deltaP.val = (self.inl[0].p.val_SI - Pmax)/1e5
 
-class SplitWithFlowSplitter(Splitter):
+class SplitterWithFlowSplitter(Splitter):
 
     @staticmethod
     def component():
@@ -682,7 +685,7 @@ class SplitWithFlowSplitter(Splitter):
             self.jacobian[k, o.m.J_col]     = -1
 
 
-class SplitWithFlowSplitterDeltaP(SplitWithFlowSplitter, SplitterWithPressureLoss):
+class SplitterWithFlowSplitterDeltaP(SplitterWithFlowSplitter, SplitterDeltaP):
 
     @staticmethod
     def component():
@@ -730,3 +733,89 @@ class dc_cp_FS(dc_cp):
         keys = dc_cp._serializable_keys()
         keys.append("split_outlet")
         return keys
+
+
+# class MergeWithPressureLoss(MergeDeltaP):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component MergeWithPressureLoss will change with "
+#             "the next major release, please import MergeDeltaP instead."
+#         )
+#         warnings.warn(msg, FutureWarning)
+
+# class SeparatorWithSpeciesSplitsAndDeltaT(SeparatorWithSpeciesSplitsDeltaT):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SeparatorWithSpeciesSplitsAndDeltaT will change with "
+#             "the next major release, please import SeparatorWithSpeciesSplitsDeltaT instead."
+#         )
+#         warnings.warn(msg, FutureWarning)        
+
+# class SeparatorWithSpeciesSplitsAndDeltaTAndPr(SeparatorWithSpeciesSplitsDeltaTDeltaP):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SeparatorWithSpeciesSplitsAndDeltaTAndPr will change with "
+#             "the next major release, please import SeparatorWithSpeciesSplitsDeltaTDeltaP instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   
+
+# class SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus(SeparatorWithSpeciesSplitsDeltaTDeltaPBus):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SeparatorWithSpeciesSplitsAndDeltaTAndPrAndBus will change with "
+#             "the next major release, please import SeparatorWithSpeciesSplitsDeltaTDeltaPBus instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   
+        
+
+# class SplitterWithPressureLoss(SplitterDeltaP):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SeparatorWithSpeciesSplitsAndDeltaTAndPr will change with "
+#             "the next major release, please import SeparatorWithSpeciesSplitsDeltaTDeltaP instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   
+        
+# class SplitterWithPressureLoss(SplitterDeltaP):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SplitterWithPressureLoss will change with "
+#             "the next major release, please import SplitterDeltaP instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   
+
+
+      
+
+# class SplitWithFlowSplitter(SplitterWithFlowSplitter):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SplitWithFlowSplitter will change with "
+#             "the next major release, please import SplitterWithFlowSplitter instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   
+
+
+# class SplitWithFlowSplitterDeltaP(SplitterWithFlowSplitterDeltaP):
+
+#     def __init__(self, label, **kwargs):
+#         super().__init__(label, **kwargs)
+#         msg = (
+#             "The API for the component SplitWithFlowSplitterDeltaP will change with "
+#             "the next major release, please import SplitterWithFlowSplitterDeltaP instead."
+#         )
+#         warnings.warn(msg, FutureWarning)   

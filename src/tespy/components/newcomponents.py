@@ -1,6 +1,6 @@
 import logging
 
-from tespy.components import SimpleHeatExchanger, Merge, Separator, Splitter
+from tespy.components import SimpleHeatExchanger, Merge, Separator, Splitter, HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
@@ -332,6 +332,71 @@ class SimpleHeatExchangerDeltaPLfKpi(SimpleHeatExchangerDeltaP):
         else:
             self.KPI.val = self.Q.val / self.inl[0].m.val_SI 
         self.Q_loss.val = - self.LF.val * self.Q.val
+
+
+class TwoStreamHeatExchanger(HeatExchanger):
+
+    @staticmethod
+    def component():
+        return 'two stream heat exchanger with min ttd (pinch)'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables['ttd_min'] = dc_cp(
+                min_val=0, num_eq=1, func=self.ttd_min_func,
+                deriv=self.ttd_min_deriv, latex=self.ttd_u_func_doc)
+        return variables
+
+    def _calc_dTs(self):
+        i1 = self.inl[0]
+        o1 = self.outl[0]
+        i2 = self.inl[1]
+        o2 = self.outl[1]
+
+        T_i1 = i1.calc_T(T0=i1.T.val_SI)
+        T_o1 = o1.calc_T(T0=o1.T.val_SI)
+        T_i2 = i2.calc_T(T0=i2.T.val_SI)
+        T_o2 = o2.calc_T(T0=o2.T.val_SI)
+
+        dTa = abs(T_i1-T_o2)
+        dTb = abs(T_i2-T_o1)
+        return dTa,dTb
+
+    def ttd_min_func(self):
+        r"""
+        Equation for minimum terminal temperature difference.
+        """
+
+        dTa,dTb = self._calc_dTs()
+
+        if dTa < dTb:
+            return self.ttd_min.val - dTa
+        else:
+            return self.ttd_min.val - dTb
+
+        # T_o2 = o.calc_T(T0=o.T.val_SI)
+        # return self.ttd_u.val - T_i1 + T_o2
+
+
+    def ttd_min_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates for minimum terminal temperature difference..
+
+        """
+        f = self.ttd_min_func
+        for c in [self.inl[0], self.inl[1], self.outl[0], self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        if not self.ttd_min.is_set:
+            self.ttd_min.val = min(self._calc_dTs())
+
+
+
 
 class MergeDeltaP(Merge):
 

@@ -219,7 +219,7 @@ class Network:
         # generic value range
         self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
-        self.h_range_SI = np.array([1e3, 7e6])
+        self.h_range_SI = np.array([-5e5, 7e6])
 
         for prop in ['m', 'p', 'h']:
             limits = self.get_attr(prop + '_range_SI')
@@ -2244,7 +2244,7 @@ class Network:
 
         if increment < inc_min:
             # need to limit the increment
-            if inc_min < -0.01/(valmax-valmin):
+            if inc_min < -0.01*(valmax-valmin):
                 # if we are not close the the bound we limit it half way to the bound
                 increment = inc_min/2
             else:
@@ -2253,7 +2253,7 @@ class Network:
 
         if increment > inc_max:
             # need to limit the increment
-            if inc_max > 0.01/(valmax-valmin):
+            if inc_max > 0.01*(valmax-valmin):
                 # if we are not close the the bound we limit it half way to the bound
                 increment = inc_max/2
             else:

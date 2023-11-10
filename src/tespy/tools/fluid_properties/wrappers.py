@@ -205,7 +205,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
                     self.AS.update(CP.QT_INPUTS, 0, T)
                     pass
         elif kwargs['force_state'] == "g":
-            self.AS.update(CP.QT_INPUTS, 0, T)
+            self.AS.update(CP.QT_INPUTS, 1, T)
             if p < self.AS.p(): 
                 try:
                     self.AS.update(CP.PT_INPUTS, p, T)

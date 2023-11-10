@@ -846,7 +846,7 @@ class Connection:
 
     def calc_x(self):
         try:
-            return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.force_state)
         except NotImplementedError:
             return np.nan
 
@@ -913,7 +913,7 @@ class Connection:
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
-        if number_fluids > 1:
+        if number_fluids > 1 and not "HEOS" in [self.fluid_data[f]["wrapper"].back_end for f in self.fluid_data] and not "Water" in [self.fluid_data[f]["wrapper"].fluid for f in self.fluid_data]:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, force_state=self.force_state)
             if abs(h_from_T - self.h.val_SI) > ERR ** .5:
                 self.T.val_SI = np.nan
@@ -948,7 +948,7 @@ class Connection:
                 if not self.Td_bp.is_set:
                     self.Td_bp.val_SI = self.calc_Td_bp()
             except ValueError:
-                self.x.val_SI = np.nan
+                self.Td_bp.val_SI = np.nan
 
         if _converged:
             self.vol.val_SI = self.calc_vol()

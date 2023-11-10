@@ -2,6 +2,7 @@ import logging
 
 from tespy.components import SimpleHeatExchanger, Merge, Separator, Splitter, HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import T_mix_ph
 
@@ -535,7 +536,7 @@ class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        self.variable_fluids = self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
+        self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
         num_fluid_eq = len(self.variable_fluids)
         constraints['fluid_constraints'] = {
             'func': self.fluid_func, 'deriv': self.fluid_deriv,
@@ -656,6 +657,172 @@ class SeparatorWithSpeciesSplitsDeltaTDeltaP(SeparatorWithSpeciesSplitsDeltaT, S
         #del constraints['energy_balance_constraints']
         return constraints
 
+
+class DrierWithAir(SeparatorWithSpeciesSplitsDeltaP):
+
+    def __init__(self, label, **kwargs):
+        #self.set_attr(**kwargs)
+        # need to assign the number of outlets before the variables are set
+        self.num_out = 2 # default
+        self.num_in = 2 # default
+        for key in kwargs:
+            if key == 'num_out':
+                self.num_out=kwargs[key]
+            if key == 'num_in':
+                self.num_in=kwargs[key]                
+        super().__init__(label, **kwargs)    
+    
+    @staticmethod
+    def component():
+        return 'separator with species flow splits and dT on outlets'
+    
+    @staticmethod
+    def inlets():
+        return ['in1']
+
+    def inlets(self):
+        if self.num_in.is_set:
+            return ['in' + str(i + 1) for i in range(self.num_in.val)]
+        else:
+            self.set_attr(num_in=2)
+            return self.inlets()
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["num_in"] = dc_simple()
+        variables["deltaT"] = dc_cp(
+            deriv=self.energy_balance_deriv, # same as before
+            func=self.energy_balance_deltaT_func,
+            latex=self.pr_func_doc,
+            num_eq=self.num_out
+        )
+        variables["Q"] = dc_cp(is_result=True)
+        #variables["Qout"] = dc_cpa()
+        return variables
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
+        num_fluid_eq = len(self.variable_fluids)+1
+        constraints['fluid_constraints'] = {
+            'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            'constant_deriv': False, 'latex': self.fluid_func_doc,
+            'num_eq': num_fluid_eq}
+        del constraints['energy_balance_constraints']
+        return constraints
+    
+    def fluid_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+
+        Returns
+        -------
+        residual : list
+            Vector of residual values for component's fluid balance.
+
+            .. math::
+
+                0 = \dot{m}_{in} \cdot x_{fl,in} - \dot {m}_{out,j}
+                \cdot x_{fl,out,j}\\
+                \forall fl \in \text{network fluids,}
+                \; \forall j \in \text{outlets}
+        """
+        #i = self.inl[0]
+        residual = []
+        for fluid in self.variable_fluids:
+            res = 0
+            for i in self.inl:
+                res += i.fluid.val[fluid] * i.m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            residual += [res]
+        
+        # additional equation for air conservation 
+        i = self.inl[1]
+        o = self.outl[0]
+        # known imposition of water and air flows, mean we calculate o.fluid.val['Water'] by 
+        residual += [(o.m.val_SI - i.m.val_SI*i.fluid.val['Air']) - o.fluid.val['Water'] * o.m.val_SI]
+        return residual    
+    
+    def fluid_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        #i = self.inl[0]
+        for fluid in self.variable_fluids:
+            for o in self.outl:
+                if self.is_variable(o.m):
+                    self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
+                if fluid in o.fluid.is_var:
+                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
+
+            for i in self.inl:
+                if self.is_variable(i.m):
+                    self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+                if fluid in i.fluid.is_var:
+                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+
+            # if self.is_variable(i.m):
+            #     self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+            # if fluid in i.fluid.is_var:
+            #     self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+            k += 1    
+
+        i = self.inl[1]
+        o = self.outl[0]
+        if self.is_variable(o.m):
+            self.jacobian[k, o.m.J_col] = 1 - o.fluid.val['Water']
+        if fluid in o.fluid.is_var:
+            self.jacobian[k, o.fluid.J_col['Water']] = - o.m.val_SI
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.J_col] = -i.fluid.val['Air']
+        if fluid in i.fluid.is_var:
+            self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI
+
+
+    def energy_balance_deltaT_func(self):
+        r"""
+        Calculate deltaT residuals based on in[0] solely.
+
+        """
+        i = self.inl[0]
+        if i.T.is_set:
+            T_in = i.T.val_SI
+        else:
+            # calculate T_in
+            if i.T.val0 > 0:
+                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule,i.T.val0) 
+            else:
+                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule) 
+        
+        residual = []
+        for o in self.outl:
+            residual += [T_in - self.deltaT.val - T_mix_ph(o.p.val_SI,o.h.val_SI,o.fluid_data,o.mixing_rule, T0=T_in)] # use T_in as guess
+        return residual
+
+    def calc_parameters(self):
+        super().calc_parameters()
+
+        self.Q.val = sum([o.m.val_SI * o.h.val_SI for o in self.outl]) \
+                   - sum([i.m.val_SI * i.h.val_SI for i in self.inl])
+
+        i = self.inl[0]
+        if not i.T.is_set:
+            Tmin = min([o.T.val_SI for o in self.outl])
+            Tmax = max([o.T.val_SI for o in self.outl])
+            if abs(i.T.val_SI - Tmin) >= abs(i.T.val_SI - Tmax):
+                self.deltaT.val = i.T.val_SI - Tmin
+            else:
+                self.deltaT.val = i.T.val_SI - Tmax
+        
 
 class SeparatorWithSpeciesSplitsDeltaTDeltaPBus(SeparatorWithSpeciesSplitsDeltaTDeltaP):
 

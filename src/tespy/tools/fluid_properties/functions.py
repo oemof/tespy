@@ -80,9 +80,9 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
         if "Water" in fluid_data and not force_state:
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
-                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
-                x = (h-hL)/(hV-hL)
+                T = min([fluid_data[f]["wrapper"]._T_max for f in fluid_data]+[Tsat])
+                hL = h_mix_pT(p, T, fluid_data, mixing_rule, force_state = 'l')
+                hV = h_mix_pT(p, T, fluid_data, mixing_rule, force_state = 'g')
                 if h>hL and h<hV:
                     return Tsat
         _check_mixing_rule(mixing_rule, T_MIX_PH_REVERSE, "temperature (from enthalpy)")

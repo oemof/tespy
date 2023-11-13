@@ -38,7 +38,7 @@ h0 = 119        # global guess value in kJ/kg
 p0 = 1        # global guess value in bar
 
 #water = 'INCOMP::FoodWater'
-water = 'Water'
+water = 'Water' # wrapper gets HEOS backend
 
 for c in nw.conns['object']:
     n_fl = 3 # len(nw.fluids)

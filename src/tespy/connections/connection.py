@@ -667,19 +667,18 @@ class Connection:
                 self.h.solved = True
                 self.T.solved = True
             elif self.Td_bp.is_set:
-                T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
+                T_sat = T_sat_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
                 self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data, self.force_state)
                 self.h.solved = True
                 self.Td_bp.solved = True
             elif self.x.is_set:
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
                 self.h.solved = True
                 self.x.solved = True
-
         elif not self.h.is_set and not self.p.is_set:
             if self.T.is_set and self.x.is_set:
-                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data, self.mixing_rule)
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
                 self.T.solved = True
                 self.x.solved = True
                 self.p.solved = True

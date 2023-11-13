@@ -90,6 +90,7 @@ COMP_TARGET_CLASSES = {
     'SeparatorWithSpeciesSplitsDeltaP' : SeparatorWithSpeciesSplitsDeltaP,
     'SimpleHeatExchangerDeltaPLossFactor' : SimpleHeatExchangerDeltaPLossFactor,
     'SimpleHeatExchangerDeltaP' : SimpleHeatExchangerDeltaP,
+    'SimpleHeatExchangerDeltaPLfKpi' : SimpleHeatExchangerDeltaPLfKpi,
 }
 
 ENGINE_TARGET_CLASSES = {

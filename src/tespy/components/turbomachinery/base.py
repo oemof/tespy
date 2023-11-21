@@ -147,9 +147,17 @@ class Turbomachine(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        self.jacobian[k, 0, 0] = self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        self.jacobian[k, 0, 2] = -self.inl[0].m.val_SI
-        self.jacobian[k, 1, 2] = self.inl[0].m.val_SI
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
+        # custom variable P
+        if self.P.is_var:
+            self.jacobian[k, self.P.J_col] = -1
 
     def bus_func(self, bus):
         r"""

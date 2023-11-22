@@ -155,8 +155,8 @@ def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
 
 def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
     d = 0.1
-    upper = h_mix_pQ(p + d, Q, fluid_data)
-    lower = h_mix_pQ(p - d, Q, fluid_data)
+    upper = h_mix_pQ(p + d, Q, fluid_data, mixing_rule)
+    lower = h_mix_pQ(p - d, Q, fluid_data, mixing_rule)
     return (upper - lower) / (2 * d)
 
 

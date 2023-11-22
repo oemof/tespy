@@ -477,7 +477,44 @@ class SeparatorWithSpeciesSplits(Separator):
             latex=self.pr_func_doc,
             num_eq=1,
         )
+        variables["SF"] = dc_cp_SFS(
+            min_val=0,
+            deriv=self.SF_deriv,
+            func=self.SF_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )        
         return variables
+    
+    def SF_func(self):
+        r"""
+        Equation for SF.
+
+        """
+
+        fluid = self.SF.split_fluid
+        out_i = int(self.SF.split_outlet[3:]) - 1
+        i = self.inl[0]
+        o = self.outl[out_i]
+
+        res = self.SF.val - o.fluid.val[fluid] * o.m.val_SI
+
+        return res
+
+    def SF_deriv(self, increment_filter, k):
+        r"""
+        Calculate the partial derivatives for SF.
+
+        """
+
+        fluid = self.SF.split_fluid
+        out_i = int(self.SF.split_outlet[3:]) - 1
+
+        o = self.outl[out_i]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
+        if fluid in o.fluid.is_var:
+            self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI    
 
     def SFS_func(self):
         r"""
@@ -515,6 +552,16 @@ class SeparatorWithSpeciesSplits(Separator):
         if fluid in o.fluid.is_var:
             self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
 
+    def calc_parameters(self):
+        super().calc_parameters()
+        
+        i = self.inl[0]
+        if self.SFS.is_set:
+            fluid = self.SFS.split_fluid
+            self.SF.val = self.SFS.val* i.fluid.val[fluid] * i.m.val_SI
+        if self.SF.is_set:
+            fluid = self.SF.split_fluid
+            self.SFS.val = self.SF.val / (i.fluid.val[fluid] * i.m.val_SI)
 
 class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
 

@@ -848,11 +848,11 @@ class Connection:
 
     def x_func(self, k, **kwargs):
         # saturated steam fraction
-        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
 
     def x_deriv(self, k, **kwargs):
         if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = 1
 

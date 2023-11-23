@@ -748,7 +748,7 @@ class Connection:
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, force_state=self.force_state)
 
     def T_func(self, k, **kwargs):
-        self.residual[k] = self.calc_T() - self.T.val_SI
+        self.residual[k] = self.calc_T(T0=self.T.val_SI) - self.T.val_SI
 
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:

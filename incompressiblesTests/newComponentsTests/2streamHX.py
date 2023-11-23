@@ -67,6 +67,20 @@ if not nw.converged:
 nw.print_results(colored=True, print_results=False) 
 print(nw.results['Connection'][[c for c in nw.results['Connection'].columns if not (c[-4:]=="unit" or c in ["v","Td_bp","s"])]])
 
+Ti1 = nw.results['Connection']['T'][0]
+To1 = nw.results['Connection']['T'][1]
+Ti2 = nw.results['Connection']['T'][2]
+To2 = nw.results['Connection']['T'][3]
+
+dTA = (Ti1-To2)
+dTB = (To1-Ti2)
+import numpy as np
+LMDT  = (dTA-dTB)/np.log(dTA/dTB)
+UA = -he.Q.val/LMDT
+
+if not he.kA.val == UA:
+    raise Exception("UA did not compare")
+
 he.set_attr(ttd_l = None,ttd_min = None,kA=10e3)    # using new model with pinch
 nw.solve("design",print_results=True)
 if not nw.converged:

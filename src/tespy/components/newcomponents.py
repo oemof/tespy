@@ -359,8 +359,13 @@ class TwoStreamHeatExchanger(HeatExchanger):
         T_i2 = i2.calc_T(T0=i2.T.val_SI)
         T_o2 = o2.calc_T(T0=o2.T.val_SI)
 
-        dTa = abs(T_i1-T_o2)
-        dTb = abs(T_i2-T_o1)
+        if T_i1 > T_i2:
+            dTa = T_i1-T_o2
+            dTb = T_o1-T_i2
+        else:
+            dTa = -T_i1+T_o2
+            dTb = -T_o1+T_i2
+
         return dTa,dTb
 
     def ttd_min_func(self):

@@ -1108,7 +1108,7 @@ class Network:
                 main_conn.fluid.is_var = variable
                 num_var = len(variable)
                 for f in variable:
-                    main_conn.fluid.val[f]: (1 - mass_fraction_sum) / num_var
+                    main_conn.fluid.val[f] = (1 - mass_fraction_sum) / num_var
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in main_conn.fluid.is_var:
@@ -2315,6 +2315,9 @@ class Network:
                 data["obj"].val += RobustRelax * self._limit_increments(data["obj"].min_val,data["obj"].max_val,val,increment)
 
                 #data["obj"].val += RobustRelax * self.increment[data["obj"].J_col]
+
+
+                #print(data["obj"].val)
 
 
 

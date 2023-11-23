@@ -195,7 +195,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
         if self.back_end == "INCOMP":
             if T == (self._T_max + self._T_min) / 2:
                 T += ERR
-        if kwargs['force_state'] == "l" or self.back_end == "INCOMP": # incomp is always liquid
+        if self.back_end == "INCOMP":
             self.AS.update(CP.QT_INPUTS, 0, T)
             if p > self.AS.p(): 
                 try:
@@ -203,18 +203,27 @@ class CoolPropWrapper(FluidPropertyWrapper):
                 except:
                     #print("allowing state to move up on the liquid saturation curve")
                     self.AS.update(CP.QT_INPUTS, 0, T)
-                    pass
-        elif kwargs['force_state'] == "g":
-            self.AS.update(CP.QT_INPUTS, 1, T)
-            if p < self.AS.p(): 
-                try:
-                    self.AS.update(CP.PT_INPUTS, p, T)
-                except:
-                    #print("allowing state to move further down on the gas curve")
-                    self.AS.update(CP.QT_INPUTS, 1, T)
-                    pass
+            else:
+                self.AS.update(CP.PT_INPUTS, p, T)
         else:
-            self.AS.update(CP.PT_INPUTS, p, T)
+            if (kwargs['force_state'] == "l") and not (T > self.AS.T_critical()): 
+                self.AS.update(CP.QT_INPUTS, 0, T)
+                if p > self.AS.p(): 
+                    try:
+                        self.AS.update(CP.PT_INPUTS, p, T)
+                    except:
+                        #print("allowing state to move up on the liquid saturation curve")
+                        self.AS.update(CP.QT_INPUTS, 0, T)
+            elif kwargs['force_state'] == "g" and not (T > self.AS.T_critical()): 
+                self.AS.update(CP.QT_INPUTS, 1, T)
+                if p < self.AS.p(): 
+                    try:
+                        self.AS.update(CP.PT_INPUTS, p, T)
+                    except:
+                        #print("allowing state to move further down on the gas curve")
+                        self.AS.update(CP.QT_INPUTS, 1, T)
+            else:
+                self.AS.update(CP.PT_INPUTS, p, T)            
 
     def h_pT(self, p, T, **kwargs):
         self._check_imposed_state(p,T,**kwargs)

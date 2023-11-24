@@ -337,8 +337,8 @@ class Separator(NodeBase):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         i = self.inl[0]
-        dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule,T0 = i.T.val_SI,force_state=i.force_state)
-        dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule,T0 = i.T.val_SI,force_state=i.force_state)
+        dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
+        dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
         # dT_dfluid_in = {}
         # for fluid in i.fluid.is_var:
         #     dT_dfluid_in[fluid] = dT_mix_ph_dfluid(i)
@@ -349,7 +349,7 @@ class Separator(NodeBase):
                 self.jacobian[k, i.h.J_col] = dT_dh_in
             # for fluid in i.fluid.is_var:
             #     self.jacobian[k, i.fluid.J_col[fluid]] = dT_dfluid_in[fluid]
-            args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule,i.T.val_SI,o.force_state)
+            args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
             if self.is_variable(o.p):
                 self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
             if self.is_variable(o.h):
@@ -357,7 +357,3 @@ class Separator(NodeBase):
             # for fluid in o.fluid.is_var:
             #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
             k += 1
-
-        # deriv = [d for d in self.jacobian.items()]
-        # [print(d) for d in deriv]
-        # deriv        

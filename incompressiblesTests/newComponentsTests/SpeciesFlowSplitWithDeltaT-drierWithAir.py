@@ -35,28 +35,34 @@ c4 = Connection(soAir, "out1", se, "in2", label="4")
 
 nw.add_conns(c1, c2, c3, c4)
 
+# for c in nw.conns['object']:
+#     c.set_attr(m0=1, h0=100, p0=1.2)
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, T=50, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1, "HEOS::Air": 0}, mixing_rule="incompressible")
-c4.set_attr(m=10, p=1.2, T=80, fluid={"INCOMP::Water": 0, "INCOMP::T66": 0, "HEOS::Air": 1}, mixing_rule="incompressible")
+c1.set_attr(m=1, p=1.2, T=50, fluid={"HEOS::Water": 0.9, "INCOMP::T66": 0.1, "HEOS::Air": 0}, mixing_rule="incompressible")
+c4.set_attr(m=10, p=1.2, T=80, fluid={"HEOS::Water": 0, "INCOMP::T66": 0, "HEOS::Air": 1}, mixing_rule="incompressible")
 
 c2.set_attr(fluid={"INCOMP::T66": 0})
-c3.set_attr(fluid={"INCOMP::Water": 0.08, "HEOS::Air": 0})
+c3.set_attr(fluid={"HEOS::Water": 0.08, "HEOS::Air": 0})
 
-c2.set_attr(p=1.2,T=60)
+#c2.set_attr(p=1.2,T=60,force_state='g')
+c2.set_attr(p=1.2,T=60,force_state='g')
 c3.set_attr(p=1.2,T=60)
 
 
+# nw.solve("design")
+# if not nw.converged:
+#     raise Exception("not converged")
+# nw.print_results()
+# print(nw.results['Connection'])
+
+
+c2.set_attr(T=None,T0=60)
+c3.set_attr(T=None,T0=60)
+se.set_attr(Eff_T=0.5)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 print(nw.results['Connection'])
-m_T66_c1 = c1.m.val * c1.fluid.val['T66']
-m_T66_c2 = c2.m.val * c2.fluid.val['T66']
-print(f"\n Species flow split is {m_T66_c2/m_T66_c1}")
-print(f"\n")
-
-
-
 

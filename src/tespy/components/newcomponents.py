@@ -11,11 +11,28 @@ from tespy.components.component import Component
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 
-
+from CoolProp.HumidAirProp import HAPropsSI
 
 import warnings
 
 import numpy as np
+
+
+def get_T(port):
+    if port.T.is_set:
+        T = port.T.val_SI
+    else:
+        if port.T.val0 > 0:
+            T = T_mix_ph(port.p.val_SI,port.h.val_SI,port.fluid_data,port.mixing_rule,port.T.val0,port.force_state) 
+        else:
+            T = T_mix_ph(port.p.val_SI,port.h.val_SI,port.fluid_data,port.mixing_rule,300,port.force_state) 
+    return T
+
+def get_Twb(port,T):
+    M = port.fluid.val["Water"]/(port.fluid.val["Water"]+port.fluid.val["Air"])
+    W = M/(1-M)
+    return HAPropsSI('Twb','P',port.p.val_SI,'T',T,'W',W)
+
 
 class DiabaticSimpleHeatExchanger(SimpleHeatExchanger):
 
@@ -607,16 +624,7 @@ class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
         Calculate deltaT residuals.
 
         """
-        i = self.inl[0]
-        if i.T.is_set:
-            T_in = i.T.val_SI
-        else:
-            # calculate T_in
-            if i.T.val0 > 0:
-                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule,i.T.val0) 
-            else:
-                T_in = T_mix_ph(i.p.val_SI,i.h.val_SI,i.fluid_data,i.mixing_rule) 
-        
+        T_in = get_T(self.inl[0])       
         residual = []
         for o in self.outl:
             residual += [T_in - self.deltaT.val - T_mix_ph(o.p.val_SI,o.h.val_SI,o.fluid_data,o.mixing_rule, T0=T_in)] # use T_in as guess
@@ -859,6 +867,14 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDe
     def get_parameters(self):
         variables = super().get_parameters()
         variables["num_in"] = dc_simple()
+        variables["Eff_T"] = dc_cp(
+            min_val=0,max_val=1,
+            deriv=self.Eff_T_deriv,
+            func=self.Eff_T_func,
+            latex=self.pr_func_doc,
+            num_eq=2,
+        )
+        
         return variables
 
     def get_mandatory_constraints(self):
@@ -885,12 +901,12 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDe
                 res -= o.fluid.val[fluid] * o.m.val_SI
             residual += [res]
         
-        # additional equation for air conservation 
+        # additional balance equation for calculating water vapor mass fraction
         i = self.inl[1]
         o = self.outl[0]
         # known imposition of water and air flows, mean we calculate o.fluid.val['Water'] by 
-        residual += [(o.m.val_SI - i.m.val_SI*i.fluid.val['Air']) - o.fluid.val['Water'] * o.m.val_SI]
-        return residual    
+        residual += [o.m.val_SI - i.m.val_SI*i.fluid.val['Air'] - o.fluid.val['Water'] * o.m.val_SI]
+        return residual
     
     def fluid_deriv(self, increment_filter, k):
         r"""
@@ -923,6 +939,45 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDe
         if fluid in i.fluid.is_var:
             self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI
 
+    def Eff_T_residuals(self,eq_num):
+        # set Tout2 equal to Twb
+        i = self.inl[1]
+        T_in = get_T(i)
+        T_wb = get_Twb(i,T_in)
+        if eq_num == 1:
+            o = self.outl[0]
+            T_out = get_T(o)
+            return (T_in-T_out) - (T_in-T_wb)*self.Eff_T.val
+        elif eq_num == 2:
+            o = self.outl[1]
+            T_out = get_T(o)
+            return T_out - T_wb
+
+    def Eff_T_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+        res = []
+        res += [self.Eff_T_residuals(eq_num=1)]
+        res += [self.Eff_T_residuals(eq_num=2)]
+        return res
+    
+    def Eff_T_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+        for c in [self.inl[1], self.outl[0]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'p', c, eq_num=1)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'h', c, eq_num=1)
+        k = k + 1
+        for c in [self.inl[1], self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'p', c, eq_num=2)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'h', c, eq_num=2)
+
     def calc_parameters(self):
         super().calc_parameters()
 
@@ -937,6 +992,15 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDe
                 self.deltaT.val = i.T.val_SI - Tmin
             else:
                 self.deltaT.val = i.T.val_SI - Tmax
+        
+        if self.outl[1].fluid.val['Air'] > 0:
+            raise Exception("Air cannot go into out2")                
+
+        if not self.Eff_T.is_set:
+            T_in = get_T(self.inl[1])
+            T_out = get_T(self.outl[0])
+            T_wb = get_Twb(self.inl[1],T_in)
+            self.Eff_T.val = (T_in-T_out)/(T_in-T_wb)
 
 class SeparatorWithSpeciesSplitsDeltaTDeltaPBus(SeparatorWithSpeciesSplitsDeltaTDeltaP):
 

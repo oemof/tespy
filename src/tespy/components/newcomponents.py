@@ -686,7 +686,10 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             latex=self.pr_func_doc,
             num_eq=self.num_out
         )
-        variables["Q"] = dc_cp(is_result=True)
+        variables["Q"] = dc_cp(
+                max_val=0, func=self.Q_func, num_eq=2,
+                deriv=self.Q_deriv,
+                latex=self.pr_func_doc)
         #variables["Qout"] = dc_cpa()
         return variables
 
@@ -724,6 +727,46 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             if self.is_variable(o.h):
                 self.jacobian[k, o.h.J_col] = -1
             k += 1
+
+    def Q_func_Tequality(self,port1,port2):
+        return get_T(port1) - get_T(port2)
+
+    def Q_func(self):
+        r"""
+        Equation for hot side heat exchanger energy balance.
+        """
+        res = []
+        res += [self.outl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) \
+             + self.outl[1].m.val_SI * (self.outl[1].h.val_SI - self.inl[0].h.val_SI) \
+             - self.Q.val]
+        res += [self.Q_func_Tequality(self.outl[0],self.outl[1])]
+        return res    
+
+    def Q_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+        i = self.inl[0]
+        o1 = self.outl[0]
+        o2 = self.outl[1]       
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.J_col] = - o1.m.val_SI - o2.m.val_SI
+        if self.is_variable(o1.m):
+            self.jacobian[k, o1.m.J_col] = o1.h.val_SI - i.h.val_SI
+        if self.is_variable(o2.m):
+            self.jacobian[k, o2.m.J_col] = o2.h.val_SI - i.h.val_SI            
+        if self.is_variable(o1.h):
+            self.jacobian[k, o1.h.J_col] = i.m.val_SI
+        if self.is_variable(o2.h):
+            self.jacobian[k, o2.h.J_col] = i.m.val_SI
+        
+        k = k + 1 
+
+        for c in [self.outl[0], self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -818,7 +861,7 @@ class SeparatorWithSpeciesSplitsDeltaTDeltaP(SeparatorWithSpeciesSplitsDeltaT, S
         #del constraints['energy_balance_constraints']
         return constraints
 
-class SeparatorWithSpeciesSplitsDeltaTDeltaPDeltaH(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaH, SeparatorWithSpeciesSplitsDeltaP):
+class SeparatorWithSpeciesSplitsDeltaTDeltaPDeltaH(SeparatorWithSpeciesSplitsDeltaH, SeparatorWithSpeciesSplitsDeltaT, SeparatorWithSpeciesSplitsDeltaP):
 
     @staticmethod
     def component():
@@ -834,8 +877,7 @@ class SeparatorWithSpeciesSplitsDeltaTDeltaPDeltaH(SeparatorWithSpeciesSplitsDel
         #del constraints['energy_balance_constraints']
         return constraints
 
-
-class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDeltaP):
+class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaP):
 
     def __init__(self, label, **kwargs):
         #self.set_attr(**kwargs)
@@ -874,7 +916,6 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDe
             latex=self.pr_func_doc,
             num_eq=2,
         )
-        
         return variables
 
     def get_mandatory_constraints(self):

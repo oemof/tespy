@@ -53,18 +53,31 @@ nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
+print(nw.results['Connection'])
 
 
-c2.set_attr(T=None)
+se.set_attr(Q=2.0e5)
+# c3.set_attr(fluid={"INCOMP::Water": None})
+# c3.set_attr(fluid0={"INCOMP::Water": 0.08, "INCOMP::T66": 0.92})
+# c3.set_attr(T0=100)
 c3.set_attr(T=None)
-
-se.set_attr(Q=2e5)
-
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
+print(nw.results['Connection'])
 
+
+
+
+
+se.set_attr(Q=None)
+se.set_attr(KPI=1.5e5)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
 
 
 

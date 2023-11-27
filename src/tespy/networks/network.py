@@ -1789,6 +1789,13 @@ class Network:
                 except ValueError:
                     pass
 
+            if not np.isnan(c.T.val0):
+                try:
+                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
+                except ValueError:
+                    pass
+
+
     def init_val0(self, c: con.Connection, key: str):
         r"""
         Set starting values for fluid properties.

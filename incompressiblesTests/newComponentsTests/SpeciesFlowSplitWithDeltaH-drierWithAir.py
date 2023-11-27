@@ -50,11 +50,31 @@ c2.set_attr(p=1.2,T=60,force_state='g')
 c3.set_attr(p=1.2,T=60)
 
 
-# nw.solve("design")
-# if not nw.converged:
-#     raise Exception("not converged")
-# nw.print_results()
-# print(nw.results['Connection'])
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+c3.set_attr(fluid={"INCOMP::Water": None})
+c2.set_attr(T=100)
+c3.set_attr(T=None)
+se.set_attr(Q=1.0e6)
+
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+
+
+import sys 
+sys.exit()
+
+
 
 
 c2.set_attr(T=None,T0=60)

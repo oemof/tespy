@@ -1671,6 +1671,14 @@ class Network:
         """
         if self.init_path is not None:
             df = self.init_read_connections(self.init_path)
+        # read val0 for fluids first, before build_fluid_data below
+        for c in self.conns['object']:
+            for key in ['fluid']:
+                if c.get_attr(key).is_var:
+                    #print(c.get_attr(key).val)
+                    #print(c.get_attr(key).val0)
+                    for k,v in c.get_attr(key).val0.items():
+                        c.get_attr(key).val[k] = v
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification

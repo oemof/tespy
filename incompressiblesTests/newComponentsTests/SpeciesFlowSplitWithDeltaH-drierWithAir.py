@@ -46,9 +46,10 @@ c2.set_attr(fluid={"INCOMP::T66": 0})
 c3.set_attr(fluid={"HEOS::Water": 0.08, "HEOS::Air": 0})
 
 #c2.set_attr(p=1.2,T=60,force_state='g')
-c2.set_attr(p=1.0,T=60,force_state='g')
-c3.set_attr(p=1.0,force_state='l')
+c2.set_attr(p=1.0,T0=30,force_state='g')
+c3.set_attr(p=1.0,T0=30,force_state='l')
 se.set_attr(dTwbProd=0)
+
 
 nw.solve("design")
 if not nw.converged:
@@ -65,38 +66,36 @@ print(nw.results['Connection'])
 
 
 c3.set_attr(fluid={"INCOMP::Water": None})
-se.set_attr(Q=1.90e6)
-
+se.set_attr(KPI=0.85)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 print(nw.results['Connection'])
-
-se.set_attr(Q=None)
-se.set_attr(KPI=1.5e5)
-nw.solve("design")
-if not nw.converged:
-    raise Exception("not converged")
-nw.print_results()
-print(nw.results['Connection'])
-
 
 se.set_attr(KPI=None)
 c3.set_attr(fluid={"INCOMP::Water": 0.08})
-
-c2.set_attr(T=None,T0=60)
-# #c3.set_attr(T=None
-c3.set_attr(T0=60)
-se.set_attr(Eff_T=0.85)
+c4.set_attr(m=None)
+#se.set_attr(Eff_T=0.85)
+c2.set_attr(T=40)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 print(nw.results['Connection'])
 
-se.set_attr(Eff_T=None)
-se.set_attr(kA=10.0e4)
+c2.set_attr(T0=40)
+se.set_attr(Eff_T=0.75)
+c2.set_attr(T=None)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+se.set_attr(Eff_T=0.85)
+se.set_attr(kA=6.0e4)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")

@@ -39,28 +39,33 @@ nw.add_conns(c1, c2, c3, c4)
 #     c.set_attr(m0=1, h0=100, p0=1.2)
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, T=50, fluid={"HEOS::Water": 0.9, "INCOMP::T66": 0.1, "HEOS::Air": 0}, mixing_rule="incompressible")
-c4.set_attr(m=10, p=1.2, T=80, fluid={"HEOS::Water": 0, "INCOMP::T66": 0, "HEOS::Air": 1}, mixing_rule="incompressible")
+c1.set_attr(m=1, p=1.0, T=50, fluid={"HEOS::Water": 0.9, "INCOMP::T66": 0.1, "HEOS::Air": 0}, mixing_rule="incompressible")
+c4.set_attr(m=50, p=1.0, T=80, fluid={"HEOS::Water": 0, "INCOMP::T66": 0, "HEOS::Air": 1}, mixing_rule="incompressible")
 
 c2.set_attr(fluid={"INCOMP::T66": 0})
 c3.set_attr(fluid={"HEOS::Water": 0.08, "HEOS::Air": 0})
 
 #c2.set_attr(p=1.2,T=60,force_state='g')
-c2.set_attr(p=1.2,T=60,force_state='g')
-c3.set_attr(p=1.2,T=60)
-
+c2.set_attr(p=1.0,T=60,force_state='g')
+c3.set_attr(p=1.0,force_state='l')
+se.set_attr(dTwbProd=0)
 
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 print(nw.results['Connection'])
+
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
 
 
 c3.set_attr(fluid={"INCOMP::Water": None})
-c2.set_attr(T=100)
-c3.set_attr(T=None)
-se.set_attr(Q=1.0e6)
+se.set_attr(Q=1.90e6)
 
 nw.solve("design")
 if not nw.converged:
@@ -68,21 +73,32 @@ if not nw.converged:
 nw.print_results()
 print(nw.results['Connection'])
 
+se.set_attr(Q=None)
+se.set_attr(KPI=1.5e5)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
 
 
-
-import sys 
-sys.exit()
-
-
-
+se.set_attr(KPI=None)
+c3.set_attr(fluid={"INCOMP::Water": 0.08})
 
 c2.set_attr(T=None,T0=60)
-c3.set_attr(T=None,T0=60)
-se.set_attr(Eff_T=0.5)
+# #c3.set_attr(T=None
+c3.set_attr(T0=60)
+se.set_attr(Eff_T=0.85)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
 print(nw.results['Connection'])
 
+se.set_attr(Eff_T=None)
+se.set_attr(kA=10.0e4)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])

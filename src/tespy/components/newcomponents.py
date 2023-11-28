@@ -18,21 +18,10 @@ import warnings
 import numpy as np
 
 
-def get_T(port):
-    if port.T.is_set:
-        T = port.T.val_SI
-    else:
-        if port.T.val0 > 0:
-            T = T_mix_ph(port.p.val_SI,port.h.val_SI,port.fluid_data,port.mixing_rule,port.T.val0,port.force_state) 
-        else:
-            T = T_mix_ph(port.p.val_SI,port.h.val_SI,port.fluid_data,port.mixing_rule,300,port.force_state) 
-    return T
-
 def get_Twb(port,T):
     M = port.fluid.val["Water"]/(port.fluid.val["Water"]+port.fluid.val["Air"])
     W = M/(1-M)
     return HAPropsSI('Twb','P',port.p.val_SI,'T',T,'W',W)
-
 
 class DiabaticSimpleHeatExchanger(SimpleHeatExchanger):
 
@@ -624,10 +613,10 @@ class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
         Calculate deltaT residuals.
 
         """
-        T_in = get_T(self.inl[0])       
+        T_in = self.inl[0].calc_T(T0=self.inl[0].T.val_SI)
         residual = []
         for o in self.outl:
-            residual += [T_in - self.deltaT.val - T_mix_ph(o.p.val_SI,o.h.val_SI,o.fluid_data,o.mixing_rule, T0=T_in)] # use T_in as guess
+            residual += [T_in - self.deltaT.val - o.calc_T(T0=T_in)] # use T_in as guess
         return residual
     
     def energy_balance_deltaT_deriv(self, increment_filter, k):
@@ -663,7 +652,8 @@ class SeparatorWithSpeciesSplitsDeltaT(SeparatorWithSpeciesSplits):
     def calc_parameters(self):
         super().calc_parameters()
         i = self.inl[0]
-        self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl])
+        if not self.Q.is_set:
+            self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl])
 
         Tmin = min([o.T.val_SI for o in self.outl])
         Tmax = max([o.T.val_SI for o in self.outl])
@@ -687,14 +677,14 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             num_eq=self.num_out
         )
         variables["Q"] = dc_cp(
-                max_val=0, func=self.Q_func, num_eq=1,
-                deriv=self.Q_deriv,
-                latex=self.pr_func_doc)
+            func=self.Q_func, num_eq=1,
+            deriv=self.Q_deriv,
+            latex=self.pr_func_doc)
         variables["KPI"] = dc_cp(
             deriv=self.KPI_deriv,
             func=self.KPI_func,
             latex=self.pr_func_doc,
-            num_eq=2)        
+            num_eq=1)        
         #variables["Qout"] = dc_cpa()
         return variables
 
@@ -734,7 +724,7 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             k += 1
 
     def Q_func_Tequality(self,port1,port2):
-        return get_T(port1) - get_T(port2)
+        return port1.calc_T(T0=port1.T.val_SI) - port2.calc_T(T0=port2.T.val_SI)        
 
     def Q_func(self):
         r"""
@@ -743,11 +733,10 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
         i = self.inl[0]
         o1 = self.outl[0]
         o2 = self.outl[1]
-
-        #res = []
-        #res += [o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.Q.val]
-        #res += [self.Q_func_Tequality(o1,o2)]
-        #return res    
+        # #res = []
+        # #res += [o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.Q.val]
+        # #res += [self.Q_func_Tequality(o1,o2)]
+        # #return res    
         return o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.Q.val
 
     def Q_deriv(self, increment_filter, k):
@@ -769,7 +758,6 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             self.jacobian[k, o2.h.J_col] = o2.m.val_SI
 
         # k = k + 1 
-
         # for c in [self.outl[0], self.outl[1]]:
         #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
         #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
@@ -783,10 +771,11 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
         i = self.inl[0]
         o1 = self.outl[0]
         o2 = self.outl[1]
-        res = []
-        res += [o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.KPI.val * i.m.val_SI]
-        res += [self.Q_func_Tequality(o1,o2)]
-        return res    
+        # res = []
+        # res += [o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.KPI.val * i.m.val_SI]
+        # res += [self.Q_func_Tequality(o1,o2)]
+        # return res    
+        return o1.m.val_SI * (o1.h.val_SI - i.h.val_SI) + o2.m.val_SI * (o2.h.val_SI - i.h.val_SI) - self.KPI.val * i.m.val_SI
 
     def KPI_deriv(self, increment_filter, k):
         r"""
@@ -808,13 +797,12 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
         if self.is_variable(o2.h):
             self.jacobian[k, o2.h.J_col] = o2.m.val_SI
         
-        k = k + 1 
-
-        for c in [self.outl[0], self.outl[1]]:
-            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
-            if self.is_variable(c.h): #, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
+        # k = k + 1 
+        # for c in [self.outl[0], self.outl[1]]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -822,7 +810,7 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
 
         if not self.Q.is_set:
             self.Q.val = np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl])
-        elif not self.KPI.is_set:
+        if not self.KPI.is_set:
             self.KPI.val = np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl]) / i.m.val_SI 
 
         hmin = min([o.h.val_SI for o in self.outl])
@@ -965,8 +953,22 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
             deriv=self.Eff_T_deriv,
             func=self.Eff_T_func,
             latex=self.pr_func_doc,
-            num_eq=2,
+            num_eq=1,
         )
+        variables["dTwbProd"] = dc_cp(
+            deriv=self.dTwbProd_deriv,
+            func=self.dTwbProd_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )        
+        variables['kA'] = dc_cp(
+                min_val=0, num_eq=1, func=self.kA_func, latex=self.pr_func_doc,
+                deriv=self.kA_deriv)
+        variables['td_log'] = dc_cp(min_val=0, is_result=True)        
+        variables['ttd_u'] = dc_cp(min_val=0, is_result=True)        
+        variables['ttd_l'] = dc_cp(min_val=0, is_result=True)        
+        variables['Ii'] = dc_cp(min_val=0, is_result=True)        
+        variables['Io'] = dc_cp(min_val=0, is_result=True)     
         return variables
 
     def get_mandatory_constraints(self):
@@ -1031,28 +1033,16 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         if fluid in i.fluid.is_var:
             self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI
 
-    def Eff_T_residuals(self,eq_num):
-        # set Tout2 equal to Twb
-        i = self.inl[1]
-        T_in = get_T(i)
-        T_wb = get_Twb(i,T_in)
-        if eq_num == 1:
-            o = self.outl[0]
-            T_out = get_T(o)
-            return (T_in-T_out) - (T_in-T_wb)*self.Eff_T.val
-        elif eq_num == 2:
-            o = self.outl[1]
-            T_out = get_T(o)
-            return T_out - T_wb
-
     def Eff_T_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
         """
-        res = []
-        res += [self.Eff_T_residuals(eq_num=1)]
-        res += [self.Eff_T_residuals(eq_num=2)]
-        return res
+        i = self.inl[1]
+        T_in = i.calc_T(T0=i.T.val_SI)
+        T_wb = get_Twb(i,T_in)
+        o = self.outl[0]
+        T_out = o.calc_T(T0=o.T.val_SI)        
+        return (T_in-T_out) - (T_in-T_wb)*self.Eff_T.val
     
     def Eff_T_deriv(self, increment_filter, k):
         r"""
@@ -1060,35 +1050,57 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         """
         for c in [self.inl[1], self.outl[0]]:
             if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'p', c, eq_num=1)
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_func, 'p', c)
             if self.is_variable(c.h): #, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'h', c, eq_num=1)
-        k = k + 1
-        for c in [self.inl[1], self.outl[1]]:
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_func, 'h', c)
+
+    def dTwbProd_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+        i = self.inl[1]
+        T_in = i.calc_T(T0=i.T.val_SI)
+        T_wb = get_Twb(i,T_in)
+        o = self.outl[1]
+        T_out = o.calc_T(T0=o.T.val_SI)
+        return T_out - T_wb - self.dTwbProd.val
+    
+    def dTwbProd_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+        for c in [self.inl[1]]:
             if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'p', c, eq_num=2)
+                self.jacobian[k, c.p.J_col] = dT_mix_dph(c.p.val_SI, c.h.val_SI, c.fluid_data, c.mixing_rule,T0 = c.T.val_SI,force_state=c.force_state)
             if self.is_variable(c.h): #, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_residuals, 'h', c, eq_num=2)
+                self.jacobian[k, c.h.J_col] = dT_mix_pdh(c.p.val_SI, c.h.val_SI, c.fluid_data, c.mixing_rule,T0 = c.T.val_SI,force_state=c.force_state)
+        # T_wb is nonlinear and we cannot differentiate easily
+        for c in [self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dTwbProd_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dTwbProd_func, 'h', c)
 
     def Q_func_Tequality(self,port1,port2):
-        return get_T(port1) - get_T(port2)
+        return port1.calc_T(T0=port1.T.val_SI) - port2.calc_T(T0=port2.T.val_SI)
 
     def Q_func(self):
         r"""
-        Equation for hot side heat exchanger energy balance.
+        Need overwrite this function to take into account air inlet
         """
         i1 = self.inl[0]
         i2 = self.inl[1]
         o1 = self.outl[0]
         o2 = self.outl[1]
-        res = []
-        res += [o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI - self.Q.val]
-        res += [self.Q_func_Tequality(o1,o2)]
-        return res    
+        # res = []
+        # res += [o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI - self.Q.val]
+        # res += [self.Q_func_Tequality(o1,o2)]
+        # return res   
+        return o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI - self.Q.val
 
     def Q_deriv(self, increment_filter, k):
         r"""
-        Partial derivatives for hot side heat exchanger energy balance.
+        Need overwrite this function to take into account air inlet
         """
         i1 = self.inl[0]
         i2 = self.inl[1]        
@@ -1113,37 +1125,142 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         if self.is_variable(i2.h):
             self.jacobian[k, i2.h.J_col] = -i2.m.val_SI
 
-        k = k + 1 
+        # k = k + 1 
 
-        for c in [self.outl[0], self.outl[1]]:
-            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
-            if self.is_variable(c.h): #, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
+        # for c in [self.outl[0], self.outl[1]]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'p', c, port1 = self.outl[0], port2 = self.outl[1])
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
+
+    def KPI_func(self):
+        r"""
+        modify Q_func
+        """
+        i1 = self.inl[0]
+        return self.Q_func() + self.Q.val - i1.m.val_SI*self.KPI.val
+
+    def KPI_deriv(self, increment_filter, k):
+        r"""
+        modify Q_deriv
+        """
+        self.Q_deriv(increment_filter, k)
+        i1 = self.inl[0]
+        if self.is_variable(i1.m):
+            self.jacobian[k, i1.m.J_col] = self.jacobian[k, i1.m.J_col] - self.KPI.val
+
+    def calculate_td_log(self):
+        # 1 is with air
+        i1 = self.inl[1]
+        o1 = self.outl[0]
+
+        # temperature value manipulation for convergence stability
+        T_i1 = i1.calc_T(T0=i1.T.val_SI)
+        T_i2 = get_Twb(i1,T_i1)
+        T_o1 = o1.calc_T(T0=o1.T.val_SI)
+        T_o2 = T_i2
+
+        if T_i1 <= T_o2:
+            T_i1 = T_o2 + 0.01
+        if T_i1 <= T_o2:
+            T_o2 = T_i1 - 0.01
+        if T_i1 <= T_o2:
+            T_o1 = T_i2 + 0.02
+        if T_o1 <= T_i2:
+            T_i2 = T_o1 - 0.02
+
+        ttd_u = T_i1 - T_o2
+        ttd_l = T_o1 - T_i2
+
+        if ttd_u == ttd_l:
+            td_log = ttd_l
+        else:
+            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
+
+        return td_log
+
+    def kA_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient.
+        """
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+        return o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI - self.kA.val * self.calculate_td_log()    
+
+    def kA_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of heat transfer coefficient function.
+        """
+        f = self.kA_func
+        for c in self.inl:
+            if self.is_variable(c.m):
+                self.jacobian[k, c.m.J_col] = -c.h.val_SI
+        for c in self.outl:
+            if self.is_variable(c.m):
+                self.jacobian[k, c.m.J_col] = c.h.val_SI                
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def calc_parameters(self):
         super().calc_parameters()
 
-        self.Q.val = sum([o.m.val_SI * o.h.val_SI for o in self.outl]) \
-                   - sum([i.m.val_SI * i.h.val_SI for i in self.inl])
-
-        i = self.inl[0]
-        if not i.T.is_set:
-            Tmin = min([o.T.val_SI for o in self.outl])
-            Tmax = max([o.T.val_SI for o in self.outl])
-            if abs(i.T.val_SI - Tmin) >= abs(i.T.val_SI - Tmax):
-                self.deltaT.val = i.T.val_SI - Tmin
-            else:
-                self.deltaT.val = i.T.val_SI - Tmax
-        
+        if not self.Q.is_set:
+            self.Q.val = sum([o.m.val_SI * o.h.val_SI for o in self.outl]) \
+                       - sum([i.m.val_SI * i.h.val_SI for i in self.inl])
+        if not self.KPI.is_set:
+            self.KPI.val = (sum([o.m.val_SI * o.h.val_SI for o in self.outl]) 
+                          - sum([i.m.val_SI * i.h.val_SI for i in self.inl])) / self.inl[0].m.val_SI 
+                   
         if self.outl[1].fluid.val['Air'] > 0:
             raise Exception("Air cannot go into out2")                
 
+        T_in  = self.inl[1].T.val_SI
+        T_out = self.outl[0].T.val_SI
+        T_wb  = self.outl[1].T.val_SI # get_Twb(self.inl[1],T_in)
+
         if not self.Eff_T.is_set:
-            T_in = get_T(self.inl[1])
-            T_out = get_T(self.outl[0])
-            T_wb = get_Twb(self.inl[1],T_in)
             self.Eff_T.val = (T_in-T_out)/(T_in-T_wb)
+
+        self.ttd_u.val = T_in - T_wb
+        self.ttd_l.val = T_out - T_wb
+
+        if not self.kA.is_set:
+            # kA and logarithmic temperature difference
+            if self.ttd_u.val < 0 or self.ttd_l.val < 0:
+                self.td_log.val = np.nan
+            elif self.ttd_l.val == self.ttd_u.val:
+                self.td_log.val = self.ttd_l.val
+            else:
+                self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
+                                np.log(self.ttd_l.val / self.ttd_u.val))
+            self.kA.val = self.Q.val / self.td_log.val
+
+        port_i = self.inl[1]
+        M_i = port_i.fluid.val["Water"]/(port_i.fluid.val["Water"]+port_i.fluid.val["Air"])
+        W_i = M_i/(1-M_i)
+        I_i = HAPropsSI('H','P',port_i.p.val_SI,'T',port_i.T.val_SI,'W',W_i)
+        port_o = self.outl[0]
+        M_o = port_o.fluid.val["Water"]/(port_o.fluid.val["Water"]+port_o.fluid.val["Air"])
+        W_o = M_o/(1-M_o)
+        I_o = HAPropsSI('H','P',port_o.p.val_SI,'T',port_o.T.val_SI,'W',W_o)
+        
+        I_wb = HAPropsSI('H','P',port_o.p.val_SI,'T',T_wb,'R',1)
+        W_wb = HAPropsSI('W','P',port_o.p.val_SI,'T',T_wb,'R',1)
+        T_o = T_in - (T_in-T_wb)/(W_i-W_wb)*(W_i-W_o)
+
+        T_o = HAPropsSI('T','P',port_o.p.val_SI,'H',I_i,'W',W_o*0.5)
+        
+        print(int(I_i),int(I_o))
+
+        print("hey")
+
+
+
 
 class SeparatorWithSpeciesSplitsDeltaTDeltaPBus(SeparatorWithSpeciesSplitsDeltaTDeltaP):
 

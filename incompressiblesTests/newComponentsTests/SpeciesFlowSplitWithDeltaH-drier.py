@@ -33,21 +33,16 @@ c3 = Connection(se, "out2", si2, "in1", label="3")
 
 nw.add_conns(c1, c2, c3)
 
-# set global guess values 
-m0 = 1    # transform unit at some point [this is kt/yr]
-h0 = 1e2        # global guess value in kJ/kg
-p0 = 5        # global guess value in bar
-
 # set some generic data for starting values
-c1.set_attr(m=1, p=1.2, h=1e2, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
+c1.set_attr(m=1, p=1.0, h=1e2, fluid={"HEOS::Water": 0.9, "INCOMP::T66": 0.1}, mixing_rule="incompressible")
 #c1.set_attr(m=1, p=1.2, T=50, fluid={"INCOMP::Water": 0.9, "INCOMP::T66": 0.1})
 #c1.set_attr(T0=10) # it seems guess values are SI 
 
-c2.set_attr(fluid={"INCOMP::Water": 1, "INCOMP::T66": 0.0})
-c3.set_attr(fluid={"INCOMP::Water": 0.08})
+c2.set_attr(fluid={"HEOS::Water": 1, "INCOMP::T66": 0.0},force_state='g')
+c3.set_attr(fluid={"HEOS::Water": 0.08},force_state='l')
 
-c2.set_attr(p=1.2,T=100)
-c3.set_attr(p=1.2,T=100)
+c2.set_attr(p=1.0,T=100)
+c3.set_attr(p=1.0,T=100)
 
 nw.solve("design")
 if not nw.converged:
@@ -56,11 +51,11 @@ nw.print_results()
 print(nw.results['Connection'])
 
 
-se.set_attr(Q=2.0e5)
-# c3.set_attr(fluid={"INCOMP::Water": None})
+se.set_attr(Q=2.0e6)
+c3.set_attr(fluid={"HEOS::Water": None})
 # c3.set_attr(fluid0={"INCOMP::Water": 0.08, "INCOMP::T66": 0.92})
 # c3.set_attr(T0=100)
-c3.set_attr(T=None)
+#c3.set_attr(T=None)
 nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")

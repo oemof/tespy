@@ -11,7 +11,9 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
 from tespy.components.newcomponents import \
     DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits, \
-        SeparatorWithSpeciesSplitsDeltaT,DrierWithAir
+        SeparatorWithSpeciesSplitsDeltaT
+
+from tespy.components.AirDrier import DrierWithAir
 
 logging.basicConfig(level=logging.DEBUG)
 

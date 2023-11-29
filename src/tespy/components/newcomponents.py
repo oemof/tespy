@@ -955,10 +955,10 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
             latex=self.pr_func_doc,
             num_eq=1,
         )       
-        variables["Eff_T"] = dc_cp(
+        variables["WBeff"] = dc_cp(
             min_val=0,max_val=1,
-            deriv=self.Eff_T_deriv,
-            func=self.Eff_T_func,
+            deriv=self.WBeff_deriv,
+            func=self.WBeff_func,
             latex=self.pr_func_doc,
             num_eq=1,
         )
@@ -969,13 +969,71 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         variables['ttd_u'] = dc_cp(min_val=0, is_result=True)        
         variables['ttd_l'] = dc_cp(min_val=0, is_result=True)        
         variables['m_evap'] = dc_cp(min_val=0, is_result=True)        
-        variables['Q_evap'] = dc_cp(min_val=0, is_result=True)     
+        variables['Q_evap'] = dc_cp(min_val=0, is_result=True)
+        variables['RH'] = dc_cp(min_val=0, max_val=100, is_result=True)
+        variables["dWo"] = dc_cp(
+            min_val = 0, max_val=1,
+            deriv=self.dWo_deriv,
+            func=self.dWo_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )           
+        variables["dWo2"] = dc_cp(
+            min_val = 0, max_val=1,
+            deriv=self.dWo2_deriv,
+            func=self.dWo2_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )                   
+        variables["dfluid"] = dc_cp(
+            min_val = 0, max_val=1,
+            deriv=self.dfluid_deriv,
+            func=self.dfluid_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )                 
+        # variables['eb'] = dc_cp(
+        #     min_val = 0, max_val=1,
+        #     deriv=self.energy_balance_deriv,
+        #     func=self.energy_balance_func,
+        #     latex=self.pr_func_doc,
+        #     num_eq=1,
+        # )                 
+        variables["deltaH"] = dc_cp(
+            deriv=self.energy_balance_deltaH_deriv, # same as before
+            func=self.energy_balance_deltaH_func,
+            latex=self.pr_func_doc,
+            num_eq=1
+        )        
         return variables
+    
+    def energy_balance_deltaH_func(self):
+        r"""
+        Calculate deltaH residuals.
+
+        """
+        i = self.inl[0]
+        residual = []
+        for o in [self.outl[1]]:
+            residual += [i.h.val_SI - self.deltaH.val - o.h.val_SI]
+        return residual[0]
+    
+    def energy_balance_deltaH_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance.
+        """
+        i = self.inl[0]
+        for o in [self.outl[1]]:
+            if self.is_variable(i.h):
+                self.jacobian[k, i.h.J_col] = 1
+            if self.is_variable(o.h):
+                self.jacobian[k, o.h.J_col] = -1
+            k += 1    
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
-        num_fluid_eq = len(self.variable_fluids)+1
+        num_fluid_eq = len(self.variable_fluids)
         constraints['fluid_constraints'] = {
             'func': self.fluid_func, 'deriv': self.fluid_deriv,
             'constant_deriv': False, 'latex': self.fluid_func_doc,
@@ -1001,12 +1059,18 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
                 res -= o.fluid.val[fluid] * o.m.val_SI
             residual += [res]
         
-        # additional balance equation for calculating water vapor mass fraction
-        i = self.inl[1]
-        o = self.outl[0]
-        # known imposition of water and air flows, mean we calculate o.fluid.val['Water'] by 
-        #residual += [o.m.val_SI - i.m.val_SI*i.fluid.val['Air'] - o.fluid.val['Water'] * o.m.val_SI]
-        residual += [o.m.val_SI*o.fluid.val['Air'] - i.m.val_SI*i.fluid.val['Air']]       
+        # # additional balance equation for calculating water vapor mass fraction
+        # i = self.inl[1]
+        # o = self.outl[0]
+        # # known imposition of water and air flows, mean we calculate o.fluid.val['Water'] by 
+        # residual += [o.m.val_SI - i.m.val_SI*i.fluid.val['Air'] - o.fluid.val['Water'] * o.m.val_SI]
+
+        # i1 = self.inl[0]
+        # i2 = self.inl[1]
+        # o1 = self.outl[0]
+        # o2 = self.outl[1]
+        # m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o2.m.val_SI*o2.fluid.val['Water']
+        # residual += [i2.m.val_SI + m_evap - o1.m.val_SI]
         return residual
     
     def fluid_deriv(self, increment_filter, k):
@@ -1029,8 +1093,8 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
 
             k += 1    
 
-        i = self.inl[1]
-        o = self.outl[0]
+        # i = self.inl[1]
+        # o = self.outl[0]
         # if self.is_variable(o.m):
         #     self.jacobian[k, o.m.J_col] = 1 - o.fluid.val['Water']
         # if fluid in o.fluid.is_var:
@@ -1040,14 +1104,75 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         # if fluid in i.fluid.is_var:
         #     self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI
 
+        # i1 = self.inl[0]
+        # i2 = self.inl[1]
+        # o1 = self.outl[0]
+        # o2 = self.outl[1]
+
+        # if self.is_variable(i2.m):
+        #     self.jacobian[k, i2.m.J_col] = 1           
+
+        # if self.is_variable(o2.m):
+        #     self.jacobian[k, o2.m.J_col] = - o2.fluid.val['Water']
+        # if 'Water' in o2.fluid.is_var:
+        #     self.jacobian[k, o2.fluid.J_col['Water']] = - o2.m.val_SI
+
+        # if self.is_variable(i1.m):
+        #     self.jacobian[k, i1.m.J_col] = i1.fluid.val['Water']
+        # if 'Water' in i1.fluid.is_var:
+        #     self.jacobian[k, i1.fluid.J_col['Water']] = i1.m.val_SI
+
+        # if self.is_variable(o1.m):
+        #     self.jacobian[k, o1.m.J_col] = -1
+
+    
+    def dfluid_func(self):
+        # additional balance equation for calculating water vapor mass fraction
+        i = self.inl[1]
+        o = self.outl[0]
+        # known imposition of water and air flows, mean we calculate o.fluid.val['Water'] by 
+        return o.m.val_SI - i.m.val_SI*i.fluid.val['Air'] - o.fluid.val['Water'] * o.m.val_SI
+                
+        # i1 = self.inl[0]
+        # i2 = self.inl[1]
+        # o1 = self.outl[0]
+        # o2 = self.outl[1]
+        # m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o2.m.val_SI*o2.fluid.val['Water']
+        # return i2.m.val_SI + m_evap - o1.m.val_SI - self.dfluid.val
+    
+    def dfluid_deriv(self, increment_filter, k):
+
+        i = self.inl[1]
+        o = self.outl[0]
         if self.is_variable(o.m):
-            self.jacobian[k, o.m.J_col] = o.fluid.val['Air']
-        if 'Air' in o.fluid.is_var:
-            self.jacobian[k, o.fluid.J_col['Air']] = o.m.val_SI
+            self.jacobian[k, o.m.J_col] = 1 - o.fluid.val['Water']
+        if 'Water' in o.fluid.is_var:
+            self.jacobian[k, o.fluid.J_col['Water']] = - o.m.val_SI
         if self.is_variable(i.m):
             self.jacobian[k, i.m.J_col] = -i.fluid.val['Air']
         if 'Air' in i.fluid.is_var:
-            self.jacobian[k, i.fluid.J_col['Air']] = -i.m.val_SI
+            self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI        
+
+        # i1 = self.inl[0]
+        # i2 = self.inl[1]
+        # o1 = self.outl[0]
+        # o2 = self.outl[1]
+
+        # if self.is_variable(i2.m):
+        #     self.jacobian[k, i2.m.J_col] = 1           
+
+        # if self.is_variable(o2.m):
+        #     self.jacobian[k, o2.m.J_col] = - o2.fluid.val['Water']
+        # if 'Water' in o2.fluid.is_var:
+        #     self.jacobian[k, o2.fluid.J_col['Water']] = - o2.m.val_SI
+
+        # if self.is_variable(i1.m):
+        #     self.jacobian[k, i1.m.J_col] = i1.fluid.val['Water']
+        # if 'Water' in i1.fluid.is_var:
+        #     self.jacobian[k, i1.fluid.J_col['Water']] = i1.m.val_SI
+
+        # if self.is_variable(o1.m):
+        #     self.jacobian[k, o1.m.J_col] = -1    
 
     def dTwbProd_func(self):
         r"""
@@ -1076,6 +1201,137 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
             if self.is_variable(c.h): #, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dTwbProd_func, 'h', c)
 
+    def dWo_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        T_i  = i2.calc_T(T0=i2.T.val_SI)
+        T_o = o1.calc_T(T0=o1.T.val_SI)
+
+        M_i = i2.fluid.val["Water"]
+        W_i = M_i/(1-M_i)
+        I_i = HAPropsSI('H','P',i2.p.val_SI,'T',T_i,'W',W_i)
+
+        T_wb  = get_Twb(i2,T_i)
+        W_wb = HAPropsSI('W','P',i2.p.val_SI,'T',T_wb,'R',1)
+        I_wb = HAPropsSI('H','P',i2.p.val_SI,'T',T_wb,'R',1)
+
+        M_o = o1.fluid.val["Water"]
+        W_o = M_o/(1-M_o)
+
+        #W_o_calc = W_i - (T_i-T_o)/(T_i-T_wb)*(W_i-W_wb)
+        I_o = I_i - (T_i-T_o)/(T_i-T_wb)*(I_i-I_wb)
+        W_o_calc = HAPropsSI('W','P',i2.p.val_SI,'H',I_o,'T',T_o)
+              
+        #T_o_linear = T_i - (T_i-T_o)/(T_i-T_wb)*(W_i-W_wb)
+        #W_o_calc = W_i - (T_i-T_o)/(T_i-T_wb)*(W_i-W_wb)
+        return W_o_calc - W_o - self.dWo.val
+
+        
+    
+    def dWo_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+
+        i2 = self.inl[1]
+        o1 = self.outl[0]        
+        for c in [i2, o1]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dWo_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dWo_func, 'h', c)
+            # if self.is_variable(c.m): #, increment_filter):
+            #     self.jacobian[k, c.m.J_col] = self.numeric_deriv(self.dWo_func, 'm', c, i2=i2, o1=o1)
+
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.dWo_func, fluid, c)
+
+    def dWo2_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+
+        Ti1  = i1.calc_T(T0=i1.T.val_SI)
+        Ti2  = i2.calc_T(T0=i2.T.val_SI)
+        To1  = o1.calc_T(T0=o1.T.val_SI)
+        #To2  = o2.calc_T(T0=o2.T.val_SI)
+
+        m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o2.m.val_SI*o2.fluid.val['Water']
+        Q_evap = m_evap * (o1.fluid_data['Water']['wrapper'].h_pT(o1.p.val_SI,To1,force_state=o1.force_state)
+                          -i1.fluid_data['Water']['wrapper'].h_pT(i1.p.val_SI,Ti1,force_state=i1.force_state))
+
+        m_air = i2.m.val_SI*i2.fluid.val['Air'] #i2.m.val_SI # *i2.fluid.val['Air']
+        Q_air = + m_air * (o1.fluid_data['Air']['wrapper'].h_pT(o1.p.val_SI,To1,force_state=o1.force_state)
+                          -i2.fluid_data['Air']['wrapper'].h_pT(i2.p.val_SI,Ti2,force_state=i2.force_state))
+        
+        return Q_evap + Q_air - self.dWo2.val
+        
+    
+    def dWo2_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+
+        Ti1  = i1.calc_T(T0=i1.T.val_SI)
+        Ti2  = i2.calc_T(T0=i2.T.val_SI)
+        To1  = o1.calc_T(T0=o1.T.val_SI)
+
+        dh_w = (o1.fluid_data['Water']['wrapper'].h_pT(o1.p.val_SI,To1,force_state=o1.force_state)
+               -i1.fluid_data['Water']['wrapper'].h_pT(i1.p.val_SI,Ti1,force_state=i1.force_state))
+        dh_a = (o1.fluid_data['Air']['wrapper'].h_pT(o1.p.val_SI,To1,force_state=o1.force_state)
+               -i2.fluid_data['Air']['wrapper'].h_pT(i2.p.val_SI,Ti2,force_state=i2.force_state))
+
+        if self.is_variable(o2.m):
+            self.jacobian[k, o2.m.J_col] = - o2.fluid.val['Water'] * dh_w
+        if 'Water' in o2.fluid.is_var:
+            self.jacobian[k, o2.fluid.J_col['Water']] = - o2.m.val_SI * dh_w
+        if self.is_variable(i1.m):
+            self.jacobian[k, i1.m.J_col] = i1.fluid.val['Water'] * dh_w
+        if 'Water' in i1.fluid.is_var:
+            self.jacobian[k, i1.fluid.J_col['Water']] = i1.m.val_SI * dh_w
+
+        # if self.is_variable(o1.m):
+        #     self.jacobian[k, o1.m.J_col] = o1.fluid.val['Air'] * dh_a
+        # if 'Air' in o1.fluid.is_var:
+        #     self.jacobian[k, o1.fluid.J_col['Air']] = o1.m.val_SI * dh_a
+
+        if self.is_variable(i2.m):
+            self.jacobian[k, i2.m.J_col] = i2.fluid.val['Air'] * dh_a
+        if 'Air' in i2.fluid.is_var:
+            self.jacobian[k, i2.fluid.J_col['Air']] = i2.m.val_SI * dh_a
+
+            
+
+
+    def res2(self,i2,o1):
+        T_i  = i2.calc_T(T0=i2.T.val_SI)
+        T_o = o1.calc_T(T0=o1.T.val_SI)
+        T_wb  = get_Twb(i2,T_i)
+        W_wb = HAPropsSI('W','P',i2.p.val_SI,'T',T_wb,'R',1)
+
+        M_i = i2.fluid.val["Water"]
+        W_i = M_i/(1-M_i)
+        M_o = o1.fluid.val["Water"]
+        W_o = M_o/(1-M_o)
+        
+        #T_o_linear = T_i - (T_i-T_o)/(T_i-T_wb)*(W_i-W_wb)
+        W_o_calc = W_i - (T_i-T_o)/(T_i-T_wb)*(W_i-W_wb)
+        return W_o_calc - W_o
+
     def energy_balance_func(self):
         r"""
         Need overwrite this function to take into account air inlet
@@ -1084,13 +1340,13 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         i2 = self.inl[1]
         o1 = self.outl[0]
         o2 = self.outl[1]
-        print(i1.m.val_SI)
-        print(o1.m.val_SI)
-        print(i2.m.val_SI)
-        print(o2.m.val_SI)
-        print(o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI)
-        return o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI
 
+        # res = []
+        # res += [o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI]
+        # res += [self.res2(i2,o1)]
+        # return res
+        return o1.m.val_SI * o1.h.val_SI + o2.m.val_SI * o2.h.val_SI - i1.m.val_SI * i1.h.val_SI - i2.m.val_SI * i2.h.val_SI
+    
     def energy_balance_deriv(self, increment_filter, k):
         r"""
         Need overwrite this function to take into account air inlet
@@ -1118,7 +1374,21 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         if self.is_variable(i2.h):
             self.jacobian[k, i2.h.J_col] = -i2.m.val_SI
 
-    def Eff_T_func(self):
+        # k = k + 1
+
+        # for c in [i2, o1]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.res2, 'p', c, i2=i2, o1=o1)
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.res2, 'h', c, i2=i2, o1=o1)
+        #     if self.is_variable(c.m): #, increment_filter):
+        #         self.jacobian[k, c.m.J_col] = self.numeric_deriv(self.res2, 'm', c, i2=i2, o1=o1)
+
+        #     for fluid in self.variable_fluids:
+        #         if fluid in c.fluid.is_var:
+        #             self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.res2, fluid, c, i2=i2, o1=o1)
+
+    def WBeff_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
         """
@@ -1127,18 +1397,22 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         T_wb = get_Twb(i,T_in)
         o = self.outl[0]
         T_out = o.calc_T(T0=o.T.val_SI)        
-        print ((T_in-T_out) - (T_in-T_wb)*self.Eff_T.val)
-        return (T_in-T_out) - (T_in-T_wb)*self.Eff_T.val
+        #print ((T_in-T_out) - (T_in-T_wb)*self.WBeff.val)
+        return (T_in-T_out) - (T_in-T_wb)*self.WBeff.val
     
-    def Eff_T_deriv(self, increment_filter, k):
+    def WBeff_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives of fluid balance.
         """
         for c in [self.inl[1], self.outl[0]]:
             if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.Eff_T_func, 'p', c)
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.WBeff_func, 'p', c)
             if self.is_variable(c.h): #, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Eff_T_func, 'h', c)
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.WBeff_func, 'h', c)
+
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.WBeff_func, fluid, c)
 
     def KPI_func(self):
         r"""
@@ -1155,16 +1429,16 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         if 'Water' in o.fluid.is_var:
             self.jacobian[k, o.fluid.J_col['Water']] = o.m.val_SI
 
-    def calculate_td_log(self):
+    def calculate_td_log(self,T_i,T_wb,T_o):
         # 1 is with air
         i1 = self.inl[1]
         o1 = self.outl[0]
 
         # temperature value manipulation for convergence stability
-        T_i1 = i1.calc_T(T0=i1.T.val_SI)
-        T_i2 = get_Twb(i1,T_i1)
-        T_o1 = o1.calc_T(T0=o1.T.val_SI)
-        T_o2 = T_i2
+        T_i1 = T_i
+        T_o1 = T_o
+        T_i2 = T_wb
+        T_o2 = T_wb
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -1191,10 +1465,14 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         """
         i = self.inl[1]
         o = self.outl[0]
+        T_i = i.calc_T(T0=i.T.val_SI)
+        T_wb = get_Twb(i,T_i)
+        T_o = o.calc_T(T0=o.T.val_SI)
+
         m_air =   i.m.val_SI*i.fluid.val['Air']
-        Q_air = - m_air * (o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,o.T.val_SI,force_state='g')
-                         -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,i.T.val_SI,force_state='g'))
-        return Q_air - self.kA.val * self.calculate_td_log()    
+        Q_air = - m_air * (o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,T_o,force_state='g')
+                          -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,T_i,force_state='g'))
+        return Q_air - self.kA.val * self.calculate_td_log(T_i,T_wb,T_o)    
 
     def kA_deriv(self, increment_filter, k):
         r"""
@@ -1202,17 +1480,24 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         """
         i = self.inl[1]
         o = self.outl[0]
+        T_i = i.calc_T(T0=i.T.val_SI)
+        #T_wb = get_Twb(i,T_i)
+        T_o = o.calc_T(T0=o.T.val_SI)        
         if self.is_variable(i.m):
-            self.jacobian[k, i.m.J_col] = - i.fluid.val['Air']*(o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,o.T.val_SI,force_state='g')
-                                                             -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,i.T.val_SI,force_state='g'))
+            self.jacobian[k, i.m.J_col] = - i.fluid.val['Air']*(o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,T_o,force_state='g')
+                                                             -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,T_i,force_state='g'))
         if 'Air' in i.fluid.is_var:
-            self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI*(o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,o.T.val_SI,force_state='g')
-                                                                -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,i.T.val_SI,force_state='g'))
+            self.jacobian[k, i.fluid.J_col['Air']] = - i.m.val_SI*(o.fluid_data['Air']['wrapper'].h_pT(o.p.val_SI,T_o,force_state='g')
+                                                                -i.fluid_data['Air']['wrapper'].h_pT(i.p.val_SI,T_i,force_state='g'))
         for c in self.inl + self.outl:
             if self.is_variable(c.p):
                 self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.kA_func, 'p', c)
             if self.is_variable(c.h):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.kA_func, 'h', c)
+
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.kA_func, fluid, c)
 
     def calc_parameters(self):
         super().calc_parameters()
@@ -1221,7 +1506,7 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         o = self.outl[0]
         self.m_evap.val = o.m.val_SI*o.fluid.val['Water']
         self.Q_evap.val = self.m_evap.val * (o.fluid_data['Water']['wrapper'].h_pT(o.p.val_SI,o.T.val_SI,force_state=o.force_state)
-                          -i.fluid_data['Water']['wrapper'].h_pT(i.p.val_SI,i.T.val_SI,force_state=i.force_state))
+                                            -i.fluid_data['Water']['wrapper'].h_pT(i.p.val_SI,i.T.val_SI,force_state=i.force_state))
 
         i = self.inl[1]
         o = self.outl[0]
@@ -1244,10 +1529,11 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
         T_out = self.outl[0].T.val_SI
         T_wb  = self.outl[1].T.val_SI # get_Twb(self.inl[1],T_in)
 
-        if not self.Eff_T.is_set:
-            self.Eff_T.val = (T_in-T_out)/(T_in-T_wb)
-            if self.Eff_T.val > 1.0:
+        if not self.WBeff.is_set:
+            self.WBeff.val = (T_in-T_out)/(T_in-T_wb)
+            if self.WBeff.val > 1.0:
                 TESPyComponentError("efficiency cannot be greater than 1.0, try increase air mass flow")
+
 
         self.ttd_u.val = T_in - T_wb
         self.ttd_l.val = T_out - T_wb
@@ -1263,26 +1549,31 @@ class DrierWithAir(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDe
                                 np.log(self.ttd_l.val / self.ttd_u.val))
             self.kA.val = -Q_air / self.td_log.val
 
-        # port_i = self.inl[1]
-        # M_i = port_i.fluid.val["Water"]/(port_i.fluid.val["Water"]+port_i.fluid.val["Air"])
+        port_i = self.inl[1]
+        # M_i = port_i.fluid.val["Water"]
         # W_i = M_i/(1-M_i)
         # I_i = HAPropsSI('H','P',port_i.p.val_SI,'T',port_i.T.val_SI,'W',W_i)
-        # port_o = self.outl[0]
-        # M_o = port_o.fluid.val["Water"]/(port_o.fluid.val["Water"]+port_o.fluid.val["Air"])
-        # W_o = M_o/(1-M_o)
+        port_o = self.outl[0]
+        M_o = port_o.fluid.val["Water"]
+        W_o = M_o/(1-M_o)
         # I_o = HAPropsSI('H','P',port_o.p.val_SI,'T',port_o.T.val_SI,'W',W_o)
         
         # I_wb = HAPropsSI('H','P',port_o.p.val_SI,'T',T_wb,'R',1)
         # W_wb = HAPropsSI('W','P',port_o.p.val_SI,'T',T_wb,'R',1)
         # T_o = T_in - (T_in-T_wb)/(W_i-W_wb)*(W_i-W_o)
 
-        # T_o = HAPropsSI('T','P',port_o.p.val_SI,'H',I_i,'W',W_o)
+        # T_o_2 = HAPropsSI('T','P',port_o.p.val_SI,'H',I_i,'W',W_o)
         
         # print(int(I_i),int(I_o))
+        # print(int(T_o),int(T_o_2))
 
         # print("hey")
 
-
+        Wmax = HAPropsSI('W','P',port_i.p.val_SI,'T',port_o.T.val_SI,'R',1)
+        if self.WBeff.val > 1.0 or W_o > Wmax:
+            self.RH.val = 100
+        else:
+            self.RH.val = 100 * HAPropsSI('R','P',port_i.p.val_SI,'T',port_o.T.val_SI,'W',W_o)
 
 
 class SeparatorWithSpeciesSplitsDeltaTDeltaPBus(SeparatorWithSpeciesSplitsDeltaTDeltaP):

@@ -500,7 +500,12 @@ class Connection:
                     self.fluid.back_end[fluid] = back_end
 
         elif key == "fluid0":
-            self.fluid.val0.update(value)
+            for fluid, fraction in value.items():
+                if "::" in fluid:
+                    back_end, fluid = fluid.split("::")
+                else:
+                    back_end = None            
+                self.fluid.val0.update({fluid:fraction})
 
         elif key == "fluid_engines":
             self.fluid.engine = value

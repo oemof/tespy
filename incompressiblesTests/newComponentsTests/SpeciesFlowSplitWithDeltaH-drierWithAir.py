@@ -9,11 +9,11 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import \
+from tespy.components.newComponents import \
     DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsDeltaT
 
-from tespy.components.AirDrier import DrierWithAir
+from tespy.components.newAdvancedComponents import DrierWithAir
 
 logging.basicConfig(level=logging.DEBUG)
 

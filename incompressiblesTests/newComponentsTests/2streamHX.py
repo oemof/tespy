@@ -1,5 +1,5 @@
 from tespy.components import Sink, Source, HeatExchanger
-from tespy.components.newcomponents import TwoStreamHeatExchanger
+from tespy.components.newComponents import TwoStreamHeatExchanger
 
 from tespy.connections import Connection
 from tespy.networks import Network

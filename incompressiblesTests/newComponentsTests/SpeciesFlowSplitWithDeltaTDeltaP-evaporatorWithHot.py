@@ -9,11 +9,11 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import \
+from tespy.components.newComponents import \
     DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsDeltaT, SeparatorWithSpeciesSplitsDeltaTDeltaP
 
-from tespy.components.AirDrier import TwoStreamEvaporatorNEW
+from tespy.components.newAdvancedComponents import TwoStreamEvaporator
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -26,7 +26,7 @@ nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range
 
 so1 = Source("Source 1")
 so2 = Source("Source 2")
-se = TwoStreamEvaporatorNEW("Separator",num_in=2,num_out=3)
+se = TwoStreamEvaporator("Separator",num_in=2,num_out=3)
 si1 = Sink("Sink 1")
 si2 = Sink("Sink 2")
 si3 = Sink("Sink 3")

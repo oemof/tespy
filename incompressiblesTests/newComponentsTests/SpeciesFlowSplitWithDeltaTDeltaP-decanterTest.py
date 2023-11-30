@@ -37,16 +37,16 @@ m0 = 76    # transform unit at some point [this is kt/yr]
 h0 = 119        # global guess value in kJ/kg
 p0 = 1        # global guess value in bar
 
-#water = 'INCOMP::FoodWater'
-water = 'Water' # wrapper gets HEOS backend
+water = 'INCOMP::FoodWater'
+#water = 'Water' # wrapper gets HEOS backend
 
 for c in nw.conns['object']:
     n_fl = 3 # len(nw.fluids)
-    c.set_attr(m0=80,h0=h0,p0=p0,fluid0={water: 0.92, 'INCOMP::FoodFat': 0.023, 'INCOMP::FoodProtein': 0.052})
+    c.set_attr(m0=80,h0=h0,p0=p0,fluid0={'INCOMP::FoodWater': 0.92, 'INCOMP::FoodFat': 0.023, 'INCOMP::FoodProtein': 0.052})
 
 # set some generic data for starting values
-c1.set_attr(m=1, p=p0, T=95, fluid={water: 0.902, "INCOMP::FoodFat": 0.023, "INCOMP::FoodProtein": 0.075}, mixing_rule="incompressible")
-c2.set_attr(fluid={water: 0.648, "INCOMP::FoodFat": 0.022, "INCOMP::FoodProtein": 0.33})
+c1.set_attr(m=1, p=p0, T=95, fluid={'INCOMP::FoodWater': 0.902, "INCOMP::FoodFat": 0.023, "INCOMP::FoodProtein": 0.075}, mixing_rule="incompressible")
+c2.set_attr(fluid={'INCOMP::FoodWater': 0.648, "INCOMP::FoodFat": 0.022, "INCOMP::FoodProtein": 0.33})
 
 c3.set_attr(force_state='l')
 

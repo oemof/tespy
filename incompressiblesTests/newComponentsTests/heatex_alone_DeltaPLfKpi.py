@@ -12,7 +12,7 @@ import numpy as np
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
-from tespy.components.newcomponents import SimpleHeatExchangerDeltaPLfKpi,MergeDeltaP,SeparatorWithSpeciesSplits
+from tespy.components.newComponents import SimpleHeatExchangerDeltaPLfKpi,MergeDeltaP,SeparatorWithSpeciesSplits
 
 logging.basicConfig(level=logging.DEBUG)
 

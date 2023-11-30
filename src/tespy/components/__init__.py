@@ -29,5 +29,7 @@ from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401
 
 # New components
-from .newcomponents import *
+from .newComponents import *
+from .newAdvancedComponents import *
 from .energySupplyComponents import *
+

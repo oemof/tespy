@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tespy.components import Separator,Merge,CycleCloser,Valve
-from tespy.components.newcomponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits,SplitterWithFlowSplitter,SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaTDeltaP
+from tespy.components.newComponents import DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits,SplitterWithFlowSplitter,SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaTDeltaP
 
 import logging
 #logging.basicConfig(level=logging.DEBUG)

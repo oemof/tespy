@@ -902,7 +902,8 @@ class Connection:
             data.deriv(k, **data.func_params)
 
     def calc_results(self):
-        self.T.val_SI = self.calc_T()
+        if not self.T.is_set:
+            self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
         if number_fluids > 1 and not "HEOS" in [self.fluid_data[f]["wrapper"].back_end for f in self.fluid_data] and not "Water" in [self.fluid_data[f]["wrapper"].fluid for f in self.fluid_data]:

@@ -715,6 +715,16 @@ class Network:
         for start in start_components:
             self.branches.update(start.start_branch())
 
+        self.branchesNames = {}
+        msg = ("Branched the following components and connections:")
+        logger.debug(msg)
+        for k,v in self.branches.items():
+            self.branchesNames[k] = v['components'][0].label
+            for conn,comp in zip(v['connections'],v['components'][1:]):
+                self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+            msg = (self.branchesNames[k])
+            logger.debug(msg)
+
         self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
 
         self.fluid_branches = {}

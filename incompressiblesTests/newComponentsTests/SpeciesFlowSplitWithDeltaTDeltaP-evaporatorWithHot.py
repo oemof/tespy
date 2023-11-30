@@ -13,7 +13,7 @@ from tespy.components.newcomponents import \
     DiabaticSimpleHeatExchanger,MergeDeltaP,SeparatorWithSpeciesSplits, \
         SeparatorWithSpeciesSplitsDeltaT, SeparatorWithSpeciesSplitsDeltaTDeltaP
 
-from tespy.components.AirDrier import TwoStreamEvaporator
+from tespy.components.AirDrier import TwoStreamEvaporatorNEW
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -26,7 +26,7 @@ nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range
 
 so1 = Source("Source 1")
 so2 = Source("Source 2")
-se = TwoStreamEvaporator("Separator",num_in=2,num_out=3)
+se = TwoStreamEvaporatorNEW("Separator",num_in=2,num_out=3)
 si1 = Sink("Sink 1")
 si2 = Sink("Sink 2")
 si3 = Sink("Sink 3")
@@ -51,21 +51,20 @@ p0 = 1        # global guess value in bar
 
 # set some generic data for starting values
 c1.set_attr(m=m0, p=p0, T=80, fluid={'HEOS::Water': 0.942, "INCOMP::FoodFat": 0.004, "INCOMP::FoodProtein": 0.054}, mixing_rule="incompressible")
-c2.set_attr(p=p0, T=40, force_state='g', fluid={'HEOS::Water': 1.0, "INCOMP::FoodFat": 0.0, "INCOMP::FoodProtein": 0.0})
-c3.set_attr(p=p0, T=40, force_state='l', fluid={"INCOMP::FoodProtein": 0.075})
+c2.set_attr(p=p0, T=40, force_state='l', fluid={"INCOMP::FoodProtein": 0.075})
+c3.set_attr(x=1, T=40, force_state='g', fluid={'HEOS::Water': 1.0, "INCOMP::FoodFat": 0.0, "INCOMP::FoodProtein": 0.0})
 
 # Now it is possible to set the temperatures out of the separator differently
-c4.set_attr(m=25, p=p0, x=1, fluid={'HEOS::Water': 1.0,"INCOMP::FoodFat": 0.0, "INCOMP::FoodProtein": 0.0}, mixing_rule="incompressible")
+c4.set_attr(m=25, p=p0, x=1, fluid={'HEOS::Water': 1.0}, mixing_rule="incompressible")
 c5.set_attr(p=p0)
 
-# nw.solve("design")
-# if not nw.converged:
-#     raise Exception("not converged")
-# nw.print_results()
-# print(nw.results['Connection'])
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
 
-
-c3.set_attr(fluid={"INCOMP::FoodProtein": None})
+c2.set_attr(fluid={"INCOMP::FoodProtein": None})
 c5.set_attr(p=p0,x=0)
 nw.solve("design")
 if not nw.converged:
@@ -74,3 +73,64 @@ nw.print_results()
 print(nw.results['Connection'])
 
 
+c5.set_attr(x=None)
+se.set_attr(Q=5e7)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+c5.set_attr(x=None)
+se.set_attr(Q=None)
+se.set_attr(kA=8e5)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+c5.set_attr(x=None)
+se.set_attr(Q=None)
+se.set_attr(kA=None)
+se.set_attr(KPI=6e5)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+se.set_attr(KPI=None)
+se.set_attr(kA=7e5)
+se.set_attr(dTo=0)
+c2.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
+c2.set_attr(T=None)
+c3.set_attr(T=None)
+
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])
+
+
+
+# mass balance mode
+
+c2.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
+c2.set_attr(p=p0, x=None, T=None, force_state=None)
+c3.set_attr(p=p0, x=None, T=None, force_state=None)
+
+c5.set_attr(x=None, force_state=None)
+se.set_attr(Q=None)
+se.set_attr(kA=None)
+se.set_attr(dTo=None)
+se.set_attr(KPI=None)
+se.set_attr(deltaH=0)
+nw.solve("design")
+if not nw.converged:
+    raise Exception("not converged")
+nw.print_results()
+print(nw.results['Connection'])

@@ -721,7 +721,8 @@ class Network:
         for k,v in self.branches.items():
             self.branchesNames[k] = v['components'][0].label
             for conn,comp in zip(v['connections'],v['components'][1:]):
-                self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+                #self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+                self.branchesNames[k] += " -> " + comp.label                
             msg = (self.branchesNames[k])
             logger.debug(msg)
 
@@ -743,6 +744,17 @@ class Network:
 
         for start in start_components:
             self.fluid_wrapper_branches.update(start.start_fluid_wrapper_branch())
+
+        self.branchesNames = {}
+        msg = ("Wrapped the following components and connections:")
+        logger.debug(msg)
+        for k,v in self.fluid_wrapper_branches.items():
+            self.branchesNames[k] = v['components'][0].label
+            for conn,comp in zip(v['connections'],v['components'][1:]):
+                #self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+                self.branchesNames[k] += " -> " + comp.label
+            msg = (self.branchesNames[k])
+            logger.debug(msg)
 
         merged = self.fluid_wrapper_branches.copy()
         for branch_name, branch_data in self.fluid_wrapper_branches.items():

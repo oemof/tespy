@@ -12,8 +12,6 @@ SPDX-License-Identifier: MIT
 
 import shutil
 
-import numpy as np
-
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
 from tespy.components import DiabaticCombustionChamber

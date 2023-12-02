@@ -1,0 +1,14 @@
+v0.7.1 - Newton's Nature (December, 2, 2023)
+++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- Several bugs introduced by the restructuring of the package in version 0.7.0
+  have been fixed:
+
+  - `PR #451 <https://github.com/oemof/tespy/pull/451>`__
+  - `PR #453 <https://github.com/oemof/tespy/pull/453>`__
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

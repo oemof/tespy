@@ -12,8 +12,6 @@ SPDX-License-Identifier: MIT
 
 import shutil
 
-import numpy as np
-
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer

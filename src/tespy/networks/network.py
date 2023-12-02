@@ -690,8 +690,6 @@ class Network:
         self.check_conns()
         self.init_components()
         self.check_components()
-        self.create_massflow_and_fluid_branches()
-        self.create_fluid_wrapper_branches()
 
         # network checked
         self.checked = True
@@ -847,6 +845,25 @@ class Network:
         self.num_conn_vars = 0
         self.variables_dict = {}
 
+        if hasattr(self, "massflow_branches"):
+            # in multiprocessing copies are made of all connections
+            # the mass flow branches and fluid branches hold references to
+            # connections from the original run (where network.checked is False)
+            # The assignment of variable spaces etc. is however made on the
+            # copies of the connections which do not correspond to the mass flow
+            # branches and fluid branches anymore. So the topology simplification
+            # does not actually apply to the copied network, therefore the
+            # branches have to be recreated for this case. We can detect that by
+            # checking whether a network holds a massflow branch with some
+            # connections and compare that with the connection object actually
+            # present in the network
+            first_conn = self.massflow_branches[0]["connections"][0]
+            if self.conns.loc[first_conn.label, "object"] != first_conn:
+                self.create_massflow_and_fluid_branches()
+                self.create_fluid_wrapper_branches()
+        else:
+            self.create_massflow_and_fluid_branches()
+            self.create_fluid_wrapper_branches()
         self.propagate_fluid_wrappers()
         self.presolve_massflow_topology()
         self.presolve_fluid_topology()

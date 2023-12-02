@@ -10,7 +10,6 @@ from tespy.components import Desuperheater
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Merge
 from tespy.components import Splitter
-from tespy.components import Valve
 from tespy.components import Pump
 from tespy.components import Turbine
 from tespy.connections import Bus
@@ -82,10 +81,7 @@ class SamplePlant:
         c32 = Connection(fwh1, "out1", pu3, "in1", label="32")
         c33 = Connection(pu3, "out1", me, "in2", label="33")
 
-        self.nw.add_conns(
-            c21, c22, c23, c24,
-            c31, c32, c33
-        )
+        self.nw.add_conns(c21, c22, c23, c24, c31, c32, c33)
 
         # cooling water
         c41 = Connection(cwi, "out1", con, "in2", label="41")
@@ -108,34 +104,43 @@ class SamplePlant:
 
         self.nw.add_busses(self.power, self.heat)
 
+        self.set_design_values()
         # parametrization
         # components
+        self.nw.solve("design")
+        self.stable = "_stable"
+        self.nw.save(self.stable)
+        self.solved = True
+        self.nw.print_results()
+
+    def set_design_values(self):
+        hpt, mpt, lpt = self.nw.get_comp(["high pressure turbine", "mid pressure turbine", "low pressure turbine"])
         hpt.set_attr(eta_s=0.9)
         mpt.set_attr(eta_s=0.9)
         lpt.set_attr(eta_s=0.9)
 
+        pu1, pu2, pu3 = self.nw.get_comp(["feed water pump", "feed water pump 2", "feed water pump 3"])
         pu1.set_attr(eta_s=0.8)
         pu2.set_attr(eta_s=0.8)
         pu3.set_attr(eta_s=0.8)
 
+        sg = self.nw.get_comp("steam generator")
         sg.set_attr(pr=0.92)
 
+        con, fwh1, fwh2, dsh = self.nw.get_comp(["condenser", "feed water preheater 1", "feed water preheater 2", "desuperheater"])
         con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         fwh1.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         fwh2.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         dsh.set_attr(pr1=0.99, pr2=0.99)
 
+        c1, c2, c4, c41, c42 = self.nw.get_conn(["1", "2", "4", "41", "42"])
         c1.set_attr(m=200, T=650, p=100, fluid={"water": 1})
         c2.set_attr(p=20)
         c4.set_attr(p=3)
 
-        c41.set_attr(T=20, p=3, fluid={"water": 1})
-        c42.set_attr(T=28)
+        c41.set_attr(T=20, p=3, fluid={"INCOMP::Water": 1})
+        c42.set_attr(T=28, p0=3, h0=100)
 
-        self.nw.solve("design")
-        self.stable = "_stable"
-        self.nw.save(self.stable)
-        self.solved = True
 
     # %%[sec_2]
 

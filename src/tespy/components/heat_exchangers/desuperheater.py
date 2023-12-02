@@ -239,6 +239,6 @@ class Desuperheater(HeatExchanger):
         """
         o = self.outl[0]
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o, 1, o.fluid_data)
+            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 1, o.fluid_data)
         if self.is_variable(o.h):
             self.jacobian[k, o.h.J_col] = 1

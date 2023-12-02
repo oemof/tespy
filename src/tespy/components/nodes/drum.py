@@ -170,6 +170,7 @@ class Drum(DropletSeparator):
         return ['out1', 'out2']
 
     def get_mandatory_constraints(self):
+        num_mass_eq = 1
         if self.inl[1].m == self.outl[0].m:
             num_mass_eq = 0
         return {
@@ -217,6 +218,7 @@ class Drum(DropletSeparator):
         if self.inl[1].m == self.outl[0].m:
             return self.inl[0].m.val_SI - self.outl[1].m.val_SI
         else:
+            res = 0
             for i in self.inl:
                 res += i.m.val_SI
             for o in self.outl:

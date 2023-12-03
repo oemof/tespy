@@ -119,17 +119,3 @@ class TestCyclicMerging:
         target = c1.m.val_SI
         msg = f"Target value for mass flow at connection 3 is {target}"
         assert c6.m.val_SI == approx(target), msg
-
-
-test = TestMerge()
-test.setup_method()
-test.test_single_fluid_at_outlet()
-test.setup_method()
-test.test_massflows_from_two_fluid_fractions()
-
-
-test2 = TestCyclicMerging()
-test2.setup_method()
-test2.test_single_fluid_setup()
-test2.setup_method()
-test2.test_two_fluid_setup()

@@ -16,6 +16,16 @@ import CoolProp as CP
 from tespy.tools.global_vars import ERR
 
 
+class SerializableAbstractState(CP.AbstractState):
+
+    def __init__(self, back_end, fluid_name):
+        self.back_end = back_end
+        self.fluid_name = fluid_name
+
+    def __reduce__(self):
+        return (self.__class__, (self.back_end, self.fluid_name))
+
+
 class FluidPropertyWrapper:
 
     def __init__(self, fluid, back_end=None) -> None:
@@ -112,7 +122,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             back_end = "HEOS"
 
         super().__init__(fluid, back_end)
-        self.AS = CP.CoolProp.AbstractState(self.back_end, self.fluid)
+        self.AS = SerializableAbstractState(self.back_end, self.fluid)
         self._set_constants()
 
     def _set_constants(self):

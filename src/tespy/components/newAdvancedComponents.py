@@ -738,6 +738,9 @@ class TwoStreamEvaporator(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesS
         variables['dTo'] = dc_cp(
                 min_val=0, num_eq=1, func=self.dTo_func, latex=self.pr_func_doc,
                 deriv=self.dTo_deriv)
+        variables['deltaPhot'] = dc_cp(
+                min_val=0, num_eq=1, func=self.deltaPhot_func, latex=self.pr_func_doc,
+                deriv=self.deltaPhot_deriv)
         return variables
 
     def get_mandatory_constraints(self):
@@ -802,6 +805,15 @@ class TwoStreamEvaporator(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesS
             for outconn in [self.outl[0],self.outl[1]]:
                 branch["connections"] += [outconn]
                 outconn.target.propagate_wrapper_to_target(branch)            
+
+    def deltaPhot_func(self):
+        return  self.inl[1].p.val_SI - self.deltaPhot.val*1e5 - self.outl[2].p.val_SI
+
+    def deltaPhot_deriv(self, increment_filter, k):
+        if self.inl[1].p.is_var:
+            self.jacobian[k, self.inl[1].p.J_col] = 1 
+        if self.outl[2].p.is_var:
+            self.jacobian[k, self.outl[2].p.J_col] = -1
 
     def fluid_func(self):
         r"""

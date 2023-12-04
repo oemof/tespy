@@ -994,8 +994,8 @@ class TwoStreamEvaporator(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesS
         r"""
         Partial derivatives for hot side heat exchanger energy balance.
         """
-        T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
-        T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
+        #T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
+        #T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
         for c in [self.outl[0], self.outl[1]]:
             if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
                 self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dTo_func, 'p', c)
@@ -1113,3 +1113,554 @@ class TwoStreamEvaporator(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesS
                 self.kA.val = np.NaN
             else:
                 self.kA.val = -self.inl[1].m.val_SI * (self.outl[2].h.val_SI - self.inl[1].h.val_SI)/self.td.val
+
+
+
+
+class TwoStreamDrier(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplitsDeltaT,SeparatorWithSpeciesSplitsDeltaP):
+
+    def __init__(self, label, **kwargs):            
+        super().__init__(label, **kwargs)    
+
+    def outlets(self):
+        return ['out1', 'out2']
+
+    def inlets(self):
+        return ['in1', 'in2']
+
+    @staticmethod
+    def component():
+        return 'separator with species flow splits and dH on outlets'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["num_in"] = dc_simple()
+        variables["deltaH"] = dc_cp(
+            deriv=self.energy_balance_deltaH_deriv, # same as before
+            func=self.energy_balance_deltaH_func,
+            latex=self.pr_func_doc,
+            num_eq=2
+        )
+        variables["dTwbProd"] = dc_cp(
+            deriv=self.dTwbProd_deriv,
+            func=self.dTwbProd_func,
+            latex=self.pr_func_doc,
+            num_eq=1,
+        )             
+        variables["Q"] = dc_cp(
+            max_val=0, func=self.energy_balance_hot_func, num_eq=1,
+            deriv=self.energy_balance_hot_deriv,
+            latex=self.pr_func_doc)        
+        variables["KPI"] = dc_cp(
+            deriv=self.KPI_deriv,
+            func=self.KPI_func,
+            latex=self.pr_func_doc,
+            num_eq=1)        
+        #variables["Qout"] = dc_cpa()
+        variables['kA'] = dc_cp(
+                min_val=0, num_eq=1, func=self.kA_func, latex=self.pr_func_doc,
+                deriv=self.kA_deriv)
+        variables['td'] = dc_cp(min_val=0, is_result=True)         
+        variables['dTo'] = dc_cp(
+                min_val=0, num_eq=1, func=self.dTo_func, latex=self.pr_func_doc,
+                deriv=self.dTo_deriv)
+        variables['deltaPhot'] = dc_cp(
+                min_val=0, num_eq=1, func=self.deltaPhot_func, latex=self.pr_func_doc,
+                deriv=self.deltaPhot_deriv)
+        return variables
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        self.variable_fluids = set(self.inl[0].fluid.back_end.keys()) 
+        #self.variable_product_fluids = [fluid for fluid in self.variable_fluids if not fluid in ['Water','Air']]
+        num_fluid_eq = len(self.variable_fluids)
+        constraints['fluid_constraints'] = {
+            'func': self.fluid_func, 'deriv': self.fluid_deriv,
+            'constant_deriv': False, 'latex': self.fluid_func_doc,
+            'num_eq': num_fluid_eq}
+        constraints['energy_balance_constraints'] =  {
+            'func': self.energy_balance_func, 'deriv': self.energy_balance_deriv,
+            'constant_deriv': False, 'latex': self.energy_balance_func_doc,
+            'num_eq': 1}      
+        constraints['mass_flow_constraints'] =  {
+            'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
+            'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+            'num_eq': 2}        
+        return constraints
+    
+
+    # @staticmethod
+    # def is_branch_source():
+    #     # trigger start_branch
+    #     return True
+
+    # def start_branch(self):
+    #     branches = {}
+    #     for outconn in [self.outl[0],self.outl[1]]:
+    #         branch = {
+    #             "connections": [outconn],
+    #             "components": [self, outconn.target],
+    #             "subbranches": {}
+    #         }
+    #         outconn.target.propagate_to_target(branch)
+
+    #         branches[outconn.label] = branch
+    #     return branches
+
+    # def propagate_to_target(self, branch):
+    #     inconn = branch["connections"][-1]
+    #     conn_idx = self.inl.index(inconn)
+    #     if conn_idx == 1:
+    #         # connect in2 with with out3 - othervice stop the connections 
+    #         outconn = self.outl[2]
+    #         branch["connections"] += [outconn]
+    #         branch["components"] += [outconn.target]
+    #         outconn.target.propagate_to_target(branch)
+
+    # def propagate_wrapper_to_target(self, branch):
+    #     inconn = branch["connections"][-1]
+    #     conn_idx = self.inl.index(inconn)
+    #     if conn_idx == 1: 
+    #         # connect in2 with with out3
+    #         outconn = self.outl[2]
+    #         branch["connections"] += [outconn]
+    #         branch["components"] += [self]
+    #         outconn.target.propagate_wrapper_to_target(branch)
+    #     elif conn_idx == 0:
+    #         # propagate wrapper to new start branches
+    #         branch["components"] += [self]
+    #         for outconn in [self.outl[0],self.outl[1]]:
+    #             branch["connections"] += [outconn]
+    #             outconn.target.propagate_wrapper_to_target(branch)            
+
+    def deltaPhot_func(self):
+        return  self.inl[1].p.val_SI - self.deltaPhot.val*1e5 - self.outl[2].p.val_SI
+
+    def deltaPhot_deriv(self, increment_filter, k):
+        if self.inl[1].p.is_var:
+            self.jacobian[k, self.inl[1].p.J_col] = 1 
+        if self.outl[2].p.is_var:
+            self.jacobian[k, self.outl[2].p.J_col] = -1
+
+    def fluid_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+        residual = []
+        for fluid in self.variable_fluids:
+            res = 0
+            for i in self.inl:
+                res += i.fluid.val[fluid] * i.m.val_SI
+            for o in self.outl:
+                res -= o.fluid.val[fluid] * o.m.val_SI
+            residual += [res]        
+        return residual
+    
+    def fluid_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+        for fluid in self.variable_fluids:
+            for o in self.outl:
+                if self.is_variable(o.m):
+                    self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
+                if fluid in o.fluid.is_var:
+                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
+            for i in self.inl:
+                if self.is_variable(i.m):
+                    self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
+                if fluid in i.fluid.is_var:
+                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
+            k += 1  
+
+    def mass_flow_func(self):
+        r"""
+        Calculate the residual value for mass flow balance equation.
+        """
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor
+
+        m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o1.m.val_SI*o1.fluid.val['Water']
+        residuals = []
+        residuals += [i1.m.val_SI - o1.m.val_SI - m_evap]
+        residuals += [i2.m.val_SI - o2.m.val_SI + m_evap]
+
+        return residuals
+
+    def mass_flow_deriv(self, k):
+        r"""
+        Calculate partial derivatives for mass flow equation.
+        """
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor
+
+        fluid = 'Water'
+
+        if i1.m.is_var:
+            self.jacobian[k, i1.m.J_col] = 1 - i1.fluid.val[fluid]
+        if o1.m.is_var:
+            self.jacobian[k, o1.m.J_col] = -1 + o1.fluid.val[fluid]
+        if fluid in i1.fluid.is_var:
+            self.jacobian[k, i1.fluid.J_col[fluid]] = - i1.m.val_SI
+        if fluid in o1.fluid.is_var:
+            self.jacobian[k, o1.fluid.J_col[fluid]] = + o1.m.val_SI
+
+        k = k + 1
+
+        if i2.m.is_var:
+            self.jacobian[k, i2.m.J_col] = 1
+        if o2.m.is_var:
+            self.jacobian[k, o2.m.J_col] = -1
+        if i1.m.is_var:
+            self.jacobian[k, i1.m.J_col] = + i1.fluid.val[fluid]
+        if o1.m.is_var:
+            self.jacobian[k, o1.m.J_col] = - o1.fluid.val[fluid]
+        if fluid in i1.fluid.is_var:
+            self.jacobian[k, i1.fluid.J_col[fluid]] = + i1.m.val_SI
+        if fluid in o1.fluid.is_var:
+            self.jacobian[k, o1.fluid.J_col[fluid]] = - o1.m.val_SI
+
+    def energy_balance_deltaH_func(self):
+        r"""
+        Calculate deltaH residuals.
+
+        """
+        i = self.inl[0]
+        residual = []
+        for o in [self.outl[0],self.outl[1]]:
+            residual += [i.h.val_SI - self.deltaH.val - o.h.val_SI]
+        return residual
+    
+    def energy_balance_deltaH_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of energy balance.
+        """
+        i = self.inl[0]
+        for o in [self.outl[0],self.outl[1]]:
+            if self.is_variable(i.h):
+                self.jacobian[k, i.h.J_col] = 1
+            if self.is_variable(o.h):
+                self.jacobian[k, o.h.J_col] = -1
+            k += 1
+
+    def energy_balance_func(self):
+        r"""
+        Equation for hot side heat exchanger energy balance.
+        """
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor
+
+        return i1.m.val_SI * i1.h.val_SI + i2.m.val_SI * i2.h.val_SI \
+               - o1.m.val_SI * o1.h.val_SI - o2.m.val_SI * o2.h.val_SI
+
+    def energy_balance_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor
+
+        for i in [i1,i2]:
+            if self.is_variable(i.m):
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
+            if self.is_variable(i.h):
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
+        for o in [o1,o2]:
+            if self.is_variable(o.m):
+                self.jacobian[k, o.m.J_col] = -o.h.val_SI
+            if self.is_variable(o.h):
+                self.jacobian[k, o.h.J_col] = -o.m.val_SI
+
+
+    def dTwbProd_func(self):
+        r"""
+        Calculate the vector of residual values for fluid balance equations.
+        """
+        i = self.inl[1]
+        T_in = i.calc_T(T0=i.T.val_SI)
+        T_wb = get_Twb(i,T_in)
+        o = self.outl[0]
+        T_out = o.calc_T(T0=o.T.val_SI)
+        return T_out - T_wb - self.dTwbProd.val
+    
+    def dTwbProd_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives of fluid balance.
+        """
+        # for c in [self.inl[1]]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = dT_mix_dph(c.p.val_SI, c.h.val_SI, c.fluid_data, c.mixing_rule,T0 = c.T.val_SI,force_state=c.force_state)
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = dT_mix_pdh(c.p.val_SI, c.h.val_SI, c.fluid_data, c.mixing_rule,T0 = c.T.val_SI,force_state=c.force_state)
+        # T_wb is nonlinear and we cannot differentiate easily
+        for c in [self.inl[1],self.outl[0]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dTwbProd_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dTwbProd_func, 'h', c)
+
+    def dTo_func(self):
+        r"""
+        Equation for hot side heat exchanger energy balance.
+        """
+        T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
+        T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
+        return T0 - T1 - self.dTo.val
+
+    def dTo_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+        #T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
+        #T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
+        for c in [self.outl[0], self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dTo_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dTo_func, 'h', c)
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.dTo_func, fluid, c)                
+
+    def energy_balance_hot_func(self):
+        r"""
+        Equation for hot side heat exchanger energy balance.
+        """
+
+        # i1 = self.inl[0]
+        # o1 = self.outl[0] # liquid
+        # o2 = self.outl[1] # vapor        
+
+        # Ti1 = i1.calc_T(T0=i1.T.val_SI)
+        # To2 = o2.calc_T(T0=o2.T.val_SI)
+
+        # m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o1.m.val_SI*o1.fluid.val['Water']
+        # Q_evap = m_evap * (o2.fluid_data['Water']['wrapper'].h_pT(o2.p.val_SI,To2,force_state=o2.force_state)
+        #                   -i1.fluid_data['Water']['wrapper'].h_pT(i1.p.val_SI,Ti1,force_state=i1.force_state))
+
+        # return (Q_evap - self.Q.val)/self.Q.val
+
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor        
+
+        Ti2 = i2.calc_T(T0=i2.T.val_SI)
+        To2 = o2.calc_T(T0=o2.T.val_SI)
+
+        m_air = i2.m.val_SI*i2.fluid.val['Air'] 
+        Q_air = m_air * (i2.fluid_data['Air']['wrapper'].h_pT(i2.p.val_SI,Ti2,force_state=i2.force_state)
+                        -o2.fluid_data['Air']['wrapper'].h_pT(o2.p.val_SI,To2,force_state=o2.force_state))
+        
+        return (Q_air - self.Q.val)/self.Q.val
+
+    def energy_balance_hot_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+
+        # i1 = self.inl[0]
+        # i2 = self.inl[1]  # air
+        # o1 = self.outl[0] # liquid
+        # o2 = self.outl[1] # vapor        
+
+        # fluid = 'Air'
+        # Ti2 = i2.calc_T(T0=i2.T.val_SI)
+        # To2 = o2.calc_T(T0=o2.T.val_SI)        
+        # hi2 = i2.fluid_data[fluid]['wrapper'].h_pT(i2.p.val_SI,Ti2,force_state=i2.force_state)
+        # ho2 = o2.fluid_data[fluid]['wrapper'].h_pT(o2.p.val_SI,To2,force_state=o2.force_state)
+
+        # # Q_air =  i2.m.val_SI*i2.fluid.val['Air']  * (hi2 - ho2)
+        
+        # if self.is_variable(i2.m):
+        #     self.jacobian[k, i2.m.J_col] = i2.fluid.val[fluid] * (hi2 - ho2)
+        # if fluid in i2.fluid.is_var:
+        #     self.jacobian[k, i2.fluid.J_col[fluid]] = i2.m.val_SI * (hi2 - ho2)
+
+        # for c in [i2,o2]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'p', c)
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'h', c)
+
+        # for c in [i2,o2]:
+        #     if fluid in c.fluid.is_var:
+        #         self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.energy_balance_hot_func, fluid, c)
+
+
+
+  
+
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor        
+
+        fluid = 'Water'
+        Ti1 = i1.calc_T(T0=i1.T.val_SI)
+        To2 = o2.calc_T(T0=o2.T.val_SI)
+
+        ho2 = o2.fluid_data[fluid]['wrapper'].h_pT(o2.p.val_SI,To2,force_state=o2.force_state)
+        hi1 = i1.fluid_data[fluid]['wrapper'].h_pT(i1.p.val_SI,Ti1,force_state=i1.force_state)                                                     
+
+        #Q_evap = (i1.m.val_SI*i1.fluid.val[fluid] - o1.m.val_SI*o1.fluid.val[fluid]) * (ho2 - hi1)
+
+        # if self.is_variable(i1.m):
+        #     self.jacobian[k, i1.m.J_col] = i1.fluid.val[fluid] * (ho2 - hi1)/self.Q.val
+        # if fluid in i1.fluid.is_var:
+        #     self.jacobian[k, i1.fluid.J_col[fluid]] = i1.m.val_SI * (ho2 - hi1)/self.Q.val
+        
+        # if self.is_variable(o1.m):
+        #     self.jacobian[k, o1.m.J_col] = - o1.fluid.val[fluid] * (ho2 - hi1)/self.Q.val
+        # if fluid in o1.fluid.is_var:
+        #     self.jacobian[k, o1.fluid.J_col[fluid]] = - o1.m.val_SI * (ho2 - hi1)/self.Q.val
+
+        for c in [i1,i2,o1,o2]:
+            if self.is_variable(c.m): #, increment_filter):
+                self.jacobian[k, c.m.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'm', c)
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'h', c)
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.energy_balance_hot_func, fluid, c)    
+
+
+        # for c in [i1,i2,o1,o2]:
+        #     if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+        #         self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'p', c)
+        #     if self.is_variable(c.h): #, increment_filter):
+        #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'h', c)
+
+        #     if self.is_variable(c.m): #, increment_filter):
+        #         self.jacobian[k, c.m.J_col] = self.numeric_deriv(self.energy_balance_hot_func, 'm', c)
+
+        # #for c in [i1,o1,o2]:
+        #     for fluid in self.variable_fluids:
+        #         if fluid in c.fluid.is_var:
+        #             self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.energy_balance_hot_func, fluid, c)    
+
+
+
+    def KPI_func(self):
+        r"""
+        Equation for total heat flow rate
+        """
+        return self.inl[1].m.val_SI * (self.outl[2].h.val_SI - self.inl[1].h.val_SI) + self.inl[0].m.val_SI*self.inl[0].fluid.val['Water']*self.KPI.val
+
+
+    def KPI_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+        i = self.inl[1]
+        o = self.outl[2]
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
+        ci = self.inl[0]
+        if self.is_variable(ci.m):
+            self.jacobian[k, ci.m.J_col] = ci.fluid.val['Water']*self.KPI.val
+        if 'Water' in ci.fluid.is_var:
+            self.jacobian[k, ci.fluid.J_col['Water']] = ci.m.val_SI*self.KPI.val
+
+    def kA_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient.
+        """
+
+        Tcold = self.outl[1].calc_T(T0=self.outl[0].T.val_SI) # vapor out
+        #Thot = self.outl[2].calc_T(T0=self.outl[2].T.val_SI)
+        Thot = self.inl[1].calc_T_sat() # liquid out
+        self.td.val = (Thot-Tcold)
+
+        return self.inl[1].m.val_SI * (
+            self.outl[2].h.val_SI - self.inl[1].h.val_SI
+        ) + self.kA.val * self.td.val
+
+    def kA_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives of heat transfer coefficient function.
+        """
+
+        i = self.inl[1]
+        o = self.outl[2]
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(self.kA_func, 'h', i)
+        if self.is_variable(i.p):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(self.kA_func, 'p', i)
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
+        c = self.outl[1]
+        if self.is_variable(c.p):
+            self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.kA_func, 'p', c)
+        if self.is_variable(c.h):
+            self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.kA_func, 'h', c)
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        i = self.inl[0]
+
+        i1 = self.inl[0]
+        i2 = self.inl[1]  # air
+        o1 = self.outl[0] # liquid
+        o2 = self.outl[1] # vapor
+
+        Q_prod = o1.m.val_SI * (o2.h.val_SI - i1.h.val_SI)
+        m_evap = i1.m.val_SI*i1.fluid.val['Water'] - o1.m.val_SI*o1.fluid.val['Water']
+        Q_prod_w = m_evap * (o2.h.val_SI - i1.h.val_SI)
+        Q_e = m_evap * (o2.h.val_SI - i1.h.val_SI)
+        Q_air = i1.m.val_SI * i1.h.val_SI - i2.m.val_SI  - i2.h.val_SI
+
+        
+        Q_evap = m_evap * (o2.fluid_data['Water']['wrapper'].h_pT(o2.p.val_SI,o2.T.val_SI,force_state=o2.force_state)
+                          -i1.fluid_data['Water']['wrapper'].h_pT(i1.p.val_SI,i1.T.val_SI,force_state=i1.force_state))
+
+        m_air = i2.m.val_SI*i2.fluid.val['Air'] #i2.m.val_SI # *i2.fluid.val['Air']
+        Q_air = + m_air * (o2.fluid_data['Air']['wrapper'].h_pT(o2.p.val_SI,o2.T.val_SI,force_state=o2.force_state)
+                          -i2.fluid_data['Air']['wrapper'].h_pT(i2.p.val_SI,i2.T.val_SI,force_state=i2.force_state))
+
+        fluid = 'Water'
+        ho2 = o2.fluid_data[fluid]['wrapper'].h_pT(o2.p.val_SI,o2.T.val_SI,force_state=o2.force_state)
+        hi1 = i1.fluid_data[fluid]['wrapper'].h_pT(i1.p.val_SI,i1.T.val_SI,force_state=i1.force_state)                                                     
+
+        self.Q.val = (i1.m.val_SI*i1.fluid.val[fluid] - o1.m.val_SI*o1.fluid.val[fluid]) * (ho2 - hi1)
+
+
+        print(Q_air)
+
+        # if not self.Q.is_set:
+        #     self.Q.val = - self.inl[1].m.val_SI * (self.outl[1].h.val_SI - self.inl[1].h.val_SI) # np.sum([o.m.val_SI * (o.h.val_SI - i.h.val_SI) for o in self.outl])
+        # if not self.KPI.is_set:
+        #     self.KPI.val = - self.inl[1].m.val_SI * (self.outl[2].h.val_SI - self.inl[1].h.val_SI) / (self.inl[0].m.val_SI*self.inl[0].fluid.val['Water'])
+
+        # hmin = min([o.h.val_SI for o in self.outl])
+        # hmax = max([o.h.val_SI for o in self.outl])
+        # if abs(i.h.val_SI - hmin) >= abs(i.h.val_SI - hmax):
+        #     self.deltaH.val = i.h.val_SI - hmin
+        # else:
+        #     self.deltaH.val = i.h.val_SI - hmax
+        
+        # if not self.kA.is_set:
+        #     Tcold = self.outl[0].T.val_SI # vapor out
+        #     #Thot = self.outl[2].T.val_SI
+        #     Thot = self.inl[1].calc_T_sat() # liquid out
+        #     self.td.val = (Thot-Tcold)
+        #     if Thot == Tcold:
+        #         self.kA.val = np.NaN
+        #     else:
+        #         self.kA.val = -self.inl[1].m.val_SI * (self.outl[2].h.val_SI - self.inl[1].h.val_SI)/self.td.val

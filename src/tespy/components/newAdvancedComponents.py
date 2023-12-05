@@ -1751,7 +1751,7 @@ class TwoStreamDrier(SeparatorWithSpeciesSplitsDeltaH,SeparatorWithSpeciesSplits
         M_o = o1.fluid.val["Water"]
         W_o = M_o/(1-M_o)
         Wmax = HAPropsSI('W','P',o1.p.val_SI,'T',o1.T.val_SI,'R',1)
-        if self.WBeff.val > 1.0 or W_o > Wmax:
+        if W_o > Wmax:
             self.RH.val = W_o/Wmax*100
             TESPyComponentError("Relative humidity cannot be greater than 100 %, try increase air mass flow")            
         else:

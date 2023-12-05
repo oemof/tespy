@@ -32,11 +32,11 @@ si2 = Sink("Sink 2")
 si3 = Sink("Sink 3")
 
 c1 = Connection(so1, "out1", se, "in1", label="1")
-c2 = Connection(se, "out1", si1, "in1", label="2")
-c3 = Connection(se, "out2", si2, "in1", label="3")
+c2 = Connection(se, "out1", si1, "in1", label="2")  # vapor
+c3 = Connection(se, "out2", si2, "in1", label="3")  # liquid
 
 c4 = Connection(so2, "out1", se, "in2", label="4")
-c5 = Connection(se, "out3", si3, "in1", label="5")
+c5 = Connection(se, "out3", si3, "in1", label="5")  # condensate
 
 nw.add_conns(c1, c2, c3, c4, c5)
 
@@ -51,8 +51,8 @@ p0 = 1        # global guess value in bar
 
 # set some generic data for starting values
 c1.set_attr(m=m0, p=p0, T=80, fluid={'HEOS::Water': 0.942, "INCOMP::FoodFat": 0.004, "INCOMP::FoodProtein": 0.054}, mixing_rule="incompressible")
-c2.set_attr(p=p0, T=40, force_state='l', fluid={"INCOMP::FoodProtein": 0.075})
-c3.set_attr(x=1, T=40, force_state='g', fluid={'HEOS::Water': 1.0, "INCOMP::FoodFat": 0.0, "INCOMP::FoodProtein": 0.0})
+c2.set_attr(x=1, T=40, force_state='g', fluid={'HEOS::Water': 1.0, "INCOMP::FoodFat": 0.0, "INCOMP::FoodProtein": 0.0})
+c3.set_attr(p=p0, T=40, force_state='l', fluid={"INCOMP::FoodProtein": 0.075})
 
 # Now it is possible to set the temperatures out of the separator differently
 c4.set_attr(m=25, p=p0, x=1, fluid={'HEOS::Water': 1.0}, mixing_rule="incompressible")
@@ -64,7 +64,7 @@ if not nw.converged:
 nw.print_results()
 print(nw.results['Connection'])
 
-c2.set_attr(fluid={"INCOMP::FoodProtein": None})
+c3.set_attr(fluid={"INCOMP::FoodProtein": None})
 c5.set_attr(p=p0,x=0)
 nw.solve("design")
 if not nw.converged:
@@ -105,9 +105,9 @@ print(nw.results['Connection'])
 se.set_attr(KPI=None)
 se.set_attr(kA=7e5)
 se.set_attr(dTo=0)
-c2.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
-c2.set_attr(T=None)
+c3.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
 c3.set_attr(T=None)
+c2.set_attr(T=None)
 
 nw.solve("design")
 if not nw.converged:
@@ -119,9 +119,9 @@ print(nw.results['Connection'])
 
 # mass balance mode
 
-c2.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
-c2.set_attr(p=p0, x=None, T=None, force_state=None)
+c3.set_attr(fluid={"INCOMP::FoodProtein": 0.075})
 c3.set_attr(p=p0, x=None, T=None, force_state=None)
+c2.set_attr(p=p0, x=None, T=None, force_state=None)
 
 c5.set_attr(x=None, force_state=None)
 se.set_attr(Q=None)

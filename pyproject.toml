@@ -37,6 +37,7 @@ numpy = "^1.25.1"
 matplotlib = "^3.7.2"
 pandas = "^2.0.3"
 tabulate = "^0.9.0"
+coolprop = "^6.6.0"
 
 [tool.poetry.group.coolprop.dependencies]
 cython = "^0.29.35"

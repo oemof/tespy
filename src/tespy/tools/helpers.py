@@ -628,7 +628,7 @@ def newton(func, deriv, params, y, **kwargs):
             logger.debug(msg)
 
             break
-        if tol_mode == 'abs':
+        if tol_mode == 'abs' or y == 0:
             expr = abs(res) >= tol_abs
         elif tol_mode == 'rel':
             expr = abs(res / y) >= tol_rel
@@ -680,7 +680,7 @@ def newton_with_kwargs(
             logger.debug(msg)
 
             break
-        if tol_mode == 'abs':
+        if tol_mode == 'abs' or target_value == 0:
             expr = abs(residual) >= tol_abs
         elif tol_mode == 'rel':
             expr = abs(residual / target_value) >= tol_rel

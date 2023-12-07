@@ -1,3 +1,0 @@
-[submodule "externals/CoolProp"]
-	path = externals/CoolProp
-	url = git@github.com:IPUdk/CoolProp.git

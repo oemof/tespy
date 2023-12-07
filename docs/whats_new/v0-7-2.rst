@@ -1,0 +1,12 @@
+v0.7.2 - Under development
+++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The `delta` value of the :py:class:`tespy.connections.connection.Ref` class
+  was oriented with the wrong sign. A positive delta lead to a negative value.
+  Fixed in (`PR #459 <https://github.com/oemof/tespy/pull/459>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

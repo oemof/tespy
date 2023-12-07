@@ -206,7 +206,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             else:
                 self.AS.update(CP.QT_INPUTS, 0, T)
         else:
-            if (kwargs['force_state'] == "l") and not (T > self.AS.T_critical()): 
+            if (kwargs.get('force_state',False) == "l") and not (T > self.AS.T_critical()): 
                 self.AS.update(CP.QT_INPUTS, 0, T)
                 if p > self.AS.p(): 
                     try:
@@ -214,7 +214,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
                     except:
                         #print("allowing state to move up on the liquid saturation curve")
                         self.AS.update(CP.QT_INPUTS, 0, T)
-            elif kwargs['force_state'] == "g" and not (T > self.AS.T_critical()): 
+            elif kwargs.get('force_state',False) == "g" and not (T > self.AS.T_critical()): 
                 self.AS.update(CP.QT_INPUTS, 1, T)
                 if p < self.AS.p(): 
                     try:

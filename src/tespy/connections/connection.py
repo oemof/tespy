@@ -726,7 +726,7 @@ class Connection:
         ref = self.get_attr(f"{variable}_ref").ref
         self.residual[k] = (
             self.get_attr(variable).val_SI
-            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI
+            - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
         )
 
     def primary_ref_deriv(self, k, **kwargs):
@@ -761,7 +761,7 @@ class Connection:
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.ref
         self.residual[k] = (
-            self.calc_T() - ref.obj.calc_T() * ref.factor + ref.delta_SI
+            self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
         )
 
     def T_ref_deriv(self, k, **kwargs):
@@ -810,7 +810,7 @@ class Connection:
         ref = self.v_ref.ref
         self.residual[k] = (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
-            - ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI
+            - (ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI)
         )
 
     def v_ref_deriv(self, k, **kwargs):

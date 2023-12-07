@@ -58,7 +58,7 @@ class TestConnections:
         c2.set_attr(v=Ref(c1, 2, 10))
         self.nw.solve('design')
 
-        v_expected = round(c1.v.val * 2 - 10, 4)
+        v_expected = round(c1.v.val * 2 + 10, 4)
         v_is = round(c2.v.val, 4)
         msg = (
             'The mass flow of the connection 2 should be equal to '
@@ -87,7 +87,7 @@ class TestConnections:
         c2.set_attr(T=Ref(c1, 1.5, -75))
         self.nw.solve('design')
 
-        T_expected = round(convert_from_SI("T", c1.T.val_SI * 1.5, c1.T.unit) + 75, 4)
+        T_expected = round(convert_from_SI("T", c1.T.val_SI * 1.5, c1.T.unit) - 75, 4)
         T_is = round(c2.T.val, 4)
         msg = (
             'The temperature of the connection 2 should be equal to '
@@ -116,7 +116,7 @@ class TestConnections:
         c2.set_attr(m=Ref(c1, 2, -0.5))
         self.nw.solve('design')
 
-        m_expected = round(convert_from_SI("m", c1.m.val_SI * 2, c1.m.unit) + 0.5, 4)
+        m_expected = round(convert_from_SI("m", c1.m.val_SI * 2, c1.m.unit) - 0.5, 4)
         m_is = round(c2.m.val, 4)
         msg = (
             'The mass flow of the connection 2 should be equal to '

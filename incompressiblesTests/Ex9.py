@@ -233,14 +233,7 @@ plt.legend()
 plt.show()
 
 
-print(x)
 
-print(x)
-print(x)
-print(x)
-
-import sys
-sys.exit()
 
 
 

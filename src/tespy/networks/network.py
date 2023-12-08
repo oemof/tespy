@@ -1501,9 +1501,9 @@ class Network:
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find connection {c.label} in design case. Please "
+                f"Could not find connection '{c.label}' in design case. Please "
                 "make sure no connections have been modified or components "
-                "havebeen relabeled for your offdesign calculation."
+                "have been relabeled for your offdesign calculation."
             )
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)

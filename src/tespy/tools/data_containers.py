@@ -290,6 +290,13 @@ class ComponentProperties(DataContainer):
     max_val : float
         Maximum value for this attribute, used if attribute is part of the
         system variables, default: max_val=1e12.
+
+    unit : str
+        Unit for this property, default: ref=None.
+
+    unit : boolean
+        Has the unit for this property been specified manually by the user?
+        default: unit_set=False.        
     """
 
     @staticmethod
@@ -304,7 +311,7 @@ class ComponentProperties(DataContainer):
             values.
         """
         return {
-            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
+            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4, 'unit': None,
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
             'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
@@ -318,7 +325,7 @@ class ComponentProperties(DataContainer):
     @staticmethod
     def _serializable_keys():
         return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var", "unit"
         ]
 
 

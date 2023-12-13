@@ -20,6 +20,8 @@ logging.basicConfig(level=logging.DEBUG)
 # caution, must write "Water" (capital W) in INCOMP backend -> CoolProp bug? Intentional?
 nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C',h_unit='kJ / kg', h_range=[-1e2,4e2], iterinfo=True)
 
+nw.set_attr(Q_unit='kW')
+
 so = Source("Source")
 #  Variant 2: Q is m (h_2 - h_1), Q_total is taking efficiency into account and represents the heat transfer over system
 # boundary. For heat transfer into the system: Q = Q_total * eta, for heat transfer from the system: Q_total = Q * eta
@@ -57,6 +59,11 @@ nw.solve("design")
 if not nw.converged:
     raise Exception("not converged")
 nw.print_results()
+
+
+c2.set_attr(T=None) #,p=1)
+he.set_attr(Q=2e2)
+
 
 nw.solve("design")
 if not nw.converged:

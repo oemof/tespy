@@ -34,6 +34,8 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.global_vars import component_property_data as cpd
+
 
 # Only require cupy if Cuda shall be used
 try:
@@ -212,6 +214,10 @@ class Network:
             # standard unit set
             self.__dict__.update({prop + '_unit': data['SI_unit']})
             msg += data['text'] + ': ' + data['SI_unit'] + '\n'
+        for prop, data in cpd.items():
+            # standard unit set
+            self.__dict__.update({prop + '_unit': data['SI_unit']})
+            msg += data['text'] + ': ' + data['SI_unit'] + '\n'
 
         # don't need the last newline
         logger.debug(msg[:-1])
@@ -270,6 +276,10 @@ class Network:
 
         vol_unit : str
             Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
+
+        Q_unit : str
+            Specify the unit for heat flow rate: 'W', 'kW', 'MW'.
+
         """
         # unit sets
         for prop in fpd.keys():
@@ -284,6 +294,24 @@ class Network:
                     msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
                     logger.error(msg)
                     raise ValueError(msg)
+                
+        for prop in cpd.keys():
+            unit = prop + '_unit'
+            if unit in kwargs:
+                if kwargs[unit] in cpd[prop]['units']:
+                    self.__dict__.update({unit: kwargs[unit]})
+                    msg = (
+                        'Setting ' + cpd[prop]['text'] +
+                        ' unit: ' + kwargs[unit] + '.')
+                    logger.debug(msg)
+                else:
+                    keys = ', '.join(cpd[prop]['units'].keys())
+                    msg = (
+                        'Allowed units for ' +
+                        cpd[prop]['text'] + ' are: ' + keys)
+                    logger.error(msg)
+                    raise ValueError(msg)                
+
 
         for prop in ['m', 'p', 'h']:
             if f'{prop}_range' in kwargs:
@@ -1251,6 +1279,16 @@ class Network:
         respective :code:`design_path`. In this case, the design values are
         unset, the offdesign values set.
         """
+        for c in self.comps['object']:
+            print(c)
+            for prop in cpd.keys():
+                if c.parameters.get(prop,False):
+                    c.parameters[prop].unit = self.get_attr(prop + '_unit')
+                    if c.parameters[prop].is_set: 
+                        # we simply overwrite to begin with.. because all model do not use val_SI 
+                        c.parameters[prop].val = hlp.convert_comp_to_SI(prop, c.parameters[prop].val, c.parameters[prop].unit)
+                        # we then convert back again upon solution
+                        
         # connections
         self._conn_variables = []
         _local_designs = {}
@@ -2570,6 +2608,12 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
+
+            for prop in cpd.keys():
+                if cp.parameters.get(prop,False):
+                    # we simply overwrite to begin with.. because all model do not use val_SI 
+                    cp.parameters[prop].val_SI = cp.parameters[prop].val # delete this when proper use of val_SI is done
+                    cp.parameters[prop].val = hlp.convert_comp_from_SI(prop, cp.parameters[prop].val, cp.parameters[prop].unit)
 
             key = cp.__class__.__name__
             for param in self.results[key].columns:

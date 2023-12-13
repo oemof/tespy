@@ -15,6 +15,18 @@ molar_masses = {}
 gas_constants = {}
 gas_constants['uni'] = 8.314462618
 
+component_property_data = OrderedDict({
+    'Q': {
+        'text': 'heat flow',
+        'SI_unit': 'W',
+        'units': {
+            'W': 1, 'kW': 1000, 'MW': 1e6
+        },
+        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
+        #'documentation': {'float_fmt': '{:,.3f}'}
+    }
+    })
+
 fluid_property_data = OrderedDict({
     'm': {
         'text': 'mass flow',

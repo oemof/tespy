@@ -19,12 +19,40 @@ component_property_data = {
         'text': 'heat flow',
         'SI_unit': 'W',
         'units': {
-            'W': 1, 'kW': 1000, 'MW': 1e6
+            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
+        },
+        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
+        #'documentation': {'float_fmt': '{:,.3f}'}
+    },
+    'Q_loss': {
+        'text': 'heat flow',
+        'SI_unit': 'W',
+        'units': {
+            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
+        },
+        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
+        #'documentation': {'float_fmt': '{:,.3f}'}
+    },
+    'Q_total': {
+        'text': 'heat flow',
+        'SI_unit': 'W',
+        'units': {
+            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
+        },
+        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
+        #'documentation': {'float_fmt': '{:,.3f}'}
+    },
+    'kA': {
+        'text': 'heat flow',
+        'SI_unit': 'W / K',
+        'units': {
+            'W / K': 1, 'kW / K': 1000, 'MW / K': 1e6, 'GW / K': 1e9, 'TW / K': 1e12
         },
         #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         #'documentation': {'float_fmt': '{:,.3f}'}
     }
 }
+
 
 fluid_property_data = {
     'm': {

@@ -66,7 +66,7 @@ component_property_data = OrderedDict({
         'SI_unit': 'kg / s',
         'units': {
             'kg / s': 1, 'kg / min': 1 / 60, 'kg / h': 1 / 3.6e3, 
-            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / 3600*24*365
+            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365)
         },
         #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         #'documentation': {'float_fmt': '{:,.3f}'}
@@ -81,7 +81,7 @@ fluid_property_data = OrderedDict({
         'SI_unit': 'kg / s',
         'units': {
             'kg / s': 1, 'kg / min': 1 / 60, 'kg / h': 1 / 3.6e3,
-            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / 3600*24*365
+            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365)
         },
         'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         'documentation': {'float_fmt': '{:,.3f}'}

@@ -20,25 +20,17 @@ component_property_data = OrderedDict({
         'text': 'heat flow',
         'SI_unit': 'W',
         'units': {
-            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
-        },
-        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
-        #'documentation': {'float_fmt': '{:,.3f}'}
-    },
-    'Q_loss': {
-        'text': 'heat flow',
-        'SI_unit': 'W',
-        'units': {
-            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
-        },
-        #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
-        #'documentation': {'float_fmt': '{:,.3f}'}
-    },
-    'Q_total': {
-        'text': 'heat flow',
-        'SI_unit': 'W',
-        'units': {
-            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12
+            'W': 1, 'kW': 1000, 'MW': 1e6, 'GW': 1e9, 'TW': 1e12,
+            'J / s': 1 ,     'J / h': 1 / 3.6e3,     'J / y': 1 / (3.6e3*24*365),
+            'kJ / s': 1e3,  'kJ / h': 1e3 / 3.6e3,  'kJ / y': 1e3 / (3.6e3*24*365),
+            'MJ / s': 1e6,  'MJ / h': 1e6 / 3.6e3,  'GJ / y': 1e6 / (3.6e3*24*365),
+            'GJ / s': 1e9,  'GJ / h': 1e9 / 3.6e3,  'MJ / y': 1e9 / (3.6e3*24*365),
+            'TJ / s': 1e12, 'TJ / h': 1e12 / 3.6e3, 'TJ / y': 1e12 / (3.6e3*24*365),
+            'Wh / s': 3.6e3 ,   'Wh / h': 3.6e3 / 3.6e3,    'Wh / y': 3.6e3 / (3.6e3*24*365),
+            'kWh / s': 3.6e6,  'kWh / h': 3.6e6 / 3.6e3,   'kWh / y': 3.6e6 / (3.6e3*24*365),
+            'MWh / s': 3.6e9,  'MWh / h': 3.6e9 / 3.6e3,   'GWh / y': 3.6e9 / (3.6e3*24*365),
+            'GWh / s': 3.6e12, 'GWh / h': 3.6e12 / 3.6e3,  'MWh / y': 3.6e12 / (3.6e3*24*365),
+            'TWh / s': 3.6e15, 'TWh / h': 3.6e15 / 3.6e3,  'TWh / y': 3.6e15 / (3.6e3*24*365),
         },
         #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         #'documentation': {'float_fmt': '{:,.3f}'}
@@ -56,7 +48,17 @@ component_property_data = OrderedDict({
         'text': 'KPI scaling with Q',
         'SI_unit': 'Wx',
         'units': {
-            'Wx': 1, 'kWx': 1000, 'MWx': 1e6, 'GWx': 1e9, 'TWx': 1e12
+            'J / kg': 1 ,         'J / t': 1 / 1e3,   
+            'kJ / kg': 1e3 ,     'kJ / t': 1e3 / 1e3,   
+            'MJ / kg': 1e6 ,     'MJ / t': 1e6 / 1e3,   
+            'GJ / kg': 1e9 ,     'GJ / t': 1e9 / 1e3,   
+            'TJ / kg': 1e12 ,     'TJ / t': 1e12 / 1e3,   
+           
+            'Wh / kg': 3.6e3 ,      'Wh / t': 3.6e3 / 1e3, 
+            'kWh / kg': 3.6e6 ,    'kWh / t': 3.6e6 / 1e3, 
+            'MWh / kg': 3.6e9 ,    'MWh / t': 3.6e9 / 1e3, 
+            'GWh / kg': 3.6e12 ,   'GWh / t': 3.6e12 / 1e3, 
+            'TWh / kg': 3.6e15 ,   'TWh / t': 3.6e15 / 1e3, 
         },
         #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         #'documentation': {'float_fmt': '{:,.3f}'}
@@ -66,13 +68,17 @@ component_property_data = OrderedDict({
         'SI_unit': 'kg / s',
         'units': {
             'kg / s': 1, 'kg / min': 1 / 60, 'kg / h': 1 / 3.6e3, 
-            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365)
+            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365), 't / s': 1e3 / 1
         },
         #'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         #'documentation': {'float_fmt': '{:,.3f}'}
     }         
 
     })
+
+component_property_data['Q_loss'] = component_property_data['Q']
+component_property_data['Q_total'] = component_property_data['Q']
+
 
 
 fluid_property_data = OrderedDict({
@@ -81,7 +87,7 @@ fluid_property_data = OrderedDict({
         'SI_unit': 'kg / s',
         'units': {
             'kg / s': 1, 'kg / min': 1 / 60, 'kg / h': 1 / 3.6e3,
-            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365)
+            't / h': 1 / 3.6, 'g / s': 1 / 1e3, 't / y': 1e3 / (3600*24*365), 't / s': 1e3 / 1
         },
         'latex_eq': r'0 = \dot{m} - \dot{m}_\mathrm{spec}',
         'documentation': {'float_fmt': '{:,.3f}'}

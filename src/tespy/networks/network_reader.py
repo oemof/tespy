@@ -92,7 +92,6 @@ COMP_TARGET_CLASSES = {
     'SimpleHeatExchangerDeltaPLossFactor' : SimpleHeatExchangerDeltaPLossFactor,
     'SimpleHeatExchangerDeltaP' : SimpleHeatExchangerDeltaP,
     'SimpleHeatExchangerDeltaPLfKpi' : SimpleHeatExchangerDeltaPLfKpi,
-    'DrierWithAir' : DrierWithAir,
 }
 
 ENGINE_TARGET_CLASSES = {

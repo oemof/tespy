@@ -686,6 +686,9 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
             func=self.KPI_func,
             latex=self.pr_func_doc,
             num_eq=1)        
+        variables['dTo'] = dc_cp(
+                min_val=0, num_eq=1, func=self.dTo_func, latex=self.pr_func_doc,
+                deriv=self.dTo_deriv)        
         #variables["Qout"] = dc_cpa()
         return variables
 
@@ -805,6 +808,29 @@ class SeparatorWithSpeciesSplitsDeltaH(SeparatorWithSpeciesSplits):
         #     if self.is_variable(c.h): #, increment_filter):
         #         self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.Q_func_Tequality, 'h', c, port1 = self.outl[0], port2 = self.outl[1])
 
+    def dTo_func(self):
+        r"""
+        Equation for hot side heat exchanger energy balance.
+        """
+        T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
+        T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
+        return T0 - T1 - self.dTo.val
+
+    def dTo_deriv(self, increment_filter, k):
+        r"""
+        Partial derivatives for hot side heat exchanger energy balance.
+        """
+        #T0 = self.outl[0].calc_T(T0=self.outl[0].T.val_SI)
+        #T1 = self.outl[1].calc_T(T0=self.outl[1].T.val_SI)
+        for c in [self.outl[0], self.outl[1]]:
+            if self.is_variable(c.p): #, increment_filter): increment filter may detect no change on the wrong end 
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(self.dTo_func, 'p', c)
+            if self.is_variable(c.h): #, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(self.dTo_func, 'h', c)
+            for fluid in self.variable_fluids:
+                if fluid in c.fluid.is_var:
+                    self.jacobian[k, c.fluid.J_col[fluid]] = self.numeric_deriv(self.dTo_func, fluid, c)     
+                    
     def calc_parameters(self):
         super().calc_parameters()
         i = self.inl[0]

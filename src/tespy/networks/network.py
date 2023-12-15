@@ -1835,11 +1835,12 @@ class Network:
                 except ValueError:
                     pass
 
-            if not np.isnan(c.T.val0):
-                try:
-                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
-                except ValueError:
-                    pass
+            if c.T.val0:
+                if not np.isnan(c.T.val0):
+                    try:
+                        c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
+                    except ValueError:
+                        pass
 
 
     def init_val0(self, c: con.Connection, key: str):
@@ -2080,12 +2081,20 @@ class Network:
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
+            # self.residual_history = np.append(
+            #     self.residual_history, norm(self.residual)
+            # )
+
+            # if self.iterinfo:
+            #     self.iterinfo_body(print_results)
+            
+            # must always call this one to add increments residual to the solver
+            residual_norm = self.iterinfo_body(print_results)
+
             self.residual_history = np.append(
-                self.residual_history, norm(self.residual)
+                self.residual_history, residual_norm
             )
 
-            if self.iterinfo:
-                self.iterinfo_body(print_results)
 
             if (
                     (self.iter >= self.min_iter - 1
@@ -2219,15 +2228,23 @@ class Network:
         fluid = 'NaN'
         component = 'NaN'
 
+        if not self.lin_dep and not np.isnan(residual_norm):
+            norm_massflow  = norm(self.increment[m]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_pressure  = norm(self.increment[p]) / 1e5 # scale with 1 bar 
+            norm_enthalpy  = norm(self.increment[h]) / 1e5 # scale with enthalpy
+            norm_fluid     = norm(self.increment[fl]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_component = norm(self.increment[cp])
+
+            massflow = '{:.2e}'.format(norm_massflow)
+            pressure = '{:.2e}'.format(norm_pressure)
+            enthalpy = '{:.2e}'.format(norm_enthalpy)
+            fluid = '{:.2e}'.format(norm_fluid)
+            component  = '{:.2e}'.format(norm_component)
+
+        residual_norm = norm(np.append(residual_norm,np.array([norm_massflow, norm_pressure, norm_enthalpy, norm_fluid, norm_component])))
+
         if not np.isnan(residual_norm):
             residual = '{:.2e}'.format(residual_norm)
-
-        if not self.lin_dep and not np.isnan(residual_norm):
-            massflow = '{:.2e}'.format(norm(self.increment[m]))
-            pressure = '{:.2e}'.format(norm(self.increment[p]))
-            enthalpy = '{:.2e}'.format(norm(self.increment[h]))
-            fluid = '{:.2e}'.format(norm(self.increment[fl]))
-            component  = '{:.2e}'.format(norm(self.increment[cp]))
 
         progress_val = -1
         if not np.isnan(residual_norm):
@@ -2262,7 +2279,7 @@ class Network:
         logger.progress(progress_val, msg)
         if print_results:
             print(msg)
-        return
+        return residual_norm
 
     def iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""

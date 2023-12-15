@@ -294,7 +294,7 @@ class Network:
                     msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
                     logger.error(msg)
                     raise ValueError(msg)
-                
+
         for prop in cpd.keys():
             unit = prop + '_unit'
             if unit in kwargs:
@@ -310,7 +310,7 @@ class Network:
                         'Allowed units for ' +
                         cpd[prop]['text'] + ' are: ' + keys)
                     logger.error(msg)
-                    raise ValueError(msg)                
+                    raise ValueError(msg)
 
 
         for prop in ['m', 'p', 'h']:
@@ -757,7 +757,7 @@ class Network:
             self.branchesNames[k] = v['components'][0].label
             for conn,comp in zip(v['connections'],v['components'][1:]):
                 #self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
-                self.branchesNames[k] += " -> " + comp.label                
+                self.branchesNames[k] += " -> " + comp.label
             msg = (self.branchesNames[k])
             logger.debug(msg)
 
@@ -1284,11 +1284,11 @@ class Network:
             for prop in cpd.keys():
                 if c.parameters.get(prop,False):
                     c.parameters[prop].unit = self.get_attr(prop + '_unit')
-                    if c.parameters[prop].is_set: 
-                        # we simply overwrite to begin with.. because all model do not use val_SI 
+                    if c.parameters[prop].is_set:
+                        # we simply overwrite to begin with.. because all model do not use val_SI
                         c.parameters[prop].val = hlp.convert_comp_to_SI(prop, c.parameters[prop].val, c.parameters[prop].unit)
                         # we then convert back again upon solution
-                        
+
         # connections
         self._conn_variables = []
         _local_designs = {}
@@ -1857,11 +1857,12 @@ class Network:
                 except ValueError:
                     pass
 
-            if not np.isnan(c.T.val0):
-                try:
-                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
-                except ValueError:
-                    pass
+            if c.T.val0:
+                if not np.isnan(c.T.val0):
+                    try:
+                        c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
+                    except ValueError:
+                        pass
 
 
     def init_val0(self, c: con.Connection, key: str):
@@ -2099,12 +2100,20 @@ class Network:
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
+            # self.residual_history = np.append(
+            #     self.residual_history, norm(self.residual)
+            # )
+
+            # if self.iterinfo:
+            #     self.iterinfo_body(print_results)
+
+            # must always call this one to add increments residual to the solver
+            residual_norm = self.iterinfo_body(print_results)
+
             self.residual_history = np.append(
-                self.residual_history, norm(self.residual)
+                self.residual_history, residual_norm
             )
 
-            if self.iterinfo:
-                self.iterinfo_body(print_results)
 
             if (
                     (self.iter >= self.min_iter - 1
@@ -2235,18 +2244,26 @@ class Network:
         fluid = 'NaN'
         component = 'NaN'
 
-        progress_val = -1
+        if not self.lin_dep and not np.isnan(residual_norm):
+            norm_massflow  = norm(self.increment[m]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_pressure  = norm(self.increment[p]) / 1e5 # scale with 1 bar
+            norm_enthalpy  = norm(self.increment[h]) / 1e5 # scale with enthalpy
+            norm_fluid     = norm(self.increment[fl]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_component = norm(self.increment[cp])
+
+            massflow = '{:.2e}'.format(norm_massflow)
+            pressure = '{:.2e}'.format(norm_pressure)
+            enthalpy = '{:.2e}'.format(norm_enthalpy)
+            fluid = '{:.2e}'.format(norm_fluid)
+            component  = '{:.2e}'.format(norm_component)
+
+        residual_norm = norm(np.append(residual_norm,np.array([norm_massflow, norm_pressure, norm_enthalpy, norm_fluid, norm_component])))
 
         if not np.isnan(residual_norm):
             residual = '{:.2e}'.format(residual_norm)
 
-            if not self.lin_dep:
-                massflow = '{:.2e}'.format(norm(self.increment[m]))
-                pressure = '{:.2e}'.format(norm(self.increment[p]))
-                enthalpy = '{:.2e}'.format(norm(self.increment[h]))
-                fluid = '{:.2e}'.format(norm(self.increment[fl]))
-                component  = '{:.2e}'.format(norm(self.increment[cp]))
-
+        progress_val = -1
+        if not np.isnan(residual_norm):
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
                 progress_min = np.log(ERR)
@@ -2278,7 +2295,7 @@ class Network:
         logger.progress(progress_val, msg)
         if print_results:
             print(msg)
-        return
+        return residual_norm
 
     def iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
@@ -2337,17 +2354,17 @@ class Network:
         return increment
 
     def update_variables(self):
-        
-        if self.iter < 2: 
+
+        if self.iter < 2:
             RobustRelax = 0.1
-        elif self.iter < 4:             
+        elif self.iter < 4:
             RobustRelax = 0.25
-        elif self.iter < 6:             
-            RobustRelax = 0.5            
-        else: 
+        elif self.iter < 6:
+            RobustRelax = 0.5
+        else:
             RobustRelax = 1
 
-        #RobustRelax = 1            
+        #RobustRelax = 1
 
         # add the increment
         for data in self.variables_dict.values():
@@ -2377,14 +2394,14 @@ class Network:
                 container.val[data["fluid"]] += RobustRelax * self._limit_increments(0,1,val,increment)
 
                 #print(container.val[data["fluid"]])
-               
+
                 # if container.val[data["fluid"]] < ERR :
                 #     container.val[data["fluid"]] = 0
                 # elif container.val[data["fluid"]] > 1 - ERR :
                 #     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                
+
                 increment = self.increment[data["obj"].J_col]
                 val = data["obj"].val
                 data["obj"].val += RobustRelax * self._limit_increments(data["obj"].min_val,data["obj"].max_val,val,increment)
@@ -2611,7 +2628,7 @@ class Network:
 
             for prop in cpd.keys():
                 if cp.parameters.get(prop,False):
-                    # we simply overwrite to begin with.. because all model do not use val_SI 
+                    # we simply overwrite to begin with.. because all model do not use val_SI
                     cp.parameters[prop].val_SI = cp.parameters[prop].val # delete this when proper use of val_SI is done
                     cp.parameters[prop].val = hlp.convert_comp_from_SI(prop, cp.parameters[prop].val, cp.parameters[prop].unit)
 

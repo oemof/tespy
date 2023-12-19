@@ -801,7 +801,8 @@ class Network:
                         merged[branch_name]["components"] = list(
                             set(branch_data["components"] + ob_data["components"])
                         )
-                        del merged[ob_name]
+                        if merged.get(ob_name,False):
+                            del merged[ob_name]
                         break
 
         self.fluid_wrapper_branches = merged

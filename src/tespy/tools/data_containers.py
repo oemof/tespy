@@ -354,15 +354,15 @@ class FluidComposition(DataContainer):
             values.
         """
         return {
-            'val': collections.OrderedDict(),
-            'val0': collections.OrderedDict(),
+            'val': dict(),
+            'val0': dict(),
             'is_set': set(),
-            'design': collections.OrderedDict(),
-            'wrapper': collections.OrderedDict(),
-            'back_end': collections.OrderedDict(),
-            'engine': collections.OrderedDict(),
+            'design': dict(),
+            'wrapper': dict(),
+            'back_end': dict(),
+            'engine': dict(),
             "is_var": set(),
-            "J_col": collections.OrderedDict(),
+            "J_col": dict(),
         }
 
     def serialize(self):

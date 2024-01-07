@@ -9,8 +9,6 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
-from collections import OrderedDict
-
 import numpy as np
 
 from tespy.components.component import Component
@@ -303,7 +301,7 @@ class Connection:
         if connector_id not in connecter_locations:
             msg = (
                 "Error creating connection. Specified connector for "
-                f"{component.label} ({connector_id} is not available. Choose "
+                f"{component.label} ({connector_id}) is not available. Choose "
                 f"from " + ", ".join(connecter_locations) + "."
             )
             logger.error(msg)
@@ -626,7 +624,7 @@ class Connection:
                 container._solved = False
 
         self.residual = np.zeros(self.num_eq)
-        self.jacobian = OrderedDict()
+        self.jacobian = {}
 
     def simplify_specifications(self):
         systemvar_specs = []

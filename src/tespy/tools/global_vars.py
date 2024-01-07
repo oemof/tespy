@@ -8,14 +8,13 @@ available from its original location tespy/tools/global_vars.py
 
 SPDX-License-Identifier: MIT
 """
-from collections import OrderedDict
 
 ERR = 1e-6
 molar_masses = {}
 gas_constants = {}
 gas_constants['uni'] = 8.314462618
 
-fluid_property_data = OrderedDict({
+fluid_property_data = {
     'm': {
         'text': 'mass flow',
         'SI_unit': 'kg / s',
@@ -99,6 +98,6 @@ fluid_property_data = OrderedDict({
         'latex_eq': r'0 = s_\mathrm{spec} - s\left(p, h \right)',
         'documentation': {'float_fmt': '{:,.2f}'}
     }
-})
+}
 
 combustion_gases = ['methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane']

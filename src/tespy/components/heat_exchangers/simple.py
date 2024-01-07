@@ -884,10 +884,7 @@ class SimpleHeatExchanger(Component):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = (
-            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
-            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
-        )
+        self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:
             ttd_1 = i.T.val_SI - self.Tamb.val_SI

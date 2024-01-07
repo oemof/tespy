@@ -1302,11 +1302,9 @@ class CombustionEngine(CombustionChamber):
                 self.outl[i].h.val_SI - self.inl[i].h.val_SI)
             self.get_attr('pr' + str(i + 1)).val = (
                 self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = (
-                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
-                    4 * self.inl[i].m.val_SI ** 2 *
-                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
-                ))
+            self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
+                self.inl[i], self.outl[i]
+            )
 
         self.P.val = self.calc_P()
         self.Qloss.val = self.calc_Qloss()

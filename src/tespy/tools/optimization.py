@@ -6,7 +6,6 @@ except ImportError:
 import pandas as pd
 
 from tespy.tools.helpers import merge_dicts
-from tespy.tools.helpers import nested_OrderedDict
 
 
 class OptimizationProblem:
@@ -70,14 +69,8 @@ class OptimizationProblem:
             "upper limits": {"Connections": {}, "Components": {}}
         }
         # merge the passed values into the default dictionary structure
-        variables = merge_dicts(variables, default_variables)
-        constraints = merge_dicts(constraints, default_constraints)
-
-        # pygmo creates a vector for the variables and constraints, which has
-        # to be in consistent order. Therefore use OrderedDicts instead of
-        # dictionaries
-        self.variables = nested_OrderedDict(variables)
-        self.constraints = nested_OrderedDict(constraints)
+        self.variables = merge_dicts(variables, default_variables)
+        self.constraints = merge_dicts(constraints, default_constraints)
         self.objective = objective
         self.variable_list = []
         self.constraint_list = []
@@ -307,3 +300,5 @@ class OptimizationProblem:
                     round(pop.champion_x[i], 4)
                 )
             )
+
+        return pop

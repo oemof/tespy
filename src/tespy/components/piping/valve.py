@@ -316,10 +316,7 @@ class Valve(Component):
         i = self.inl[0]
         o = self.outl[0]
         self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = (
-            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
-            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
-        )
+        self.zeta.val = self.calc_zeta(i, o)
 
     def entropy_balance(self):
         r"""

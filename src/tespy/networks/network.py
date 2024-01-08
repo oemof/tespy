@@ -15,7 +15,6 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
-from collections import OrderedDict
 from time import time
 
 import numpy as np
@@ -189,7 +188,7 @@ class Network:
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
-        self.busses = OrderedDict()
+        self.busses = {}
         # results and specification dictionary
         self.results = {}
         self.specifications = {}
@@ -1262,7 +1261,7 @@ class Network:
                 c.m.design = np.nan
                 c.p.design = np.nan
                 c.h.design = np.nan
-                c.fluid.design = OrderedDict()
+                c.fluid.design = {}
 
                 c.new_design = True
 

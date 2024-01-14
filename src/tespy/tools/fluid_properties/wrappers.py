@@ -143,7 +143,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._p_min = 1e2
             self._p_max = 1e8
             self._p_crit = 1e8
-            self._T_crit = None
+            self._T_crit = self._T_max
             self._molar_mass = 1
             try:
                 # how to know that we have a binary mixture?
@@ -173,6 +173,11 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
+
+    def psat_Tx(self, T, x):
+        self.AS.set_mass_fractions([x])
+        self.AS.update(CP.QT_INPUTS, 0, T)
+        return self.AS.p()
 
     def T_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)

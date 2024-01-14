@@ -307,6 +307,10 @@ class Component:
     def is_branch_source():
         return False
 
+    @staticmethod
+    def is_wrapper_branch_source():
+        return False
+
     def propagate_to_target(self, branch):
         inconn = branch["connections"][-1]
         conn_idx = self.inl.index(inconn)

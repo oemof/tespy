@@ -64,23 +64,28 @@ def get_molar_fractions(fluid_data):
     return {key: value / molarflow_sum for key, value in molarflow.items()}
 
 
-def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
+def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None, **kwargs):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
     if T0 is None:
         T0 = (valmin + valmax) / 2.0
-
+    T0 = 320
+    if "solvent" in kwargs:
+        delta = 1e-5
+    else:
+        delta = 1e-2
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": f, "parameter": "T" , "delta": 0.01
+        "function": f, "parameter": "T" , "delta": delta
     }
+    function_kwargs.update(**kwargs)
     return newton_with_kwargs(
         central_difference,
         target_value,
         val0=T0,
         valmin=valmin,
         valmax=valmax,
-        **function_kwargs
+        **function_kwargs,
     )
 
 

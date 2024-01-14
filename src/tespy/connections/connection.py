@@ -269,6 +269,7 @@ class Connection:
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
+        self.solvent = None
         msg = (
             f"Created connection from {self.source.label} ({self.source_id}) "
             f"to {self.target.label} ({self.target_id})."
@@ -455,8 +456,8 @@ class Connection:
                 else:
                     self.__dict__.update({key: kwargs[key]})
 
-            elif key == "mixing_rule":
-                self.mixing_rule = kwargs[key]
+            elif key in ["mixing_rule", "solvent"]:
+                self.__dict__.update({key: kwargs[key]})
 
             # invalid keyword
             else:
@@ -717,6 +718,8 @@ class Connection:
                 "mass_fraction": self.fluid.val[fluid]
             } for fluid in self.fluid.val
         }
+        if self.mixing_rule == "incomp-solution":
+            self.fluid_data[self.solvent]["wrapper"].AS.set_mass_fractions([self.fluid.val[self.solvent]])
 
     def primary_ref_func(self, k, **kwargs):
         variable = kwargs["variable"]
@@ -737,7 +740,7 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self, T0=None):
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.calc_T() - self.T.val_SI
@@ -745,15 +748,15 @@ class Connection:
     def T_deriv(self, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, solvent=self.solvent)
             )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI, solvent=self.solvent)
             )
         for fluid in self.fluid.is_var:
             self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule, solvent=self.solvent
             )
 
     def T_ref_func(self, k, **kwargs):
@@ -768,28 +771,28 @@ class Connection:
         ref = self.T_ref.ref
         if ref.obj.p.is_var:
             self.jacobian[k, ref.obj.p.J_col] = -(
-                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent)
             ) * ref.factor
         if ref.obj.h.is_var:
             self.jacobian[k, ref.obj.h.J_col] = -(
-                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent)
             ) * ref.factor
         for fluid in ref.obj.fluid.is_var:
             if not self._increment_filter[ref.obj.fluid.J_col[fluid]]:
                 self.jacobian[k, ref.obj.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(
-                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule
+                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule, solvent=ref.obj.solvent
                 )
 
     def calc_viscosity(self, T0=None):
         try:
-            return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+            return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
         except NotImplementedError:
             return np.nan
 
 
     def calc_vol(self, T0=None):
         try:
-            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+            return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0, solvent=self.solvent)
         except NotImplementedError:
             return np.nan
 
@@ -900,12 +903,12 @@ class Connection:
             data.deriv(k, **data.func_params)
 
     def calc_results(self):
+        _converged = True
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
-        _converged = True
         if number_fluids > 1:
-            h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-            if abs(h_from_T - self.h.val_SI) > ERR ** .5:
+            h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, solvent=self.solvent)
+            if abs(h_from_T - self.h.val_SI) > ERR ** 0.5:
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
                 self.v.val_SI = np.nan
@@ -913,7 +916,8 @@ class Connection:
                 msg = (
                     "Could not find a feasible value for mixture temperature at "
                     f"connection {self.label}. The values for temperature, "
-                    "specific volume, volumetric flow and entropy are set to nan."
+                    "specific volume, volumetric flow and entropy are set to nan. "
+                    f"The deviation is {h_from_T - self.h.val_SI} J/kg."
                 )
                 logger.error(msg)
                 _converged = False
@@ -930,11 +934,13 @@ class Connection:
             except ValueError:
                 self.x.val_SI = np.nan
 
-        if _converged:
-            self.vol.val_SI = self.calc_vol()
-            self.v.val_SI = self.vol.val_SI * self.m.val_SI
-            self.s.val_SI = self.calc_s()
-
+        try:
+            if _converged:
+                self.vol.val_SI = self.calc_vol()
+                self.v.val_SI = self.vol.val_SI * self.m.val_SI
+                self.s.val_SI = self.calc_s()
+        except KeyError:
+            pass
         for prop in fpd.keys():
             self.get_attr(prop).val = convert_from_SI(
                 prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
@@ -1021,8 +1027,8 @@ class Connection:
         Tmax = min(
             [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
         ) * 0.99
-        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule)
-        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule)
+        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule, solvent=self.solvent)
+        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule, solvent=self.solvent)
 
         if self.h.val_SI < hmin:
             self.h.val_SI = hmin

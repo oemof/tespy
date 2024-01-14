@@ -422,13 +422,16 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
 
     elif dx in conn.fluid.is_var:
         d = 1e-5
-
+        variable_sum = sum(conn.fluid.val[f] for f in conn.fluid.is_var if f != dx)
+        variable_fluids = {f: x for f, x in conn.fluid.val.items() if f in conn.fluid.is_var and f != dx}
         val = conn.fluid.val[dx]
         if conn.fluid.val[dx] + d <= 1:
             conn.fluid.val[dx] += d
         else:
             conn.fluid.val[dx] = 1
 
+        for f in variable_fluids:
+            conn.fluid.val[f] = variable_fluids[f] * (1 - d / variable_sum)
         conn.build_fluid_data()
         exp = func(**kwargs)
 
@@ -437,8 +440,14 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
         else:
             conn.fluid.val[dx] = 0
 
+        for f in variable_fluids:
+            conn.fluid.val[f] = variable_fluids[f] * (1 + d / variable_sum)
+
         conn.build_fluid_data()
         exp -= func(**kwargs)
+
+        for f in variable_fluids:
+            conn.fluid.val[f] = variable_fluids[f]
 
         conn.fluid.val[dx] = val
         conn.build_fluid_data()

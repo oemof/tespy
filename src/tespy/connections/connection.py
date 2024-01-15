@@ -9,6 +9,8 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
+from collections import OrderedDict
+
 import numpy as np
 
 from tespy.components.component import Component
@@ -258,6 +260,18 @@ class Connection:
         self.local_design = False
         self.local_offdesign = False
         self.printout = True
+        """+F+F+F+F++++START++++F+F+F+F+"""
+        self.c_therm = np.nan
+        self.c_mech = np.nan
+        self.c_physical = np.nan
+        self.c_chemical = np.nan
+        self.c_tot = np.nan
+        self.C_therm = np.nan
+        self.C_mech = np.nan
+        self.C_physical = np.nan
+        self.C_chemical = np.nan
+        self.C_tot = np.nan
+        """+F+F+F+F++++START++++F+F+F+F+"""
 
         # set default values for kwargs
         self.property_data = self.get_parameters()
@@ -301,7 +315,7 @@ class Connection:
         if connector_id not in connecter_locations:
             msg = (
                 "Error creating connection. Specified connector for "
-                f"{component.label} ({connector_id}) is not available. Choose "
+                f"{component.label} ({connector_id} is not available. Choose "
                 f"from " + ", ".join(connecter_locations) + "."
             )
             logger.error(msg)
@@ -624,7 +638,7 @@ class Connection:
                 container._solved = False
 
         self.residual = np.zeros(self.num_eq)
-        self.jacobian = {}
+        self.jacobian = OrderedDict()
 
     def simplify_specifications(self):
         systemvar_specs = []
@@ -724,7 +738,7 @@ class Connection:
         ref = self.get_attr(f"{variable}_ref").ref
         self.residual[k] = (
             self.get_attr(variable).val_SI
-            - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
+            - ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI
         )
 
     def primary_ref_deriv(self, k, **kwargs):
@@ -759,7 +773,7 @@ class Connection:
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.ref
         self.residual[k] = (
-            self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
+            self.calc_T() - ref.obj.calc_T() * ref.factor + ref.delta_SI
         )
 
     def T_ref_deriv(self, k, **kwargs):
@@ -808,7 +822,7 @@ class Connection:
         ref = self.v_ref.ref
         self.residual[k] = (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
-            - (ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI)
+            - ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI
         )
 
     def v_ref_deriv(self, k, **kwargs):

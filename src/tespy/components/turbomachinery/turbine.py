@@ -23,6 +23,7 @@ from tespy.tools.fluid_properties import isentropic
 
 
 class Turbine(Turbomachine):
+
     r"""
     Class for gas or steam turbines.
 
@@ -577,3 +578,33 @@ class Turbine(Turbomachine):
         self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
+
+    """+F+F+F+F++++START++++F+F+F+F+"""
+    def exergoeconomic_balance(self, T0):
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.C_P = self.C_power                                         # Jubran: self.C_P = self.C_F + self.Z_costs
+            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical     # same as Jubran
+        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = self.C_power + self.outl[0].C_therm
+            self.C_F = self.inl[0].C_therm + (                               # same as Jubran
+                    self.inl[0].C_mech - self.outl[0].C_mech)
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = self.C_power + (
+                    self.outl[0].C_therm - self.inl[0].C_therm)
+            self.C_F = self.inl[0].C_mech - self.outl[0].C_mech              # same as Jubran
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+
+    def aux_eqs(self,T0):
+        # sum of the vales in this array must be 0
+        # [0]*[1] + [2]*[3] + ... = 0
+        # last entry should be type (therm, mech, chemical)
+        # need to add checks if Ex_xxx != 0
+        return [[1 / self.inl[0].Ex_therm, self.inl[0], -1 / self.outl[0].Ex_therm, self.outl[0], "therm"],
+                [1 / self.inl[0].Ex_mech, self.inl[0], -1 / self.outl[0].Ex_mech, self.outl[0], "mech"],
+                [1, self.inl[0], -1, self.outl[0], "chemical"]]
+    """+F+F+F+F++++END++++F+F+F+F+"""

@@ -1403,3 +1403,49 @@ class CombustionChamber(Component):
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
         self.E_bus = np.nan
+
+
+    """+F+F+F+F++++START++++F+F+F+F+"""
+
+    def exergoeconomic_balance(self, T0):
+        self.C_P = self.outl[0].C_physical - (
+                self.inl[0].C_physical + self.inl[1].C_physical
+        )
+        self.C_F = (
+                self.inl[0].C_chemical + self.inl[1].C_chemical -
+                self.outl[0].C_chemical
+        )
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+    def aux_eqs(self,T0):
+        # sum of the vales in this array must be 0
+        # [0]*[1] + [2]*[3] + ... = 0
+        # last entry should be type (therm, mech, chemical)
+        # need to add checks if Ex_xxx != 0
+        # from Jubran
+        Ex_in0_ch = self.inl[0].Ex_chemical if self.inl[0].Ex_chemical!=0 else 1
+        Ex_out0_ch = self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+        Ex_in0_mech = self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+        Ex_in1_mech = self.inl[1].Ex_mech if self.inl[1].Ex_mech != 0 else 1
+        Ex_out0_mech = self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        if self.lamb.val > 1:
+            return [[1 / Ex_in0_ch, self.inl[0],
+                     -1 / Ex_out0_ch, self.outl[0], "chemical"],
+                    [1 / (Ex_in0_mech + Ex_in1_mech), self.inl[0],
+                     1 / (Ex_in0_mech + Ex_in1_mech), self.inl[1],
+                     -1 / Ex_out0_mech, self.outl[0], "mech"]]
+        elif self.lamb.val == 1:
+            return [[1 / self.outl[0].Ex_chemical, self.outl[0], "chemical"],
+                    [1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech), self.inl[0],
+                     1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech), self.inl[1],
+                     -1 / self.outl[0].Ex_mech, self.outl[0], "mech"]]
+        else:
+            print("combustion chamber with lambda <1 not implemented")
+
+    """+F+F+F+F++++END++++F+F+F+F+"""
+

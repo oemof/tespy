@@ -70,6 +70,8 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
     if T0 is None:
         T0 = (valmin + valmax) / 2.0
 
+    valmax *= 2
+
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
         "function": f, "parameter": "T" , "delta": 0.01

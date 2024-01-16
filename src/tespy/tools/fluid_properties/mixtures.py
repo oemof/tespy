@@ -253,7 +253,7 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
 
         fluid_aliases = fluid_data[fluid]["wrapper"]._aliases
 
-        if molar_liquid > 0:
+        if molar_liquid > 0 and "water" in fluid_aliases:
             y = [
                 Chem_Ex[k][2] for k in fluid_aliases if k in Chem_Ex
             ]

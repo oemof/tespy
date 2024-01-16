@@ -12,8 +12,6 @@ available from its original location tespy/tools/data_containers.py
 
 SPDX-License-Identifier: MIT
 """
-import collections
-
 import numpy as np
 
 from tespy.tools import logger
@@ -487,7 +485,7 @@ class FluidProperties(DataContainer):
             'design': np.nan,
             'val': np.nan,
             'val0': np.nan,
-            'val_SI': 0,
+            'val_SI': np.nan,
             'unit': None,
             'is_set': False,
             "is_var": False,

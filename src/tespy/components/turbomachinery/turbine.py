@@ -604,6 +604,14 @@ class Turbine(Turbomachine):
         # [0]*[1] + [2]*[3] + ... = 0
         # last entry should be type (therm, mech, chemical)
         # need to add checks if Ex_xxx != 0
+        # self.exergy_cost_matrix = {}
+        # self.exergy_cost_matrix[0, self.inl[0].exergy_cost_col["therm"]] = 1 / self.inl[0].Ex_therm
+        # self.exergy_cost_matrix[0, self.outl[0].exergy_cost_col["therm"]] = -1 / self.outl[0].Ex_therm
+        # self.exergy_cost_matrix[1, self.inl[0].exergy_cost_col["mech"]] = 1 / self.inl[0].Ex_mech
+        # self.exergy_cost_matrix[1, self.outl[0].exergy_cost_col["mech"]] = -1 / self.outl[0].Ex_mech
+        # self.exergy_cost_matrix[2, self.inl[0].exergy_cost_col["chemical"]] = 1 / self.inl[0].Ex_chem
+        # self.exergy_cost_matrix[2, self.outl[0].exergy_cost_col["chemical"]] = -1 / self.outl[0].Ex_chem
+        # return self.exergy_cost_matrix
         return [[1 / self.inl[0].Ex_therm, self.inl[0], -1 / self.outl[0].Ex_therm, self.outl[0], "therm"],
                 [1 / self.inl[0].Ex_mech, self.inl[0], -1 / self.outl[0].Ex_mech, self.outl[0], "mech"],
                 [1, self.inl[0], -1, self.outl[0], "chemical"]]

@@ -44,7 +44,8 @@ steam.add_comps({'comp': so, 'base': 'bus'}, {'comp': si})
 # exergy and exergoeconomic analysis
 exe_eco_input = {'Source_c': 0.02, 'Turbine_Z': 5e3}
 ean = ExergyAnalysis(nw, E_F=[steam], E_P=[power], E_L=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amb, Tamb=T_amb)
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)
 
 print(power.comps.iloc[0])

@@ -454,6 +454,7 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
+            self.results["Connection"].drop(c.label, inplace=True)
             msg = ('Deleted connection ' + c.label + ' from network.')
             logger.debug(msg)
 
@@ -554,6 +555,9 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
+                self.results[comp.__class__.__name__].drop(
+                    comp.label, inplace=True, errors="ignore"
+                )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
 
@@ -741,7 +745,7 @@ class Network:
                         set(branch_data["connections"])
                         & set(ob_data["connections"])
                     )
-                    if len(common_connections) > 0:
+                    if len(common_connections) > 0 and ob_name in merged:
                         merged[branch_name]["connections"] = list(
                             set(branch_data["connections"] + ob_data["connections"])
                         )

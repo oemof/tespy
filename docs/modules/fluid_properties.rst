@@ -64,7 +64,7 @@ cover liquid state only.
 
 Fluid mixtures
 ++++++++++++++
-TESPy provides suppport for three types of mixtures:
+TESPy provides support for three types of mixtures:
 
 - ideal: Mixtures for gases only.
 - ideal-cond: Mixture for gases with condensation calculation for water share.

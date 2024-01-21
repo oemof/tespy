@@ -737,6 +737,8 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self, T0=None):
+        if T0 is None:
+            T0 = self.T.val_SI
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, k, **kwargs):

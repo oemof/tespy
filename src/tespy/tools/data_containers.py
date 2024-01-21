@@ -485,7 +485,7 @@ class FluidProperties(DataContainer):
             'design': np.nan,
             'val': np.nan,
             'val0': np.nan,
-            'val_SI': np.nan,
+            'val_SI': 0,
             'unit': None,
             'is_set': False,
             "is_var": False,

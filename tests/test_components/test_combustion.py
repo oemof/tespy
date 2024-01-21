@@ -9,8 +9,9 @@ tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-import pytest
 import shutil
+
+import pytest
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine

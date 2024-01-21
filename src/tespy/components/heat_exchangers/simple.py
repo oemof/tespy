@@ -535,8 +535,8 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        ttd_1 = i.calc_T(T0=i.T.val_SI) - self.Tamb.val_SI
-        ttd_2 = o.calc_T(T0=o.T.val_SI) - self.Tamb.val_SI
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
@@ -651,8 +651,8 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
 
-        ttd_1 = i.calc_T(T0=i.T.val_SI) - self.Tamb.val_SI
-        ttd_2 = o.calc_T(T0=o.T.val_SI) - self.Tamb.val_SI
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
 
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2

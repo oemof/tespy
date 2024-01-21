@@ -374,7 +374,7 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T(T0=i.T.val_SI))
+        x = np.sqrt(i.T.design / i.calc_T())
         y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(x)
@@ -477,7 +477,7 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T(T0=i.T.val_SI))
+        x = np.sqrt(i.T.design / i.calc_T())
         y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)

@@ -454,7 +454,10 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
-            self.results["Connection"].drop(c.label, inplace=True)
+            if "Connection" in self.results:
+                self.results["Connection"].drop(
+                    c.label, inplace=True, errors="ignore"
+                )
             msg = ('Deleted connection ' + c.label + ' from network.')
             logger.debug(msg)
 

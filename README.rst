@@ -183,7 +183,6 @@ BibTeX citation::
     @article{Witte2022,
         doi = {10.3390/en15114087},
         year = {2022},
-        publisher = {The Open Journal},
         volume = {15},
         number = {11},
         article-number = {4087},
@@ -200,7 +199,7 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 License
 =======
-Copyright (c) 2017-2023 Francesco Witte
+Copyright (c) Francesco Witte
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

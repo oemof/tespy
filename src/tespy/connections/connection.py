@@ -522,8 +522,9 @@ class Connection:
 
         if value is None:
             self.get_attr(key).set_attr(is_set=False)
+
             if f"{key}_ref" in self.property_data:
-                self.get_attr(key).set_attr(is_set=False)
+                self.get_attr(f"{key}_ref").set_attr(is_set=False)
             if key in ["m", "p", "h"]:
                 self.get_attr(key).is_var = True
 

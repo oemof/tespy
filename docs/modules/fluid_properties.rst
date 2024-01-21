@@ -60,14 +60,21 @@ Incompressible fluids
 If you are looking for heat transfer fluids, the list of incompressible
 `fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`__
 might be interesting for you. In contrast to the pure fluids, the properties
-cover liquid state only. TESPy supports using pure incompressibles as well as
-the predefined mixtures.
+cover liquid state only.
 
 Fluid mixtures
 ++++++++++++++
-CoolProp provides a back end for predefined mixtures, which is rather instable
-using HEOS. If you want to use the mixture feature of CoolProp we recommend
-using the REFPROP back end instead.
+TESPy provides support for three types of mixtures:
+
+- ideal: Mixtures for gases only.
+- ideal-cond: Mixture for gases with condensation calculation for water share.
+- incompressible: Mixtures for incompressible fluids.
+
+Furthermore, CoolProp provides a back end for predefined mixtures, which is
+rather instable using HEOS. Using the CoolProp mixture back-end is not tested,
+reach out if you would like to support us in adopting the TESPy implementation.
+In general, to use the mixture feature of CoolProp we recommend using the
+REFPROP back end instead of HEOS.
 
 Using other engines
 -------------------

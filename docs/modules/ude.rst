@@ -118,7 +118,7 @@ derivatives to mass flow are not zero.
     ...     c0 = self.conns[0]
     ...     c1 = self.conns[1]
     ...     if c0.m.is_var:
-    ...         ude.jacobian[c0.m.J_col] = 1
+    ...         self.jacobian[c0.m.J_col] = 1
     ...     if c1.m.is_var:
     ...         self.jacobian[c1.m.J_col] = -2 * self.conns[1].m.val_SI
 

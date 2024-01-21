@@ -231,7 +231,7 @@ class SolarCollector(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        T_m = 0.5 * (i.calc_T(T0=i.T.val_SI) + o.calc_T(T0=o.T.val_SI))
+        T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
@@ -311,10 +311,8 @@ class SolarCollector(SimpleHeatExchanger):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = (
-            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
-            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
-        )
+        self.zeta.val = self.calc_zeta(i, o)
+
         if self.energy_group.is_set:
             self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
             self.Q_loss.is_result = True

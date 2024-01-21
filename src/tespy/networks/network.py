@@ -15,7 +15,6 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
-from collections import OrderedDict
 from time import time
 
 import numpy as np
@@ -189,7 +188,7 @@ class Network:
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
-        self.busses = OrderedDict()
+        self.busses = {}
         # results and specification dictionary
         self.results = {}
         self.specifications = {}
@@ -455,6 +454,10 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
+            if "Connection" in self.results:
+                self.results["Connection"].drop(
+                    c.label, inplace=True, errors="ignore"
+                )
             msg = ('Deleted connection ' + c.label + ' from network.')
             logger.debug(msg)
 
@@ -555,6 +558,9 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
+                self.results[comp.__class__.__name__].drop(
+                    comp.label, inplace=True, errors="ignore"
+                )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
 
@@ -742,7 +748,7 @@ class Network:
                         set(branch_data["connections"])
                         & set(ob_data["connections"])
                     )
-                    if len(common_connections) > 0:
+                    if len(common_connections) > 0 and ob_name in merged:
                         merged[branch_name]["connections"] = list(
                             set(branch_data["connections"] + ob_data["connections"])
                         )
@@ -1262,7 +1268,7 @@ class Network:
                 c.m.design = np.nan
                 c.p.design = np.nan
                 c.h.design = np.nan
-                c.fluid.design = OrderedDict()
+                c.fluid.design = {}
 
                 c.new_design = True
 
@@ -1501,9 +1507,9 @@ class Network:
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find connection {c.label} in design case. Please "
+                f"Could not find connection '{c.label}' in design case. Please "
                 "make sure no connections have been modified or components "
-                "havebeen relabeled for your offdesign calculation."
+                "have been relabeled for your offdesign calculation."
             )
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)

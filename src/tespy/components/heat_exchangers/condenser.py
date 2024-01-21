@@ -19,8 +19,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
@@ -329,9 +327,9 @@ class Condenser(HeatExchanger):
         o2 = self.outl[1]
 
         T_i1 = i1.calc_T_sat()
-        T_i2 = i2.calc_T(T0=i2.T.val_SI)
-        T_o1 = o1.calc_T(T0=o1.T.val_SI)
-        T_o2 = o2.calc_T(T0=o2.T.val_SI)
+        T_i2 = i2.calc_T()
+        T_o1 = o1.calc_T()
+        T_o2 = o2.calc_T()
 
         if T_i1 <= T_o2 and not i1.T.is_set:
             T_i1 = T_o2 + 0.5
@@ -454,7 +452,7 @@ class Condenser(HeatExchanger):
         i = self.inl[0]
         o = self.outl[1]
         T_i1 = i.calc_T_sat()
-        T_o2 = o.calc_T(T0=self.outl[1].T.val_SI)
+        T_o2 = o.calc_T()
         return self.ttd_u.val - T_i1 + T_o2
 
     def ttd_u_func_doc(self, label):

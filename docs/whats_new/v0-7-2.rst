@@ -1,0 +1,18 @@
+v0.7.1 - Newton's Nature (January, 21, 2024)
+++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The `delta` value of the :py:class:`tespy.connections.connection.Ref` class
+  was oriented with the wrong sign. A positive delta lead to a negative value.
+  Fixed in (`PR #459 <https://github.com/oemof/tespy/pull/459>`__).
+- In initial simulations the temperature value of mixtures is 0 by default.
+  For calculating temperatures of the mixtures during that initial simulation,
+  that value was used as starting value causing CoolProp to raise an error and
+  the calculation to crash. This is now prevented by checking if the starting
+  value is reasonable or not
+  (`PR #477 <https://github.com/oemof/tespy/pull/477>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

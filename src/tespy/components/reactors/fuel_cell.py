@@ -828,15 +828,13 @@ class FuelCell(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = - self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        self.Q.val = -self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.e.val = self.P.val / self.inl[2].m.val_SI
         self.eta.val = self.e.val / self.e0
 
         i = self.inl[0]
         o = self.outl[0]
-        self.zeta.val = (
-            (i.p.val_SI - o.p.val_SI) * np.pi ** 2
-            / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
-        )
+        self.zeta.val = self.calc_zeta(i, o)

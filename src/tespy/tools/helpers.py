@@ -11,7 +11,6 @@ SPDX-License-Identifier: MIT
 
 import json
 import os
-from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 
@@ -63,27 +62,6 @@ def merge_dicts(dict1, dict2):
             result[key] = deepcopy(dict2[key])
 
     return result
-
-
-def nested_OrderedDict(dictionary):
-    """Create a nested OrderedDict from a nested dict.
-
-    Parameters
-    ----------
-    dictionary : dict
-        Nested dict.
-
-    Returns
-    -------
-    dictionary : collections.OrderedDict
-        Nested OrderedDict.
-    """
-    dictionary = OrderedDict(dictionary)
-    for key, value in dictionary.items():
-        if isinstance(value, dict):
-            dictionary[key] = nested_OrderedDict(value)
-
-    return dictionary
 
 
 class TESPyNetworkError(Exception):
@@ -628,7 +606,7 @@ def newton(func, deriv, params, y, **kwargs):
             logger.debug(msg)
 
             break
-        if tol_mode == 'abs':
+        if tol_mode == 'abs' or y == 0:
             expr = abs(res) >= tol_abs
         elif tol_mode == 'rel':
             expr = abs(res / y) >= tol_rel
@@ -680,7 +658,7 @@ def newton_with_kwargs(
             logger.debug(msg)
 
             break
-        if tol_mode == 'abs':
+        if tol_mode == 'abs' or target_value == 0:
             expr = abs(residual) >= tol_abs
         elif tol_mode == 'rel':
             expr = abs(residual / target_value) >= tol_rel

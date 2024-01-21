@@ -299,9 +299,9 @@ class Separator(NodeBase):
                 \forall j \in \text{outlets}
         """
         residual = []
-        T_in = self.inl[0].calc_T(T0=300)
+        T_in = self.inl[0].calc_T()
         for o in self.outl:
-            residual += [T_in - o.calc_T(T0=300)]
+            residual += [T_in - o.calc_T()]
         return residual
 
     def energy_balance_func_doc(self, label):

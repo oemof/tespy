@@ -381,10 +381,10 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         # temperature value manipulation for convergence stability
-        T_i1 = i1.calc_T(T0=i1.T.val_SI)
-        T_i2 = i2.calc_T(T0=i2.T.val_SI)
-        T_o1 = o1.calc_T(T0=o1.T.val_SI)
-        T_o2 = o2.calc_T(T0=o2.T.val_SI)
+        T_i1 = i1.calc_T()
+        T_i2 = i2.calc_T()
+        T_o1 = o1.calc_T()
+        T_o2 = o2.calc_T()
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
@@ -581,8 +581,8 @@ class HeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[1]
-        T_i1 = i.calc_T(T0=i.T.val_SI)
-        T_o2 = o.calc_T(T0=o.T.val_SI)
+        T_i1 = i.calc_T()
+        T_o2 = o.calc_T()
         return self.ttd_u.val - T_i1 + T_o2
 
     def ttd_u_func_doc(self, label):
@@ -636,8 +636,8 @@ class HeatExchanger(Component):
         """
         i = self.inl[1]
         o = self.outl[0]
-        T_i2 = i.calc_T(T0=i.T.val_SI)
-        T_o1 = o.calc_T(T0=o.T.val_SI)
+        T_i2 = i.calc_T()
+        T_o1 = o.calc_T()
         return self.ttd_l.val - T_o1 + T_i2
 
     def ttd_l_func_doc(self, label):
@@ -830,11 +830,9 @@ class HeatExchanger(Component):
         for i in range(2):
             self.get_attr('pr' + str(i + 1)).val = (
                 self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = (
-                (self.inl[i].p.val_SI - self.outl[i].p.val_SI) * np.pi ** 2 / (
-                    4 * self.inl[i].m.val_SI ** 2 *
-                    (self.inl[i].vol.val_SI + self.outl[i].vol.val_SI)
-                ))
+            self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
+                self.inl[i], self.outl[i]
+            )
 
         # kA and logarithmic temperature difference
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
@@ -842,8 +840,10 @@ class HeatExchanger(Component):
         elif self.ttd_l.val == self.ttd_u.val:
             self.td_log.val = self.ttd_l.val
         else:
-            self.td_log.val = ((self.ttd_l.val - self.ttd_u.val) /
-                               np.log(self.ttd_l.val / self.ttd_u.val))
+            self.td_log.val = (
+                (self.ttd_l.val - self.ttd_u.val)
+                / np.log(self.ttd_l.val / self.ttd_u.val)
+            )
         self.kA.val = -self.Q.val / self.td_log.val
 
     def entropy_balance(self):

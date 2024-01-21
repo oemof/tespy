@@ -9,7 +9,7 @@ tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-
+import pytest
 import shutil
 
 from tespy.components import CombustionChamber
@@ -102,6 +102,20 @@ class TestCombustion:
         msg = ('Value of oxygen in flue gas must be 0.0, is ' +
                str(round(self.c3.fluid.val['O2'], 4)) + '.')
         assert 0.0 == round(self.c3.fluid.val['O2'], 4), msg
+
+    def test_CombustionChamberHighTemperature(self):
+        instance = CombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
+
+        # connection parameter specification
+        air = {'N2': 0.8, 'O2': 0.2}
+        fuel = {'CH4': 1}
+        self.c1.set_attr(fluid=air, p=1, T=30, m=1)
+        self.c2.set_attr(fluid=fuel, T=30)
+        instance.set_attr(lamb=1)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+        assert self.c3.T.val_SI == pytest.approx(2110, abs=0.1)
 
     def test_DiabaticCombustionChamber(self):
         """

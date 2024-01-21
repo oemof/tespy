@@ -926,6 +926,7 @@ class Connection:
                         "upper temperature limit of a mixture component. "
                         "The resulting temperature might not be erroneous."
                     )
+                    logger.warning(msg)
         else:
             try:
                 if not self.x.is_set:

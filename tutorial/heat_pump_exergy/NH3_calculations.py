@@ -19,6 +19,7 @@ from plotly.offline import plot
 import plotly.graph_objects as go
 from fluprodia import FluidPropertyDiagram
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # %% network
 pamb = 1.013  # ambient pressure
@@ -166,16 +167,18 @@ diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
 for key, data in result_dict.items():
     result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
 
-diagram.set_limits(x_min=0, x_max=2100, y_min=1e0, y_max=2e2)
 diagram.calc_isolines()
-diagram.draw_isolines('logph')
+
+fig, ax = plt.subplots(1, figsize=(16, 10))
+diagram.draw_isolines(fig, ax, 'logph', x_min=0, x_max=2100, y_min=1e0, y_max=2e2)
 
 for key in result_dict.keys():
     datapoints = result_dict[key]['datapoints']
-    diagram.ax.plot(datapoints['h'], datapoints['p'], color='#ff0000')
-    diagram.ax.scatter(datapoints['h'][0], datapoints['p'][0], color='#ff0000')
+    ax.plot(datapoints['h'], datapoints['p'], color='#ff0000')
+    ax.scatter(datapoints['h'][0], datapoints['p'][0], color='#ff0000')
 
-diagram.save('NH3_logph.svg')
+plt.tight_layout()
+fig.savefig('NH3_logph.svg')
 
 # %% exergy analysis
 

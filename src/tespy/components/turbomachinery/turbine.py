@@ -582,14 +582,14 @@ class Turbine(Turbomachine):
     """+F+F+F+F++++START++++F+F+F+F+"""
     def exergoeconomic_balance(self, T0):
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.C_P = self.C_power                                         # Jubran: self.C_P = self.C_F + self.Z_costs
+            self.C_P = self.C_bus                                         # Jubran: self.C_P = self.C_F + self.Z_costs
             self.C_F = self.inl[0].C_physical - self.outl[0].C_physical     # same as Jubran
         elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
-            self.C_P = self.C_power + self.outl[0].C_therm
+            self.C_P = self.C_bus + self.outl[0].C_therm
             self.C_F = self.inl[0].C_therm + (                               # same as Jubran
                     self.inl[0].C_mech - self.outl[0].C_mech)
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.C_P = self.C_power + (
+            self.C_P = self.C_bus + (
                     self.outl[0].C_therm - self.inl[0].C_therm)
             self.C_F = self.inl[0].C_mech - self.outl[0].C_mech              # same as Jubran
         self.c_F = self.C_F / self.E_F
@@ -599,20 +599,14 @@ class Turbine(Turbomachine):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
 
-    def aux_eqs(self,T0):
-        # sum of the vales in this array must be 0
-        # [0]*[1] + [2]*[3] + ... = 0
-        # last entry should be type (therm, mech, chemical)
-        # need to add checks if Ex_xxx != 0
-        # self.exergy_cost_matrix = {}
-        # self.exergy_cost_matrix[0, self.inl[0].exergy_cost_col["therm"]] = 1 / self.inl[0].Ex_therm
-        # self.exergy_cost_matrix[0, self.outl[0].exergy_cost_col["therm"]] = -1 / self.outl[0].Ex_therm
-        # self.exergy_cost_matrix[1, self.inl[0].exergy_cost_col["mech"]] = 1 / self.inl[0].Ex_mech
-        # self.exergy_cost_matrix[1, self.outl[0].exergy_cost_col["mech"]] = -1 / self.outl[0].Ex_mech
-        # self.exergy_cost_matrix[2, self.inl[0].exergy_cost_col["chemical"]] = 1 / self.inl[0].Ex_chem
-        # self.exergy_cost_matrix[2, self.outl[0].exergy_cost_col["chemical"]] = -1 / self.outl[0].Ex_chem
-        # return self.exergy_cost_matrix
-        return [[1 / self.inl[0].Ex_therm, self.inl[0], -1 / self.outl[0].Ex_therm, self.outl[0], "therm"],
-                [1 / self.inl[0].Ex_mech, self.inl[0], -1 / self.outl[0].Ex_mech, self.outl[0], "mech"],
-                [1, self.inl[0], -1, self.outl[0], "chemical"]]
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
+        self.exergy_cost_matrix = np.zeros([3, num_variables])
+        self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 1
+        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        self.exergy_cost_matrix[2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+        return self.exergy_cost_matrix
     """+F+F+F+F++++END++++F+F+F+F+"""

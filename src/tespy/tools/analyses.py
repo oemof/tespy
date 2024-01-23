@@ -329,7 +329,7 @@ class ExergyAnalysis:
             )
             raise ValueError(msg)
 
-    def analyse(self, pamb, Tamb, Chem_Ex=None, Exe_Eco_An=False, Exe_Eco_Costs=[]):
+    def analyse(self, pamb, Tamb, Chem_Ex=None):
         """Run the exergy analysis.
 
         Parameters
@@ -490,20 +490,42 @@ class ExergyAnalysis:
 
         self.create_group_data()
 
+    """+F+F+F+F++++START++++F+F+F+F+"""
     def evaluate_exergoeconomics(self, Exe_Eco_Costs, Tamb):
-        """+F+F+F+F++++START++++F+F+F+F+"""
-        # WRITE GIVEN COMPONENT, SOURCE, POWER AND HEAT COSTS INTO OBJECTS
-        # E_P, E_L, E_F busses
-        # need to add checks and error messages
+        # TO DO: need to add checks and error messages
+
+        # DETERMINE NUMBER OF VARIABLES FOR MATRIX
+        num_E_F = 0
+        for bus in self.E_F:
+            for comp in bus.comps.index:
+                if not comp.component() in["source", "sink"]:
+                    num_E_F += 1
+        num_E_P = 0
+        for bus in self.E_P:
+            for comp in bus.comps.index:
+                if not comp.component() in["source", "sink"]:
+                    num_E_P += 1
+        num_E_L = 0
+        for bus in self.E_L:
+            for comp in bus.comps.index:
+                if not comp.component() in["source", "sink"]:
+                    num_E_L += 1
+        num_internal_busses = 0
+        for bus in self.internal_busses:
+            for comp in bus.comps.index:
+                if not comp.component() in["source", "sink"]:
+                    num_internal_busses += 1
 
         num_variables = (
             len(self.nw.conns) * 3
-            + sum([len(bus.comps) for bus in self.E_F])
-            + sum([len(bus.comps) for bus in self.E_P])
-            # + sum([len(bus) for bus in self.E_L])
-            # + sum([len(bus) for bus in self.internal_busses])
+            + num_E_F
+            + num_E_P
+            + num_E_L
+            + num_internal_busses
         )
+        print("number of variables: ", num_variables)
 
+        # ASSIGN COLUMN NUMBER TO EACH VARIABLE
         for conn_num, conn in enumerate(self.nw.conns["object"]):
             conn.Ex_C_col = {
                 "therm": conn_num * 3,
@@ -515,197 +537,108 @@ class ExergyAnalysis:
 
         for comp in self.nw.comps["object"]:
             comp.Ex_C_col = {}
+            comp.C_bus = np.nan
+            # dictionary for all bus costs connected with this component (or does 1 component only have 1 bus max?)
+            # each component only has 1 attribute E_bus -> also C_bus as one value?
 
-        for bus in self.E_F:
-            for comp in bus.comps.index:
-                comp.Ex_C_col[bus.label] = variable_num
-                variable_num += 1
+        for bus in self.E_F + self.E_P:
+            for i, comp in enumerate(bus.comps.index):
+                if not comp.component() in["source", "sink"]:
+                    comp.Ex_C_col[bus.label] = variable_num
+                    variable_num += 1
 
-        for bus in self.E_P:
-            for comp in bus.comps.index:
-                comp.Ex_C_col[bus.label] = variable_num
-                variable_num += 1
+        # WRITE GIVEN COMPONENT, SOURCE, POWER AND HEAT COSTS INTO OBJECTS
+        for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+            for i, comp in enumerate(bus.comps.index):
+                if comp.component() == "source":
+                    c_id = f"{comp.label}_c"                                    # material costs
+                    if c_id in Exe_Eco_Costs:
+                        comp.set_source_costs(Exe_Eco_Costs[f"{c_id}"])
+                    else:
+                        comp.set_source_costs_standard()
 
-        conn
-        # self.E_F = E_F
-        # self.E_P = E_P
-        # self.E_L = E_L
-        # self.internal_busses = internal_busses
+                Bus_id = f"{bus.label}_c"                                       # power and heat costs
+                if Bus_id in Exe_Eco_Costs:
+                    comp.C_bus = float(Exe_Eco_Costs[f"{Bus_id}"]) * comp.E_bus["massless"]
 
         for comp in self.nw.comps['object']:
-            # THIS PART SHOULD BE DONE VIA THE BUSSES
-            if comp.component() == "source":
-                c_id = f"{comp.label}_c"                                    # material costs
-                if c_id in Exe_Eco_Costs:
-                    comp.set_source_costs(Exe_Eco_Costs[f"{c_id}"])
-                    print("set source")
-                else:
-                    comp.set_source_costs_standard()
+            Z_id = f"{comp.label}_Z"                                            # component costs
+            if Z_id in Exe_Eco_Costs:
+                comp.set_Z_costs(Exe_Eco_Costs[f"{Z_id}"])
             else:
-                if hasattr(comp, "P") and not np.isnan(comp.P.val):         # power costs
-                    print("P.val: ", comp.P.val)
-                    Bus_id = f"{comp.label}_power_in_c"
-                    if Bus_id in Exe_Eco_Costs:
-                        comp.set_power_in_costs(Exe_Eco_Costs[f"{Bus_id}"])
-                if hasattr(comp, "Q") and not np.isnan(comp.Q.val):        # heat costs
-                    print("Q.val: ", comp.Q.val)
-                    Bus_id = f"{comp.label}_heat_in_c"
-                    if Bus_id in Exe_Eco_Costs:
-                        comp.set_heat_in_costs(Exe_Eco_Costs[f"{Bus_id}"])
+                if comp.component() != "sink":
+                    comp.set_Z_costs_standard()
 
-            # UNTIL HERE
-
-                Z_id = f"{comp.label}_Z"                                    # component costs
-                if Z_id in Exe_Eco_Costs:
-                    comp.set_Z_costs(Exe_Eco_Costs[f"{Z_id}"])
-                else:
-                    if comp.component() != "sink":
-                        comp.set_Z_costs_standard()
-
-        # CREATE CONNECTION LIST TO HAVE THEM IN SPECIFIC ORDER
-        conns_list = self.nw.conns['object'].tolist()
-        # for i, conn in enumerate(conns_list):
-        #     conn.exergy_cost_col = {
-        #         "therm": i * 3,
-        #         "mech": i * 3 + 1,
-        #         "chem": i * 3 + 2,
-        #     }
-
-        # DETERMINE NUMBER OF COLUMNS FOR A MATRIX
-        # number of connections
-        s = len(conns_list)
-
-        # CREATE POWER LIST
-        # INCLUDE INTERNAL BUSSES as well
-        power_list = []
-        # number of power in / out puts
+        # SETTING UP THE MATRIX
         for comp in self.nw.comps['object']:
-            if hasattr(comp, "P") and not np.isnan(comp.P.val):
-                power_list.append(comp)
-        p = len(power_list)
-
-        # CREATE HEAT LIST       !!! problem: this also adds internal heat exchanges, e.g. condenser
-        heat_list = []
-        # number of heat in / out puts
-        for comp in self.nw.comps['object']:
-            if hasattr(comp, "Q") and not np.isnan(comp.Q.val):
-                heat_list.append(comp)
-        q = len(heat_list)
-
-        colNum = 3*s+p+q
-
-        for comp in self.nw.comps['object']:
-            comp.set_heat_power_in_out()                                    # finds out which component uses/generates heat/power
-            print(comp.label)
+            print(comp.component())
             # ADD KNOWN SOURCE COSTS TO MATRIX
             if comp.component() == "source":
-                connNum = 0                                                 # connection number for index in A
-                for connection_in_network in conns_list:
-                    if comp.outl[0] == connection_in_network:  # better to use equals() ?
-                        # thermal exergy related source costs
-                        a = np.zeros(colNum)  # line to add to A
-                        a[connNum] = +1
-                        A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                        b = np.append(b, comp.outl[0].C_therm) if 'b' in locals() else np.array(comp.outl[0].C_therm)
-
-                        # mechanical exergy related source costs
-                        a = np.zeros(colNum)  # line to add to A
-                        a[connNum+s] = +1
-                        A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                        b = np.append(b, comp.outl[0].C_mech) if 'b' in locals() else np.array(comp.outl[0].C_mech)
-
-                        # chemical exergy related source costs
-                        a = np.zeros(colNum)  # line to add to A
-                        a[connNum+2*s] = +1
-                        A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                        b = np.append(b, comp.outl[0].C_chemical) if 'b' in locals() else np.array(comp.outl[0].C_chemical)
-                    connNum += 1
-
-            # ADD KNOWN POWER COSTS TO MATRIX
-            if hasattr(comp, "C_power") and not np.isnan(comp.C_power):
-                a = np.zeros(colNum)  # line to add to A
-                powerNum = 0  # connection number for index in A
-                for power_component_in_network in power_list:
-                    if comp == power_component_in_network:  # better to use equals() ?
-                        a[3*s + powerNum] = +1
+                # thermal exergy related source costs
+                a = np.zeros((1,num_variables))  # line to add to A
+                a[0][comp.outl[0].Ex_C_col["therm"]] = +1
                 A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, comp.C_power) if 'b' in locals() else np.array(comp.C_power)
+                b = np.append(b, comp.outl[0].C_therm) if 'b' in locals() else np.array(comp.outl[0].C_therm)
 
-            # ADD KNOWN HEAT COSTS TO MATRIX
-            if hasattr(comp, "Q") and not np.isnan(comp.C_heat):
-                a = np.zeros(colNum)  # line to add to A
-                heatNum = 0  # connection number for index in A
-                for heat_component_in_network in heat_list:
-                    if comp == heat_component_in_network:  # better to use equals() ?
-                        a[3*s + p + heatNum] = +1
+                # mechanical exergy related source costs
+                a = np.zeros((1,num_variables))  # line to add to A
+                a[0][comp.outl[0].Ex_C_col["mech"]] = +1
                 A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, comp.C_heat) if 'b' in locals() else np.array(comp.C_heat)
+                b = np.append(b, comp.outl[0].C_mech) if 'b' in locals() else np.array(comp.outl[0].C_mech)
 
-            # ADD COST BALANCE FOR EACH COMPONENT that isn't a source or sink and has an associated cost value or is a cycle closer (-> cost value = 0)
-            # error message if Z_cost is nan
+                # chemical exergy related source costs
+                a = np.zeros((1,num_variables))  # line to add to A
+                a[0][comp.outl[0].Ex_C_col["chemical"]] = +1
+                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
+                b = np.append(b, comp.outl[0].C_chemical) if 'b' in locals() else np.array(comp.outl[0].C_chemical)
+
+            # ADD KNOWN BUS COSTS TO MATRIX
+            for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+                if comp in bus.comps.index and not comp.component() in["source", "sink"]:
+                    if not np.isnan(comp.C_bus):
+                        a = np.zeros((1,num_variables))
+                        a[0][comp.Ex_C_col[bus.label]] = +1
+                        A = np.vstack([A, a]) if 'A' in locals() else a
+                        b = np.append(b, comp.C_bus) if 'b' in locals() else np.array(comp.C_bus)
+
+
+            # ADD COST BALANCE FOR EACH COMPONENT that isn't a source or sink
+            # and has an associated cost value or is a cycle closer (-> cost value = 0)
+            # TO DO: error message if Z_cost is nan
             # make a check for all component Z cost simultaneously
-            if not (comp.component() == "source" or comp.component() == "sink" or np.isnan(comp.Z_costs)) or comp.component() == "cycle closer":
-                a = np.zeros(colNum)  # line to add to A
+            if not (comp.component() in ["source", "sink"] or np.isnan(comp.Z_costs)) or comp.component() == "cycle closer":
+                a = np.zeros((1,num_variables))
                 if comp.component() == "cycle closer":
                     comp.Z_costs = 0
                 for comp_inl in comp.inl:
-                    connNum = 0                                                          # connection number for index in A
-                    for connection_in_network in conns_list:
-                        if comp_inl == connection_in_network:                            # better to use equals() ?
-                            a[connNum] = +1        # thermal exergy related costs
-                            a[connNum+s] = +1      # mechanical exergy related costs
-                            a[connNum+2*s] = +1    # chemical exergy related costs
-                        connNum += 1
+                    a[0][comp_inl.Ex_C_col["therm"]] = +1         # thermal exergy related costs
+                    a[0][comp_inl.Ex_C_col["mech"]] = +1          # mechanical exergy related costs
+                    a[0][comp_inl.Ex_C_col["chemical"]] = +1      # chemical exergy related costs
                 for comp_outl in comp.outl:
-                    connNum = 0                                                           # connection number for index in A
-                    for connection_in_network in conns_list:
-                        if comp_outl == connection_in_network:                            # better to use equals() ?
-                            a[connNum] = -1         # thermal exergy related costs
-                            a[connNum+s] = -1       # mechanical exergy related costs
-                            a[connNum+2*s] = -1     # chemical exergy related costs
-                        connNum += 1
-                # INTERNAL BUSSES
-                if hasattr(comp, "P"):
-                    powerNum = 0  # connection number for index in A
-                    for power_component_in_network in power_list:
-                        if comp == power_component_in_network:  # better to use equals() ?
-                            if comp.power_in:
-                                a[3*s + powerNum] = +1
-                            if comp.power_out:
-                                a[3*s + powerNum] = -1
-                if hasattr(comp, "Q"):
-                    heatNum = 0  # connection number for index in A
-                    for heat_component_in_network in power_list:
-                        if comp == heat_component_in_network:  # better to use equals() ?
-                            if comp.heat_in:
-                                a[3*s + p + heatNum] = +1
-                            if comp.heat_out:
-                                a[3*s + p + heatNum] = -1
+                    a[0][comp_outl.Ex_C_col["therm"]] = -1        # thermal exergy related costs
+                    a[0][comp_outl.Ex_C_col["mech"]] = -1         # mechanical exergy related costs
+                    a[0][comp_outl.Ex_C_col["chemical"]] = -1     # chemical exergy related costs
+
+                if not np.isnan(comp.E_bus["massless"]):
+                    for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+                        if comp in bus.comps.index:             # if this bus is connected to this component
+                            print("bus found")
+                            if bus.comps.loc[comp, 'base'] == 'bus':
+                                a[0][comp.Ex_C_col[bus.label]] = +1   # goes into component
+                                print("goes in")
+                            else:
+                                a[0][comp.Ex_C_col[bus.label]] = -1   # goes out of component
+                                print("goes out")
 
                 A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
                 b = np.append(b, -comp.Z_costs) if 'b' in locals() else np.array(-comp.Z_costs)
 
             # ADD AUXILIARY EQUATIONS (F AND P RULES)
-            aux_eqs = comp.aux_eqs(Tamb)
-            for aux_eq in aux_eqs:
-                a = np.zeros(colNum)  # line to add to A
-                numFactors = int((len(aux_eq)-1)/2)
-                typeStr = aux_eq[-1]  # therm, mech or chemical, last entry in each line
-                types = {"therm": 0, "mech": 1, "chemical": 2}
-                typeNum = types[typeStr]  # 0, 1 or 2
+            aux_eqs = comp.aux_eqs(num_variables, Tamb)          # generates auxiliary matrix
+            A = np.concatenate((A,aux_eqs)) if 'A' in locals() else aux_eqs
+            b = np.append(b, np.zeros(len(aux_eqs))) if 'b' in locals() else np.zeros(len(aux_eqs))
 
-                for numFactor in range(numFactors):
-                    conn = aux_eq[1+2*numFactor]
-                    connNum = 0
-                    for connection_in_network in conns_list:
-                        if conn == connection_in_network:
-                            a[connNum + typeNum * s] = aux_eq[0+2*numFactor]
-                        connNum += 1
-                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, 0) if 'b' in locals() else np.array(0)
-                print("line added")
-
-                # INCLUDE SYSTEM BALANCE WITH DISSIPATIVE COMPONENTS
+            # INCLUDE SYSTEM BALANCE WITH DISSIPATIVE COMPONENTS
 
         print(np.round(A,3))
         print(np.round(b,3))
@@ -724,27 +657,24 @@ class ExergyAnalysis:
             raise hlp.TESPyNetworkError(msg)
         print(np.round(C_sol,3))
 
-        for i in range(s):
-            conns_list[i].C_therm = C_sol[i]
-            conns_list[i].C_mech = C_sol[i+s]
-            conns_list[i].C_physical = conns_list[i].C_therm + conns_list[i].C_mech
-            conns_list[i].C_chemical = C_sol[i+2*s]
-            conns_list[i].C_tot = conns_list[i].C_physical + conns_list[i].C_chemical
-            conns_list[i].c_tot = conns_list[i].C_tot / (conns_list[i].Ex_physical + conns_list[i].Ex_chemical)
+        for conn in self.nw.conns["object"]:
+            conn.C_therm = C_sol[conn.Ex_C_col["therm"]]
+            conn.C_mech = C_sol[conn.Ex_C_col["mech"]]
+            conn.C_physical = conn.C_therm + conn.C_mech
+            conn.C_chemical = C_sol[conn.Ex_C_col["chemical"]]
+            conn.C_tot = conn.C_physical + conn.C_chemical
+            conn.c_tot = conn.C_tot / (conn.Ex_physical + conn.Ex_chemical)
 
-        for i in range(p):
-            j = i+3*s
-            power_list[i].C_power = C_sol[j]
+        for bus in self.E_F + self.E_P:
+            for comp in bus.comps.index:
+                if not comp.component() in["source", "sink"]:
+                    comp.C_bus = C_sol[comp.Ex_C_col[bus.label]]
 
-        for i in range(q):
-            j = i+3*s+p
-            heat_list[i].C_heat = C_sol[j]
-
-        for conn in conns_list:
+        for conn in self.nw.conns["object"]:
             print("connection ", conn.label, "\tC_therm: ", conn.C_therm, "\tC_mech: ",
                     conn.C_mech, "\tC_physical: ", conn.C_physical, "\tC_chemical: ", conn.C_chemical)
         for comp in self.nw.comps['object']:
-            print("component ", comp.label, "\tC_power: ", comp.C_power, "\tC_heat", comp.C_heat)
+            print("component ", comp.label, "\tC_bus: ", comp.C_bus)
 
         # exergoeconomic balance (C_F, C_P, C_L) of components
         for cp in self.nw.comps['object']:
@@ -1230,14 +1160,14 @@ class ExergyAnalysis:
 
         # Exergoeconomic Results for Components
         # creating data frame here bc this is after analysis where c and C values have been calculated already
-        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_power', 'C_heat', 'Z', 'r', 'f']
+        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_bus', 'Z', 'r', 'f']
         self.component_exergoec_data = pd.DataFrame(
             columns=comp_exergoec_data_cols,
             dtype='float64'
         )
         for comp in self.nw.comps['object']:
             comp_exergoec_data = [
-                comp.C_F, comp.C_P, comp.C_D, comp.C_power, comp.C_heat, comp.Z_costs, comp.r, comp.f
+                comp.C_F, comp.C_P, comp.C_D, comp.C_bus, comp.Z_costs, comp.r, comp.f
             ]
             self.component_exergoec_data.loc[comp.label] = comp_exergoec_data
 

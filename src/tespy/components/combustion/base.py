@@ -1415,37 +1415,31 @@ class CombustionChamber(Component):
                 self.inl[0].C_chemical + self.inl[1].C_chemical -
                 self.outl[0].C_chemical
         )
-
+        print("difference C_P: ", self.C_P, self.C_F + self.Z_costs)
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
-    def aux_eqs(self,T0):
-        # sum of the vales in this array must be 0
-        # [0]*[1] + [2]*[3] + ... = 0
-        # last entry should be type (therm, mech, chemical)
-        # need to add checks if Ex_xxx != 0
-        # from Jubran
-        Ex_in0_ch = self.inl[0].Ex_chemical if self.inl[0].Ex_chemical!=0 else 1
-        Ex_out0_ch = self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
-        Ex_in0_mech = self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
-        Ex_in1_mech = self.inl[1].Ex_mech if self.inl[1].Ex_mech != 0 else 1
-        Ex_out0_mech = self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
         if self.lamb.val > 1:
-            return [[1 / Ex_in0_ch, self.inl[0],
-                     -1 / Ex_out0_ch, self.outl[0], "chemical"],
-                    [1 / (Ex_in0_mech + Ex_in1_mech), self.inl[0],
-                     1 / (Ex_in0_mech + Ex_in1_mech), self.inl[1],
-                     -1 / Ex_out0_mech, self.outl[0], "mech"]]
+            self.exergy_cost_matrix = np.zeros([2, num_variables])
+            self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+            self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+            self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["mech"]] = 1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) if self.inl[0].Ex_mech != 0 else 1
+            self.exergy_cost_matrix[1, self.inl[1].Ex_C_col["mech"]] = 1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) if self.inl[1].Ex_mech != 0 else 1
+            self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+            return self.exergy_cost_matrix
         elif self.lamb.val == 1:
-            return [[1 / self.outl[0].Ex_chemical, self.outl[0], "chemical"],
-                    [1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech), self.inl[0],
-                     1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech), self.inl[1],
-                     -1 / self.outl[0].Ex_mech, self.outl[0], "mech"]]
+            self.exergy_cost_matrix = np.zeros([2, num_variables])
+            self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = 1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+            self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["mech"]] = 1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) if self.inl[0].Ex_mech != 0 else 1
+            self.exergy_cost_matrix[1, self.inl[1].Ex_C_col["mech"]] = 1 / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) if self.inl[1].Ex_mech != 0 else 1
+            self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+            return self.exergy_cost_matrix
         else:
             print("combustion chamber with lambda <1 not implemented")
 
     """+F+F+F+F++++END++++F+F+F+F+"""
-

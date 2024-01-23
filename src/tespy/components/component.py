@@ -136,8 +136,7 @@ class Component:
         self.C_D = np.nan
         self.r = np.nan
         self.f = np.nan
-        self.C_power = np.nan
-        self.C_heat = np.nan
+        self.C_bus = np.nan
         """+F+F+F+F++++END++++F+F+F+F+"""
 
     def set_attr(self, **kwargs):
@@ -1242,6 +1241,7 @@ class Component:
         if data.is_var:
             self.jacobian[k, data.J_col] = self.numeric_deriv(f, zeta, None, **kwargs)
 
+
     """+F+F+F+F++++START++++F+F+F+F+"""
 
     # @Z_costs.setter
@@ -1252,34 +1252,7 @@ class Component:
         # if no Z cost is given by user, implement standard price functions for each component
         self.Z_costs = 0  # to be implemented in each component
 
-    def set_power_in_costs(self, value=0):
-        self.C_power = value * self.P.val
-        self.power_in = True    # this should be set individually for each component
-    def set_heat_in_costs(self, value=0):
-        self.C_heat = value * self.Q.val
-        self.heat_in = True     # this should be set individually for each component, need to look if heat is added or removed
-
-    def set_heat_power_in_out(self):
-        if hasattr(self, "P") and not np.isnan(self.P.val) and self.P.val>0:
-            self.power_in = True
-        else:
-            self.power_in = False
-        if hasattr(self, "P") and not np.isnan(self.P.val) and self.P.val < 0:
-            self.power_out = True
-        else:
-            self.power_out = False
-        if hasattr(self, "Q") and not np.isnan(self.Q.val) and self.Q.val > 0:
-            self.heat_in = True
-        else:
-            self.heat_in = False
-        if hasattr(self, "Q") and not np.isnan(self.Q.val) and self.Q.val < 0:
-            self.heat_out = True
-        else:
-            self.heat_out = False
-
-
-
-    def aux_eqs(self,T0):
-        return []
+    def aux_eqs(self, num_variables, T0):
+        return np.zeros([0, num_variables])
 
     """+F+F+F+F++++END++++F+F+F+F+"""

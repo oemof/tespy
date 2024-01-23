@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="f4a6acac-fcd3-4979-a6a0-3b66e67bbcef" name="Changes" comment="add auxiliary equations and division into thermal, mechanical and chemical costs">
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/combustion/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/combustion/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/component.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/component.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/heat_exchangers/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/heat_exchangers/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/heat_exchangers/simple.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/heat_exchangers/simple.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/turbomachinery/compressor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/turbomachinery/compressor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/components/turbomachinery/turbine.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/components/turbomachinery/turbine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/connections/connection.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/connections/connection.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tespy/tools/analyses.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tespy/tools/analyses.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/component_tests/compressor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/component_tests/compressor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/component_tests/condenser.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/component_tests/condenser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/component_tests/diabatic_combustion_chamber.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/component_tests/diabatic_combustion_chamber.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/component_tests/simple_heat_exchanger.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/component_tests/simple_heat_exchanger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/component_tests/turbine.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/component_tests/turbine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests_friederike/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests_friederike/tests.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2YR6EdOeKu3m8OTH0OlQtsUvscc" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/rossberg/PycharmProjects/tespy-friederike/tests_friederike/component_tests&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike\tests_friederike\component_tests" />
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike\tests_friederike\network_tests" />
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike\tests_friederike" />
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike" />
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike\tests_friederike" />
+      <recent name="C:\Users\rossberg\PycharmProjects\tespy-friederike\" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="f4a6acac-fcd3-4979-a6a0-3b66e67bbcef" name="Changes" comment="" />
+      <created>1700475934807</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1700475934807</updated>
+    </task>
+    <task id="LOCAL-00001" summary="preparing to start editing tespy">
+      <option name="closed" value="true" />
+      <created>1700481521586</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1700481521586</updated>
+    </task>
+    <task id="LOCAL-00002" summary="preparing to start editing tespy">
+      <option name="closed" value="true" />
+      <created>1701679504566</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1701679504566</updated>
+    </task>
+    <task id="LOCAL-00003" summary="preparing to start editing tespy">
+      <option name="closed" value="true" />
+      <created>1701680160790</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1701680160790</updated>
+    </task>
+    <task id="LOCAL-00004" summary="add test components and networks">
+      <option name="closed" value="true" />
+      <created>1702031044619</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1702031044619</updated>
+    </task>
+    <task id="LOCAL-00005" summary="fix some problems in test components and networks">
+      <option name="closed" value="true" />
+      <created>1702126000864</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1702126000864</updated>
+    </task>
+    <task id="LOCAL-00006" summary="add auxiliary equations and division into thermal, mechanical and chemical costs">
+      <option name="closed" value="true" />
+      <created>1705043234400</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1705043234400</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="400a8612-1c39-4ffd-81a9-bdfe24495252" value="TOOL_WINDOW" />
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="400a8612-1c39-4ffd-81a9-bdfe24495252">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="preparing to start editing tespy" />
+    <MESSAGE value="add test components and networks" />
+    <MESSAGE value="fix some problems in test components and networks" />
+    <MESSAGE value="add auxiliary equations and division into thermal, mechanical and chemical costs" />
+    <option name="LAST_COMMIT_MESSAGE" value="add auxiliary equations and division into thermal, mechanical and chemical costs" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

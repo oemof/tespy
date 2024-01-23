@@ -2,7 +2,6 @@ from tespy.networks import Network
 from tespy.components import (Source, Sink, DiabaticCombustionChamber, Compressor)
 from tespy.connections import Connection, Bus, Ref
 from tespy.tools import ExergyAnalysis
-from tespy.tools.helpers import get_chem_ex_lib
 
 nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
 
@@ -44,14 +43,8 @@ air_out.add_comps({'comp': snk})
 
 
 # exergy analysis
-exe_eco_input = {'Compressor_Z': 500, 'Source_c': 0.0001, 'Compressor_power_in_c': 0.002}
+exe_eco_input = {'Compressor_Z': 500, 'Source_c': 0.0001, 'Power Input_c': 0.002}
 ean = ExergyAnalysis(nw, E_P=[air_out], E_F=[air_in, power], E_L=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amb, Tamb=T_amb)
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)
-
-
-
-
-
-
-

@@ -33,7 +33,7 @@ p_amb = 1
 
 # define busses
 heat_in_B = Bus('Heat In')
-heat_in_B.add_comps({'comp': hx, 'char': +1})
+heat_in_B.add_comps({'comp': hx, 'base': 'bus'})
 
 mass_flow_B = Bus('water flow')
 mass_flow_B.add_comps({'comp': so, 'base': 'bus'}, {'comp': si})
@@ -41,8 +41,8 @@ mass_flow_B.add_comps({'comp': so, 'base': 'bus'}, {'comp': si})
 nw.add_busses(heat_in_B)
 
 # exergy and exergoeconomic analysis
-exe_eco_input = {'My Heat Exchanger_Z': 100, 'My Source_c': 2e-4, 'My Heat Exchanger_heat_in_c': 5e-4}
+exe_eco_input = {'My Heat Exchanger_Z': 100, 'My Source_c': 2e-4, 'Heat In_c': 5e-4}
 ean = ExergyAnalysis(nw, E_F=[heat_in_B], E_P=[mass_flow_B], E_L=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amb, Tamb=T_amb)
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)
-

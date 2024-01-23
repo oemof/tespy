@@ -53,12 +53,6 @@ exhaust_out.add_comps({'comp': exhaust})
 # exergy analysis
 exe_eco_input = {'Combustion Chamber_Z': 500, 'Air Inlet_c': 0.0001, 'Fuel Gas_c': 0.005}
 ean = ExergyAnalysis(nw, E_P=[exhaust_out], E_F=[heat_in, air_in], E_L=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
+ean.evaluate_exergoeconomics(Tamb=T_amb, Exe_Eco_Costs=exe_eco_input)
 ean.print_results(Exe_Eco_An=True)
-
-print(chamber.ti.val)
-
-
-
-
-

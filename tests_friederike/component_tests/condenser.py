@@ -2,7 +2,8 @@ from tespy.networks import Network
 from tespy.components import (Source, Sink, Condenser)
 from tespy.connections import Connection, Bus
 from tespy.tools import ExergyAnalysis
-from chemical_exergy.libChemExAhrendts import Chem_Ex
+from tespy.tools.helpers import get_chem_ex_lib
+chemexlib = get_chem_ex_lib("Ahrendts")
 
 
 nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
@@ -46,7 +47,8 @@ cooling_fluid_heat_in = Bus('Heated fluid')
 cooling_fluid_heat_in.add_comps({'comp':so_c, 'base': 'bus'}, {'comp': si_c})
 
 # exergy and exergoeconomic analysis
-exe_eco_input = {'Heat Exchanger_Z': 5e3, 'Source Hot_c': 0.02, 'Source Cold_c': 0.05, 'Heat Exchanger_heat_in_c': 0}
+exe_eco_input = {'Heat Exchanger_Z': 5e3, 'Source Hot_c': 0.02, 'Source Cold_c': 0.05}
 ean = ExergyAnalysis(nw, E_F=[working_fluid_heat_out], E_P=[cooling_fluid_heat_in], E_L=[])
-ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex=Chem_Ex, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex=chemexlib)
+ean.evaluate_exergoeconomics(Tamb=T_amb, Exe_Eco_Costs=exe_eco_input)
 ean.print_results(Exe_Eco_An=True)

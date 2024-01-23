@@ -1137,23 +1137,24 @@ class SimpleHeatExchanger(Component):
                     self.C_P = np.nan
                 else:
                     self.C_P = self.inl[0].C_therm - self.outl[0].C_therm
-                self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+                #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
             elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
                 self.C_P = self.outl[0].C_therm
-                self.C_F = self.inl[0].C_therm + self.outl[0].C_therm + (
-                        self.inl[0].C_mech - self.outl[0].C_mech)
+                #self.C_F = self.inl[0].C_therm + self.outl[0].C_therm + (
+                #        self.inl[0].C_mech - self.outl[0].C_mech)
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
                 self.C_P = self.outl[0].C_therm - self.inl[0].C_therm
-                self.C_F = self.outl[0].C_therm - self.outl[0].C_therm + (
-                        self.inl[0].C_mech - self.outl[0].C_mech)
+                #self.C_F = self.outl[0].C_therm - self.outl[0].C_therm + (
+                #        self.inl[0].C_mech - self.outl[0].C_mech)
         elif self.Q.val > 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 self.C_P = self.outl[0].C_physical - self.inl[0].C_physical
-                self.C_F = self.outl[0].C_therm - self.inl[0].C_therm
+                #self.C_F = self.outl[0].C_therm - self.inl[0].C_therm
+                self.C_F = self.C_bus
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
                 self.C_P = self.outl[0].C_therm + self.inl[0].C_therm
-                self.C_F = self.inl[0].C_therm + (
-                        self.inl[0].C_mech - self.outl[0].C_mech)
+                #self.C_F = self.inl[0].C_therm + (
+                #        self.inl[0].C_mech - self.outl[0].C_mech)
             elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
                 if self.dissipative.val:
                     self.C_P = np.nan
@@ -1161,11 +1162,11 @@ class SimpleHeatExchanger(Component):
                     self.C_P = self.inl[0].C_therm - self.outl[0].C_therm + (
                             self.outl[0].C_mech - self.inl[0].C_mech
                     )
-                self.C_F = self.inl[0].C_therm - self.outl[0].C_therm
+                #self.C_F = self.inl[0].C_therm - self.outl[0].C_therm
         else:
             # fully dissipative
             self.C_P = np.nan
-            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+            #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
 
         if np.isnan(self.C_P):
             self.C_D = self.C_F
@@ -1178,15 +1179,14 @@ class SimpleHeatExchanger(Component):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
-    def aux_eqs(self, T0):
-        # sum of the vales in this array must be 0
-        # [0]*[1] + [2]*[3] + ... = 0
-        # last entry should be type (therm, mech, chemical)
-        # need to add checks if Ex_xxx != 0
-        return [[1/self.inl[0].Ex_mech, self.inl[0],
-                 -1/self.outl[0].Ex_mech, self.outl[0], "mech"],
-                [1,self.inl[0], -1, self.outl[0], "chemical"]]
-
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
+        self.exergy_cost_matrix = np.zeros([2, num_variables])
+        self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+        return self.exergy_cost_matrix
 
     """+F+F+F+F++++END++++F+F+F+F+"""
 

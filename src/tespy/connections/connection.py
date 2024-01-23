@@ -261,6 +261,7 @@ class Connection:
         self.local_offdesign = False
         self.printout = True
         """+F+F+F+F++++START++++F+F+F+F+"""
+        self.Ex_C_col = np.nan
         self.c_therm = np.nan
         self.c_mech = np.nan
         self.c_physical = np.nan

@@ -926,8 +926,10 @@ class Connection:
                 if self.T.val_SI > Tmax:
                     msg = (
                         "The temperature value of the mixture is above the "
-                        "upper temperature limit of a mixture component. "
-                        "The resulting temperature might not be erroneous."
+                        "upper temperature limit of a mixture component. The "
+                        "resulting temperature may have larger deviations "
+                        "compared to the tolerance specified in the "
+                        "corresponding substance property library."
                     )
                     logger.warning(msg)
         else:

@@ -1063,7 +1063,7 @@ class SimpleHeatExchanger(Component):
                 }
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
                 self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (
+                self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (        # ??????
                     self.inl[0].Ex_mech - self.outl[0].Ex_mech)
                 self.E_bus = {
                     "chemical": 0, "physical": 0, "massless": self.E_P
@@ -1131,30 +1131,34 @@ class SimpleHeatExchanger(Component):
 
     """+F+F+F+F++++START++++F+F+F+F+"""
     def exergoeconomic_balance(self, T0):
+        # TO DO: check if C_P and C_F are correct
         if self.Q.val < 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 if self.dissipative.val:
                     self.C_P = np.nan
                 else:
                     self.C_P = self.inl[0].C_therm - self.outl[0].C_therm
-                #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+                self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+                # self.C_F = self.C_bus
             elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
                 self.C_P = self.outl[0].C_therm
-                #self.C_F = self.inl[0].C_therm + self.outl[0].C_therm + (
-                #        self.inl[0].C_mech - self.outl[0].C_mech)
+                self.C_F = self.inl[0].C_therm + self.outl[0].C_therm + (
+                        self.inl[0].C_mech - self.outl[0].C_mech)
+                # self.C_F = self.C_bus + self.inl[0].C_therm
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
                 self.C_P = self.outl[0].C_therm - self.inl[0].C_therm
-                #self.C_F = self.outl[0].C_therm - self.outl[0].C_therm + (
-                #        self.inl[0].C_mech - self.outl[0].C_mech)
+                self.C_F = self.outl[0].C_therm - self.outl[0].C_therm + (      # ????
+                        self.inl[0].C_mech - self.outl[0].C_mech)
         elif self.Q.val > 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 self.C_P = self.outl[0].C_physical - self.inl[0].C_physical
-                #self.C_F = self.outl[0].C_therm - self.inl[0].C_therm
-                self.C_F = self.C_bus
+                self.C_F = self.outl[0].C_therm - self.inl[0].C_therm
+                # self.C_P = self.outl[0].C_therm - self.inl[0].C_therm
+                # self.C_F = self.C_bus
             elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
                 self.C_P = self.outl[0].C_therm + self.inl[0].C_therm
-                #self.C_F = self.inl[0].C_therm + (
-                #        self.inl[0].C_mech - self.outl[0].C_mech)
+                self.C_F = self.inl[0].C_therm + (
+                        self.inl[0].C_mech - self.outl[0].C_mech)
             elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
                 if self.dissipative.val:
                     self.C_P = np.nan
@@ -1162,16 +1166,13 @@ class SimpleHeatExchanger(Component):
                     self.C_P = self.inl[0].C_therm - self.outl[0].C_therm + (
                             self.outl[0].C_mech - self.inl[0].C_mech
                     )
-                #self.C_F = self.inl[0].C_therm - self.outl[0].C_therm
+                self.C_F = self.inl[0].C_therm - self.outl[0].C_therm
         else:
             # fully dissipative
             self.C_P = np.nan
-            #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
 
-        if np.isnan(self.C_P):
-            self.C_D = self.C_F
-        else:
-            self.C_D = self.C_F - self.C_P
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
@@ -1183,9 +1184,9 @@ class SimpleHeatExchanger(Component):
         # each line needs to equal 0
         self.exergy_cost_matrix = np.zeros([2, num_variables])
         self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
-        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
         self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
+        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
         return self.exergy_cost_matrix
 
     """+F+F+F+F++++END++++F+F+F+F+"""

@@ -1108,6 +1108,15 @@ class Component:
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
 
+    def calc_zeta(self, i, o):
+        if abs(i.m.val_SI) <= 1e-4:
+            return 0
+        else:
+            return (
+                (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+            )
+
     def zeta_func(self, zeta='', inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.

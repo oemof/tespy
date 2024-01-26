@@ -137,6 +137,9 @@ class Component:
         self.r = np.nan
         self.f = np.nan
         self.C_bus = np.nan
+        self.dissipative = False
+        self.serving_component = None
+        self.exergy_cost_line = np.nan
         """+F+F+F+F++++END++++F+F+F+F+"""
 
     def set_attr(self, **kwargs):
@@ -1252,6 +1255,11 @@ class Component:
 
 
     """+F+F+F+F++++START++++F+F+F+F+"""
+    def dissipative_balance(self, T0):
+        return
+
+    def exergoeconomic_balance(self, T0):
+        return
 
     # @Z_costs.setter
     def set_Z_costs(self, value=0):
@@ -1261,7 +1269,7 @@ class Component:
         # if no Z cost is given by user, implement standard price functions for each component
         self.Z_costs = 0  # to be implemented in each component
 
-    def aux_eqs(self, num_variables, T0):
-        return np.zeros([0, num_variables])
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        return [exergy_cost_matrix, exergy_cost_vector, counter]
 
     """+F+F+F+F++++END++++F+F+F+F+"""

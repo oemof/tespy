@@ -516,6 +516,10 @@ class ExergyAnalysis:
             for comp in bus.comps.index:
                 if not comp.component() in["source", "sink"]:
                     num_internal_busses += 1
+        num_dissipative_components = 0
+        for comp in self.nw.comps['object']:
+            if comp.dissipative == True:
+                num_dissipative_components += 1
 
         num_variables = (
             len(self.nw.conns) * 3
@@ -523,6 +527,7 @@ class ExergyAnalysis:
             + num_E_P
             + num_E_L
             + num_internal_busses
+            + num_dissipative_components
         )
         print("number of variables: ", num_variables)
 
@@ -548,6 +553,11 @@ class ExergyAnalysis:
                     comp.Ex_C_col[bus.label] = variable_num
                     variable_num += 1
 
+        for comp in self.nw.comps['object']:
+            if comp.dissipative == True:
+                comp.Z_col = variable_num
+                variable_num += 1
+
         # WRITE GIVEN COMPONENT, SOURCE, POWER AND HEAT COSTS INTO OBJECTS
         for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
             for i, comp in enumerate(bus.comps.index):
@@ -567,93 +577,130 @@ class ExergyAnalysis:
             if Z_id in Exe_Eco_Costs:
                 comp.set_Z_costs(Exe_Eco_Costs[f"{Z_id}"])
             else:
-                if comp.component() != "sink":
+                if not comp.component() in["source", "sink"]:
                     comp.set_Z_costs_standard()
 
         # SETTING UP THE MATRIX
+        exergy_cost_matrix = np.zeros([num_variables,num_variables])
+        exergy_cost_vector = np.zeros(num_variables)
+        counter = 0
+
+        # productive components
         for comp in self.nw.comps['object']:
-            print(comp.component())
-            # ADD KNOWN SOURCE COSTS TO MATRIX
-            if comp.component() == "source":
-                # thermal exergy related source costs
-                a = np.zeros((1,num_variables))  # line to add to A
-                a[0][comp.outl[0].Ex_C_col["therm"]] = +1
-                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, comp.outl[0].C_therm) if 'b' in locals() else np.array(comp.outl[0].C_therm)
+            comp.exergy_cost_line = counter
+            if not comp.dissipative:
+                print(comp.component())
 
-                # mechanical exergy related source costs
-                a = np.zeros((1,num_variables))  # line to add to A
-                a[0][comp.outl[0].Ex_C_col["mech"]] = +1
-                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, comp.outl[0].C_mech) if 'b' in locals() else np.array(comp.outl[0].C_mech)
+                # ADD KNOWN SOURCE COSTS TO MATRIX
+                if comp.component() == "source":
+                    # thermal exergy related source costs
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["therm"]] = +1
+                    exergy_cost_vector[counter] = comp.outl[0].C_therm
+                    counter +=1
 
-                # chemical exergy related source costs
-                a = np.zeros((1,num_variables))  # line to add to A
-                a[0][comp.outl[0].Ex_C_col["chemical"]] = +1
-                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, comp.outl[0].C_chemical) if 'b' in locals() else np.array(comp.outl[0].C_chemical)
+                    # mechanical exergy related source costs
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["mech"]] = +1
+                    exergy_cost_vector[counter] = comp.outl[0].C_mech
+                    counter +=1
 
-            # ADD KNOWN BUS COSTS TO MATRIX
-            for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
-                if comp in bus.comps.index and not comp.component() in["source", "sink"]:
-                    if not np.isnan(comp.C_bus):
-                        a = np.zeros((1,num_variables))
-                        a[0][comp.Ex_C_col[bus.label]] = +1
-                        A = np.vstack([A, a]) if 'A' in locals() else a
-                        b = np.append(b, comp.C_bus) if 'b' in locals() else np.array(comp.C_bus)
+                    # chemical exergy related source costs
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["chemical"]] = +1
+                    exergy_cost_vector[counter] = comp.outl[0].C_chemical
+                    counter +=1
+
+                # ADD KNOWN BUS COSTS TO MATRIX
+                for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+                    if comp in bus.comps.index and not comp.component() in["source", "sink"]:
+                        if not np.isnan(comp.C_bus):
+                            exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = +1
+                            exergy_cost_vector[counter] =  comp.C_bus
+                            counter +=1
 
 
-            # ADD COST BALANCE FOR EACH COMPONENT that isn't a source or sink
-            # and has an associated cost value or is a cycle closer (-> cost value = 0)
-            # TO DO: error message if Z_cost is nan
-            # make a check for all component Z cost simultaneously
-            if not (comp.component() in ["source", "sink"] or np.isnan(comp.Z_costs)) or comp.component() == "cycle closer":
-                a = np.zeros((1,num_variables))
-                if comp.component() == "cycle closer":
-                    comp.Z_costs = 0
-                for comp_inl in comp.inl:
-                    a[0][comp_inl.Ex_C_col["therm"]] = +1         # thermal exergy related costs
-                    a[0][comp_inl.Ex_C_col["mech"]] = +1          # mechanical exergy related costs
-                    a[0][comp_inl.Ex_C_col["chemical"]] = +1      # chemical exergy related costs
-                for comp_outl in comp.outl:
-                    a[0][comp_outl.Ex_C_col["therm"]] = -1        # thermal exergy related costs
-                    a[0][comp_outl.Ex_C_col["mech"]] = -1         # mechanical exergy related costs
-                    a[0][comp_outl.Ex_C_col["chemical"]] = -1     # chemical exergy related costs
+                # ADD COST BALANCE FOR EACH COMPONENT that isn't a source or sink
+                # and has an associated cost value or is a cycle closer (-> cost value = 0)
+                # TO DO: error message if Z_cost is nan
+                # make a check for all component Z cost simultaneously
+                if not (comp.component() in ["source", "sink"] or np.isnan(comp.Z_costs)) or comp.component() == "cycle closer":
+                    if comp.component() == "cycle closer":
+                        comp.Z_costs = 0
+                    for comp_inl in comp.inl:
+                        exergy_cost_matrix[counter][comp_inl.Ex_C_col["therm"]] = +1         # thermal exergy related costs
+                        exergy_cost_matrix[counter][comp_inl.Ex_C_col["mech"]] = +1          # mechanical exergy related costs
+                        exergy_cost_matrix[counter][comp_inl.Ex_C_col["chemical"]] = +1      # chemical exergy related costs
+                    for comp_outl in comp.outl:
+                        exergy_cost_matrix[counter][comp_outl.Ex_C_col["therm"]] = -1        # thermal exergy related costs
+                        exergy_cost_matrix[counter][comp_outl.Ex_C_col["mech"]] = -1         # mechanical exergy related costs
+                        exergy_cost_matrix[counter][comp_outl.Ex_C_col["chemical"]] = -1     # chemical exergy related costs
 
-                if not np.isnan(comp.E_bus["massless"]):
-                    for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
-                        if comp in bus.comps.index:             # if this bus is connected to this component
-                            print("bus found")
-                            if bus.comps.loc[comp, 'base'] == 'bus':
-                                a[0][comp.Ex_C_col[bus.label]] = +1   # goes into component
-                                print("goes in")
-                            else:
-                                a[0][comp.Ex_C_col[bus.label]] = -1   # goes out of component
-                                print("goes out")
+                    if not np.isnan(comp.E_bus["massless"]):
+                        for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+                            if comp in bus.comps.index:             # if this bus is connected to this component
+                                #print("bus found")
+                                if bus.comps.loc[comp, 'base'] == 'bus':
+                                    exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = +1   # goes into component
+                                    #print("goes in")
+                                else:
+                                    exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = -1   # goes out of component
+                                    #print("goes out")
 
-                A = np.vstack([A, a]) if 'A' in locals() else a  # if A exists, add line a, otherwise A=a
-                b = np.append(b, -comp.Z_costs) if 'b' in locals() else np.array(-comp.Z_costs)
+                    exergy_cost_vector[counter] = -comp.Z_costs
+                    counter +=1
 
-            # ADD AUXILIARY EQUATIONS (F AND P RULES)
-            aux_eqs = comp.aux_eqs(num_variables, Tamb_SI)          # generates auxiliary matrix
-            A = np.concatenate((A,aux_eqs)) if 'A' in locals() else aux_eqs
-            b = np.append(b, np.zeros(len(aux_eqs))) if 'b' in locals() else np.zeros(len(aux_eqs))
 
-            # INCLUDE SYSTEM BALANCE WITH DISSIPATIVE COMPONENTS
+                # ADD AUXILIARY EQUATIONS (F AND P RULES)
+                aux_eqs = comp.aux_eqs(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)
+                # print(aux_eqs)
+                exergy_cost_matrix = aux_eqs[0]
+                exergy_cost_vector = aux_eqs[1]
+                counter = aux_eqs[2]
+                """
+                aux_eqs = comp.aux_eqs(num_variables, Tamb_SI)          # generates auxiliary matrix
+                # print("shape of aux_eqs array: ", aux_eqs.shape)
+                # insert aux_eqs matrix into exergy_cost_matrix
+                for i in range(counter, counter+len(aux_eqs)):
+                    for j in range(num_variables):
+                        exergy_cost_matrix[i][j] = aux_eqs[i][j]
+                    exergy_cost_vector[i] = 0                           # should actually already be 0
+                counter += len(aux_eqs)
+                """
 
-        print(np.round(A,3))
-        print(np.round(b,3))
+
+        # dissipative components (need to be handled first)
+        for comp in self.nw.comps['object']:
+            if comp.dissipative:
+                print(comp.component(), "(dissipative)")
+                dis_eqs = comp.dissipative_balance(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
+                # print(dis_eqs)
+                exergy_cost_matrix = dis_eqs[0]
+                exergy_cost_vector = dis_eqs[1]
+                counter = dis_eqs[2]
+                """
+                # insert dis_eqs matrix into exergy_cost_matrix
+                for i in range(counter, counter+len(dis_eqs)):
+                    for j in range(num_variables):
+                        exergy_cost_matrix[i][j] = dis_eqs[i][j]
+                    exergy_cost_vector[i] = 0                           # should actually already be 0
+                counter += len(dis_eqs)
+                """
+
+
+        print("shape of A array: ", exergy_cost_matrix.shape)
+        print("shape of b vector: ", exergy_cost_vector.shape)
+        print(np.round(exergy_cost_matrix,3))
+        print(np.round(exergy_cost_vector,3))
+
 
         try:
-            C_sol = np.linalg.solve (A, b)
+            C_sol = np.linalg.solve (exergy_cost_matrix, exergy_cost_vector)
             # C_sol = np.linalg.lstsq(A, b)[0]        # not solve, bc solve only works for well-determined systems, lstsq also for over-determined
             # carefull: works also for under-determined systems: need to add exception if this happens
         except np.linalg.LinAlgError:
-            msg = f"System is not solvable\nA = \n{np.round(A,3)} \n b =\n{np.round(b,3)}"
+            msg = f"System is not solvable\nA = \n{np.round(exergy_cost_matrix,3)} \n b =\n{np.round(exergy_cost_vector,3)}"
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
-        if np.isnan(A).any():
-            msg = f"System contains nan value\nA = \n{np.round(A,3)} \n b =\n{np.round(b,3)}"
+        if np.isnan(exergy_cost_matrix).any():
+            msg = f"System contains nan value\nA = \n{np.round(exergy_cost_matrix,3)} \n b =\n{np.round(exergy_cost_vector,3)}"
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
         print(np.round(C_sol,3))

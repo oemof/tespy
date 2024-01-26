@@ -394,6 +394,57 @@ class Valve(Component):
             self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
 
+    def exergoeconomic_balance(self, T0):
+        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            # dissipative
+            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+            self.C_P = self.C_F + self.Z_costs
+        elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
+            self.C_P = self.outl[0].C_therm
+            self.C_F = self.inl[0].C_therm + (
+                self.inl[0].C_mech - self.outl[0].C_mech)
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = self.outl[0].C_therm - self.inl[0].C_therm
+            self.C_F = self.inl[0].C_mech - self.outl[0].C_mech
+        else:
+            msg = ('Exergy balance of a valve, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logger.warning(msg)
+            self.C_P = np.nan
+            self.C_F = np.nan
+
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
+        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            # dissipative
+            self.exergy_cost_matrix = np.zeros([2, num_variables])
+            # c^T bleibt eigentlich auch gleich, aber dann Matrix überbestimmt
+            # self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
+            # self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
+            self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+            self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
+            self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+        elif self.outl[0].T.val_SI <= T0:
+            self.exergy_cost_matrix = np.zeros([2, num_variables])
+            self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+            self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
+            self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+        else:
+            msg = ('Exergy balance of a valve, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logger.warning(msg)
+        return self.exergy_cost_matrix
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 

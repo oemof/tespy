@@ -548,20 +548,24 @@ class Merge(NodeBase):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
-    def aux_eqs(self, num_variables, T0):
-        # each line needs to equal 0
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         self.inl_hot = [c for c in self.inl if c.T.val >= self.outl[0].T.val]
         self.inl_cold = [c for c in self.inl if c.T.val < self.outl[0].T.val]
-        self.exergy_cost_matrix = np.zeros([2, num_variables])
-        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
-        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+
+        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+
         for i, h in enumerate(self.inl):
-            self.exergy_cost_matrix[0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
-            self.exergy_cost_matrix[1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
+            exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
+            exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
         #for i, h in enumerate(self.inl_hot):
-            #self.exergy_cost_matrix[2+i, self.inl[i].Ex_C_col["therm"]] = 1 / self.inl[i].Ex_therm
-            #self.exergy_cost_matrix[2+i, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
-        return self.exergy_cost_matrix
+            #exergy_cost_matrix[counter+2+i, self.inl[i].Ex_C_col["therm"]] = 1 / self.inl[i].Ex_therm
+            #exergy_cost_matrix[counter+2+i, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
+
+        for i in range(2):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+2]
 
 
     def get_plotting_data(self):

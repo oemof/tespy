@@ -1180,14 +1180,9 @@ class SimpleHeatExchanger(Component):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
-    def aux_eqs(self, num_variables, T0):
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # each line needs to equal 0
-        self.exergy_cost_matrix = np.zeros([2, num_variables])
-        self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
-        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
-        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
-        return self.exergy_cost_matrix
+        return
 
     """+F+F+F+F++++END++++F+F+F+F+"""
 

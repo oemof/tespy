@@ -10,6 +10,9 @@ tespy/components/nodes/droplet_separator.py
 
 SPDX-License-Identifier: MIT
 """
+
+import numpy as np
+
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -407,3 +410,66 @@ class DropletSeparator(NodeBase):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)}
+
+    def exergy_balance(self, T0):
+        r"""
+        Calculate exergy balance of a merge.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
+        Note
+        ----
+        Please note, that the exergy balance accounts for physical exergy only.
+
+        .. math::
+
+            \dot{E}_\mathrm{P} = \sum \dot{E}_{\mathrm{out,}j}^\mathrm{PH}\\
+            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
+        """
+        self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
+        self.E_F = self.inl[0].Ex_physical
+
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
+
+    def exergoeconomic_balance(self, T0):
+        self.C_P = self.outl[0].C_physical + self.outl[1].C_physical
+        self.C_F = self.inl[0].C_physical
+
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
+        self.exergy_cost_matrix = np.zeros([5, num_variables])
+        self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        self.exergy_cost_matrix[1, self.outl[1].Ex_C_col["chemical"]] = -1 / self.outl[1].Ex_chemical if self.outl[1].Ex_chemical != 0 else -1
+        self.exergy_cost_matrix[2, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 1
+        self.exergy_cost_matrix[2, self.outl[1].Ex_C_col["therm"]] = -1 / self.outl[1].Ex_therm if self.outl[1].Ex_therm != 0 else -1
+        self.exergy_cost_matrix[3, self.outl[0].Ex_C_col["mech"]] = 1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[3, self.outl[1].Ex_C_col["mech"]] = -1 / self.outl[1].Ex_mech if self.outl[1].Ex_mech != 0 else -1
+        if self.outl[0].Ex_therm != 0 and self.outl[0].Ex_mech != 0:
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+        elif self.outl[0].Ex_therm == 0 and self.outl[0].Ex_mech == 0:
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["therm"]] = 1
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["mech"]] = -1
+        elif self.outl[0].Ex_therm == 0:
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["therm"]] = 1
+        else:
+            self.exergy_cost_matrix[4, self.outl[0].Ex_C_col["mech"]] = -1
+
+        return self.exergy_cost_matrix

@@ -479,6 +479,91 @@ class Merge(NodeBase):
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
 
+    def exergoeconomic_balance(self, T0):
+        self.C_P = 0
+        self.C_F = 0
+        if self.outl[0].T.val_SI > T0:
+            for i in self.inl:
+                if i.T.val_SI < self.outl[0].T.val_SI:
+                    # cold inlets
+                    self.C_F += i.C_physical
+                else:
+                    # hot inlets
+                    self.C_F += i.m.val_SI * i.c_therm * (
+                        i.ex_physical - self.outl[0].ex_physical)
+        elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
+            for i in self.inl:
+                self.C_F += i.C_physical
+        else:
+            for i in self.inl:
+                if i.T.val_SI > self.outl[0].T.val_SI:
+                    # hot inlets
+                    if i.T.val_SI >= T0:
+                        self.C_F += i.C_physical
+                else:
+                    # cold inlets
+                    self.C_F += i.m.val_SI * i.c_therm * (
+                        i.ex_physical - self.outl[0].ex_physical)
+        self.C_P = self.C_F + self.Z_costs
+
+        """
+        if self.outl[0].T.val_SI > T0:
+            for i in self.inl:
+                if i.T.val_SI < self.outl[0].T.val_SI:
+                    # cold inlets
+                    if i.T.val_SI >= T0:
+                        self.C_P += i.m.val_SI * i.c_therm * (
+                            self.outl[0].ex_physical - i.ex_physical)
+                    else:
+                        self.C_P += i.m.val_SI * i.c_therm * self.outl[0].ex_physical
+                        self.C_F += i.C_physical
+                else:
+                    # hot inlets
+                    self.C_F += i.m.val_SI * i.c_therm * (
+                        i.ex_physical - self.outl[0].ex_physical)
+        elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
+            for i in self.inl:
+                self.C_F += i.C_physical
+            self.C_P = self.C_F + self.Z_costs
+        else:
+            for i in self.inl:
+                if i.T.val_SI > self.outl[0].T.val_SI:
+                    # hot inlets
+                    if i.T.val_SI >= T0:
+                        self.C_P += i.m.val_SI * i.c_therm * self.outl[0].ex_physical
+                        self.C_F += i.C_physical
+                    else:
+                        self.C_P += i.m.val_SI * i.c_therm * (
+                            self.outl[0].ex_physical - i.ex_physical)
+                else:
+                    # cold inlets
+                    self.C_F += i.m.val_SI * i.c_therm * (
+                        i.ex_physical - self.outl[0].ex_physical)
+        """
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+    def aux_eqs(self, num_variables, T0):
+        # each line needs to equal 0
+        self.inl_hot = [c for c in self.inl if c.T.val >= self.outl[0].T.val]
+        self.inl_cold = [c for c in self.inl if c.T.val < self.outl[0].T.val]
+        self.exergy_cost_matrix = np.zeros([2, num_variables])
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+        for i, h in enumerate(self.inl):
+            self.exergy_cost_matrix[0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
+            self.exergy_cost_matrix[1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
+        #for i, h in enumerate(self.inl_hot):
+            #self.exergy_cost_matrix[2+i, self.inl[i].Ex_C_col["therm"]] = 1 / self.inl[i].Ex_therm
+            #self.exergy_cost_matrix[2+i, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
+        return self.exergy_cost_matrix
+
+
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 

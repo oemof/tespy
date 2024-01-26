@@ -747,6 +747,8 @@ class Compressor(Turbomachine):
             self.C_F = self.C_bus + (
                     self.inl[0].C_therm - self.outl[0].C_therm)
 
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
@@ -759,10 +761,10 @@ class Compressor(Turbomachine):
         # c_2th - c_1th = c_2mech - c_1mech
         self.exergy_cost_matrix = np.zeros([2, num_variables])
         self.exergy_cost_matrix[0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 1
-        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["therm"]] = -1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
+        self.exergy_cost_matrix[0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["therm"]] = -1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else -1
         self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 1
         self.exergy_cost_matrix[1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
-        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
+        self.exergy_cost_matrix[1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
         return self.exergy_cost_matrix
     """+F+F+F+F++++END++++F+F+F+F+"""

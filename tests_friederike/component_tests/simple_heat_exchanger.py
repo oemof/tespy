@@ -19,8 +19,7 @@ nw.add_conns(c1, c2)
 
 # define parameters
 hx.set_attr(pr=0.95, Q=1000000)
-c1.set_attr(fluid={'Water': 1.0}, T=200, p=10, m=40)
-c1.set_attr(T=350)
+c1.set_attr(fluid={'Water': 1.0}, T=350, p=10, m=40)
 
 # solve network
 nw.solve(mode='design')

@@ -492,6 +492,7 @@ class ExergyAnalysis:
 
     """+F+F+F+F++++START++++F+F+F+F+"""
     def evaluate_exergoeconomics(self, Exe_Eco_Costs, Tamb):
+        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
         # TO DO: need to add checks and error messages
 
         # DETERMINE NUMBER OF VARIABLES FOR MATRIX
@@ -634,7 +635,7 @@ class ExergyAnalysis:
                 b = np.append(b, -comp.Z_costs) if 'b' in locals() else np.array(-comp.Z_costs)
 
             # ADD AUXILIARY EQUATIONS (F AND P RULES)
-            aux_eqs = comp.aux_eqs(num_variables, Tamb)          # generates auxiliary matrix
+            aux_eqs = comp.aux_eqs(num_variables, Tamb_SI)          # generates auxiliary matrix
             A = np.concatenate((A,aux_eqs)) if 'A' in locals() else aux_eqs
             b = np.append(b, np.zeros(len(aux_eqs))) if 'b' in locals() else np.zeros(len(aux_eqs))
 
@@ -663,22 +664,27 @@ class ExergyAnalysis:
             conn.C_physical = conn.C_therm + conn.C_mech
             conn.C_chemical = C_sol[conn.Ex_C_col["chemical"]]
             conn.C_tot = conn.C_physical + conn.C_chemical
+
+            conn.c_therm = conn.C_therm / conn.Ex_therm
+            conn.c_mech = conn.C_mech / conn.Ex_mech
+            conn.c_physical = conn.C_physical / conn.Ex_physical
+            conn.c_chemical = conn.C_chemical / conn.Ex_chemical
             conn.c_tot = conn.C_tot / (conn.Ex_physical + conn.Ex_chemical)
 
         for bus in self.E_F + self.E_P:
             for comp in bus.comps.index:
                 if not comp.component() in["source", "sink"]:
                     comp.C_bus = C_sol[comp.Ex_C_col[bus.label]]
-
+        """
         for conn in self.nw.conns["object"]:
             print("connection ", conn.label, "\tC_therm: ", conn.C_therm, "\tC_mech: ",
                     conn.C_mech, "\tC_physical: ", conn.C_physical, "\tC_chemical: ", conn.C_chemical)
         for comp in self.nw.comps['object']:
             print("component ", comp.label, "\tC_bus: ", comp.C_bus)
-
+        """
         # exergoeconomic balance (C_F, C_P, C_L) of components
         for cp in self.nw.comps['object']:
-            cp.exergoeconomic_balance(Tamb)
+            cp.exergoeconomic_balance(Tamb_SI)
             # self.evaluate_bus_costs(cp)
 
         # exergoeconomic analysis of network
@@ -1126,6 +1132,7 @@ class ExergyAnalysis:
         # Exergoeconomic Results for Connections
         # creating data frame here bc this is after analysis where c and C values have been calculated already
 
+        """
         conn_exergoec_data_cols = ['c_TOT', 'C_TOT']
         self.connection_exergoec_data = pd.DataFrame(
             columns=conn_exergoec_data_cols,
@@ -1137,20 +1144,21 @@ class ExergyAnalysis:
             ]
             self.connection_exergoec_data.loc[conn.label] = conn_exergoec_data
 
-        # long version with subdivision of c and C
         """
-        conn_exergoec_data_cols = ['c_T', 'c_M', 'c_CH', 'C_T', 'C_M', 'C_CH']
+
+        # long version with subdivision of c and C
+        conn_exergoec_data_cols = ['c_T', 'c_M', 'c_CH', 'c_tot', 'C_T', 'C_M', 'C_CH', 'C_tot']
         self.connection_exergoec_data = pd.DataFrame(
             columns=conn_exergoec_data_cols,
             dtype='float64'
         )
         for conn in self.nw.conns['object']:
             conn_exergoec_data = [
-                conn.c_therm, conn.c_mech, conn.c_chemical,
-                conn.C_therm, conn.C_mech, conn.C_chemical
+                conn.c_therm, conn.c_mech, conn.c_chemical, conn.c_tot,
+                conn.C_therm, conn.C_mech, conn.C_chemical, conn.C_tot
             ]
             self.connection_exergoec_data.loc[conn.label] = conn_exergoec_data
-        """
+
         if connections and Exe_Eco_An:
             print('##### RESULTS: Connection exergoeconomic analysis #####')
             print(tabulate(

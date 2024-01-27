@@ -666,7 +666,7 @@ class ExergyAnalysis:
                 """
 
 
-        # dissipative components (need to be handled first)
+        # dissipative components (need to be handled last)
         for comp in self.nw.comps['object']:
             if comp.dissipative:
                 print(comp.component(), "(dissipative)")
@@ -684,9 +684,21 @@ class ExergyAnalysis:
                 counter += len(dis_eqs)
                 """
 
+        # ADD INTERNAL BUSSES
+        # for all busses with more than 1 component
+        # assume efficiency of 100%
 
-        print("shape of A array: ", exergy_cost_matrix.shape)
-        print("shape of b vector: ", exergy_cost_vector.shape)
+        for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+            for i in range(len(bus.comps.index)-1):
+                if not bus.comps.index[i].component() in ["source", "sink"] and not bus.comps.index[i+1].component() in ["source", "sink"]:
+                    print("internal bus: ", bus.label, bus.comps.index[i].label)
+                    exergy_cost_matrix[counter][bus.comps.index[i]
+                        .Ex_C_col[bus.label]] = +1 / bus.comps.index[i].E_bus["massless"]
+                    exergy_cost_matrix[counter][bus.comps.index[i+1]
+                        .Ex_C_col[bus.label]] = -1 / bus.comps.index[i+1].E_bus["massless"]
+                    exergy_cost_vector[counter] = 0
+                    counter +=1
+
         print(np.round(exergy_cost_matrix,3))
         print(np.round(exergy_cost_vector,3))
 

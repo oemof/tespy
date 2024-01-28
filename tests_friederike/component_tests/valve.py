@@ -20,8 +20,8 @@ nw.add_conns(so_v, v_si)
 
 # determine parameters
 v.set_attr(offdesign=['zeta'])
-so_v.set_attr(fluid={'CH4': 1}, m=1, T=20, p=80, design=['m'])
-v_si.set_attr(p=15)
+so_v.set_attr(fluid={'CH4': 1}, m=1, p=1.5, design=['m'])
+v_si.set_attr(T=20, p=1.2) # non-dissipative
 
 # solve
 nw.solve('design')
@@ -31,13 +31,13 @@ nw.print_results()
 """ +++ exergy analysis +++ """
 # define ambient
 p_amb = 1
-T_amb = 25
+T_amb = 50
 
 # define busses
-inlet = Bus('power output')
+inlet = Bus('in')
 inlet.add_comps({'comp': so, 'base': 'bus'})
 
-outlet = Bus('fresh steam dif')
+outlet = Bus('out')
 outlet.add_comps({'comp': si, 'base': 'component'})
 
 # exergy and exergoeconomic analysis

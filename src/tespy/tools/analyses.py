@@ -670,6 +670,13 @@ class ExergyAnalysis:
         for comp in self.nw.comps['object']:
             if comp.dissipative:
                 print(comp.component(), "(dissipative)")
+                print("serving: ", comp.serving_components)
+                if comp.serving_components is None:
+                    # assign dissipative costs to the whole system
+                    comp.serving_components = []
+                    for c in self.nw.comps['object']:
+                        if not c == comp:
+                            comp.serving_components.append(c)
                 dis_eqs = comp.dissipative_balance(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
                 # print(dis_eqs)
                 exergy_cost_matrix = dis_eqs[0]

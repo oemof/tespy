@@ -82,8 +82,13 @@ T_amb = 25
 # exergy and exergoeconomic analysis
 # heat exchaner <T0 not implemented yet
 exe_eco_input = {'Turbine_Z': 7e3, 'Compressor_Z': 5e3, 'Cooling heat exchanger_Z': 1e3,
-                 'Heat sink heat exchanger_Z': 1e3, 'Water source_c': 0.001, 'Air source': 0.001}
+                 'Heat sink heat exchanger_Z': 1e3, 'Water source_c': 0.001, 'Air source_c': 0.001}
+ean = ExergyAnalysis(network=nw, E_F=[power], E_P=[cool_product_bus], E_L=[heat_loss_bus])
+ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
+ean.print_results(Exe_Eco_An=True)
+"""
 ean = ExergyAnalysis(network=nw, E_F=[power], E_P=[cool_product_bus], E_L=[heat_loss_bus])
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)  # Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input
 ean.print_results()                                     # Exe_Eco_An=True
-
+"""

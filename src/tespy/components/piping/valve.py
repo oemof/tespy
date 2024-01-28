@@ -369,6 +369,7 @@ class Valve(Component):
             \end{cases}
         """
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            self.dissipative = True
             self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
@@ -396,10 +397,11 @@ class Valve(Component):
 
     def exergoeconomic_balance(self, T0):
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            self.C_F = np.nan
+            self.C_P = np.nan
             # dissipative
-            self.dissipative = True
-            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
-            self.C_P = self.C_F + self.Z_costs
+            #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
+            #self.C_P = self.C_F + self.Z_costs
         elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
             self.C_P = self.outl[0].C_therm
             self.C_F = self.inl[0].C_therm + (
@@ -422,17 +424,40 @@ class Valve(Component):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
+    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        # nothing changes for the working fluid
+        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
+        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+        exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
+        exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+
+        for i in range(2):
+            exergy_cost_vector[counter+i]=0
+
+        # füge die dissipativen Kosten der Komponente(n) zu, die davon profitiert/-en
+        if self.serving_components is None:
+            print("there should be a serving component, you shouldn't see this")
+        for comp in self.serving_components:
+            print("serving component: ", comp.label)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["therm"]] = -1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["mech"]] = -1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["chemical"]] = -1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.Z_col] = 1/len(self.serving_components)
+
+        exergy_cost_matrix[counter+3, self.Z_col] = 1
+        exergy_cost_vector[counter+3] = self.Z_costs
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+4]
+
+
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            # dissipative
-
-            # c^T bleibt eigentlich auch gleich, aber dann Matrix überbestimmt
-            # exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
-            # exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
-            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+            print("you shouldn't see this")
         elif self.outl[0].T.val_SI <= T0:
             exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
             exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech

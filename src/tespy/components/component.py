@@ -138,7 +138,7 @@ class Component:
         self.f = np.nan
         self.C_bus = np.nan
         self.dissipative = False
-        self.serving_component = None
+        self.serving_components = None
         self.exergy_cost_line = np.nan
         """+F+F+F+F++++END++++F+F+F+F+"""
 

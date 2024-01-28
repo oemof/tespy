@@ -59,7 +59,7 @@ power.add_comps({'comp': cp, 'base': 'bus'})
 # exergy and exergoeconomic analysis
 hx.dissipative = True
 hx.serving_component = cp
-exe_eco_input = {'Cooler_Z': 5e1, 'Compressor_Z': 8e1, 'Working Fluid Inlet_c': 0.05, 'Cooling Water Inlet_c': 0.02, 'Power Input_c': 0.002}
+exe_eco_input = {'Cooler_Z': 5e1, 'Compressor_Z': 8e1, 'Working Fluid Inlet_c': 0.05, 'Cooling Water Inlet_c': 0.02, 'Power Input_c': 0.2}
 ean = ExergyAnalysis(nw, E_F=[cooling_water, power], E_P=[working_fluid], E_L=[])
 ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Tamb=T_amb, Exe_Eco_Costs=exe_eco_input)

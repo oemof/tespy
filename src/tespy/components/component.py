@@ -30,7 +30,7 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
-from tespy.tools.helpers import newton
+from tespy.tools.helpers import newton_with_kwargs
 
 
 class Component:
@@ -642,11 +642,21 @@ class Component:
             if b['base'] == 'component':
                 return abs(comp_val / b['P_ref'])
             else:
-                bus_value = newton(
-                    bus_char_evaluation,
-                    bus_char_derivative,
-                    [comp_val, b['P_ref'], b['char']], 0,
-                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                kwargs = {
+                    "function": bus_char_evaluation,
+                    "parameter": "bus_value",
+                    "component_value": comp_val,
+                    "reference_value": b["P_ref"],
+                    "char_func": b["char"]
+                }
+                bus_value = newton_with_kwargs(
+                    derivative=bus_char_derivative,
+                    target_value=0,
+                    val0=b['P_ref'],
+                    valmin=-1e15,
+                    valmax=1e15,
+                    **kwargs
+                )
                 return bus_value / b['P_ref']
 
     def calc_bus_efficiency(self, bus):

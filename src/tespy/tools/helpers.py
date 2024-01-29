@@ -471,7 +471,7 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
     return deriv
 
 
-def bus_char_evaluation(params, bus_value):
+def bus_char_evaluation(component_value, char_func, reference_value, bus_value, **kwargs):
     r"""
     Calculate the value of a bus.
 
@@ -497,17 +497,13 @@ def bus_char_evaluation(params, bus_value):
             {f\left(\frac{\dot{E}_\mathrm{bus}}
             {\dot{E}_\mathrm{bus,ref}}\right)}
     """
-    comp_value = params[0]
-    reference_value = params[1]
-    char_func = params[2]
-    return bus_value - comp_value / char_func.evaluate(
-        bus_value / reference_value)
+    return bus_value - component_value / char_func.evaluate(
+        bus_value / reference_value
+    )
 
 
-def bus_char_derivative(params, bus_value):
+def bus_char_derivative(component_value, char_func, reference_value, bus_value, **kwargs):
     """Calculate derivative for bus char evaluation."""
-    reference_value = params[1]
-    char_func = params[2]
     d = 1e-3
     return (1 - (
         1 / char_func.evaluate((bus_value + d) / reference_value) -
@@ -515,110 +511,9 @@ def bus_char_derivative(params, bus_value):
     ) / (2 * d))
 
 
-def newton(func, deriv, params, y, **kwargs):
-    r"""
-    Find zero crossings with 1-D newton algorithm.
-
-    Parameters
-    ----------
-    func : function
-        Function to find zero crossing in,
-        :math:`0=y-func\left(x,\text{params}\right)`.
-
-    deriv : function
-        First derivative of the function.
-
-    params : list
-        Additional parameters for function, optional.
-
-    y : float
-        Target function value.
-
-    val0 : float
-        Starting value, default: val0=300.
-
-    valmin : float
-        Lower value boundary, default: valmin=70.
-
-    valmax : float
-        Upper value boundary, default: valmax=3000.
-
-    max_iter : int
-        Maximum number of iterations, default: max_iter=10.
-
-    tol_rel : float
-        Maximum relative tolerance :math:`|\frac{y - f(x)}{f(x)}|`, default
-        value: 1e-6.
-
-    tol_abs : float
-        Maximum absolute tolerance :math:`|y - f(x)|`, default value: 1e-6.
-
-    tol_mode : str
-        Check for relative, absolute or both tolerances:
-
-        - :code:`tol_mode='abs'` (default)
-        - :code:`tol_mode='rel'`
-        - :code:`tol_mode='both'`
-
-    Returns
-    -------
-    val : float
-        x-value of zero crossing.
-
-    Note
-    ----
-    Algorithm
-
-    .. math::
-
-        x_{i+1} = x_{i} - \frac{f(x_{i})}{\frac{df}{dx}(x_{i})}\\
-        f(x_{i}) \leq \epsilon
-    """
-    # default valaues
-    x = kwargs.get('val0', 300)
-    valmin = kwargs.get('valmin', 70)
-    valmax = kwargs.get('valmax', 3000)
-    max_iter = kwargs.get('max_iter', 10)
-    tol_rel = kwargs.get('tol_rel', ERR )
-    tol_abs = kwargs.get('tol_abs', ERR )
-    tol_mode = kwargs.get('tol_mode', 'abs')
-
-    # start newton loop
-    expr = True
-    i = 0
-    while expr:
-        # calculate function residual and new value
-        res = y - func(params, x)
-        x += res / deriv(params, x)
-
-        # check for value ranges
-        if x < valmin:
-            x = valmin
-        if x > valmax:
-            x = valmax
-        i += 1
-
-        if i > max_iter:
-            msg = ('Newton algorithm was not able to find a feasible value '
-                   'for function ' + str(func) + '. Current value with x=' +
-                   str(x) + ' is ' + str(func(params, x)) +
-                   ', target value is ' + str(y) + '.')
-            logger.debug(msg)
-
-            break
-        if tol_mode == 'abs' or y == 0:
-            expr = abs(res) >= tol_abs
-        elif tol_mode == 'rel':
-            expr = abs(res / y) >= tol_rel
-        else:
-            expr = abs(res / y) >= tol_rel or abs(res) >= tol_abs
-
-    return x
-
-
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
-        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
+        tol_rel=ERR, tol_abs=ERR ** 2, tol_mode="rel", **function_kwargs
     ):
 
     # start newton loop
@@ -628,6 +523,9 @@ def newton_with_kwargs(
     parameter = function_kwargs["parameter"]
     function = function_kwargs["function"]
     relax = 1
+
+    if abs(target_value) <= 1e-6:
+        tol_mode = "abs"
 
     while expr:
         # calculate function residual and new value

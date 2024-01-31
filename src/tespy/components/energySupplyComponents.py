@@ -1,7 +1,12 @@
 import logging
 
 from tespy.components import Merge, Splitter
+from tespy.components import Sink
+
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+
+from tespy.components.nodes.base import NodeBase
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 # Fictious Energy Supply models (energy flows modelled as mass flows)
@@ -22,6 +27,8 @@ class MassFactorEnergySupply(Splitter):
             latex=self.mass_flow_func_doc,
             num_eq=1
         )
+        variables['Heating'] = dc_cp(min_val=0, is_result=True)
+        variables['Cooling'] = dc_cp(min_val=0, is_result=True)
         return variables
 
     def get_mandatory_constraints(self):
@@ -67,8 +74,10 @@ class MassFactorEnergySupply(Splitter):
 
     def calc_parameters(self):
         super().calc_parameters()
-        self.COP.val = self.outl[0].m.val_SI / (self.outl[0].m.val_SI - (-self.outl[1].m.val_SI))
-
+        if not self.COP.is_set:
+            self.COP.val = self.outl[0].m.val_SI / (self.outl[0].m.val_SI - (-self.outl[1].m.val_SI))
+        self.Heating.val = self.outl[0].m.val_SI
+        self.Cooling.val = self.outl[1].m.val_SI
 
 class MassLossEnergySupply(Splitter):
 
@@ -78,35 +87,102 @@ class MassLossEnergySupply(Splitter):
 
     def get_parameters(self):
         variables = super().get_parameters()
-        variables["Loss"] = dc_cp(
+        variables["LossRatio"] = dc_cp(
             min_val=0,
             deriv=self.Loss_deriv,
             func=self.Loss_func,
             latex=self.mass_flow_func_doc,
             num_eq=1
         )
+        variables['Energy'] = dc_cp(min_val=0, is_result=True)           
+        variables['EnergyLoss'] = dc_cp(min_val=0, is_result=True)           
         return variables
+    
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=1)
+            return self.outlets()    
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
+        del constraints['mass_flow_constraints']
         del constraints['pressure_constraints']
         del constraints['energy_balance_constraints']
         return constraints   
 
     def Loss_func(self):
-        return self.inl[0].m.val_SI * (1-self.Loss.val) - self.outl[0].m.val_SI
+        return self.inl[0].m.val_SI * (1-self.LossRatio.val) - sum([o.m.val_SI for o in self.outl])
 
     def Loss_deriv(self, increment_filter, k):
         inl = self.inl[0]
-        outl = self.outl[0]
         if inl.m.is_var:
-            self.jacobian[k, inl.m.J_col] = (1-self.Loss.val)
-        if outl.m.is_var:
-            self.jacobian[k, outl.m.J_col] = -1
+            self.jacobian[k, inl.m.J_col] = (1-self.LossRatio.val)
+        for o in self.outl:
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -1
 
     def calc_parameters(self):
         super().calc_parameters()
-        self.Loss.val = (self.inl[0].m.val_SI - self.outl[0].m.val_SI)/self.inl[0].m.val_SI
+        mout = sum([o.m.val_SI for o in self.outl])
+        if not self.LossRatio.is_set:
+            self.LossRatio.val = (self.inl[0].m.val_SI - mout)/self.inl[0].m.val_SI
+        self.EnergyLoss.val = self.inl[0].m.val_SI - mout
+        self.Energy.val = mout
+
+class BoilerEffEnergySupply(Splitter):
+
+    @staticmethod
+    def component():
+        return 'mass efficiency model for splitting energy flows (modelled using tespy mass balances)'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["BoilerEff"] = dc_cp(
+            min_val=0,
+            deriv=self.Eff_deriv,
+            func=self.Eff_func,
+            latex=self.mass_flow_func_doc,
+            num_eq=1
+        )
+        variables['Energy'] = dc_cp(min_val=0, is_result=True)           
+        variables['EnergyLoss'] = dc_cp(min_val=0, is_result=True)           
+        return variables
+    
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=1)
+            return self.outlets()    
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        del constraints['mass_flow_constraints']
+        del constraints['pressure_constraints']
+        del constraints['energy_balance_constraints']
+        return constraints   
+
+    def Eff_func(self):
+        return self.inl[0].m.val_SI * self.BoilerEff.val - sum([o.m.val_SI for o in self.outl])
+
+    def Eff_deriv(self, increment_filter, k):
+        inl = self.inl[0]
+        if inl.m.is_var:
+            self.jacobian[k, inl.m.J_col] = self.BoilerEff.val
+        for o in self.outl:
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -1
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        mout = sum([o.m.val_SI for o in self.outl])
+        if not self.BoilerEff.is_set:
+            self.BoilerEff.val = mout/self.inl[0].m.val_SI
+        self.EnergyLoss.val = self.inl[0].m.val_SI - mout
+        self.Energy.val = mout
+
 
 class MergeEnergySupply(Merge):
 
@@ -139,3 +215,168 @@ class SplitterEnergySupply(Splitter):
         del constraints['pressure_constraints']
         del constraints['energy_balance_constraints']
         return constraints   
+    
+
+
+class SourceEnergy(NodeBase):
+
+    def __init__(self, label, **kwargs):
+        #self.set_attr(**kwargs)
+        # need to assign the number of outlets before the variables are set
+        for key in kwargs:
+            if key == 'num_out':
+                self.num_out=kwargs[key]
+        super().__init__(label, **kwargs)    
+
+    @staticmethod
+    def component():
+        return 'Source'
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables['num_out'] = dc_simple()
+        variables["Energy"] = dc_cp(
+            min_val=0,
+            deriv=self.mass_flow_deriv,
+            func=self.mass_flow_func,
+            latex=self.mass_flow_func_doc,
+            num_eq=1
+        )        
+        return variables
+
+    def get_mandatory_constraints(self):
+        return {}
+
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=2)
+            return self.outlets()
+
+    @staticmethod
+    def is_branch_source():
+        return True
+
+    def start_branch(self):
+        branches = {}
+        for outconn in self.outl:
+            branch = {
+                "connections": [outconn],
+                "components": [self, outconn.target],
+                "subbranches": {}
+            }
+            outconn.target.propagate_to_target(branch)
+            branches[outconn.label] = branch
+        return branches
+
+    def start_fluid_wrapper_branch(self):
+        branches = {}
+        for outconn in self.outl:
+            branch = {
+                "connections": [outconn],
+                "components": [self]
+            }
+            outconn.target.propagate_wrapper_to_target(branch)
+            branches[outconn.label] = branch
+        return branches
+
+    def mass_flow_func(self):
+        r"""
+        Calculate the residual value for mass flow balance equation.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+                \forall i \in inlets, \forall j \in outlets
+        """
+        res = self.Energy.val
+        for o in self.outl:
+            res -= o.m.val_SI
+        return res
+
+    def mass_flow_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives for mass flow equation.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the fluid equations.
+        """
+        for o in self.outl:
+            if o.m.is_var:
+                self.jacobian[k, o.m.J_col] = -1
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        if not self.Energy.is_set:
+            self.Energy.val = sum([o.m.val_SI for o in self.outl])
+
+
+class SinkEnergy(Sink):
+
+    @staticmethod
+    def component():
+        return 'sink with energy '
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["Energy"] = dc_cp(
+            min_val=0,
+            deriv=self.mass_flow_deriv,
+            func=self.mass_flow_func,
+            latex=self.mass_flow_func_doc,
+            num_eq=1
+        )        
+        return variables        
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        return constraints
+
+
+    def mass_flow_func(self):
+        r"""
+        Calculate the residual value for mass flow balance equation.
+
+        Returns
+        -------
+        res : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+                \forall i \in inlets, \forall j \in outlets
+        """
+        res = self.Energy.val
+        for i in self.inl:
+            res -= i.m.val_SI
+        return res
+    
+    def mass_flow_func_doc(self, label):
+        pass
+
+    def mass_flow_deriv(self, increment_filter, k):
+        r"""
+        Calculate partial derivatives for mass flow equation.
+
+        Returns
+        -------
+        deriv : list
+            Matrix with partial derivatives for the fluid equations.
+        """
+        for i in self.inl:
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = -1
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        if not self.Energy.is_set:
+            self.Energy.val = self.inl[0].m.val_SI

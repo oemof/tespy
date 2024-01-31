@@ -773,7 +773,7 @@ class Network:
 
         self.fluid_wrapper_branches = {}
         mask = self.comps["comp_type"].isin(
-            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
+            ["Source", "SourceEnergy", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
         )
         start_components = self.comps["object"].loc[mask]
 

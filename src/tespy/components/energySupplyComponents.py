@@ -712,3 +712,51 @@ class SinkEnergy(Sink):
         super().calc_parameters()
         if not self.Energy.is_set:
             self.Energy.val = self.inl[0].m.val_SI
+
+
+class FlowEnergy(Splitter):
+
+    @staticmethod
+    def component():
+        return 'flow with energy '
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["Energy"] = dc_cp(
+            min_val=0,
+            deriv=self.Energy_mass_flow_deriv,
+            func=self.Energy_mass_flow_func,
+            latex=self.Energy_mass_flow_func_doc,
+            num_eq=1
+        )        
+        return variables        
+
+    def outlets(self):
+        self.set_attr(num_out=1)
+        return ['out1']
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        #del constraints['mass_flow_constraints']
+        del constraints['pressure_constraints']
+        del constraints['energy_balance_constraints']
+        return constraints       
+
+    def Energy_mass_flow_func(self):
+        res = self.Energy.val
+        for i in self.inl:
+            res -= i.m.val_SI
+        return res
+    
+    def Energy_mass_flow_deriv(self, increment_filter, k):
+        for i in self.inl:
+            if i.m.is_var:
+                self.jacobian[k, i.m.J_col] = -1    
+    
+    def Energy_mass_flow_func_doc(self, label):
+        pass
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        if not self.Energy.is_set:
+            self.Energy.val = self.inl[0].m.val_SI        

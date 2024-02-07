@@ -4,6 +4,7 @@ from tespy.components import Merge, Splitter
 from tespy.components import Sink
 
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentPropertiesArray as dc_cpa
 
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
@@ -443,6 +444,107 @@ class SplitterEnergySupply(Splitter):
     
 
 
+# class SourceEnergy(NodeBase):
+
+#     def __init__(self, label, **kwargs):
+#         #self.set_attr(**kwargs)
+#         # need to assign the number of outlets before the variables are set
+#         for key in kwargs:
+#             if key == 'num_out':
+#                 self.num_out=kwargs[key]
+#         super().__init__(label, **kwargs)    
+
+#     @staticmethod
+#     def component():
+#         return 'Source'
+
+#     def get_parameters(self):
+#         variables = super().get_parameters()
+#         variables['num_out'] = dc_simple()
+#         variables["Energy"] = dc_cp(
+#             min_val=0,
+#             deriv=self.mass_flow_deriv,
+#             func=self.mass_flow_func,
+#             latex=self.mass_flow_func_doc,
+#             num_eq=1
+#         )        
+#         return variables
+
+#     def get_mandatory_constraints(self):
+#         return {}
+
+#     def outlets(self):
+#         if self.num_out.is_set:
+#             return ['out' + str(i + 1) for i in range(self.num_out.val)]
+#         else:
+#             self.set_attr(num_out=2)
+#             return self.outlets()
+
+#     @staticmethod
+#     def is_branch_source():
+#         return True
+
+#     def start_branch(self):
+#         branches = {}
+#         for outconn in self.outl:
+#             branch = {
+#                 "connections": [outconn],
+#                 "components": [self, outconn.target],
+#                 "subbranches": {}
+#             }
+#             outconn.target.propagate_to_target(branch)
+#             branches[outconn.label] = branch
+#         return branches
+
+#     def start_fluid_wrapper_branch(self):
+#         branches = {}
+#         for outconn in self.outl:
+#             branch = {
+#                 "connections": [outconn],
+#                 "components": [self]
+#             }
+#             outconn.target.propagate_wrapper_to_target(branch)
+#             branches[outconn.label] = branch
+#         return branches
+
+#     def mass_flow_func(self):
+#         r"""
+#         Calculate the residual value for mass flow balance equation.
+
+#         Returns
+#         -------
+#         res : float
+#             Residual value of equation.
+
+#             .. math::
+
+#                 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
+#                 \forall i \in inlets, \forall j \in outlets
+#         """
+#         res = self.Energy.val
+#         for o in self.outl:
+#             res -= o.m.val_SI
+#         return res
+
+#     def mass_flow_deriv(self, increment_filter, k):
+#         r"""
+#         Calculate partial derivatives for mass flow equation.
+
+#         Returns
+#         -------
+#         deriv : list
+#             Matrix with partial derivatives for the fluid equations.
+#         """
+#         for o in self.outl:
+#             if o.m.is_var:
+#                 self.jacobian[k, o.m.J_col] = -1
+
+#     def calc_parameters(self):
+#         super().calc_parameters()
+#         if not self.Energy.is_set:
+#             self.Energy.val = sum([o.m.val_SI for o in self.outl])
+
+
 class SourceEnergy(NodeBase):
 
     def __init__(self, label, **kwargs):
@@ -467,6 +569,14 @@ class SourceEnergy(NodeBase):
             latex=self.mass_flow_func_doc,
             num_eq=1
         )        
+        variables["EnergyArray"] = dc_cpa(
+            min_val=0,
+            deriv=self.mass_flow_array_deriv,
+            func=self.mass_flow_array_func,
+            latex=self.mass_flow_func_doc,
+            #num_eq=self.num_out
+        )        
+                
         return variables
 
     def get_mandatory_constraints(self):
@@ -507,41 +617,38 @@ class SourceEnergy(NodeBase):
         return branches
 
     def mass_flow_func(self):
-        r"""
-        Calculate the residual value for mass flow balance equation.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-                \forall i \in inlets, \forall j \in outlets
-        """
         res = self.Energy.val
         for o in self.outl:
             res -= o.m.val_SI
         return res
 
     def mass_flow_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives for mass flow equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
         for o in self.outl:
             if o.m.is_var:
                 self.jacobian[k, o.m.J_col] = -1
+
+    def mass_flow_array_func(self):
+        residual  = []
+        for i,is_set in enumerate(self.EnergyArray.is_set):
+            if is_set:
+                o = self.outl[i]
+                residual += [self.EnergyArray.val[i] - o.m.val_SI]
+        return residual
+
+    def mass_flow_array_deriv(self, increment_filter, k):
+        m=0
+        for i,is_set in enumerate(self.EnergyArray.is_set):
+            if is_set:
+                o = self.outl[i]
+                self.jacobian[k + m, o.m.J_col] = -1
+                m=m+1
 
     def calc_parameters(self):
         super().calc_parameters()
         if not self.Energy.is_set:
             self.Energy.val = sum([o.m.val_SI for o in self.outl])
+        for i,o in enumerate(self.outl):
+            self.EnergyArray.val[i] = o.m.val_SI
 
 
 class SinkEnergy(Sink):

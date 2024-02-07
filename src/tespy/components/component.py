@@ -212,42 +212,19 @@ class Component:
                         raise TypeError(msg)
 
                 elif isinstance(data, dc_cpa):
-                    try:
-                        for f in kwargs[key]:
-                            float(f)
-                        is_numeric = True
-                    except (TypeError, ValueError):
-                        is_numeric = False         
+                    floats = [isinstance(f, float) for f in kwargs[key]]
+                    vars = [f == 'var' for f in kwargs[key]]
+                    is_numeric = any(floats)
+                    is_var = any(vars)
+                    num_eq = floats.count(True)
 
-                    for f in kwargs[key]:
-                        if (f == 'var'):
-                            is_var = True
-                        else:
-                            is_var = False
-                            break
-
-                    if is_numeric:
-                        if np.isnan(kwargs[key]).any():
-                            data.set_attr(is_set=False)
-                            if isinstance(data, dc_cpa): 
-                                data.set_attr(is_var=False)
-                        else:
-                            data.set_attr(val=kwargs[key], is_set=True)
-                            if isinstance(data, dc_cpa): 
-                                data.set_attr(is_var=False)
-                            data.set_attr(num_eq=len(kwargs[key]))
-
-                    elif is_var: 
-                        if isinstance(data, dc_cpa): 
-                            data.set_attr(is_set=True, is_var=True)
-                            data.set_attr(num_eq=len(kwargs[key]))
-
-                    # invalid datatype for keyword
+                    if is_numeric or is_var:
+                        data.set_attr(val=kwargs[key], is_set=floats, is_var=vars, num_eq = num_eq)
                     else:
                         msg = (
                             'Bad datatype for keyword argument ' + key +
                             ' at ' + self.label + '.')
-                        logging.error(msg)
+                        logger.error(msg)
                         raise TypeError(msg)
 
             elif key in ['design', 'offdesign']:

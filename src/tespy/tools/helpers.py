@@ -186,8 +186,7 @@ def latex_unit(unit):
 
 class UserDefinedEquation:
 
-    def __init__(self, label, func, deriv, conns, params={},
-                 latex={}):
+    def __init__(self, label, func, deriv, conns, params={}, latex={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -610,9 +609,12 @@ def newton(func, deriv, params, y, **kwargs):
     valmin = kwargs.get('valmin', 70)
     valmax = kwargs.get('valmax', 3000)
     max_iter = kwargs.get('max_iter', 10)
-    tol_rel = kwargs.get('tol_rel', ERR )
-    tol_abs = kwargs.get('tol_abs', ERR )
+    tol_rel = kwargs.get('tol_rel', ERR)
+    tol_abs = kwargs.get('tol_abs', ERR ** 2)
     tol_mode = kwargs.get('tol_mode', 'abs')
+
+    if abs(y) <= 1e-6:
+        tol_mode = "abs"
 
     # start newton loop
     expr = True
@@ -630,10 +632,12 @@ def newton(func, deriv, params, y, **kwargs):
         i += 1
 
         if i > max_iter:
-            msg = ('Newton algorithm was not able to find a feasible value '
-                   'for function ' + str(func) + '. Current value with x=' +
-                   str(x) + ' is ' + str(func(params, x)) +
-                   ', target value is ' + str(y) + '.')
+            msg = (
+                'The Newton algorithm was not able to find a feasible value '
+                f'for function {func}. Current value with x={x} is '
+                f'{func(params, x)}, target value is {y}, residual is {res} '
+                f'after {i} iterations.'
+            )
             logger.debug(msg)
 
             break
@@ -649,7 +653,7 @@ def newton(func, deriv, params, y, **kwargs):
 
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
-        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
+        tol_rel=ERR, tol_abs=ERR ** 2, tol_mode="rel", **function_kwargs
     ):
 
     # start newton loop
@@ -659,6 +663,9 @@ def newton_with_kwargs(
     parameter = function_kwargs["parameter"]
     function = function_kwargs["function"]
     relax = 1
+
+    if abs(target_value) <= 1e-6:
+        tol_mode = "abs"
 
     while expr:
         # calculate function residual and new value

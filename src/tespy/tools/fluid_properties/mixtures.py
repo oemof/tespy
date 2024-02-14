@@ -241,6 +241,24 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     return v
 
 
+def v_mix_pT_incompressible_solution(p, T, fluid_data, **kwargs):
+    solvent = kwargs["solvent"]
+
+    if p < fluid_data[solvent]["wrapper"].p_sat(T):
+        x_old = fluid_data[solvent]["mass_fraction"]
+        kwargs["x0"] = x_old
+        x_new = xsat_pT_incomp_solution(p, T, fluid_data, **kwargs)
+        x_water_gas = x_new - x_old
+
+        v = 1 / fluid_data[solvent]["wrapper"].d_pT(p + 1e-6, T) * (1 - x_water_gas)
+        v += 1 / fluid_data["water"]["wrapper"].d_QT(1, T) * x_water_gas
+        fluid_data[solvent]["wrapper"].AS.set_mass_fractions([x_old])
+
+        return v
+    else:
+        return 1 / fluid_data[solvent]["wrapper"].d_pT(p, T)
+
+
 def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     r"""
     Calculate dynamic viscosity from pressure and temperature.
@@ -434,7 +452,8 @@ S_MIX_PT_DIRECT = {
 V_MIX_PT_DIRECT = {
     "ideal": v_mix_pT_ideal,
     "ideal-cond": v_mix_pT_ideal_cond,
-    "incompressible": v_mix_pT_incompressible
+    "incompressible": v_mix_pT_incompressible,
+    "incomp-solution": v_mix_pT_incompressible_solution
 }
 
 

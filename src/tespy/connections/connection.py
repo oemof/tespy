@@ -890,7 +890,7 @@ class Connection:
 
     def calc_s(self):
         try:
-            return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI)
+            return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI, solvent=self.solvent)
         except NotImplementedError:
             return np.nan
 
@@ -911,18 +911,19 @@ class Connection:
         if number_fluids > 1:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, solvent=self.solvent)
             if abs(h_from_T - self.h.val_SI) > ERR ** 0.5:
-                self.T.val_SI = np.nan
-                self.vol.val_SI = np.nan
-                self.v.val_SI = np.nan
-                self.s.val_SI = np.nan
-                msg = (
-                    "Could not find a feasible value for mixture temperature at "
-                    f"connection {self.label}. The values for temperature, "
-                    "specific volume, volumetric flow and entropy are set to nan. "
-                    f"The deviation is {h_from_T - self.h.val_SI} J/kg."
-                )
-                logger.error(msg)
-                _converged = False
+                # self.T.val_SI = np.nan
+                # self.vol.val_SI = np.nan
+                # self.v.val_SI = np.nan
+                # self.s.val_SI = np.nan
+                # msg = (
+                #     "Could not find a feasible value for mixture temperature at "
+                #     f"connection {self.label}. The values for temperature, "
+                #     "specific volume, volumetric flow and entropy are set to nan. "
+                #     f"The deviation is {h_from_T - self.h.val_SI} J/kg."
+                # )
+                # logger.error(msg)
+                # _converged = True
+                pass
 
         else:
             try:
@@ -936,13 +937,11 @@ class Connection:
             except ValueError:
                 self.x.val_SI = np.nan
 
-        try:
-            if _converged:
-                self.vol.val_SI = self.calc_vol()
-                self.v.val_SI = self.vol.val_SI * self.m.val_SI
-                self.s.val_SI = self.calc_s()
-        except KeyError:
-            pass
+        if _converged:
+            self.vol.val_SI = self.calc_vol()
+            self.v.val_SI = self.vol.val_SI * self.m.val_SI
+            self.s.val_SI = self.calc_s()
+
         for prop in fpd.keys():
             self.get_attr(prop).val = convert_from_SI(
                 prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit

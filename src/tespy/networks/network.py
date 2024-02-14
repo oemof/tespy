@@ -2239,17 +2239,22 @@ class Network:
                 relax = max(1, -2 * increment / container.val_SI)
                 container.val_SI += increment / relax
             elif data["variable"] == "fluid":
+                if self.iter < 6:
+                    # prevents fluid changes in first iteration!
+                    relax = self.iter / 5
+                else:
+                    relax = 1
                 container = data["obj"].fluid
                 container.val[data["fluid"]] += self.increment[
                     container.J_col[data["fluid"]]
-                ]
+                ] * relax
 
                 if container.val[data["fluid"]] < ERR :
                     container.val[data["fluid"]] = 0
                 elif container.val[data["fluid"]] > 1 - ERR :
                     container.val[data["fluid"]] = 1
             else:
-                # add increment
+                # component variables
                 data["obj"].val += self.increment[data["obj"].J_col]
 
                 # keep value within specified value range

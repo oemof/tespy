@@ -218,8 +218,8 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, **kwargs):
         pure_fluid = get_pure_fluid(fluid_data)
         return 1 / pure_fluid["wrapper"].d_ph(p, h)
     else:
-        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
-        return v_mix_pT(p, T, fluid_data, mixing_rule)
+        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0, **kwargs)
+        return v_mix_pT(p, T, fluid_data, mixing_rule, **kwargs)
 
 
 def dv_mix_dph(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -242,7 +242,7 @@ def v_mix_pT(p, T, fluid_data, mixing_rule=None, **kwargs):
         return 1 / pure_fluid["wrapper"].d_pT(p, T)
     else:
         _check_mixing_rule(mixing_rule, V_MIX_PT_DIRECT, "specific volume")
-        return V_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
+        return V_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data, **kwargs)
 
 
 def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):

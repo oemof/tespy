@@ -169,6 +169,11 @@ class Pump(Turbomachine):
                 deriv=self.eta_s_deriv,
                 func=self.eta_s_func,
                 latex=self.eta_s_func_doc),
+            'eta_vol': dc_cp(
+                min_val=0, max_val=1, num_eq=1,
+                deriv=self.eta_volumetric_deriv,
+                func=self.eta_volumetric_func,
+                latex=self.eta_s_func_doc),
             'pr': dc_cp(
                 min_val=1, num_eq=1,
                 deriv=self.pr_deriv,
@@ -344,6 +349,26 @@ class Pump(Turbomachine):
             self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(o.h, increment_filter):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+
+    def eta_volumetric_func(self):
+        return (
+            self.inl[0].calc_vol() * (self.outl[0].p.val_SI - self.inl[0].p.val_SI)
+            - (self.outl[0].h.val_SI - self.inl[0].h.val_SI) * self.eta_vol.val
+        )
+
+    def eta_volumetric_deriv(self, increment_filter, k):
+        i = self.inl[0]
+        o = self.outl[0]
+        f = self.eta_volumetric_func
+
+        if self.is_variable(i.p):
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, "p", i)
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
+        if self.is_variable(o.p):
+            self.jacobian[k, o.p.J_col] = self.inl[0].calc_vol()
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.J_col] = -self.eta_vol.val
 
     def flow_char_func(self):
         r"""

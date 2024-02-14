@@ -1,13 +1,8 @@
-
-from tespy.components.component import Component
-
-from tespy.tools.fluid_properties.mixtures import xsat_pT_incomp_solution
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from sorption import Sorption
 
 
-class Desorber(Component):
-
-    def __init__(self, label, **kwargs):
-        super().__init__(label, **kwargs)
+class Desorber(Sorption):
 
     @staticmethod
     def inlets():
@@ -17,77 +12,15 @@ class Desorber(Component):
     def outlets():
         return ["out1", "out2"]
 
-    def preprocess(self, num_vars):
-        self.h2o = "water"
-        super().preprocess(num_vars)
-
     def get_parameters(self):
-        return {}
-
-    def get_mandatory_constraints(self):
-        constraints = {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,# 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False,# 'latex': self.fluid_func_doc,
-                'num_eq': 1},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 2},
-            "saturation_constraints_libr": {
-                "func": self.saturated_solution_libr_func,
-                "deriv": self.saturated_solution_libr_deriv,
-                "constant_deriv": False,
-                "num_eq": 1
-            },
+        return {
+            'Q': dc_cp(
+                min_val=0,
+                func=self.heat_func,
+                num_eq=1,
+                deriv=self.heat_deriv
+            )
         }
-        if self.outl[1].solvent in self.outl[1].fluid.is_var:
-            constraints["saturation_constraints_water"] = {
-                "func": self.saturated_solution_water_func,
-                "deriv": self.saturated_solution_water_deriv,
-                "constant_deriv": False,
-                "num_eq": 1
-            }
-        return constraints
-
-    def mass_flow_func(self):
-        return self.inl[0].m.val_SI - self.outl[0].m.val_SI - self.outl[1].m.val_SI
-
-    def mass_flow_deriv(self, k):
-        inl = self.inl[0]
-        if inl.m.is_var:
-            self.jacobian[k, inl.m.J_col] = 1
-
-        for outl in self.outl:
-            if outl.m.is_var:
-                self.jacobian[k, outl.m.J_col] = -1
-
-    def fluid_func(self):
-        inl = self.inl[0]
-        outl = self.outl[1]
-        return (
-            inl.m.val_SI * inl.fluid.val[inl.solvent]
-            - outl.m.val_SI * outl.fluid.val[outl.solvent]
-        )
-
-    def fluid_deriv(self, increment_filter, k):
-        outl = self.outl[1]
-        inl = self.inl[0]
-
-        if inl.m.is_var:
-            self.jacobian[k, inl.m.J_col] = inl.fluid.val[inl.solvent]
-        if inl.solvent in inl.fluid.is_var:
-            self.jacobian[k, inl.fluid.J_col[inl.solvent]] = inl.m.val_SI
-        if outl.m.is_var:
-            self.jacobian[k, outl.m.J_col] = -outl.fluid.val[outl.solvent]
-        if outl.solvent in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[outl.solvent]] = -outl.m.val_SI
 
     def pressure_equality_func(self):
         residual = []
@@ -110,36 +43,6 @@ class Desorber(Component):
             if self.inl[0].p.is_var:
                 self.jacobian[k, self.inl[0].p.J_col] = -1
             k += 1
-
-    def saturated_solution_water_func(self):
-        outl = self.outl[1]
-        return 1 - outl.fluid.val[outl.solvent] - outl.fluid.val[self.h2o]
-
-    def saturated_solution_water_deriv(self, increment_filter, k):
-        outl = self.outl[1]
-        if self.h2o in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[self.h2o]] = -1
-        if outl.solvent in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[outl.solvent]] = -1
-
-    def saturated_solution_libr_func(self):
-        outl = self.outl[1]
-        x_previous = outl.fluid.val[outl.solvent]
-        T = outl.calc_T()
-        x_libr = xsat_pT_incomp_solution(outl.p.val_SI, T, outl.fluid_data, solvent=outl.solvent, x0=x_previous)
-        outl.fluid_data[outl.solvent]["wrapper"].AS.set_mass_fractions([x_previous])
-        return x_libr - outl.fluid.val[outl.solvent]
-
-    def saturated_solution_libr_deriv(self, increment_filter, k):
-        outl = self.outl[1]
-        if outl.p.is_var:
-            deriv = self.numeric_deriv(self.saturated_solution_libr_func, "p", outl)
-            self.jacobian[k, outl.p.J_col] = deriv
-        if outl.h.is_var:
-            deriv = self.numeric_deriv(self.saturated_solution_libr_func, "h", outl)
-            self.jacobian[k, outl.h.J_col] = deriv
-        if outl.solvent in outl.fluid.is_var:
-            self.jacobian[k, outl.fluid.J_col[outl.solvent]] = self.numeric_deriv(self.saturated_solution_libr_func, outl.solvent, outl)
 
     @staticmethod
     def is_branch_source():
@@ -174,14 +77,11 @@ class Desorber(Component):
 
         return branches
 
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
             return
 
-        outconn = self.outl[1]
+        outconn = self.outl[0]
         branch["connections"] += [outconn]
         branch["components"] += [self]
         outconn.target.propagate_wrapper_to_target(branch)
@@ -207,8 +107,8 @@ if __name__ == "__main__":
     valve = SimpleHeatExchanger("valve")
 
     c5 = Connection(rich, "out1", desorber, "in1", label="5")
-    c10 = Connection(desorber, "out1", water, "in1", label="10")
-    c6 = Connection(desorber, "out2", valve, "in1", label="6")
+    c10 = Connection(desorber, "out2", water, "in1", label="10")
+    c6 = Connection(desorber, "out1", valve, "in1", label="6")
     c7 = Connection(valve, "out1", poor, "in1", label="7")
 
     nw.add_conns(c5, c10, c6, c7)

@@ -492,10 +492,12 @@ class ExergyAnalysis:
 
     """+F+F+F+F++++START++++F+F+F+F+"""
     def evaluate_exergoeconomics(self, Exe_Eco_Costs, Tamb):
+        print("internal busses: ", self.internal_busses)
         Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
         # TO DO: need to add checks and error messages
 
         # DETERMINE NUMBER OF VARIABLES FOR MATRIX
+        """
         num_E_F = 0
         for bus in self.E_F:
             for comp in bus.comps.index:
@@ -529,7 +531,41 @@ class ExergyAnalysis:
             + num_internal_busses
             + num_dissipative_components
         )
+        """
+        # alternativ way of determing number of variables
+        num_massless_inlets = 0
+        for bus in self.E_F:
+            for comp in bus.comps.index:
+                if not comp.component() in ["source", "sink"] and bus.comps.loc[comp, 'base'] == 'bus':
+                    num_massless_inlets += 1
+        num_massless_outlets = 0
+        for bus in self.E_P + self.E_L:
+            for comp in bus.comps.index:
+                if not comp.component() in ["source", "sink"] and bus.comps.loc[comp, 'base'] == 'component':
+                    num_massless_outlets += 1
+        num_internal_busses = 0
+        for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
+            if not bus.comps.index[0].component() in["source", "sink"]:
+                print("internal bus: ", bus.label)
+                num_internal_busses += len(bus.comps.index) - 1
+
+        num_dissipative_components = 0
+        for comp in self.nw.comps['object']:
+            if comp.dissipative == True:
+                num_dissipative_components += 1
+
+        num_variables = (
+            len(self.nw.conns) * 3
+            + num_massless_inlets
+            + num_massless_outlets
+            + num_internal_busses
+            + num_dissipative_components
+        )
         print("number of variables: ", num_variables)
+        print("number of massless inlets: ", num_massless_inlets)
+        print("number of massless outlets: ", num_massless_outlets)
+        print("number of internal busses: ", num_internal_busses)
+        print("number of dissipative components: ", num_dissipative_components)
 
         # ASSIGN COLUMN NUMBER TO EACH VARIABLE
         for conn_num, conn in enumerate(self.nw.conns["object"]):
@@ -550,8 +586,14 @@ class ExergyAnalysis:
         for bus in self.E_F + self.E_P:
             for i, comp in enumerate(bus.comps.index):
                 if not comp.component() in["source", "sink"]:
-                    comp.Ex_C_col[bus.label] = variable_num
+                    comp.Ex_C_col[bus.label] = variable_num     # part going over system border
                     variable_num += 1
+                if len(bus.comps.index) > 1 and not comp.component() in["source", "sink"]:                    # internal bus
+                    print("internal bus assigning C_col", bus.label, comp.label)
+                    bus_intern_str = bus.label + "intern"
+                    comp.Ex_C_col[bus_intern_str] = variable_num
+                    variable_num += 1
+
 
         for comp in self.nw.comps['object']:
             if comp.dissipative == True:
@@ -675,7 +717,7 @@ class ExergyAnalysis:
                     # assign dissipative costs to the whole system
                     comp.serving_components = []
                     for c in self.nw.comps['object']:
-                        if not c == comp:
+                        if not c == comp and not c.component() in ["source", "sink"]:
                             comp.serving_components.append(c)
                 dis_eqs = comp.dissipative_balance(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
                 # print(dis_eqs)
@@ -699,12 +741,16 @@ class ExergyAnalysis:
             for i in range(len(bus.comps.index)-1):
                 if not bus.comps.index[i].component() in ["source", "sink"] and not bus.comps.index[i+1].component() in ["source", "sink"]:
                     print("internal bus: ", bus.label, bus.comps.index[i].label)
+                    bus_intern_str = bus.label + "intern"
                     exergy_cost_matrix[counter][bus.comps.index[i]
-                        .Ex_C_col[bus.label]] = +1 / bus.comps.index[i].E_bus["massless"]
+                        .Ex_C_col[bus_intern_str]] = +1 / bus.comps.index[i].E_bus["massless"]
                     exergy_cost_matrix[counter][bus.comps.index[i+1]
-                        .Ex_C_col[bus.label]] = -1 / bus.comps.index[i+1].E_bus["massless"]
+                        .Ex_C_col[bus_intern_str]] = -1 / bus.comps.index[i+1].E_bus["massless"]
                     exergy_cost_vector[counter] = 0
                     counter +=1
+
+        if counter!=num_variables:
+            print("not enough equations")
 
         print(np.round(exergy_cost_matrix,3))
         print(np.round(exergy_cost_vector,3))

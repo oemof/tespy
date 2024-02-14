@@ -68,19 +68,22 @@ pump.add_comps({"comp": pu})
 nw.solve(mode='design')
 nw.print_results()
 
+'''
 # exergy analysis
 ean = ExergyAnalysis(nw, E_F=[heat_source, pump], E_P=[consumer], E_L=[])
 ean.analyse(pamb=p_amp, Tamb=T_amb)
 ean.print_results()
-
-
 '''
+
+
 # exergy and exergoeconomic analysis
-exe_eco_input = {'heat source_Z': 100, 'consumer_Z': 80, 'feed pipe_Z': 70, 'return pipe_Z': 120}
+exe_eco_input = {'heat source_Z': 100, 'consumer_Z': 80, 'feed pipe_Z': 70, 'return pipe_Z': 120,
+                 'consumer in_c': 0.001, 'feed pump bus_c': 0.1, 'heat source bus_c': 0.01}
 ean = ExergyAnalysis(nw, E_F=[heat_source, pump], E_P=[consumer], E_L=[])
-ean.analyse(pamb=p_amp, Tamb=T_amb, Exe_Eco_An=True, Exe_Eco_Costs=exe_eco_input)
+ean.analyse(pamb=p_amp, Tamb=T_amb)
+ean.evaluate_exergoeconomics(Tamb=T_amb, Exe_Eco_Costs=exe_eco_input)
 ean.print_results(Exe_Eco_An=True)
-'''
+
 
 
 # following code is with consumer as SimpleHeatExchanger instead of HeatExchanger

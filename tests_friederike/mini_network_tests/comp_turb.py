@@ -52,5 +52,6 @@ hot_steam.add_comps(
 exe_eco_input = {'Source_c': 0.2, 'Turbine_Z': 5e3, 'Compressor_Z': 4e3}
 ean = ExergyAnalysis(nw, E_P=[power], E_F=[hot_steam], E_L=[], internal_busses=[])
 ean.analyse(pamb=pamb, Tamb=Tamb, Chem_Ex=chemexlib)
+ean.print_results()
 ean.evaluate_exergoeconomics(Tamb=Tamb, Exe_Eco_Costs=exe_eco_input)
 ean.print_results(Exe_Eco_An=True)

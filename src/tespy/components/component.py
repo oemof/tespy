@@ -137,7 +137,7 @@ class Component:
         self.r = np.nan
         self.f = np.nan
         self.C_bus = np.nan
-        self.dissipative = False
+        self.dissipative = dc_simple(val=False)
         self.serving_components = None
         self.exergy_cost_line = np.nan
         """+F+F+F+F++++END++++F+F+F+F+"""
@@ -1265,7 +1265,7 @@ class Component:
 
 
     """+F+F+F+F++++START++++F+F+F+F+"""
-    def dissipative_balance(self, T0):
+    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         return
 
     def exergoeconomic_balance(self, T0):

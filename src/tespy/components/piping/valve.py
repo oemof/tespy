@@ -369,7 +369,7 @@ class Valve(Component):
             \end{cases}
         """
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            self.dissipative = True
+            self.dissipative.val = True
             self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
         elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:

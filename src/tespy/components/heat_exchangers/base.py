@@ -1023,7 +1023,7 @@ class HeatExchanger(Component):
                 self.outl[1].Ex_physical + self.outl[0].Ex_mech)
         elif (self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0 and
               self.inl[1].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
-            self.dissipative = True
+            self.dissipative.val = True
             self.E_P = np.nan
             self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
                 self.inl[1].Ex_physical - self.outl[1].Ex_physical)
@@ -1042,7 +1042,7 @@ class HeatExchanger(Component):
     """+F+F+F+F++++START++++F+F+F+F+"""
 
     def exergoeconomic_balance(self, T0):
-        if self.dissipative:
+        if self.dissipative.val:
             self.C_P = np.nan
             self.C_F = np.nan
         elif all([c.T.val_SI > T0 for c in self.inl + self.outl]):

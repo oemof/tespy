@@ -538,41 +538,6 @@ class ExergyAnalysis:
 
         print(num_bus_eq)
 
-        # # alternativ way of determing number of variables
-        # num_massless_inlets = 0
-        # for bus in self.E_F:
-        #     for comp in bus.comps.index:
-        #         if not comp.component() in ["source", "sink"] and bus.comps.loc[comp, 'base'] == 'bus':
-        #             num_massless_inlets += 1
-        # num_massless_outlets = 0
-        # for bus in self.E_P + self.E_L:
-        #     for comp in bus.comps.index:
-        #         if not comp.component() in ["source", "sink"] and bus.comps.loc[comp, 'base'] == 'component':
-        #             num_massless_outlets += 1
-        # num_internal_busses = 0
-        # for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
-        #     if not bus.comps.index[0].component() in["source", "sink"]:
-        #         print("internal bus: ", bus.label)
-        #         num_internal_busses += len(bus.comps.index) - 1
-
-        # num_dissipative_components = 0
-        # for comp in self.nw.comps['object']:
-        #     if comp.dissipative == True:
-        #         num_dissipative_components += 1
-
-        # num_variables = (
-        #     len(self.nw.conns) * 3
-        #     + num_massless_inlets
-        #     + num_massless_outlets
-        #     + num_internal_busses
-        #     + num_dissipative_components
-        # )
-        # print("number of variables: ", num_variables)
-        # print("number of massless inlets: ", num_massless_inlets)
-        # print("number of massless outlets: ", num_massless_outlets)
-        # print("number of internal busses: ", num_internal_busses)
-        # print("number of dissipative components: ", num_dissipative_components)
-
         # ASSIGN COLUMN NUMBER TO EACH VARIABLE
         for conn_num, conn in enumerate(self.nw.conns["object"]):
             conn.Ex_C_col = {
@@ -606,6 +571,7 @@ class ExergyAnalysis:
         exergy_cost_vector = np.zeros(num_variables)
         counter = 0
 
+        # ADD KNOWN BUS COSTS TO MATRIX
         for bus in self.E_F:
             # Ex_C_col should be not None for E_F if there is not a source/sink but energy output from outside
             if bus.Ex_C_col is not None:
@@ -652,15 +618,6 @@ class ExergyAnalysis:
                     exergy_cost_vector[counter] = comp.outl[0].C_chemical
                     counter +=1
 
-                # ADD KNOWN BUS COSTS TO MATRIX
-                # for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
-                #     if comp in bus.comps.index and not comp.component() in["source", "sink"]:
-                #         if not np.isnan(comp.C_bus):
-                #             exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = +1
-                #             exergy_cost_vector[counter] =  comp.C_bus
-                #             counter +=1
-
-
                 # ADD COST BALANCE FOR EACH COMPONENT that isn't a source or sink
                 # and has an associated cost value or is a cycle closer (-> cost value = 0)
                 # TO DO: error message if Z_cost is nan
@@ -690,24 +647,12 @@ class ExergyAnalysis:
                     exergy_cost_vector[counter] = -comp.Z_costs
                     counter +=1
 
-
                 # ADD AUXILIARY EQUATIONS (F AND P RULES)
                 aux_eqs = comp.aux_eqs(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)
                 # print(aux_eqs)
                 exergy_cost_matrix = aux_eqs[0]
                 exergy_cost_vector = aux_eqs[1]
                 counter = aux_eqs[2]
-                """
-                aux_eqs = comp.aux_eqs(num_variables, Tamb_SI)          # generates auxiliary matrix
-                # print("shape of aux_eqs array: ", aux_eqs.shape)
-                # insert aux_eqs matrix into exergy_cost_matrix
-                for i in range(counter, counter+len(aux_eqs)):
-                    for j in range(num_variables):
-                        exergy_cost_matrix[i][j] = aux_eqs[i][j]
-                    exergy_cost_vector[i] = 0                           # should actually already be 0
-                counter += len(aux_eqs)
-                """
-
 
         # dissipative components (need to be handled last)
         for comp in self.nw.comps['object']:
@@ -725,37 +670,12 @@ class ExergyAnalysis:
                 exergy_cost_matrix = dis_eqs[0]
                 exergy_cost_vector = dis_eqs[1]
                 counter = dis_eqs[2]
-                """
-                # insert dis_eqs matrix into exergy_cost_matrix
-                for i in range(counter, counter+len(dis_eqs)):
-                    for j in range(num_variables):
-                        exergy_cost_matrix[i][j] = dis_eqs[i][j]
-                    exergy_cost_vector[i] = 0                           # should actually already be 0
-                counter += len(dis_eqs)
-                """
-
-        # ADD INTERNAL BUSSES
-        # for all busses with more than 1 component
-        # assume efficiency of 100%
-
-        # for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
-        #     for i in range(len(bus.comps.index)-1):
-        #         if not bus.comps.index[i].component() in ["source", "sink"] and not bus.comps.index[i+1].component() in ["source", "sink"]:
-        #             print("internal bus: ", bus.label, bus.comps.index[i].label)
-        #             bus_intern_str = bus.label + "intern"
-        #             exergy_cost_matrix[counter][bus.comps.index[i]
-        #                 .Ex_C_col[bus_intern_str]] = +1 / bus.comps.index[i].E_bus["massless"]
-        #             exergy_cost_matrix[counter][bus.comps.index[i+1]
-        #                 .Ex_C_col[bus_intern_str]] = -1 / bus.comps.index[i+1].E_bus["massless"]
-        #             exergy_cost_vector[counter] = 0
-        #             counter +=1
 
         if counter!=num_variables:
             print("not enough equations")
 
         print(np.round(exergy_cost_matrix,3))
         print(np.round(exergy_cost_vector,3))
-
 
         try:
             C_sol = np.linalg.solve (exergy_cost_matrix, exergy_cost_vector)

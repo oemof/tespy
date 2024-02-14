@@ -149,5 +149,5 @@ linkcheck_ignore = [
   r'https://doi.org/10.1021/ie4033999',  # 28.02.2023: does not resolve anymore for some reason
   r'https://doi.org/10.1002/bbpc.19900940121',  # 13.03.2023 ...?
   r'http://www\.coolprop\.org/.*',  # 02.12.2023 ...?
-  r'https://github.com/oemof/tespy/commit/bf0b8650b0965c916727ebe10f39f0cefabb71e0',  # 08.01.2024 ...?
+  r'https://github\.com/oemof/tespy/.*',  # 08.01.2024 ...?
 ]

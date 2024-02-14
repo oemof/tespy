@@ -274,7 +274,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        T_m = 0.5 * (i.calc_T(T0=i.T.val_SI) + o.calc_T(T0=o.T.val_SI))
+        T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         iam = (
             1 - self.iam_1.val * abs(self.aoi.val)

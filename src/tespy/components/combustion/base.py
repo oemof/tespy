@@ -923,31 +923,7 @@ class CombustionChamber(Component):
                 \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
                 {M_{fluid}}\\ \forall i \in inlets
         """
-        # required to work with combustion chamber and engine
-        inl, _ = self._get_combustion_connections()
-
-        n_h = 0
-        n_c = 0
-        for f in self.fuel_list:
-            n_fuel = 0
-            for i in inl:
-                n_fuel += (
-                    i.m.val_SI * i.fluid.val[f]
-                    / inl[0].fluid.wrapper[f]._molar_mass
-                )
-                n_h += n_fuel * self.fuels[f]['H']
-                n_c += n_fuel * self.fuels[f]['C']
-
-        n_oxygen = 0
-        for i in inl:
-            n_oxygen += (
-                i.m.val_SI * i.fluid.val[self.o2]
-                / inl[0].fluid.wrapper[self.o2]._molar_mass
-            )
-
-        n_oxygen_stoich = n_h / 4 + n_c
-
-        return n_oxygen / n_oxygen_stoich - self.lamb.val
+        return self.calc_lambda() - self.lamb.val
 
     def lambda_func_doc(self, label):
         r"""
@@ -994,6 +970,46 @@ class CombustionChamber(Component):
                 self.jacobian[k, conn.m.J_col] = self.numeric_deriv(f, 'm', conn)
             for fluid in conn.fluid.is_var:
                 self.jacobian[k, conn.fluid.J_col[fluid]] = self.numeric_deriv(f, fluid, conn)
+
+    def calc_lambda(self):
+        r"""
+        Calculate oxygen to stoichimetric oxygen ration
+
+        Returns
+        -------
+        lambda : float
+            Oxygent to stoichiometric oxygen ratio.
+
+            .. math::
+
+                \lambda = \frac{\dot{m}_{f,m}}{\dot{m}_{O_2,m} \cdot
+                \left(n_{C,fuel} + 0.25 \cdot n_{H,fuel}\right)}
+
+                \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
+                {M_{fluid}}\\ \forall i \in inlets
+        """
+        inl, _ = self._get_combustion_connections()
+
+        n_h = 0
+        n_c = 0
+        for f in self.fuel_list:
+            for i in inl:
+                n_fuel = (
+                    i.m.val_SI * i.fluid.val[f]
+                    / inl[0].fluid.wrapper[f]._molar_mass
+                )
+                n_h += n_fuel * self.fuels[f]['H']
+                n_c += n_fuel * self.fuels[f]['C']
+
+        n_oxygen = 0
+        for i in inl:
+            n_oxygen += (
+                i.m.val_SI * i.fluid.val[self.o2]
+                / inl[0].fluid.wrapper[self.o2]._molar_mass
+            )
+        n_oxygen_stoich = n_h / 4 + n_c
+        return n_oxygen / n_oxygen_stoich
+
 
     def ti_func(self):
         r"""
@@ -1321,26 +1337,7 @@ class CombustionChamber(Component):
         r"""Postprocessing parameter calculation."""
         inl, _ = self._get_combustion_connections()
         self.ti.val = self.calc_ti()
-
-        n_h = 0
-        n_c = 0
-        for f in self.fuel_list:
-            n_fuel = 0
-            for i in inl:
-                n_fuel += i.m.val_SI * i.fluid.val[f] / inl[0].fluid.wrapper[f]._molar_mass
-                n_h += n_fuel * self.fuels[f]['H']
-                n_c += n_fuel * self.fuels[f]['C']
-
-        n_oxygen = 0
-        for i in inl:
-            n_oxygen += (
-                i.m.val_SI * i.fluid.val[self.o2]
-                / inl[0].fluid.wrapper[self.o2]._molar_mass
-            )
-
-        n_oxygen_stoich = n_h / 4 + n_c
-
-        self.lamb.val = n_oxygen / n_oxygen_stoich
+        self.lamb.val = self.calc_lambda()
 
     def entropy_balance(self):
         r"""

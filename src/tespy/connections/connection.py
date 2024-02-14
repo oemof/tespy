@@ -38,6 +38,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.functions import dT_mix_ph_dfluid
 from tespy.tools.fluid_properties.functions import p_sat_T
+from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
@@ -536,8 +537,9 @@ class Connection:
 
         if value is None:
             self.get_attr(key).set_attr(is_set=False)
+
             if f"{key}_ref" in self.property_data:
-                self.get_attr(key).set_attr(is_set=False)
+                self.get_attr(f"{key}_ref").set_attr(is_set=False)
             if key in ["m", "p", "h"]:
                 self.get_attr(key).is_var = True
 
@@ -752,6 +754,8 @@ class Connection:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def calc_T(self, T0=None):
+        if T0 is None:
+            T0 = self.T.val_SI
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, k, **kwargs):
@@ -932,7 +936,17 @@ class Connection:
                 )
                 logger.error(msg)
                 _converged = False
-
+            else:
+                _, Tmax = get_mixture_temperature_range(self.fluid_data)
+                if self.T.val_SI > Tmax:
+                    msg = (
+                        "The temperature value of the mixture is above the "
+                        "upper temperature limit of a mixture component. The "
+                        "resulting temperature may have larger deviations "
+                        "compared to the tolerance specified in the "
+                        "corresponding substance property library."
+                    )
+                    logger.warning(msg)
         else:
             try:
                 if not self.x.is_set:

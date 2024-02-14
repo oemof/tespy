@@ -231,7 +231,7 @@ class SolarCollector(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        T_m = 0.5 * (i.calc_T(T0=i.T.val_SI) + o.calc_T(T0=o.T.val_SI))
+        T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)

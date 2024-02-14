@@ -174,3 +174,23 @@ class CycleCloser(Component):
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
         self.fluid_deviation.val = np.linalg.norm(diff)
+
+
+    """+F+F+F+F++++START++++F+F+F+F+"""
+
+    def exergoeconomic_balance(self, T0):
+        return
+
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        # each line needs to equal 0
+        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
+        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else -1
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
+        #exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        #exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        # bei 3 aux eqs und der Komponentenbilanz wären es zu viele Gleichungen
+        for i in range(2):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+2]

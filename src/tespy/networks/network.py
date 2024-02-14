@@ -925,8 +925,8 @@ class Network:
             num_potential_fluids = len(potential_fluids)
             if num_potential_fluids == 0:
                 msg = (
-                    "The follwing connections of your network are missing any "
-                    "kind of fluid composition information:"
+                    "The following connections of your network are missing any "
+                    "kind of fluid composition information: "
                     + ", ".join([c.label for c in all_connections]) + "."
                 )
                 raise hlp.TESPyNetworkError(msg)
@@ -2228,7 +2228,6 @@ class Network:
             self.increment = self.residual * 0
 
     def update_variables(self):
-        # add the increment
         for data in self.variables_dict.values():
             if data["variable"] in ["m", "h"]:
                 container = data["obj"].get_attr(data["variable"])

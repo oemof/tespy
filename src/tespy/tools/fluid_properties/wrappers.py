@@ -186,15 +186,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.hmass()
 
     def h_pT(self, p, T):
-        if self.back_end == "INCOMP":
-            if T == (self._T_max + self._T_min) / 2:
-                T += ERR
-                self.AS.update(CP.PT_INPUTS, p, T)
-                h = self.AS.hmass() * 0.5
-                T -= 2 * ERR
-                self.AS.update(CP.PT_INPUTS, p, T)
-                h += self.AS.hmass() * 0.5
-                return h
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
 

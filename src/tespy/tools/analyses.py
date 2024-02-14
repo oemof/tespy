@@ -492,63 +492,74 @@ class ExergyAnalysis:
 
     """+F+F+F+F++++START++++F+F+F+F+"""
     def evaluate_exergoeconomics(self, Exe_Eco_Costs, Tamb):
-        print("internal busses: ", self.internal_busses)
         Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
         # TO DO: need to add checks and error messages
 
-        # DETERMINE NUMBER OF VARIABLES FOR MATRIX
+        # DETERMINE NUMBER OF VARIABLES FOR MATRIX AND THEIR POSITION
+        col_number = 0
         for comp in self.nw.comps["object"]:
             comp.Ex_C_col = {}
-            comp.C_bus = np.nan
+            comp.C_bus = {}
+            comp.C_bus["bus"] = np.nan
+            comp.C_bus["component"] = np.nan
 
-        num_bus_eq = {}
-        col_number = 0
+        for bus in self.E_F + self.E_P:
+            bus.Ex_C_col = {}
+            bus.E_external = {}
+            bus.C_external = {}
 
-        for bus in self.E_F + self.E_P + self.internal_busses:
-            bus.Ex_C_col = None
-            bus.C_external = np.nan
+            if not any([comp.component() in ["source", "sink"] for comp in bus.comps.index]):
+                # bus is connected to external source/sink
+                bus.Ex_C_col["external_bus"] = col_number
+                col_number += 1
+                #bus.Ex_C_col["external_component"] = col_number
+                #col_number += 1
+                print("bus: ", bus.label, bus.Ex_C_col)
+                # calculate exergy transportet to/from external
+                bus.E_external["bus"] = 0
+                for comp, comp_data in bus.comps.iterrows():
+                    if comp_data["base"] == "bus":
+                        bus.E_external["bus"] += comp.E_bus["massless"] # times efficiency -> NEED TO LOOK THIS UP
+                        # E_external > 0 means bus gets energy from external source
+                    else:
+                        bus.E_external["bus"] -= comp.E_bus["massless"] # times efficiency -> NEED TO LOOK THIS UP
+                        # E_external < 0 means bus gives energy to external sink
+                print("E_bus_external: ", bus.E_external["bus"], bus.label)
+                # print("bus.P.val: ", bus.P.val, bus.label) # if those were the same, no need for E_external
 
-            if bus in self.internal_busses:
-                num_bus_eq[bus.label] = 0
-            else:
-                if any([comp.component() in ["source", "sink"] for comp in bus.comps.index]):
-                    num_bus_eq[bus.label] = 0
-                else:
-                    num_bus_eq[bus.label] = 1
-                    bus.Ex_C_col = col_number
-                    if f"{bus.label}_c" in Exe_Eco_Costs:
-                        bus.C_external = Exe_Eco_Costs[f"{bus.label}_c" ] * abs(bus.P.val)
-                    col_number += 1
-
-            for comp in bus.comps.index:
+                # WRITE GIVEN POWER AND HEAT COSTS INTO OBJECTS
+                if f"{bus.label}_c" in Exe_Eco_Costs:
+                    bus.C_external["bus"] = Exe_Eco_Costs[f"{bus.label}_c"] * abs(bus.E_external["bus"])
+                    #print("bus external known costs: ", bus.C_external["bus"], bus.label)
+            for comp in bus.comps.index:                # 2 variables per component (bus based and component based)
                 if comp.component() not in ["source", "sink"]:
-                    num_bus_eq[bus.label] += 1
-                    comp.Ex_C_col[bus.label] = col_number
+                    comp.Ex_C_col[f"{bus.label}_bus"] = col_number
                     col_number += 1
+                    comp.Ex_C_col[f"{bus.label}_component"] = col_number
+                    col_number += 1
+                    print("comp bus: ", comp.label, bus.label, comp.Ex_C_col)
 
         for comp in self.nw.comps['object']:
             if comp.dissipative.val:
-                comp.Ex_C_col["_dissipative"] = col_number
+                comp.Z_col = col_number      # ändern zu comp.Ex_C_col["_dissipative"], dann auch in valve, heat exchanger
                 col_number += 1
-
+                print("dissipative: ", comp.label, col_number)
         num_variables = (
             len(self.nw.conns) * 3
             + col_number
         )
 
-        print(num_bus_eq)
+        #print(num_bus_eq)
 
-        # ASSIGN COLUMN NUMBER TO EACH VARIABLE
         for conn_num, conn in enumerate(self.nw.conns["object"]):
             conn.Ex_C_col = {
                 "therm": conn_num * 3 + col_number,
                 "mech": conn_num * 3 + 1 + col_number,
                 "chemical": conn_num * 3 + 2 + col_number
             }
-            print(col_number)
             print(conn.Ex_C_col)
 
-        # WRITE GIVEN COMPONENT, SOURCE, POWER AND HEAT COSTS INTO OBJECTS
+        # WRITE GIVEN COMPONENT AND SOURCE COSTS INTO OBJECTS
         for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
             for i, comp in enumerate(bus.comps.index):
                 if comp.component() == "source":
@@ -573,25 +584,70 @@ class ExergyAnalysis:
 
         # ADD KNOWN BUS COSTS TO MATRIX
         for bus in self.E_F:
-            # Ex_C_col should be not None for E_F if there is not a source/sink but energy output from outside
-            if bus.Ex_C_col is not None:
-                exergy_cost_matrix[counter][bus.Ex_C_col] = 1
-                exergy_cost_vector[counter] = bus.C_external
+            # bus.Ex_C_col is the position of the variable going over the system boarder (external)
+            if len(bus.Ex_C_col)>0 and len(bus.C_external)>0:
+                exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = 1
+                exergy_cost_vector[counter] = bus.C_external["bus"]
                 counter += 1
 
-        for bus in self.E_F + self.E_P + self.internal_busses:
-            if num_bus_eq[bus.label] > 0:
-                for comp, comp_data in bus.comps.iterrows():
-                    if comp_data["base"] == "bus":
-                        exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = -1
-                    else:
-                        exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = +1
+        # ADD AUXILIARY EQUATION FOR BUS
+        for bus in self.E_F + self.E_P:
+            # all outputs have same c
+            if len(bus.Ex_C_col)>0:          # connected to external
+                if bus.E_external["bus"] < 0:       # bus gives exergy to external
+                    print("bus gives exergy to external ", bus.label)
+                    for comp, comp_data in bus.comps.iterrows():
+                        if comp_data["base"] == "bus":      # goes out of bus
+                            exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = 1 / bus.E_external["bus"]
+                            exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_bus"]] = -1 / comp.E_bus["massless"]
+                            # muss mit efficiency multiplizieren um den BusExergiewert zu haben !!!!!!!!!!
+                            exergy_cost_vector[counter] = 0
+                            counter += 1
+                elif bus.E_external["bus"] > 0:    # bus needs external power
+                    print("bus needs external power ", bus.label)
+                    # find pairs of components going out of bus
+                    supplied_components = []
+                    for comp, comp_data in bus.comps.iterrows():
+                        if comp_data["base"] == "bus":      # goes out of bus
+                            supplied_components.append(comp)
+                    for i in range(len(supplied_components) -1):
+                        exergy_cost_matrix[counter][supplied_components[i].Ex_C_col[f"{bus.label}_bus"]] = 1 / supplied_components[i].E_bus["massless"]
+                        exergy_cost_matrix[counter][supplied_components[i+1].Ex_C_col[f"{bus.label}_bus"]] = -1 / supplied_components[i+1].E_bus["massless"]
+                        # muss mit efficiency multiplizieren um den BusExergiewert zu haben !!!!!!!!!!
+                        exergy_cost_vector[counter] = 0
+                        counter += 1
+            # for each component c_bus = c_component (also for internal busses)
+            if not any([comp.component() in ["source", "sink"] for comp in bus.comps.index]):
+                for comp in bus.comps.index:
+                    exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_bus"]] = 1 / comp.E_bus["massless"]
+                    # muss mit efficiency multiplizieren um den BusExergiewert zu haben !!!!!!!!!!
+                    exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_component"]] = -1 / comp.E_bus["massless"]
+                    exergy_cost_vector[counter] = 0
+                    counter += 1
+            #if len(bus.Ex_C_col)>0:          # connected to external
+            #    exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = 1 / bus.E_external["bus"]
+            #    exergy_cost_matrix[counter][bus.Ex_C_col["external_component"]] = -1 / bus.E_external["bus"]  # bus.E_external["component"]
+            #    # muss mit efficiency multiplizieren um den BusExergiewert zu haben !!!!!!!!!!
+            #    exergy_cost_vector[counter] = 0
+            #    counter += 1
 
-                if bus.Ex_C_col is not None:
-                    if bus in self.E_F:
-                        exergy_cost_matrix[counter][bus.Ex_C_col] = +1
-                    elif bus in self.E_P:
-                        exergy_cost_matrix[counter][bus.Ex_C_col] = -1
+
+        # BUS BALANCE
+        for bus in self.E_F + self.E_P + self.internal_busses:
+            if not any([comp.component() in ["source", "sink"] for comp in bus.comps.index]):              # has at leat one component that needs or supplies power
+                for comp, comp_data in bus.comps.iterrows():
+                    if comp_data["base"] == "bus":              # seen from position of bus
+                        exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_bus"]] = -1
+                        # goes out of the bus and into the component
+                    else:
+                        exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_bus"]] = +1
+                        # goes out of the component and into the bus
+
+                if len(bus.Ex_C_col) > 0:                    # bus is connected to external source/sink
+                    if bus.E_external["bus"] < 0:      # bus gives exergy to external     same as    if bus in self.E_P:
+                        exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = -1
+                    elif bus.E_external["bus"] > 0:       # bus needs exergy from external same as    elif bus in self.E_F:
+                        exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = +1
 
                 counter += 1
 
@@ -636,12 +692,11 @@ class ExergyAnalysis:
 
                     for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
                         if comp in bus.comps.index:             # if this bus is connected to this component
-                            #print("bus found")
                             if bus.comps.loc[comp, 'base'] == 'bus':
-                                exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = +1   # goes into component
+                                exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_component"]] = +1   # goes into component
                                 #print("goes in")
                             else:
-                                exergy_cost_matrix[counter][comp.Ex_C_col[bus.label]] = -1   # goes out of component
+                                exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_component"]] = -1   # goes out of component
                                 #print("goes out")
 
                     exergy_cost_vector[counter] = -comp.Z_costs
@@ -672,7 +727,7 @@ class ExergyAnalysis:
                 counter = dis_eqs[2]
 
         if counter!=num_variables:
-            print("not enough equations")
+            print("not enough equations: ", num_variables-counter, " missing")
 
         print(np.round(exergy_cost_matrix,3))
         print(np.round(exergy_cost_vector,3))
@@ -707,7 +762,8 @@ class ExergyAnalysis:
         for bus in self.E_F + self.E_P:
             for comp in bus.comps.index:
                 if not comp.component() in["source", "sink"]:
-                    comp.C_bus = C_sol[comp.Ex_C_col[bus.label]]
+                    comp.C_bus["bus"] = C_sol[comp.Ex_C_col[f"{bus.label}_bus"]]
+                    comp.C_bus["component"] = C_sol[comp.Ex_C_col[f"{bus.label}_component"]]
         """
         for conn in self.nw.conns["object"]:
             print("connection ", conn.label, "\tC_therm: ", conn.C_therm, "\tC_mech: ",
@@ -1201,14 +1257,14 @@ class ExergyAnalysis:
 
         # Exergoeconomic Results for Components
         # creating data frame here bc this is after analysis where c and C values have been calculated already
-        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_bus', 'Z', 'r', 'f']
+        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_bus_bus', 'C_bus_comp', 'Z', 'r', 'f']
         self.component_exergoec_data = pd.DataFrame(
             columns=comp_exergoec_data_cols,
             dtype='float64'
         )
         for comp in self.nw.comps['object']:
             comp_exergoec_data = [
-                comp.C_F, comp.C_P, comp.C_D, comp.C_bus, comp.Z_costs, comp.r, comp.f
+                comp.C_F, comp.C_P, comp.C_D, comp.C_bus["bus"], comp.C_bus["component"], comp.Z_costs, comp.r, comp.f
             ]
             self.component_exergoec_data.loc[comp.label] = comp_exergoec_data
 

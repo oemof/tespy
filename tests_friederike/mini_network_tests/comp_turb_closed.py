@@ -22,7 +22,7 @@ nw.add_conns(closer_2_compr, compr_2_turb, turb_2_closer)
 
 # define parameters
 turb.set_attr(eta_s=1)
-compr.set_attr(pr=2, eta_s=1)
+compr.set_attr(pr=1.5, eta_s=1)
 closer_2_compr.set_attr(fluid={'Water': 1}, m=2, p=1)
 #compr_2_turb.set_attr(T=30)
 

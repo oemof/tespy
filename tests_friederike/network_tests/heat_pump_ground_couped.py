@@ -13,7 +13,8 @@ from tespy.tools import ExergyAnalysis
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 import numpy as np
-from chemical_exergy.libChemExAhrendts import Chem_Ex
+from tespy.tools.helpers import get_chem_ex_lib
+chemexlib = get_chem_ex_lib("Ahrendts")
 
 Tgeo = 9.5      # mean geothermal temperature (mean value of ground feed and return flow)
 
@@ -129,10 +130,6 @@ T_amb = 2.8
 
 # exergy analysis
 ean = ExergyAnalysis(network=nw, E_F=[power, heat_geo], E_P=[heat_cons], E_L=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex = Chem_Ex)
-ean.print_results()
-
-'''
-The exergy balance of your network is not closed (residual value is 77.069997, but should be smaller than 0.001), you should check the component and network exergy data and check, if network is properly setup for the exergy analysis.
-'''
-
+ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
+ean.print_results(Exe_Eco_An=True)

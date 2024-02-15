@@ -34,7 +34,7 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, **kwargs):
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule, **kwargs)
 
 
-def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
+def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None, **kwargs):
     r"""
     Calculate specific physical exergy.
 
@@ -65,11 +65,11 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
-    h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
-    s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
+    h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule, **kwargs)
+    s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule, **kwargs)
     ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)
-    h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
-    s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
+    h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule, **kwargs)
+    s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule, **kwargs)
     ex_mech = (h_T0_p - h0) - Tamb * (s_T0_p - s0)
     return ex_therm, ex_mech
 

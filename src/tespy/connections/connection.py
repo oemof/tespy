@@ -1086,7 +1086,8 @@ class Connection:
         """
         self.ex_therm, self.ex_mech = fp.functions.calc_physical_exergy(
             self.h.val_SI, self.s.val_SI, self.p.val_SI, pamb, Tamb,
-            self.fluid_data, self.mixing_rule, self.T.val_SI
+            self.fluid_data, self.mixing_rule, self.T.val_SI,
+            solvent=self.solvent
         )
         self.Ex_therm = self.ex_therm * self.m.val_SI
         self.Ex_mech = self.ex_mech * self.m.val_SI

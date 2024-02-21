@@ -45,7 +45,7 @@ component_property_data = {
         #'documentation': {'float_fmt': '{:,.3f}'}
     'KPI': {
         'text': 'KPI scaling with Q',
-        'SI_unit': 'Wx',
+        'SI_unit': 'J / kg',
         'units': {
             'J / kg': 1 ,         'J / t': 1 / 1e3,
             'kJ / kg': 1e3 ,     'kJ / t': 1e3 / 1e3,

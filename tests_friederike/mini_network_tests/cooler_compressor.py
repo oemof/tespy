@@ -42,7 +42,7 @@ nw.print_results()
 
 """ +++ exergy analysis +++ """
 # define ambient
-T_amb = 5
+T_amb = 15
 p_amp = 1
 
 # define busses (no need to add them to system)
@@ -57,7 +57,7 @@ power.add_comps({'comp': cp, 'base': 'bus'})
 
 
 # exergy and exergoeconomic analysis
-hx.dissipative.val = True
+#hx.dissipative.val = True
 hx.serving_component = cp
 exe_eco_input = {'Cooler_Z': 5e1, 'Compressor_Z': 8e1, 'Working Fluid Inlet_c': 0.05, 'Cooling Water Inlet_c': 0.02, 'Power Input_c': 0.2}
 ean = ExergyAnalysis(nw, E_F=[cooling_water, power], E_P=[working_fluid], E_L=[])

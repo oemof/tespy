@@ -608,7 +608,7 @@ class ExergyAnalysis:
                     if bus.E_external["bus"] < 0:       # bus gives exergy to external
                         #print("bus gives exergy to external ", bus.label)
                         for comp in supplied_components:
-                            exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = 1 / bus.E_external["bus"]
+                            exergy_cost_matrix[counter][bus.Ex_C_col["external_bus"]] = 1 / abs(bus.E_external["bus"])
                             exergy_cost_matrix[counter][comp.Ex_C_col[f"{bus.label}_bus"]] = -1 / (comp.E_bus["massless"] ) #/ comp.calc_bus_efficiency(bus)
                             # is comp.E_bus the component value of the bus
                             exergy_cost_vector[counter] = 0

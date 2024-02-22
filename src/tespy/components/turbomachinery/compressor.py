@@ -747,7 +747,7 @@ class Compressor(Turbomachine):
             self.C_F = self.C_bus + (
                     self.inl[0].C_therm - self.outl[0].C_therm)
 
-        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+        print(self.label, "difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
@@ -757,8 +757,8 @@ class Compressor(Turbomachine):
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # each line needs to equal 0
-        # c_1ch = c_2chq
-        # c_2th - c_1th = c_2mech - c_1mech
+        # c_in_ch = c_out_ch
+        # c_out_th - c_in_th = c_out_mech - c_in_mech  ->  c_out_th - c_in_th - c_out_mech + c_in_mech = 0
         exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
         exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
         exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["therm"]] = -1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else -1

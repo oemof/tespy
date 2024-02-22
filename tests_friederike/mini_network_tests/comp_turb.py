@@ -25,7 +25,7 @@ nw.add_conns(so_2_compr, compr_2_turb, turb_2_si)
 turb.set_attr(eta_s=0.8)
 compr.set_attr(pr=2, eta_s=0.9)
 so_2_compr.set_attr(fluid={'Water': 1}, T=600, p=100,  m=20)
-turb_2_si.set_attr(T=30)
+turb_2_si.set_attr(p=1.1)
 
 # solve
 nw.solve(mode='design')

@@ -25,11 +25,11 @@ nw.add_conns(so_2_compr, compr_2_turb,
                      turb_2_valv, valv_2_si)
 
 # define parameters
-turb.set_attr(eta_s=0.8)
 compr.set_attr(pr=2, eta_s=0.9)
-valv.set_attr(pr=0.5)
+valv.set_attr(pr=0.9)
+turb.set_attr(eta_s=0.8)
 so_2_compr.set_attr(fluid={'Water': 1}, T=600, p=100,  m=20)
-turb_2_valv.set_attr(T=30)
+turb_2_valv.set_attr(T=200)
 
 # solve
 nw.solve(mode='design')
@@ -44,7 +44,7 @@ Tamb = 15
 # define busses
 power = Bus('power output')
 power.add_comps(
-    {'comp': turb, 'char': 0.6, 'base': 'component'}, {'comp': compr, 'char': 1, 'base': 'bus'})
+    {'comp': turb, 'char': 0.6, 'base': 'component'}, {'comp': compr, 'char': 0.9, 'base': 'bus'})
 
 hot_steam = Bus('fresh steam dif')
 hot_steam.add_comps(

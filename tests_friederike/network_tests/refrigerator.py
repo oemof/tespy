@@ -84,7 +84,6 @@ exe_eco_input = {'Turbine_Z': 7e3, 'Compressor_Z': 5e3, 'Cooling heat exchanger_
                  'Heat sink heat exchanger_Z': 1e3, 'Water source_c': 0.001, 'Air source_c': 0.001,
                  'power input_c': 0.01}
 ean = ExergyAnalysis(network=nw, E_F=[power], E_P=[cool_product_bus], E_L=[heat_loss_bus], internal_busses=[])
-# power is fuel but also internal bus -> how to implement this??
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)

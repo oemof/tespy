@@ -131,5 +131,4 @@ T_amb = 2.8
 # exergy analysis
 ean = ExergyAnalysis(network=nw, E_F=[power, heat_geo], E_P=[heat_cons], E_L=[])
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
-ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
-ean.print_results(Exe_Eco_An=True)
+ean.print_results()

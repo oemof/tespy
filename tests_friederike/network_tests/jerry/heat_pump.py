@@ -3,6 +3,8 @@ from tespy.components import (HeatExchanger, Compressor, CycleCloser, Valve, Sou
 from tespy.connections import Connection, Bus
 from CoolProp.CoolProp import PropsSI as CPSI
 from tespy.tools import ExergyAnalysis
+from tespy.tools.helpers import get_chem_ex_lib
+chemexlib = get_chem_ex_lib("Ahrendts")
 #import plotly.graph_objects as go
 
 wf = 'R1233ZD(E)'       # REFPROP::
@@ -101,10 +103,13 @@ nw.print_results()
 p_umg = 1
 T_umg = 25
 
+# exergy and exergoeconomic analysis
+exe_eco_input = {'Gaskühler_Z': 5, 'Drossel_Z': 2, 'Kompressor_Z': 4, 'Verdampfer_Z': 4,
+                 'Quelle ein_c': 0.02, 'Senke ein_c': 0.01, 'elektrische Leistung_c': 0.1}
 ean = ExergyAnalysis(nw, E_P=[wae_ab], E_F=[el, wae_zu])
 ean.analyse(pamb=p_umg, Tamb=T_umg)
-ean.print_results()
-print(ean.network_data.loc['epsilon'])
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_umg)
+ean.print_results(Exe_Eco_An=True)
 
 """
 # Erstellung des Grassmanndiagramms

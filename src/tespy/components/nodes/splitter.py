@@ -267,14 +267,14 @@ class Splitter(NodeBase):
             print("there should be a serving component, you shouldn't see this")
         for comp in self.serving_components:
             print("serving component: ", comp.label)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] = 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] = 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] += 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] += 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] += 1/len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.Z_col] = 1/len(self.serving_components)
             for o in self.outl:
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["therm"]] = -1/len(self.serving_components)
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["mech"]] = -1/len(self.serving_components)
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["chemical"]] = -1/len(self.serving_components)
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["therm"]] += -1/len(self.serving_components)
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["mech"]] += -1/len(self.serving_components)
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["chemical"]] += -1/len(self.serving_components)
 
         exergy_cost_matrix[counter+3*(len(self.outl)-1)+3, self.Z_col] = 1
         exergy_cost_vector[counter+3*(len(self.outl)-1)+3] = self.Z_costs

@@ -426,12 +426,12 @@ class Valve(Component):
 
     def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # nothing changes for the working fluid
-        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
-        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
-        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-        exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-        exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 0
+        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 0
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 0
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_therm != 0 else 0
+        exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 0
+        exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 0
 
         for i in range(2):
             exergy_cost_vector[counter+i]=0
@@ -459,10 +459,10 @@ class Valve(Component):
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
             print("you shouldn't see this")
         elif self.outl[0].T.val_SI <= T0:
-            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech!= 0 else 0
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 0
+            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 0
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else 0
         else:
             msg = ('Exergy balance of a valve, where outlet temperature is '
                    'larger than inlet temperature is not implmented.')

@@ -764,17 +764,17 @@ class ExergyAnalysis:
             conn.C_chemical = C_sol[conn.Ex_C_col["chemical"]]
             conn.C_tot = conn.C_physical + conn.C_chemical
 
-            conn.c_therm = conn.C_therm / conn.Ex_therm
-            conn.c_mech = conn.C_mech / conn.Ex_mech
-            conn.c_physical = conn.C_physical / conn.Ex_physical
-            conn.c_chemical = conn.C_chemical / conn.Ex_chemical
-            conn.c_tot = conn.C_tot / (conn.Ex_physical + conn.Ex_chemical)
+            conn.c_therm = conn.C_therm / conn.Ex_therm if conn.Ex_therm != 0 else 0
+            conn.c_mech = conn.C_mech / conn.Ex_mech if conn.Ex_mech != 0 else 0
+            conn.c_physical = conn.C_physical / conn.Ex_physical if conn.Ex_physical != 0 else 0
+            conn.c_chemical = conn.C_chemical / conn.Ex_chemical if conn.Ex_chemical != 0 else 0
+            conn.c_tot = conn.C_tot / (conn.Ex_physical + conn.Ex_chemical) if (conn.Ex_physical + conn.Ex_chemical) != 0 else 0
 
         for bus in self.E_F + self.E_P:
             for comp, comp_data in bus.comps.iterrows():
                 if not comp.component() in["source", "sink"]:
                     comp.C_bus = C_sol[comp.Ex_C_col[f"{bus.label}_bus"]]
-                    comp.c_bus["bus"] = comp.C_bus / comp.E_bus["massless"]
+                    comp.c_bus["bus"] = comp.C_bus / comp.E_bus["massless"] if comp.E_bus["massless"] != 0 else 0
                     if comp_data["base"] == "bus":
                         comp.c_bus["component"] = comp.c_bus["bus"] / comp.calc_bus_efficiency(bus)
                     else:

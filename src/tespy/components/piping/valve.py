@@ -397,7 +397,7 @@ class Valve(Component):
 
     def exergoeconomic_balance(self, T0):
         if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            self.C_F = np.nan
+            self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
             self.C_P = np.nan
             # dissipative
             #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical

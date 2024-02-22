@@ -5,6 +5,8 @@ from tespy.networks import Network
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
+testCase = 3
+
 # network
 nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
 
@@ -18,10 +20,19 @@ so_v = Connection(so, 'out1', v, 'in1', label='in')
 v_si = Connection(v, 'out1', si, 'in1', label='out')
 nw.add_conns(so_v, v_si)
 
-# determine parameters
+# define parameters
 v.set_attr(offdesign=['zeta'])
-so_v.set_attr(fluid={'CH4': 1}, m=1, p=1.5, design=['m'])
-v_si.set_attr(T=20, p=1.2) # non-dissipative
+so_v.set_attr(fluid={'CH4': 1}, m=1, design=['m'])
+match testCase:
+    case 1:         # Tin, Tout > T0  -> dissipativ
+        so_v.set_attr(p=1.5)
+        v_si.set_attr(T=70, p=1.2) # non-dissipative
+    case 2:         # Tin > T0, Tout <= T0
+        so_v.set_attr(p=1.5)
+        v_si.set_attr(T=49.9, p=1.2) # non-dissipative
+    case 3:         # Tin, Tout <= T0
+        so_v.set_attr(p=1.5)
+        v_si.set_attr(T=20, p=1.2) # non-dissipative
 
 # solve
 nw.solve('design')

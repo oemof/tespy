@@ -5,7 +5,7 @@ from tespy.tools import ExergyAnalysis
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
-testCase = 1            # (1: out > T0, 2: out = T0, 3: out < T0)
+testCase = 3            # (1: out > T0, 2: out = T0, 3: out < T0)
 numInlets = 2           # 2 or 3
 
 # network

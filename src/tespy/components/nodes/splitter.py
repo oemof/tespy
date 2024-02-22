@@ -235,9 +235,10 @@ class Splitter(NodeBase):
         }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
+        self.dissipative.val = True
 
     def exergoeconomic_balance(self, T0):
-        self.C_P = sum(conn.C_physical for conn in self.outl)
+        self.C_P = np.nan
         self.C_F = self.inl[0].C_physical
 
         print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
@@ -249,7 +250,38 @@ class Splitter(NodeBase):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
 
-    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        for i, o in enumerate(self.outl):
+            exergy_cost_matrix[counter+3*i, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
+            exergy_cost_matrix[counter+3*i, o.Ex_C_col["therm"]] = -1 / o.Ex_therm
+            exergy_cost_matrix[counter+3*i+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+            exergy_cost_matrix[counter+3*i+1, o.Ex_C_col["mech"]] = -1 / o.Ex_mech
+            exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
+            exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical
+
+        for i in range(len(self.outl)):
+            exergy_cost_vector[counter+i]=0
+
+        # füge die dissipativen Kosten der Komponente(n) zu, die davon profitiert/-en
+        if self.serving_components is None:
+            print("there should be a serving component, you shouldn't see this")
+        for comp in self.serving_components:
+            print("serving component: ", comp.label)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.Z_col] = 1/len(self.serving_components)
+            for o in self.outl:
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["therm"]] = -1/len(self.serving_components)
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["mech"]] = -1/len(self.serving_components)
+                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["chemical"]] = -1/len(self.serving_components)
+
+        exergy_cost_matrix[counter+3*(len(self.outl)-1)+3, self.Z_col] = 1
+        exergy_cost_vector[counter+3*(len(self.outl)-1)+3] = self.Z_costs
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+3*(len(self.outl)-1)+3]
+
+        """
         exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm
         exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
         for i in range (len(self.outl)-1):
@@ -265,14 +297,4 @@ class Splitter(NodeBase):
             exergy_cost_vector[counter+i]=0
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+1+2*(len(self.outl)-1)+len(self.outl)]
-
-        """entsprechend Jubrans Code, aber das kann nicht stimmen
-        self.exergy_cost_matrix = np.zeros([3*len(self.outl), num_variables])
-        for i, o in enumerate(self.outl):
-            exergy_cost_matrix[counter+3*i, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
-            exergy_cost_matrix[counter+3*i, o.Ex_C_col["therm"]] = -1 / o.Ex_therm
-            exergy_cost_matrix[counter+3*i+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-            exergy_cost_matrix[counter+3*i+1, o.Ex_C_col["mech"]] = -1 / o.Ex_mech
-            exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-            exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical
         """

@@ -737,14 +737,14 @@ class Compressor(Turbomachine):
     def exergoeconomic_balance(self, T0):
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
             self.C_P = self.outl[0].C_physical - self.inl[0].C_physical
-            self.C_F = self.C_bus["bus"]
+            self.C_F = self.C_bus
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
             self.C_P = self.outl[0].C_therm + (
                     self.outl[0].C_mech - self.inl[0].C_mech)
-            self.C_F = self.C_bus["bus"] + self.inl[0].C_therm
+            self.C_F = self.C_bus + self.inl[0].C_therm
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
             self.C_P = self.outl[0].C_mech - self.inl[0].C_mech
-            self.C_F = self.C_bus["bus"] + (
+            self.C_F = self.C_bus + (
                     self.inl[0].C_therm - self.outl[0].C_therm)
 
         print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))

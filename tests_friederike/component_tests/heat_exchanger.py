@@ -5,7 +5,7 @@ from tespy.tools import ExergyAnalysis
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
-testCase = 6
+testCase = 5
 
 nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
 

@@ -573,3 +573,42 @@ class Pump(Turbomachine):
         }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
+
+    """+F+F+F+F++++START++++F+F+F+F+"""
+    def exergoeconomic_balance(self, T0):
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.C_P = self.outl[0].C_physical - self.inl[0].C_physical
+            self.C_F = self.C_bus
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
+            self.C_P = self.outl[0].C_therm + (
+                    self.outl[0].C_mech - self.inl[0].C_mech)
+            self.C_F = self.C_bus + self.inl[0].C_therm
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = self.outl[0].C_mech - self.inl[0].C_mech
+            self.C_F = self.C_bus + (
+                    self.inl[0].C_therm - self.outl[0].C_therm)
+
+        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.C_P - self.C_F) / self.C_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        # each line needs to equal 0
+        # c_1ch = c_2chq
+        # c_2th - c_1th = c_2mech - c_1mech
+        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["therm"]] = -1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else -1
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 1
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
+
+        for i in range(2):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+2]
+    """+F+F+F+F++++END++++F+F+F+F+"""

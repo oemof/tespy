@@ -137,6 +137,9 @@ class Component:
         self.r = np.nan
         self.f = np.nan
         self.C_bus = np.nan
+        self.c_bus = {}
+        self.c_bus["bus"] = np.nan
+        self.c_bus["component"] = np.nan
         self.dissipative = dc_simple(val=False)
         self.serving_components = None
         self.exergy_cost_line = np.nan
@@ -890,14 +893,8 @@ class Component:
 
     """+F+F+F+F++++START++++F+F+F+F+"""
     def exergoeconomic_balance(self, T0):
-        self.Z_costs = np.nan        # will be overwritten in each component
-        self.C_F = np.nan
-        self.C_P = np.nan
-        self.c_F = self.C_F / self.E_F
-        self.c_P = self.C_P / self.E_P
-        self.C_D = self.c_F * self.E_D
-        self.r = (self.C_P - self.C_F) / self.C_F
-        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+        # will be overwritten in each component
+        return
     """+F+F+F+F++++END++++F+F+F+F+"""
 
     def _calc_epsilon(self):

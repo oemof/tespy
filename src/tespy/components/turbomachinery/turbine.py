@@ -582,14 +582,14 @@ class Turbine(Turbomachine):
     """+F+F+F+F++++START++++F+F+F+F+"""
     def exergoeconomic_balance(self, T0):
         if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.C_P = self.C_bus["bus"]                                         # Jubran: self.C_P = self.C_F + self.Z_costs
+            self.C_P = self.C_bus                                         # Jubran: self.C_P = self.C_F + self.Z_costs
             self.C_F = self.inl[0].C_physical - self.outl[0].C_physical     # same as Jubran
         elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
-            self.C_P = self.C_bus["bus"]  + self.outl[0].C_therm
+            self.C_P = self.C_bus  + self.outl[0].C_therm
             self.C_F = self.inl[0].C_therm + (                               # same as Jubran
                     self.inl[0].C_mech - self.outl[0].C_mech)
         elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.C_P = self.C_bus["bus"]  + (
+            self.C_P = self.C_bus  + (
                     self.outl[0].C_therm - self.inl[0].C_therm)
             self.C_F = self.inl[0].C_mech - self.outl[0].C_mech              # same as Jubran
 

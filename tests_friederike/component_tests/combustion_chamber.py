@@ -5,7 +5,7 @@ from tespy.tools import ExergyAnalysis
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
-testCase = 1
+testCase = 2
 
 nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
 
@@ -24,16 +24,23 @@ nw.add_conns(c1, c2, c3)
 
 # define parameters
 match testCase:
-    case 1:
+    case 1: # lambda > 1
         chamber.set_attr(ti=10e6, lamb=1.5)
-    case 2:
-        chamber.set_attr(ti=10e6, lamb=1.5)
-c1.set_attr(
-    p=1.0, T=20,
-    fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314})
-c2.set_attr(
-    T=20,
-    fluid={"CO2": 0.04, "CH4": 0.96})
+        c1.set_attr(
+            p=1.0, T=20,
+            fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314})
+        c2.set_attr(
+            T=20,
+            fluid={"CO2": 0.04, "CH4": 0.96})
+    case 2: # lambda = 1
+        # outlet temperature too high...
+        chamber.set_attr(ti=10e1, lamb=1)
+        c1.set_attr(
+            p=1.0, T=20,
+            fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314})
+        c2.set_attr(
+            T=20,
+            fluid={"H2": 1})
 
 # solve
 nw.solve(mode='design')

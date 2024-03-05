@@ -15,11 +15,44 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 import CoolProp.CoolProp as CP
+from CoolProp.CoolProp import PropsSI as CPPSI
 
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data
+from tespy.tools.global_vars import molar_masses
+
+
+def mass_flow(flow):
+    r"""
+    Calculate mass flow from mol flow.
+
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass fraction
+        fluid composition.
+
+    Returns
+    -------
+    m_m : dict
+          mass fraction fluid composition m_m / ( ).
+
+        .. math::
+
+            \dot{m}_\mathrm{m} = \frac{x_{i} \cdot M_{i}}{M_{sum}}
+    """
+    molmass = 0
+    mass_fractions = {}
+    for f, back_end in flow.items():
+        molar_masses[f] = CPPSI('M', f)
+    for fluid, n in flow.items():
+        if n > ERR:
+            molmass += n * molar_masses[fluid]
+    for fluid, n in flow.items():
+        mass_fractions[fluid] = n * molar_masses[fluid] / molmass
+    return mass_fractions
 
 
 def get_all_subdictionaries(data):

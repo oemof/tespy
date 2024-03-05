@@ -1,39 +1,48 @@
 from tespy.networks import Network
-from tespy.components import (DiabaticCombustionChamber, Turbine, Source, Sink, Compressor)
+from tespy.components import (CombustionChamber, Turbine, Source, Sink, Compressor)
 from tespy.connections import Connection, Ref, Bus
 from tespy.tools import ExergyAnalysis
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
+# entsprechend Tut3 aufgebaut
+
 nw = Network(p_unit="bar", T_unit="C")
 
 # components
 cp = Compressor("compressor")
-cc = DiabaticCombustionChamber("combustion chamber")
+cc = CombustionChamber("combustion chamber")
 tu = Turbine("turbine")
 air = Source("air source")
 fuel = Source("fuel source")
 fg = Sink("flue gas sink")
 
 # connections
-c1 = Connection(air, "out1", cp, "in1", label="1")
-c2 = Connection(cp, "out1", cc, "in1", label="2")
-c3 = Connection(cc, "out1", tu, "in1", label="3")
-c4 = Connection(tu, "out1", fg, "in1", label="4")
+c3 = Connection(air, "out1", cp, "in1", label="3")
+c4 = Connection(cp, "out1", cc, "in1", label="4")
+c6 = Connection(cc, "out1", tu, "in1", label="6")
+c7 = Connection(tu, "out1", fg, "in1", label="7")
 c5 = Connection(fuel, "out1", cc, "in2", label="5")
-nw.add_conns(c1, c2, c3, c4, c5)
+nw.add_conns(c3, c4, c6, c7, c5)
 
 # define parameters
-cc.set_attr(pr=1, eta=1)
-cp.set_attr(eta_s=0.85, pr=15)
-tu.set_attr(eta_s=0.90)
-c1.set_attr(
-    p=1, T=20,
-    fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
+c3.set_attr(
+    m=151, p=4.5, T=100,
+    fluid={"Ar": 0, "N2": 0.79, "CO2": 0, "O2": 0.21}
 )
-c3.set_attr(m=30)
-c4.set_attr(p=1)
-c5.set_attr(m=1, p=Ref(c2, 1, 0), T=100, fluid={"CO2": 0.03, "CH4": 0.92, "H2": 0.05})
+c4.set_attr(p=20, T=326.3)
+#c6.set_attr(T=1308.87)
+c7.set_attr(p=1.1, T=609.86)
+c5.set_attr(m=3.83, T=25, fluid={"CH4": 1})
+"""c3.set_attr(
+    m=151, p=4.5, T=100,
+    fluid={"Ar": 0, "N2": 0.79, "CO2": 0, "O2": 0.21}
+)
+c4.set_attr(p=20, T=326.3)
+#c6.set_attr(T=1308.87)
+c7.set_attr(p=1.1, T=609.86)
+c5.set_attr(m=3.83, T=25, fluid={"CH4": 1})
+"""
 
 
 # bus representing generated electricity
@@ -51,8 +60,8 @@ nw.print_results()
 
 """ +++ exergy analysis +++ """
 # define ambient
-T_amb = 10
-p_amp = 1
+T_amb = 25
+p_amp = 1.02
 
 # define busses (no need to add them to system)
 fuel_bus = Bus("fuel")
@@ -65,11 +74,3 @@ loss_bus.add_comps({"comp": fg, "base": "component"})
 ean = ExergyAnalysis(network=nw, E_F=[fuel_bus], E_P=[generator], E_L=[loss_bus])
 ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.print_results()
-
-'''
-ex_cond += molar_liquid * y[0]
-               ~~~~~~~~~~~~~^~~~~~
-TypeError: can't multiply sequence by non-int of type 'numpy.float64'
-
-something with the condensation check goes wrong...
-'''

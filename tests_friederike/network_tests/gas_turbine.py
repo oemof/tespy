@@ -61,7 +61,7 @@ nw.print_results()
 """ +++ exergy analysis +++ """
 # define ambient
 T_amb = 25
-p_amp = 1.02
+p_amb = 1.02
 
 # define busses (no need to add them to system)
 fuel_bus = Bus("fuel")
@@ -72,5 +72,5 @@ loss_bus.add_comps({"comp": fg, "base": "component"})
 
 # exergy analysis
 ean = ExergyAnalysis(network=nw, E_F=[fuel_bus], E_P=[generator], E_L=[loss_bus])
-ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex=chemexlib)
+ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.print_results()

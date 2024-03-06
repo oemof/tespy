@@ -686,9 +686,21 @@ class ExergyAnalysis:
                 # and has an associated cost value or is a cycle closer (-> cost value = 0)
                 # TO DO: error message if Z_cost is nan
                 # make a check for all component Z cost simultaneously
-                if not (comp.component() in ["source", "sink"] or np.isnan(comp.Z_costs)) or comp.component() == "cycle closer":
-                    if comp.component() == "cycle closer":
-                        comp.Z_costs = 0
+                if comp.component() == "cycle closer":
+                    exergy_cost_matrix[counter][comp.inl[0].Ex_C_col["therm"]] = +1
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["therm"]] = -1
+                    exergy_cost_vector[counter] = 0
+                    counter +=1
+                    exergy_cost_matrix[counter][comp.inl[0].Ex_C_col["mech"]] = +1
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["mech"]] = -1
+                    exergy_cost_vector[counter] = 0
+                    counter +=1
+                    exergy_cost_matrix[counter][comp.inl[0].Ex_C_col["chemical"]] = +1
+                    # bei Kreisprozessen muss ein Wert vorgegeben werden damit das System lösbar ist
+                    #exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["chemical"]] = -1
+                    exergy_cost_vector[counter] = 0
+                    counter +=1
+                if not (comp.component() in ["source", "sink", "cycle closer"] or np.isnan(comp.Z_costs)):
                     for comp_inl in comp.inl:
                         exergy_cost_matrix[counter][comp_inl.Ex_C_col["therm"]] = +1         # thermal exergy related costs
                         exergy_cost_matrix[counter][comp_inl.Ex_C_col["mech"]] = +1          # mechanical exergy related costs
@@ -729,7 +741,7 @@ class ExergyAnalysis:
                         print("Network consists of dissipative component only")
                     comp.serving_components = []
                     for c in self.nw.comps['object']:
-                        if not c == comp and not c.component() in ["source", "sink"]:
+                        if not c == comp and not c.component() in ["source", "sink", "cycle closer"] and not c.dissipative.val:
                             comp.serving_components.append(c)
                 dis_eqs = comp.dissipative_balance(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
                 # print(dis_eqs)

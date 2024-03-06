@@ -135,7 +135,7 @@ nw.add_busses(power, heat_cons, heat_geo)
 # %% key parameter
 cd.set_attr(Q=-4e3)
 nw.solve('design')
-
+nw.print_results()
 
 # exergy and exergoeconomic analysis
 exe_eco_input = {'condenser_Z': 100, 'evaporator_Z': 80, 'valve_Z': 20, 'compressor_Z': 50,

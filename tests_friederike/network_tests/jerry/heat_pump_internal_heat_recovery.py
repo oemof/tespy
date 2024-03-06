@@ -109,10 +109,16 @@ nw.print_results()
 p_umg = 1
 T_umg = 25
 
+# exergy and exergoeconomic analysis
+exe_eco_input = {'Gaskühler_Z': 5, 'Drossel_Z': 2,
+                 'Kompressor_Z': 4, 'Verdampfer_Z': 4,
+                 'Interner Wärmeübertrager_Z': 2,
+                 'Quelle ein_c': 0.02, 'Senke ein_c': 0.01, 'elektrische Leistung_c': 0.1}
 ean = ExergyAnalysis(nw, E_P=[wae_ab], E_F=[el, wae_zu])
 ean.analyse(pamb=p_umg, Tamb=T_umg)
-ean.print_results()
-print(ean.network_data.loc['epsilon'])
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_umg)
+ean.print_results(Exe_Eco_An=True)
+#print(ean.network_data.loc['epsilon'])
 
 """
 # Erstellung des Grassmanndiagramms

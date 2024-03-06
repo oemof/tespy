@@ -48,7 +48,7 @@ power_in.add_comps(
 
 
 # can't define power input costs for compressor: need to add this part in code
-exe_eco_input = {'power input_c': 10, 'Turbine_Z': 50, 'Compressor_Z': 40}
+exe_eco_input = {'power input_c': 10, 'Turbine_Z': 50, 'Compressor_Z': 50}
 ean = ExergyAnalysis(nw, E_P=[power_out], E_F=[power_in], E_L=[], internal_busses=[])
 ean.analyse(pamb=pamb, Tamb=Tamb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Tamb=Tamb, Exe_Eco_Costs=exe_eco_input)

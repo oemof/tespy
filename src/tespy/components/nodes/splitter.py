@@ -251,13 +251,14 @@ class Splitter(NodeBase):
 
 
     def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        # either all Ex 0 or or unequal 0
         for i, o in enumerate(self.outl):
-            exergy_cost_matrix[counter+3*i, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm
-            exergy_cost_matrix[counter+3*i, o.Ex_C_col["therm"]] = -1 / o.Ex_therm
-            exergy_cost_matrix[counter+3*i+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-            exergy_cost_matrix[counter+3*i+1, o.Ex_C_col["mech"]] = -1 / o.Ex_mech
-            exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-            exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical
+            exergy_cost_matrix[counter+3*i, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
+            exergy_cost_matrix[counter+3*i, o.Ex_C_col["therm"]] = -1 / o.Ex_therm if o.Ex_therm != 0 else -1
+            exergy_cost_matrix[counter+3*i+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+            exergy_cost_matrix[counter+3*i+1, o.Ex_C_col["mech"]] = -1 / o.Ex_mech if o.Ex_mech != 0 else .1
+            exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+            exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical if o.Ex_chemical != 0 else -1
 
         for i in range(len(self.outl)):
             exergy_cost_vector[counter+i]=0

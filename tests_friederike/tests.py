@@ -1,4 +1,14 @@
 import numpy as np
+
+A=np.array([[1,-1],
+            [-1,1]])
+b=np.array([2,2])
+print([b])
+print(np.append(A,b,1))
+print(np.linalg.matrix_rank(A))
+print(np.linalg.matrix_rank(A,b))
+print(np.linalg.solve(A,b))
+
 """
 # HEAT PUMP JERRY
   #P_ext   P_bus  P_comp  Z_dros 21t    21m    21ch   22t    22m    22ch    23t    23m    23ch   24t    24m    24ch   cct    ccm    ccch   11t     11m    11ch   12t   12m    12ch    13t    13m    13ch   14t    14m     14ch

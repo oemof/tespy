@@ -798,7 +798,8 @@ class ExergyAnalysis:
         # exergoeconomic balance (C_F, C_P, C_L) of components
         for cp in self.nw.comps['object']:
             cp.exergoeconomic_balance(Tamb_SI)
-            # self.evaluate_bus_costs(cp)
+            if not cp.component() in["source", "sink", "cycle closer"]:
+                cp.calc_C_L()
 
         # exergoeconomic analysis of network
         self.network_data_exergo = pd.Series(
@@ -1281,14 +1282,14 @@ class ExergyAnalysis:
 
         # Exergoeconomic Results for Components
         # creating data frame here bc this is after analysis where c and C values have been calculated already
-        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_bus', 'Z', 'r', 'f']
+        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_L', 'C_bus', 'Z', 'r', 'f']
         self.component_exergoec_data = pd.DataFrame(
             columns=comp_exergoec_data_cols,
             dtype='float64'
         )
         for comp in self.nw.comps['object']:
             comp_exergoec_data = [
-                comp.C_F, comp.C_P, comp.C_D, comp.C_bus, comp.Z_costs, comp.r, comp.f
+                comp.C_F, comp.C_P, comp.C_D, comp.C_L, comp.C_bus, comp.Z_costs, comp.r, comp.f
             ]
             self.component_exergoec_data.loc[comp.label] = comp_exergoec_data
 

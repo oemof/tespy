@@ -24,7 +24,7 @@ ds_si_liq = Connection(ds, 'out1', si_liq, 'in1', label='Liquid')
 nw.add_conns(so_ds, ds_si_gas, ds_si_liq)
 
 # define parameters
-so_ds.set_attr(x=0.5, p=1, fluid={'Water': 1}, m=5)
+so_ds.set_attr(x=0.5, p=1.2, fluid={'Water': 1}, m=5)
 
 # solve
 nw.solve('design')

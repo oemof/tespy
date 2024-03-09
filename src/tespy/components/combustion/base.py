@@ -1420,6 +1420,23 @@ class CombustionChamber(Component):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        if self.outl[0].Ex_mech != 0 and self.inl[0].Ex_mech  != 0 and self.inl[1].Ex_mech  != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech * self.inl[0].m.val / (self.inl[0].m.val + self.inl[1].m.val)
+            exergy_cost_matrix[counter+0, self.inl[1].Ex_C_col["mech"]] = 1 / self.inl[1].Ex_mech * self.inl[1].m.val / (self.inl[0].m.val + self.inl[1].m.val)
+        elif self.outl[0].Ex_mech == 0 and self.inl[0].Ex_mech  != 0 and self.inl[1].Ex_mech  != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = 1
+        elif self.outl[0].Ex_mech != 0 and self.inl[0].Ex_mech  == 0 and self.inl[1].Ex_mech  != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            exergy_cost_matrix[counter+0, self.inl[1].Ex_C_col["mech"]] = 1 / self.inl[1].Ex_mech * self.inl[1].m.val / (self.inl[0].m.val + self.inl[1].m.val)
+        elif self.outl[0].Ex_mech != 0 and self.inl[0].Ex_mech  != 0 and self.inl[1].Ex_mech  == 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech * self.inl[0].m.val / (self.inl[0].m.val + self.inl[1].m.val)
+
+        # need to check this!!
+        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        """
         # each line needs to equal 0
         if self.lamb.val > 1:
             exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
@@ -1434,7 +1451,7 @@ class CombustionChamber(Component):
             exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
         else:
             print("combustion chamber with lambda <1 not implemented")
-
+        """
         for i in range(2):
             exergy_cost_vector[counter+i]=0
 

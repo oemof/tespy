@@ -451,14 +451,29 @@ class DropletSeparator(NodeBase):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        # chemical exergy doesn't change
         exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
         exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
         exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
         exergy_cost_matrix[counter+1, self.outl[1].Ex_C_col["chemical"]] = -1 / self.outl[1].Ex_chemical if self.outl[1].Ex_chemical != 0 else -1
-        exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else 1
-        exergy_cost_matrix[counter+2, self.outl[1].Ex_C_col["therm"]] = -1 / self.outl[1].Ex_therm if self.outl[1].Ex_therm != 0 else -1
+        # product is both thermal and mechanical exergy of both outlets
+        # if one of E is 0 and the others aren't:
+        # only the other form of exergy is part of the product
+        # therm_out
+        if self.outl[0].Ex_therm != 0 and self.outl[1].Ex_therm != 0:
+            exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm
+            exergy_cost_matrix[counter+2, self.outl[1].Ex_C_col["therm"]] = -1 / self.outl[1].Ex_therm
+        elif self.outl[0].Ex_therm == 0 and self.outl[1].Ex_therm != 0:
+            exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["therm"]] = 1
+        elif self.outl[0].Ex_therm != 0 and self.outl[1].Ex_therm == 0:
+            exergy_cost_matrix[counter+2, self.outl[1].Ex_C_col["therm"]] = 1
+        else:
+            exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["therm"]] = 1
+            exergy_cost_matrix[counter+2, self.outl[1].Ex_C_col["therm"]] = -1
+        # mech_out: e^P shoudlt be the same of both outlets
         exergy_cost_matrix[counter+3, self.outl[0].Ex_C_col["mech"]] = 1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
         exergy_cost_matrix[counter+3, self.outl[1].Ex_C_col["mech"]] = -1 / self.outl[1].Ex_mech if self.outl[1].Ex_mech != 0 else -1
+        # therm_out = mech_out
         if self.outl[0].Ex_therm != 0 and self.outl[0].Ex_mech != 0:
             exergy_cost_matrix[counter+4, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm
             exergy_cost_matrix[counter+4, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech

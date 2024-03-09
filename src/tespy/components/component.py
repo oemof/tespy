@@ -134,6 +134,7 @@ class Component:
         self.c_F = np.nan
         self.c_P = np.nan
         self.C_D = np.nan
+        self.C_L = np.nan
         self.r = np.nan
         self.f = np.nan
         self.C_bus = np.nan
@@ -1279,4 +1280,6 @@ class Component:
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         return [exergy_cost_matrix, exergy_cost_vector, counter]
 
+    def calc_C_L(self):
+        self.C_L = self.C_P - self.C_F - self.Z_costs
     """+F+F+F+F++++END++++F+F+F+F+"""

@@ -52,10 +52,11 @@ c22.set_attr(p=1.5, T=40)
 
 
 # busses
-power = Bus('power input')
-power.add_comps(
-    {'comp': turb, 'char': 0.95, 'base': 'component'},
-    {'comp': cp, 'char': 0.9, 'base': 'bus'})
+power_in = Bus('power input')
+power_in.add_comps({'comp': cp, 'char': 0.9, 'base': 'bus'})
+
+power_out = Bus('power output')
+power_out.add_comps({'comp': turb, 'char': 0.95, 'base': 'component'})
 
 cool_product_bus = Bus('cooling')
 cool_product_bus.add_comps(
@@ -67,7 +68,7 @@ heat_loss_bus.add_comps(
     {'comp': water_in, 'base': 'bus'},
     {'comp': water_out})
 
-nw.add_busses(power, cool_product_bus, heat_loss_bus)
+nw.add_busses(power_in, power_out, cool_product_bus, heat_loss_bus)
 
 # solve
 nw.solve(mode='design')
@@ -83,7 +84,7 @@ T_amb = 25
 exe_eco_input = {'Turbine_Z': 7e3, 'Compressor_Z': 5e3, 'Cooling heat exchanger_Z': 1e3,
                  'Heat sink heat exchanger_Z': 1e3, 'Water source_c': 0.001, 'Air source_c': 0.001,
                  'power input_c': 0.01}
-ean = ExergyAnalysis(network=nw, E_F=[power], E_P=[cool_product_bus], E_L=[heat_loss_bus], internal_busses=[])
+ean = ExergyAnalysis(network=nw, E_F=[power_in], E_P=[cool_product_bus, power_out], E_L=[heat_loss_bus], internal_busses=[])
 ean.analyse(pamb=p_amb, Tamb=T_amb)
 ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)

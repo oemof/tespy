@@ -13,12 +13,18 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 # Fictious Energy Supply models (energy flows modelled as mass flows)
 # No real use for tespy I guess
 
-
-class VaporCompressionSystemEnergySupply(Splitter):
+class HeatPumpEnergySupply(Splitter):
 
     @staticmethod
     def component():
         return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances)'
+
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=1)
+            return self.outlets()    
 
     def get_parameters(self):
         variables = super().get_parameters()
@@ -30,14 +36,14 @@ class VaporCompressionSystemEnergySupply(Splitter):
             num_eq=1
         )
         variables['Heating'] = dc_cp(min_val=0, is_result=True)
-        variables['Cooling'] = dc_cp(min_val=0, is_result=True)
+        variables['Cooling'] = dc_cp(min_val=0, is_result=True)        
         return variables
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         del constraints['pressure_constraints']
         del constraints['energy_balance_constraints']
-        #del constraints['mass_flow_constraints']
+        del constraints['mass_flow_constraints']
         return constraints   
 
     def COP_func(self):
@@ -76,14 +82,12 @@ class VaporCompressionSystemEnergySupply(Splitter):
 
     def calc_parameters(self):
         super().calc_parameters()
-        if not self.COP.is_set:
-            self.COP.val = self.outl[0].m.val_SI / (self.outl[0].m.val_SI - (-self.outl[1].m.val_SI))
         self.Heating.val = self.outl[0].m.val_SI
-        self.Cooling.val = self.outl[1].m.val_SI
+        self.Cooling.val = -(self.outl[0].m.val_SI-self.inl[0].m.val_SI)
 
 
 
-class HeatPumpEnergySupply(Splitter):
+class HeatPumpUsefullLossEnergySupply(Splitter):
 
     """
     COP sets self.outl[0].m.val_SI
@@ -154,6 +158,79 @@ class HeatPumpEnergySupply(Splitter):
 
 
 class RefUnitEnergySupply(Splitter):
+
+    @staticmethod
+    def component():
+        return 'mass factor vapor compression cycle using COP for converting electricity to heat and cooling (energy flows modelled using tespy mass balances)'
+
+    def outlets(self):
+        if self.num_out.is_set:
+            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+        else:
+            self.set_attr(num_out=1)
+            return self.outlets()    
+
+    def get_parameters(self):
+        variables = super().get_parameters()
+        variables["COP"] = dc_cp(
+            min_val=0,
+            deriv=self.COP_deriv,
+            func=self.COP_func,
+            latex=self.mass_flow_func_doc,
+            num_eq=1
+        )
+        variables['Heating'] = dc_cp(min_val=0, is_result=True)
+        variables['Cooling'] = dc_cp(min_val=0, is_result=True)        
+        return variables
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        del constraints['pressure_constraints']
+        del constraints['energy_balance_constraints']
+        del constraints['mass_flow_constraints']
+        return constraints   
+
+    def COP_func(self):
+        r"""
+        Equation for COP.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
+        """
+        return self.inl[0].m.val_SI * self.COP.val + self.outl[0].m.val_SI
+
+    def COP_deriv(self, increment_filter, k):
+        r"""
+        Calculate the partial derivatives for combustion pressure ratio.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+        """
+        inl = self.inl[0]
+        outl = self.outl[0]
+        if inl.m.is_var:
+            self.jacobian[k, inl.m.J_col] = self.COP.val
+        if outl.m.is_var:
+            self.jacobian[k, outl.m.J_col] = 1
+
+    def calc_parameters(self):
+        super().calc_parameters()
+        self.Cooling.val = self.outl[0].m.val_SI
+        self.Heating.val = -self.outl[0].m.val_SI + self.inl[0].m.val_SI
+
+
+class RefUnitUsefullLossEnergySupply(Splitter):
 
     """
     COP sets self.outl[1].m.val_SI

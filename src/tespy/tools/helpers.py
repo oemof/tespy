@@ -524,7 +524,7 @@ def newton_with_kwargs(
     function = function_kwargs["function"]
     relax = 1
 
-    if abs(target_value) <= 1e-6:
+    if tol_mode == "rel" and abs(target_value) <= 2 * tol_rel:
         tol_mode = "abs"
 
     while expr:

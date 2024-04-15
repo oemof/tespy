@@ -488,10 +488,9 @@ class Component:
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI *
-                     self.inl[inconn].p.design) /
-                    (self.inl[inconn].p.val_SI *
-                     self.outl[outconn].p.design))
+                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
+                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                )
             else:
                 msg = (
                     f"The parameter {param}) is not available for "

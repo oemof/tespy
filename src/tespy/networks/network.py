@@ -144,7 +144,7 @@ class Network:
     >>> nw.print_results()
     """
 
-    def __init__(self, fluids=None, **kwargs):
+    def __init__(self, **kwargs):
         self.set_defaults()
         self.set_attr(**kwargs)
 
@@ -273,51 +273,46 @@ class Network:
         """
         # unit sets
         for prop in fpd.keys():
-            unit = prop + '_unit'
+            unit = f'{prop}_unit'
             if unit in kwargs:
                 if kwargs[unit] in fpd[prop]['units']:
                     self.__dict__.update({unit: kwargs[unit]})
-                    msg = (
-                        'Setting ' + fpd[prop]['text'] +
-                        ' unit: ' + kwargs[unit] + '.')
+                    msg = f'Setting {fpd[prop]["text"]} unit: {kwargs[unit]}.'
                     logger.debug(msg)
                 else:
                     keys = ', '.join(fpd[prop]['units'].keys())
-                    msg = (
-                        'Allowed units for ' +
-                        fpd[prop]['text'] + ' are: ' + keys)
+                    msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
                     logger.error(msg)
                     raise ValueError(msg)
 
         for prop in ['m', 'p', 'h']:
-            if prop + '_range' in kwargs:
-                if isinstance(kwargs[prop + '_range'], list):
-                    self.__dict__.update(
-                        {prop + '_range_SI': hlp.convert_to_SI(
-                            prop, np.array(kwargs[prop + '_range']),
-                            self.get_attr(prop + '_unit'))})
+            if f'{prop}_range' in kwargs:
+                if isinstance(kwargs[f'{prop}_range'], list):
+                    self.__dict__.update({
+                        f'{prop}_range_SI': hlp.convert_to_SI(
+                            prop, np.array(kwargs[f'{prop}_range']),
+                            self.get_attr(f'{prop}_unit')
+                        )
+                    })
                 else:
-                    msg = (
-                        'Specify the value range as list: [' + prop +
-                        '_min, ' + prop + '_max]')
+                    msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
                     logger.error(msg)
                     raise TypeError(msg)
 
-                limits = self.get_attr(prop + '_range_SI')
+                limits = self.get_attr(f'{prop}_range_SI')
                 msg = (
-                    'Setting ' + fpd[prop]['text'] +
-                    ' limits\nmin: ' + str(limits[0]) + ' ' +
-                    fpd[prop]['SI_unit'] + '\n'
-                    'max: ' + str(limits[1]) + ' ' +
-                    fpd[prop]['SI_unit'])
+                    f'Setting {fpd[prop]["text"]} limits\n'
+                    f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
+                    f'max: {limits[1]} {fpd[prop]["SI_unit"]}'
+                )
                 logger.debug(msg)
 
         # update non SI value ranges
         for prop in ['m', 'p', 'h']:
             self.__dict__.update({
-                prop + '_range': hlp.convert_from_SI(
-                    prop, self.get_attr(prop + '_range_SI'),
-                    self.get_attr(prop + '_unit')
+                f'{prop}_range': hlp.convert_from_SI(
+                    prop, self.get_attr(f'{prop}_range_SI'),
+                    self.get_attr(f'{prop}_unit')
                 )
             })
 
@@ -417,15 +412,18 @@ class Network:
         """
         for c in args:
             if not isinstance(c, con.Connection):
-                msg = ('Must provide tespy.connections.connection.Connection '
-                       'objects as parameters.')
+                msg = (
+                    'Must provide tespy.connections.connection.Connection '
+                    'objects as parameters.'
+                )
                 logger.error(msg)
                 raise TypeError(msg)
 
             elif c.label in self.conns.index:
                 msg = (
-                    'There is already a connection with the label ' +
-                    c.label + '. The connection labels must be unique!')
+                    'There is already a connection with the label '
+                    f'{c.label}. The connection labels must be unique!'
+                )
                 logger.error(msg)
                 raise ValueError(msg)
 
@@ -435,7 +433,7 @@ class Network:
                 c, c.source, c.source_id, c.target, c.target_id
             ]
 
-            msg = 'Added connection ' + c.label + ' to network.'
+            msg = f'Added connection {c.label} to network.'
             logger.debug(msg)
             # set status "checked" to false, if connection is added to network.
             self.checked = False
@@ -458,7 +456,7 @@ class Network:
                 self.results["Connection"].drop(
                     c.label, inplace=True, errors="ignore"
                 )
-            msg = ('Deleted connection ' + c.label + ' from network.')
+            msg = f'Deleted connection {c.label} from network.'
             logger.debug(msg)
 
         self._del_comps(comps)
@@ -471,10 +469,11 @@ class Network:
         dub = self.conns.loc[self.conns.duplicated(["source", "source_id"])]
         for c in dub['object']:
             targets = []
-            for conns in self.conns.loc[
-                    (self.conns["source"].values == c.source) &
-                    (self.conns["source_id"].values == c.source_id),
-                    "object"]:
+            mask = (
+                (self.conns["source"].values == c.source)
+                & (self.conns["source_id"].values == c.source_id)
+            )
+            for conns in self.conns.loc[mask, "object"]:
                 targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
             targets = ", ".join(targets)
 
@@ -491,10 +490,11 @@ class Network:
         ]
         for c in dub['object']:
             sources = []
-            for conns in self.conns.loc[
-                    (self.conns["target"].values == c.target) &
-                    (self.conns["target_id"].values == c.target_id),
-                    "object"]:
+            mask = (
+                (self.conns["target"].values == c.target)
+                & (self.conns["target_id"].values == c.target_id)
+            )
+            for conns in self.conns.loc[mask, "object"]:
                 sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
             sources = ", ".join(sources)
             msg = (
@@ -576,16 +576,19 @@ class Network:
         """
         for c in args:
             if not isinstance(c, hlp.UserDefinedEquation):
-                msg = ('Must provide tespy.connections.connection.Connection '
-                       'objects as parameters.')
+                msg = (
+                    'Must provide tespy.tools.helpers.UserDefinedEquation '
+                    'objects as parameters.'
+                )
                 logger.error(msg)
                 raise TypeError(msg)
 
             elif c.label in self.user_defined_eq:
                 msg = (
-                    'There is already a UserDefinedEquation with the label ' +
-                    c.label + '. The UserDefinedEquation labels must be '
-                    'unique within a network')
+                    'There is already a UserDefinedEquation with the label '
+                    f'{c.label} . The UserDefinedEquation labels must be '
+                    'unique within a network'
+                )
                 logger.error(msg)
                 raise ValueError(msg)
 

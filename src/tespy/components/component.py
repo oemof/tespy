@@ -30,7 +30,7 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
-from tespy.tools.helpers import newton
+from tespy.tools.helpers import newton_with_kwargs
 
 
 class Component:
@@ -286,13 +286,13 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         for k in self._serializable():
             export.update({k: self.get_attr(k)})
         for k in self.parameters:
             data = self.get_attr(k)
-            export.update({k: data.serialize()})
+            export.update({k: data._serialize()})
 
         return {self.label: export}
 
@@ -488,10 +488,9 @@ class Component:
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI *
-                     self.inl[inconn].p.design) /
-                    (self.inl[inconn].p.val_SI *
-                     self.outl[outconn].p.design))
+                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
+                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                )
             else:
                 msg = (
                     f"The parameter {param}) is not available for "
@@ -642,11 +641,21 @@ class Component:
             if b['base'] == 'component':
                 return abs(comp_val / b['P_ref'])
             else:
-                bus_value = newton(
-                    bus_char_evaluation,
-                    bus_char_derivative,
-                    [comp_val, b['P_ref'], b['char']], 0,
-                    val0=b['P_ref'], valmin=-1e15, valmax=1e15)
+                kwargs = {
+                    "function": bus_char_evaluation,
+                    "parameter": "bus_value",
+                    "component_value": comp_val,
+                    "reference_value": b["P_ref"],
+                    "char_func": b["char"]
+                }
+                bus_value = newton_with_kwargs(
+                    derivative=bus_char_derivative,
+                    target_value=0,
+                    val0=b['P_ref'],
+                    valmin=-1e15,
+                    valmax=1e15,
+                    **kwargs
+                )
                 return bus_value / b['P_ref']
 
     def calc_bus_efficiency(self, bus):

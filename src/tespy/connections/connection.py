@@ -575,7 +575,7 @@ class Connection:
             logger.error(msg)
             raise KeyError(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         export.update({"source": self.source.label})
         export.update({"target": self.target.label})
@@ -583,9 +583,9 @@ class Connection:
             export.update({k: self.get_attr(k)})
         for k in self.property_data:
             data = self.get_attr(k)
-            export.update({k: data.serialize()})
+            export.update({k: data._serialize()})
 
-        export.update({"state": self.state.serialize()})
+        export.update({"state": self.state._serialize()})
 
         return {self.label: export}
 

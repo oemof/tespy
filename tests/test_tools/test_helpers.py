@@ -9,15 +9,16 @@ tests/test_tools/test_helpers.py
 
 SPDX-License-Identifier: MIT
 """
+from pytest import approx
 
-from tespy.tools.helpers import newton
+from tespy.tools.helpers import newton_with_kwargs
 
 
-def func(params, x):
+def func(x, **kwargs):
     return x ** 2 + x - 20
 
 
-def deriv(params, x):
+def deriv(x, **kwargs):
     return 2 * x + 1
 
 
@@ -36,24 +37,25 @@ def test_newton_bounds():
 
     The function is x^2 + x - 20, there crossings are -5 and 4.
     """
-    result = newton(func, deriv, [], 0, valmin=-10, valmax=10, val0=0)
+    kwargs = {"function": func, "parameter": "x"}
+    result = newton_with_kwargs(deriv, 0, valmin=-10, valmax=10, val0=0, **kwargs)
     msg = ('The newton algorithm should find the zero crossing at 4.0. ' +
            str(round(result, 1)) + ' was found instead.')
-    assert 4.0 == result, msg
+    assert 4.0 == approx(result), msg
 
-    result = newton(func, deriv, [], 0, valmin=-10, valmax=10, val0=-10)
+    result = newton_with_kwargs(deriv, 0, valmin=-10, valmax=10, val0=-10, **kwargs)
     msg = ('The newton algorithm should find the zero crossing at -5.0. ' +
            str(round(result, 1)) + ' was found instead.')
-    assert -5.0 == result, msg
+    assert -5.0 == approx(result), msg
 
-    result = newton(func, deriv, [], 0, valmin=-4, valmax=-2, val0=-3)
+    result = newton_with_kwargs(deriv, 0, valmin=-4, valmax=-2, val0=-3, **kwargs)
     msg = ('The newton algorithm should not be able to find a zero crossing. '
            'The value ' + str(round(result, 1)) + ' was found, but the '
            'algorithm should have found the lower boundary of -4.0.')
-    assert -4.0 == result, msg
+    assert -4.0 == approx(result), msg
 
-    result = newton(func, deriv, [], 0, valmin=-20, valmax=-10, val0=-10)
+    result = newton_with_kwargs(deriv, 0, valmin=-20, valmax=-10, val0=-10, **kwargs)
     msg = ('The newton algorithm should not be able to find a zero crossing. '
            'The value ' + str(round(result, 1)) + ' was found, but the '
            'algorithm should have found the upper boundary of -10.0.')
-    assert -10.0 == result, msg
+    assert -10.0 == approx(result), msg

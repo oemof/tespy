@@ -38,7 +38,7 @@ create an instance with the respective data. First, we set up the TESPy model.
     >>> from tespy.networks import Network
     >>> from tespy.components import Sink, Source
     >>> from tespy.connections import Connection
-    >>> from tespy.tools.helpers import UserDefinedEquation
+    >>> from tespy.tools import UserDefinedEquation
 
     >>> nw = Network(iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
@@ -65,15 +65,15 @@ equation in a function which returns the residual value of the equation.
 
 .. code-block:: python
 
-    >>> def my_ude(self):
-    ...     return self.conns[0].m.val_SI - self.conns[1].m.val_SI ** 2
+    >>> def my_ude(ude):
+    ...     return ude.conns[0].m.val_SI - ude.conns[1].m.val_SI ** 2
 
 
 .. note::
 
     The function must only take one parameter, i.e. the UserDefinedEquation
     class instance. The **name of the parameter is arbitrary**. We will use
-    :code:`self` in this example. It serves to access some important parameters
+    :code:`ude` in this example. It serves to access some important parameters
     of the equation:
 
     - connections required in the equation
@@ -94,7 +94,7 @@ composition of every connection. The derivatives have to be passed to the
 Jacobian. In order to do this, we create a function that updates the values
 inside the Jacobian of the :code:`UserDefinedEquation` and returns it:
 
-- :code:`self.jacobian` is a dictionary containing numpy arrays for every
+- :code:`ude.jacobian` is a dictionary containing numpy arrays for every
   connection required by the :code:`UserDefinedEquation`.
 - derivatives to **mass flow** are placed in the first element of the numpy
   array (**index 0**)
@@ -114,13 +114,13 @@ derivatives to mass flow are not zero.
 
 .. code-block:: python
 
-    >>> def my_ude_deriv(self):
-    ...     c0 = self.conns[0]
-    ...     c1 = self.conns[1]
+    >>> def my_ude_deriv(ude):
+    ...     c0 = ude.conns[0]
+    ...     c1 = ude.conns[1]
     ...     if c0.m.is_var:
-    ...         self.jacobian[c0.m.J_col] = 1
+    ...         ude.jacobian[c0.m.J_col] = 1
     ...     if c1.m.is_var:
-    ...         self.jacobian[c1.m.J_col] = -2 * self.conns[1].m.val_SI
+    ...         ude.jacobian[c1.m.J_col] = -2 * ude.conns[1].m.val_SI
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
@@ -185,21 +185,21 @@ respectively to calculate the partial derivatives.
     >>> from tespy.tools.fluid_properties import dT_mix_dph
     >>> from tespy.tools.fluid_properties import dT_mix_pdh
 
-    >>> def my_ude_deriv(self):
-    ...     c0 = self.conns[0]
-    ...     c1 = self.conns[1]
+    >>> def my_ude_deriv(ude):
+    ...     c0 = ude.conns[0]
+    ...     c1 = ude.conns[1]
     ...     if c0.m.is_var:
-    ...         self.jacobian[c0.m.J_col] = 1 / self.conns[0].m.val_SI
+    ...         ude.jacobian[c0.m.J_col] = 1 / ude.conns[0].m.val_SI
     ...     if c0.p.is_var:
-    ...         self.jacobian[c0.p.J_col] = - 2 / self.conns[0].p.val_SI
+    ...         ude.jacobian[c0.p.J_col] = - 2 / ude.conns[0].p.val_SI
     ...     T = c1.calc_T()
     ...     if c1.p.is_var:
-    ...         self.jacobian[c1.p.J_col] = (
+    ...         ude.jacobian[c1.p.J_col] = (
     ...             dT_mix_dph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data, c1.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
     ...     if c1.h.is_var:
-    ...         self.jacobian[c1.h.J_col] = (
+    ...         ude.jacobian[c1.h.J_col] = (
     ...             dT_mix_pdh(c1.p.val_SI, c1.h.val_SI, c1.fluid_data, c1.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
@@ -265,27 +265,27 @@ instance must therefore be changed as below.
     >>> from tespy.tools.fluid_properties import h_mix_pQ
     >>> from tespy.tools.fluid_properties import dh_mix_dpQ
 
-    >>> def my_ude(self):
-    ...     a = self.params['a']
-    ...     b = self.params['b']
-    ...     c0 = self.conns[0]
-    ...     c1 = self.conns[1]
+    >>> def my_ude(ude):
+    ...     a = ude.params['a']
+    ...     b = ude.params['b']
+    ...     c0 = ude.conns[0]
+    ...     c1 = ude.conns[1]
     ...     return (
     ...         a * (c1.h.val_SI - c0.h.val_SI) -
     ...         (c1.h.val_SI - h_mix_pQ(c0.p.val_SI, b, c0.fluid_data))
     ...     )
 
-    >>> def my_ude_deriv(self):
-    ...     a = self.params['a']
-    ...     b = self.params['b']
-    ...     c0 = self.conns[0]
-    ...     c1 = self.conns[1]
+    >>> def my_ude_deriv(ude):
+    ...     a = ude.params['a']
+    ...     b = ude.params['b']
+    ...     c0 = ude.conns[0]
+    ...     c1 = ude.conns[1]
     ...     if c0.p.is_var:
-    ...         self.jacobian[c0.p.J_col] = dh_mix_dpQ(c0.p.val_SI, b, c0.fluid_data)
+    ...         ude.jacobian[c0.p.J_col] = dh_mix_dpQ(c0.p.val_SI, b, c0.fluid_data)
     ...     if c0.h.is_var:
-    ...         self.jacobian[c0.h.J_col] = -a
+    ...         ude.jacobian[c0.h.J_col] = -a
     ...     if c1.p.is_var:
-    ...         self.jacobian[c1.p.J_col] = a - 1
+    ...         ude.jacobian[c1.p.J_col] = a - 1
 
     >>> ude = UserDefinedEquation(
     ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}

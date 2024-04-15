@@ -159,7 +159,7 @@ class DataContainer:
         """
         return {}
 
-    def serialize(self):
+    def _serialize(self):
         return {}
 
 
@@ -199,10 +199,10 @@ class ComponentCharacteristics(DataContainer):
             'num_eq': 0
         }
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         if self.char_func is not None:
-            export.update({"char_func": self.char_func.serialize()})
+            export.update({"char_func": self.char_func._serialize()})
 
         for k in ["is_set", "param", "char_params"]:
             export.update({k: self.get_attr(k)})
@@ -244,10 +244,10 @@ class ComponentCharacteristicMaps(DataContainer):
             'num_eq': 0
         }
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         if self.char_func is not None:
-            export.update({"char_func": self.char_func.serialize()})
+            export.update({"char_func": self.char_func._serialize()})
 
         for k in ["is_set", "param"]:
             export.update({k: self.get_attr(k)})
@@ -305,7 +305,7 @@ class ComponentProperties(DataContainer):
             'latex': None
         }
 
-    def serialize(self):
+    def _serialize(self):
         keys = self._serializable_keys()
         return {k: self.get_attr(k) for k in keys}
 
@@ -363,7 +363,7 @@ class FluidComposition(DataContainer):
             "J_col": dict(),
         }
 
-    def serialize(self):
+    def _serialize(self):
         export = {"val": self.val}
         export["is_set"] = list(self.is_set)
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
@@ -499,7 +499,7 @@ class FluidProperties(DataContainer):
             "_solved": False
         }
 
-    def serialize(self):
+    def _serialize(self):
         keys = ["val", "val0", "val_SI", "is_set", "unit"]
         return {k: self.get_attr(k) for k in keys}
 
@@ -528,7 +528,7 @@ class ReferencedFluidProperties(DataContainer):
             "_solved": False
         }
 
-    def serialize(self):
+    def _serialize(self):
         if self.ref is not None:
             keys = ["is_set", "unit"]
             export = {k: self.get_attr(k) for k in keys}
@@ -575,5 +575,5 @@ class SimpleDataContainer(DataContainer):
             "_solved": False
         }
 
-    def serialize(self):
+    def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}

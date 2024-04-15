@@ -164,7 +164,7 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
@@ -447,7 +447,7 @@ class CharMap:
             logger.error(msg)
             raise KeyError(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()

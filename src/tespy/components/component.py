@@ -286,13 +286,13 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
         for k in self._serializable():
             export.update({k: self.get_attr(k)})
         for k in self.parameters:
             data = self.get_attr(k)
-            export.update({k: data.serialize()})
+            export.update({k: data._serialize()})
 
         return {self.label: export}
 

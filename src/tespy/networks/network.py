@@ -148,7 +148,7 @@ class Network:
         self.set_defaults()
         self.set_attr(**kwargs)
 
-    def serialize(self):
+    def _serialize(self):
         return {
             "m_unit": self.m_unit,
             "m_range": list(self.m_range),
@@ -2711,7 +2711,7 @@ class Network:
             Path/filename for the network configuration file.
         """
         with open(fn + 'network.json', 'w') as f:
-            f.write(json.dumps(self.serialize(), indent=4))
+            f.write(json.dumps(self._serialize(), indent=4))
 
         logger.debug('Network information saved to %s.', fn)
 
@@ -2764,7 +2764,7 @@ class Network:
     def export_connections(self, fn):
         connections = {}
         for c in self.conns["object"]:
-            connections.update(c.serialize())
+            connections.update(c._serialize())
 
         fn = fn + "connections.json"
         with open(fn, "w", encoding="utf-8") as f:
@@ -2775,7 +2775,7 @@ class Network:
         for c in self.comps["comp_type"].unique():
             components = {}
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
-                components.update(cp.serialize())
+                components.update(cp._serialize())
 
             fname = f"{fn}{c}.json"
             with open(fname, "w", encoding="utf-8") as f:
@@ -2786,7 +2786,7 @@ class Network:
         if len(self.busses) > 0:
             busses = {}
             for bus in self.busses.values():
-                busses.update(bus.serialize())
+                busses.update(bus._serialize())
             fn = fn + 'busses.json'
             with open(fn, "w", encoding="utf-8") as f:
                 f.write(json.dumps(busses, indent=4).replace("NaN", "null"))

@@ -409,14 +409,14 @@ class Bus:
             msg = f"Added component {comp.label} to bus {self.label}."
             logger.debug(msg)
 
-    def serialize(self):
+    def _serialize(self):
         export = {}
-        export["P"] = self.P.serialize()
+        export["P"] = self.P._serialize()
         for cp in self.comps.index:
             export[cp.label] = {}
             export[cp.label]["param"] = self.comps.loc[cp, "param"]
             export[cp.label]["base"] = self.comps.loc[cp, "base"]
-            export[cp.label]["char"] = self.comps.loc[cp, "char"].serialize()
+            export[cp.label]["char"] = self.comps.loc[cp, "char"]._serialize()
 
         return {self.label: export}
 

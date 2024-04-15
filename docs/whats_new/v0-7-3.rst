@@ -1,0 +1,10 @@
+v0.7.3 - Newton's Nature (April, 15, 2024)
+++++++++++++++++++++++++++++++++++++++++++
+
+This is a release with some minor fixes and adjustments in
+styling. The most relevant change is the exposure of the
+`UserDefinedEquation` class to the `tespy.tools` import level.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

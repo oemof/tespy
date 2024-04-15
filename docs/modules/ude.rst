@@ -38,7 +38,7 @@ create an instance with the respective data. First, we set up the TESPy model.
     >>> from tespy.networks import Network
     >>> from tespy.components import Sink, Source
     >>> from tespy.connections import Connection
-    >>> from tespy.tools.helpers import UserDefinedEquation
+    >>> from tespy.tools import UserDefinedEquation
 
     >>> nw = Network(iterinfo=False)
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')

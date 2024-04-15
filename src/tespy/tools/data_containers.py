@@ -116,7 +116,7 @@ class DataContainer:
                     if "::" in kwargs[key]:
                         _, fluid = kwargs[key].split("::")
                     else:
-                        fluid = kwargs[key]                    
+                        fluid = kwargs[key]
                     self.__dict__.update({key: fluid})
                 else:
                     self.__dict__.update({key: kwargs[key]})
@@ -296,7 +296,7 @@ class ComponentProperties(DataContainer):
 
     unit : boolean
         Has the unit for this property been specified manually by the user?
-        default: unit_set=False.        
+        default: unit_set=False.
     """
 
     @staticmethod
@@ -372,6 +372,7 @@ class FluidComposition(DataContainer):
             'wrapper': dict(),
             'back_end': dict(),
             'engine': dict(),
+            'fluid_coefs': dict(),
             "is_var": set(),
             "J_col": dict(),
         }
@@ -605,4 +606,3 @@ class ComponentPropertiesArray(DataContainer):
             'val_ref': 1, 'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
             'latex': None}
-      

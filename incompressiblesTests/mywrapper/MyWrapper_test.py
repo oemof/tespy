@@ -1,5 +1,6 @@
 import numpy as np
-from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
+from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper, CoolPropWrapper
+#from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.global_vars import gas_constants
 from MyWrapper import MyWrapper
 import logging
@@ -43,13 +44,27 @@ c2 = Connection(hx, "out1", si, "in1", label="2")
 nwk.add_conns(c1, c2)
 
 c1.set_attr(
-    m=1, p=1, T=20,
-    fluid={"protein": 1}, fluid_engines={"protein": MyWrapper}, fluid_coefs = COEF
+    m=1, 
+    p=1, 
+    T=20,
+    fluid = {
+        "protein": 0.5,
+        "water": 0.5
+        }, 
+    fluid_engines = {
+        "protein" : MyWrapper,
+        "water"   : CoolPropWrapper 
+        }, 
+    fluid_coefs = COEF,
+    mixing_rule = "incompressible",
 )
 c2.set_attr(p=1, T=80)
 
 nwk.solve("design")
+nwk.print_results()
 
+
+# iterate Q
 hx.set_attr(Q=1.5e5)
 c2.set_attr(T=None)
 nwk.solve("design")

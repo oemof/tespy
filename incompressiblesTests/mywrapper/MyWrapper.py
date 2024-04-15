@@ -1,5 +1,5 @@
 import CoolProp.CoolProp as CP
-from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
+from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper, CoolPropWrapper
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,7 @@ class MyWrapper(FluidPropertyWrapper):
         self.T0 = Tref
         self.get_coefs(coefs)
         
-        #self._molar_mass = 1
+        self._molar_mass = 1
         self._T_min = 100
         self._T_max = 2000
         self._p_min = 1000
@@ -51,7 +51,7 @@ class MyWrapper(FluidPropertyWrapper):
     def cp_pT(self, p, T):
         return np.sum([self.C_c[i] * T**i for i in range(len(self.C_c))], axis=0)
    
-    def d_pT(self, p, T):
+    def d_pT(self, p, T, **kwargs):
         return np.sum([self.C_d[i] * T**i for i in range(len(self.C_d))], axis=0)
 
     def u_pT(self, p, T):
@@ -60,12 +60,12 @@ class MyWrapper(FluidPropertyWrapper):
             integral += (1 / (i + 1)) * self.C_c[i] * (T**(i + 1) - self.T0**(i + 1))
         return integral 
 
-    def h_pT(self, p, T, force_state=None):
+    def h_pT(self, p, T, **kwargs):
         u = self.u_pT(p, T)
         d = self.d_pT(p, T)
         return u - p/d
 
-    def s_pT(self, p, T):
+    def s_pT(self, p, T, **kwargs):
         integral = self.C_c[0] * np.log(T / self.T0)
         for i in range(len(self.C_c) - 1):
             integral += (1 / (i + 1)) * self.C_c[i + 1] * (T**(i + 1) - self.T0**(i + 1))

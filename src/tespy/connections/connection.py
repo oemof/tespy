@@ -513,6 +513,9 @@ class Connection:
         elif key == "fluid_balance":
             self.fluid.set_attr(balance=value)
 
+        elif key == "fluid_coefs":
+            self.fluid.fluid_coefs = value
+
         else:
             msg = f"Connections do not have an attribute named {key}"
             logger.error(msg)
@@ -626,7 +629,11 @@ class Connection:
             else:
                 self.fluid.back_end[fluid] = None
 
-            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
+            if self.fluid.engine[fluid].__name__ == 'MyWrapper':
+                self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end, coefs=self.fluid.fluid_coefs)
+            else:
+                self.fluid.fluid_coefs[fluid] = None
+                self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
 
     def preprocess(self):
         self.num_eq = 0

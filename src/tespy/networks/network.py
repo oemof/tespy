@@ -938,6 +938,7 @@ class Network:
             any_fluids_set = []
             engines = {}
             back_ends = {}
+            fluid_coefss = {}
             for c in all_connections:
                 for f in c.fluid.is_set:
                     any_fluids_set += [f]
@@ -945,6 +946,8 @@ class Network:
                         engines[f] = c.fluid.engine[f]
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
+                    if f in c.fluid.fluid_coefs:
+                        fluid_coefss[f] = c.fluid.fluid_coefs[f]                        
 
             mixing_rules = [
                 c.mixing_rule for c in all_connections
@@ -990,7 +993,8 @@ class Network:
                     c.fluid.engine[f] = engine
                 for f, back_end in back_ends.items():
                     c.fluid.back_end[f] = back_end
-
+                for f, fluid_coefs in fluid_coefss.items():
+                    c.fluid.fluid_coefs[f] = fluid_coefs
                 c._create_fluid_wrapper()
 
     def presolve_massflow_topology(self):
@@ -2267,19 +2271,20 @@ class Network:
 
             progress = '{:d} %'.format(progress_val)
 
-        msg = self.iterinfo_fmt.format(
-            iter=iter_str,
-            residual=residual,
-            progress=progress,
-            massflow=massflow,
-            pressure=pressure,
-            enthalpy=enthalpy,
-            fluid=fluid,
-            component=component
-        )
-        logger.progress(progress_val, msg)
-        if print_results:
-            print(msg)
+        if self.iterinfo:
+            msg = self.iterinfo_fmt.format(
+                iter=iter_str,
+                residual=residual,
+                progress=progress,
+                massflow=massflow,
+                pressure=pressure,
+                enthalpy=enthalpy,
+                fluid=fluid,
+                component=component
+            )
+            logger.progress(progress_val, msg)
+            if print_results:
+                print(msg)
         return residual_norm
 
     def iterinfo_tail(self, print_results=True):

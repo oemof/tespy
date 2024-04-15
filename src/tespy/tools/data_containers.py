@@ -375,6 +375,7 @@ class FluidComposition(DataContainer):
             'wrapper': collections.OrderedDict(),
             'back_end': collections.OrderedDict(),
             'engine': collections.OrderedDict(),
+            'fluid_coefs': collections.OrderedDict(),
             "is_var": set(),
             "J_col": collections.OrderedDict(),
             'balance': False

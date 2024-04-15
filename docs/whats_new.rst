@@ -1,8 +1,9 @@
 What's New
 ~~~~~~~~~~
 
-Discover noteable new features and improvements in each release
+Discover notable new features and improvements in each release
 
+.. include::  whats_new/v0-7-3.rst
 .. include::  whats_new/v0-7-2.rst
 .. include::  whats_new/v0-7-1.rst
 .. include::  whats_new/v0-7-0.rst

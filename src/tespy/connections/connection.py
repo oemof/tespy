@@ -897,7 +897,10 @@ class Connection:
             self.jacobian[k, self.fluid.J_col[f]] = -self.fluid.val[f]
 
     def calc_s(self):
-        return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI, force_state=self.force_state)
+        try:
+            return s_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=self.T.val_SI, force_state=self.force_state)
+        except NotImplementedError:
+            return np.nan
 
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)

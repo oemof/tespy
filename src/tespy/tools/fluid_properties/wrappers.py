@@ -66,7 +66,7 @@ class FluidPropertyWrapper:
     def T_ps(self, p, s):
         self._not_implemented()
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         self._not_implemented()
 
     def h_QT(self, Q, T):
@@ -354,7 +354,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
     def h_ps(self, p, s):
         return self.AS(P=p / 1e6, s=s / 1e3).h * 1e3
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         return self.AS(P=p / 1e6, T=T).h * 1e3
 
     def h_QT(self, Q, T):
@@ -454,7 +454,7 @@ class PyromatWrapper(FluidPropertyWrapper):
     def T_ps(self, p, s):
         return self.AS.T(p=p, s=s)[0]
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         return self.AS.h(p=p, T=T)[0]
 
     def h_ps(self, p, s):

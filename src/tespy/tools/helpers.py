@@ -19,7 +19,8 @@ import CoolProp.CoolProp as CP
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import fluid_property_data, component_property_data
+from tespy.tools.global_vars import component_property_data
+from tespy.tools.global_vars import fluid_property_data
 
 
 def get_all_subdictionaries(data):

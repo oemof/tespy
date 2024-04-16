@@ -21,10 +21,10 @@ from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentPropertiesArray as dc_cpa
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.data_containers import ComponentPropertiesArray as dc_cpa
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import ERR

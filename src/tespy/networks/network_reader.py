@@ -41,8 +41,8 @@ from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
-from tespy.components.newComponents import *
 from tespy.components.newAdvancedComponents import *
+from tespy.components.newComponents import *
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref

@@ -2589,6 +2589,15 @@ class Network:
     def process_connections(self):
         """Process the Connection results."""
         for c in self.conns['object']:
+
+            # fluid mass fractions sometimes end up with tiny deviations from
+            # the bound, e.g. mass fractions of 1e-12 or similar.
+            for fluid in c.fluid.val:
+                if c.fluid.val[fluid] > 1 - ERR ** 2:
+                    c.fluid.val[fluid] = 1
+                elif c.fluid.val[fluid] < ERR ** 2:
+                    c.fluid.val[fluid] = 0
+
             c.good_starting_values = True
             c.calc_results()
 

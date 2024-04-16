@@ -69,7 +69,9 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
     valmin, valmax = get_mixture_temperature_range(fluid_data)
     if T0 is None or T0 == 0 or np.isnan(T0):
         T0 = (valmin + valmax) / 2.0
-    T0 = max(valmin,min(valmax,T0))
+    T0 = max(valmin, min(valmax, T0))
+
+    valmax *= 2
 
     function_kwargs.update({
         "p": p, "fluid_data": fluid_data, "T": T0,

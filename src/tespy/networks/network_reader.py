@@ -15,8 +15,6 @@ SPDX-License-Identifier: MIT
 import json
 import os
 
-import pandas as pd
-
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
 from tespy.components import Compressor
@@ -41,8 +39,6 @@ from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
-from tespy.components.newAdvancedComponents import *
-from tespy.components.newComponents import *
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -84,15 +80,6 @@ COMP_TARGET_CLASSES = {
     'Compressor': Compressor,
     'Pump': Pump,
     'Turbine': Turbine,
-    'MergeDeltaP' :MergeDeltaP,
-    'SeparatorWithSpeciesSplits' : SeparatorWithSpeciesSplits,
-    'SeparatorWithSpeciesSplitsDeltaT' : SeparatorWithSpeciesSplitsDeltaT,
-    'SeparatorWithSpeciesSplitsDeltaTDeltaP' : SeparatorWithSpeciesSplitsDeltaTDeltaP,
-    'SeparatorWithSpeciesSplitsDeltaP' : SeparatorWithSpeciesSplitsDeltaP,
-    'SimpleHeatExchangerDeltaPLossFactor' : SimpleHeatExchangerDeltaPLossFactor,
-    'SimpleHeatExchangerDeltaP' : SimpleHeatExchangerDeltaP,
-    'SimpleHeatExchangerDeltaPLfKpi' : SimpleHeatExchangerDeltaPLfKpi,
-    'SeparatorWithSpeciesSplitsAndFlowSplitsDeltaTDeltaPDeltaH' : SeparatorWithSpeciesSplitsAndFlowSplitsDeltaTDeltaPDeltaH,
 }
 
 ENGINE_TARGET_CLASSES = {

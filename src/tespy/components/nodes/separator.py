@@ -127,7 +127,7 @@ class Separator(NodeBase):
     mass fraction for this outlet.
 
     >>> outg1.set_attr(m=None)
-    >>> outg2.set_attr(fluid={'O2': 0.3})
+    >>> outg2.set_attr(fluid={'O2': 0.3, 'N2': 0.7})
     >>> nw.solve('design')
     >>> outg2.fluid.val['O2']
     0.3

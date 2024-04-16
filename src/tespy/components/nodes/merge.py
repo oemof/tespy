@@ -112,7 +112,7 @@ class Merge(NodeBase):
     >>> inc1.set_attr(fluid={'O2': 0.23, 'N2': 0.77}, p=1, T=T, m=5)
     >>> inc2.set_attr(fluid={'O2': 1}, T=T, m=5)
     >>> inc3.set_attr(fluid={'N2': 1}, T=T)
-    >>> outg.set_attr(fluid={'N2': 0.4})
+    >>> outg.set_attr(fluid={'N2': 0.4, 'O2': 0.6})
     >>> nw.solve('design')
     >>> round(inc3.m.val_SI, 2)
     0.25

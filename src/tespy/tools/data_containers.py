@@ -112,8 +112,14 @@ class DataContainer:
         # specify values
         for key in kwargs:
             if key in var:
-                self.__dict__.update({key: kwargs[key]})
-
+                if key == "split_fluid" and kwargs[key]:
+                    if "::" in kwargs[key]:
+                        _, fluid = kwargs[key].split("::")
+                    else:
+                        fluid = kwargs[key]
+                    self.__dict__.update({key: fluid})
+                else:
+                    self.__dict__.update({key: kwargs[key]})
             else:
                 msg = (
                     f"Datacontainer of type {self.__class__.__name__} has no "
@@ -284,6 +290,13 @@ class ComponentProperties(DataContainer):
     max_val : float
         Maximum value for this attribute, used if attribute is part of the
         system variables, default: max_val=1e12.
+
+    unit : str
+        Unit for this property, default: ref=None.
+
+    unit : boolean
+        Has the unit for this property been specified manually by the user?
+        default: unit_set=False.
     """
 
     @staticmethod
@@ -298,7 +311,7 @@ class ComponentProperties(DataContainer):
             values.
         """
         return {
-            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
+            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4, 'unit': None,
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
             'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
@@ -312,7 +325,7 @@ class ComponentProperties(DataContainer):
     @staticmethod
     def _serializable_keys():
         return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var", "unit"
         ]
 
 
@@ -359,6 +372,7 @@ class FluidComposition(DataContainer):
             'wrapper': dict(),
             'back_end': dict(),
             'engine': dict(),
+            'fluid_coefs': dict(),
             "is_var": set(),
             "J_col": dict(),
         }
@@ -577,3 +591,18 @@ class SimpleDataContainer(DataContainer):
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+class ComponentPropertiesArray(DataContainer):
+    """
+    Data container for arrays.
+    """
+    @staticmethod
+    def attr():
+        """
+        """
+        return {
+            'val': [], 'val_SI': [], 'is_set': False, 'd': 1e-4,
+            'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
+            'val_ref': 1, 'design': np.nan, 'is_result': False,
+            'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
+            'latex': None}

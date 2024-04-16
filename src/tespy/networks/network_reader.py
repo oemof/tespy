@@ -41,6 +41,8 @@ from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
+from tespy.components.newComponents import *
+from tespy.components.newAdvancedComponents import *
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -81,7 +83,16 @@ COMP_TARGET_CLASSES = {
     'WaterElectrolyzer': WaterElectrolyzer,
     'Compressor': Compressor,
     'Pump': Pump,
-    'Turbine': Turbine
+    'Turbine': Turbine,
+    'MergeDeltaP' :MergeDeltaP,
+    'SeparatorWithSpeciesSplits' : SeparatorWithSpeciesSplits,
+    'SeparatorWithSpeciesSplitsDeltaT' : SeparatorWithSpeciesSplitsDeltaT,
+    'SeparatorWithSpeciesSplitsDeltaTDeltaP' : SeparatorWithSpeciesSplitsDeltaTDeltaP,
+    'SeparatorWithSpeciesSplitsDeltaP' : SeparatorWithSpeciesSplitsDeltaP,
+    'SimpleHeatExchangerDeltaPLossFactor' : SimpleHeatExchangerDeltaPLossFactor,
+    'SimpleHeatExchangerDeltaP' : SimpleHeatExchangerDeltaP,
+    'SimpleHeatExchangerDeltaPLfKpi' : SimpleHeatExchangerDeltaPLfKpi,
+    'SeparatorWithSpeciesSplitsAndFlowSplitsDeltaTDeltaPDeltaH' : SeparatorWithSpeciesSplitsAndFlowSplitsDeltaTDeltaPDeltaH,
 }
 
 ENGINE_TARGET_CLASSES = {
@@ -336,9 +347,11 @@ def construct_components(component, data):
             container = instances[cp].get_attr(param)
             if isinstance(container, dc):
                 if isinstance(container, dc_cc):
-                    param_data["char_func"] = CharLine(**param_data["char_func"])
+                    if 'char_func' in param_data.keys():
+                        param_data["char_func"] = CharLine(**param_data["char_func"])
                 elif isinstance(container, dc_cm):
-                    param_data["char_func"] = CharMap(**param_data["char_func"])
+                    if 'char_func' in param_data.keys():
+                        param_data["char_func"] = CharMap(**param_data["char_func"])
                 if isinstance(container, dc_prop):
                     param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)

@@ -1,0 +1,3 @@
+,m,m_unit,v,v_unit,p,p_unit,h,h_unit,T,T_unit,Td_bp,Td_bp_unit,vol,vol_unit,x,x_unit,s,s_unit,Water,S800,PHE
+source:out1_boiler:in1,100.0,kg / s,0.10392670186561417,m3 / s,2.0,bar,100.0,kJ / kg,46.94571580233958,C,0.0,C,0.0010392670186561417,m3 / kg,0.0,-,326.0023871536029,J / kgK,0.8,0.05,0.15
+boiler:out1_sink:in1,100.0,kg / s,0.10392670186561417,m3 / s,2.0,bar,100.0,kJ / kg,46.94571580233958,C,0.0,C,0.0010392670186561417,m3 / kg,0.0,-,326.0023871536029,J / kgK,0.8,0.05,0.15

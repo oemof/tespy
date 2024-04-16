@@ -21,6 +21,7 @@ from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentPropertiesArray as dc_cpa
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
@@ -206,6 +207,22 @@ class Component:
                             f"Bad datatype for keyword argument {key} for "
                             f"component {self.label}."
                         )
+                        logger.error(msg)
+                        raise TypeError(msg)
+
+                elif isinstance(data, dc_cpa):
+                    floats = [isinstance(f, float) for f in kwargs[key]]
+                    vars = [f == 'var' for f in kwargs[key]]
+                    is_numeric = any(floats)
+                    is_var = any(vars)
+                    num_eq = floats.count(True)
+
+                    if is_numeric or is_var:
+                        data.set_attr(val=kwargs[key], is_set=floats, is_var=vars, num_eq = num_eq)
+                    else:
+                        msg = (
+                            'Bad datatype for keyword argument ' + key +
+                            ' at ' + self.label + '.')
                         logger.error(msg)
                         raise TypeError(msg)
 

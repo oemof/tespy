@@ -66,7 +66,7 @@ class FluidPropertyWrapper:
     def T_ps(self, p, s):
         self._not_implemented()
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         self._not_implemented()
 
     def h_QT(self, Q, T):
@@ -190,8 +190,41 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
-    def h_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def _check_imposed_state(self, p, T, **kwargs):
+        # correct INCOMP interpolation origin
+        if self.back_end == "INCOMP":
+            # should be fixed by latest CoolProp?
+            if T == (self._T_max + self._T_min) / 2:
+                T += ERR
+
+            self.AS.update(CP.QT_INPUTS, 0, T)
+            if p > self.AS.p():
+                try:
+                    self.AS.update(CP.PT_INPUTS, p, T)
+                except:
+                    self.AS.update(CP.QT_INPUTS, 0, T)
+            else:
+                self.AS.update(CP.QT_INPUTS, 0, T)
+        else:
+            if (kwargs.get('force_state', False) == "l") and not (T > self.AS.T_critical()):
+                self.AS.update(CP.QT_INPUTS, 0, T)
+                if p > self.AS.p():
+                    try:
+                        self.AS.update(CP.PT_INPUTS, p, T)
+                    except:
+                        self.AS.update(CP.QT_INPUTS, 0, T)
+            elif kwargs.get('force_state',False) == "g" and not (T > self.AS.T_critical()):
+                self.AS.update(CP.QT_INPUTS, 1, T)
+                if p < self.AS.p():
+                    try:
+                        self.AS.update(CP.PT_INPUTS, p, T)
+                    except:
+                        self.AS.update(CP.QT_INPUTS, 1, T)
+            else:
+                self.AS.update(CP.PT_INPUTS, p, T)
+
+    def h_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p, T, **kwargs)
         return self.AS.hmass()
 
     def h_QT(self, Q, T):
@@ -223,8 +256,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.rhomass()
 
-    def d_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def d_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p, T, **kwargs)
         return self.AS.rhomass()
 
     def d_QT(self, Q, T):
@@ -235,16 +268,16 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.viscosity()
 
-    def viscosity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def viscosity_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p, T, **kwargs)
         return self.AS.viscosity()
 
     def s_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.smass()
 
-    def s_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+    def s_pT(self, p, T, **kwargs):
+        self._check_imposed_state(p, T, **kwargs)
         return self.AS.smass()
 
 
@@ -321,7 +354,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
     def h_ps(self, p, s):
         return self.AS(P=p / 1e6, s=s / 1e3).h * 1e3
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         return self.AS(P=p / 1e6, T=T).h * 1e3
 
     def h_QT(self, Q, T):
@@ -421,7 +454,7 @@ class PyromatWrapper(FluidPropertyWrapper):
     def T_ps(self, p, s):
         return self.AS.T(p=p, s=s)[0]
 
-    def h_pT(self, p, T):
+    def h_pT(self, p, T, **kwargs):
         return self.AS.h(p=p, T=T)[0]
 
     def h_ps(self, p, s):

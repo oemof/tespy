@@ -184,7 +184,7 @@ isentropic change of pressure for an ideal gas.
     ...             + self.coefficients[5] * y ** 2
     ...         ) / self.coefficients[6]
     ...
-    ...     def h_pT(self, p, T):
+    ...     def h_pT(self, p, T, **kwargs):
     ...         return self._h_pT(p, T) - self.h_ref
     ...
     ...     def _h_pT(self, p, T):

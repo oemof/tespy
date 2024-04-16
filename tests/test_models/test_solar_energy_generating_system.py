@@ -316,10 +316,10 @@ class TestSEGS:
         c14.set_attr(p=0.29)
 
         # preheater pressure values
-        c19.set_attr(p=14.755, state='l')
-        c21.set_attr(p=9.9975, state='l')
-        c23.set_attr(p=8.7012, state='l')
-        c25.set_attr(state='l')
+        c19.set_attr(p=14.755, force_state='l')
+        c21.set_attr(p=9.9975, force_state='l')
+        c23.set_attr(p=8.7012, force_state='l')
+        c25.set_attr(force_state='l')
 
         c27.set_attr(p=125)
         c29.set_attr(p=112)
@@ -365,8 +365,8 @@ class TestSEGS:
 
         # specification of missing parameters
         c19.set_attr(p=14.755)
-        c21.set_attr(p=9.9975, state='l')
-        c23.set_attr(p=8.7012, state='l')
+        c21.set_attr(p=9.9975, force_state='l')
+        c23.set_attr(p=8.7012, force_state='l')
         c27.set_attr(p=125)
         c29.set_attr(p=112)
 

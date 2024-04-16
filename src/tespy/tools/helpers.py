@@ -19,6 +19,7 @@ import CoolProp.CoolProp as CP
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import component_property_data
 from tespy.tools.global_vars import fluid_property_data
 
 
@@ -109,6 +110,17 @@ def convert_to_SI(property, value, unit):
     else:
         return value * fluid_property_data[property]['units'][unit]
 
+def convert_comp_to_SI(property, value, unit):
+    r"""
+    Convert a value to its SI value.
+    """
+    return value * component_property_data[property]['units'][unit]
+
+def convert_comp_from_SI(property, value, unit):
+    r"""
+    Convert a value to its SI value.
+    """
+    return value / component_property_data[property]['units'][unit]
 
 def convert_from_SI(property, SI_value, unit):
     r"""

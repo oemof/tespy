@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 import os
 import shutil
 
-import numpy as np
 from pytest import mark
 from pytest import raises
 
@@ -199,8 +198,10 @@ class TestNetworks:
     def test_Network_missing_data_in_individual_design_case_file(self):
         """Test for missing data in individual design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
+            fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1', design_path='tmp2')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
@@ -224,8 +225,10 @@ class TestNetworks:
     def test_Network_missing_connection_in_design_path(self):
         """Test for missing connection data in design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
+            fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
@@ -287,16 +290,20 @@ class TestNetworkIndividualOffdesign:
         me = Merge('merge', num_in=2)
         si = Sink('sink')
 
-        self.pump1.set_attr(eta_s=0.8, design=['eta_s'],
+        self.pump1.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
+        )
+        self.pump2.set_attr(
+            eta_s=0.8, design=['eta_s'],
                             offdesign=['eta_s_char'])
-        self.pump2.set_attr(eta_s=0.8, design=['eta_s'],
-                            offdesign=['eta_s_char'])
-        self.sc1.set_attr(pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
-        self.sc2.set_attr(pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
+        self.sc1.set_attr(
+            pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700, Tamb=20,
+            eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
+        self.sc2.set_attr(
+            pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800, Tamb=20,
+            eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
 
         fl = {'H2O': 1}
         inlet = Connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
@@ -312,8 +319,10 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2 = Connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
         v2_me = Connection(v2, 'out1', me, 'in2')
 
-        self.nw.add_conns(inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
-                          v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
+        self.nw.add_conns(
+            inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
+            v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me
+        )
 
     def test_individual_design_path_on_connections_and_components(self):
         """Test individual design path specification."""
@@ -327,7 +336,7 @@ class TestNetworkIndividualOffdesign:
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
 
-        self.sc2_v2.set_attr(T=95, state='l', m=None)
+        self.sc2_v2.set_attr(T=95, force_state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -336,8 +345,8 @@ class TestNetworkIndividualOffdesign:
         zeta_sc2_design = self.sc2.zeta.val
 
         self.sc1_v1.set_attr(m=None)
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc2.set_attr(design_path='design2')
         self.pump2.set_attr(design_path='design2')
@@ -395,8 +404,8 @@ class TestNetworkIndividualOffdesign:
         self.nw._convergence_check()
         self.nw.save('design1')
 
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc1.set_attr(local_offdesign=True, design_path='design1')
         self.pump1.set_attr(local_offdesign=True, design_path='design1')
@@ -412,9 +421,11 @@ class TestNetworkIndividualOffdesign:
 
         # connections and components on side 1 must have switched to offdesign
 
-        msg = ('Solar collector outlet temperature must be different from ' +
-               'design value ' + str(round(self.sc1_v1.T.design - 273.15, 1)) +
-               ', is ' + str(round(self.sc1_v1.T.val, 1)) + '.')
+        msg = (
+            'Solar collector outlet temperature must be different from '
+            f'design value {round(self.sc1_v1.T.design - 273.15, 1)}, is '
+            f'{round(self.sc1_v1.T.val, 1)}.'
+        )
         assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
 
         msg = "Parameter eta_s_char must be set for pump one."
@@ -439,8 +450,8 @@ class TestNetworkIndividualOffdesign:
         self.nw._convergence_check()
         self.nw.save('design1')
 
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc1.set_attr(local_offdesign=True, design_path='design1')
         self.pump1.set_attr(local_offdesign=True, design_path='design1')
@@ -520,7 +531,10 @@ class TestNetworkPreprocessing:
         b.set_attr(pr=1)
         self.nwk.solve("design")
         self.nwk._convergence_check()
-        variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
+        variables = [
+            data["obj"].get_attr(data["variable"])
+            for data in self.nwk.variables_dict.values()
+        ]
         # no mass flow is variable
         assert c1.m not in variables
         assert c2.m not in variables

@@ -127,7 +127,7 @@ class Separator(NodeBase):
     mass fraction for this outlet.
 
     >>> outg1.set_attr(m=None)
-    >>> outg2.set_attr(fluid={'O2': 0.3})
+    >>> outg2.set_attr(fluid={'O2': 0.3, 'N2': 0.7})
     >>> nw.solve('design')
     >>> outg2.fluid.val['O2']
     0.3
@@ -350,8 +350,10 @@ class Separator(NodeBase):
             # for fluid in i.fluid.is_var:
             #     self.jacobian[k, i.fluid.J_col[fluid]] = dT_dfluid_in[fluid]
             args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
-            self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
-            self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
+            if self.is_variable(o.p):
+                self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
+            if self.is_variable(o.h):
+                self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
             # for fluid in o.fluid.is_var:
             #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
             k += 1

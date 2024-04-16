@@ -33,6 +33,7 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import component_property_data as cpd
 from tespy.tools.global_vars import fluid_property_data as fpd
 
 # Only require cupy if Cuda shall be used
@@ -212,6 +213,10 @@ class Network:
             # standard unit set
             self.__dict__.update({prop + '_unit': data['SI_unit']})
             msg += data['text'] + ': ' + data['SI_unit'] + '\n'
+        for prop, data in cpd.items():
+            # standard unit set
+            self.__dict__.update({prop + '_unit': data['SI_unit']})
+            msg += data['text'] + ': ' + data['SI_unit'] + '\n'
 
         # don't need the last newline
         logger.debug(msg[:-1])
@@ -219,7 +224,7 @@ class Network:
         # generic value range
         self.m_range_SI = np.array([-1e12, 1e12])
         self.p_range_SI = np.array([2e2, 300e5])
-        self.h_range_SI = np.array([1e3, 7e6])
+        self.h_range_SI = np.array([-5e5, 7e6])
 
         for prop in ['m', 'p', 'h']:
             limits = self.get_attr(prop + '_range_SI')
@@ -270,6 +275,10 @@ class Network:
 
         vol_unit : str
             Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
+
+        Q_unit : str
+            Specify the unit for heat flow rate: 'W', 'kW', 'MW'.
+
         """
         # unit sets
         for prop in fpd.keys():
@@ -284,6 +293,24 @@ class Network:
                     msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
                     logger.error(msg)
                     raise ValueError(msg)
+
+        for prop in cpd.keys():
+            unit = prop + '_unit'
+            if unit in kwargs:
+                if kwargs[unit] in cpd[prop]['units']:
+                    self.__dict__.update({unit: kwargs[unit]})
+                    msg = (
+                        'Setting ' + cpd[prop]['text'] +
+                        ' unit: ' + kwargs[unit] + '.')
+                    logger.debug(msg)
+                else:
+                    keys = ', '.join(cpd[prop]['units'].keys())
+                    msg = (
+                        'Allowed units for ' +
+                        cpd[prop]['text'] + ' are: ' + keys)
+                    logger.error(msg)
+                    raise ValueError(msg)
+
 
         for prop in ['m', 'p', 'h']:
             if f'{prop}_range' in kwargs:
@@ -722,6 +749,17 @@ class Network:
         for start in start_components:
             self.branches.update(start.start_branch())
 
+        self.branchesNames = {}
+        msg = ("Branched the following components and connections:")
+        logger.debug(msg)
+        for k,v in self.branches.items():
+            self.branchesNames[k] = v['components'][0].label
+            for conn,comp in zip(v['connections'],v['components'][1:]):
+                #self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+                self.branchesNames[k] += " -> " + comp.label
+            msg = (self.branchesNames[k])
+            logger.debug(msg)
+
         self.massflow_branches = hlp.get_all_subdictionaries(self.branches)
 
         self.fluid_branches = {}
@@ -734,12 +772,23 @@ class Network:
 
         self.fluid_wrapper_branches = {}
         mask = self.comps["comp_type"].isin(
-            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
+            ["Source", "SourceEnergy", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
         )
         start_components = self.comps["object"].loc[mask]
 
         for start in start_components:
             self.fluid_wrapper_branches.update(start.start_fluid_wrapper_branch())
+
+        self.branchesNames = {}
+        msg = ("Wrapped the following components and connections:")
+        logger.debug(msg)
+        for k,v in self.fluid_wrapper_branches.items():
+            self.branchesNames[k] = v['components'][0].label
+            for conn,comp in zip(v['connections'],v['components'][1:]):
+                #self.branchesNames[k] += " -> " + conn.label + " -> " + comp.label
+                self.branchesNames[k] += " -> " + comp.label
+            msg = (self.branchesNames[k])
+            logger.debug(msg)
 
         merged = self.fluid_wrapper_branches.copy()
         for branch_name, branch_data in self.fluid_wrapper_branches.items():
@@ -758,7 +807,8 @@ class Network:
                         merged[branch_name]["components"] = list(
                             set(branch_data["components"] + ob_data["components"])
                         )
-                        del merged[ob_name]
+                        if merged.get(ob_name,False):
+                            del merged[ob_name]
                         break
 
         self.fluid_wrapper_branches = merged
@@ -871,10 +921,10 @@ class Network:
         if self.conns.loc[first_conn.label, "object"] != first_conn:
             self.create_massflow_and_fluid_branches()
             self.create_fluid_wrapper_branches()
+
         self.propagate_fluid_wrappers()
         self.presolve_massflow_topology()
         self.presolve_fluid_topology()
-
         self.init_set_properties()
 
         if self.mode == 'offdesign':
@@ -909,6 +959,7 @@ class Network:
             any_fluids_set = []
             engines = {}
             back_ends = {}
+            fluid_coefss = {}
             for c in all_connections:
                 for f in c.fluid.is_set:
                     any_fluids_set += [f]
@@ -916,6 +967,8 @@ class Network:
                         engines[f] = c.fluid.engine[f]
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
+                    if f in c.fluid.fluid_coefs:
+                        fluid_coefss[f] = c.fluid.fluid_coefs[f]
 
             mixing_rules = [
                 c.mixing_rule for c in all_connections
@@ -961,7 +1014,8 @@ class Network:
                     c.fluid.engine[f] = engine
                 for f, back_end in back_ends.items():
                     c.fluid.back_end[f] = back_end
-
+                for f, fluid_coefs in fluid_coefss.items():
+                    c.fluid.fluid_coefs[f] = fluid_coefs
                 c._create_fluid_wrapper()
 
     def presolve_massflow_topology(self):
@@ -1068,17 +1122,17 @@ class Network:
                     # remaining fluids are variable, create wrappers for them
                     all_fluids = main_conn.fluid.val.keys()
                     num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
-                    if num_remaining_fluids == 1:
-                        missing_fluid = list(
-                            main_conn.fluid.val.keys() - fixed_fractions.keys()
-                        )[0]
-                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
-                        variable = set()
-                    else:
-                        missing_fluids = (
-                            main_conn.fluid.val.keys() - fixed_fractions.keys()
-                        )
-                        variable = {f for f in missing_fluids}
+                    # if num_remaining_fluids == 1:
+                    #     missing_fluid = list(
+                    #         main_conn.fluid.val.keys() - fixed_fractions.keys()
+                    #     )[0]
+                    #     fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
+                    #     variable = set()
+                    # else:
+                    missing_fluids = (
+                        main_conn.fluid.val.keys() - fixed_fractions.keys()
+                    )
+                    variable = {f for f in missing_fluids}
 
                 else:
                     # fluid mass fraction is 100 %, all other fluids are 0 %
@@ -1108,7 +1162,7 @@ class Network:
                 main_conn.fluid.is_var = variable
                 num_var = len(variable)
                 for f in variable:
-                    main_conn.fluid.val[f]: (1 - mass_fraction_sum) / num_var
+                    main_conn.fluid.val[f] = (1 - mass_fraction_sum) / num_var
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in main_conn.fluid.is_var:
@@ -1229,6 +1283,15 @@ class Network:
         respective :code:`design_path`. In this case, the design values are
         unset, the offdesign values set.
         """
+        for c in self.comps['object']:
+            for prop in cpd.keys():
+                if c.parameters.get(prop,False):
+                    c.parameters[prop].unit = self.get_attr(prop + '_unit')
+                    if c.parameters[prop].is_set:
+                        # we simply overwrite to begin with.. because all model do not use val_SI
+                        c.parameters[prop].val = hlp.convert_comp_to_SI(prop, c.parameters[prop].val, c.parameters[prop].unit)
+                        # we then convert back again upon solution
+
         # connections
         self._conn_variables = []
         _local_designs = {}
@@ -1671,6 +1734,12 @@ class Network:
         """
         if self.init_path is not None:
             df = self.init_read_connections(self.init_path)
+        # read val0 for fluids first, before build_fluid_data below
+        for c in self.conns['object']:
+            for key in ['fluid']:
+                if c.get_attr(key).is_var:
+                    for k,v in c.get_attr(key).val0.items():
+                        c.get_attr(key).val[k] = v
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
@@ -1717,14 +1786,12 @@ class Network:
             # and state specification. These should be recalculated even with
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
-            if (c.Td_bp.is_set or c.state.is_set) and c.h.is_var:
-                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or
-                        (c.state.val == 'g' and c.state.is_set)):
+            if (c.Td_bp.is_set or c.force_state) and c.h.is_var:
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or c.force_state == 'g'):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
-                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or
-                      (c.state.val == 'l' and c.state.is_set)):
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or c.force_state == 'l'):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1785,11 +1852,19 @@ class Network:
 
             if c.T.is_set:
                 try:
-                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule, force_state=c.force_state)
                 except ValueError:
                     pass
 
-    def init_val0(self, c, key):
+            if c.T.val0:
+                if not np.isnan(c.T.val0):
+                    try:
+                        c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val0 + 273.15, c.fluid_data, c.mixing_rule, force_state=c.force_state)
+                    except ValueError:
+                        pass
+
+
+    def init_val0(self, c: con.Connection, key: str):
         r"""
         Set starting values for fluid properties.
 
@@ -1847,7 +1922,8 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, prepare_fast_lane=False):
+              use_cuda=False, print_results=True, prepare_fast_lane=False,
+              robust_relaxation=False):
         r"""
         Solve the network.
 
@@ -1898,6 +1974,7 @@ class Network:
         """
         ## to own function
         self.new_design = False
+        self.robust_relaxation = robust_relaxation
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
                 if c.new_design:
@@ -2024,12 +2101,20 @@ class Network:
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             self.solve_control()
+            # self.residual_history = np.append(
+            #     self.residual_history, norm(self.residual)
+            # )
+
+            # if self.iterinfo:
+            #     self.iterinfo_body(print_results)
+
+            # must always call this one to add increments residual to the solver
+            residual_norm = self.iterinfo_body(print_results)
+
             self.residual_history = np.append(
-                self.residual_history, norm(self.residual)
+                self.residual_history, residual_norm
             )
 
-            if self.iterinfo:
-                self.iterinfo_body(print_results)
 
             if (
                     (self.iter >= self.min_iter - 1
@@ -2160,17 +2245,29 @@ class Network:
         fluid = 'NaN'
         component = 'NaN'
 
-        progress_val = -1
+        if not self.lin_dep and not np.isnan(residual_norm):
+            norm_massflow  = norm(self.increment[m]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_pressure  = norm(self.increment[p]) / 1e5 # scale with 1 bar
+            norm_enthalpy  = norm(self.increment[h]) / 1e5 # scale with enthalpy
+            norm_fluid     = norm(self.increment[fl]) / fpd['m']['units'][self.m_unit] # scale with mass unit
+            norm_component = norm(self.increment[cp])
 
+            massflow = '{:.2e}'.format(norm_massflow)
+            pressure = '{:.2e}'.format(norm_pressure)
+            enthalpy = '{:.2e}'.format(norm_enthalpy)
+            fluid = '{:.2e}'.format(norm_fluid)
+            component  = '{:.2e}'.format(norm_component)
+
+            residual_norm = norm(
+                np.append(
+                    residual_norm,
+                    np.array([norm_massflow, norm_pressure, norm_enthalpy, norm_fluid, norm_component])
+                )
+            )
+
+        progress_val = -1
         if not np.isnan(residual_norm):
             residual = '{:.2e}'.format(residual_norm)
-
-            if not self.lin_dep:
-                massflow = '{:.2e}'.format(norm(self.increment[m]))
-                pressure = '{:.2e}'.format(norm(self.increment[p]))
-                enthalpy = '{:.2e}'.format(norm(self.increment[h]))
-                fluid = '{:.2e}'.format(norm(self.increment[fl]))
-                component  = '{:.2e}'.format(norm(self.increment[cp]))
 
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
@@ -2190,20 +2287,21 @@ class Network:
 
             progress = '{:d} %'.format(progress_val)
 
-        msg = self.iterinfo_fmt.format(
-            iter=iter_str,
-            residual=residual,
-            progress=progress,
-            massflow=massflow,
-            pressure=pressure,
-            enthalpy=enthalpy,
-            fluid=fluid,
-            component=component
-        )
-        logger.progress(progress_val, msg)
-        if print_results:
-            print(msg)
-        return
+        if self.iterinfo:
+            msg = self.iterinfo_fmt.format(
+                iter=iter_str,
+                residual=residual,
+                progress=progress,
+                massflow=massflow,
+                pressure=pressure,
+                enthalpy=enthalpy,
+                fluid=fluid,
+                component=component
+            )
+            logger.progress(progress_val, msg)
+            if print_results:
+                print(msg)
+        return residual_norm
 
     def iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
@@ -2238,36 +2336,72 @@ class Network:
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0
 
+    def _limit_increments(self, valmin, valmax, val, increment):
+        inc_min = valmin - val
+        inc_max = valmax - val
+
+        if increment < inc_min:
+            # need to limit the increment
+            if inc_min < -0.01 * (valmax - valmin):
+                # if we are not close the the bound we limit it half way to the bound
+                increment = inc_min / 2
+            else:
+                # othervice we set the increment to the bound
+                increment = inc_min
+
+        elif increment > inc_max:
+            # need to limit the increment
+            if inc_max > 0.01 * (valmax - valmin):
+                # if we are not close the the bound we limit it half way to the bound
+                increment = inc_max / 2
+            else:
+                # othervice we set the increment to the bound
+                increment = inc_max
+        return increment
+
     def update_variables(self):
+
+        robust_relax = 1
+        if self.robust_relaxation:
+            if self.iter < 2:
+                robust_relax = 0.1
+            elif self.iter < 4:
+                robust_relax = 0.25
+            elif self.iter < 6:
+                robust_relax = 0.5
+
         # add the increment
         for data in self.variables_dict.values():
-            if data["variable"] in ["m", "h"]:
+            if data["variable"] == "m":
                 container = data["obj"].get_attr(data["variable"])
-                container.val_SI += self.increment[container.J_col]
+                increment = self.increment[container.J_col]
+                container.val_SI += robust_relax * self._limit_increments(
+                    self.m_range_SI[0], self.m_range_SI[1], container.val_SI, increment
+                )
+            elif data["variable"] == "h":
+                container = data["obj"].get_attr(data["variable"])
+                increment = self.increment[container.J_col]
+                container.val_SI += robust_relax * increment
             elif data["variable"] == "p":
                 container = data["obj"].p
                 increment = self.increment[container.J_col]
+                # prevents negative values
                 relax = max(1, -2 * increment / container.val_SI)
-                container.val_SI += increment / relax
+                container.val_SI += robust_relax * increment / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-                container.val[data["fluid"]] += self.increment[
-                    container.J_col[data["fluid"]]
-                ]
-
-                if container.val[data["fluid"]] < ERR :
-                    container.val[data["fluid"]] = 0
-                elif container.val[data["fluid"]] > 1 - ERR :
-                    container.val[data["fluid"]] = 1
+                increment = self.increment[container.J_col[data["fluid"]]]
+                val = container.val[data["fluid"]]
+                container.val[data["fluid"]] += robust_relax * self._limit_increments(
+                    0, 1, val, increment
+                )
             else:
-                # add increment
-                data["obj"].val += self.increment[data["obj"].J_col]
-
-                # keep value within specified value range
-                if data["obj"].val < data["obj"].min_val:
-                    data["obj"].val = data["obj"].min_val
-                elif data["obj"].val > data["obj"].max_val:
-                    data["obj"].val = data["obj"].max_val
+                # component variables
+                increment = self.increment[data["obj"].J_col]
+                val = data["obj"].val
+                data["obj"].val += robust_relax * self._limit_increments(
+                    data["obj"].min_val, data["obj"].max_val, val, increment
+                )
 
     def check_variable_bounds(self):
 
@@ -2334,11 +2468,11 @@ class Network:
                 c.check_enthalpy_bounds(fl)
 
                 # two-phase related
-                if (c.Td_bp.is_set or c.state.is_set) and self.iter < 3:
+                if (c.Td_bp.is_set or c.force_state) and self.iter < 3:
                     c.check_two_phase_bounds(fl)
 
         # mixture
-        elif self.iter < 4 and not c.good_starting_values:
+        else: #if self.iter < 4 and not c.good_starting_values:
             # pressure
             if c.p.is_var:
                 if c.p.val_SI <= self.p_range_SI[0]:
@@ -2351,17 +2485,17 @@ class Network:
 
             # enthalpy
             if c.h.is_var:
-                if c.h.val_SI < self.h_range_SI[0]:
+                if c.h.val_SI <= self.h_range_SI[0]:
                     c.h.val_SI = self.h_range_SI[0]
                     logger.debug(c._property_range_message('h'))
 
-                elif c.h.val_SI > self.h_range_SI[1]:
+                elif c.h.val_SI >= self.h_range_SI[1]:
                     c.h.val_SI = self.h_range_SI[1]
                     logger.debug(c._property_range_message('h'))
 
                 # temperature
                 if c.T.is_set:
-                    c.check_temperature_bounds()
+                    c.check_temperature_bounds(self.iter)
 
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and c.m.is_var:
@@ -2455,6 +2589,15 @@ class Network:
     def process_connections(self):
         """Process the Connection results."""
         for c in self.conns['object']:
+
+            # fluid mass fractions sometimes end up with tiny deviations from
+            # the bound, e.g. mass fractions of 1e-12 or similar.
+            for fluid in c.fluid.val:
+                if c.fluid.val[fluid] > 1 - ERR ** 2:
+                    c.fluid.val[fluid] = 1
+                elif c.fluid.val[fluid] < ERR ** 2:
+                    c.fluid.val[fluid] = 0
+
             c.good_starting_values = True
             c.calc_results()
 
@@ -2474,6 +2617,12 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             cp.check_parameter_bounds()
+
+            for prop in cpd.keys():
+                if cp.parameters.get(prop,False):
+                    # we simply overwrite to begin with.. because all model do not use val_SI
+                    cp.parameters[prop].val_SI = cp.parameters[prop].val # delete this when proper use of val_SI is done
+                    cp.parameters[prop].val = hlp.convert_comp_from_SI(prop, cp.parameters[prop].val, cp.parameters[prop].unit)
 
             key = cp.__class__.__name__
             for param in self.results[key].columns:

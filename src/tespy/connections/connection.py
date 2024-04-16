@@ -215,18 +215,15 @@ class Connection:
     Specify the state keyword: The fluid will be forced to liquid or gaseous
     state in this case.
 
-    >>> so_si2.set_attr(state='l')
-    >>> so_si2.state.is_set
-    True
-    >>> so_si2.set_attr(state=None)
-    >>> so_si2.state.is_set
-    False
-    >>> so_si2.set_attr(state='g')
-    >>> so_si2.state.is_set
-    True
-    >>> so_si2.set_attr(state=None)
-    >>> so_si2.state.is_set
-    False
+    >>> so_si2.set_attr(force_state='l')
+    >>> so_si2.force_state
+    'l'
+    >>> so_si2.set_attr(force_state='g')
+    >>> so_si2.force_state
+    'g'
+    >>> so_si2.set_attr(force_state=None)
+    >>> so_si2.force_state
+
     """
 
     def __init__(self, source, outlet_id, target, inlet_id,
@@ -269,7 +266,6 @@ class Connection:
             k: v for k, v in self.get_parameters().items()
             if hasattr(v, "func") and v.func is not None
         }
-        self.state = dc_simple()
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
@@ -410,14 +406,12 @@ class Connection:
             elif key in self.property_data or key in self.property_data0:
                 self._parameter_specification(key, kwargs[key])
 
-            elif key == 'state':
-                if kwargs[key] in ['l', 'g']:
-                    self.state.set_attr(val=kwargs[key], is_set=True)
-                elif kwargs[key] is None:
-                    self.state.set_attr(is_set=False)
+            elif key == 'force_state':
+                if kwargs[key] in ['l', 'g', None]:
+                    self.force_state = kwargs[key]
                 else:
                     msg = (
-                        'Keyword argument "state" must either be '
+                        'Keyword argument "force_state" must either be '
                         '"l" or "g" or be None.'
                     )
                     logger.error(msg)
@@ -461,9 +455,6 @@ class Connection:
 
             elif key == "mixing_rule":
                 self.mixing_rule = kwargs[key]
-
-            elif key == "force_state":
-                self.force_state = kwargs[key]
 
             elif key == "good_starting_values":
                 self.good_starting_values = kwargs[key]
@@ -602,8 +593,6 @@ class Connection:
             data = self.get_attr(k)
             export.update({k: data._serialize()})
 
-        export.update({"state": self.state._serialize()})
-
         return {self.label: export}
 
     @staticmethod
@@ -611,7 +600,7 @@ class Connection:
         return [
             "source_id", "target_id",
             "design_path", "design", "offdesign", "local_design", "local_design",
-            "printout", "mixing_rule","good_starting_values","force_state"
+            "printout", "mixing_rule", "good_starting_values", "force_state"
         ]
 
     def _create_fluid_wrapper(self):
@@ -674,25 +663,25 @@ class Connection:
         if not self.h.is_set and self.p.is_set:
             if self.T.is_set:
                 self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule, self.force_state)
-                self.h.solved = True
-                self.T.solved = True
+                self.h._solved = True
+                self.T._solved = True
             elif self.Td_bp.is_set:
                 T_sat = T_sat_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
                 self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data, self.force_state)
-                self.h.solved = True
-                self.Td_bp.solved = True
+                self.h._solved = True
+                self.Td_bp._solved = True
             elif self.x.is_set:
                 self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
-                self.h.solved = True
-                self.x.solved = True
+                self.h._solved = True
+                self.x._solved = True
         elif not self.h.is_set and not self.p.is_set:
             if self.T.is_set and self.x.is_set:
                 self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data, self.mixing_rule)
                 self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
-                self.T.solved = True
-                self.x.solved = True
-                self.p.solved = True
-                self.h.solved = True
+                self.T._solved = True
+                self.x._solved = True
+                self.p._solved = True
+                self.h._solved = True
 
     def get_parameters(self):
         return {
@@ -1027,12 +1016,12 @@ class Connection:
 
     def check_two_phase_bounds(self, fluid):
 
-        if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
+        if (self.Td_bp.val_SI > 0 or self.force_state == 'g'):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.h.val_SI < h:
                 self.h.val_SI = h * 1.01
                 logger.debug(self._property_range_message('h'))
-        elif (self.Td_bp.val_SI < 0 or (self.state.val == 'l' and self.state.is_set)):
+        elif (self.Td_bp.val_SI < 0 or self.force_state == 'l'):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
             if self.h.val_SI > h:
                 self.h.val_SI = h * 0.99

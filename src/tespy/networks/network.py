@@ -922,10 +922,10 @@ class Network:
         if self.conns.loc[first_conn.label, "object"] != first_conn:
             self.create_massflow_and_fluid_branches()
             self.create_fluid_wrapper_branches()
+
         self.propagate_fluid_wrappers()
         self.presolve_massflow_topology()
         self.presolve_fluid_topology()
-
         self.init_set_properties()
 
         if self.mode == 'offdesign':
@@ -1285,7 +1285,6 @@ class Network:
         unset, the offdesign values set.
         """
         for c in self.comps['object']:
-            print(c)
             for prop in cpd.keys():
                 if c.parameters.get(prop,False):
                     c.parameters[prop].unit = self.get_attr(prop + '_unit')
@@ -1740,8 +1739,6 @@ class Network:
         for c in self.conns['object']:
             for key in ['fluid']:
                 if c.get_attr(key).is_var:
-                    #print(c.get_attr(key).val)
-                    #print(c.get_attr(key).val0)
                     for k,v in c.get_attr(key).val0.items():
                         c.get_attr(key).val[k] = v
         # improved starting values for referenced connections,
@@ -1790,14 +1787,12 @@ class Network:
             # and state specification. These should be recalculated even with
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
-            if (c.Td_bp.is_set or c.state.is_set) and c.h.is_var:
-                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or
-                        (c.state.val == 'g' and c.state.is_set)):
+            if (c.Td_bp.is_set or c.force_state) and c.h.is_var:
+                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or c.force_state == 'g'):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
                         c.h.val_SI = h * 1.001
-                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or
-                      (c.state.val == 'l' and c.state.is_set)):
+                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or c.force_state == 'l'):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.val_SI = h * 0.999
@@ -1928,7 +1923,8 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, prepare_fast_lane=False):
+              use_cuda=False, print_results=True, prepare_fast_lane=False,
+              robust_relaxation=False):
         r"""
         Solve the network.
 
@@ -1979,6 +1975,7 @@ class Network:
         """
         ## to own function
         self.new_design = False
+        self.robust_relaxation = robust_relaxation
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
                 if c.new_design:
@@ -2262,13 +2259,17 @@ class Network:
             fluid = '{:.2e}'.format(norm_fluid)
             component  = '{:.2e}'.format(norm_component)
 
-        residual_norm = norm(np.append(residual_norm,np.array([norm_massflow, norm_pressure, norm_enthalpy, norm_fluid, norm_component])))
-
-        if not np.isnan(residual_norm):
-            residual = '{:.2e}'.format(residual_norm)
+            residual_norm = norm(
+                np.append(
+                    residual_norm,
+                    np.array([norm_massflow, norm_pressure, norm_enthalpy, norm_fluid, norm_component])
+                )
+            )
 
         progress_val = -1
         if not np.isnan(residual_norm):
+            residual = '{:.2e}'.format(residual_norm)
+
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
                 progress_min = np.log(ERR)
@@ -2336,24 +2337,24 @@ class Network:
         except np.linalg.linalg.LinAlgError:
             self.increment = self.residual * 0
 
-    def _limit_increments(self,valmin,valmax,val,increment):
-        inc_min = valmin-val
-        inc_max = valmax-val
+    def _limit_increments(self, valmin, valmax, val, increment):
+        inc_min = valmin - val
+        inc_max = valmax - val
 
         if increment < inc_min:
             # need to limit the increment
-            if inc_min < -0.01*(valmax-valmin):
+            if inc_min < -0.01 * (valmax - valmin):
                 # if we are not close the the bound we limit it half way to the bound
-                increment = inc_min/2
+                increment = inc_min / 2
             else:
                 # othervice we set the increment to the bound
                 increment = inc_min
 
-        if increment > inc_max:
+        elif increment > inc_max:
             # need to limit the increment
-            if inc_max > 0.01*(valmax-valmin):
+            if inc_max > 0.01 * (valmax - valmin):
                 # if we are not close the the bound we limit it half way to the bound
-                increment = inc_max/2
+                increment = inc_max / 2
             else:
                 # othervice we set the increment to the bound
                 increment = inc_max
@@ -2361,70 +2362,47 @@ class Network:
 
     def update_variables(self):
 
-        if self.iter < 2:
-            RobustRelax = 0.1
-        elif self.iter < 4:
-            RobustRelax = 0.25
-        elif self.iter < 6:
-            RobustRelax = 0.5
-        else:
-            RobustRelax = 1
-
-        #RobustRelax = 1
+        robust_relax = 1
+        if self.robust_relaxation:
+            if self.iter < 2:
+                robust_relax = 0.1
+            elif self.iter < 4:
+                robust_relax = 0.25
+            elif self.iter < 6:
+                robust_relax = 0.5
 
         # add the increment
         for data in self.variables_dict.values():
             if data["variable"] == "m":
                 container = data["obj"].get_attr(data["variable"])
                 increment = self.increment[container.J_col]
-                container.val_SI += RobustRelax * self._limit_increments(self.m_range_SI[0],self.m_range_SI[1],container.val_SI,increment)
-                #print(container.val_SI)
+                container.val_SI += robust_relax * self._limit_increments(
+                    self.m_range_SI[0], self.m_range_SI[1], container.val_SI, increment
+                )
             elif data["variable"] == "h":
                 container = data["obj"].get_attr(data["variable"])
                 increment = self.increment[container.J_col]
-                container.val_SI += RobustRelax * self._limit_increments(self.h_range_SI[0],self.h_range_SI[1],container.val_SI,increment)
-                #print(container.val_SI)
+                container.val_SI += robust_relax * increment
             elif data["variable"] == "p":
                 container = data["obj"].p
                 increment = self.increment[container.J_col]
+                # prevents negative values
                 relax = max(1, -2 * increment / container.val_SI)
-                container.val_SI += RobustRelax * increment / relax
-                # increment = self.increment[container.J_col]
-                # container.val_SI += self._limit_increments(self.p_range_SI[0],self.p_range_SI[1],container.val_SI,increment)
-                #print(container.val_SI)
+                container.val_SI += robust_relax * increment / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-
                 increment = self.increment[container.J_col[data["fluid"]]]
                 val = container.val[data["fluid"]]
-                container.val[data["fluid"]] += RobustRelax * self._limit_increments(0,1,val,increment)
-
-                #print(container.val[data["fluid"]])
-
-                # if container.val[data["fluid"]] < ERR :
-                #     container.val[data["fluid"]] = 0
-                # elif container.val[data["fluid"]] > 1 - ERR :
-                #     container.val[data["fluid"]] = 1
+                container.val[data["fluid"]] += robust_relax * self._limit_increments(
+                    0, 1, val, increment
+                )
             else:
-                # add increment
-
+                # component variables
                 increment = self.increment[data["obj"].J_col]
                 val = data["obj"].val
-                data["obj"].val += RobustRelax * self._limit_increments(data["obj"].min_val,data["obj"].max_val,val,increment)
-
-                #data["obj"].val += RobustRelax * self.increment[data["obj"].J_col]
-
-
-                #print(data["obj"].val)
-
-
-
-
-                # # keep value within specified value range
-                # if data["obj"].val < data["obj"].min_val:
-                #     data["obj"].val = data["obj"].min_val
-                # elif data["obj"].val > data["obj"].max_val:
-                #     data["obj"].val = data["obj"].max_val
+                data["obj"].val += robust_relax * self._limit_increments(
+                    data["obj"].min_val, data["obj"].max_val, val, increment
+                )
 
     def check_variable_bounds(self):
 
@@ -2491,7 +2469,7 @@ class Network:
                 c.check_enthalpy_bounds(fl)
 
                 # two-phase related
-                if (c.Td_bp.is_set or c.state.is_set) and self.iter < 3:
+                if (c.Td_bp.is_set or c.force_state) and self.iter < 3:
                     c.check_two_phase_bounds(fl)
 
         # mixture

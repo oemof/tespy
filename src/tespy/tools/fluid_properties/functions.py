@@ -94,8 +94,8 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
                 T = min([fluid_data[f]["wrapper"]._T_max for f in fluid_data]+[Tsat])
-                hL = h_mix_pT(p, T, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, T, fluid_data, mixing_rule, force_state = 'g')
+                hL = h_mix_pT(p, T, fluid_data, mixing_rule, force_state='l')
+                hV = h_mix_pT(p, T, fluid_data, mixing_rule, force_state='g')
                 if h>hL and h<hV:
                     return Tsat
         _check_mixing_rule(mixing_rule, T_MIX_PH_REVERSE, "temperature (from enthalpy)")
@@ -103,7 +103,7 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
             "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
             "f": T_MIX_PH_REVERSE[mixing_rule], "force_state" : force_state,
         }
-        return inverse_temperature_mixture(**kwargs)                    
+        return inverse_temperature_mixture(**kwargs)
 
 
 def dT_mix_pdh(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
@@ -130,7 +130,7 @@ def dT_mix_ph_dfluid(p, h, fluid, fluid_data, mixing_rule=None, T0=None, force_s
     return (upper - lower) / (2 * d)
 
 
-def h_mix_pT(p, T, fluid_data, mixing_rule=None, force_state = None):
+def h_mix_pT(p, T, fluid_data, mixing_rule=None, force_state=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].h_pT(p, T, force_state=force_state)
@@ -147,8 +147,8 @@ def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
         if "Water" in fluid_data:
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
-                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                 return hL + Q*(hV-hL)
         msg = "Saturation function cannot be called on mixtures, unless there is HEOS::Water"
         raise ValueError(msg)
@@ -168,20 +168,20 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None, force_state=None):
         if "Water" in fluid_data and not force_state:
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
-                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                 if h<=hL:
                     return 0.0
                 elif h>=hV:
                     return 1.0
                 else:
-                    return (h-hL)/(hV-hL)
+                    return (h-hL) / (hV-hL)
         if force_state == 'l':
             return 0.0
         elif force_state == 'g':
             return 1.0
         msg = "Saturation function cannot be called on mixtures, unless there is HEOS::Water"
-        raise ValueError(msg) 
+        raise ValueError(msg)
 
 def p_sat_T(T, fluid_data, mixing_rule=None):
     if get_number_of_fluids(fluid_data) == 1:
@@ -192,7 +192,7 @@ def p_sat_T(T, fluid_data, mixing_rule=None):
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 return fluid_data["Water"]["wrapper"].p_sat(T)
         msg = "Saturation function cannot be called on mixtures, unless there is HEOS::Water"
-        raise ValueError(msg) 
+        raise ValueError(msg)
 
 
 def T_sat_p(p, fluid_data, mixing_rule=None):
@@ -204,7 +204,7 @@ def T_sat_p(p, fluid_data, mixing_rule=None):
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 return fluid_data["Water"]["wrapper"].T_sat(p)
         msg = "Saturation function cannot be called on mixtures, unless there is HEOS::Water"
-        raise ValueError(msg) 
+        raise ValueError(msg)
 
 
 def dT_sat_dp(p, fluid_data, mixing_rule=None):
@@ -222,12 +222,12 @@ def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
         if "Water" in fluid_data and not force_state:
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
-                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                 if h>hL and h<hV:
-                    x = (h-hL)/(hV-hL)            
-                    sL = s_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                    sV = s_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                    x = (h-hL)/(hV-hL)
+                    sL = s_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                    sV = s_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                     return sL + x*(sV-sL)
         T = T_mix_ph(p, h , fluid_data, mixing_rule, T0, force_state=force_state)
         return s_mix_pT(p, T, fluid_data, mixing_rule, force_state=force_state)
@@ -263,12 +263,12 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None, force_state=None):
         if "Water" in fluid_data and not force_state:
             if fluid_data["Water"]["wrapper"].back_end == "HEOS":
                 Tsat = fluid_data["Water"]["wrapper"].T_sat(p)
-                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                hL = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                hV = h_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                 if h>hL and h<hV:
-                    x = (h-hL)/(hV-hL)            
-                    vL = v_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'l')
-                    vV = v_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state = 'g')
+                    x = (h-hL)/(hV-hL)
+                    vL = v_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='l')
+                    vV = v_mix_pT(p, Tsat, fluid_data, mixing_rule, force_state='g')
                     return vL + x*(vV-vL)
         T = T_mix_ph(p, h , fluid_data, mixing_rule, T0, force_state=force_state)
         return v_mix_pT(p, T, fluid_data, mixing_rule, force_state=force_state)

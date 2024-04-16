@@ -327,7 +327,7 @@ class TestNetworkIndividualOffdesign:
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
 
-        self.sc2_v2.set_attr(T=95, state='l', m=None)
+        self.sc2_v2.set_attr(T=95, force_state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -336,8 +336,8 @@ class TestNetworkIndividualOffdesign:
         zeta_sc2_design = self.sc2.zeta.val
 
         self.sc1_v1.set_attr(m=None)
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc2.set_attr(design_path='design2')
         self.pump2.set_attr(design_path='design2')
@@ -395,8 +395,8 @@ class TestNetworkIndividualOffdesign:
         self.nw._convergence_check()
         self.nw.save('design1')
 
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc1.set_attr(local_offdesign=True, design_path='design1')
         self.pump1.set_attr(local_offdesign=True, design_path='design1')
@@ -439,8 +439,8 @@ class TestNetworkIndividualOffdesign:
         self.nw._convergence_check()
         self.nw.save('design1')
 
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
+        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], force_state='l')
+        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], force_state='l')
 
         self.sc1.set_attr(local_offdesign=True, design_path='design1')
         self.pump1.set_attr(local_offdesign=True, design_path='design1')

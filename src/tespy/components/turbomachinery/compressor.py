@@ -758,7 +758,7 @@ class Compressor(Turbomachine):
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # each line needs to equal 0
         # c_in_ch = c_out_ch
-        # c_out_th - c_in_th = c_out_mech - c_in_mech  ->  c_out_th - c_in_th - c_out_mech + c_in_mech = 0
+        # delta c_therm = delta c_mech   # alt: c_out_th - c_in_th = c_out_mech - c_in_mech  ->  c_out_th - c_in_th - c_out_mech + c_in_mech = 0
 
         if self.inl[0].Ex_chemical != 0 and self.outl[0].Ex_chemical != 0:
             exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
@@ -771,24 +771,15 @@ class Compressor(Turbomachine):
         else:
             exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1
 
-        # c_out_th - c_in_th = c_out_mech - c_in_mech  ->  c_out_th - c_in_th - c_out_mech + c_in_mech = 0
-        if self.inl[0].Ex_therm != 0 and self.outl[0].Ex_therm != 0 and self.inl[0].Ex_mech != 0 and self.outl[0].Ex_mech != 0:
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["therm"]] = -1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["therm"]] = 1
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1
-        # c_out_th - c_in_th = c_out_mech ->  c_out_th - c_in_th - c_out_mech = 0
-        elif self.inl[0].Ex_therm != 0 and self.outl[0].Ex_therm != 0 and self.inl[0].Ex_mech == 0 and self.outl[0].Ex_mech != 0:
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["therm"]] = -1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["therm"]] = 1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1
-        # c_out_th = c_out_mech - c_in_mech ->  c_out_th - c_out_mech = 0
-        elif self.inl[0].Ex_therm == 0 and self.outl[0].Ex_therm != 0 and self.inl[0].Ex_mech != 0 and self.outl[0].Ex_mech != 0:
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["therm"]] = 1
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1
+        dET = self.outl[0].Ex_therm - self.inl[0].Ex_therm
+        dEM = self.outl[0].Ex_mech - self.inl[0].Ex_mech
+        if dET != 0 and dEM != 0:
+            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["therm"]] = -1/dET
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["therm"]] = 1/dET
+            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1/dEM
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1/dEM
         else:
-            print("case that thermal or mechanical exergy at pump outlet is 0 not implemented in exergoeconomics yet")
+            print("case that thermal or mechanical exergy at pump outlet doesn't change is not implemented in exergoeconomics yet")
 
 
 

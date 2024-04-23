@@ -126,18 +126,28 @@ class Source(Component):
 
     """+F+F+F+F++++START++++F+F+F+F+    von Jubran"""
     def set_source_costs(self, c_tot=None):
-        # convert units
-        # input for c is $/GJ and input for Z is $/h
-        unit_C = (3600 / 10 ** 9)
-        unit_c = (10 ** 9 / 3600)
+        # c_tot must be in SI unit ($/J)
 
         if c_tot is not None:
             self.outl[0].c_tot = c_tot
             # calculate outlet
             self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
-            self.outl[0].C_tot = self.outl[0].c_tot * self.outl[0].Ex_tot * unit_C
+            self.outl[0].C_tot = self.outl[0].c_tot * self.outl[0].Ex_tot
 
             # approx costs per exergy unit fot T, M, PH and CH
+            # c_tot = c_therm = c_mech = c_physical = c_chemical
+            self.outl[0].c_therm = c_tot
+            self.outl[0].c_mech = c_tot
+            self.outl[0].c_physical = c_tot
+            self.outl[0].c_chemical = c_tot
+
+            self.outl[0].C_therm = self.outl[0].c_therm * self.outl[0].Ex_therm
+            self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech
+            self.outl[0].C_physical = self.outl[0].c_physical * self.outl[0].Ex_physical
+            self.outl[0].C_chemical = self.outl[0].c_chemical * self.outl[0].Ex_chemical
+
+
+            """
             self.outl[0].C_therm = self.outl[0].C_tot * (self.outl[0].Ex_therm / self.outl[0].Ex_tot)
             self.outl[0].C_mech = self.outl[0].C_tot * (self.outl[0].Ex_mech / self.outl[0].Ex_tot)
             self.outl[0].C_physical = self.outl[0].C_tot * (self.outl[0].Ex_physical / self.outl[0].Ex_tot)
@@ -147,7 +157,7 @@ class Source(Component):
             self.outl[0].c_mech = self.outl[0].C_mech / self.outl[0].Ex_mech * unit_c if self.outl[0].Ex_mech != 0 else 0
             self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c if self.outl[0].Ex_physical != 0 else 0
             self.outl[0].c_chemical = self.outl[0].C_chemical / self.outl[0].Ex_chemical * unit_c if self.outl[0].Ex_chemical != 0 else 0
-
+            """
     def set_source_costs_standard(self):
         # determine source costs depending on material, temperature, ...
         return

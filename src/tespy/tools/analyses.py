@@ -514,14 +514,14 @@ class ExergyAnalysis:
                 bus.E_external["bus"] = 0
                 for comp, comp_data in bus.comps.iterrows():
                     if comp_data["base"] == "bus":
-                        bus.E_external["bus"] += comp.E_bus["massless"] #/ comp.calc_bus_efficiency(bus)
+                        bus.E_external["bus"] += comp.E_bus["massless"] / comp.calc_bus_efficiency(bus)
                         #print(f"{bus.label} to {comp.label}")
                         #print(comp.label, "E_bus[massless] component based: ", comp.E_bus["massless"])
                         #print(comp.label, "comp.E_bus[massless] bus based: ", comp.E_bus["massless"] / comp.calc_bus_efficiency(bus))
                         # / efficiency -> is that correct?? is comp.E_bus the component value of the bus
                         # E_external > 0 means bus gets energy from external source
                     else:
-                        bus.E_external["bus"] -= comp.E_bus["massless"] #* comp.calc_bus_efficiency(bus)
+                        bus.E_external["bus"] -= comp.E_bus["massless"] * comp.calc_bus_efficiency(bus)
                         #print(f"{comp.label} to {bus.label}")
                         #print(comp.label, "E_bus[massless] component based: ", comp.E_bus["massless"])
                         #print(comp.label, "E_bus[massless] bus based: ", comp.E_bus["massless"] * comp.calc_bus_efficiency(bus))
@@ -532,10 +532,10 @@ class ExergyAnalysis:
 
                 # WRITE GIVEN POWER AND HEAT COSTS INTO OBJECTS
                 if f"{bus.label}_c" in Exe_Eco_Costs:
-                    bus.C_external["bus"] = Exe_Eco_Costs[f"{bus.label}_c"] * abs(bus.E_external["bus"])
+                    bus.C_external["bus"] = Exe_Eco_Costs[f"{bus.label}_c"] * 10**-9 * abs(bus.E_external["bus"])
                     #print("bus external known costs: ", bus.C_external["bus"], bus.label)
                 elif bus.E_external["bus"] > 0: # standard values
-                    bus.C_external["bus"] = 0.02 * abs(bus.E_external["bus"])
+                    bus.C_external["bus"] = 10 * 10**-9 * abs(bus.E_external["bus"])
                     print("no bus costs provided")
             for comp in bus.comps.index:                # 2 variables per component (bus based and component based)
                 if comp.component() not in ["source", "sink"]:
@@ -569,7 +569,7 @@ class ExergyAnalysis:
                 if comp.component() == "source":
                     c_id = f"{comp.label}_c"                                    # material costs
                     if c_id in Exe_Eco_Costs:
-                        comp.set_source_costs(Exe_Eco_Costs[f"{c_id}"])
+                        comp.set_source_costs(Exe_Eco_Costs[f"{c_id}"]*10**-9)
                     else:
                         comp.set_source_costs_standard()
                         print("no source costs entered")
@@ -577,7 +577,7 @@ class ExergyAnalysis:
         for comp in self.nw.comps['object']:
             Z_id = f"{comp.label}_Z"                                            # component costs
             if Z_id in Exe_Eco_Costs:
-                comp.set_Z_costs(Exe_Eco_Costs[f"{Z_id}"])
+                comp.set_Z_costs(Exe_Eco_Costs[f"{Z_id}"]/3600)
             else:
                 if not comp.component() in["source", "sink"]:
                     comp.set_Z_costs_standard()
@@ -695,7 +695,7 @@ class ExergyAnalysis:
                     exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["mech"]] = -1
                     exergy_cost_vector[counter] = 0
                     counter +=1
-                    exergy_cost_matrix[counter][comp.inl[0].Ex_C_col["chemical"]] = +1
+                    exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["chemical"]] = +1
                     # bei Kreisprozessen muss ein Wert vorgegeben werden damit das System lösbar ist
                     #exergy_cost_matrix[counter][comp.outl[0].Ex_C_col["chemical"]] = -1
                     exergy_cost_vector[counter] = 0
@@ -1268,8 +1268,8 @@ class ExergyAnalysis:
         )
         for conn in self.nw.conns['object']:
             conn_exergoec_data = [
-                conn.c_therm, conn.c_mech, conn.c_chemical, conn.c_tot,
-                conn.C_therm, conn.C_mech, conn.C_chemical, conn.C_tot
+                conn.c_therm*10**9, conn.c_mech*10**9, conn.c_chemical*10**9, conn.c_tot*10**9,
+                conn.C_therm*3600, conn.C_mech*3600, conn.C_chemical*3600, conn.C_tot*3600
             ]
             self.connection_exergoec_data.loc[conn.label] = conn_exergoec_data
 
@@ -1289,7 +1289,7 @@ class ExergyAnalysis:
         )
         for comp in self.nw.comps['object']:
             comp_exergoec_data = [
-                comp.C_F, comp.C_P, comp.C_D, comp.C_L, comp.C_bus, comp.Z_costs, comp.r, comp.f
+                comp.C_F*3600, comp.C_P*3600, comp.C_D*3600, comp.C_L*3600, comp.C_bus*3600, comp.Z_costs*3600, comp.r, comp.f
             ]
             self.component_exergoec_data.loc[comp.label] = comp_exergoec_data
 

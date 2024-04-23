@@ -80,11 +80,11 @@ p_amb = 1
 T_amb = 25
 
 # exergy and exergoeconomic analysis
-exe_eco_input = {'Turbine_Z': 7e3, 'Compressor_Z': 5e3, 'Cooling heat exchanger_Z': 1e3,
-                 'Heat sink heat exchanger_Z': 1e3, 'Water source_c': 0.001, 'Air source_c': 0.001,
-                 'power input_c': 0.01}
+exe_eco_input = {'Turbine_Z': 700, 'Compressor_Z': 600, 'Cooling heat exchanger_Z': 180,
+                 'Heat sink heat exchanger_Z': 80, 'Water source_c': 0.1, 'Air source_c': 0.2,
+                 'power input_c': 10}
 ean = ExergyAnalysis(network=nw, E_F=[power], E_P=[cool_product_bus], E_L=[heat_loss_bus], internal_busses=[])
-ean.analyse(pamb=p_amb, Tamb=T_amb)
+ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
 ean.print_results(Exe_Eco_An=True)
 """

@@ -36,7 +36,7 @@ def test_custom_CharLine_import():
             shutil.copy(src=path + '/' + f, dst=tmp_path)
 
     with open(data_path) as f:
-        raw_data = json.loads(f.read())
+        raw_data = json.load(f)
 
     data = raw_data['heat exchanger']['kA_char2']
     with open(os.path.join(path, 'char_lines.json'), 'w') as outfile:
@@ -84,7 +84,7 @@ def test_custom_CharMap_import():
             shutil.copy(src=path + '/' + f, dst=tmp_path)
 
     with open(data_path) as f:
-        raw_data = json.loads(f.read())
+        raw_data = json.load(f)
 
     data = raw_data['compressor']['char_map_pr']
     with open(os.path.join(path, 'char_maps.json'), 'w') as outfile:

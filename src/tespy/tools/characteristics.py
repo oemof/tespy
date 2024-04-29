@@ -503,7 +503,7 @@ def load_default_char(component, parameter, function_name, char_type):
         path = os.path.join(__datapath__, 'char_maps.json')
 
     with open(path) as f:
-        data = json.loads(f.read())
+        data = json.load(f)
 
     if char_type == CharLine:
         x = data[component][parameter][function_name]['x']
@@ -546,7 +546,7 @@ def load_custom_char(name, char_type):
     if os.path.isfile(path):
 
         with open(path) as f:
-            data = json.loads(f.read())
+            data = json.load(f)
 
         if char_type == CharLine:
             x = data[name]['x']

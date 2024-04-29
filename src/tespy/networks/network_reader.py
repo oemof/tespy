@@ -254,7 +254,7 @@ def load_network(path):
         logger.debug(msg)
 
         with open(path_comps + f, "r", encoding="utf-8") as c:
-            data = json.loads(c.read())
+            data = json.load(c)
 
         comps.update(construct_components(component, data))
 
@@ -270,7 +270,7 @@ def load_network(path):
     logger.debug(msg)
 
     with open(fn, "r", encoding="utf-8") as c:
-        data = json.loads(c.read())
+        data = json.load(c)
 
     conns = construct_connections(data, comps)
 
@@ -289,7 +289,7 @@ def load_network(path):
         logger.debug(msg)
 
         with open(fn, "r", encoding="utf-8") as c:
-            data = json.loads(c.read())
+            data = json.load(c)
 
         busses = construct_busses(data, comps)
         # add busses to network
@@ -364,7 +364,7 @@ def construct_network(path):
     """
     # read network .json-file
     with open(path + 'network.json', 'r') as f:
-        data = json.loads(f.read())
+        data = json.load(f)
 
     # create network object with its properties
     return Network(**data)

@@ -12,7 +12,7 @@ def get_char_data(filename):
     path = resource_filename('tespy.data', filename + '.json')
 
     with open(path) as f:
-        data = json.loads(f.read())
+        data = json.load(f)
 
     return data
 

@@ -13,12 +13,14 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 
 
+@component_registry
 class Valve(Component):
     r"""
     The Valve throttles a fluid without changing enthalpy.

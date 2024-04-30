@@ -13,11 +13,11 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 
-# %%
 
-
+@component_registry
 class CycleCloser(Component):
     r"""
     Component for closing cycles.

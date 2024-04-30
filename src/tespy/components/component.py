@@ -33,6 +33,15 @@ from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
 
 
+def component_registry(type):
+    component_registry.items[type.__name__] = type
+    return type
+
+
+component_registry.items = {}
+
+
+@component_registry
 class Component:
     r"""
     Class Component is the base class of all TESPy components.

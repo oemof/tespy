@@ -11,9 +11,8 @@ tespy/components/reactors/water_electrolyzer.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -23,6 +22,7 @@ from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
 
 
+@component_registry
 class WaterElectrolyzer(Component):
     r"""
     The water electrolyzer produces hydrogen and oxygen from water and power.

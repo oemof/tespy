@@ -13,8 +13,10 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 
 
+@component_registry
 class Sink(Component):
     r"""
     A flow drains in a Sink.

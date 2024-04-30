@@ -10,9 +10,11 @@ available from its original location tespy/components/piping/pipe.py
 SPDX-License-Identifier: MIT
 """
 
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 
 
+@component_registry
 class Pipe(SimpleHeatExchanger):
     r"""
     The Pipe is a subclass of a SimpleHeatExchanger.

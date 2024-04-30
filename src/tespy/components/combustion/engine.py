@@ -10,19 +10,21 @@ tespy/components/combustion/engine.py
 
 SPDX-License-Identifier: MIT
 """
+
 import numpy as np
 
 from tespy.components.combustion.base import CombustionChamber
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 
 
+@component_registry
 class CombustionEngine(CombustionChamber):
     r"""
     An internal combustion engine supplies power and heat cogeneration.

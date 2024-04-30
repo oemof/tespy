@@ -10,12 +10,15 @@ tespy/components/nodes/droplet_separator.py
 
 SPDX-License-Identifier: MIT
 """
+
+from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
+@component_registry
 class DropletSeparator(NodeBase):
     r"""
     Separate liquid phase from gas phase of a single fluid.

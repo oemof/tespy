@@ -12,10 +12,12 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.nodes.droplet_separator import DropletSeparator
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
+@component_registry
 class Drum(DropletSeparator):
     r"""
     A drum separates saturated gas from saturated liquid.

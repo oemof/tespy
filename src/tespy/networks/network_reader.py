@@ -28,6 +28,7 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.helpers import modify_path_os
 
 
@@ -256,17 +257,6 @@ def load_network(path):
     return nw
 
 
-def _get_target_class(class_name, module_name, module):
-    if hasattr(module, class_name):
-        return getattr(module, class_name)
-    else:
-        msg = (
-            f"The class {class_name} is not availble as import in the "
-            f"{module_name} module."
-        )
-        logger.warning(msg)
-
-
 def _construct_components(target_class, data):
     r"""
     Create TESPy component from class name and set parameters.
@@ -368,8 +358,7 @@ def _construct_connections(data, comps):
                 conns[label].set_attr(**{arg: conn[arg]})
 
         for f, engine in conn["fluid"]["engine"].items():
-            target_class = _get_target_class(engine, module_name, module)
-            conn["fluid"]["engine"][f] = target_class
+            conn["fluid"]["engine"][f] = wrapper_registry.items[engine]
 
         conns[label].fluid.set_attr(**conn["fluid"])
         conns[label]._create_fluid_wrapper()

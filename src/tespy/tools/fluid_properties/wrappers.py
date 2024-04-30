@@ -16,6 +16,14 @@ import CoolProp as CP
 from tespy.tools.global_vars import ERR
 
 
+def wrapper_registry(type):
+    wrapper_registry.items[type.__name__] = type
+    return type
+
+
+wrapper_registry.items = {}
+
+
 class SerializableAbstractState(CP.AbstractState):
 
     def __init__(self, back_end, fluid_name):
@@ -26,6 +34,7 @@ class SerializableAbstractState(CP.AbstractState):
         return (self.__class__, (self.back_end, self.fluid_name))
 
 
+@wrapper_registry
 class FluidPropertyWrapper:
 
     def __init__(self, fluid, back_end=None) -> None:
@@ -106,6 +115,7 @@ class FluidPropertyWrapper:
         self._not_implemented()
 
 
+@wrapper_registry
 class CoolPropWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
@@ -248,6 +258,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
 
+@wrapper_registry
 class IAPWSWrapper(FluidPropertyWrapper):
 
 
@@ -366,6 +377,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(P=p / 1e6, T=T).s * 1e3
 
 
+@wrapper_registry
 class PyromatWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:

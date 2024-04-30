@@ -16,6 +16,7 @@ import importlib
 import json
 import os
 
+from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -199,7 +200,7 @@ def load_network(path):
         with open(path_comps + f, "r", encoding="utf-8") as c:
             data = json.load(c)
 
-        target_class = _get_target_class(component, module_name, module)
+        target_class = component_registry.items[component]
         comps.update(_construct_components(target_class, data))
 
     msg = 'Created network components.'

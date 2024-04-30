@@ -10,8 +10,7 @@ available from its original location tespy/components/nodes/separator.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
+from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
@@ -21,6 +20,7 @@ from tespy.tools.fluid_properties import dT_mix_pdh
 # from tespy.tools.fluid_properties import dT_mix_ph_dfluid
 
 
+@component_registry
 class Separator(NodeBase):
     r"""
     A separator separates fluid components from a mass flow.

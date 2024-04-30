@@ -10,13 +10,13 @@ available from its original location tespy/components/nodes/splitter.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
+from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 
 
+@component_registry
 class Splitter(NodeBase):
     r"""
     Split up a mass flow in parts of identical enthalpy and fluid composition.

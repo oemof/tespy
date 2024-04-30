@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -23,6 +24,7 @@ from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
+@component_registry
 class Condenser(HeatExchanger):
     r"""
     A Condenser cools a fluid until it is in liquid state.

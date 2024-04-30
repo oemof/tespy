@@ -10,15 +10,16 @@ tespy/components/reactors/fuel_cell.py
 
 SPDX-License-Identifier: MIT
 """
-import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 
 
+@component_registry
 class FuelCell(Component):
     r"""
     The fuel cell produces power by oxidation of hydrogen.

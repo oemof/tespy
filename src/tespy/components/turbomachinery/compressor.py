@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
@@ -23,6 +24,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 
 
+@component_registry
 class Compressor(Turbomachine):
     r"""
     Class for axial or radial compressor.

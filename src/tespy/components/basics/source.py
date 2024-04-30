@@ -15,6 +15,8 @@ import numpy as np
 from tespy.components.component import Component
 
 
+from tespy.components.component import component_registry
+@component_registry
 class Source(Component):
     r"""
     A flow originates from a Source.

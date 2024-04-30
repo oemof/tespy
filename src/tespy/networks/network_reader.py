@@ -12,35 +12,10 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
+import importlib
 import json
 import os
 
-import pandas as pd
-
-from tespy.components import CombustionChamber
-from tespy.components import CombustionEngine
-from tespy.components import Compressor
-from tespy.components import Condenser
-from tespy.components import CycleCloser
-from tespy.components import Desuperheater
-from tespy.components import DropletSeparator
-from tespy.components import Drum
-from tespy.components import HeatExchanger
-from tespy.components import HeatExchangerSimple
-from tespy.components import Merge
-from tespy.components import ParabolicTrough
-from tespy.components import Pipe
-from tespy.components import Pump
-from tespy.components import Separator
-from tespy.components import SimpleHeatExchanger
-from tespy.components import Sink
-from tespy.components import SolarCollector
-from tespy.components import Source
-from tespy.components import Splitter
-from tespy.components import SubsystemInterface
-from tespy.components import Turbine
-from tespy.components import Valve
-from tespy.components import WaterElectrolyzer
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -52,43 +27,14 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
-from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
-from tespy.tools.fluid_properties.wrappers import PyromatWrapper
 from tespy.tools.helpers import modify_path_os
 
-COMP_TARGET_CLASSES = {
-    'CycleCloser': CycleCloser,
-    'Sink': Sink,
-    'Source': Source,
-    'SubsystemInterface': SubsystemInterface,
-    'CombustionChamber': CombustionChamber,
-    'CombustionEngine': CombustionEngine,
-    'Condenser': Condenser,
-    'Desuperheater': Desuperheater,
-    'HeatExchanger': HeatExchanger,
-    'HeatExchangerSimple': HeatExchangerSimple,
-    'SimpleHeatExchanger': SimpleHeatExchanger,
-    'SolarCollector': SolarCollector,
-    'ParabolicTrough': ParabolicTrough,
-    'DropletSeparator': DropletSeparator,
-    'Drum': Drum,
-    'Merge': Merge,
-    'Separator': Separator,
-    'Splitter': Splitter,
-    'Pipe': Pipe,
-    'Valve': Valve,
-    'WaterElectrolyzer': WaterElectrolyzer,
-    'Compressor': Compressor,
-    'Pump': Pump,
-    'Turbine': Turbine
-}
 
-ENGINE_TARGET_CLASSES = {
-    "CoolPropWrapper": CoolPropWrapper,
-    "IAPWSWrapper": IAPWSWrapper,
-    "PyromatWrapper": PyromatWrapper,
-}
+COMPONENTS_MODULE_NAME = "tespy.components"
+COMPONENTS_MODULE = importlib.import_module(COMPONENTS_MODULE_NAME)
+WRAPPER_MODULE_NAME = "tespy.tools.fluid_properties.wrappers"
+WRAPPER_MODULE = importlib.import_module(WRAPPER_MODULE_NAME)
+
 
 def load_network(path):
     r"""
@@ -256,13 +202,14 @@ def load_network(path):
         with open(path_comps + f, "r", encoding="utf-8") as c:
             data = json.load(c)
 
-        comps.update(construct_components(component, data))
+        target_class = _get_target_class(component, COMPONENTS_MODULE_NAME, COMPONENTS_MODULE)
+        comps.update(_construct_components(target_class, data))
 
     msg = 'Created network components.'
     logger.info(msg)
 
     # create network
-    nw = construct_network(path)
+    nw = _construct_network(path)
 
     # load connections
     fn = path + 'connections.json'
@@ -272,7 +219,7 @@ def load_network(path):
     with open(fn, "r", encoding="utf-8") as c:
         data = json.load(c)
 
-    conns = construct_connections(data, comps)
+    conns = _construct_connections(data, comps)
 
     # add connections to network
     for c in conns.values():
@@ -291,7 +238,7 @@ def load_network(path):
         with open(fn, "r", encoding="utf-8") as c:
             data = json.load(c)
 
-        busses = construct_busses(data, comps)
+        busses = _construct_busses(data, comps)
         # add busses to network
         for b in busses.values():
             nw.add_busses(b)
@@ -311,7 +258,18 @@ def load_network(path):
     return nw
 
 
-def construct_components(component, data):
+def _get_target_class(class_name, module_name, module):
+    if hasattr(module, class_name):
+        return getattr(module, class_name)
+    else:
+        msg = (
+            f"The class {class_name} is not availble as import in the "
+            f"{module_name} module."
+        )
+        logger.warning(msg)
+
+
+def _construct_components(target_class, data):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -328,7 +286,6 @@ def construct_components(component, data):
     dict
         Dictionary of all components of the specified type.
     """
-    target_class = COMP_TARGET_CLASSES[component]
     instances = {}
     for cp, cp_data in data.items():
         instances[cp] = target_class(cp)
@@ -348,7 +305,7 @@ def construct_components(component, data):
     return instances
 
 
-def construct_network(path):
+def _construct_network(path):
     r"""
     Create TESPy network from the path provided by the user.
 
@@ -370,7 +327,7 @@ def construct_network(path):
     return Network(**data)
 
 
-def construct_connections(data, comps):
+def _construct_connections(data, comps):
     r"""
     Create TESPy connection from data in the .json-file and its parameters.
 
@@ -409,7 +366,8 @@ def construct_connections(data, comps):
                 conns[label].set_attr(**{arg: conn[arg]})
 
         for f, engine in conn["fluid"]["engine"].items():
-            conn["fluid"]["engine"][f] = ENGINE_TARGET_CLASSES[engine]
+            target_class = _get_target_class(engine, WRAPPER_MODULE_NAME, WRAPPER_MODULE)
+            conn["fluid"]["engine"][f] = target_class
 
         conns[label].fluid.set_attr(**conn["fluid"])
         conns[label]._create_fluid_wrapper()
@@ -424,7 +382,7 @@ def construct_connections(data, comps):
     return conns
 
 
-def construct_busses(data, comps):
+def _construct_busses(data, comps):
     r"""
     Create busses of the network.
 

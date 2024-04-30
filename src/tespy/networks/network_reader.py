@@ -30,12 +30,6 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import modify_path_os
 
 
-COMPONENTS_MODULE_NAME = "tespy.components"
-COMPONENTS_MODULE = importlib.import_module(COMPONENTS_MODULE_NAME)
-WRAPPER_MODULE_NAME = "tespy.tools.fluid_properties.wrappers"
-WRAPPER_MODULE = importlib.import_module(WRAPPER_MODULE_NAME)
-
-
 def load_network(path):
     r"""
     Load a network from a base path.
@@ -191,6 +185,9 @@ def load_network(path):
     # load components
     comps = {}
 
+    module_name = "tespy.components"
+    module = importlib.import_module(module_name)
+
     files = os.listdir(path_comps)
     for f in files:
         fn = path_comps + f
@@ -202,7 +199,7 @@ def load_network(path):
         with open(path_comps + f, "r", encoding="utf-8") as c:
             data = json.load(c)
 
-        target_class = _get_target_class(component, COMPONENTS_MODULE_NAME, COMPONENTS_MODULE)
+        target_class = _get_target_class(component, module_name, module)
         comps.update(_construct_components(target_class, data))
 
     msg = 'Created network components.'
@@ -352,6 +349,10 @@ def _construct_connections(data, comps):
         and "ref" not in _
     ]
     arglist_ref = [_ for _ in data[list(data.keys())[0]] if "ref" in _]
+
+    module_name = "tespy.tools.fluid_properties.wrappers"
+    module = importlib.import_module(module_name)
+
     for label, conn in data.items():
         conns[label] = Connection(
             comps[conn["source"]], conn["source_id"],
@@ -366,7 +367,7 @@ def _construct_connections(data, comps):
                 conns[label].set_attr(**{arg: conn[arg]})
 
         for f, engine in conn["fluid"]["engine"].items():
-            target_class = _get_target_class(engine, WRAPPER_MODULE_NAME, WRAPPER_MODULE)
+            target_class = _get_target_class(engine, module_name, module)
             conn["fluid"]["engine"][f] = target_class
 
         conns[label].fluid.set_attr(**conn["fluid"])
@@ -376,7 +377,11 @@ def _construct_connections(data, comps):
         for arg in arglist_ref:
             if len(conn[arg]) > 0:
                 param = arg.replace("_ref", "")
-                ref = Ref(conns[conn[arg]["conn"]], conn[arg]["factor"], conn[arg]["delta"])
+                ref = Ref(
+                    conns[conn[arg]["conn"]],
+                    conn[arg]["factor"],
+                    conn[arg]["delta"]
+                )
                 conns[label].set_attr(**{param: ref})
 
     return conns

@@ -280,10 +280,11 @@ def _construct_components(target_class, data):
         for param, param_data in cp_data.items():
             container = instances[cp].get_attr(param)
             if isinstance(container, dc):
-                if isinstance(container, dc_cc):
-                    param_data["char_func"] = CharLine(**param_data["char_func"])
-                elif isinstance(container, dc_cm):
-                    param_data["char_func"] = CharMap(**param_data["char_func"])
+                if "char_func" in param_data:
+                    if isinstance(container, dc_cc):
+                        param_data["char_func"] = CharLine(**param_data["char_func"])
+                    elif isinstance(container, dc_cm):
+                        param_data["char_func"] = CharMap(**param_data["char_func"])
                 if isinstance(container, dc_prop):
                     param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)

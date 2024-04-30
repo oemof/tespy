@@ -1,0 +1,41 @@
+v0.7.4 - Newton's Nature (April, 30, 2024)
+++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- :code:`Component` and :code:`FluidWrapper` objects are now available for the
+  :code:`load_network` function via the :code:`@component_registry` and
+  :code:`@wrapper_registry` decorators. E.g. if you are using custom components
+  you can decorate them with the :code:`@component_registry` and the load a
+  :code:`Network` with those components without needing to adjust the source
+  code of the :code:`load_network` function
+  (`PR #510 <https://github.com/oemof/tespy/pull/510>`__).
+
+  .. code-block:: python
+
+      >>> from tespy.components.component import component_registry
+      >>> from tespy.components import Source, Sink, SimpleHeatExchanger
+      >>> from tespy.connections import Connection
+      >>> from tespy.networks import Network, load_network
+
+      >>> @component_registry
+      ... class MyComponent(SimpleHeatExchanger):
+      ...     pass
+
+      >>> c = component_registry.items["MyComponent"]("I am a component")
+      >>> c.label
+      'I am a component'
+
+      >>> nwk = Network()
+      >>> c1 = Connection(Source("source"), "out1", c, "in1", label="1")
+      >>> c2 = Connection(c, "out1", Sink("sink"), "in1", label="2")
+      >>> nwk.add_conns(c1, c2)
+      >>> nwk.export("exported_nwk")
+      >>> nwk = load_network("exported_nwk")
+      >>> nwk.comps.loc["I am a component", "comp_type"]
+      'MyComponent'
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@jfreissmann <https://github.com/jfreissmann>`__

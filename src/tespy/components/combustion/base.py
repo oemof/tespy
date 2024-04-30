@@ -16,6 +16,7 @@ import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
@@ -27,6 +28,7 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
 
 
+@component_registry
 class CombustionChamber(Component):
     r"""
     The class CombustionChamber is parent class of all combustion components.

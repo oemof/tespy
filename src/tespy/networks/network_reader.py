@@ -12,35 +12,11 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
+import importlib
 import json
 import os
 
-import pandas as pd
-
-from tespy.components import CombustionChamber
-from tespy.components import CombustionEngine
-from tespy.components import Compressor
-from tespy.components import Condenser
-from tespy.components import CycleCloser
-from tespy.components import Desuperheater
-from tespy.components import DropletSeparator
-from tespy.components import Drum
-from tespy.components import HeatExchanger
-from tespy.components import HeatExchangerSimple
-from tespy.components import Merge
-from tespy.components import ParabolicTrough
-from tespy.components import Pipe
-from tespy.components import Pump
-from tespy.components import Separator
-from tespy.components import SimpleHeatExchanger
-from tespy.components import Sink
-from tespy.components import SolarCollector
-from tespy.components import Source
-from tespy.components import Splitter
-from tespy.components import SubsystemInterface
-from tespy.components import Turbine
-from tespy.components import Valve
-from tespy.components import WaterElectrolyzer
+from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
@@ -52,43 +28,9 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
-from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
-from tespy.tools.fluid_properties.wrappers import PyromatWrapper
+from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.helpers import modify_path_os
 
-COMP_TARGET_CLASSES = {
-    'CycleCloser': CycleCloser,
-    'Sink': Sink,
-    'Source': Source,
-    'SubsystemInterface': SubsystemInterface,
-    'CombustionChamber': CombustionChamber,
-    'CombustionEngine': CombustionEngine,
-    'Condenser': Condenser,
-    'Desuperheater': Desuperheater,
-    'HeatExchanger': HeatExchanger,
-    'HeatExchangerSimple': HeatExchangerSimple,
-    'SimpleHeatExchanger': SimpleHeatExchanger,
-    'SolarCollector': SolarCollector,
-    'ParabolicTrough': ParabolicTrough,
-    'DropletSeparator': DropletSeparator,
-    'Drum': Drum,
-    'Merge': Merge,
-    'Separator': Separator,
-    'Splitter': Splitter,
-    'Pipe': Pipe,
-    'Valve': Valve,
-    'WaterElectrolyzer': WaterElectrolyzer,
-    'Compressor': Compressor,
-    'Pump': Pump,
-    'Turbine': Turbine
-}
-
-ENGINE_TARGET_CLASSES = {
-    "CoolPropWrapper": CoolPropWrapper,
-    "IAPWSWrapper": IAPWSWrapper,
-    "PyromatWrapper": PyromatWrapper,
-}
 
 def load_network(path):
     r"""
@@ -245,6 +187,9 @@ def load_network(path):
     # load components
     comps = {}
 
+    module_name = "tespy.components"
+    module = importlib.import_module(module_name)
+
     files = os.listdir(path_comps)
     for f in files:
         fn = path_comps + f
@@ -254,15 +199,16 @@ def load_network(path):
         logger.debug(msg)
 
         with open(path_comps + f, "r", encoding="utf-8") as c:
-            data = json.loads(c.read())
+            data = json.load(c)
 
-        comps.update(construct_components(component, data))
+        target_class = component_registry.items[component]
+        comps.update(_construct_components(target_class, data))
 
     msg = 'Created network components.'
     logger.info(msg)
 
     # create network
-    nw = construct_network(path)
+    nw = _construct_network(path)
 
     # load connections
     fn = path + 'connections.json'
@@ -270,9 +216,9 @@ def load_network(path):
     logger.debug(msg)
 
     with open(fn, "r", encoding="utf-8") as c:
-        data = json.loads(c.read())
+        data = json.load(c)
 
-    conns = construct_connections(data, comps)
+    conns = _construct_connections(data, comps)
 
     # add connections to network
     for c in conns.values():
@@ -289,9 +235,9 @@ def load_network(path):
         logger.debug(msg)
 
         with open(fn, "r", encoding="utf-8") as c:
-            data = json.loads(c.read())
+            data = json.load(c)
 
-        busses = construct_busses(data, comps)
+        busses = _construct_busses(data, comps)
         # add busses to network
         for b in busses.values():
             nw.add_busses(b)
@@ -311,7 +257,7 @@ def load_network(path):
     return nw
 
 
-def construct_components(component, data):
+def _construct_components(target_class, data):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -328,17 +274,17 @@ def construct_components(component, data):
     dict
         Dictionary of all components of the specified type.
     """
-    target_class = COMP_TARGET_CLASSES[component]
     instances = {}
     for cp, cp_data in data.items():
         instances[cp] = target_class(cp)
         for param, param_data in cp_data.items():
             container = instances[cp].get_attr(param)
             if isinstance(container, dc):
-                if isinstance(container, dc_cc):
-                    param_data["char_func"] = CharLine(**param_data["char_func"])
-                elif isinstance(container, dc_cm):
-                    param_data["char_func"] = CharMap(**param_data["char_func"])
+                if "char_func" in param_data:
+                    if isinstance(container, dc_cc):
+                        param_data["char_func"] = CharLine(**param_data["char_func"])
+                    elif isinstance(container, dc_cm):
+                        param_data["char_func"] = CharMap(**param_data["char_func"])
                 if isinstance(container, dc_prop):
                     param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
@@ -348,7 +294,7 @@ def construct_components(component, data):
     return instances
 
 
-def construct_network(path):
+def _construct_network(path):
     r"""
     Create TESPy network from the path provided by the user.
 
@@ -364,13 +310,13 @@ def construct_network(path):
     """
     # read network .json-file
     with open(path + 'network.json', 'r') as f:
-        data = json.loads(f.read())
+        data = json.load(f)
 
     # create network object with its properties
     return Network(**data)
 
 
-def construct_connections(data, comps):
+def _construct_connections(data, comps):
     r"""
     Create TESPy connection from data in the .json-file and its parameters.
 
@@ -395,6 +341,10 @@ def construct_connections(data, comps):
         and "ref" not in _
     ]
     arglist_ref = [_ for _ in data[list(data.keys())[0]] if "ref" in _]
+
+    module_name = "tespy.tools.fluid_properties.wrappers"
+    module = importlib.import_module(module_name)
+
     for label, conn in data.items():
         conns[label] = Connection(
             comps[conn["source"]], conn["source_id"],
@@ -409,7 +359,7 @@ def construct_connections(data, comps):
                 conns[label].set_attr(**{arg: conn[arg]})
 
         for f, engine in conn["fluid"]["engine"].items():
-            conn["fluid"]["engine"][f] = ENGINE_TARGET_CLASSES[engine]
+            conn["fluid"]["engine"][f] = wrapper_registry.items[engine]
 
         conns[label].fluid.set_attr(**conn["fluid"])
         conns[label]._create_fluid_wrapper()
@@ -418,13 +368,17 @@ def construct_connections(data, comps):
         for arg in arglist_ref:
             if len(conn[arg]) > 0:
                 param = arg.replace("_ref", "")
-                ref = Ref(conns[conn[arg]["conn"]], conn[arg]["factor"], conn[arg]["delta"])
+                ref = Ref(
+                    conns[conn[arg]["conn"]],
+                    conn[arg]["factor"],
+                    conn[arg]["delta"]
+                )
                 conns[label].set_attr(**{param: ref})
 
     return conns
 
 
-def construct_busses(data, comps):
+def _construct_busses(data, comps):
     r"""
     Create busses of the network.
 

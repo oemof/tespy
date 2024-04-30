@@ -11,15 +11,14 @@ tespy/components/heat_exchangers/solar_collector.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
-
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 
 
+@component_registry
 class SolarCollector(SimpleHeatExchanger):
     r"""
     The solar collector calculates heat output from irradiance.

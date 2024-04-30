@@ -12,10 +12,12 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 
 
+@component_registry
 class Turbomachine(Component):
     r"""
     Parent class for compressor, pump and turbine.

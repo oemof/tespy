@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -27,6 +28,7 @@ from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import convert_to_SI
 
 
+@component_registry
 class SimpleHeatExchanger(Component):
     r"""
     A basic heat exchanger representing a heat source or heat sink.

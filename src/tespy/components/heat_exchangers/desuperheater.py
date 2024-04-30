@@ -11,12 +11,14 @@ tespy/components/heat_exchangers/desuperheater.py
 SPDX-License-Identifier: MIT
 """
 
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
+@component_registry
 class Desuperheater(HeatExchanger):
     r"""
     The Desuperheater cools a fluid to the saturated gas state.

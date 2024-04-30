@@ -12,12 +12,14 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_pT
 
 
+@component_registry
 class Merge(NodeBase):
     r"""
     Class for merge points with multiple inflows and one outflow.

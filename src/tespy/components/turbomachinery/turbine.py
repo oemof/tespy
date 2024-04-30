@@ -10,9 +10,9 @@ available from its original location tespy/components/turbomachinery/turbine.py
 SPDX-License-Identifier: MIT
 """
 
-
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
@@ -22,6 +22,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 
 
+@component_registry
 class Turbine(Turbomachine):
     r"""
     Class for gas or steam turbines.

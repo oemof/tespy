@@ -2711,7 +2711,7 @@ class Network:
             Path/filename for the network configuration file.
         """
         with open(fn + 'network.json', 'w') as f:
-            f.write(json.dumps(self._serialize(), indent=4))
+            json.dump(self._serialize(), f, indent=4)
 
         logger.debug('Network information saved to %s.', fn)
 
@@ -2758,7 +2758,7 @@ class Network:
                 bus_data[label] = self.results[label]["design value"].to_dict()
             fn = fn + 'busses.json'
             with open(fn, "w", encoding="utf-8") as f:
-                f.write(json.dumps(bus_data, indent=4))
+                json.dump(bus_data, f, indent=4)
             logger.debug('Bus information saved to %s.', fn)
 
     def export_connections(self, fn):
@@ -2768,7 +2768,7 @@ class Network:
 
         fn = fn + "connections.json"
         with open(fn, "w", encoding="utf-8") as f:
-            f.write(json.dumps(connections, indent=4).replace("NaN", "null"))
+            json.dump(connections, f, indent=4)
         logger.debug('Connection information exported to %s.', fn)
 
     def export_components(self, fn):
@@ -2779,7 +2779,7 @@ class Network:
 
             fname = f"{fn}{c}.json"
             with open(fname, "w", encoding="utf-8") as f:
-                f.write(json.dumps(components, indent=4).replace("NaN", "null"))
+                json.dump(components, f, indent=4)
             logger.debug('Component information exported to %s.', fname)
 
     def export_busses(self, fn):
@@ -2789,5 +2789,5 @@ class Network:
                 busses.update(bus._serialize())
             fn = fn + 'busses.json'
             with open(fn, "w", encoding="utf-8") as f:
-                f.write(json.dumps(busses, indent=4).replace("NaN", "null"))
+                json.dump(busses, f, indent=4)
             logger.debug('Bus information exported to %s.', fn)

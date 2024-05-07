@@ -547,7 +547,7 @@ class ExergyAnalysis:
 
         for comp in self.nw.comps['object']:
             if comp.dissipative.val:
-                comp.Z_col = col_number      # ändern zu comp.Ex_C_col["_dissipative"], dann auch in valve, heat exchanger
+                comp.Ex_C_col["dissipative"] = col_number
                 print("dissipative: ", comp.label, col_number)
                 col_number += 1
         num_variables = (
@@ -798,8 +798,8 @@ class ExergyAnalysis:
         # exergoeconomic balance (C_F, C_P, C_L) of components
         for cp in self.nw.comps['object']:
             cp.exergoeconomic_balance(Tamb_SI)
-            if not cp.component() in["source", "sink", "cycle closer"]:
-                cp.calc_C_L()
+            #if not cp.component() in["source", "sink", "cycle closer"]:
+            #    cp.calc_C_L()
 
         # exergoeconomic analysis of network
         self.network_data_exergo = pd.Series(
@@ -1282,14 +1282,14 @@ class ExergyAnalysis:
 
         # Exergoeconomic Results for Components
         # creating data frame here bc this is after analysis where c and C values have been calculated already
-        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_L', 'C_bus', 'Z', 'r', 'f']
+        comp_exergoec_data_cols = ['C_F', 'C_P', 'C_D', 'C_bus', 'Z', 'r', 'f']
         self.component_exergoec_data = pd.DataFrame(
             columns=comp_exergoec_data_cols,
             dtype='float64'
         )
         for comp in self.nw.comps['object']:
             comp_exergoec_data = [
-                comp.C_F*3600, comp.C_P*3600, comp.C_D*3600, comp.C_L*3600, comp.C_bus*3600, comp.Z_costs*3600, comp.r, comp.f
+                comp.C_F*3600, comp.C_P*3600, comp.C_D*3600, comp.C_bus*3600, comp.Z_costs*3600, comp.r, comp.f
             ]
             self.component_exergoec_data.loc[comp.label] = comp_exergoec_data
 

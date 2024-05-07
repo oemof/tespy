@@ -1150,9 +1150,9 @@ class HeatExchanger(Component):
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[1].Ex_C_col["chemical"]] += 1 / len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["chemical"]] += -1 / len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.outl[1].Ex_C_col["chemical"]] += -1 / len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.Z_col] = 1 / len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.Ex_C_col["dissipative"]] = 1 / len(self.serving_components)
 
-        exergy_cost_matrix[counter+6, self.Z_col] = 1
+        exergy_cost_matrix[counter+6, self.Ex_C_col["dissipative"]] = 1
         exergy_cost_vector[counter+6] = self.Z_costs
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+7]

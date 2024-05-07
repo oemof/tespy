@@ -271,13 +271,13 @@ class Splitter(NodeBase):
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] += 1/len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] += 1/len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] += 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.Z_col] = 1/len(self.serving_components)
+            exergy_cost_matrix[comp.exergy_cost_line, self.Ex_C_col["dissipative"]] = 1/len(self.serving_components)
             for o in self.outl:
                 exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["therm"]] += -1/len(self.serving_components)
                 exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["mech"]] += -1/len(self.serving_components)
                 exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["chemical"]] += -1/len(self.serving_components)
 
-        exergy_cost_matrix[counter+3*(len(self.outl)-1)+3, self.Z_col] = 1
+        exergy_cost_matrix[counter+3*(len(self.outl)-1)+3, self.Ex_C_col["dissipative"]] = 1
         exergy_cost_vector[counter+3*(len(self.outl)-1)+3] = self.Z_costs
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+3*(len(self.outl)-1)+3]

@@ -65,12 +65,14 @@ p_amb = 1.02
 
 # define busses (no need to add them to system)
 fuel_bus = Bus("fuel")
-fuel_bus.add_comps({"comp": fuel, "base": "bus"})
+fuel_bus.add_comps({"comp": fuel, "base": "bus"}, {"comp": air, "base": "bus"})
 
 loss_bus = Bus("loss")
 loss_bus.add_comps({"comp": fg, "base": "component"})
 
 # exergy analysis
+exe_eco_input = {'turbine_Z': 50, 'compressor_Z': 40, 'combustion chamber_Z': 60, 'air source_c': 5, 'fuel source_c': 10}
 ean = ExergyAnalysis(network=nw, E_F=[fuel_bus], E_P=[generator], E_L=[loss_bus])
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
-ean.print_results()
+ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)
+ean.print_results(Exe_Eco_An=True)

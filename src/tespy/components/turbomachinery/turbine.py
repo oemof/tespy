@@ -593,7 +593,6 @@ class Turbine(Turbomachine):
                     self.outl[0].C_therm - self.inl[0].C_therm)
             self.C_F = self.inl[0].C_mech - self.outl[0].C_mech              # same as Jubran
 
-        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
@@ -603,13 +602,17 @@ class Turbine(Turbomachine):
 
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        # each line needs to equal 0
-        exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
-        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else -1
-        exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
-        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
-        exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-        exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        if self.inl[0].T.val_SI > T0 and  self.outl[0].T.val_SI > T0:
+            # wenn Temperaturen größer T0 düfte Ex_therm sowieso nicht 0 sein
+            exergy_cost_matrix[counter+0, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm if self.outl[0].Ex_therm != 0 else -1
+            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else -1
+            exergy_cost_matrix[counter+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+            exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        else:
+            print("Turbine with outlet below T0 not implemented in exergoeconomics yet")
+
         for i in range(3):
             exergy_cost_vector[counter+i]=0
 

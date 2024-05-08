@@ -416,8 +416,6 @@ class Valve(Component):
             self.C_P = np.nan
             self.C_F = np.nan
 
-        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
-
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
@@ -459,7 +457,6 @@ class Valve(Component):
         if self.serving_components is None:
             print("there should be a serving component, you shouldn't see this")
         for comp in self.serving_components:
-            print("serving component: ", comp.label)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] += 1/len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["therm"]] += -1/len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] += 1/len(self.serving_components)
@@ -480,15 +477,15 @@ class Valve(Component):
         elif self.outl[0].T.val_SI <= T0:
             # mech
             if self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm != 0:
-                exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-                exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
             elif self.inl[0].Ex_mech == 0 and self.outl[0].Ex_therm != 0:
                 exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
             elif self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm == 0:
-                exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = 1
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = 1
             else:
-                exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
-                exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1
+                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1
             # chemical doesn't change either both 0 or not 0
             exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
             exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1

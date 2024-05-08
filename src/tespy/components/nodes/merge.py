@@ -460,6 +460,7 @@ class Merge(NodeBase):
             self.E_P = np.nan
             for i in self.inl:
                 self.E_F += i.Ex_physical
+            self.dissipative.val = True
         else:
             for i in self.inl:
                 if i.T.val_SI > self.outl[0].T.val_SI:
@@ -486,6 +487,35 @@ class Merge(NodeBase):
             for i in self.inl:
                 if i.T.val_SI < self.outl[0].T.val_SI:
                     # cold inlets
+                    self.C_F += i.m.val_SI * i.c_therm * i.ex_therm + (
+                        i.C_therm + i.C_chemical)
+                else:
+                    # hot inlets
+                    self.C_F += i.C_therm + i.C_mech + i.C_chemical
+            self.C_F += (-self.outl[0].C_mech - self.outl[0].C_chemical)
+        elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
+            # dissipative
+            for i in self.inl:
+                self.C_F += i.C_physical
+        else:
+            for i in self.inl:
+                if i.T.val_SI > self.outl[0].T.val_SI:
+                    # hot inlets
+                    self.C_F += i.m.val_SI * i.c_therm * i.ex_therm + (
+                        i.C_therm + i.C_chemical)
+                else:
+                    # cold inlets
+                    self.C_F += i.C_therm + i.C_mech + i.C_chemical
+            self.C_F += (-self.outl[0].C_mech - self.outl[0].C_chemical)
+        self.C_P = self.C_F + self.Z_costs
+
+        """
+        self.C_P = 0
+        self.C_F = 0
+        if self.outl[0].T.val_SI > T0:
+            for i in self.inl:
+                if i.T.val_SI < self.outl[0].T.val_SI:
+                    # cold inlets
                     self.C_F += i.C_physical
                 else:
                     # hot inlets
@@ -505,8 +535,7 @@ class Merge(NodeBase):
                     self.C_F += i.m.val_SI * i.c_therm * (
                         i.ex_physical - self.outl[0].ex_physical)
         self.C_P = self.C_F + self.Z_costs
-
-        """
+        -------
         if self.outl[0].T.val_SI > T0:
             for i in self.inl:
                 if i.T.val_SI < self.outl[0].T.val_SI:
@@ -540,7 +569,6 @@ class Merge(NodeBase):
                     self.C_F += i.m.val_SI * i.c_therm * (
                         i.ex_physical - self.outl[0].ex_physical)
         """
-        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
@@ -548,19 +576,44 @@ class Merge(NodeBase):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
+
+    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        if self.outl[0].Ex_chemical != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
+        else:
+            exergy_cost_matrix[counter+0, self.outl[i].Ex_C_col["chemical"]] = 1
+
+        if self.outl[0].Ex_mech != 0:
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
+        else:
+            exergy_cost_matrix[counter+1, self.outl[i].Ex_C_col["mech"]] = 1
+
+        exergy_cost_matrix[counter+2, self.outl[i].Ex_C_col["therm"]] = 1
+
+        for i in range(3):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+3]
+
+
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        self.inl_hot = [c for c in self.inl if c.T.val >= self.outl[0].T.val]
-        self.inl_cold = [c for c in self.inl if c.T.val < self.outl[0].T.val]
+        if self.outl[0].Ex_chemical != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
+        else:
+            exergy_cost_matrix[counter+0, self.outl[i].Ex_C_col["chemical"]] = 1
 
-        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
-        exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-
-        for i, h in enumerate(self.inl):
-            exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
-            exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
-        #for i, h in enumerate(self.inl_hot):
-            #exergy_cost_matrix[counter+2+i, self.inl[i].Ex_C_col["therm"]] = 1 / self.inl[i].Ex_therm
-            #exergy_cost_matrix[counter+2+i, self.outl[0].Ex_C_col["therm"]] = -1 / self.outl[0].Ex_therm
+        if self.outl[0].Ex_mech != 0:
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
+        else:
+            exergy_cost_matrix[counter+1, self.outl[i].Ex_C_col["mech"]] = 1
 
         for i in range(2):
             exergy_cost_vector[counter+i]=0

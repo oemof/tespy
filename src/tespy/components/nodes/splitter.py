@@ -241,8 +241,6 @@ class Splitter(NodeBase):
         self.C_P = np.nan
         self.C_F = self.inl[0].C_physical
 
-        print("difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
-
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D

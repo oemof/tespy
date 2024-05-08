@@ -1068,8 +1068,6 @@ class HeatExchanger(Component):
             self.C_F = self.inl[0].C_physical - self.outl[0].C_physical + (
                 self.inl[1].C_physical - self.outl[1].C_mech)
 
-        print(self.label, "difference C_P = ", self.C_P, "-", self.C_F + self.Z_costs, "=", self.C_P - (self.C_F + self.Z_costs))
-
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
@@ -1137,7 +1135,6 @@ class HeatExchanger(Component):
         if self.serving_components is None:
             print("there should be a serving component, you shouldn't see this")
         for comp in self.serving_components:
-            print("serving component: ", comp.label)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] += 1 / len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.inl[1].Ex_C_col["therm"]] += 1 / len(self.serving_components)
             exergy_cost_matrix[comp.exergy_cost_line, self.outl[0].Ex_C_col["therm"]] += -1 / len(self.serving_components)

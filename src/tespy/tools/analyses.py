@@ -509,7 +509,7 @@ class ExergyAnalysis:
             if not any([comp.component() in ["source", "sink"] for comp in bus.comps.index]):
                 bus.Ex_C_col["external_bus"] = col_number
                 col_number += 1
-                print("bus: ", bus.label, bus.Ex_C_col)
+                #print("bus: ", bus.label, bus.Ex_C_col)
                 # calculate exergy transportet to/from external
                 bus.E_external["bus"] = 0
                 for comp, comp_data in bus.comps.iterrows():
@@ -543,12 +543,12 @@ class ExergyAnalysis:
                     col_number += 1
                     comp.Ex_C_col[f"{bus.label}_component"] = col_number
                     col_number += 1
-                    print("comp bus: ", comp.label, bus.label, comp.Ex_C_col, comp.E_bus["massless"])
+                    #print("comp bus: ", comp.label, bus.label, comp.Ex_C_col, comp.E_bus["massless"])
 
         for comp in self.nw.comps['object']:
             if comp.dissipative.val:
                 comp.Ex_C_col["dissipative"] = col_number
-                print("dissipative: ", comp.label, col_number)
+                #print("dissipative: ", comp.label, col_number)
                 col_number += 1
         num_variables = (
             len(self.nw.conns) * 3
@@ -561,7 +561,7 @@ class ExergyAnalysis:
                 "mech": conn_num * 3 + 1 + col_number,
                 "chemical": conn_num * 3 + 2 + col_number
             }
-            print(conn.label, conn.Ex_C_col)
+            #print(conn.label, conn.Ex_C_col)
 
         # WRITE GIVEN COMPONENT AND SOURCE COSTS INTO OBJECTS
         for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
@@ -732,8 +732,8 @@ class ExergyAnalysis:
         # dissipative components (need to be handled last)
         for comp in self.nw.comps['object']:
             if comp.dissipative.val:
-                print(comp.component(), "(dissipative)")
-                print("serving: ", comp.serving_components)
+                # print(comp.component(), "(dissipative)")
+                # print("serving: ", comp.serving_components)
                 if comp.serving_components is None:
                     # assign dissipative costs to the whole system
                     numComps = sum(1 for comp in self.nw.comps['object'] if comp.component() not in ["source", "sink"])
@@ -752,8 +752,8 @@ class ExergyAnalysis:
         if counter!=num_variables:
             print("not enough equations: ", num_variables-counter, " missing")
 
-        print(np.round(exergy_cost_matrix,3))
-        print(np.round(exergy_cost_vector,3))
+        # print(np.round(exergy_cost_matrix,3))
+        # print(np.round(exergy_cost_vector,3))
 
         try:
             C_sol = np.linalg.solve (exergy_cost_matrix, exergy_cost_vector)

@@ -5,7 +5,7 @@ from tespy.tools import ExergyAnalysis
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
-testCase = 2
+testCase = 1
 
 nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
 
@@ -49,7 +49,7 @@ nw.print_results()
 
 """ +++ exergy analysis +++ """
 # define ambient
-p_amb = 0.1
+p_amb = 1.0
 T_amb = 25
 
 # define busses (no need to add them to system)
@@ -63,7 +63,7 @@ exhaust_out = Bus('Exhaust Gas')
 exhaust_out.add_comps({'comp': exhaust})
 
 # exergy analysis
-exe_eco_input = {'Combustion Chamber_Z': 500, 'Air Inlet_c': 0.0001, 'Fuel Gas_c': 0.005}
+exe_eco_input = {'Combustion Chamber_Z': 500, 'Air Inlet_c': 2, 'Fuel Gas_c': 5}
 ean = ExergyAnalysis(nw, E_P=[exhaust_out], E_F=[heat_in, air_in], E_L=[])
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Tamb=T_amb, Exe_Eco_Costs=exe_eco_input)

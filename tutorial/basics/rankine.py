@@ -52,14 +52,15 @@ c2.set_attr(p=None)
 my_plant.solve(mode='design')
 my_plant.print_results()
 
-# Adding feature to plot the T-s Diagram using FluProdia library
+# %%[sec_extra]
+# Adding feature to plot the T-s Diagram using fluprodia library
 # Importing necessary library
 import matplotlib.pyplot as plt
 import numpy as np
 from fluprodia import FluidPropertyDiagram
 
 # Initial Setup
-diagram = FluidPropertyDiagram('water') # Creating a fluid property diagram for R1234yf
+diagram = FluidPropertyDiagram('water') # Creating a fluid property diagram
 diagram.set_unit_system(T='°C', p='bar', h='kJ/kg') # Setting unit system for the diagram
 
 # Storing the model result in the dictionary

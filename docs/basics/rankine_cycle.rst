@@ -81,6 +81,39 @@ water return flow temperature.
 After rerunning, we will see that the condensation temperature and pressure
 are both automatically calculated by the specified terminal temperature value.
 
+Generating T-s Diagram
+^^^^^^^^^^^^^^^^^^^^^^
+To visualize the Rankine Cycle, we may generate a temperature (T) versus 
+entropy (s) diagram. To do this, we can import fluprodia (Fluid Property Diagram) 
+package. To successfully plot the T-s diagram, following steps are required:
+
+- Import the Package: Import fluprodia and create an object by passing the alias of the fluid.
+- Specify the Unit System: Set the unit system for all fluid properties.
+- Specify Custom Isolines: Define custom isolines for the diagram.
+- Calculate and Draw Isolines: Calculate and draw the isolines based on the model results.
+- Save and Export the Diagram: Save and export the completed T-s diagram.
+
+.. dropdown:: Click to expand to code section
+
+    .. literalinclude:: /../tutorial/basics/rankine.py
+        :language: python
+        :start-after: [sec_extra]
+        :end-before: [sec_5]
+
+.. figure:: /_static/images/basics/rankine_ts_diagram.svg
+    :align: center
+    :alt: T-s Diagram of Rankine Cycle
+    :figclass: only-light
+
+    Figure: T-s Diagram of Rankine Cycle
+
+Besides visualization, this feature is also useful for analysis purposes. 
+For example, the T-s diagram above shows a closed loop, validating the accuracy 
+of the model. By applying fluprodia, you can create and customize 
+different types of diagrams for all pure and pseudo-pure fluids 
+available in CoolProp. For more information on fluprodia have a look at the
+`online documentation <https://fluprodia.readthedocs.io/en/latest/>`_.
+
 Assess Electrical Power
 ^^^^^^^^^^^^^^^^^^^^^^^
 To assess the electrical power output we want to consider the power generated

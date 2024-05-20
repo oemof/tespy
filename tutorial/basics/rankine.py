@@ -51,6 +51,67 @@ c2.set_attr(p=None)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
+
+# Adding feature to plot the T-s Diagram using FluProdia library
+# Importing necessary library
+import matplotlib.pyplot as plt
+import numpy as np
+from fluprodia import FluidPropertyDiagram
+
+# Initial Setup
+diagram = FluidPropertyDiagram('water') # Creating a fluid property diagram for R1234yf
+diagram.set_unit_system(T='°C', p='bar', h='kJ/kg') # Setting unit system for the diagram
+
+# Storing the model result in the dictionary
+result_dict = {}
+result_dict.update(
+    {cp.label: cp.get_plotting_data()[1] for cp in my_plant.comps['object']
+     if cp.get_plotting_data() is not None})
+
+# Iterate over the results obtained from TESPy simulation
+for key, data in result_dict.items():
+   # Calculate individual isolines for T-s diagram
+   result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
+
+# Create a figure and axis for plotting T-s diagram
+fig, ax = plt.subplots(1, figsize=(20, 10))
+mydata = {
+    'Q': {'values': np.linspace(0, 1, 2)},
+    'P': {'values': np.linspace(0, 300, 5)},
+    'v': {'values': np.array([])},
+    'h': {'values': np.array([])}
+}
+
+# Set isolines for T-s diagram
+diagram.set_isolines(Q=mydata["Q"]["values"], v=mydata["v"]["values"], p=mydata["P"]["values"], h=mydata["h"]["values"])
+diagram.calc_isolines()
+
+# Draw isolines on the T-s diagram
+diagram.draw_isolines(fig, ax, 'Ts', x_min=0, x_max=7500, y_min=0, y_max=650)
+
+# Adjust the font size of the isoline labels
+for text in ax.texts:
+    text.set_fontsize(10)
+
+# Plot T-s curves for each component
+for key in result_dict.keys():
+    datapoints = result_dict[key]['datapoints']
+    _ = ax.plot(datapoints['s'], datapoints['T'], color='#ff0000', linewidth=2)
+    _ = ax.scatter(datapoints['s'][0], datapoints['T'][0], color='#ff0000')
+
+# Set labels and title for the T-s diagram
+ax.set_xlabel('Entropy, s [J/kg.K]', fontsize=16)
+ax.set_ylabel('Temperature, T [oC]', fontsize=16)
+ax.set_title('T-s Diagram of Rankine Cycle', fontsize=20)
+
+# Set font size for the x-axis and y-axis ticks
+ax.tick_params(axis='x', labelsize=12)
+ax.tick_params(axis='y', labelsize=12)
+plt.tight_layout()
+
+# Save the T-s diagram plot as an SVG file
+fig.savefig('rankine_ts_diagram.svg')
+
 # %%[sec_5]
 from tespy.connections import Bus
 
@@ -75,8 +136,6 @@ my_plant.print_results()
 my_plant.set_attr(iterinfo=False)
 c1.set_attr(m=20)
 powergen.set_attr(P=None)
-import matplotlib.pyplot as plt
-import numpy as np
 
 # make text reasonably sized
 plt.rc('font', **{'size': 18})

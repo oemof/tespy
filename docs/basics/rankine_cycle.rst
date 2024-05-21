@@ -113,7 +113,7 @@ For example, if the T-s diagram forms a closed loop, validating the accuracy of 
 that the operating fluid completes a successful Rankine Cycle. By applying fluprodia, 
 we can create and customize different types of diagrams for all pure and pseudo-pure fluids 
 available in CoolProp. For more information on fluprodia, we refer users to the
-`fluprodia documentation <https://fluprodia.readthedocs.io/en/latest/>`_.
+`fluprodia documentation <https://fluprodia.readthedocs.io/en/latest/>`.
 
 Assess Electrical Power
 ^^^^^^^^^^^^^^^^^^^^^^^

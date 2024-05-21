@@ -85,7 +85,14 @@ Generating T-s Diagram
 ^^^^^^^^^^^^^^^^^^^^^^
 To visualize the Rankine Cycle, we generate a temperature (T) versus 
 entropy (s) diagram using the fluprodia (Fluid Property Diagram) 
-package. To successfully plot the T-s diagram, following steps are required:
+package.
+
+.. dropdown:: Click to expand to code section
+
+    .. literalinclude:: /../tutorial/basics/rankine.py
+        :language: python
+        :start-after: [sec_Ts]
+        :end-before: [sec_5]
 
 - Import the Package: Import fluprodia and create an object by passing the alias of the fluid.
 - Specify the Unit System: Set the unit system for all fluid properties.

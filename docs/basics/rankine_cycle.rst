@@ -93,19 +93,13 @@ package.
         :language: python
         :start-after: [sec_Ts]
         :end-before: [sec_5]
+
 The steps involved in generating the T-s diagram are as follows:
 - Import the Package: Import fluprodia and create an object by passing the alias of the fluid.
 - Specify the Unit System: Set the unit system for all fluid properties.
 - Specify Custom Isolines: Define custom isolines for the diagram.
 - Calculate and Draw Isolines: Calculate and draw the isolines based on the model results.
 - Save and Export the Diagram: Save and export the completed T-s diagram.
-
-.. dropdown:: Click to expand to code section
-
-    .. literalinclude:: /../tutorial/basics/rankine.py
-        :language: python
-        :start-after: [sec_Ts]
-        :end-before: [sec_5]
 
 .. figure:: /_static/images/basics/rankine_ts_diagram.svg
     :align: center
@@ -115,9 +109,9 @@ The steps involved in generating the T-s diagram are as follows:
     Figure: T-s Diagram of Rankine Cycle
 
 Besides visualization, this feature is also useful for analysis purposes. 
-For example, the T-s diagram above shows a closed loop, validating the accuracy 
-of the model. By applying fluprodia, we can create and customize 
-different types of diagrams for all pure and pseudo-pure fluids 
+For example, if the T-s diagram forms a closed loop, validating the accuracy of the model and 
+that the operating fluid completes a successful Rankine Cycle. By applying fluprodia, 
+we can create and customize different types of diagrams for all pure and pseudo-pure fluids 
 available in CoolProp. For more information on fluprodia, we refer users to the
 `fluprodia documentation <https://fluprodia.readthedocs.io/en/latest/>`_.
 

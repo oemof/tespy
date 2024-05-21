@@ -52,7 +52,7 @@ c2.set_attr(p=None)
 my_plant.solve(mode='design')
 my_plant.print_results()
 
-# %%[sec_extra]
+# %%[sec_Ts]
 # Adding feature to plot the T-s Diagram using fluprodia library
 # Importing necessary library
 import matplotlib.pyplot as plt

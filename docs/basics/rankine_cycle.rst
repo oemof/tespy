@@ -109,7 +109,7 @@ package. To successfully plot the T-s diagram, following steps are required:
 
 Besides visualization, this feature is also useful for analysis purposes. 
 For example, the T-s diagram above shows a closed loop, validating the accuracy 
-of the model. By applying fluprodia, you can create and customize 
+of the model. By applying fluprodia, we can create and customize 
 different types of diagrams for all pure and pseudo-pure fluids 
 available in CoolProp. For more information on fluprodia have a look at the
 `online documentation <https://fluprodia.readthedocs.io/en/latest/>`_.

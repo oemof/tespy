@@ -95,6 +95,7 @@ package.
         :end-before: [sec_5]
 
 The steps involved in generating the T-s diagram are as follows:
+
 - Import the Package: Import fluprodia and create an object by passing the alias of the fluid.
 - Specify the Unit System: Set the unit system for all fluid properties.
 - Specify Custom Isolines: Define custom isolines for the diagram.

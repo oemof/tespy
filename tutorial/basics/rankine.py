@@ -84,9 +84,9 @@ mydata = {
 }
 
 # Set isolines for T-s diagram
-diagram.set_isolines(Q=mydata["Q"]["values"], 
-                     v=mydata["v"]["values"], 
-                     p=mydata["P"]["values"], 
+diagram.set_isolines(Q=mydata["Q"]["values"],
+                     v=mydata["v"]["values"],
+                     p=mydata["P"]["values"],
                      h=mydata["h"]["values"])
 diagram.calc_isolines()
 

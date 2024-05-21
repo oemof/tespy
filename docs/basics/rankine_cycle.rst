@@ -104,7 +104,7 @@ package.
 
     .. literalinclude:: /../tutorial/basics/rankine.py
         :language: python
-        :start-after: [sec_extra]
+        :start-after: [sec_Ts]
         :end-before: [sec_5]
 
 .. figure:: /_static/images/basics/rankine_ts_diagram.svg

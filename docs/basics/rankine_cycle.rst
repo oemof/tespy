@@ -83,8 +83,8 @@ are both automatically calculated by the specified terminal temperature value.
 
 Generating T-s Diagram
 ^^^^^^^^^^^^^^^^^^^^^^
-To visualize the Rankine Cycle, we may generate a temperature (T) versus 
-entropy (s) diagram. To do this, we can import fluprodia (Fluid Property Diagram) 
+To visualize the Rankine Cycle, we generate a temperature (T) versus 
+entropy (s) diagram using the fluprodia (Fluid Property Diagram) 
 package. To successfully plot the T-s diagram, following steps are required:
 
 - Import the Package: Import fluprodia and create an object by passing the alias of the fluid.

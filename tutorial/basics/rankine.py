@@ -60,8 +60,8 @@ import numpy as np
 from fluprodia import FluidPropertyDiagram
 
 # Initial Setup
-diagram = FluidPropertyDiagram('water') # Creating a fluid property diagram
-diagram.set_unit_system(T='°C', p='bar', h='kJ/kg') # Setting unit system for the diagram
+diagram = FluidPropertyDiagram('water')
+diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
 
 # Storing the model result in the dictionary
 result_dict = {}
@@ -71,8 +71,8 @@ result_dict.update(
 
 # Iterate over the results obtained from TESPy simulation
 for key, data in result_dict.items():
-   # Calculate individual isolines for T-s diagram
-   result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
+    # Calculate individual isolines for T-s diagram
+    result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
 
 # Create a figure and axis for plotting T-s diagram
 fig, ax = plt.subplots(1, figsize=(20, 10))
@@ -84,7 +84,10 @@ mydata = {
 }
 
 # Set isolines for T-s diagram
-diagram.set_isolines(Q=mydata["Q"]["values"], v=mydata["v"]["values"], p=mydata["P"]["values"], h=mydata["h"]["values"])
+diagram.set_isolines(Q=mydata["Q"]["values"], 
+                     v=mydata["v"]["values"], 
+                     p=mydata["P"]["values"], 
+                     h=mydata["h"]["values"])
 diagram.calc_isolines()
 
 # Draw isolines on the T-s diagram

@@ -25,7 +25,7 @@ exclude = ["docs/_build"]
 
 [project]
 name = "tespy"
-version = "0.7.4"
+version = "0.7.5"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -66,6 +66,7 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 dev = [
     "build",
     "flit",
+    "fluprodia",
     "furo",
     "iapws",
     "pyromat",

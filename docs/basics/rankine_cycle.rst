@@ -81,6 +81,50 @@ water return flow temperature.
 After rerunning, we will see that the condensation temperature and pressure
 are both automatically calculated by the specified terminal temperature value.
 
+Generating T-s Diagram
+^^^^^^^^^^^^^^^^^^^^^^
+To visualize the Rankine cycle, we generate a temperature (T) versus entropy (s)
+diagram using the fluprodia (Fluid Property Diagram) package.
+
+.. dropdown:: Click to expand to code section
+
+    .. literalinclude:: /../tutorial/basics/rankine.py
+        :language: python
+        :start-after: [sec_5]
+        :end-before: [sec_6]
+
+The steps involved in generating the T-s diagram are as follows:
+
+- Import the Package: Import fluprodia and create an object by passing the
+  alias of the fluid.
+- Specify the Unit System: Set the unit system for all fluid properties.
+- Specify Custom Isolines: Define custom isolines for the diagram.
+- Calculate and draw isolines: Calculate and draw the background isolines.
+- Calculate and draw process points and change of state
+- Save and Export the Diagram: Save and export the completed T-s diagram.
+
+.. figure:: /_static/images/basics/rankine_ts_diagram.svg
+    :align: center
+    :alt: T-s Diagram of Rankine Cycle
+    :figclass: only-light
+
+    Figure: T-s Diagram of Rankine Cycle
+
+.. figure:: /_static/images/basics/rankine_ts_diagram_darkmode.svg
+    :align: center
+    :alt: T-s Diagram of Rankine Cycle
+    :figclass: only-dark
+
+    Figure: T-s Diagram of Rankine Cycle
+
+Besides visualization, this feature is also useful for analysis purposes.
+For example, if the T-s diagram forms a closed loop, validating the accuracy of
+the model and that the operating fluid completes a successful Rankine Cycle. By
+applying fluprodia, we can create and customize different types of diagrams for
+all pure and pseudo-pure fluids available in CoolProp. For more information on
+fluprodia, we refer users to the
+`fluprodia documentation <https://fluprodia.readthedocs.io/en/latest/>`__.
+
 Assess Electrical Power
 ^^^^^^^^^^^^^^^^^^^^^^^
 To assess the electrical power output we want to consider the power generated
@@ -92,8 +136,8 @@ both components to the bus.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
-    :start-after: [sec_5]
-    :end-before: [sec_6]
+    :start-after: [sec_6]
+    :end-before: [sec_7]
 
 .. note::
 
@@ -121,11 +165,11 @@ replacing the mass flow specification at connection 1:
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
-    :start-after: [sec_6]
-    :end-before: [sec_7]
+    :start-after: [sec_7]
+    :end-before: [sec_8]
 
-Analyze Efficiency and Powergeneration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Analyze Efficiency and power generation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In this section, we will analyze the power production and the efficiency
 of the cycle, given constant steam mass flow and with varying values for the
 
@@ -144,8 +188,8 @@ can disable the printout of the convergence history.
 
     .. literalinclude:: /../tutorial/basics/rankine.py
         :language: python
-        :start-after: [sec_7]
-        :end-before: [sec_8]
+        :start-after: [sec_8]
+        :end-before: [sec_9]
 
 .. figure:: /_static/images/basics/rankine_parametric.svg
     :align: center
@@ -218,24 +262,24 @@ offdesign simulations.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
-    :start-after: [sec_8]
-    :end-before: [sec_9]
+    :start-after: [sec_9]
+    :end-before: [sec_10]
 
 We have to save the design state of the network and run the :code:`solve`
 method with the :code:`design_path` specified.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
-    :start-after: [sec_9]
-    :end-before: [sec_10]
+    :start-after: [sec_10]
+    :end-before: [sec_11]
 
 Finally, we can alter the mass flow from its design value of 20 kg/s to only
 50 % of its value. In this example, we calculate the efficiency and plot it.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
-    :start-after: [sec_10]
-    :end-before: [sec_11]
+    :start-after: [sec_11]
+    :end-before: [sec_12]
 
 .. figure:: /_static/images/basics/rankine_partload.svg
     :align: center

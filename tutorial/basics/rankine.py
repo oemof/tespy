@@ -52,7 +52,7 @@ c2.set_attr(p=None)
 my_plant.solve(mode='design')
 my_plant.print_results()
 
-# %%[sec_Ts]
+# %%[sec_5]
 # Adding feature to plot the T-s Diagram using fluprodia library
 # Importing necessary library
 import matplotlib.pyplot as plt
@@ -76,18 +76,15 @@ for key, data in result_dict.items():
 
 # Create a figure and axis for plotting T-s diagram
 fig, ax = plt.subplots(1, figsize=(20, 10))
-mydata = {
-    'Q': {'values': np.linspace(0, 1, 2)},
-    'P': {'values': np.linspace(0, 300, 5)},
-    'v': {'values': np.array([])},
-    'h': {'values': np.array([])}
+isolines = {
+    'Q': np.linspace(0, 1, 2),
+    'p': np.array([1, 2, 5, 10, 20, 50, 100, 300]),
+    'v': np.array([]),
+    'h': np.arange(500, 3501, 500)
 }
 
 # Set isolines for T-s diagram
-diagram.set_isolines(Q=mydata["Q"]["values"],
-                     v=mydata["v"]["values"],
-                     p=mydata["P"]["values"],
-                     h=mydata["h"]["values"])
+diagram.set_isolines(**isolines)
 diagram.calc_isolines()
 
 # Draw isolines on the T-s diagram
@@ -104,8 +101,8 @@ for key in result_dict.keys():
     _ = ax.scatter(datapoints['s'][0], datapoints['T'][0], color='#ff0000')
 
 # Set labels and title for the T-s diagram
-ax.set_xlabel('Entropy, s [J/kg.K]', fontsize=16)
-ax.set_ylabel('Temperature, T [oC]', fontsize=16)
+ax.set_xlabel('Entropy, s in J/kgK', fontsize=16)
+ax.set_ylabel('Temperature, T in °C', fontsize=16)
 ax.set_title('T-s Diagram of Rankine Cycle', fontsize=20)
 
 # Set font size for the x-axis and y-axis ticks
@@ -116,7 +113,7 @@ plt.tight_layout()
 # Save the T-s diagram plot as an SVG file
 fig.savefig('rankine_ts_diagram.svg')
 
-# %%[sec_5]
+# %%[sec_6]
 from tespy.connections import Bus
 
 powergen = Bus("electrical power output")
@@ -130,13 +127,13 @@ my_plant.add_busses(powergen)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# %%[sec_6]
+# %%[sec_7]
 powergen.set_attr(P=-10e6)
 c1.set_attr(m=None)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
-# %%[sec_7]
+# %%[sec_8]
 my_plant.set_attr(iterinfo=False)
 c1.set_attr(m=20)
 powergen.set_attr(P=None)
@@ -207,18 +204,18 @@ ax[3].set_xlabel('Live steam temperature in °C')
 ax[4].set_xlabel('Feed water temperature in °C')
 ax[5].set_xlabel('Live steam pressure in bar')
 plt.tight_layout()
-fig.savefig('rankine_parametric.svg')
+fig.savefig('rankine_parametric-darkmode.svg')
 plt.close()
-# %%[sec_8]
+# %%[sec_9]
 mc.set_attr(design=["ttd_u"], offdesign=["kA"])
 c11.set_attr(offdesign=["v"])
 c12.set_attr(design=["T"])
 c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
-# %%[sec_9]
+# %%[sec_10]
 my_plant.solve("design")
 my_plant.save("rankine_design")
-# %%[sec_10]
+# %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
@@ -237,4 +234,4 @@ ax.set_ylabel("Plant electrical efficiency in %")
 plt.tight_layout()
 fig.savefig('rankine_partload.svg')
 plt.close()
-# %%[sec_11]
+# %%[sec_12]

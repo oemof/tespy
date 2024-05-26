@@ -44,15 +44,22 @@ nw.solve("design")
 nw.save("design")
 nw.print_results()
 
+
+# test pinch specification
+c12.set_attr(T=None)
+cd.set_attr(td_pinch=3)
+nw.solve("design")
+nw.print_results()
+# exit()
 # print(de.A_desup, de.A_cond)
 
-c12.set_attr(T=None)
-cd.set_attr(A=cd.A.val)
+# c12.set_attr(T=None)
+cd.set_attr(A=cd.A.val, td_pinch=None)
 
 # Alternative: fix the input temperatures and mass flows
 # outlet conditions (condensing temperature and water outlet are unknows)
-c2.set_attr(T=None)
-c10.set_attr(m=c10.m.val)
+# c2.set_attr(T=None)
+# c10.set_attr(m=c10.m.val)
 
 #
 
@@ -60,8 +67,8 @@ c10.set_attr(m=c10.m.val)
 cd.zeta1.set_attr(min_val=-2)
 
 nw.solve("design")
-# nw.print_results()
-
+nw.print_results()
+# exit()
 # print(c2.T.val)
 
 Q = []
@@ -71,14 +78,13 @@ dT_pinch = []
 Q_cond = []
 
 for m in np.linspace(12, 4.55, 40):
-    print(m)
     c1.set_attr(m=m)
     nw.solve("design")
     m_refrig += [c12.m.val]
     T_cond += [c12.T.val]
     Q += [abs(cd.Q.val)]
     Q_cond += [cd.Q_cond]
-    dT_pinch += [cd.T_desup_o1 - cd.T_desup_i2]
+    dT_pinch += [cd.td_pinch.val]
 
 
 from matplotlib import pyplot as plt
@@ -105,30 +111,29 @@ plt.tight_layout()
 fig.savefig("mb_partload_m_changing.png")
 
 
-# fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1)
 
-# for i, m in enumerate(np.linspace(12, 5, 25)):
-#     c1.set_attr(m=m)
-#     nw.solve("design")
+for i, m in enumerate(np.linspace(12, 5, 25)):
+    c1.set_attr(m=m)
+    nw.solve("design")
 
-#     if i % 5 ==0:
+    if i % 5 ==0:
 
-#         if de.T_desup_i2 > de.T_desup_o1:
-#             print("PINCH VIOLATION")
+        if cd.T_desup_i2 > cd.T_desup_o1:
+            print("PINCH VIOLATION")
 
-#         print(de.Q_cond / de.Q.val)
-#         de.Q.val = abs(de.Q.val)
-#         de.Q_cond = abs(de.Q_cond)
+        cd.Q.val = abs(cd.Q.val)
+        cd.Q_cond = abs(cd.Q_cond)
 
-#         _ = ax.plot([0, de.Q_cond, de.Q.val], [c12.T.val, de.T_desup_o1 - 273.15, c11.T.val], label=f"Q={round(de.Q.val)}")
-#         ax.plot([0, de.Q_cond, de.Q.val], [c1.T.val, de.T_desup_i2 - 273.15, c2.T.val], c=_[0].get_color())
+        _ = ax.plot([0, cd.Q_cond, cd.Q.val], [c12.T.val, cd.T_desup_o1 - 273.15, c11.T.val], label=f"Q={round(cd.Q.val)}")
+        ax.plot([0, cd.Q_cond, cd.Q.val], [c1.T.val, cd.T_desup_i2 - 273.15, c2.T.val], c=_[0].get_color())
 
 
-# ax.set_ylabel("temperature")
-# ax.set_xlabel("heat transfer")
-# ax.grid()
-# ax.legend()
+ax.set_ylabel("temperature")
+ax.set_xlabel("heat transfer")
+ax.grid()
+ax.legend()
 
-# plt.tight_layout()
+plt.tight_layout()
 
-# fig.savefig("mb_QT.png")
+fig.savefig("mb_QT.png")

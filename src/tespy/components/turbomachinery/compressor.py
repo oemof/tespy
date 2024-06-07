@@ -754,7 +754,6 @@ class Compressor(Turbomachine):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        # each line needs to equal 0
         # c_in_ch = c_out_ch
         # delta c_therm = delta c_mech   # alt: c_out_th - c_in_th = c_out_mech - c_in_mech  ->  c_out_th - c_in_th - c_out_mech + c_in_mech = 0
 

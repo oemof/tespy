@@ -7,9 +7,10 @@ chemexlib = get_chem_ex_lib("Ahrendts")
 
 # entsprechend Tut3 aufgebaut
 
-nw = Network(p_unit="bar", T_unit="C")
+# Definition des Netwerks
+nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
-# components
+# Definition der Komponenten
 cp = Compressor("compressor")
 cc = CombustionChamber("combustion chamber")
 tu = Turbine("turbine")
@@ -17,61 +18,50 @@ air = Source("air source")
 fuel = Source("fuel source")
 fg = Sink("flue gas sink")
 
-# connections
-c3 = Connection(air, "out1", cp, "in1", label="3")
-c4 = Connection(cp, "out1", cc, "in1", label="4")
-c6 = Connection(cc, "out1", tu, "in1", label="6")
-c7 = Connection(tu, "out1", fg, "in1", label="7")
+# Definition der Verbindungen
+c1 = Connection(air, "out1", cp, "in1", label="1")
+c2 = Connection(cp, "out1", cc, "in1", label="2")
+c3 = Connection(cc, "out1", tu, "in1", label="3")
+c4 = Connection(tu, "out1", fg, "in1", label="4")
 c5 = Connection(fuel, "out1", cc, "in2", label="5")
-nw.add_conns(c3, c4, c6, c7, c5)
+nw.add_conns(c1, c2, c3, c4, c5)
 
-# define parameters
-c3.set_attr(
+# Definition der Parameter
+c1.set_attr(
     m=151, p=4.5, T=100,
     fluid={"Ar": 0, "N2": 0.79, "CO2": 0, "O2": 0.21}
 )
-c4.set_attr(p=20, T=326.3)
-#c6.set_attr(T=1308.87)
-c7.set_attr(p=1.1, T=609.86)
+c2.set_attr(p=20, T=326.3)
+c4.set_attr(p=1.1, T=609.86)
 c5.set_attr(m=3.83, T=25, fluid={"CH4": 1})
-"""c3.set_attr(
-    m=151, p=4.5, T=100,
-    fluid={"Ar": 0, "N2": 0.79, "CO2": 0, "O2": 0.21}
-)
-c4.set_attr(p=20, T=326.3)
-#c6.set_attr(T=1308.87)
-c7.set_attr(p=1.1, T=609.86)
-c5.set_attr(m=3.83, T=25, fluid={"CH4": 1})
-"""
 
 
-# bus representing generated electricity
+# Bud
 generator = Bus("generator")
 generator.add_comps(
-    {"comp": tu, "char": 0.98, "base": "component"},
+    {"comp": tu, "char": 0.95, "base": "component"},
     {"comp": cp, "char": 0.98, "base": "bus"},
 )
 nw.add_busses(generator)
 
-# solve
+# Lösen des Netzwerks
 nw.solve(mode='design')
 nw.print_results()
 
 
-""" +++ exergy analysis +++ """
-# define ambient
+# Umgebung
 T_amb = 25
 p_amb = 1.02
 
-# define busses (no need to add them to system)
+# Busse, die für Exergieanalyse benötigt werden
 fuel_bus = Bus("fuel")
 fuel_bus.add_comps({"comp": fuel, "base": "bus"}, {"comp": air, "base": "bus"})
 
 loss_bus = Bus("loss")
 loss_bus.add_comps({"comp": fg, "base": "component"})
 
-# exergy analysis
-exe_eco_input = {'turbine_Z': 50, 'compressor_Z': 40, 'combustion chamber_Z': 60, 'air source_c': 5, 'fuel source_c': 10}
+# Exergie- und exergoökonomische Analyse
+exe_eco_input = {'turbine_Z': 50, 'compressor_Z': 40, 'combustion chamber_Z': 60, 'air source_c': 0, 'fuel source_c': 10}
 ean = ExergyAnalysis(network=nw, E_F=[fuel_bus], E_P=[generator], E_L=[loss_bus])
 ean.analyse(pamb=p_amb, Tamb=T_amb, Chem_Ex=chemexlib)
 ean.evaluate_exergoeconomics(Exe_Eco_Costs=exe_eco_input, Tamb=T_amb)

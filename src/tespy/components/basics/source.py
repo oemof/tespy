@@ -134,7 +134,7 @@ class Source(Component):
             self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
             self.outl[0].C_tot = self.outl[0].c_tot * self.outl[0].Ex_tot
 
-            # approx costs per exergy unit fot T, M, PH and CH
+            # approximate costs per exergy unit fot T, M, PH and CH
             # c_tot = c_therm = c_mech = c_physical = c_chemical
             self.outl[0].c_therm = c_tot
             self.outl[0].c_mech = c_tot
@@ -146,18 +146,6 @@ class Source(Component):
             self.outl[0].C_physical = self.outl[0].c_physical * self.outl[0].Ex_physical
             self.outl[0].C_chemical = self.outl[0].c_chemical * self.outl[0].Ex_chemical
 
-
-            """
-            self.outl[0].C_therm = self.outl[0].C_tot * (self.outl[0].Ex_therm / self.outl[0].Ex_tot)
-            self.outl[0].C_mech = self.outl[0].C_tot * (self.outl[0].Ex_mech / self.outl[0].Ex_tot)
-            self.outl[0].C_physical = self.outl[0].C_tot * (self.outl[0].Ex_physical / self.outl[0].Ex_tot)
-            self.outl[0].C_chemical = self.outl[0].C_tot * (self.outl[0].Ex_chemical / self.outl[0].Ex_tot)
-
-            self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c if self.outl[0].Ex_therm != 0 else 0
-            self.outl[0].c_mech = self.outl[0].C_mech / self.outl[0].Ex_mech * unit_c if self.outl[0].Ex_mech != 0 else 0
-            self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c if self.outl[0].Ex_physical != 0 else 0
-            self.outl[0].c_chemical = self.outl[0].C_chemical / self.outl[0].Ex_chemical * unit_c if self.outl[0].Ex_chemical != 0 else 0
-            """
     def set_source_costs_standard(self):
         # determine source costs depending on material, temperature, ...
         return

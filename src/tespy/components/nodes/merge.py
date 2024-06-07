@@ -487,11 +487,11 @@ class Merge(NodeBase):
             for i in self.inl:
                 if i.T.val_SI < self.outl[0].T.val_SI:
                     # cold inlets
-                    self.C_F += i.m.val_SI * i.c_therm * i.ex_therm + (
-                        i.C_therm + i.C_chemical)
+                    self.C_F += i.C_mech + i.C_chemical
                 else:
                     # hot inlets
-                    self.C_F += i.C_therm + i.C_mech + i.C_chemical
+                    self.C_F += - i.m.val_SI * i.c_therm * i.ex_therm + (
+                        i.C_therm + i.C_mech + i.C_chemical)
             self.C_F += (-self.outl[0].C_mech - self.outl[0].C_chemical)
         elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
             # dissipative
@@ -501,74 +501,15 @@ class Merge(NodeBase):
             for i in self.inl:
                 if i.T.val_SI > self.outl[0].T.val_SI:
                     # hot inlets
-                    self.C_F += i.m.val_SI * i.c_therm * i.ex_therm + (
-                        i.C_therm + i.C_chemical)
+                    self.C_F += i.C_mech + i.C_chemical
                 else:
                     # cold inlets
-                    self.C_F += i.C_therm + i.C_mech + i.C_chemical
+                    self.C_F += - i.m.val_SI * i.c_therm * i.ex_therm + (
+                        i.C_therm + i.C_mech + i.C_chemical)
             self.C_F += (-self.outl[0].C_mech - self.outl[0].C_chemical)
-        self.C_P = self.C_F + self.Z_costs
+        self.C_P = self.C_F + self.Z_costs      # +1/num_serving_comps * C_diff
+        # ToDo: add case that merge profits from dissipative component(s)
 
-        """
-        self.C_P = 0
-        self.C_F = 0
-        if self.outl[0].T.val_SI > T0:
-            for i in self.inl:
-                if i.T.val_SI < self.outl[0].T.val_SI:
-                    # cold inlets
-                    self.C_F += i.C_physical
-                else:
-                    # hot inlets
-                    self.C_F += i.m.val_SI * i.c_therm * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
-            for i in self.inl:
-                self.C_F += i.C_physical
-        else:
-            for i in self.inl:
-                if i.T.val_SI > self.outl[0].T.val_SI:
-                    # hot inlets
-                    if i.T.val_SI >= T0:
-                        self.C_F += i.C_physical
-                else:
-                    # cold inlets
-                    self.C_F += i.m.val_SI * i.c_therm * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        self.C_P = self.C_F + self.Z_costs
-        -------
-        if self.outl[0].T.val_SI > T0:
-            for i in self.inl:
-                if i.T.val_SI < self.outl[0].T.val_SI:
-                    # cold inlets
-                    if i.T.val_SI >= T0:
-                        self.C_P += i.m.val_SI * i.c_therm * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                    else:
-                        self.C_P += i.m.val_SI * i.c_therm * self.outl[0].ex_physical
-                        self.C_F += i.C_physical
-                else:
-                    # hot inlets
-                    self.C_F += i.m.val_SI * i.c_therm * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
-            for i in self.inl:
-                self.C_F += i.C_physical
-            self.C_P = self.C_F + self.Z_costs
-        else:
-            for i in self.inl:
-                if i.T.val_SI > self.outl[0].T.val_SI:
-                    # hot inlets
-                    if i.T.val_SI >= T0:
-                        self.C_P += i.m.val_SI * i.c_therm * self.outl[0].ex_physical
-                        self.C_F += i.C_physical
-                    else:
-                        self.C_P += i.m.val_SI * i.c_therm * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                else:
-                    # cold inlets
-                    self.C_F += i.m.val_SI * i.c_therm * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        """
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P

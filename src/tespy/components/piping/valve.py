@@ -400,8 +400,6 @@ class Valve(Component):
             self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
             self.C_P = np.nan
             # dissipative
-            #self.C_F = self.inl[0].C_physical - self.outl[0].C_physical
-            #self.C_P = self.C_F + self.Z_costs
         elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
             self.C_P = self.outl[0].C_therm
             self.C_F = self.inl[0].C_therm + (
@@ -453,7 +451,6 @@ class Valve(Component):
         for i in range(3):
             exergy_cost_vector[counter+i]=0
 
-        # füge die dissipativen Kosten der Komponente(n) zu, die davon profitiert/-en
         if self.serving_components is None:
             print("there should be a serving component, you shouldn't see this")
         for comp in self.serving_components:

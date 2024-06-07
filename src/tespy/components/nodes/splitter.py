@@ -261,7 +261,6 @@ class Splitter(NodeBase):
         for i in range(len(self.outl)):
             exergy_cost_vector[counter+i]=0
 
-        # füge die dissipativen Kosten der Komponente(n) zu, die davon profitiert/-en
         if self.serving_components is None:
             print("there should be a serving component, you shouldn't see this")
         for comp in self.serving_components:
@@ -279,21 +278,3 @@ class Splitter(NodeBase):
         exergy_cost_vector[counter+3*(len(self.outl)-1)+3] = self.Z_costs
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+3*(len(self.outl)-1)+3]
-
-        """
-        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["therm"]] = 1 / self.outl[0].Ex_therm
-        exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-        for i in range (len(self.outl)-1):
-            exergy_cost_matrix[counter+1+2*i, self.outl[i].Ex_C_col["therm"]] = 1 / self.outl[i].Ex_therm
-            exergy_cost_matrix[counter+1+2*i, self.outl[i+1].Ex_C_col["therm"]] = -1 / self.outl[i+1].Ex_therm
-            exergy_cost_matrix[counter+1+2*i+1, self.outl[i].Ex_C_col["mech"]] = 1 / self.outl[i].Ex_mech
-            exergy_cost_matrix[counter+1+2*i+1, self.outl[i+1].Ex_C_col["mech"]] = -1 / self.outl[i+1].Ex_mech
-        for i in range (len(self.outl)):
-            exergy_cost_matrix[counter+1+2*(len(self.outl)-1) + i, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical
-            exergy_cost_matrix[counter+1+2*(len(self.outl)-1) + i, self.outl[i].Ex_C_col["chemical"]] = -1 / self.outl[i].Ex_chemical
-
-        for i in range(1+2*(len(self.outl)-1)+len(self.outl)):
-            exergy_cost_vector[counter+i]=0
-
-        return [exergy_cost_matrix, exergy_cost_vector, counter+1+2*(len(self.outl)-1)+len(self.outl)]
-        """

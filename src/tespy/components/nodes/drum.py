@@ -435,7 +435,7 @@ class Drum(DropletSeparator):
         else:
             exergy_cost_matrix[counter+2, self.outl[0].Ex_C_col["therm"]] = 1
             exergy_cost_matrix[counter+2, self.outl[1].Ex_C_col["therm"]] = -1
-        # mech_out: e^P shoudlt be the same of both outlets
+        # mech_out: e^P should be the same of both outlets
         exergy_cost_matrix[counter+3, self.outl[0].Ex_C_col["mech"]] = 1 / self.outl[0].Ex_mech if self.outl[0].Ex_mech != 0 else 1
         exergy_cost_matrix[counter+3, self.outl[1].Ex_C_col["mech"]] = -1 / self.outl[1].Ex_mech if self.outl[1].Ex_mech != 0 else -1
         # therm_out = mech_out

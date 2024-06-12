@@ -416,11 +416,11 @@ class Drum(DropletSeparator):
         data : dict
             A nested dictionary containing the keywords required by the
             :code:`calc_individual_isoline` method of the
-            :code:`FluidPropertyDiagram` class. The keys :code:`1` and :code:`2`
-            connect the saturated liquid-vapor mixture of 'in1' with the
-            saturated liquid ('out1') and saturated vapor ('out2'), while the
-            keys :code:`3` and :code:`4` connect the (superheated) gas of 'in2'
-            with the same.
+            :code:`FluidPropertyDiagram` class. The keys :code:`1` and
+            :code:`2` connect the saturated liquid-vapor mixture of 'in1' with
+            the saturated liquid ('out1') and saturated vapor ('out2'), while
+            the keys :code:`3` and :code:`4` connect the (superheated) gas of
+            'in2' with the same.
         """
         return {
             1: {

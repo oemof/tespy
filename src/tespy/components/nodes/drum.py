@@ -10,6 +10,8 @@ available from its original location tespy/components/nodes/drum.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 
 from tespy.components.component import component_registry
@@ -422,8 +424,25 @@ class Drum(DropletSeparator):
             the keys :code:`3` and :code:`4` connect the (superheated) gas of
             'in2' with the same.
         """
+        msg = (
+            """
+            For now the dict entry of key '1' will contain the old isoline
+            between saturated liquid and saturated vapor. This entry will be
+            dropped in future versions of this method.
+            """
+        )
+        warnings.warn(msg, FutureWarning)
         return {
             1: {
+                'isoline_property': 'p',
+                'isoline_value': self.outl[0].p.val,
+                'isoline_value_end': self.outl[1].p.val,
+                'starting_point_property': 'v',
+                'starting_point_value': self.outl[0].vol.val,
+                'ending_point_property': 'v',
+                'ending_point_value': self.outl[1].vol.val
+            },
+            2: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[0].p.val,
@@ -432,7 +451,7 @@ class Drum(DropletSeparator):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[0].vol.val
             },
-            2: {
+            3: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[1].p.val,
@@ -441,7 +460,7 @@ class Drum(DropletSeparator):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[1].vol.val
             },
-            3: {
+            4: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[1].p.val,
                 'isoline_value_end': self.outl[0].p.val,
@@ -450,7 +469,7 @@ class Drum(DropletSeparator):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[0].vol.val
             },
-            4: {
+            5: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[1].p.val,
                 'isoline_value_end': self.outl[1].p.val,

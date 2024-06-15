@@ -235,11 +235,12 @@ class Splitter(NodeBase):
         }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
-        self.dissipative.val = True
 
     def exergoeconomic_balance(self, T0):
-        self.C_P = np.nan
-        self.C_F = self.inl[0].C_physical
+        self.C_P = 0
+        for o in self.out:
+            self.C_P += o.C_tot
+        self.C_F = self.inl[0].C_tot
 
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
@@ -248,7 +249,7 @@ class Splitter(NodeBase):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
 
-    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # either all Ex 0 or or unequal 0
         for i, o in enumerate(self.outl):
             exergy_cost_matrix[counter+3*i, self.inl[0].Ex_C_col["therm"]] = 1 / self.inl[0].Ex_therm if self.inl[0].Ex_therm != 0 else 1
@@ -260,21 +261,5 @@ class Splitter(NodeBase):
 
         for i in range(len(self.outl)):
             exergy_cost_vector[counter+i]=0
-
-        if self.serving_components is None:
-            print("there should be a serving component, you shouldn't see this")
-        for comp in self.serving_components:
-            print("serving component: ", comp.label)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["therm"]] += 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["mech"]] += 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.inl[0].Ex_C_col["chemical"]] += 1/len(self.serving_components)
-            exergy_cost_matrix[comp.exergy_cost_line, self.Ex_C_col["dissipative"]] = 1/len(self.serving_components)
-            for o in self.outl:
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["therm"]] += -1/len(self.serving_components)
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["mech"]] += -1/len(self.serving_components)
-                exergy_cost_matrix[comp.exergy_cost_line, self.o.Ex_C_col["chemical"]] += -1/len(self.serving_components)
-
-        exergy_cost_matrix[counter+3*(len(self.outl)-1)+3, self.Ex_C_col["dissipative"]] = 1
-        exergy_cost_vector[counter+3*(len(self.outl)-1)+3] = self.Z_costs
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+3*(len(self.outl)-1)+3]

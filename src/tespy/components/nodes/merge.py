@@ -496,7 +496,7 @@ class Merge(NodeBase):
         elif self.outl[0].T.val_SI - 1e-6 < T0 and self.outl[0].T.val_SI + 1e-6 > T0:
             # dissipative
             for i in self.inl:
-                self.C_F += i.C_physical
+                self.C_F += i.C_tot
         else:
             for i in self.inl:
                 if i.T.val_SI > self.outl[0].T.val_SI:
@@ -516,29 +516,6 @@ class Merge(NodeBase):
         self.C_D = self.c_F * self.E_D
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
-
-
-    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        if self.outl[0].Ex_chemical != 0:
-            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
-            for i, h in enumerate(self.inl):
-                exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
-        else:
-            exergy_cost_matrix[counter+0, self.outl[i].Ex_C_col["chemical"]] = 1
-
-        if self.outl[0].Ex_mech != 0:
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-            for i, h in enumerate(self.inl):
-                exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
-        else:
-            exergy_cost_matrix[counter+1, self.outl[i].Ex_C_col["mech"]] = 1
-
-        exergy_cost_matrix[counter+2, self.outl[i].Ex_C_col["therm"]] = 1
-
-        for i in range(3):
-            exergy_cost_vector[counter+i]=0
-
-        return [exergy_cost_matrix, exergy_cost_vector, counter+3]
 
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
@@ -561,6 +538,27 @@ class Merge(NodeBase):
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+2]
 
+    def dis_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        if self.outl[0].Ex_chemical != 0:
+            exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+0, self.inl[i].Ex_C_col["chemical"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_chemical)
+        else:
+            exergy_cost_matrix[counter+0, self.outl[i].Ex_C_col["chemical"]] = 1
+
+        if self.outl[0].Ex_mech != 0:
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            for i, h in enumerate(self.inl):
+                exergy_cost_matrix[counter+1, self.inl[i].Ex_C_col["mech"]] = h.m.val_SI / (self.outl[0].m.val_SI * h.Ex_mech)
+        else:
+            exergy_cost_matrix[counter+1, self.outl[i].Ex_C_col["mech"]] = 1
+
+        exergy_cost_matrix[counter+2, self.outl[i].Ex_C_col["therm"]] = 1
+
+        for i in range(3):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+3]
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

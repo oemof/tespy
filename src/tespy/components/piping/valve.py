@@ -420,7 +420,37 @@ class Valve(Component):
         self.r = (self.C_P - self.C_F) / self.C_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
-    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+
+    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
+            print("you shouldn't see this")
+        elif self.outl[0].T.val_SI <= T0:
+            # mech
+            if self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm != 0:
+                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
+            elif self.inl[0].Ex_mech == 0 and self.outl[0].Ex_therm != 0:
+                exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
+            elif self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm == 0:
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = 1
+            else:
+                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1
+                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1
+            # chemical doesn't change either both 0 or not 0
+            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
+        else:
+            msg = ('Exergy balance of a valve, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logger.warning(msg)
+
+        for i in range(2):
+            exergy_cost_vector[counter+i]=0
+
+        return [exergy_cost_matrix, exergy_cost_vector, counter+2]
+
+
+    def dis_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         # nothing changes for the working fluid
         # therm
         if self.inl[0].Ex_therm != 0 and self.outl[0].Ex_therm != 0:
@@ -467,34 +497,6 @@ class Valve(Component):
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+4]
 
-
-    def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            print("you shouldn't see this")
-        elif self.outl[0].T.val_SI <= T0:
-            # mech
-            if self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm != 0:
-                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech
-                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1 / self.outl[0].Ex_mech
-            elif self.inl[0].Ex_mech == 0 and self.outl[0].Ex_therm != 0:
-                exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["mech"]] = 1
-            elif self.inl[0].Ex_mech != 0 and self.outl[0].Ex_therm == 0:
-                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = 1
-            else:
-                exergy_cost_matrix[counter, self.inl[0].Ex_C_col["mech"]] = 1
-                exergy_cost_matrix[counter, self.outl[0].Ex_C_col["mech"]] = -1
-            # chemical doesn't change either both 0 or not 0
-            exergy_cost_matrix[counter+1, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-            exergy_cost_matrix[counter+1, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical if self.outl[0].Ex_chemical != 0 else -1
-        else:
-            msg = ('Exergy balance of a valve, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
-            logger.warning(msg)
-
-        for i in range(2):
-            exergy_cost_vector[counter+i]=0
-
-        return [exergy_cost_matrix, exergy_cost_vector, counter+2]
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

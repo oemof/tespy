@@ -5,7 +5,7 @@ from tespy.networks import Network
 from tespy.tools.helpers import get_chem_ex_lib
 chemexlib = get_chem_ex_lib("Ahrendts")
 
-testCase = 3
+testCase = 1
 
 # network
 nw = Network(p_unit='bar', T_unit='C', iterinfo=False)

@@ -712,7 +712,7 @@ class ExergyAnalysis:
                     for c in self.nw.comps['object']:
                         if not c == comp and not c.component() in ["source", "sink", "cycle closer"] and not c.dissipative.val:
                             comp.serving_components.append(c)
-                dis_eqs = comp.dissipative_balance(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
+                dis_eqs = comp.dis_eqs(exergy_cost_matrix, exergy_cost_vector, counter, Tamb_SI)     # changes Z_costs of serving component
                 exergy_cost_matrix = dis_eqs[0]
                 exergy_cost_vector = dis_eqs[1]
                 counter = dis_eqs[2]
@@ -1186,7 +1186,7 @@ class ExergyAnalysis:
             print('##### RESULTS: Connection exergoeconomic analysis #####')
             print(tabulate(
                 self.connection_exergoec_data, headers='keys',
-                tablefmt='psql', floatfmt='.3e'))
+                tablefmt='psql', floatfmt='.4e'))
 
 
         # Exergoeconomic Results for Components
@@ -1206,6 +1206,6 @@ class ExergyAnalysis:
             print('##### RESULTS: Component exergoeconomic analysis #####')
             print(tabulate(
                 self.component_exergoec_data, headers='keys',
-                tablefmt='psql', floatfmt='.3e'))
+                tablefmt='psql', floatfmt='.4e'))
 
         """+F+F+F+F++++END++++F+F+F+F+"""

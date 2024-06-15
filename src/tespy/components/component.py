@@ -1263,9 +1263,6 @@ class Component:
 
 
     """+F+F+F+F++++START++++F+F+F+F+"""
-    def dissipative_balance(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
-        return
-
     def exergoeconomic_balance(self, T0):
         return
 
@@ -1279,5 +1276,8 @@ class Component:
 
     def aux_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         return [exergy_cost_matrix, exergy_cost_vector, counter]
+
+    def dis_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
+        return
 
     """+F+F+F+F++++END++++F+F+F+F+"""

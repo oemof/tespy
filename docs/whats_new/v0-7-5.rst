@@ -7,7 +7,13 @@ Documentation
   process into the results.
   (`PR #514 <https://github.com/oemof/tespy/pull/514>`__).
 
+Other Features
+##############
+- More isolines are now available for the drum
+  (`PR #521 <https://github.com/oemof/tespy/pull/521>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@Nzb0731 <https://github.com/Nzb0731>`__
+- `@jfreissmann <https://github.com/jfreissmann>`__

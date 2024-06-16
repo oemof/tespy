@@ -27,10 +27,10 @@ match testCase:
     case 1:         # lambda > 1
         chamber.set_attr(pr=0.95, eta=0.99, ti=10e6, lamb=1.5)
         c1.set_attr(
-            p=1.0, T=20,
+            p=1.1, T=20,
             fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314})
         c2.set_attr(
-            p=1.0, T=20,
+            p=1.1, T=20,
             fluid={"CO2": 0.04, "CH4": 0.96})
     case 2:         # lambda = 1
         chamber.set_attr(pr=0.95, eta=0.99, ti=10e6, lamb=1)
@@ -48,7 +48,7 @@ nw.print_results()
 
 """ +++ exergy analysis +++ """
 # define ambient
-p_amb = 0.1
+p_amb = 1
 T_amb = 25
 
 # define busses (no need to add them to system)

@@ -238,7 +238,7 @@ class Splitter(NodeBase):
 
     def exergoeconomic_balance(self, T0):
         self.C_P = 0
-        for o in self.out:
+        for o in self.outl:
             self.C_P += o.C_tot
         self.C_F = self.inl[0].C_tot
 
@@ -256,10 +256,11 @@ class Splitter(NodeBase):
             exergy_cost_matrix[counter+3*i, o.Ex_C_col["therm"]] = -1 / o.Ex_therm if o.Ex_therm != 0 else -1
             exergy_cost_matrix[counter+3*i+1, self.inl[0].Ex_C_col["mech"]] = 1 / self.inl[0].Ex_mech if self.inl[0].Ex_mech != 0 else 1
             exergy_cost_matrix[counter+3*i+1, o.Ex_C_col["mech"]] = -1 / o.Ex_mech if o.Ex_mech != 0 else .1
-            exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
-            exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical if o.Ex_chemical != 0 else -1
+            if counter+3*i+2 < len(exergy_cost_vector):
+                exergy_cost_matrix[counter+3*i+2, self.inl[0].Ex_C_col["chemical"]] = 1 / self.inl[0].Ex_chemical if self.inl[0].Ex_chemical != 0 else 1
+                exergy_cost_matrix[counter+3*i+2, o.Ex_C_col["chemical"]] = -1 / o.Ex_chemical if o.Ex_chemical != 0 else -1
 
-        for i in range(len(self.outl)):
+        for i in range(3*len(self.outl)-1):
             exergy_cost_vector[counter+i]=0
 
-        return [exergy_cost_matrix, exergy_cost_vector, counter+3*(len(self.outl)-1)+3]
+        return [exergy_cost_matrix, exergy_cost_vector, counter+3*len(self.outl)-1]

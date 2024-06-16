@@ -27,7 +27,7 @@ match testCase:
     case 1: # lambda > 1
         chamber.set_attr(ti=10e6, lamb=1.5)
         c1.set_attr(
-            p=1.0, T=20,
+            p=1.5, T=20,
             fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314})
         c2.set_attr(
             T=20,

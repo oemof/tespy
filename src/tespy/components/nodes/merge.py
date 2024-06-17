@@ -538,6 +538,7 @@ class Merge(NodeBase):
 
         return [exergy_cost_matrix, exergy_cost_vector, counter+2]
 
+
     def dis_eqs(self, exergy_cost_matrix, exergy_cost_vector, counter, T0):
         if self.outl[0].Ex_chemical != 0:
             exergy_cost_matrix[counter+0, self.outl[0].Ex_C_col["chemical"]] = -1 / self.outl[0].Ex_chemical

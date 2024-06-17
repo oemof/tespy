@@ -542,12 +542,13 @@ class ExergyAnalysis:
             + col_number
         )
 
-        for conn_num, conn in enumerate(self.nw.conns["object"]):
+        for conn in self.nw.conns["object"]:
             conn.Ex_C_col = {
-                "therm": conn_num * 3 + col_number,
-                "mech": conn_num * 3 + 1 + col_number,
-                "chemical": conn_num * 3 + 2 + col_number
+                "therm": col_number,
+                "mech": col_number + 1,
+                "chemical": col_number + 2
             }
+            col_number += 3
 
         # WRITE GIVEN COMPONENT AND SOURCE COSTS INTO OBJECTS
         for bus in self.E_F + self.E_P + self.E_L + self.internal_busses:
@@ -1186,7 +1187,7 @@ class ExergyAnalysis:
             print('##### RESULTS: Connection exergoeconomic analysis #####')
             print(tabulate(
                 self.connection_exergoec_data, headers='keys',
-                tablefmt='psql', floatfmt='.4e'))
+                tablefmt='psql', floatfmt='.3e'))
 
 
         # Exergoeconomic Results for Components
@@ -1206,6 +1207,6 @@ class ExergyAnalysis:
             print('##### RESULTS: Component exergoeconomic analysis #####')
             print(tabulate(
                 self.component_exergoec_data, headers='keys',
-                tablefmt='psql', floatfmt='.4e'))
+                tablefmt='psql', floatfmt='.3e'))
 
         """+F+F+F+F++++END++++F+F+F+F+"""

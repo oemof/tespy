@@ -417,7 +417,7 @@ class Valve(Component):
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
-        self.r = (self.C_P - self.C_F) / self.C_F
+        self.r = (self.c_P - self.c_F) / self.c_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
 

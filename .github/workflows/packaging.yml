@@ -26,9 +26,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools setuptools_scm twine wheel flit
+        python -m pip install --upgrade pip twine build flit
     - name: Create packages
-      run: python -m flit build
+      run: python -m build .
     - name: Run twine check
       run: twine check dist/*
     - uses: actions/upload-artifact@v2

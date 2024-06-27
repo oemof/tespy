@@ -14,7 +14,7 @@ on:
     - cron: "0 5 * * 6"  # 5:00 UTC every Saturday
 
 jobs:
-  build:
+  pytest:
     runs-on: ubuntu-latest
     strategy:
       matrix:

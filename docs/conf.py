@@ -34,7 +34,7 @@ extensions = [
 # master_doc = 'contents'
 # names, years, etc
 project = 'TESPy'
-year = '2023'
+year = '2024'
 author = 'Francesco Witte'
 copyright = '{0}, {1}'.format(year, author)
 

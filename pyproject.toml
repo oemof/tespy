@@ -7,7 +7,6 @@ include = [
     "CHANGELOG.rst",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
-    "MANIFEST.in",
     "LICENSE*",
     "PULL_REQUEST_TEMPLATE.md",
     ".coveragerc",

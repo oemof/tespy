@@ -4,8 +4,10 @@ v0.7.5 - Under development
 Documentation
 #############
 - The Rankine cycle example has been adopted to integrate a T-s diagram of the
-  process into the results.
+  process into the results
   (`PR #514 <https://github.com/oemof/tespy/pull/514>`__).
+- A bug in the results plot of the gas turbine example has been fixed
+  (`PR #522 <https://github.com/oemof/tespy/pull/522>`__).
 
 Other Features
 ##############

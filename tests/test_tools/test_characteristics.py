@@ -42,8 +42,9 @@ def test_custom_CharLine_import():
     with open(os.path.join(path, 'char_lines.json'), 'w') as outfile:
         json.dump(data, outfile)
 
-    char_original = load_default_char('heat exchanger', 'kA_char2',
-                                      'EVAPORATING FLUID', CharLine)
+    char_original = load_default_char(
+        'heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine
+    )
     char_custom = load_custom_char('EVAPORATING FLUID', CharLine)
 
     shutil.rmtree(path, ignore_errors=True)
@@ -58,16 +59,18 @@ def test_custom_CharLine_import():
     x_cond = np.array_equal(char_original.x, char_custom.x)
     y_cond = np.array_equal(char_original.y, char_custom.y)
 
-    msg = ('The x values from the custom characteristic line ' +
-           str(char_custom.x) + ' must be identical to the x values from '
-           'the default characteristic line ' + str(char_original.x) + ' '
-           'as these have been duplicated before load.')
+    msg = (
+        f'The x values from the custom characteristic line {char_custom.x} '
+        'must be identical to the x values from the default characteristic '
+        f'line {char_original.x} as these have been duplicated before load.'
+    )
     assert x_cond, msg
 
-    msg = ('The y values from the custom characteristic line ' +
-           str(char_custom.y) + ' must be identical to the y values from '
-           'the default characteristic line ' + str(char_original.y) + ' '
-           'as these have been duplicated before load.')
+    msg = (
+        f'The y values from the custom characteristic line {char_custom.y} '
+        'must be identical to the y values from the default characteristic '
+        f'line {char_original.y} as these have been duplicated before load.'
+    )
     assert y_cond, msg
 
 

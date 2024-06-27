@@ -2209,7 +2209,7 @@ class Network:
         """Print tail of convergence progress."""
         num_iter = self.iter + 1
         clc_time = self.end_time - self.start_time
-        num_ips = num_iter / clc_time if clc_time > 1e-10 else np.Inf
+        num_ips = num_iter / clc_time if clc_time > 1e-10 else np.inf
         msg = '-' * 7 + '+------------' * 7
         logger.progress(100, msg)
         msg = (

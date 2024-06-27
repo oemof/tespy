@@ -5,9 +5,10 @@ sphinx:
 # formats: all  ## none appart from html required here
 python:
   install:
-    - requirements: docs/requirements.txt
     - method: pip
       path: .
+      extra_requirements:
+        - docs
 build:
   os: ubuntu-22.04
   tools:

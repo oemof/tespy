@@ -192,6 +192,7 @@ class HeatExchanger(Component):
     >>> round(he_ex.T.val, 1)
     18.8
     >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> shutil.rmtree('./report', ignore_errors=True)
     """
 
     @staticmethod

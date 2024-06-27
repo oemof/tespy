@@ -118,7 +118,7 @@ cp.set_attr(pr=15)
 fig, ax = plt.subplots(2, 2, figsize=(16, 8), sharex='col', sharey='row')
 
 ax = ax.flatten()
-[a.grid() for a in ax]
+[(a.grid(), a.set_axisbelow(True)) for a in ax]
 
 i = 0
 for key in data:
@@ -145,6 +145,8 @@ for oxy in data[::-1]:
     nw.solve('design')
     T3 += [c3.T.val]
 
+T3 = T3[::-1]
+
 # reset to base value
 c3.fluid.is_set.remove("O2")
 c3.set_attr(T=1200)
@@ -153,6 +155,7 @@ fig, ax = plt.subplots(1, figsize=(16, 8))
 
 ax.scatter(data * 100, T3, s=100, color="#1f567d")
 ax.grid()
+ax.set_axisbelow(True)
 
 ax.set_ylabel('Turbine inlet temperature in °C')
 ax.set_xlabel('Oxygen mass fraction in flue gas in %')
@@ -185,6 +188,7 @@ fig, ax = plt.subplots(1, figsize=(16, 8))
 ax.scatter(data, CH4, s=100, color="#1f567d", label="CH4 mass fraction")
 ax.scatter(data, H2, s=100, color="#18a999", label="H2 mass fraction")
 ax.grid()
+ax.set_axisbelow(True)
 ax.legend()
 
 ax.set_ylabel('Mass fraction of the fuel in %')

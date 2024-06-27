@@ -93,6 +93,7 @@ addopts = """
     --pyargs
     --ignore=docs/conf.py
     --ignore=docs/scripts
+    --ignore=docs/_build
 """
 testpaths = [
     "src/",

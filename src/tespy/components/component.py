@@ -252,19 +252,7 @@ class Component:
                     self.__dict__.update({key: kwargs[key]})
 
             elif key == 'design_path' or key == 'fkt_group':
-                if isinstance(kwargs[key], str):
-                    self.__dict__.update({key: kwargs[key]})
-                elif kwargs[key] is None:
-                    self.design_path = None
-                elif np.isnan(kwargs[key]):
-                    self.design_path = None
-                else:
-                    msg = (
-                        'Please provide the design_path parameter as string. '
-                        'For unsetting use None.'
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
+                self.__dict__.update({key: kwargs[key]})
 
                 self.new_design = True
 

@@ -439,13 +439,8 @@ class Connection:
 
             # design path
             elif key == 'design_path':
-                if isinstance(kwargs[key], str) or kwargs[key] is None:
-                    self.__dict__.update({key: kwargs[key]})
-                    self.new_design = True
-                else:
-                    msg = "Provide the a string or None for 'design_path'."
-                    logger.error(msg)
-                    raise TypeError(msg)
+                self.__dict__.update({key: kwargs[key]})
+                self.new_design = True
 
             # other boolean keywords
             elif key in ['printout', 'local_design', 'local_offdesign']:

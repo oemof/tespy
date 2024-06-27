@@ -2654,7 +2654,7 @@ class Network:
         self.export_components(path_comps)
         self.export_busses(path)
 
-    def save(self, path, **kwargs):
+    def save(self, path):
         r"""
         Save the results to results files.
 

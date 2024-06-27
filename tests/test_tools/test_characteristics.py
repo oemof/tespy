@@ -33,7 +33,7 @@ def test_custom_CharLine_import():
 
     if os.path.exists(path):
         for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
+            shutil.copy(src=os.path.join(path, f), dst=tmp_path)
 
     with open(data_path) as f:
         raw_data = json.load(f)
@@ -51,7 +51,7 @@ def test_custom_CharLine_import():
     if os.path.exists(tmp_path):
         path = extend_basic_path('data')
         for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
+            shutil.copy(src=os.path.join(tmp_path, f), dst=path)
 
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -73,7 +73,6 @@ def test_custom_CharLine_import():
 
 def test_custom_CharMap_import():
     """Test importing a custom characteristc map."""
-
     # we need to write some data to the path first, using defaults
     data_path = os.path.join(__datapath__, 'char_maps.json')
     path = extend_basic_path('data')
@@ -81,7 +80,7 @@ def test_custom_CharMap_import():
 
     if os.path.exists(path):
         for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
+            shutil.copy(src=os.path.join(path, f), dst=tmp_path)
 
     with open(data_path) as f:
         raw_data = json.load(f)
@@ -103,26 +102,29 @@ def test_custom_CharMap_import():
     if os.path.exists(tmp_path):
         path = extend_basic_path('data')
         for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
+            shutil.copy(src=os.path.join(tmp_path, f), dst=path)
 
         shutil.rmtree(tmp_path, ignore_errors=True)
 
-    msg = ('The x values from the custom characteristic line ' +
-           str(char_custom.x) + ' must be identical to the x values from '
-           'the default characteristic line ' + str(char_original.x) + ' '
-           'as these have been duplicated before load.')
+    msg = (
+        f'The x values from the custom characteristic line {char_custom.x} '
+        'must be identical to the x values from the default characteristic '
+        f'line {char_original.x} as these have been duplicated before load.'
+    )
     assert x_cond, msg
 
-    msg = ('The y values from the custom characteristic line ' +
-           str(char_custom.y) + ' must be identical to the y values from '
-           'the default characteristic line ' + str(char_original.y) + ' '
-           'as these have been duplicated before load.')
+    msg = (
+        f'The y values from the custom characteristic line {char_custom.y} '
+        'must be identical to the y values from the default characteristic '
+        f'line {char_original.y} as these have been duplicated before load.'
+    )
     assert y_cond, msg
 
-    msg = ('The z values from the custom characteristic line ' +
-           str(char_custom.z) + ' must be identical to the z values from '
-           'the default characteristic line ' + str(char_original.z) + ' '
-           'as these have been duplicated before load.')
+    msg = (
+        f'The z values from the custom characteristic line {char_custom.z} '
+        'must be identical to the z values from the default characteristic '
+        f'line {char_original.z} as these have been duplicated before load.'
+    )
     assert z_cond, msg
 
 

@@ -9,7 +9,6 @@ tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
 
 import pytest
 
@@ -172,20 +171,21 @@ class TestCombustion:
         self.nw.solve('design')
         assert self.nw.lin_dep, "Calculation must not converge in this case."
 
-    def test_CombustionEngine(self):
+    def test_CombustionEngine(self, tmp_path):
         """Test component properties of combustion engine."""
         instance = CombustionEngine('combustion engine')
         self.setup_CombustionEngine_network(instance)
 
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'H2O': 0, 'CO2': 0,
-               'CH4': 0}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         fuel = {'CO2': 0.04, 'CH4': 0.96}
         water1 = {'H2O': 1}
         water2 = {'H2O': 1}
 
         # connection parametrisation
-        instance.set_attr(pr1=0.99, pr2=0.99, lamb=1.0,
-                          design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2'])
+        instance.set_attr(
+            pr1=0.99, pr2=0.99, lamb=1.0,
+            design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2']
+        )
         self.c1.set_attr(p=5, T=30, fluid=air)
         self.c2.set_attr(T=30, fluid=fuel)
         self.c4.set_attr(p=3, T=60, m=50, fluid=water1)
@@ -211,9 +211,11 @@ class TestCombustion:
         TI.set_attr(P=ti)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('tmp')
+        from tespy.tools import logger
+        logger.warning(tmp_path)
+        self.nw.save(tmp_path)
         # calculate in offdesign mode
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of thermal input must be ' + str(TI.P.val) + ', is ' +
                str(instance.ti.val) + '.')
@@ -222,7 +224,7 @@ class TestCombustion:
         # test specified thermal input in component
         TI.set_attr(P=None)
         instance.set_attr(ti=ti)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of thermal input must be ' + str(ti) + ', is ' +
                str(instance.ti.val) + '.')
@@ -231,7 +233,7 @@ class TestCombustion:
 
         # test specified heat output 1 bus value
         Q1.set_attr(P=instance.Q1.val)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         # heat output is at design point value, thermal input must therefore
         # not have changed
@@ -248,7 +250,7 @@ class TestCombustion:
 
         # test specified heat output 2 bus value
         Q2.set_attr(P=1.2 * instance.Q2.val)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
 
         # calculate heat output over cooling loop
@@ -260,7 +262,7 @@ class TestCombustion:
         # test specified heat output 2 in component
         Q2.set_attr(P=None)
         instance.set_attr(Q2=-heat2)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
         msg = ('Value of heat output 2 must be ' + str(-heat2) + ', is ' +
@@ -270,7 +272,7 @@ class TestCombustion:
         # test total heat output bus value
         instance.set_attr(Q2=None)
         Q.set_attr(P=1.5 * instance.Q1.val)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         heat = (self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
                 self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
@@ -281,9 +283,8 @@ class TestCombustion:
         # test specified heat loss bus value
         Q.set_attr(P=None)
         Qloss.set_attr(P=-1e5)
-        self.nw.solve('offdesign', init_path='tmp', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of heat loss must be ' + str(Qloss.P.val) + ', is ' +
                str(instance.Qloss.val) + '.')
         assert round(Qloss.P.val, 1) == round(instance.Qloss.val, 1), msg
-        shutil.rmtree('./tmp', ignore_errors=True)

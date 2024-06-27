@@ -9,7 +9,6 @@ tests/test_models/test_heat_pump_model.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
 
 import numpy as np
 
@@ -32,10 +31,8 @@ from tespy.tools.characteristics import CharLine
 class TestHeatPump:
 
     def setup_method(self):
-        # %% network setup
         self.nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
 
-        # %% components
         # sources & sinks
         cc_refrigerant = CycleCloser('refrigerant cycle closer')
         cc_consumer = CycleCloser('consumer cycle closer')
@@ -70,7 +67,6 @@ class TestHeatPump:
         self.heat.add_comps({'comp': cd, 'char': -1})
         self.nw.add_busses(self.power, self.heat)
 
-        # %% connections
         # consumer system
         c_in_cd = Connection(cc_refrigerant, 'out1', cd, 'in1')
 
@@ -116,7 +112,6 @@ class TestHeatPump:
 
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
-        # %% component parametrization
         # condenser system
         x = np.array(
             [0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
@@ -246,7 +241,7 @@ class TestHeatPump:
         ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1})
         he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
-    def test_model(self):
+    def test_model(self, tmp_path):
         """
         Test the operating points of the heat pump against a different model.
 
@@ -254,7 +249,7 @@ class TestHeatPump:
         available in detail, thus perfect matching is not possible!
         """
         self.nw.solve('design')
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         self.nw.print_results()
 
         # input values from ebsilon
@@ -276,11 +271,11 @@ class TestHeatPump:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
                     self.nw.solve(
-                        'offdesign', design_path='tmp', init_path='tmp'
+                        'offdesign', design_path=tmp_path, init_path=tmp_path
                     )
 
                 else:
-                    self.nw.solve('offdesign', design_path='tmp')
+                    self.nw.solve('offdesign', design_path=tmp_path)
 
                 self.nw._convergence_check()
                 # relative deviation should not exceed 6.5 %
@@ -295,4 +290,3 @@ class TestHeatPump:
                 assert d_rel_COP < 0.07, msg
                 j += 1
             i += 1
-        shutil.rmtree('./tmp', ignore_errors=True)

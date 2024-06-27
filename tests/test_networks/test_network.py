@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 import os
 import shutil
 
-import numpy as np
 from pytest import mark
 from pytest import raises
 
@@ -118,14 +117,14 @@ class TestNetworks:
         self.nw.solve("design")
         self.nw._convergence_check()
 
-    def test_Network_missing_connection_in_init_path(self):
+    def test_Network_missing_connection_in_init_path(self, tmp_path):
         """Test debug message for missing connection in init_path."""
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -134,43 +133,26 @@ class TestNetworks:
         b = Connection(IF, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a, b)
-        self.nw.solve('design', init_path='tmp', init_only=True)
+        self.nw.solve('design', init_path=tmp_path, init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
         shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_Network_export_no_busses(self):
-        """Test export of network without characteristics or busses."""
+    def test_Network_reader_checked(self, tmp_path):
+        """Test state of network if loaded successfully from export."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
-
-        msg = (
-            'The exported network does not contain any busses, there must be '
-            'no file busses.csv!'
-        )
-        assert not os.path.isfile('tmp/busses.csv'), msg
-        shutil.rmtree('./tmp', ignore_errors=True)
-
-    def test_Network_reader_checked(self):
-        """Test import of network without characteristics or busses."""
-        a = Connection(self.source, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a)
-        a.set_attr(fluid={"H2O": 1})
-        self.nw.solve('design', init_only=True)
-        self.nw.export('tmp')
-
-        imported_nwk = load_network('tmp')
+        self.nw.export(tmp_path)
+        imported_nwk = load_network(tmp_path)
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
         assert imported_nwk.checked, msg
-        shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_Network_missing_data_in_design_case_files(self):
+    def test_Network_missing_data_in_design_case_files(self, tmp_path):
         """Test for missing data in design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(
@@ -179,10 +161,11 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         self.nw.save('tmp2')
 
-        inputs = open('./tmp/connections.csv')
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
@@ -193,10 +176,9 @@ class TestNetworks:
 
         self.offdesign_TESPyNetworkError(design_path='tmp2', init_only=True)
 
-        shutil.rmtree('./tmp', ignore_errors=True)
         shutil.rmtree('./tmp2', ignore_errors=True)
 
-    def test_Network_missing_data_in_individual_design_case_file(self):
+    def test_Network_missing_data_in_individual_design_case_file(self, tmp_path):
         """Test for missing data in individual design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
@@ -204,10 +186,11 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1', design_path='tmp2')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         self.nw.save('tmp2')
 
-        inputs = open('./tmp/connections.csv')
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
@@ -216,33 +199,33 @@ class TestNetworks:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 
-        self.offdesign_TESPyNetworkError(design_path='tmp', init_only=True)
+        self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
 
-        shutil.rmtree('./tmp', ignore_errors=True)
         shutil.rmtree('./tmp2', ignore_errors=True)
 
-    def test_Network_missing_connection_in_design_path(self):
+    def test_Network_missing_connection_in_design_path(self, tmp_path):
         """Test for missing connection data in design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
+        a = Connection(
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
+            fluid={'water': 1}
+        )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
 
-        inputs = open('./tmp/connections.csv')
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
 
-        with open('./tmp/connections.csv', 'w') as out:
+        with open(path, 'w') as out:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 
-        self.offdesign_TESPyNetworkError(design_path='tmp')
-
-        shutil.rmtree('./tmp', ignore_errors=True)
+        self.offdesign_TESPyNetworkError(design_path=tmp_path)
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""

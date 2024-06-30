@@ -4,10 +4,12 @@ name: tox checks
 on:
   push:
     branches:
-      - master
+      - main
+      - dev
   pull_request:
     branches:
-      - master
+      - main
+      - dev
   workflow_dispatch:
   schedule:
     - cron: "0 5 * * 6"  # 5:00 UTC every Saturday

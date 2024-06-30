@@ -3,7 +3,7 @@ name: packaging
 on:
   # Make sure packaging process is not broken
   push:
-    branches: [main, dev]
+    branches: [master]
   pull_request:
   # Make a package for release
   release:

@@ -22,6 +22,8 @@ Other Changes
   (`PR #524 <https://github.com/oemof/tespy/pull/524>`__).
 - Update various parts of the source code to implement more maintainer-friendly
   features (`PR #525 <https://github.com/oemof/tespy/pull/525>`__).
+- Create :code:`numpy` 2.0 compatibility
+  (`PR #527 <https://github.com/oemof/tespy/pull/527>`__).
 
 Contributors
 ############

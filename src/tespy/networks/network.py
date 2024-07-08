@@ -2242,20 +2242,21 @@ class Network:
         # look ugly all over the place
         # I have yet to come up with a better idea, or vectorize all operations
         # which requires major changes in tespy
-        self.increment = [float(val) for val in self.increment]
+        increment = [float(val) for val in self.increment]
         # add the increment
         for data in self.variables_dict.values():
             if data["variable"] in ["m", "h"]:
                 container = data["obj"].get_attr(data["variable"])
-                container.val_SI += self.increment[container.J_col]
+                container.val_SI += increment[container.J_col]
             elif data["variable"] == "p":
                 container = data["obj"].p
-                increment = self.increment[container.J_col]
-                relax = max(1, -2 * increment / container.val_SI)
-                container.val_SI += increment / relax
+                relax = max(
+                    1, -2 * increment[container.J_col] / container.val_SI
+                )
+                container.val_SI += increment[container.J_col] / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-                container.val[data["fluid"]] += self.increment[
+                container.val[data["fluid"]] += increment[
                     container.J_col[data["fluid"]]
                 ]
 
@@ -2265,7 +2266,7 @@ class Network:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                data["obj"].val += self.increment[data["obj"].J_col]
+                data["obj"].val += increment[data["obj"].J_col]
 
                 # keep value within specified value range
                 if data["obj"].val < data["obj"].min_val:

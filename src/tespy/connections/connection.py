@@ -140,7 +140,6 @@ class Connection:
 
     >>> from tespy.components import Sink, Source
     >>> from tespy.connections import Connection, Ref
-    >>> import numpy as np
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
     >>> si1 = Sink('sink1')

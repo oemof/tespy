@@ -9,6 +9,7 @@ tests/test_components/test_heat_exchangers.py
 
 SPDX-License-Identifier: MIT
 """
+import math
 
 import numpy as np
 
@@ -22,7 +23,6 @@ from tespy.components import Source
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.fluid_properties import T_sat_p
 
 
 class TestHeatExchangers:
@@ -368,13 +368,18 @@ class TestHeatExchangers:
 
         # check heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        td_log = ((self.c2.T.val - self.c3.T.val -
-                   self.c1.T.val + self.c4.T.val) /
-                  np.log((self.c2.T.val - self.c3.T.val) /
-                         (self.c1.T.val - self.c4.T.val)))
+        td_log = (
+            (self.c2.T.val - self.c3.T.val - self.c1.T.val + self.c4.T.val)
+            / math.log(
+                (self.c2.T.val - self.c3.T.val)
+                / (self.c1.T.val - self.c4.T.val)
+            )
+        )
         kA = round(-Q / td_log, 0)
-        msg = ('Value of heat transfer must be ' + str(round(Q, 0)) + ', is ' +
-               str(round(instance.Q.val, 0)) + '.')
+        msg = (
+            f"Value of heat transfer must be {round(Q, 0)}, is "
+            f"{round(instance.Q.val, 0)}."
+        )
         assert round(Q, 0) == round(instance.Q.val, 0), msg
 
         # check upper terminal temperature difference

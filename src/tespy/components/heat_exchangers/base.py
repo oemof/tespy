@@ -10,6 +10,8 @@ tespy/components/heat_exchangers/base.py
 
 SPDX-License-Identifier: MIT
 """
+import math
+
 import numpy as np
 
 from tespy.components.component import Component
@@ -404,7 +406,7 @@ class HeatExchanger(Component):
         if ttd_u == ttd_l:
             td_log = ttd_l
         else:
-            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
+            td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
 
         return td_log
 
@@ -845,7 +847,7 @@ class HeatExchanger(Component):
         else:
             self.td_log.val = (
                 (self.ttd_l.val - self.ttd_u.val)
-                / np.log(self.ttd_l.val / self.ttd_u.val)
+                / math.log(self.ttd_l.val / self.ttd_u.val)
             )
         self.kA.val = -self.Q.val / self.td_log.val
 

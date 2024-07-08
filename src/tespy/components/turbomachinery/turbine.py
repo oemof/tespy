@@ -269,13 +269,11 @@ class Turbine(Turbomachine):
         vol = i.calc_vol(T0=i.T.val_SI)
         return (
             - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
-            * np.sqrt(i.p.design * i.vol.design / (i.p.val_SI * vol))
-            * np.sqrt(
-                abs(
+            * (i.p.design * i.vol.design / (i.p.val_SI * vol)) ** 0.5
+            * abs(
                     (1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n))
                     / (1 - (self.pr.design) ** ((n + 1) / n))
-                )
-            )
+            ) ** 0.5
         )
 
     def cone_func_doc(self, label):

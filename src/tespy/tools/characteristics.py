@@ -68,13 +68,15 @@ class CharLine:
         self.y = self.y.astype(float)
 
         if len(self.x) != len(self.y):
-            msg = ('Please provide the same amount of x-values and y-values. '
-                   'Number of x-values is ' + str(len(self.x)) + ', number of '
-                   'y-values is ' + str(len(self.y)) + ' for CharLine.')
+            msg = (
+                "Please provide the same amount of x-values and y-values. "
+                f"Number of x-values is {len(self.x)}, number of y-values is "
+                f"{len(self.y)} for CharLine."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
-        msg = ('Created characteristic line function.')
+        msg = 'Created characteristic line function.'
         logger.debug(msg)
 
     def evaluate(self, x):
@@ -113,15 +115,15 @@ class CharLine:
             if self.extrapolate:
                 xpos = -1
             else:
-                return self.y[-1]
+                return float(self.y[-1])
         elif xpos == 0:
             if self.extrapolate:
                 xpos = 1
             else:
-                return self.y[0]
+                return float(self.y[0])
 
         yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-        return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+        return float(self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1]))
 
     def get_domain_errors(self, x, c):
         r"""
@@ -133,14 +135,16 @@ class CharLine:
             Input value for linear interpolation.
         """
         if x > self.x[-1]:
-            msg = ('Operating point above characteristic line range: '
-                   'X=' + str(round(x, 3)) + ' with maximum of ' +
-                   str(self.x[-1]) + ' at component ' + c + '.')
+            msg = (
+                "Operating point above characteristic line range: X="
+                f"{round(x, 3)} with maximum of {self.x[-1]} at component {c}."
+            )
             logger.warning(msg)
         elif x < self.x[0]:
-            msg = ('Operating point below characteristic line range: '
-                   'X=' + str(round(x, 3)) + ' with minimum of ' +
-                   str(self.x[0]) + ' at component ' + c + '.')
+            msg = (
+                "Operating point belpw characteristic line range: X="
+                f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
+            )
             logger.warning(msg)
 
     def get_attr(self, key):
@@ -342,7 +346,7 @@ class CharMap:
 
             z = z_0 + \frac{y-y_0}{y_1-y_0} \cdot \left(z_1-z_0 \right)
         """
-        return self.evaluate_y(y, *self.evaluate_x(x))
+        return float(self.evaluate_y(y, *self.evaluate_x(x)))
 
     def get_domain_errors_x(self, x, c):
         r"""

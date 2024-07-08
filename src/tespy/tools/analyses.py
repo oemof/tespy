@@ -272,7 +272,7 @@ class ExergyAnalysis:
         >>> ean.analyse(pamb=pamb, Tamb=Tamb)
         >>> abs(round(ean.network_data['E_F'] - ean.network_data['E_P'] -
         ... ean.network_data['E_L'] - ean.network_data['E_D'], 3))
-        0.0
+        np.float64(0.0)
         >>> ();ean.print_results();() # doctest: +ELLIPSIS
         (...)
 

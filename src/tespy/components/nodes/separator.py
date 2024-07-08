@@ -93,9 +93,7 @@ class Separator(NodeBase):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> import numpy as np
-    >>> nw = Network(p_unit='bar', T_unit='C',
-    ... iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')

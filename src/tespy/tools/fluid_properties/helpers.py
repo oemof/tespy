@@ -11,8 +11,9 @@ tespy/tools/fluid_properties/helpers.py
 SPDX-License-Identifier: MIT
 """
 
-import CoolProp.CoolProp as CP
 import math
+
+import CoolProp.CoolProp as CP
 import numpy as np
 
 from tespy.tools.global_vars import ERR

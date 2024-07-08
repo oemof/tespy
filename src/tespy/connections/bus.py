@@ -52,7 +52,6 @@ class Bus:
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
-    >>> import numpy as np
     >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', p_range=[0.5, 10], iterinfo=False)
     >>> amb = Source('ambient')

@@ -72,7 +72,6 @@ def load_network(path):
     from a pipeline and throttled to the required pressure while keeping the
     temperature at a constant value.
 
-    >>> import numpy as np
     >>> from tespy.components import (Sink, Source, CombustionChamber,
     ... Compressor, Turbine, SimpleHeatExchanger)
     >>> from tespy.connections import Connection, Ref, Bus

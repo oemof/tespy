@@ -11,10 +11,10 @@ tespy/components/heat_exchangers/simple.py
 SPDX-License-Identifier: MIT
 """
 
+import math
 import warnings
 
 import numpy as np
-import math
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry

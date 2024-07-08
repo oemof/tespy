@@ -12,8 +12,9 @@ available from its original location tespy/components/components.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import math
+
+import numpy as np
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine

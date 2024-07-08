@@ -101,7 +101,6 @@ class Drum(DropletSeparator):
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> import shutil
-    >>> import numpy as np
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')

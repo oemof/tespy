@@ -14,9 +14,9 @@ available from its original location tespy/networks/networks.py
 SPDX-License-Identifier: MIT
 """
 import json
+import math
 import os
 from time import time
-import math
 
 import numpy as np
 import pandas as pd

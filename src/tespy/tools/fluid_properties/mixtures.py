@@ -11,8 +11,9 @@ tespy/tools/fluid_properties/mixtures.py
 SPDX-License-Identifier: MIT
 """
 
-import CoolProp as CP
 import math
+
+import CoolProp as CP
 
 from tespy.tools.global_vars import gas_constants
 

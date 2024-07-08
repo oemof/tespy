@@ -11,8 +11,9 @@ tespy/components/heat_exchangers/condenser.py
 SPDX-License-Identifier: MIT
 """
 
-import numpy as np
 import math
+
+import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger

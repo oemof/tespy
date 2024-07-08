@@ -110,7 +110,6 @@ class Pump(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
-    >>> import numpy as np
     >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
     ... iterinfo=False)

@@ -370,7 +370,7 @@ class TestHeatExchangers:
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         td_log = ((self.c2.T.val - self.c3.T.val -
                    self.c1.T.val + self.c4.T.val) /
-                  np.log((self.c2.T.val - self.c3.T.val) /
+                  math.log((self.c2.T.val - self.c3.T.val) /
                          (self.c1.T.val - self.c4.T.val)))
         kA = round(-Q / td_log, 0)
         msg = ('Value of heat transfer must be ' + str(round(Q, 0)) + ', is ' +

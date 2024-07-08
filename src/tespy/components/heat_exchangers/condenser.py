@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import math
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
@@ -347,7 +348,7 @@ class Condenser(HeatExchanger):
         if ttd_u == ttd_l:
             td_log = ttd_l
         else:
-            td_log = (ttd_l - ttd_u) / np.log((ttd_l) / (ttd_u))
+            td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
 
         return td_log
 
@@ -491,7 +492,7 @@ class Condenser(HeatExchanger):
         for num, (i, o) in enumerate(zip(self.inl, self.outl)):
             self.get_attr(f"pr{num + 1}").val = o.p.val_SI / i.p.val_SI
             self.get_attr(f"zeta{num + 1}").val = (
-                (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
             )
 
@@ -503,6 +504,6 @@ class Condenser(HeatExchanger):
         else:
             self.td_log.val = (
                 (self.ttd_l.val - self.ttd_u.val)
-                / np.log(self.ttd_l.val / self.ttd_u.val)
+                / math.log(self.ttd_l.val / self.ttd_u.val)
             )
         self.kA.val = -self.Q.val / self.td_log.val

@@ -166,8 +166,9 @@ class CycleCloser(Component):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow
-        self.mass_deviation.val = np.abs(
-            self.inl[0].m.val_SI - self.outl[0].m.val_SI)
+        self.mass_deviation.val = abs(
+            self.inl[0].m.val_SI - self.outl[0].m.val_SI
+        )
 
         # calculate deviation in fluid composition
         d1 = self.inl[0].fluid.val

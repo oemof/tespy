@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import CoolProp as CP
-import numpy as np
+import math
 
 from tespy.tools.global_vars import gas_constants
 
@@ -260,7 +260,7 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
             ex_cond += molar_liquid * y[0]
 
         y = [Chem_Ex[k][3] for k in fluid_aliases if k in Chem_Ex]
-        ex_dry += x * y[0] + Tamb * gas_constants['uni'] * 1e-3 * x * np.log(x)
+        ex_dry += x * y[0] + Tamb * gas_constants['uni'] * 1e-3 * x * math.log(x)
 
     ex_chemical = ex_cond + ex_dry * (1 - molar_liquid)
     ex_chemical *= 1 / calc_molar_mass_mixture(

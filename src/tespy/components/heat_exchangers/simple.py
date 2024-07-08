@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 import warnings
 
 import numpy as np
+import math
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
@@ -347,13 +348,13 @@ class SimpleHeatExchanger(Component):
         v_i = i.calc_vol(T0=i.T.val_SI)
         v_o = o.calc_vol(T0=o.T.val_SI)
 
-        Re = 4 * abs(i.m.val_SI) / (np.pi * self.D.val * (visc_i + visc_o) / 2)
+        Re = 4 * abs(i.m.val_SI) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
 
         return (
             (i.p.val_SI - o.p.val_SI)
             - 8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o)
             / 2 * self.L.val * dff(Re, self.ks.val, self.D.val)
-            / (np.pi ** 2 * self.D.val ** 5)
+            / (math.pi ** 2 * self.D.val ** 5)
         )
 
     def darcy_func_doc(self, label):
@@ -450,10 +451,12 @@ class SimpleHeatExchanger(Component):
         v_o = o.calc_vol(T0=o.T.val_SI)
 
         return (
-            (i.p.val_SI - o.p.val_SI) * np.sign(i.m.val_SI) -
-                (10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
-                 (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)) *
-                (9.81 * ((v_i + v_o) / 2) ** 0.852))
+            math.copysign(i.p.val_SI - o.p.val_SI, i.m.val_SI)
+            - (
+                10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
+                (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)
+            ) * (9.81 * ((v_i + v_o) / 2) ** 0.852)
+        )
 
     def hazen_williams_func_doc(self, label):
         r"""
@@ -545,9 +548,9 @@ class SimpleHeatExchanger(Component):
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2
         elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
         elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
         else:
             # both values are equal
             td_log = ttd_2
@@ -659,9 +662,9 @@ class SimpleHeatExchanger(Component):
         if (ttd_1 / ttd_2) < 0:
             td_log = (ttd_2 + ttd_1) / 2
         elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
         elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
         else:
             # both values are equal
             td_log = ttd_2
@@ -895,9 +898,9 @@ class SimpleHeatExchanger(Component):
             if (ttd_1 / ttd_2) < 0:
                 td_log = np.nan
             if ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / np.log(ttd_1 / ttd_2)
+                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
             elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / np.log(ttd_2 / ttd_1)
+                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
             else:
                 # both values are equal
                 td_log = ttd_1

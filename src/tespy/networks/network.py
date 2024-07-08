@@ -1304,9 +1304,7 @@ class Network:
             if cp.local_offdesign:
                 if cp.design_path is not None:
                     # read design point information
-                    path = hlp.modify_path_os(
-                        f"{cp.design_path}/components/{c}.csv"
-                    )
+                    path = os.path.join(cp.design_path, "components", f"{c}.csv")
                     msg = (
                         f"Reading design point information for component "
                         f"{cp.label} of type {c} from path {path}."
@@ -1396,7 +1394,7 @@ class Network:
         df_comps = self.comps.loc[components_with_parameters].copy()
         # iter through unique types of components (class names)
         for c in df_comps['comp_type'].unique():
-            path = hlp.modify_path_os(f"{self.design_path}/components/{c}.csv")
+            path = os.path.join(self.design_path, "components", f"{c}.csv")
             msg = (
                 f"Reading design point information for components of type {c} "
                 f"from path {path}."
@@ -1411,8 +1409,8 @@ class Network:
                 comp = self.comps.loc[c_label, 'object']
                 # read data of components with individual design_path
                 if comp.design_path is not None:
-                    path_c = hlp.modify_path_os(
-                        f"{comp.design_path}/components/{c}.csv"
+                    path_c = os.path.join(
+                        comp.design_path, "components", f"{c}.csv"
                     )
                     msg = (
                         f"Reading design point information for component "
@@ -1438,7 +1436,7 @@ class Network:
         logger.debug(msg)
 
         if len(self.busses) > 0:
-            path = hlp.modify_path_os(f"{self.design_path}/busses.json")
+            path = os.path.join(self.design_path, "busses.json")
             with open(path, "r", encoding="utf-8") as f:
                 bus_data = json.load(f)
 
@@ -1448,11 +1446,6 @@ class Network:
                     self.busses[b].comps.loc[comp, "P_ref"] = value
 
         # read connection design point information
-        msg = (
-            "Reading design point information for connections from "
-            f"{self.design_path}/connections.csv."
-        )
-        logger.debug(msg)
         df = self.init_read_connections(self.design_path)
 
         # iter through connections
@@ -1841,7 +1834,11 @@ class Network:
         base_path : str
             Path to network information.
         """
-        path = hlp.modify_path_os(base_path + '/connections.csv')
+        path = os.path.join(base_path, 'connections.csv')
+        msg = (
+            f"Reading design point information for connections from {path}."
+        )
+        logger.debug(msg)
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         return df
 
@@ -2651,13 +2648,13 @@ class Network:
 
     def export(self, path):
         """Export the network structure and parametrization."""
-        path, path_comps = self._modify_export_paths(path)
+        path, path_comps = self._create_export_paths(path)
         self.export_network(path)
         self.export_connections(path)
         self.export_components(path_comps)
         self.export_busses(path)
 
-    def save(self, path, **kwargs):
+    def save(self, path):
         r"""
         Save the results to results files.
 
@@ -2676,28 +2673,21 @@ class Network:
           characteristics as well as .csv files for all types of components
           within your network.
         """
-        path, path_comps = self._modify_export_paths(path)
+        path, path_comps = self._create_export_paths(path)
 
         # save relevant design point information
         self.save_connections(path)
         self.save_components(path_comps)
         self.save_busses(path)
 
-    def _modify_export_paths(self, path):
-
-        if path[-1] != '/' and path[-1] != '\\':
-            path += '/'
-        path = hlp.modify_path_os(path)
-
+    def _create_export_paths(self, path):
         logger.debug('Saving network to path %s.', path)
         # creat path, if non existent
-        if not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         # create path for component folder if non existent
-        path_comps = hlp.modify_path_os(path + 'components/')
-        if not os.path.exists(path_comps):
-            os.makedirs(path_comps)
+        path_comps = os.path.join(path, "components")
+        os.makedirs(path_comps, exist_ok=True)
 
         return path, path_comps
 
@@ -2710,7 +2700,7 @@ class Network:
         fn : str
             Path/filename for the network configuration file.
         """
-        with open(fn + 'network.json', 'w') as f:
+        with open(os.path.join(fn, 'network.json'), 'w') as f:
             json.dump(self._serialize(), f, indent=4)
 
         logger.debug('Network information saved to %s.', fn)
@@ -2725,7 +2715,7 @@ class Network:
             Path/filename for the file.
         """
         self.results["Connection"].to_csv(
-            fn + "connections.csv", sep=';', decimal='.', index=True, na_rep='nan'
+            os.path.join(fn, "connections.csv"), sep=';', decimal='.', index=True, na_rep='nan'
         )
         logger.debug('Connection information saved to %s.', fn)
 
@@ -2739,7 +2729,7 @@ class Network:
             Path/filename for the file.
         """
         for c in self.comps['comp_type'].unique():
-            fn = path + c + '.csv'
+            fn = os.path.join(path, f"{c}.csv")
             self.results[c].to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
             logger.debug('Component information (%s) saved to %s.', c, fn)
 
@@ -2756,7 +2746,7 @@ class Network:
             bus_data = {}
             for label, bus in self.busses.items():
                 bus_data[label] = self.results[label]["design value"].to_dict()
-            fn = fn + 'busses.json'
+            fn = os.path.join(fn, "busses.json")
             with open(fn, "w", encoding="utf-8") as f:
                 json.dump(bus_data, f, indent=4)
             logger.debug('Bus information saved to %s.', fn)
@@ -2766,7 +2756,7 @@ class Network:
         for c in self.conns["object"]:
             connections.update(c._serialize())
 
-        fn = fn + "connections.json"
+        fn = os.path.join(fn, "connections.json")
         with open(fn, "w", encoding="utf-8") as f:
             json.dump(connections, f, indent=4)
         logger.debug('Connection information exported to %s.', fn)
@@ -2777,7 +2767,7 @@ class Network:
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
                 components.update(cp._serialize())
 
-            fname = f"{fn}{c}.json"
+            fname = os.path.join(fn, f"{c}.json")
             with open(fname, "w", encoding="utf-8") as f:
                 json.dump(components, f, indent=4)
             logger.debug('Component information exported to %s.', fname)
@@ -2787,7 +2777,7 @@ class Network:
             busses = {}
             for bus in self.busses.values():
                 busses.update(bus._serialize())
-            fn = fn + 'busses.json'
+            fn = os.path.join(fn, 'busses.json')
             with open(fn, "w", encoding="utf-8") as f:
                 json.dump(busses, f, indent=4)
             logger.debug('Bus information exported to %s.', fn)

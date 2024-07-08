@@ -9,7 +9,6 @@ tests/test_components/test_heat_exchangers.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
 
 import numpy as np
 
@@ -253,7 +252,7 @@ class TestHeatExchangers:
         self.nw._convergence_check()
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-    def test_SolarCollector(self):
+    def test_SolarCollector(self, tmp_path):
         """Test component properties of solar collector."""
         instance = SolarCollector('solar collector')
         self.setup_SimpleHeatExchanger_network(instance)
@@ -328,7 +327,7 @@ class TestHeatExchangers:
         self.nw._convergence_check()
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-    def test_HeatExchanger(self):
+    def test_HeatExchanger(self, tmp_path):
         """Test component properties of heat exchanger."""
         instance = HeatExchanger('heat exchanger')
         self.setup_HeatExchanger_network(instance)
@@ -345,7 +344,7 @@ class TestHeatExchangers:
         self.nw.add_busses(b)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         Q_design = instance.Q.val
 
         # test specified kA value
@@ -402,7 +401,7 @@ class TestHeatExchangers:
         # to design state
         self.c2.set_attr(T=70)
         instance.set_attr(ttd_l=None)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
                str(round(Q, 0)) + '.')
@@ -435,9 +434,7 @@ class TestHeatExchangers:
                '.')
         assert instance.ttd_u.val < 0, msg
 
-        shutil.rmtree('./tmp', ignore_errors=True)
-
-    def test_Condenser(self):
+    def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""
         instance = Condenser('condenser')
         self.setup_HeatExchanger_network(instance)
@@ -452,7 +449,7 @@ class TestHeatExchangers:
         instance.set_attr(Q=-80e3)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         Q_design = instance.Q.val
 
         # test specified kA value
@@ -500,12 +497,11 @@ class TestHeatExchangers:
 
         # check kA value with condensing pressure in offdesign mode:
         # no changes to design point means: identical pressure
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
                str(round(self.c1.p.val_SI, 5)) + '.')
         assert p == round(self.c1.p.val_SI, 5), msg
-        shutil.rmtree('./tmp', ignore_errors=True)
 
     def test_CondenserWithEvaporation(self):
         """Test a Condenser that evaporates a fluid."""
@@ -534,7 +530,7 @@ class TestHeatExchangers:
         )
         assert instance.td_log.val == instance.ttd_l.val, msg
 
-        # self.nw.save('tmp')
+        # self.nw.save(tmp_path)
         # self.c1.set_attr(m=1)
         # self.nw.solve("offdesign", design_path="tmp")
         # self.nw._convergence_check()
@@ -544,4 +540,3 @@ class TestHeatExchangers:
         #     f"ttd_l={self.c3.m.val}."
         # )
         # assert instance.td_log.val == instance.ttd_l.val, msg
-        shutil.rmtree('./tmp', ignore_errors=True)

@@ -13,8 +13,15 @@ Other Features
 ##############
 - More isolines are now available for the drum
   (`PR #521 <https://github.com/oemof/tespy/pull/521>`__).
+
+Other Changes
+#############
 - Remove unused features in the github workflows and tox testing
   (`PR #523 <https://github.com/oemof/tespy/pull/523>`__).
+- Simplify dependency installation readthedocs builds
+  (`PR #524 <https://github.com/oemof/tespy/pull/524>`__).
+- Update various parts of the source code to implement more maintainer-friendly
+  features (`PR #525 <https://github.com/oemof/tespy/pull/525>`__).
 
 Contributors
 ############

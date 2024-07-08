@@ -11,9 +11,7 @@ SPDX-License-Identifier: MIT
 """
 
 import os
-import shutil
 
-import numpy as np
 from pytest import mark
 from pytest import raises
 
@@ -118,14 +116,14 @@ class TestNetworks:
         self.nw.solve("design")
         self.nw._convergence_check()
 
-    def test_Network_missing_connection_in_init_path(self):
+    def test_Network_missing_connection_in_init_path(self, tmp_path):
         """Test debug message for missing connection in init_path."""
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -134,115 +132,97 @@ class TestNetworks:
         b = Connection(IF, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a, b)
-        self.nw.solve('design', init_path='tmp', init_only=True)
+        self.nw.solve('design', init_path=tmp_path, init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
-        shutil.rmtree('./tmp', ignore_errors=True)
-
-    def test_Network_export_no_busses(self):
-        """Test export of network without characteristics or busses."""
+    def test_Network_reader_checked(self, tmp_path):
+        """Test state of network if loaded successfully from export."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
-        self.nw.save('tmp')
-
-        msg = (
-            'The exported network does not contain any busses, there must be '
-            'no file busses.csv!'
-        )
-        assert not os.path.isfile('tmp/busses.csv'), msg
-        shutil.rmtree('./tmp', ignore_errors=True)
-
-    def test_Network_reader_checked(self):
-        """Test import of network without characteristics or busses."""
-        a = Connection(self.source, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a)
-        a.set_attr(fluid={"H2O": 1})
-        self.nw.solve('design', init_only=True)
-        self.nw.export('tmp')
-
-        imported_nwk = load_network('tmp')
+        self.nw.export(tmp_path)
+        imported_nwk = load_network(tmp_path)
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '
                'should have been successful, too, but it is not.')
         assert imported_nwk.checked, msg
-        shutil.rmtree('./tmp', ignore_errors=True)
 
-    def test_Network_missing_data_in_design_case_files(self):
+    def test_Network_missing_data_in_design_case_files(self, tmp_path_factory):
         """Test for missing data in design case files."""
+        tmp_path = tmp_path_factory.mktemp("tmp")
+        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
+        a = Connection(self.source, 'out1', pi, 'in1')
+        a.set_attr(m=1, p=1, T=20, fluid={'water': 1})
+        b = Connection(pi, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        self.nw.save(tmp_path)
+        self.nw.save(tmp_path2)
+
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
+        all_lines = inputs.readlines()
+        all_lines.pop(len(all_lines) - 1)
+        inputs.close()
+
+        with open(os.path.join(tmp_path2, 'connections.csv'), 'w') as out:
+            for line in all_lines:
+                out.write(line.strip() + '\n')
+
+        self.offdesign_TESPyNetworkError(design_path=tmp_path2, init_only=True)
+
+    def test_Network_missing_data_in_individual_design_case_file(self, tmp_path_factory):
+        """Test for missing data in individual design case files."""
+        tmp_path = tmp_path_factory.mktemp("tmp")
+        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
+        a = Connection(self.source, 'out1', pi, 'in1')
+        a.set_attr(m=1, p=1, T=293.15, fluid={'water': 1})
+        b = Connection(pi, 'out1', self.sink, 'in1')
+        b.set_attr(design_path=tmp_path2)
+        self.nw.add_conns(a, b)
+        self.nw.solve('design')
+        self.nw.save(tmp_path)
+        self.nw.save(tmp_path2)
+
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
+        all_lines = inputs.readlines()
+        all_lines.pop(len(all_lines) - 1)
+        inputs.close()
+
+        with open(os.path.join(tmp_path2, 'connections.csv'), 'w') as out:
+            for line in all_lines:
+                out.write(line.strip() + '\n')
+
+        self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
+
+    def test_Network_missing_connection_in_design_path(self, tmp_path):
+        """Test for missing connection data in design case files."""
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(
-            self.source, 'out1', pi, 'in1', m=1, p=1, T=20, fluid={'water': 1}
+            self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
+            fluid={'water': 1}
         )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save('tmp')
-        self.nw.save('tmp2')
+        self.nw.save(tmp_path)
 
-        inputs = open('./tmp/connections.csv')
+        path = os.path.join(tmp_path, "connections.csv")
+        inputs = open(path)
         all_lines = inputs.readlines()
         all_lines.pop(len(all_lines) - 1)
         inputs.close()
 
-        with open('./tmp2/connections.csv', 'w') as out:
+        with open(path, 'w') as out:
             for line in all_lines:
                 out.write(line.strip() + '\n')
 
-        self.offdesign_TESPyNetworkError(design_path='tmp2', init_only=True)
-
-        shutil.rmtree('./tmp', ignore_errors=True)
-        shutil.rmtree('./tmp2', ignore_errors=True)
-
-    def test_Network_missing_data_in_individual_design_case_file(self):
-        """Test for missing data in individual design case files."""
-        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
-        b = Connection(pi, 'out1', self.sink, 'in1', design_path='tmp2')
-        self.nw.add_conns(a, b)
-        self.nw.solve('design')
-        self.nw.save('tmp')
-        self.nw.save('tmp2')
-
-        inputs = open('./tmp/connections.csv')
-        all_lines = inputs.readlines()
-        all_lines.pop(len(all_lines) - 1)
-        inputs.close()
-
-        with open('./tmp2/connections.csv', 'w') as out:
-            for line in all_lines:
-                out.write(line.strip() + '\n')
-
-        self.offdesign_TESPyNetworkError(design_path='tmp', init_only=True)
-
-        shutil.rmtree('./tmp', ignore_errors=True)
-        shutil.rmtree('./tmp2', ignore_errors=True)
-
-    def test_Network_missing_connection_in_design_path(self):
-        """Test for missing connection data in design case files."""
-        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
-                       fluid={'water': 1})
-        b = Connection(pi, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a, b)
-        self.nw.solve('design')
-        self.nw.save('tmp')
-
-        inputs = open('./tmp/connections.csv')
-        all_lines = inputs.readlines()
-        all_lines.pop(len(all_lines) - 1)
-        inputs.close()
-
-        with open('./tmp/connections.csv', 'w') as out:
-            for line in all_lines:
-                out.write(line.strip() + '\n')
-
-        self.offdesign_TESPyNetworkError(design_path='tmp')
-
-        shutil.rmtree('./tmp', ignore_errors=True)
+        self.offdesign_TESPyNetworkError(design_path=tmp_path)
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""
@@ -315,15 +295,17 @@ class TestNetworkIndividualOffdesign:
         self.nw.add_conns(inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
                           v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
 
-    def test_individual_design_path_on_connections_and_components(self):
+    def test_individual_design_path_on_connections_and_components(self, tmp_path_factory):
         """Test individual design path specification."""
+        tmp_path1 = tmp_path_factory.mktemp("tmp1")
+        tmp_path2 = tmp_path_factory.mktemp("tmp2")
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw._convergence_check()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('design1')
+        self.nw.save(tmp_path1)
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
 
@@ -331,7 +313,7 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('design2')
+        self.nw.save(tmp_path2)
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
 
@@ -339,18 +321,18 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc2.set_attr(design_path='design2')
-        self.pump2.set_attr(design_path='design2')
-        self.sp_p2.set_attr(design_path='design2')
-        self.p2_sc2.set_attr(design_path='design2')
-        self.sc2_v2.set_attr(design_path='design2')
-        self.nw.solve('offdesign', design_path='design1')
+        self.sc2.set_attr(design_path=tmp_path2)
+        self.pump2.set_attr(design_path=tmp_path2)
+        self.sp_p2.set_attr(design_path=tmp_path2)
+        self.p2_sc2.set_attr(design_path=tmp_path2)
+        self.sc2_v2.set_attr(design_path=tmp_path2)
+        self.nw.solve('offdesign', design_path=tmp_path1)
         self.nw._convergence_check()
 
         self.sc1.set_attr(E=500)
         self.sc2.set_attr(E=950)
 
-        self.nw.solve('offdesign', design_path='design1')
+        self.nw.solve('offdesign', design_path=tmp_path1)
         self.nw._convergence_check()
         self.sc2_v2.set_attr(design_path=None)
 
@@ -382,33 +364,32 @@ class TestNetworkIndividualOffdesign:
         )
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
-        shutil.rmtree('./design1', ignore_errors=True)
-        shutil.rmtree('./design2', ignore_errors=True)
-
-    def test_local_offdesign_on_connections_and_components(self):
+    def test_local_offdesign_on_connections_and_components(self, tmp_path_factory):
         """Test local offdesign feature."""
+        tmp_path1 = tmp_path_factory.mktemp("tmp1")
+        tmp_path2 = tmp_path_factory.mktemp("tmp2")
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw._convergence_check()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('design1')
+        self.nw.save(tmp_path1)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc1.set_attr(local_offdesign=True, design_path='design1')
-        self.pump1.set_attr(local_offdesign=True, design_path='design1')
-        self.sp_p1.set_attr(local_offdesign=True, design_path='design1')
-        self.p1_sc1.set_attr(local_offdesign=True, design_path='design1')
-        self.sc1_v1.set_attr(local_offdesign=True, design_path='design1')
+        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
+        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path1)
+        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path1)
+        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
+        self.sc1_v1.set_attr(local_offdesign=True, design_path=tmp_path1)
         self.sc1.set_attr(E=500)
 
         self.sc2_v2.set_attr(T=95, m=None)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('design2')
+        self.nw.save(tmp_path2)
 
         # connections and components on side 1 must have switched to offdesign
 
@@ -426,10 +407,7 @@ class TestNetworkIndividualOffdesign:
         )
         assert self.sc1_v1.v.is_set, msg
 
-        shutil.rmtree('./design1', ignore_errors=True)
-        shutil.rmtree('./design2', ignore_errors=True)
-
-    def test_missing_design_path_local_offdesign_on_connections(self):
+    def test_missing_design_path_local_offdesign_on_connections(self, tmp_path):
         """Test missing design path on connections in local offdesign mode."""
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
@@ -437,15 +415,15 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw._convergence_check()
-        self.nw.save('design1')
+        self.nw.save(tmp_path)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc1.set_attr(local_offdesign=True, design_path='design1')
-        self.pump1.set_attr(local_offdesign=True, design_path='design1')
-        self.sp_p1.set_attr(local_offdesign=True, design_path='design1')
-        self.p1_sc1.set_attr(local_offdesign=True, design_path='design1')
+        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path)
+        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path)
+        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path)
+        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path)
         self.sc1_v1.set_attr(local_offdesign=True)
         self.sc1.set_attr(E=500)
 
@@ -454,9 +432,6 @@ class TestNetworkIndividualOffdesign:
             self.nw.solve('design', init_only=True)
         except TESPyNetworkError:
             pass
-
-        shutil.rmtree('./design1', ignore_errors=True)
-
 
 class TestNetworkPreprocessing:
 

@@ -10,8 +10,6 @@ tests/test_components/test_reactors.py
 SPDX-License-Identifier: MIT
 """
 
-import shutil
-
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
@@ -48,7 +46,7 @@ class TestReactors:
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
-    def test_WaterElectrolyzer(self):
+    def test_WaterElectrolyzer(self, tmp_path):
         """Test component properties of water electrolyzer."""
         # check bus function:
         # power output on component and bus must be indentical
@@ -89,13 +87,13 @@ class TestReactors:
         msg = ('Value of heat flow must be ' + str(heat.P.val) +
                ', is ' + str(self.instance.Q.val) + '.')
         assert round(heat.P.val, 1) == round(self.instance.Q.val), msg
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
 
         # check bus function:
         # heat output on component and bus must identical (offdesign test)
         Q = heat.P.val * 0.9
         heat.set_attr(P=Q)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of heat flow must be ' + str(Q) +
                ', is ' + str(self.instance.Q.val) + '.')
@@ -147,8 +145,7 @@ class TestReactors:
         self.instance.set_attr(
             pr=pr, e=None, eta=None, zeta='var', P=2e7, design=['pr'])
         self.nw.solve('design')
-        shutil.rmtree('./tmp', ignore_errors=True)
-        self.nw.save('tmp')
+        self.nw.save(tmp_path)
         self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr.val) + '.')
@@ -157,7 +154,7 @@ class TestReactors:
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
         self.instance.set_attr(zeta=None, offdesign=['zeta'])
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(self.instance.pr.val) + '.')
@@ -166,9 +163,8 @@ class TestReactors:
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=None)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
         self.nw._convergence_check()
         msg = ('Value of heat must be ' + str(Q) + ', is ' +
                str(self.instance.Q.val) + '.')
         assert round(Q, 0) == round(self.instance.Q.val, 0), msg
-        shutil.rmtree('./tmp', ignore_errors=True)

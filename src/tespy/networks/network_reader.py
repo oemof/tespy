@@ -29,7 +29,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
-from tespy.tools.helpers import modify_path_os
 
 
 def load_network(path):
@@ -175,30 +174,26 @@ def load_network(path):
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     >>> shutil.rmtree('./design_state', ignore_errors=True)
     """
-    if path[-1] != '/' and path[-1] != '\\':
-        path += '/'
+    path_comps = os.path.join(path, 'components')
 
-    path_comps = modify_path_os(path + 'components/')
-    path = modify_path_os(path)
-
-    msg = 'Reading network data from base path ' + path + '.'
+    msg = f'Reading network data from base path {path}.'
     logger.info(msg)
 
     # load components
     comps = {}
 
     module_name = "tespy.components"
-    module = importlib.import_module(module_name)
+    _ = importlib.import_module(module_name)
 
     files = os.listdir(path_comps)
     for f in files:
-        fn = path_comps + f
+        fn = os.path.join(path_comps, f)
         component = f.replace(".json", "")
 
         msg = f"Reading component data ({component}) from {fn}."
         logger.debug(msg)
 
-        with open(path_comps + f, "r", encoding="utf-8") as c:
+        with open(fn, "r", encoding="utf-8") as c:
             data = json.load(c)
 
         target_class = component_registry.items[component]
@@ -211,7 +206,7 @@ def load_network(path):
     nw = _construct_network(path)
 
     # load connections
-    fn = path + 'connections.json'
+    fn = os.path.join(path, 'connections.json')
     msg = f"Reading connection data from {fn}."
     logger.debug(msg)
 
@@ -228,7 +223,7 @@ def load_network(path):
     logger.info(msg)
 
     # load busses
-    fn = path + 'busses.json'
+    fn = os.path.join(path, 'busses.json')
     if os.path.isfile(fn):
 
         msg = f"Reading bus data from {fn}."
@@ -309,7 +304,8 @@ def _construct_network(path):
         TESPy network object.
     """
     # read network .json-file
-    with open(path + 'network.json', 'r') as f:
+    fn = os.path.join(path, 'network.json')
+    with open(fn, 'r') as f:
         data = json.load(f)
 
     # create network object with its properties
@@ -343,7 +339,7 @@ def _construct_connections(data, comps):
     arglist_ref = [_ for _ in data[list(data.keys())[0]] if "ref" in _]
 
     module_name = "tespy.tools.fluid_properties.wrappers"
-    module = importlib.import_module(module_name)
+    _ = importlib.import_module(module_name)
 
     for label, conn in data.items():
         conns[label] = Connection(

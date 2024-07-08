@@ -1517,7 +1517,10 @@ class Network:
             c.get_attr(var).design = hlp.convert_to_SI(
                 var, float(conn[var]), conn[f"{var}_unit"]
             )
-        c.vol.design = c.v.design / c.m.design
+        if c.m.design != 0.0:
+            c.vol.design = c.v.design / c.m.design
+        else:
+            c.vol.design = math.inf
         for fluid in c.fluid.val:
             c.fluid.design[fluid] = float(conn[fluid])
 

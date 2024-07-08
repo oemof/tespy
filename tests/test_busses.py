@@ -9,7 +9,6 @@ tests/test_busses.py
 
 SPDX-License-Identifier: MIT
 """
-import shutil
 
 import numpy as np
 
@@ -28,12 +27,8 @@ class TestBusses:
 
     def setup_method(self):
         """Set up the model."""
-        # %% network setup
-        fluid_list = ['Ar', 'N2', 'O2', 'CO2', 'CH4', 'H2O']
-        self.nw = Network(
-            fluids=fluid_list, p_unit='bar', T_unit='C', p_range=[0.5, 20])
+        self.nw = Network(p_unit='bar', T_unit='C')
 
-        # %% components
         amb = Source('ambient')
         sf = Source('fuel')
         cc = CombustionChamber('combustion')
@@ -41,7 +36,6 @@ class TestBusses:
         gt = Turbine('turbine')
         fg = Sink('flue gas outlet')
 
-        # %% connections
         amb_cp = Connection(amb, 'out1', cp, 'in1', label='ambient air flow')
         cp_cc = Connection(cp, 'out1', cc, 'in1')
         sf_cc = Connection(sf, 'out1', cc, 'in2')
@@ -50,12 +44,10 @@ class TestBusses:
 
         self.nw.add_conns(amb_cp, cp_cc, sf_cc, cc_gt, gt_fg)
 
-        # %% component parameters
         cc.set_attr(lamb=3)
         cp.set_attr(eta_s=0.9, pr=15)
         gt.set_attr(eta_s=0.9)
 
-        # %% connection parameters
         amb_cp.set_attr(
             T=20, p=1, m=100,
             fluid={'Ar': 0.0129, 'N2': 0.7553, 'CO2': 0.0004, 'O2': 0.2314})
@@ -104,12 +96,11 @@ class TestBusses:
             power_bus_total, thermal_input, compressor_power_comp,
             compressor_power_bus)
 
-        # %% solving
         self.nw.solve('design')
-        self.nw.save('tmp')
 
-    def test_model(self):
+    def test_model(self, tmp_path):
         """Test the bus functionalities in a gas turbine model."""
+        self.nw.save(tmp_path)
         tpo = self.nw.busses['total power output']
         ti = self.nw.busses['thermal input']
         cpi = self.nw.busses['compressor power input']
@@ -169,7 +160,7 @@ class TestBusses:
         self.nw.get_conn('ambient air flow').set_attr(m=None)
         P_design = cpibb.P.val
         cpibb.set_attr(P=P_design)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
 
         eta_cpi = round(1 / cp.calc_bus_efficiency(cpi), 6)
         eta_cp_tpo = round(cp.calc_bus_efficiency(tpo), 6)
@@ -202,7 +193,7 @@ class TestBusses:
         # 60 % load
         load = 0.6
         cpibb.set_attr(P=P_design * load)
-        self.nw.solve('offdesign', design_path='tmp')
+        self.nw.solve('offdesign', design_path=tmp_path)
 
         eta_cp_tpo = round(cp.calc_bus_efficiency(tpo), 6)
         eta_cp_char = self.motor_bus_based.evaluate(load)
@@ -242,5 +233,3 @@ class TestBusses:
             str(P_cp_cpi) + ') and bus ' + cpibb.label + ' (' +
             str(P_cp_cpibb) + ').')
         assert P_cp_tpo == P_cp_cpi and P_cp_tpo == P_cp_cpibb, msg
-
-        shutil.rmtree('tmp', ignore_errors=True)

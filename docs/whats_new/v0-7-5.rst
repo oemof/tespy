@@ -1,0 +1,32 @@
+v0.7.5 - Newton's Nature (July, 8, 2024)
+++++++++++++++++++++++++++++++++++++++++
+
+Documentation
+#############
+- The Rankine cycle example has been adopted to integrate a T-s diagram of the
+  process into the results
+  (`PR #514 <https://github.com/oemof/tespy/pull/514>`__).
+- A bug in the results plot of the gas turbine example has been fixed
+  (`PR #522 <https://github.com/oemof/tespy/pull/522>`__).
+
+Other Features
+##############
+- More isolines are now available for the drum
+  (`PR #521 <https://github.com/oemof/tespy/pull/521>`__).
+
+Other Changes
+#############
+- Remove unused features in the github workflows and tox testing
+  (`PR #523 <https://github.com/oemof/tespy/pull/523>`__).
+- Simplify dependency installation readthedocs builds
+  (`PR #524 <https://github.com/oemof/tespy/pull/524>`__).
+- Update various parts of the source code to implement more maintainer-friendly
+  features (`PR #525 <https://github.com/oemof/tespy/pull/525>`__).
+- Create :code:`numpy` 2.0 compatibility
+  (`PR #527 <https://github.com/oemof/tespy/pull/527>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@Nzb0731 <https://github.com/Nzb0731>`__
+- `@jfreissmann <https://github.com/jfreissmann>`__

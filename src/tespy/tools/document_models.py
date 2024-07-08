@@ -47,17 +47,10 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
         section in online documentation.
     """
     # prepare filestructure
-    if path[-1] != '/' and path[-1] != '\\':
-        path += '/'
-
-    path = hlp.modify_path_os(path)
-    fig_path = hlp.modify_path_os(path + 'figures/')
+    fig_path = os.path.join(path, "figures")
 
     # create paths, if non existent
-    if not os.path.exists(path):
-        os.makedirs(path)
-    if not os.path.exists(fig_path):
-        os.makedirs(fig_path)
+    os.makedirs(fig_path, exist_ok=True)
 
     rpt = set_defaults(nw)
     rpt = hlp.merge_dicts(rpt, fmt)
@@ -72,7 +65,7 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
     if rpt['latex_body']:
         latex += r'\end{document}'
 
-    with open(path + filename, 'w') as f:
+    with open(os.path.join(path, filename), 'w') as f:
         f.write(latex)
         f.close()
 
@@ -1047,7 +1040,7 @@ def create_latex_CharLine(component, param, data, path, group=None):
     local_path = (
         'figures/' + cp + '_CharLine_' + param + '_' +
         component.label.replace(' ', '_') + '.pdf')
-    figname = path + local_path
+    figname = os.path.join(path, local_path)
     xlabel = (
         r'$X=' + component.get_char_expr_doc(
             data.param, **data.char_params) + '$')
@@ -1091,7 +1084,7 @@ def create_latex_CharMap(component, param, data, path, group=None):
     local_path = (
         'figures/' + cp + '_CharMap_' + param + '_' +
         component.label.replace(' ', '_') + '.pdf')
-    figname = path + local_path
+    figname = os.path.join(path, local_path)
     xlabel = ('$Y$')
     ylabel = r'$f\left(Y,\vec{Y},\vec{Z}\right)$'
     data.char_func.plot(figname, '', xlabel, ylabel)

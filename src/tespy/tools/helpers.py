@@ -574,39 +574,6 @@ def central_difference(function=None, parameter=None, delta=None, **kwargs):
     return (function(**upper) - function(**lower)) / (2 * delta)
 
 
-def modify_path_os(path):
-    """
-    Modify a path according the os.
-
-    Also detects weather the path specification is absolute or relative and
-    adjusts the path respectively.
-
-    Parameters
-    ----------
-    path : str
-        Path to modify.
-
-    Returns
-    -------
-    path : str
-        Modified path.
-    """
-    if os.name == 'nt':
-        # windows
-        path = path.replace('/', '\\')
-        if path[0] != '\\' and path[1:2] != ':' and path[0] != '.':
-            # relative path
-            path = '.\\' + path
-    else:
-        # linux, mac
-        path = path.replace('\\', '/')
-        if path[0] != '/' and path[0] != '.':
-            # relative path
-            path = './' + path
-
-    return path
-
-
 def get_basic_path():
     """
     Return the basic tespy path and creates it if necessary.

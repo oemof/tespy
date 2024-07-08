@@ -14,6 +14,7 @@ available from its original location tespy/networks/networks.py
 SPDX-License-Identifier: MIT
 """
 import json
+import math
 import os
 from time import time
 
@@ -217,17 +218,17 @@ class Network:
         logger.debug(msg[:-1])
 
         # generic value range
-        self.m_range_SI = np.array([-1e12, 1e12])
-        self.p_range_SI = np.array([2e2, 300e5])
-        self.h_range_SI = np.array([1e3, 7e6])
+        self.m_range_SI = [-1e12, 1e12]
+        self.p_range_SI = [2e2, 300e5]
+        self.h_range_SI = [1e3, 7e6]
 
         for prop in ['m', 'p', 'h']:
             limits = self.get_attr(prop + '_range_SI')
             msg = (
-                'Default ' + fpd[prop]['text'] + ' limits\n'
-                'min: ' + str(limits[0]) + ' ' +
-                self.get_attr(prop + '_unit') + '\n'
-                'max: ' + str(limits[1]) + ' ' + self.get_attr(prop + '_unit'))
+                f"Default {fpd[prop]['text']} limits\n"
+                f"min: {limits[0]} {self.get_attr(prop + '_unit')}\n"
+                f"max: {limits[1]} {self.get_attr(prop + '_unit')}"
+            )
             logger.debug(msg)
 
     def set_attr(self, **kwargs):
@@ -289,10 +290,10 @@ class Network:
             if f'{prop}_range' in kwargs:
                 if isinstance(kwargs[f'{prop}_range'], list):
                     self.__dict__.update({
-                        f'{prop}_range_SI': hlp.convert_to_SI(
-                            prop, np.array(kwargs[f'{prop}_range']),
+                        f'{prop}_range_SI': [hlp.convert_to_SI(
+                            prop, value,
                             self.get_attr(f'{prop}_unit')
-                        )
+                        ) for value in kwargs[f'{prop}_range']]
                     })
                 else:
                     msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
@@ -309,11 +310,12 @@ class Network:
 
         # update non SI value ranges
         for prop in ['m', 'p', 'h']:
+            SI_range = self.get_attr(f'{prop}_range_SI')
             self.__dict__.update({
-                f'{prop}_range': hlp.convert_from_SI(
-                    prop, self.get_attr(f'{prop}_range_SI'),
+                f'{prop}_range': [hlp.convert_from_SI(
+                    prop, SI_value,
                     self.get_attr(f'{prop}_unit')
-                )
+                ) for SI_value in SI_range]
             })
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
@@ -1304,9 +1306,7 @@ class Network:
             if cp.local_offdesign:
                 if cp.design_path is not None:
                     # read design point information
-                    path = hlp.modify_path_os(
-                        f"{cp.design_path}/components/{c}.csv"
-                    )
+                    path = os.path.join(cp.design_path, "components", f"{c}.csv")
                     msg = (
                         f"Reading design point information for component "
                         f"{cp.label} of type {c} from path {path}."
@@ -1396,7 +1396,7 @@ class Network:
         df_comps = self.comps.loc[components_with_parameters].copy()
         # iter through unique types of components (class names)
         for c in df_comps['comp_type'].unique():
-            path = hlp.modify_path_os(f"{self.design_path}/components/{c}.csv")
+            path = os.path.join(self.design_path, "components", f"{c}.csv")
             msg = (
                 f"Reading design point information for components of type {c} "
                 f"from path {path}."
@@ -1411,8 +1411,8 @@ class Network:
                 comp = self.comps.loc[c_label, 'object']
                 # read data of components with individual design_path
                 if comp.design_path is not None:
-                    path_c = hlp.modify_path_os(
-                        f"{comp.design_path}/components/{c}.csv"
+                    path_c = os.path.join(
+                        comp.design_path, "components", f"{c}.csv"
                     )
                     msg = (
                         f"Reading design point information for component "
@@ -1438,21 +1438,16 @@ class Network:
         logger.debug(msg)
 
         if len(self.busses) > 0:
-            path = hlp.modify_path_os(f"{self.design_path}/busses.json")
+            path = os.path.join(self.design_path, "busses.json")
             with open(path, "r", encoding="utf-8") as f:
                 bus_data = json.load(f)
 
             for b in bus_data:
                 for comp, value in bus_data[b].items():
                     comp = self.get_comp(comp)
-                    self.busses[b].comps.loc[comp, "P_ref"] = value
+                    self.busses[b].comps.loc[comp, "P_ref"] = float(value)
 
         # read connection design point information
-        msg = (
-            "Reading design point information for connections from "
-            f"{self.design_path}/connections.csv."
-        )
-        logger.debug(msg)
         df = self.init_read_connections(self.design_path)
 
         # iter through connections
@@ -1520,11 +1515,14 @@ class Network:
         conn = df.loc[c.label]
         for var in fpd.keys():
             c.get_attr(var).design = hlp.convert_to_SI(
-                var, conn[var], conn[f"{var}_unit"]
+                var, float(conn[var]), conn[f"{var}_unit"]
             )
-        c.vol.design = c.v.design / c.m.design
+        if c.m.design != 0.0:
+            c.vol.design = c.v.design / c.m.design
+        else:
+            c.vol.design = math.inf
         for fluid in c.fluid.val:
-            c.fluid.design[fluid] = conn[fluid]
+            c.fluid.design[fluid] = float(conn[fluid])
 
     def init_conn_params_from_path(self, c, df):
         r"""
@@ -1551,12 +1549,12 @@ class Network:
 
         for prop in ['m', 'p', 'h']:
             data = c.get_attr(prop)
-            data.val0 = conn[prop]
+            data.val0 = float(conn[prop])
             data.unit = conn[prop + '_unit']
 
         for fluid in c.fluid.is_var:
-            c.fluid.val[fluid] = conn[fluid]
-            c.fluid.val0[fluid] = c.fluid.val[fluid]
+            c.fluid.val[fluid] = float(conn[fluid])
+            c.fluid.val0[fluid] = float(c.fluid.val[fluid])
 
         c.good_starting_values = True
 
@@ -1630,8 +1628,7 @@ class Network:
                         msg += var + ', '
 
                 if switched:
-                    msg = (msg[:-2] + ' to design value at component ' +
-                           cp.label + '.')
+                    msg = f"{msg[:-2]} to design value at component {cp.label}."
                     logger.debug(msg)
 
             # start component initialisation
@@ -1805,7 +1802,7 @@ class Network:
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                c.get_attr(key).val0 = np.random.random() + 1
+                c.get_attr(key).val0 = float(np.random.random() + 1)
 
             # generic starting values for pressure and enthalpy
             else:
@@ -1841,7 +1838,11 @@ class Network:
         base_path : str
             Path to network information.
         """
-        path = hlp.modify_path_os(base_path + '/connections.csv')
+        path = os.path.join(base_path, 'connections.csv')
+        msg = (
+            f"Reading design point information for connections from {path}."
+        )
+        logger.debug(msg)
         df = pd.read_csv(path, index_col=0, delimiter=';', decimal='.')
         return df
 
@@ -2174,9 +2175,9 @@ class Network:
 
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
-                progress_min = np.log(ERR)
-                progress_max = np.log(ERR ** 0.5) * -1
-                progress_val = np.log(max(residual_norm, ERR)) * -1
+                progress_min = math.log(ERR)
+                progress_max = math.log(ERR ** 0.5) * -1
+                progress_val = math.log(max(residual_norm, ERR)) * -1
                 # Scale to 0-1
                 progres_scaled = (
                     (progress_val - progress_min)
@@ -2209,7 +2210,7 @@ class Network:
         """Print tail of convergence progress."""
         num_iter = self.iter + 1
         clc_time = self.end_time - self.start_time
-        num_ips = num_iter / clc_time if clc_time > 1e-10 else np.Inf
+        num_ips = num_iter / clc_time if clc_time > 1e-10 else np.inf
         msg = '-' * 7 + '+------------' * 7
         logger.progress(100, msg)
         msg = (
@@ -2239,19 +2240,26 @@ class Network:
             self.increment = self.residual * 0
 
     def update_variables(self):
+        # cast dtype to float from numpy float64
+        # this is necessary to keep the doctests running and note make them
+        # look ugly all over the place
+        # I have yet to come up with a better idea, or vectorize all operations
+        # which requires major changes in tespy
+        increment = [float(val) for val in self.increment]
         # add the increment
         for data in self.variables_dict.values():
             if data["variable"] in ["m", "h"]:
                 container = data["obj"].get_attr(data["variable"])
-                container.val_SI += self.increment[container.J_col]
+                container.val_SI += increment[container.J_col]
             elif data["variable"] == "p":
                 container = data["obj"].p
-                increment = self.increment[container.J_col]
-                relax = max(1, -2 * increment / container.val_SI)
-                container.val_SI += increment / relax
+                relax = max(
+                    1, -2 * increment[container.J_col] / container.val_SI
+                )
+                container.val_SI += increment[container.J_col] / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
-                container.val[data["fluid"]] += self.increment[
+                container.val[data["fluid"]] += increment[
                     container.J_col[data["fluid"]]
                 ]
 
@@ -2261,7 +2269,7 @@ class Network:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                data["obj"].val += self.increment[data["obj"].J_col]
+                data["obj"].val += increment[data["obj"].J_col]
 
                 # keep value within specified value range
                 if data["obj"].val < data["obj"].min_val:
@@ -2512,7 +2520,7 @@ class Network:
                 result = [cmp_val, bus_val, eff, design_value]
                 self.results[b.label].loc[cp.label] = result
 
-            b.P.val = self.results[b.label]['bus value'].sum()
+            b.P.val = float(self.results[b.label]['bus value'].sum())
 
     def print_results(self, colored=True, colors=None, print_results=True):
         r"""Print the calculations results to prompt."""
@@ -2651,13 +2659,13 @@ class Network:
 
     def export(self, path):
         """Export the network structure and parametrization."""
-        path, path_comps = self._modify_export_paths(path)
+        path, path_comps = self._create_export_paths(path)
         self.export_network(path)
         self.export_connections(path)
         self.export_components(path_comps)
         self.export_busses(path)
 
-    def save(self, path, **kwargs):
+    def save(self, path):
         r"""
         Save the results to results files.
 
@@ -2676,28 +2684,21 @@ class Network:
           characteristics as well as .csv files for all types of components
           within your network.
         """
-        path, path_comps = self._modify_export_paths(path)
+        path, path_comps = self._create_export_paths(path)
 
         # save relevant design point information
         self.save_connections(path)
         self.save_components(path_comps)
         self.save_busses(path)
 
-    def _modify_export_paths(self, path):
-
-        if path[-1] != '/' and path[-1] != '\\':
-            path += '/'
-        path = hlp.modify_path_os(path)
-
+    def _create_export_paths(self, path):
         logger.debug('Saving network to path %s.', path)
         # creat path, if non existent
-        if not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         # create path for component folder if non existent
-        path_comps = hlp.modify_path_os(path + 'components/')
-        if not os.path.exists(path_comps):
-            os.makedirs(path_comps)
+        path_comps = os.path.join(path, "components")
+        os.makedirs(path_comps, exist_ok=True)
 
         return path, path_comps
 
@@ -2710,7 +2711,7 @@ class Network:
         fn : str
             Path/filename for the network configuration file.
         """
-        with open(fn + 'network.json', 'w') as f:
+        with open(os.path.join(fn, 'network.json'), 'w') as f:
             json.dump(self._serialize(), f, indent=4)
 
         logger.debug('Network information saved to %s.', fn)
@@ -2725,7 +2726,7 @@ class Network:
             Path/filename for the file.
         """
         self.results["Connection"].to_csv(
-            fn + "connections.csv", sep=';', decimal='.', index=True, na_rep='nan'
+            os.path.join(fn, "connections.csv"), sep=';', decimal='.', index=True, na_rep='nan'
         )
         logger.debug('Connection information saved to %s.', fn)
 
@@ -2739,7 +2740,7 @@ class Network:
             Path/filename for the file.
         """
         for c in self.comps['comp_type'].unique():
-            fn = path + c + '.csv'
+            fn = os.path.join(path, f"{c}.csv")
             self.results[c].to_csv(fn, sep=';', decimal='.', index=True, na_rep='nan')
             logger.debug('Component information (%s) saved to %s.', c, fn)
 
@@ -2756,7 +2757,7 @@ class Network:
             bus_data = {}
             for label, bus in self.busses.items():
                 bus_data[label] = self.results[label]["design value"].to_dict()
-            fn = fn + 'busses.json'
+            fn = os.path.join(fn, "busses.json")
             with open(fn, "w", encoding="utf-8") as f:
                 json.dump(bus_data, f, indent=4)
             logger.debug('Bus information saved to %s.', fn)
@@ -2766,7 +2767,7 @@ class Network:
         for c in self.conns["object"]:
             connections.update(c._serialize())
 
-        fn = fn + "connections.json"
+        fn = os.path.join(fn, "connections.json")
         with open(fn, "w", encoding="utf-8") as f:
             json.dump(connections, f, indent=4)
         logger.debug('Connection information exported to %s.', fn)
@@ -2777,7 +2778,7 @@ class Network:
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
                 components.update(cp._serialize())
 
-            fname = f"{fn}{c}.json"
+            fname = os.path.join(fn, f"{c}.json")
             with open(fname, "w", encoding="utf-8") as f:
                 json.dump(components, f, indent=4)
             logger.debug('Component information exported to %s.', fname)
@@ -2787,7 +2788,7 @@ class Network:
             busses = {}
             for bus in self.busses.values():
                 busses.update(bus._serialize())
-            fn = fn + 'busses.json'
+            fn = os.path.join(fn, 'busses.json')
             with open(fn, "w", encoding="utf-8") as f:
                 json.dump(busses, f, indent=4)
             logger.debug('Bus information exported to %s.', fn)

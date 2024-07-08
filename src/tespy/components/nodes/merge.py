@@ -87,7 +87,6 @@ class Merge(NodeBase):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import shutil
-    >>> import numpy as np
     >>> nw = Network(p_unit='bar', iterinfo=False)
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')

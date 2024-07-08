@@ -7,7 +7,6 @@ include = [
     "CHANGELOG.rst",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
-    "MANIFEST.in",
     "LICENSE*",
     "PULL_REQUEST_TEMPLATE.md",
     ".coveragerc",
@@ -25,7 +24,7 @@ exclude = ["docs/_build"]
 
 [project]
 name = "tespy"
-version = "0.7.4"
+version = "0.7.5"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -47,12 +46,12 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "CoolProp>=6.6,<7",
+    "CoolProp>=6.6",
     "jinja2",
-    "matplotlib>=3.2.1,<4",
-    "numpy>=1.13.3,<2",
-    "pandas>=1.3.0,<3",
-    "tabulate>=0.8.2,<0.9",
+    "matplotlib>=3.2.1",
+    "numpy>=1.13.3",
+    "pandas>=1.3.0",
+    "tabulate>=0.8.2",
 ]
 license = {text = "MIT"}
 
@@ -66,6 +65,7 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 dev = [
     "build",
     "flit",
+    "fluprodia",
     "furo",
     "iapws",
     "pyromat",
@@ -92,6 +92,7 @@ addopts = """
     --pyargs
     --ignore=docs/conf.py
     --ignore=docs/scripts
+    --ignore=docs/_build
 """
 testpaths = [
     "src/",

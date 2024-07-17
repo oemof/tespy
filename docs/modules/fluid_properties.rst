@@ -110,15 +110,15 @@ to use the `iapws` back end:
     >>> c2.set_attr(p=1e4)
 
     >>> nwk.solve("design")
-    >>> round(c2.x.val, 3)
+    >>> float(round(c2.x.val, 3))
     0.99
 
     >>> tu.set_attr(eta_s=None)
     >>> c2.set_attr(x=1)
 
     >>> nwk.solve("design")
-    >>> round(tu.eta_s.val, 3)
-    np.float64(0.841)
+    >>> float(round(tu.eta_s.val, 3))
+    0.841
 
 
 Implementing a custom engine

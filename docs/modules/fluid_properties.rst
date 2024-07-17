@@ -118,7 +118,7 @@ to use the `iapws` back end:
 
     >>> nwk.solve("design")
     >>> round(tu.eta_s.val, 3)
-    0.841
+    np.float64(0.841)
 
 
 Implementing a custom engine

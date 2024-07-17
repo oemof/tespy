@@ -2231,12 +2231,14 @@ class Network:
             if self.use_cuda:
                 self.increment = cu.asnumpy(cu.dot(
                     cu.linalg.inv(cu.asarray(self.jacobian)),
-                    -cu.asarray(self.residual)))
+                    -cu.asarray(self.residual)
+                ))
             else:
                 self.increment = np.linalg.inv(
-                    self.jacobian).dot(-self.residual)
+                    self.jacobian
+                ).dot(-self.residual)
             self.lin_dep = False
-        except np.linalg.linalg.LinAlgError:
+        except np.linalg.LinAlgError:
             self.increment = self.residual * 0
 
     def update_variables(self):

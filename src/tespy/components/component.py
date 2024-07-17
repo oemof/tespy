@@ -12,6 +12,8 @@ available from its original location tespy/components/components.py
 SPDX-License-Identifier: MIT
 """
 
+import math
+
 import numpy as np
 
 from tespy.tools import logger
@@ -252,19 +254,7 @@ class Component:
                     self.__dict__.update({key: kwargs[key]})
 
             elif key == 'design_path' or key == 'fkt_group':
-                if isinstance(kwargs[key], str):
-                    self.__dict__.update({key: kwargs[key]})
-                elif kwargs[key] is None:
-                    self.design_path = None
-                elif np.isnan(kwargs[key]):
-                    self.design_path = None
-                else:
-                    msg = (
-                        'Please provide the design_path parameter as string. '
-                        'For unsetting use None.'
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
+                self.__dict__.update({key: kwargs[key]})
 
                 self.new_design = True
 
@@ -813,7 +803,7 @@ class Component:
             if isinstance(dc, dc_cp):
                 if ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)):
-                    self.get_attr(key).design = data[key]
+                    self.get_attr(key).design = float(data[key])
 
                 else:
                     self.get_attr(key).design = np.nan
@@ -1104,7 +1094,7 @@ class Component:
             return 0
         else:
             return (
-                (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
             )
 
@@ -1161,7 +1151,7 @@ class Component:
             v_i = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
             v_o = v_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
             return (
-                data.val - (i.p.val_SI - o.p.val_SI) * np.pi ** 2
+                data.val - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 

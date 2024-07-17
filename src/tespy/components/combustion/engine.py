@@ -182,7 +182,6 @@ class CombustionEngine(CombustionChamber):
     ... Splitter)
     >>> from tespy.connections import Connection, Ref
     >>> from tespy.networks import Network
-    >>> import numpy as np
     >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient')

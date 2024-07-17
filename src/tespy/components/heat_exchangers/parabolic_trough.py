@@ -163,7 +163,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, ParabolicTrough
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import numpy as np
+    >>> import math
     >>> import shutil
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
@@ -182,7 +182,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     :math:`\text{m}^2` for simplicity reasons.
 
     >>> aoi = 20
-    >>> E = 1000 * np.cos(aoi / 180 * np.pi)
+    >>> E = 1000 * math.cos(aoi / 180 * math.pi)
     >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
     ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
     ... iam_1=-1.59e-3, iam_2=9.77e-5)
@@ -208,7 +208,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     well as the heat transfer at different operating points.
 
     >>> aoi = 30
-    >>> E = 800 * np.cos(aoi / 180 * np.pi)
+    >>> E = 800 * math.cos(aoi / 180 * math.pi)
     >>> pt.set_attr(A=pt.A.val, aoi=aoi, Q=None, E=E)
     >>> inc.set_attr(T=150)
     >>> outg.set_attr(T=None)

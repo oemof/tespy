@@ -11,6 +11,8 @@ tespy/tools/fluid_properties/helpers.py
 SPDX-License-Identifier: MIT
 """
 
+import math
+
 import CoolProp.CoolProp as CP
 import numpy as np
 
@@ -291,7 +293,7 @@ def hanakov(re):
     darcy_friction_factor : float
         Darcy friction factor.
     """
-    return (1.8 * np.log10(re) - 1.5) ** (-2)
+    return (1.8 * math.log10(re) - 1.5) ** (-2)
 
 
 def prandtl_karman(reynolds, darcy_friction_factor, **kwargs):
@@ -314,7 +316,7 @@ def prandtl_karman(reynolds, darcy_friction_factor, **kwargs):
         Darcy friction factor.
     """
     return (
-        2 * np.log10(reynolds * darcy_friction_factor ** 0.5)
+        2 * math.log10(reynolds * darcy_friction_factor ** 0.5)
         - 0.8 - 1 / darcy_friction_factor ** 0.5
     )
 
@@ -322,7 +324,7 @@ def prandtl_karman(reynolds, darcy_friction_factor, **kwargs):
 def prandtl_karman_derivative(reynolds, darcy_friction_factor, **kwargs):
     """Calculate derivative for Prandtl and v. Kármán equation."""
     return (
-        1 / (darcy_friction_factor * np.log(10))
+        1 / (darcy_friction_factor * math.log(10))
         + 0.5 * darcy_friction_factor ** (-1.5)
     )
 
@@ -353,7 +355,7 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
         Darcy friction factor.
     """
     return (
-        2 * np.log10(
+        2 * math.log10(
             2.51 / (reynolds * darcy_friction_factor ** 0.5) + ks
             / (3.71 * diameter)
         ) + 1 / darcy_friction_factor ** 0.5

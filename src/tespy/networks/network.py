@@ -873,6 +873,7 @@ class Network:
         if self.conns.loc[first_conn.label, "object"] != first_conn:
             self.create_massflow_and_fluid_branches()
             self.create_fluid_wrapper_branches()
+
         self.propagate_fluid_wrappers()
         self.presolve_massflow_topology()
         self.presolve_fluid_topology()

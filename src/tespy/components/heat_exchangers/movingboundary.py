@@ -76,7 +76,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         td_at_steps = [T1 - T2 for T1, T2 in zip(T_at_steps_1, T_at_steps_2[::-1])]
         # parallel flow version
         # td_at_steps = [T1 - T2 for T1, T2 in zip(T_at_steps_1, T_at_steps_2)]
-
+        td_at_steps = [abs(td) for td in td_at_steps]
         td_log_in_sections = [
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
@@ -96,7 +96,35 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         residual : float
             Residual value of equation.
         """
-        return self.UA.val - sum(self.calc_UA_in_sections())
+        UA_in_sections = self.calc_UA_in_sections()
+        sum_UA = sum(UA_in_sections)
+
+        # UA_sum = 0
+        m_1 = self.inl[0].m
+        m_2 = self.inl[1].m
+        # sum_UA = 0
+        if len(UA_in_sections) == 3:
+            for i, UA in enumerate(UA_in_sections):
+                if i == 1:
+                    f_UA = 2 / ((1 / (m_2.val_SI / m_2.design) ** 0.8) + (1 / (m_1.val_SI / m_1.design) ** 0.4))
+                else:
+                    f_UA = 2 / ((1 / (m_2.val_SI / m_2.design) ** 0.8) + (1 / (m_1.val_SI / m_1.design) ** 0.8))
+
+                # sum_UA += f_UA * UA
+
+
+        elif len(UA_in_sections) == 2:
+            for i, UA in enumerate(UA_in_sections):
+                if i == 1:
+                    f_UA = 2 / ((1 / (m_2.val_SI / m_2.design) ** 0.8) + (1 / (m_1.val_SI / m_1.design) ** 0.4))
+                else:
+                    f_UA = 2 / ((1 / (m_2.val_SI / m_2.design) ** 0.8) + (1 / (m_1.val_SI / m_1.design) ** 0.8))
+
+                # sum_UA += f_UA * UA
+        else:
+            pass
+
+        return self.UA.design - sum_UA# * (2 / ((1 / (m_2.val_SI / m_2.design) ** 0.8) + (1 / (m_1.val_SI / m_1.design) ** 0.4)))
 
     def UA_deriv(self, increment_filter, k):
         r"""

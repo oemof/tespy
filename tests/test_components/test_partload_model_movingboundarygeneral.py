@@ -47,7 +47,7 @@ nw.print_results()
 
 
 # test pinch specification
-c12.set_attr(T=None)
+c12.set_attr(T=None, x=None, Td_bp=-2)
 cd.set_attr(td_pinch=3)
 nw.solve("design")
 nw.print_results()
@@ -68,16 +68,19 @@ nw.print_results()
 cd.zeta1.set_attr(min_val=-2)
 
 nw.solve("design")
+nw.save("design")
 nw.print_results()
 
-c12.set_attr(x=None)
-Q = []
+# c12.set_attr(x=None)
+pressure = []
+massflow = []
 UA = []
 for Td_bp in np.linspace(-10, -1, 10):
     c12.set_attr(Td_bp=Td_bp)
     nw.solve("design")
     UA += [cd.UA.val]
-    Q += [c12.p.val]
+    pressure += [c12.p.val]
+    massflow += [c12.m.val]
 
 
 c12.set_attr(Td_bp=None)
@@ -85,14 +88,30 @@ for x in np.linspace(0, 0.3, 5):
     c12.set_attr(x=x)
     nw.solve("design")
     UA += [cd.UA.val]
-    Q += [c12.p.val]
+    pressure += [c12.p.val]
+    massflow += [c12.m.val]
+
+c12.set_attr(x=None, Td_bp=-2)
 
 cd.set_attr(UA=cd.UA.val, td_pinch=None)
 
 from matplotlib import pyplot as plt
-plt.plot(UA, Q)
 
-plt.show()
+fig, ax = plt.subplots(2, sharex=True)
+
+ax[0].plot(massflow, pressure)
+ax[1].plot(massflow, UA)
+
+ax[0].set_title("Resulting condensation pressure and UA in design mode")
+
+ax[1].set_xlabel("refrigerant mass flow")
+ax[0].set_ylabel("Condensation pressure")
+ax[1].set_ylabel("UA")
+
+plt.tight_layout()
+
+fig.savefig("mb_pressure_and_UA_vs_massflow_design.png")
+# plt.show()
 
 # exit()
 # print(c2.T.val)
@@ -103,9 +122,11 @@ m_refrig = []
 dT_pinch = []
 # Q_cond = []
 
-for m in np.linspace(12, 4.55, 40):
+for m in np.linspace(10, 5, 20):
     c1.set_attr(m=m)
-    nw.solve("design")
+    print(m)
+    nw.solve("offdesign", design_path="design")
+    # nw.solve("design")
     m_refrig += [c12.m.val]
     T_cond += [c12.T.val]
     Q += [abs(cd.Q.val)]
@@ -113,9 +134,7 @@ for m in np.linspace(12, 4.55, 40):
     dT_pinch += [cd.td_pinch.val]
 
 
-
-
-fig, ax = plt.subplots(4, sharex=True, figsize=(12, 8))
+fig, ax = plt.subplots(3, sharex=True, figsize=(12, 8))
 
 ax[0].scatter(Q, m_refrig)
 ax[0].set_ylabel("refrigerant mass flow")
@@ -125,15 +144,15 @@ ax[2].scatter(Q, dT_pinch)
 ax[2].set_ylabel("pinch temperature difference")
 # ax[3].scatter(Q, [abs(qc / q) for qc, q in zip(Q_cond, Q)], label="cond")
 # ax[3].scatter(Q, [abs((q + qc) / q) for qc, q in zip(Q_cond, Q)], label="desup")
-ax[3].legend()
-ax[3].set_ylabel("heat transfer shares of total heat transfer")
+# ax[3].legend()
+# ax[3].set_ylabel("heat transfer shares of total heat transfer")
 
-ax[3].set_xlabel("total heat transfer")
+ax[2].set_xlabel("total heat transfer")
 
 [_.grid() for _ in ax]
 
 plt.tight_layout()
-fig.savefig("mb_partload_m_changing.png")
+fig.savefig("mb_partload_without_UA_correction.png")
 
 
 fig, ax = plt.subplots(1)

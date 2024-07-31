@@ -118,6 +118,16 @@ class HeatExchanger(Component):
     ttd_u : float, dict
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
 
+    eff_cold : float, dict
+        Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
+
+    eff_hot : float, dict
+        Hot side heat exchanger effectiveness :math:`eff_\text{hot}/\text{1}`.
+
+    eff_max : float, dict
+        Max value of hot and cold side heat exchanger effectiveness values
+        :math:`eff_\text{max}/\text{1}`.
+
     kA : float, dict
         Area independent heat transfer coefficient,
         :math:`kA/\frac{\text{W}}{\text{K}}`.
@@ -695,7 +705,7 @@ class HeatExchanger(Component):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def calc_dh_max_cold(self):
-        """Calculate the theoretical maximum enthalpy increase on the cold side
+        r"""Calculate the theoretical maximum enthalpy increase on the cold side
 
         Returns
         -------
@@ -723,7 +733,7 @@ class HeatExchanger(Component):
 
             .. math::
 
-                0 = \text{eff}_\text{cold} \ cdot
+                0 = \text{eff}_\text{cold} \cdot
                 \left(h\left(p_{out,2}, T_{in,1}\right) - h_{in,2}
                 - \left( h_{out,2} - h_{in,2}\right)
         """
@@ -760,7 +770,7 @@ class HeatExchanger(Component):
             self.jacobian[k, i2.h.J_col] = 1 - self.eta_cold.val
 
     def calc_dh_max_hot(self):
-        """Calculate the theoretical maximum enthalpy decrease on the hot side
+        r"""Calculate the theoretical maximum enthalpy decrease on the hot side
 
         Returns
         -------
@@ -788,7 +798,7 @@ class HeatExchanger(Component):
 
             .. math::
 
-                0 = \text{eff}_\text{hot} \ cdot
+                0 = \text{eff}_\text{hot} \cdot
                 \left(h\left(p_{out,1}, T_{in,2}\right) - h_{in,1}
                 - \left( h_{out,1} - h_{in,1}\right)
         """

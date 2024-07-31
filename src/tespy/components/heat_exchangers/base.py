@@ -735,8 +735,8 @@ class HeatExchanger(Component):
             .. math::
 
                 0 = \text{eff}_\text{cold} \cdot
-                \left(h\left(p_{out,2}, T_{in,1}\right) - h_{in,2}
-                - \left( h_{out,2} - h_{in,2}\right)
+                \left(h\left(p_{out,2}, T_{in,1} \right) - h_{in,2}\right)
+                - \left( h_{out,2} - h_{in,2} \right)
         """
         return (
             self.eff_cold.val * self.calc_dh_max_cold()
@@ -800,7 +800,7 @@ class HeatExchanger(Component):
             .. math::
 
                 0 = \text{eff}_\text{hot} \cdot
-                \left(h\left(p_{out,1}, T_{in,2}\right) - h_{in,1}
+                \left(h\left(p_{out,1}, T_{in,2}\right) - h_{in,1}\right)
                 - \left( h_{out,1} - h_{in,1}\right)
         """
         return (

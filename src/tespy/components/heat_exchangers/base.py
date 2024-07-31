@@ -249,6 +249,10 @@ class HeatExchanger(Component):
             'eff_hot': dc_cp(
                 min_val=0, max_val=1, num_eq=1, func=self.eff_hot_func,
                 deriv=self.eff_hot_deriv
+            ),
+            'eff_max': dc_cp(
+                min_val=0, max_val=1, num_eq=1, func=self.eff_max_func,
+                deriv=self.eff_max_deriv
             )
         }
 
@@ -690,8 +694,27 @@ class HeatExchanger(Component):
             if self.is_variable(c.h, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
+    def calc_dh_max_cold(self):
+        """Calculate the theoretical maximum enthalpy increase on the cold side
+
+        Returns
+        -------
+        float
+            Maxmium cold side enthalpy increase.
+
+            .. math::
+
+                h\left(p_{out,2}, T_{in,1}\right) - h_{in,2}
+        """
+        o2 = self.outl[1]
+        T_in_hot = self.inl[0].calc_T()
+        h_at_T_in_hot = h_mix_pT(
+            o2.p.val_SI, T_in_hot, o2.fluid_data, o2.mixing_rule
+        )
+        return h_at_T_in_hot - self.inl[1].h.val_SI
+
     def eff_cold_func(self):
-        r"""Equation for cold side heat exchanger efficiency.
+        r"""Equation for cold side heat exchanger effectiveness.
 
         Returns
         -------
@@ -704,23 +727,14 @@ class HeatExchanger(Component):
                 \left(h\left(p_{out,2}, T_{in,1}\right) - h_{in,2}
                 - \left( h_{out,2} - h_{in,2}\right)
         """
-        i2 = self.inl[1]
-        o2 = self.outl[1]
-
-        T_in_hot = self.inl[0].calc_T()
-        h_at_T_in_hot = h_mix_pT(
-            o2.p.val_SI, T_in_hot, o2.fluid_data, o2.mixing_rule
-        )
-
         return (
-            self.eff_cold.val
-            * (h_at_T_in_hot - i2.h.val_SI)
-            - (o2.h.val_SI - i2.h.val_SI)
+            self.eff_cold.val * self.calc_dh_max_cold()
+            - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
         )
 
     def eff_cold_deriv(self, increment_filter, k):
         """
-        Calculate partial derivates of hot side efficiency function.
+        Calculate partial derivates of hot side effectiveness function.
 
         Parameters
         ----------
@@ -737,16 +751,35 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         for c in [i1, o2]:
-            if self.is_variable(c.p):
+            if self.is_variable(c.p, increment_filter):
                 self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
+            if self.is_variable(c.h, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
-        if self.is_variable(i2.h, increment_filter):
+        if self.is_variable(i2.h):
             self.jacobian[k, i2.h.J_col] = 1 - self.eta_cold.val
 
+    def calc_dh_max_hot(self):
+        """Calculate the theoretical maximum enthalpy decrease on the hot side
+
+        Returns
+        -------
+        float
+            Maxmium hot side enthalpy decrease.
+
+            .. math::
+
+                h\left(p_{out,1}, T_{in,2}\right) - h_{in,1}
+        """
+        o1 = self.outl[0]
+        T_in_cold = self.inl[1].calc_T()
+        h_at_T_in_cold = h_mix_pT(
+            o1.p.val_SI, T_in_cold, o1.fluid_data, o1.mixing_rule
+        )
+        return h_at_T_in_cold - self.inl[0].h.val_SI
+
     def eff_hot_func(self):
-        r"""Equation for hot side heat exchanger efficiency.
+        r"""Equation for hot side heat exchanger effectiveness.
 
         Returns
         -------
@@ -759,23 +792,14 @@ class HeatExchanger(Component):
                 \left(h\left(p_{out,1}, T_{in,2}\right) - h_{in,1}
                 - \left( h_{out,1} - h_{in,1}\right)
         """
-        i1 = self.inl[0]
-        o1 = self.outl[0]
-
-        T_in_cold = self.inl[1].calc_T()
-        h_at_T_in_cold = h_mix_pT(
-            o1.p.val_SI, T_in_cold, o1.fluid_data, o1.mixing_rule
-        )
-
         return (
-            self.eff_hot.val
-            * (h_at_T_in_cold - i1.h.val_SI)
-            - (o1.h.val_SI - i1.h.val_SI)
+            self.eff_hot.val * self.calc_dh_max_hot()
+            - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
 
     def eff_hot_deriv(self, increment_filter, k):
         """
-        Calculate partial derivates of hot side efficiency function.
+        Calculate partial derivates of hot side effectiveness function.
 
         Parameters
         ----------
@@ -791,13 +815,63 @@ class HeatExchanger(Component):
         o1 = self.outl[0]
         i2 = self.inl[1]
 
-        if self.is_variable(i1.h, increment_filter):
+        if self.is_variable(i1.h):
             self.jacobian[k, i1.h.J_col] = 1 - self.eta_hot.val
 
         for c in [o1, i2]:
-            if self.is_variable(c.p):
+            if self.is_variable(c.p, increment_filter):
                 self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
+            if self.is_variable(c.h, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+
+    def eff_max_func(self):
+        r"""Equation for maximum heat exchanger effectiveness.
+
+        .. note::
+
+            This functions works on what is larger: hot side or cold side
+            effectiveness. It may cause numerical issues, if applied, when one
+            of both sides' effectiveness is already predetermined, e.g. by
+            temperature specifications.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \text{eff}_\text{max} - \text{max}
+                \left(\text{eff}_\text{hot},\text{eff}_\text{cold}\right)
+        """
+        eff_hot = (
+            (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            / self.calc_dh_max_hot()
+        )
+        eff_cold = (
+            (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+            / self.calc_dh_max_cold()
+        )
+        return self.eff_max.val - max(eff_hot, eff_cold)
+
+    def eff_max_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of max effectiveness function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.eff_max_func
+
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p, increment_filter):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def bus_func(self, bus):
@@ -972,23 +1046,16 @@ class HeatExchanger(Component):
         self.kA.val = -self.Q.val / self.td_log.val
 
         # heat exchanger efficiencies
-        o1 = self.outl[0]
-        h_at_T_in_cold = h_mix_pT(
-            o1.p.val_SI, self.inl[1].T.val_SI, o1.fluid_data, o1.mixing_rule
-        )
         self.eff_hot.val = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (h_at_T_in_cold - self.inl[0].h.val_SI)
+            / self.calc_dh_max_hot()
         )
 
-        o2 = self.outl[1]
-        h_at_T_in_hot = h_mix_pT(
-            o2.p.val_SI, self.inl[0].T.val_SI, o2.fluid_data, o2.mixing_rule
-        )
-        self.eff_hot.val = (
+        self.eff_cold.val = (
             (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            / (h_at_T_in_hot - self.inl[1].h.val_SI)
+            / self.calc_dh_max_cold()
         )
+        self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)
 
     def entropy_balance(self):
         r"""

@@ -1,0 +1,9 @@
+v0.7.6 - Newton's Nature (July, 31, 2024)
++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

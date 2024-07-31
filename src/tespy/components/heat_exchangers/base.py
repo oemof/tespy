@@ -36,8 +36,6 @@ class HeatExchanger(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
 
     **Optional Equations**
@@ -47,6 +45,9 @@ class HeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
     - hot side :py:meth:`tespy.components.component.Component.pr_func`
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`

@@ -1,0 +1,29 @@
+v0.7.6 - Newton's Nature (July, 31, 2024)
++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- Implement new equations for the heat exchanger, i.e. effectiveness parameter.
+  The parameter can be specified for the hot side `eff_hot` or the cold side
+  `eff_cold` of the heat exchanger. Additionally, it is possible to specify the
+  maximum value of both with `eff_max` if it is unknown, which one of them will
+  be the larger one (`PR #529 <https://github.com/oemof/tespy/pull/529>`__).
+
+Bug Fixes
+#########
+- The enthalpy numerical precision critereon for mixtures is relaxed: Mixture
+  fluid property results (temperature, volume, entropy, ...) are only
+  invalidated, if both absolute and relative precision is not acquired.
+  Previously, the enthalpy of the mixture, calculated with the temperature
+  calculated based on the enthalpy determined by the solver had to be within
+  :code:`1e-3` of the enthalpy determined by the solver
+  (`PR #529 <https://github.com/oemof/tespy/pull/529>`__).
+
+Bug Fixes
+#########
+- Fix the logging text for component paramter value violation in the
+  postprocessing (`PR #529 <https://github.com/oemof/tespy/pull/529>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

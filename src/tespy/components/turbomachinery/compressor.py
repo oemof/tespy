@@ -576,13 +576,14 @@ class Compressor(Turbomachine):
         i, o = self.inl, self.outl
 
         if o[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
-            o[0].p.val_SI = o[0].p.val_SI * 1.1
+            o[0].p.val_SI = i[0].p.val_SI * 1.1
 
         if o[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
-            o[0].h.val_SI = o[0].h.val_SI * 1.1
+            o[0].h.val_SI = i[0].h.val_SI * 1.1
 
         if i[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
             i[0].p.val_SI = o[0].p.val_SI * 0.9
+
         if i[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
             i[0].h.val_SI = o[0].h.val_SI * 0.9
 

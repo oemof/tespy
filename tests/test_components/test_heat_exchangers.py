@@ -476,6 +476,37 @@ class TestHeatExchangers:
         )
         assert round(self.c3.m.val, 2) == 7.96
 
+    def test_HeatExchanger_effectiveness_invalid(self):
+
+        instance = HeatExchanger('heat exchanger')
+        self.setup_HeatExchanger_network(instance)
+
+        # remove fluid specifications
+        self.c1.set_attr(fluid={f: None for f in self.c1.fluid.val})
+        self.c3.set_attr(fluid={f: None for f in self.c3.fluid.val})
+
+        # add new fluids
+        # temperature range > 300 °C
+        self.c1.set_attr(fluid={"INCOMP::NaK": 1}, m=10, T=400, p=1)
+        self.c2.set_attr(T=350, p=1)
+        # temperature range < 100 °C at 1 bar
+        self.c3.set_attr(fluid={"INCOMP::Water": 1}, T=25, p=1)
+        self.c4.set_attr(T=50, p=1)
+        instance.set_attr(eff_cold=None, eff_hot=None, pr1=None, pr2=None)
+
+        self.nw.solve("design")
+        self.nw._convergence_check()
+        msg = (
+            'Value of cold effectiveness must be nan but is '
+            f'{round(instance.eff_cold.val, 1)}.'
+        )
+        assert np.isnan(instance.eff_cold.val), msg
+        msg = (
+            'Value of hot effectiveness must be nan but is '
+            f'{round(instance.eff_hot.val, 1)}.'
+        )
+        assert np.isnan(instance.eff_hot.val), msg
+
     def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""
         instance = Condenser('condenser')

@@ -16,6 +16,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
@@ -1057,15 +1058,32 @@ class HeatExchanger(Component):
         self.kA.val = -self.Q.val / self.td_log.val
 
         # heat exchanger efficiencies
-        self.eff_hot.val = (
-            (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / self.calc_dh_max_hot()
-        )
-
-        self.eff_cold.val = (
-            (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            / self.calc_dh_max_cold()
-        )
+        try:
+            self.eff_hot.val = (
+                (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                / self.calc_dh_max_hot()
+            )
+        except ValueError:
+            self.eff_hot.val = np.nan
+            msg = (
+                "Cannot calculate heat exchanger hot side effectiveness "
+                "because cold side inlet temperature is out of bounds for hot "
+                "side fluid."
+            )
+            logger.warning(msg)
+        try:
+            self.eff_cold.val = (
+                (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                / self.calc_dh_max_cold()
+            )
+        except ValueError:
+            self.eff_cold.val = np.nan
+            msg = (
+                "Cannot calculate heat exchanger cold side effectiveness "
+                "because hot side inlet temperature is out of bounds for cold "
+                "side fluid."
+            )
+            logger.warning(msg)
         self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)
 
     def entropy_balance(self):

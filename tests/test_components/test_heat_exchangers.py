@@ -333,9 +333,11 @@ class TestHeatExchangers:
         self.setup_HeatExchanger_network(instance)
 
         # design specification
-        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-                          design=['pr1', 'pr2', 'ttd_u'],
-                          offdesign=['zeta1', 'zeta2', 'kA_char'])
+        instance.set_attr(
+            pr1=0.98, pr2=0.98, ttd_u=5,
+            design=['pr1', 'pr2', 'ttd_u'],
+            offdesign=['zeta1', 'zeta2', 'kA_char']
+        )
         self.c1.set_attr(T=120, p=3, fluid={'H2O': 1})
         self.c2.set_attr(T=70)
         self.c3.set_attr(T=40, p=5, fluid={'Ar': 1})
@@ -428,16 +430,51 @@ class TestHeatExchangers:
         # trigger negative upper terminal temperature difference as result
         self.c4.set_attr(T=100)
         self.c2.set_attr(h=200e3, T=None)
-        instance.set_attr(pr1=0.98, pr2=0.98, ttd_u=None,
-                          design=['pr1', 'pr2'])
+        instance.set_attr(
+            pr1=0.98, pr2=0.98, ttd_u=None, design=['pr1', 'pr2']
+        )
         self.c1.set_attr(h=150e3, T=None)
         self.c3.set_attr(T=40)
         self.nw.solve('design')
         self.nw._convergence_check()
-        msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(instance.ttd_u.val, 1)) +
-               '.')
+        msg = (
+            'Value of upper terminal temperature differences must be '
+            f'smaller than zero, is {round(instance.ttd_u.val, 1)}.'
+        )
         assert instance.ttd_u.val < 0, msg
+
+        # test heat exchanger effectiveness
+        b.set_attr(P=None)
+        self.c1.set_attr(m=1, T=80, h=None)
+        self.c2.set_attr(T=None, h=None)
+
+        self.c3.set_attr(m=4, T=25)
+        self.c4.set_attr(T=None)
+
+        instance.set_attr(eff_max=0.9, ttd_u=None)
+        self.nw.solve("design")
+        self.nw._convergence_check()
+        msg = (
+            'Value of cold side effectiveness must be equal to 0.9 but is '
+            f'{round(instance.eff_cold.val, 1)}.'
+        )
+        assert round(instance.eff_cold.val, 1) == 0.9, msg
+
+        self.c3.set_attr(m=None)
+        instance.set_attr(eff_max=None, eff_hot=0.9, eff_cold=0.9)
+        self.nw.solve("design")
+        self.nw._convergence_check()
+        msg = (
+            'Value of max effectiveness must be equal to 0.9 but is '
+            f'{round(instance.eff_max.val, 1)}.'
+        )
+        assert round(instance.eff_max.val, 1) == 0.9, msg
+
+        msg = (
+            'Value of cold side mass flow must be equal to 7.96 but is '
+            f'{round(self.c3.m.val, 2)}.'
+        )
+        assert round(self.c3.m.val, 2) == 7.96
 
     def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""

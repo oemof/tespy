@@ -903,7 +903,7 @@ class Connection:
         _converged = True
         if number_fluids > 1:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-            if abs(h_from_T - self.h.val_SI) > ERR ** .5:
+            if abs(h_from_T - self.h.val_SI) > ERR ** .5 and abs((h_from_T - self.h.val_SI) / self.h.val_SI) > ERR ** .5:
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
                 self.v.val_SI = np.nan

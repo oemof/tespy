@@ -1,0 +1,17 @@
+v0.7.6.post1 - Newton's Nature (August, 02, 2024)
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This is a post release for version 0.7.6 to fix a bug in the postprocessing of
+the :code:`HeatExchanger` classes.
+
+Bug Fixes
+#########
+- An exception is catched in the heat exchanger post processing, in case the
+  heat exchanger effectiveness cannot be calculated when hot side or cold side
+  inlet temperature value are out of bounds of the fluid properties for the
+  other side respectively
+  (`PR #533 <https://github.com/oemof/tespy/pull/533>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -193,7 +193,10 @@ def load_network(path):
 
         if component not in component_registry.items:
             msg = (
-                f"Unknown tespy.component class {component}."
+                f"A class {component} is not available through the "
+                "tespy.components.component.component_registry decorator. "
+                "If you are using a custom component make sure to decorate the "
+                "class."
             )
             logger.warning(msg)
             continue

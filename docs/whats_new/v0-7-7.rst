@@ -1,0 +1,13 @@
+Under development
++++++++++++++++++
+
+Bug Fixes
+#########
+- Only :code:`.json` format files are loaded by the `load_network` method.
+  Furthermore, it is checked whether a file is represented by a class
+  available in the namespace via the :code:`@component_registry` decorator
+  (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

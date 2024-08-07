@@ -186,9 +186,19 @@ def load_network(path):
 
     files = os.listdir(path_comps)
     for f in files:
-        fn = os.path.join(path_comps, f)
+        if not f.endswith(".json"):
+            continue
+
         component = f.replace(".json", "")
 
+        if component not in component_registry.items:
+            msg = (
+                f"Unknown tespy.component class {component}."
+            )
+            logger.warning(msg)
+            continue
+
+        fn = os.path.join(path_comps, f)
         msg = f"Reading component data ({component}) from {fn}."
         logger.debug(msg)
 

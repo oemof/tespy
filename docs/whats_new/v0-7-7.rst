@@ -8,6 +8,12 @@ Bug Fixes
   available in the namespace via the :code:`@component_registry` decorator
   (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
 
+Documentation
+#############
+- Update deprecated information on the indices of variables in the Jacobian of
+  a :code:`UserDefinedEquation`
+  (`PR #552 <https://github.com/oemof/tespy/pull/552>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

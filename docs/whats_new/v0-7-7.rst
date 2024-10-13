@@ -13,6 +13,9 @@ Documentation
 - Update deprecated information on the indices of variables in the Jacobian of
   a :code:`UserDefinedEquation`
   (`PR #552 <https://github.com/oemof/tespy/pull/552>`__).
+- A note has been added, that the component and connection labels in subsystems
+  should be made unique. On top of that, most of the components module docs isn
+  now testable (`PR #553 <https://github.com/oemof/tespy/pull/553>`__).
 
 Contributors
 ############

@@ -96,14 +96,12 @@ inside the Jacobian of the :code:`UserDefinedEquation` and returns it:
 
 - :code:`ude.jacobian` is a dictionary containing numpy arrays for every
   connection required by the :code:`UserDefinedEquation`.
-- derivatives to **mass flow** are placed in the first element of the numpy
-  array (**index 0**)
-- derivatives to **pressure** are placed in the second element of the numpy
-  array (**index 1**)
-- derivatives to **enthalpy** are placed in the third element of the numpy
-  array (**index 2**)
-- derivatives to **fluid composition** are placed in the remaining elements
-  beginning at the fourth element of the numpy array (**indices 3:**)
+- derivatives are referred to with the :code:`J_col` attribute of the
+  variables of a :code:`Connection` object, i.e.
+  :code:`c.m.J_col` for mass flow, :code:`c.p.J_col` for pressure,
+  :code:`c.h.J_col` for enthalpy, and :code:`c.fluid.J_col[fluid_name]` for the
+  derivative of the fluid composition towards a specific fluid
+  :code:`fluid_name`.
 
 If we calculate the derivatives of our equation, it is easy to find, that only
 derivatives to mass flow are not zero.

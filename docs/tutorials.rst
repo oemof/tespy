@@ -85,10 +85,15 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Gas Turbine with Heat Recovery Steam Generator
+    .. grid-item-card::  Heat Recovery Steam Generator for Power and Process Heat Production
+        :link: tespy_tutorial_hrsg_label
+        :link-type: ref
 
-        Coming soon!
+        .. image:: /_static/images/tutorials/hrsg_steam_supply/flowsheet.svg
+            :class: only-light
 
+        .. image:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_darkmode.svg
+            :class: only-dark
 
 .. toctree::
     :maxdepth: 1

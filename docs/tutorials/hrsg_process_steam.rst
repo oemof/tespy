@@ -37,35 +37,32 @@ the system.
 The challenge here lies in the complexity of the system. With a well-structured
 approach the problem can be tackled.
 
-Set up the Network
-^^^^^^^^^^^^^^^^^^
+Steam supply and turbine section
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. literalinclude:: /../tutorial/advanced/stepwise.py
-    :language: python
-    :start-after: [sec_1]
-    :end-before: [sec_2]
-
-Modeling the heat pump: Consumer system
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. figure:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_p1.svg
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p1.svg
     :align: center
     :alt: First part of the system
     :figclass: only-light
 
     Figure: First part of the system
 
-.. figure:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_p1_darkmode.svg
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p1_darkmode.svg
     :align: center
     :alt: First part of the system
     :figclass: only-dark
 
     Figure: First part of the system
 
+.. literalinclude:: /../tutorial/advanced/hrsg.py
+    :language: python
+    :start-after: [sec_1]
+    :end-before: [sec_2]
+
 Components
 ++++++++++
 
-.. literalinclude:: /../tutorial/advanced/stepwise.py
+.. literalinclude:: /../tutorial/advanced/hrsg.py
     :language: python
     :start-after: [sec_2]
     :end-before: [sec_3]
@@ -73,7 +70,7 @@ Components
 Connections
 +++++++++++
 
-.. literalinclude:: /../tutorial/advanced/stepwise.py
+.. literalinclude:: /../tutorial/advanced/hrsg.py
     :language: python
     :start-after: [sec_3]
     :end-before: [sec_4]
@@ -81,7 +78,7 @@ Connections
 Parametrization & solving
 +++++++++++++++++++++++++
 
-.. literalinclude:: /../tutorial/advanced/stepwise.py
+.. literalinclude:: /../tutorial/advanced/hrsg.py
     :language: python
     :start-after: [sec_5]
     :end-before: [sec_6]

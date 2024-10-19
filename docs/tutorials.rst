@@ -104,3 +104,4 @@ out to us. We are looking forward to hearing from you!
     tutorials/starting_values.rst
     tutorials/heat_pump_exergy.rst
     tutorials/pygmo_optimization.rst
+    tutorials/hrsg_process_steam.rst

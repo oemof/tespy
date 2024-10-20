@@ -77,7 +77,8 @@ c12.set_attr(p=pamb)
 
 condensate_return_fraction = 0.75
 c13.set_attr(fluid={"water": 1}, x=0, m=Ref(c11, condensate_return_fraction, 0))
-c14.set_attr(fluid={"water": 1}, m=1, T=Tamb)
+c14.set_attr(fluid={"water": 1}, T=Tamb)
+c15.set_attr(m=200)
 # %%[sec_5]
 extraction_turbine.set_attr(eta_s=0.9)
 condensing_turbine.set_attr(eta_s=0.9)
@@ -88,6 +89,12 @@ condensate_pump.set_attr(eta_s=0.7)
 steam_cond_pump.set_attr(eta_s=0.7)
 
 nw.solve("design")
+
+c3.set_attr(m=None)
+c11.set_attr(m=extraction_mass_flow)
+
+nw.solve("design")
+
 nw.print_results()
 # %%[sec_6]
 from tespy.components import Drum
@@ -134,8 +141,6 @@ c29 = Connection(merge_3, "out1", to_hp_cond, "in1", label="29")
 
 nw.add_conns(c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29)
 # %%[sec_7]
-c14.set_attr(m=None)
-
 c16.set_attr(p=2.3, T=55)
 c17.set_attr(T=100, p0=2.3)
 c20.set_attr(x=.05)

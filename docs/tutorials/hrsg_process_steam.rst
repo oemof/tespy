@@ -25,7 +25,8 @@ Overview
 In this tutorial we will build a combined heat and power plant utilizing flue
 gas (e.g. from a gas turbine) to generate process steam and electricity. The
 figure above shows the structure of the system and the 4 steps we take to build
-the system.
+the system. The challenge here lies in the complexity of the system. With a
+well-structured approach the problem can be tackled.
 
 It is a simplified version of an actual plant with some unique features:
 
@@ -43,15 +44,37 @@ It is a simplified version of an actual plant with some unique features:
   steaming.
 - The sweetwater condenser is a solution for HP steam desuperheating.
 
-...
+The table below indicate the most important boundary conditions.
 
-- Table on boundary conditions
-- Table on assumptions
++---------------------+---------------+-------+------+
+| Location            | Parameter     | Value | Unit |
++=====================+===============+=======+======+
+| process steam       | :code:`m`     | 160   | t/h  |
++                     +---------------+-------+------+
+|                     | :code:`Td_bp` | 10    | °C   |
++                     +---------------+-------+------+
+|                     | :code:`p`     | 13    | bar  |
++---------------------+---------------+-------+------+
+| live steam          | :code:`T`     | 480   | °C   |
++                     +---------------+-------+------+
+|                     | :code:`p`     | 88.5  | bar  |
++---------------------+---------------+-------+------+
+| gas turbine exhaust | :code:`T`     | 720   | °C   |
++---------------------+---------------+-------+------+
 
-....
+And the most important component parameters:
 
-The challenge here lies in the complexity of the system. With a well-structured
-approach the problem can be tackled.
++----------------------+---------------+-------+------+
+| Component            | Parameter     | Value | Unit |
++======================+===============+=======+======+
+| turbines             | :code:`eta_s` | 90    | %    |
++----------------------+---------------+-------+------+
+| pumps                | :code:`eta_s` | 70    | %    |
++----------------------+---------------+-------+------+
+| heat exchangers      | :code:`pr`    | 100   | %    |
++----------------------+---------------+-------+------+
+| feed water preheater | :code:`pr`    | 90    | %    |
++----------------------+---------------+-------+------+
 
 Steam supply and turbine section
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -121,12 +144,62 @@ condensate. The remaining mass flow is replaced by the makeup water.
 
 For the components we can specify the isentropic efficiencies of the turbines
 and the pumps as well as the pressure ratio of the condensing turbine inlet
-valve as well as the condenser pressure loss.
+valve as well as the condenser pressure loss. Then we solve the system and
+with the first solution, the extraction mass flow can be unset and instead, the
+actual process steam mass flow is specified.
 
 .. literalinclude:: /../tutorial/advanced/hrsg.py
     :language: python
     :start-after: [sec_5]
     :end-before: [sec_6]
 
+Low pressure preheating and high pressure economizer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-More to follow
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p2.svg
+    :align: center
+    :alt: Second part of the system
+    :figclass: only-light
+
+    Figure: Second part of the system
+
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p2_darkmode.svg
+    :align: center
+    :alt: Second part of the system
+    :figclass: only-dark
+
+    Figure: Second part of the system
+
+Completing the Rankine cycle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p3.svg
+    :align: center
+    :alt: Third part of the system
+    :figclass: only-light
+
+    Figure: Third part of the system
+
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_p3_darkmode.svg
+    :align: center
+    :alt: Third part of the system
+    :figclass: only-dark
+
+    Figure: Third part of the system
+
+Adding the exhaust gas
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet.svg
+    :align: center
+    :alt: Complete system
+    :figclass: only-light
+
+    Figure: Complete system
+
+.. figure:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_darkmode.svg
+    :align: center
+    :alt: First part of the system
+    :figclass: only-dark
+
+    Figure: Complete system

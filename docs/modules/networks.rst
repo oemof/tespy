@@ -741,7 +741,7 @@ save the network first.
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,
-characteristics) holding the parametrization of that network. You can re-import
+characteristics) holding the parametrisation of that network. You can re-import
 the network using following code with the path to the saved documents. The
 generated network object contains the same information as a TESPy network
 created by a python script. Thus, it is possible to set your parameters in the

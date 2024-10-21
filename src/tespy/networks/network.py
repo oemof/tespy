@@ -1121,7 +1121,7 @@ class Network:
                 }
                 self.num_conn_vars += 1
 
-    def _reset_topology_reduction_specifications(self):
+    def reset_topology_reduction_specifications(self):
         for c in self.conns["object"]:
             if hasattr(c, "_m_tmp"):
                 value = c.m.val_SI
@@ -1963,7 +1963,7 @@ class Network:
         self.initialise()
 
         if init_only:
-            self._reset_topology_reduction_specifications()
+            self.reset_topology_reduction_specifications()
             return
 
         msg = 'Starting solver.'
@@ -1974,7 +1974,7 @@ class Network:
         self.solve_loop(print_results=print_results)
 
         if not prepare_fast_lane:
-            self._reset_topology_reduction_specifications()
+            self.reset_topology_reduction_specifications()
 
         if self.lin_dep:
             msg = (

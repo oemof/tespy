@@ -8,6 +8,13 @@ Bug Fixes
   available in the namespace via the :code:`@component_registry` decorator
   (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
 
+
+Other Changes
+#############
+- Make the :code:`reset_topology_reduction_specifications` method of the
+  `Network` class a public method
+  (`PR #559 <https://github.com/oemof/tespy/pull/559>`__).
+
 Documentation
 #############
 - Update deprecated information on the indices of variables in the Jacobian of

@@ -15,13 +15,13 @@ your project.
     **Dashboard for the exploration of various heat pump designs**
     ^^^
 
-    .. image:: /_static/images/examples/heatpumps.svg
+    .. image:: /_static/images/examples/heatpumps.png
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-light
       :target: https://github.com/jfreissmann/heatpumps
 
-    .. image:: /_static/images/examples/heatpumps_darkmode.svg
+    .. image:: /_static/images/examples/heatpumps_darkmode.png
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-dark

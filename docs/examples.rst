@@ -12,6 +12,31 @@ your project.
 
 .. card::
 
+    **Dashboard for the exploration of various heat pump designs**
+    ^^^
+
+    .. image:: /_static/images/examples/heatpumps.svg
+      :align: center
+      :alt: Heatpumps Dashboard
+      :class: only-light
+      :target: https://github.com/jfreissmann/heatpumps
+
+    .. image:: /_static/images/examples/heatpumps_darkmode.svg
+      :align: center
+      :alt: Heatpumps Dashboard
+      :class: only-dark
+      :target: https://github.com/jfreissmann/heatpumps
+
+    DESCRIPTION HERE
+
+    +++
+    Title: heatpumps
+
+    Authors: Jonas Freißmann, Malte Fritz
+
+
+.. card::
+
     **Coupled Porous Media Storage and Power Plant Simulation**
     ^^^
 

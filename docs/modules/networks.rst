@@ -543,6 +543,15 @@ in this case.
     variables. Maybe it is only one variable causing the instability, its
     increment is much larger than the increment of the other variables?
 
+If you run multiple simulations and a simulation crashed due to an internal
+error (e.g. fluid property related), and you still want the next simulations to
+perform correctly, you have to call the
+:py:meth:`tespy.networks.network.Network.reset_topology_reduction_specifications`
+method after the failed simulation and before you run the next simulation.
+Usually, this happens automatically as part of the post-processing, but in case
+the simulation crashed before that, this step cannot be executed. Then,
+restarting the simulation is not possible.
+
 Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
 for other users!

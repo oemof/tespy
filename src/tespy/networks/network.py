@@ -1661,7 +1661,7 @@ class Network:
         Initialise the fluid properties on every connection of the network.
 
         - Set generic starting values for mass flow, enthalpy and pressure if
-          not user specified, read from :code:`ìnit_path` or available from
+          not user specified, read from :code:`init_path` or available from
           previous calculation.
         - For generic starting values precalculate enthalpy value at points of
           given temperature, vapor mass fraction, temperature difference to

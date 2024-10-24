@@ -31,9 +31,10 @@ your project.
     both design and part load simulation of a comprehensive library of heat
     pump topologies. Furthermore, TESPy's integration of CoolProp facilitates
     the use of a wide range of refrigerants. The exploration of simulation
-    results is supported by fluprodia's state diagrams as well as the built-in
-    exergy analysis. An assessment of the economic attractiveness of different
-    heat pump setups is enabled through a component-based cost estimation.
+    results is supported by fluprodia's state diagrams as well as the TESPy
+    built-in exergy analysis feature. An assessment of the economic
+    attractiveness of different heat pump setups is enabled through a
+    component-based cost estimation.
 
     +++
     Title: heatpumps

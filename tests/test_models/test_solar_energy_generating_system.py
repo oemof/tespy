@@ -245,7 +245,7 @@ class TestSEGS:
         pt.set_attr(doc=0.95, aoi=0,
                     Tamb=25, A='var', eta_opt=0.73,
                     c_1=0.00496, c_2=0.000691, E=1000,
-                    iam_1=1, iam_2=1)
+                    iam_1=1, iam_2=1, dissipative=False)
 
         ptpump.set_attr(eta_s=0.6)
 

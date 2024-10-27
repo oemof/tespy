@@ -7,7 +7,9 @@ Bug Fixes
   Furthermore, it is checked whether a file is represented by a class
   available in the namespace via the :code:`@component_registry` decorator
   (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
-
+- Fixed a typo in the Jacobian of the hot side and cold side
+  :code:`HeatExchanger` effectiveness
+  (`PR #563 <https://github.com/oemof/tespy/pull/563>`__).
 
 Other Changes
 #############

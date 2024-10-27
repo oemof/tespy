@@ -460,7 +460,10 @@ class TestHeatExchangers:
         )
         assert round(instance.eff_cold.val, 1) == 0.9, msg
 
-        self.c3.set_attr(m=None)
+        self.c1.set_attr(p=None)
+        self.c2.set_attr(p=3)
+        self.c3.set_attr(m=None, p=None)
+        self.c4.set_attr(p=5)
         instance.set_attr(eff_max=None, eff_hot=0.9, eff_cold=0.9)
         self.nw.solve("design")
         self.nw._convergence_check()

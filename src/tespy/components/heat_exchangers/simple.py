@@ -223,7 +223,7 @@ class SimpleHeatExchanger(Component):
             'ks_HW': dc_cp(val=10, min_val=1e-1, max_val=1e3, d=1e-2),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
-            'dissipative': dc_simple(val=True),
+            'dissipative': dc_simple(val=None),
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq=1,
                 latex=self.darcy_func_doc,
@@ -1045,6 +1045,14 @@ class SimpleHeatExchanger(Component):
             \dot{E}_\mathrm{F} & \dot{Q} > 0\\
             \end{cases}
         """
+        if self.dissipative.val is None:
+            self.dissipative.val = True
+            msg = (
+                "In a future version of TESPy, the dissipative property must "
+                "explicitly be set to True or False in the context of the "
+                f"exergy analysis for component {self.label}."
+            )
+            logger.warning(msg)
         if self.Q.val < 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 if self.dissipative.val:

@@ -163,7 +163,7 @@ in .csv-files rather than your python script.
 The :code:`init_previous` parameter can be used in design and offdesign
 calculations and works very similar to specifying an :code:`init_path`.
 In contrast, starting values are taken from the previous calculation. Specifying
-the :code:`ìnit_path` overwrites :code:`init_previous`.
+the :code:`init_path` overwrites :code:`init_previous`.
 
 Design mode
 +++++++++++
@@ -234,8 +234,8 @@ consequently the solution is obtained with numerical methods. TESPy uses the
 n-dimensional Newton-Raphson method to find the system's solution, which may
 only be found, if the network is parameterized correctly. **The number of**
 **variables n changes depending on your system's topology and your**
-**specifications**. Generally, masA presolving step reduces the amount of variables, see below
-for more information.
+**specifications**. On top of that, the presolver reduces the number of
+variables based on your model structure and your specifications.
 
 **General preprocessing**
 
@@ -311,7 +311,7 @@ result. The following steps are performed in finding starting values:
 
 * fluid composition guessing.
 * fluid property initialisation.
-* initialisation from previous simulation run (:code:`ìnit_previous`).
+* initialisation from previous simulation run (:code:`init_previous`).
 * initialisation from .csv (setting starting values from :code:`init_path`
   argument).
 
@@ -499,14 +499,14 @@ over-determined.
     determine, which parameters are still to be specified.
 
 If you are modeling a cycle, e.g. the Clausius Rankine cylce, you need to make
-a cut in the cycle using the cycle_closer or a sink and a source not to
-over-determine the system. Have a look in the
+a cut in the cycle using the :code:`CycleCloser` or a :code:`Sink` and a
+:code:`Source` not to over-determine the system. Have a look in the
 :ref:`tutorial section <tespy_basics_label>` to understand why this is
 important and how it can be implemented.
 
 If you have provided the correct number of parameters in your system and the
 calculations stops after or even before the first iteration, there might be a
-couple reasons for that:
+couple of reasons for that:
 
 - Sometimes, the fluid property database does not find a specific fluid
   property in the initialisation process, have you specified the values in the
@@ -542,6 +542,15 @@ in this case.
     residuals of your systems' equations and on the increments of the systems'
     variables. Maybe it is only one variable causing the instability, its
     increment is much larger than the increment of the other variables?
+
+If you run multiple simulations and a simulation crashed due to an internal
+error (e.g. fluid property related), and you still want the next simulations to
+perform correctly, you have to call the
+:py:meth:`tespy.networks.network.Network.reset_topology_reduction_specifications`
+method after the failed simulation and before you run the next simulation.
+Usually, this happens automatically as part of the post-processing, but in case
+the simulation crashed before that, this step cannot be executed. Then,
+restarting the simulation is not possible.
 
 Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
@@ -732,7 +741,7 @@ save the network first.
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,
-characteristics) holding the parametrization of that network. You can re-import
+characteristics) holding the parametrisation of that network. You can re-import
 the network using following code with the path to the saved documents. The
 generated network object contains the same information as a TESPy network
 created by a python script. Thus, it is possible to set your parameters in the

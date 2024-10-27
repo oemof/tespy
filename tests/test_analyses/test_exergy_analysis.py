@@ -80,9 +80,9 @@ class TestClausiusRankine:
         # component parameters
         turb.set_attr(eta_s=1)
         fwp_turb.set_attr(eta_s=1)
-        condenser.set_attr(pr=1)
+        condenser.set_attr(pr=1, dissipative=True)
         fwp.set_attr(eta_s=1)
-        steam_generator.set_attr(pr=1)
+        steam_generator.set_attr(pr=1, dissipative=False)
 
         # connection parameters
         fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
@@ -274,14 +274,13 @@ class TestRefrigerator:
         """Set up simple refrigerator."""
         self.Tamb = 20
         self.pamb = 1
-        fluids = ['R134a']
         self.nw = Network()
         self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
 
         # create components
         va = Valve('expansion valve')
         cp = Compressor('compressor')
-        cond = SimpleHeatExchanger('condenser')
+        cond = SimpleHeatExchanger('condenser', dissipative=True)
         eva = SimpleHeatExchanger('evaporator', dissipative=False)
         cc = CycleCloser('cycle closer')
 
@@ -349,7 +348,7 @@ class TestCompressedAirIn:
         # components
         amb = Source('air intake')
         cp = Compressor('compressor')
-        cooler = SimpleHeatExchanger('cooling')
+        cooler = SimpleHeatExchanger('cooling', dissipative=True)
         cas = Sink('compressed air storage')
 
         # power input bus
@@ -399,7 +398,6 @@ class TestCompressedAirOut:
         """Set up air compressed air turbine."""
         self.Tamb = 20
         self.pamb = 1
-        fluids = ['Air']
 
         # turbine part
         self.nw = Network()
@@ -407,7 +405,7 @@ class TestCompressedAirOut:
 
         # components
         cas = Source('compressed air storage')
-        reheater = SimpleHeatExchanger('reheating')
+        reheater = SimpleHeatExchanger('reheating', dissipative=False)
         turb = Turbine('turbine')
         amb = Sink('air outlet')
 
@@ -489,7 +487,6 @@ class TestCompression:
     def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
-        fluids = ['Air']
 
         # turbine part
         self.nw = Network()
@@ -548,18 +545,19 @@ class TestCompression:
             ean.network_data.E_F - ean.network_data.E_P -
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
-            'Exergy balance must be closed (residual value smaller than ' +
-            str(ERR ** 0.5) + ') for this test but is ' +
-            str(round(abs(exergy_balance), 4)) + '.')
+            'Exergy balance must be closed (residual value smaller than '
+            f'{ERR ** 0.5}) for this test but is '
+            f'{round(abs(exergy_balance), 4)}.'
+        )
         assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         E_D_agg = ean.aggregation_data['E_D'].sum()
         E_D_nw = ean.network_data.loc['E_D']
         msg = (
             'The exergy destruction of the aggregated components and '
-            'respective busses (' + str(round(E_D_agg)) + ') must be equal to '
-            'the exergy destruction of the network (' + str(round(E_D_nw)) +
-            ').')
+            f'respective busses ({round(E_D_agg)}) must be equal to the exergy '
+            f'destruction of the network ({round(E_D_nw)}).'
+        )
         assert E_D_agg == E_D_nw, msg
 
 
@@ -568,7 +566,6 @@ class TestExpansion:
     def setup_method(self):
         self.Tamb = 20
         self.pamb = 1
-        fluids = ['Air']
 
         # turbine part
         self.nw = Network()
@@ -628,16 +625,17 @@ class TestExpansion:
             ean.network_data.E_F - ean.network_data.E_P -
             ean.network_data.E_L - ean.network_data.E_D)
         msg = (
-            'Exergy balance must be closed (residual value smaller than ' +
-            str(ERR ** 0.5) + ') for this test but is ' +
-            str(round(abs(exergy_balance), 4)) + '.')
+            'Exergy balance must be closed (residual value smaller than '
+            f'{ERR ** 0.5}) for this test but is '
+            f'{round(abs(exergy_balance), 4)}.'
+        )
         assert abs(exergy_balance) <= ERR ** 0.5, msg
 
         E_D_agg = ean.aggregation_data['E_D'].sum()
         E_D_nw = ean.network_data.loc['E_D']
         msg = (
             'The exergy destruction of the aggregated components and '
-            'respective busses (' + str(round(E_D_agg)) + ') must be equal to '
-            'the exergy destruction of the network (' + str(round(E_D_nw)) +
-            ').')
+            f'respective busses ({round(E_D_agg)}) must be equal to the exergy '
+            f'destruction of the network ({round(E_D_nw)}).'
+        )
         assert E_D_agg == E_D_nw, msg

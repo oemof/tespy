@@ -769,7 +769,7 @@ class HeatExchanger(Component):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
         if self.is_variable(i2.h):
-            self.jacobian[k, i2.h.J_col] = 1 - self.eta_cold.val
+            self.jacobian[k, i2.h.J_col] = 1 - self.eff_cold.val
 
     def calc_dh_max_hot(self):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side
@@ -828,7 +828,7 @@ class HeatExchanger(Component):
         i2 = self.inl[1]
 
         if self.is_variable(i1.h):
-            self.jacobian[k, i1.h.J_col] = 1 - self.eta_hot.val
+            self.jacobian[k, i1.h.J_col] = 1 - self.eff_hot.val
 
         for c in [o1, i2]:
             if self.is_variable(c.p, increment_filter):

@@ -8,14 +8,17 @@ Bug Fixes
   available in the namespace via the :code:`@component_registry` decorator
   (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
 - Fixed a typo in the Jacobian of the hot side and cold side
-  :code:`HeatExchanger` effectiveness
-  (`PR #563 <https://github.com/oemof/tespy/pull/563>`__).
+  :code:`HeatExchanger` effectiveness.
 
 Other Changes
 #############
 - Make the :code:`reset_topology_reduction_specifications` method of the
   `Network` class a public method
   (`PR #559 <https://github.com/oemof/tespy/pull/559>`__).
+- Components of class :code:`SimpleHeatExchanger` need explicit specification
+  of the :code:`dissipative` attribute in the next major version of tespy in
+  context of the exergy analysis
+  (`PR #563 <https://github.com/oemof/tespy/pull/563>`__).
 
 Documentation
 #############

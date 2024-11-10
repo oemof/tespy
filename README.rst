@@ -1,10 +1,13 @@
 Thermal Engineering Systems in Python
 =====================================
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
-powerful simulation toolkit for thermal engineering plants such as power
-plants, district heating systems or heat pumps. It is an external extension
-module within the Open Energy Modelling Framework `oemof <https://oemof.org/>`_
-and can be used as a standalone package.
+powerful simulation toolkit for thermal engineering plants such as various
+types of power plants (including organic rankine cycles), heat pumps or
+refrigeration machines. Due to its flexibility it is actually possible to
+model any kind of thermal energy conversion process, this also includes energy
+balancing of industrial processes, district heating or HVAC systems. It is
+part of the Open Energy Modelling Framework `oemof <https://oemof.org/>`_ and
+can be used as a standalone package.
 
 .. figure:: https://raw.githubusercontent.com/oemof/tespy/9915f013c40fe418947a6e4c1fd0cd0eba45893c/docs/api/_images/logo_tespy_big.svg
     :align: center
@@ -28,10 +31,9 @@ Key Features
 ============
 * **Open** Source
 * **Generic** thermal engineering applications
-* **Automatic** model documentation in LaTeX for high transparency and
-  reproducibility
-* **Extendable** framework for the implementation of custom components and
-  component groups
+* **Extendable** framework for the implementation of custom components, fluid
+  property formulations and equations
+* **Integration** of optimization capabilities through an API to pygmo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 .. start-badges

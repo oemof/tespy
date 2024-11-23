@@ -988,6 +988,7 @@ class Connection:
         else:
 
             T = self.fluid.wrapper[fluid]._T_max
+            # T_max depends on pressure for incompressibles
             while True:
                 try:
                     hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)

@@ -23,6 +23,8 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.helpers import convert_from_SI
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -237,6 +239,14 @@ class HeatExchanger(Component):
                 min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+            'dp1': dc_cp(
+                min_val=0, max_val=10000, num_eq=1,
+                deriv=self.dp_deriv, func=self.dp_func,
+                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}),
+            'dp2': dc_cp(
+                min_val=0, max_val=10000, num_eq=1,
+                deriv=self.dp_deriv, func=self.dp_func,
+                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -284,6 +294,34 @@ class HeatExchanger(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
+
+        if self.dp1.is_set:
+            self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
+
+        if self.dp2.is_set:
+            self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
+
+    def dp_func(self, dp=None, inconn=None, outconn=None):
+        # dp is a string: "dp1" or "dp2"
+        inlet_conn = self.inl[inconn]
+        outlet_conn = self.outl[outconn]
+        dp_value = self.get_attr(dp).val_SI
+        # 0 = ...
+        # dp = pressure inlet - pressure outlet
+        return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
+
+    def dp_deriv(self, increment_filter, k, dp=None, inconn=None, outconn=None):
+        inlet_conn = self.inl[inconn]
+        outlet_conn = self.outl[outconn]
+
+        if inlet_conn.p.is_var:
+            self.jacobian[k, inlet_conn.p.J_col] = 1
+
+        if outlet_conn.p.is_var:
+            self.jacobian[k, outlet_conn.p.J_col] = -1
 
     def energy_balance_func(self):
         r"""
@@ -1043,6 +1081,11 @@ class HeatExchanger(Component):
                 self.outl[i].p.val_SI / self.inl[i].p.val_SI)
             self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
                 self.inl[i], self.outl[i]
+            )
+            self.get_attr(f'dp{i + 1}').val_SI = (
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI)
+            self.get_attr(f'dp{i + 1}').val = convert_from_SI(
+                'p', self.get_attr(f'dp{i + 1}').val_SI, self.inl[i].p.unit
             )
 
         # kA and logarithmic temperature difference

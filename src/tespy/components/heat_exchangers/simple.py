@@ -210,8 +210,12 @@ class SimpleHeatExchanger(Component):
                 func=self.energy_balance_func),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                deriv=self.pr_deriv,
+                latex=self.pr_func_doc,
+                func=self.pr_func,
+                func_params={'pr': 'pr'},
+                structure_matrix=self.pr_structure_matrix
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -250,10 +254,10 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
+    def preprocess(self, row_idx):
+        super().preprocess(row_idx)
 
-        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+        # self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
     def energy_balance_func(self):
         r"""

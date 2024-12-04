@@ -606,21 +606,60 @@ class Connection:
 
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
 
-    def preprocess(self):
+    def preprocess(self, row_idx):
         self.num_eq = 0
-        self.it = 0
-        self.equations = {}
+
+        self._structure_matrix = {}
+        self._rhs = {}
 
         for parameter in self.parameters:
             container = self.get_attr(parameter)
-            if container.is_set and not container._solved:
-                self.equations[self.num_eq] = parameter
-                self.num_eq += self.parameters[parameter].num_eq
-            elif container._solved:
-                container._solved = False
+            if container.is_set and container.func is not None:
+                num_eq = self.parameters[parameter].num_eq
+                # the row index matches the location in the network's rhs
+                # and matrix
+                self._rhs.update({
+                    i + row_idx: 0
+                    for i in range(self.num_eq, self.num_eq + num_eq)
+                })
+                if container.structure_matrix is not None:
+                    container.structure_matrix(row_idx + self.num_eq, **container.func_params)
+                self.num_eq += num_eq
 
-        self.residual = np.zeros(self.num_eq)
-        self.jacobian = {}
+    def _presolve(self):
+        specifications = []
+        for name, container in self.property_data.items():
+            if name in ["m", "p", "h", "T", "x", "Td_bp", "v"]:
+                if container.get_is_set():
+                    specifications += [name]
+
+        num_specs = len(specifications)
+
+        if num_specs > 3:
+            msg = (
+                "You have specified more than 3 parameters for the connection "
+                f"{self.label} with a known fluid compoistion: "
+                f"{', '.join(specifications)}. This overdetermines the state "
+                "of the fluid."
+            )
+            raise TESPyNetworkError(msg)
+
+        if not self.h.get_is_set() and self.p.get_is_set():
+            if self.T.is_set:
+                self.h.val_SI = h_mix_pT(self.p.get_val_SI(), self.T.val_SI, self.fluid_data, self.mixing_rule)
+            elif self.Td_bp.is_set:
+                T_sat = T_sat_p(self.p.get_val_SI(), self.fluid_data)
+                self.h.val_SI = h_mix_pT(self.p.get_val_SI(), T_sat + self.Td_bp.val_SI, self.fluid_data)
+            elif self.x.is_set:
+                self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+
+        elif not self.h.get_is_set() and not self.p.get_is_set():
+            if self.T.is_set and self.x.is_set:
+                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
+                self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+            if self.T.is_set and self.Td_bp.is_set:
+                self.p.val_SI = p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data)
+                self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
 
     def simplify_specifications(self):
         systemvar_specs = []
@@ -688,15 +727,18 @@ class Connection:
             ),
             "m_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "m"}
+                num_eq=1, func_params={"variable": "m"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "p_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "p"}
+                num_eq=1, func_params={"variable": "p"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "h_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "h"}
+                num_eq=1, func_params={"variable": "h"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "T_ref": dc_ref(
                 func=self.T_ref_func, deriv=self.T_ref_deriv, num_eq=1
@@ -731,6 +773,15 @@ class Connection:
 
         if ref.obj.get_attr(variable).is_var:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
+
+    def primary_ref_structure_matrix(self, k, **kwargs):
+        variable = kwargs["variable"]
+        ref = self.get_attr(f"{variable}_ref").ref
+        self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
+        self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
+        print(ref.delta)
+        self._rhs[k] = ref.delta
+        print(self._structure_matrix)
 
     def calc_T(self, T0=None):
         if T0 is None:

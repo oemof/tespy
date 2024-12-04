@@ -125,21 +125,27 @@ class Splitter(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'energy_balance_constraints': {
+            'mass_flow_constraints': dc_cmc(**{
+                'func': self.mass_flow_func,
+                'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,
+                'latex': self.mass_flow_func_doc,
+                'num_eq': 1
+            }),
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': True, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
+                'constant_deriv': True,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': self.num_o
+            }),
             'pressure_constraints': {
                 'func': self.pressure_equality_func,
                 'deriv': self.pressure_equality_deriv,
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1}
+                'num_eq': self.num_i + self.num_o - 1
+            }
         }
 
     @staticmethod

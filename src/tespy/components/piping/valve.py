@@ -16,6 +16,7 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 
@@ -140,8 +141,12 @@ class Valve(Component):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+                deriv=self.pr_deriv,
+                latex=self.pr_func_doc,
+                func=self.pr_func,
+                func_params={'pr': 'pr'},
+                structure_matrix=self.pr_structure_matrix
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -153,14 +158,15 @@ class Valve(Component):
         }
 
     def get_mandatory_constraints(self):
-        return {
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
-        }
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq': 1,
+                'func_params': {'variable': 'h'}
+            })
+        })
+        return constraints
 
     @staticmethod
     def inlets():

@@ -18,6 +18,7 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.document_models import generate_latex_eq
@@ -232,11 +233,15 @@ class HeatExchanger(Component):
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr1'}),
+                func=self.pr_func, func_params={'pr': 'pr1'},
+                structure_matrix=self.pr_structure_matrix
+            ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
+                structure_matrix=self.pr_structure_matrix
+            ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -269,13 +274,18 @@ class HeatExchanger(Component):
         }
 
     def get_mandatory_constraints(self):
-        return {
-            'energy_balance_constraints': {
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1}
-        }
+                'constant_deriv': False,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': 1,
+                'structure_matrix': None
+            })
+        })
+        return constraints
 
     @staticmethod
     def inlets():

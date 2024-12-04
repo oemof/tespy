@@ -15,6 +15,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 
 
 @component_registry
@@ -105,18 +106,16 @@ class CycleCloser(Component):
 
     def get_mandatory_constraints(self):
         return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 1},
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+            'pressure_equality_constraint': dc_cmc(**{
+                'num_eq': 1,
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_equality_constraint': dc_cmc(**{
+                'num_eq': 1,
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'func_params': {'variable': 'h'}
+            })
         }
 
     @staticmethod
@@ -159,8 +158,8 @@ class CycleCloser(Component):
         branch["components"] += [self]
         return
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
+    def preprocess(self, row_idx):
+        super().preprocess(row_idx)
         self._propagation_start = False
 
     def calc_parameters(self):

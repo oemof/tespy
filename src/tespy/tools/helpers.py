@@ -165,7 +165,7 @@ def latex_unit(unit):
 class UserDefinedEquation:
 
     def __init__(self, label, func, deriv, conns, params={},
-                 latex={}):
+                 latex={}, structure_matrix=None):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -341,12 +341,19 @@ class UserDefinedEquation:
         else:
             msg = (
                 'Parameter conns must be a list of '
-                'tespy.connections.connection.Connection objects.')
+                'tespy.connections.connection.Connection objects.'
+            )
             logger.error(msg)
             raise TypeError(msg)
 
         self.func = func
         self.deriv = deriv
+        if structure_matrix is None:
+            self.structure_matrix = {}
+        else:
+            self.structure_matrix = structure_matrix
+
+        self.right_hand_side = {}
 
         if isinstance(params, dict):
             self.params = params
@@ -370,6 +377,9 @@ class UserDefinedEquation:
     def solve(self):
         self.residual = self.func(self)
         self.deriv(self)
+
+    def get_structure_matrix(self):
+        return
 
     def numeric_deriv(self, dx, conn):
         r"""

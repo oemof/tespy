@@ -149,24 +149,33 @@ class Merge(NodeBase):
             num_m_eq = 1
         return {
             'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': num_m_eq},
+                'func': self.mass_flow_func,
+                'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,
+                'latex': self.mass_flow_func_doc,
+                'num_eq': num_m_eq
+            },
             'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': num_fluid_eq},
+                'func': self.fluid_func,
+                'deriv': self.fluid_deriv,
+                'constant_deriv': False,
+                'latex': self.fluid_func_doc,
+                'num_eq': num_fluid_eq
+            },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
+                'constant_deriv': False,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': 1
+            },
             'pressure_constraints': {
                 'func': self.pressure_equality_func,
                 'deriv': self.pressure_equality_deriv,
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1}
+                'num_eq': self.num_i + self.num_o - 1
+            }
         }
 
     def inlets(self):

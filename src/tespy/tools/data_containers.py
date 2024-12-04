@@ -196,7 +196,7 @@ class ComponentCharacteristics(DataContainer):
             'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq': 0
+            'num_eq': 0, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -241,7 +241,7 @@ class ComponentCharacteristicMaps(DataContainer):
         return {
             'char_func': None, 'is_set': False, 'param': None, 'latex': None,
             'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq': 0
+            'num_eq': 0, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -252,6 +252,43 @@ class ComponentCharacteristicMaps(DataContainer):
         for k in ["is_set", "param"]:
             export.update({k: self.get_attr(k)})
         return export
+
+
+class ComponentMandatoryConstraints(DataContainer):
+    """
+    Data container for component mandatory constraints.
+    """
+
+    @staticmethod
+    def attr():
+        """
+        Return the available attributes for a ComponentProperties type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            'num_eq': 0,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
+            'latex': None,
+            'constant_deriv': False,
+            'structure_matrix': None
+        }
+
+    def _serialize(self):
+        keys = self._serializable_keys()
+        return {k: self.get_attr(k) for k in keys}
+
+    @staticmethod
+    def _serializable_keys():
+        return [
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+        ]
 
 
 class ComponentProperties(DataContainer):
@@ -302,7 +339,7 @@ class ComponentProperties(DataContainer):
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
             'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
-            'latex': None
+            'latex': None, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -362,6 +399,27 @@ class FluidComposition(DataContainer):
             "is_var": set(),
             "J_col": dict(),
         }
+
+    def get_is_var(self):
+        reference = self._reference_container
+        if reference:
+            return reference.is_var
+        else:
+            return self.is_var
+
+    def get_val(self):
+        reference = self._reference_container
+        if reference:
+            return {f: val * self._factor + self._offset for f, val in reference.val.items()}
+        else:
+            return reference.val
+
+    def get_reference_val(self):
+        reference = self._reference_container
+        if reference:
+            return {f: val * self._factor + self._offset for f, val in reference.val.items()}
+        else:
+            return reference.val
 
     def _serialize(self):
         export = {"val": self.val}
@@ -492,16 +550,49 @@ class FluidProperties(DataContainer):
             "func": None,
             "deriv": None,
             "constant_deriv": False,
+            "structure_matrix": None,
             "latex": None,
             "num_eq": 0,
             "J_col": None,
             "func_params": {},
-            "_solved": False
+            "_solved": False,
+            "_reference_container": None,
+            "_factor": None,
+            "_offset": None
         }
 
     def _serialize(self):
         keys = ["val", "val0", "val_SI", "is_set", "unit"]
         return {k: self.get_attr(k) for k in keys}
+
+    def get_is_set(self):
+        reference = self._reference_container
+        if reference:
+            return self._reference_container.is_set
+        else:
+            return self.is_set
+
+    def get_is_var(self):
+        reference = self._reference_container
+        if reference:
+            return self._reference_container.is_var
+        else:
+            return self.is_var
+
+    def get_val_SI(self):
+        reference = self._reference_container
+        if reference:
+            return self._reference_container.val_SI * self._factor + self._offset
+        else:
+            return self.val_SI
+
+    def get_reference_val_SI(self):
+        reference = self._reference_container
+        if reference:
+            return (self.val_SI - self._offset) / self._factor
+        else:
+            msg = "DataContainer has no reference object."
+            raise ValueError(msg)
 
 
 class ReferencedFluidProperties(DataContainer):
@@ -523,6 +614,7 @@ class ReferencedFluidProperties(DataContainer):
             "unit": None,
             "func": None,
             "deriv": None,
+            "structure_matrix": None,
             "num_eq": 0,
             "func_params": {},
             "_solved": False

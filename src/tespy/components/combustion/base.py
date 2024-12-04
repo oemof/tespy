@@ -179,26 +179,33 @@ class CombustionChamber(Component):
         self.fluid_eqs_list = list(self.fluid_eqs)
         return {
             'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
+                'func': self.mass_flow_func,
+                'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,
+                'latex': self.mass_flow_func_doc,
+                'num_eq': 1
+            },
             'reactor_pressure_constraints': {
                 'func': self.combustion_pressure_func,
                 'deriv': self.combustion_pressure_deriv,
                 'constant_deriv': True,
                 'latex': self.combustion_pressure_func_doc,
-                'num_eq': 2},
+                'num_eq': 2
+            },
             'stoichiometry_constraints': {
                 'func': self.stoichiometry_func,
                 'deriv': self.stoichiometry_deriv,
                 'constant_deriv': False,
                 'latex': self.stoichiometry_func_doc,
-                'num_eq': len(self.fluid_eqs)},
+                'num_eq': len(self.fluid_eqs)
+            },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1}
+                'constant_deriv': False,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': 1
+            }
         }
 
     @staticmethod

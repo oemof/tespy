@@ -21,6 +21,7 @@ from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
@@ -326,7 +327,7 @@ class Component:
 
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_nw_vars):
+    def preprocess(self, row_idx):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -335,9 +336,9 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        self.it = 0
-        self.num_eq = 0
-        self.vars = {}
+        # self.it = 0
+        # self.num_eq = 0
+        # self.vars = {}
         self.num_vars = 0
         self.constraints = self.get_mandatory_constraints().copy()
         self.prop_specifications = {}
@@ -346,24 +347,33 @@ class Component:
         self.char_specifications = {}
         self.__dict__.update(self.constraints)
 
-        for constraint in self.constraints.values():
-            self.num_eq += constraint['num_eq']
+        self._structure_matrix = {}
+        self._rhs = {}
 
-        for key, val in self.parameters.items():
-            data = self.get_attr(key)
-            if isinstance(val, dc_cp):
+        sum_eq = 0
+
+        for constraint in self.constraints.values():
+            self._rhs.update(
+                {i + row_idx: 0 for i in range(sum_eq, sum_eq + constraint.num_eq)}
+            )
+            if constraint.structure_matrix is not None:
+                constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
+            sum_eq += constraint.num_eq
+
+        for key, data in self.parameters.items():
+            if isinstance(data, dc_cp):
                 if data.is_var:
-                    data.J_col = num_nw_vars + self.num_vars
+                    # data.J_col = num_nw_vars + self.num_vars
                     self.num_vars += 1
                     self.vars[data] = key
 
-                self.prop_specifications[key] = val.is_set
-                self.var_specifications[key] = val.is_var
+                self.prop_specifications[key] = data.is_set
+                self.var_specifications[key] = data.is_var
 
             # component characteristics
-            elif isinstance(val, dc_cc):
+            elif isinstance(data, dc_cc):
                 if data.func is not None:
-                    self.char_specifications[key] = val.is_set
+                    self.char_specifications[key] = data.is_set
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
@@ -372,9 +382,9 @@ class Component:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
             # component characteristics
-            elif isinstance(val, dc_cm):
+            elif isinstance(data, dc_cm):
                 if data.func is not None:
-                    self.char_specifications[key] = val.is_set
+                    self.char_specifications[key] = data.is_set
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
@@ -383,7 +393,7 @@ class Component:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
             # grouped component properties
-            elif isinstance(val, dc_gcp):
+            elif isinstance(data, dc_gcp):
                 is_set = True
                 for e in data.elements:
                     if not self.get_attr(e).is_set:
@@ -392,45 +402,81 @@ class Component:
                 if is_set:
                     data.set_attr(is_set=True)
                 elif data.is_set:
-                    start = (
+                    msg = (
                         'All parameters of the component group have to be '
                         'specified! This component group uses the following '
-                        'parameters: '
+                        f'parameters: {", ".join(data.elements)} at '
+                        f'{self.label}. Group will be set to False.'
                     )
-                    end = f" at {self.label}. Group will be set to False."
-                    logger.warning(start + ', '.join(val.elements) + end)
-                    val.set_attr(is_set=False)
+                    logger.warning(msg)
+                    data.set_attr(is_set=False)
                 else:
-                    val.set_attr(is_set=False)
-                self.group_specifications[key] = val.is_set
+                    data.set_attr(is_set=False)
+                self.group_specifications[key] = data.is_set
 
             # grouped component characteristics
-            elif isinstance(val, dc_gcc):
-                self.group_specifications[key] = val.is_set
-
+            elif isinstance(data, dc_gcc):
+                self.group_specifications[key] = data.is_set
             # component properties
             if data.is_set and data.func is not None:
-                self.num_eq += data.num_eq
+                self._rhs.update(
+                    {i + row_idx: 0 for i in range(sum_eq, sum_eq + data.num_eq)}
+                )
+                if data.structure_matrix is not None:
+                    data.structure_matrix(row_idx + sum_eq, **data.func_params)
+                sum_eq += data.num_eq
 
-        self.jacobian = {}
-        self.residual = np.zeros(self.num_eq)
+        self.num_eq = sum_eq
+        # self._structure_matrix = {}
+        # self._rhs = {i: 0 for i in range(self.num_eq)}
 
-        sum_eq = 0
-        for constraint in self.constraints.values():
-            num_eq = constraint['num_eq']
-            if constraint['constant_deriv']:
-                constraint["deriv"](sum_eq)
-            sum_eq += num_eq
+        # sum_eq = 0
+        # for constraint in self.constraints.values():
+        #     if constraint.structure_matrix is not None:
+        #         constraint.structure_matrix(sum_eq, **constraint.func_params)
+        #     # increment happens independently of the fact if there are any
+        #     # values entered in the structure matrix
+        #     sum_eq += constraint.num_eq
 
-        # done
-        msg = f"The component {self.label} has {self.num_vars} variables."
-        logger.debug(msg)
+        # for parameter in self.parameters.values():
+        #     if parameter.is_set and parameter.func is not None:
+        #         if parameter.structure_matrix is not None:
+        #             parameter.structure_matrix(sum_eq, **parameter.func_params)
+        #         # increment happens independently of the fact if there are any
+        #         # values entered in the structure matrix
+        #         sum_eq += parameter.num_eq
+
+        # self.jacobian = {}
+        # self.residual = np.zeros(self.num_eq)
+
+        # sum_eq = 0
+        # for constraint in self.constraints.values():
+        #     constraint['structure_function'](sum_eq)
+        #     num_eq = constraint['num_eq']
+        #     if constraint['constant_deriv']:
+        #         # this has a side effect
+        #         constraint["deriv"](sum_eq)
+        #     sum_eq += num_eq
+
+        # msg = f"The component {self.label} has {self.num_vars} variables."
+        # logger.debug(msg)
 
     def get_parameters(self):
         return {}
 
     def get_mandatory_constraints(self):
-        return {}
+        return {
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
+        }
 
     @staticmethod
     def inlets():
@@ -1081,13 +1127,31 @@ class Component:
         """
         pr = self.get_attr(pr)
         i = self.inl[inconn]
-        o = self.outl[inconn]
+        o = self.outl[outconn]
         if i.p.is_var:
             self.jacobian[k, i.p.J_col] = pr.val
         if o.p.is_var:
             self.jacobian[k, o.p.J_col] = -1
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
+
+    def variable_equality_structure_matrix(self, k, **kwargs):
+        variable = kwargs.get("variable")
+        for count, (i, o) in enumerate(zip(self.inl, self.outl)):
+            self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
+            self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
+
+    def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
+        pr = self.get_attr(pr)
+        i = self.inl[inconn]
+        o = self.outl[outconn]
+
+        if not pr.is_var:
+            self._structure_matrix[k, i.p.sm_col] = pr.val
+        else:
+            self._structure_matrix[k, pr.sm_col] = i.p.val_SI
+
+        self._structure_matrix[k, o.p.sm_col] = -1
 
     def calc_zeta(self, i, o):
         if abs(i.m.val_SI) <= 1e-4:

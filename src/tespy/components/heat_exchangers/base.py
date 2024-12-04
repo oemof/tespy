@@ -108,6 +108,12 @@ class HeatExchanger(Component):
     pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
+    dp1 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at hot side, :math:`dp/\text{Pa}`.
+
+    dp2 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at cold side, :math:`dp/\text{Pa}`.
+
     zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
@@ -121,6 +127,9 @@ class HeatExchanger(Component):
 
     ttd_u : float, dict
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+
+    ttd_min : float, dict
+        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -231,6 +240,9 @@ class HeatExchanger(Component):
             'ttd_l': dc_cp(
                 min_val=0, num_eq=1, func=self.ttd_l_func,
                 deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
+            'ttd_min': dc_cp(
+                min_val=0, num_eq=1, func=self.ttd_min_func,
+                deriv=self.ttd_min_deriv),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
@@ -305,21 +317,60 @@ class HeatExchanger(Component):
             self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
 
     def dp_func(self, dp=None, inconn=None, outconn=None):
-        # dp is a string: "dp1" or "dp2"
+        """Calculate residual value of pressure difference function.
+
+        Parameters
+        ----------
+        dp : str
+            Component parameter to evaluate the dp_func on, e.g.
+            :code:`dp1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        Returns
+        -------
+        residual : float
+            Residual value of function.
+
+            .. math::
+
+                0 = p_{in} - p_{out} - dp
+        """
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         dp_value = self.get_attr(dp).val_SI
-        # 0 = ...
-        # dp = pressure inlet - pressure outlet
         return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
 
     def dp_deriv(self, increment_filter, k, dp=None, inconn=None, outconn=None):
+        r"""
+        Calculate residual value of pressure difference function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+
+        dp : str
+            Component parameter to evaluate the dp_func on, e.g.
+            :code:`dp1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
-
         if inlet_conn.p.is_var:
             self.jacobian[k, inlet_conn.p.J_col] = 1
-
         if outlet_conn.p.is_var:
             self.jacobian[k, outlet_conn.p.J_col] = -1
 
@@ -744,6 +795,56 @@ class HeatExchanger(Component):
             if self.is_variable(c.h, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
+    def ttd_min_func(self):
+        r"""
+        Equation for upper terminal temperature difference.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                ttd_{l} = T_{out,1} - T_{in,2}
+                ttd_{u} = T_{in,1} - T_{out,2}
+                0 = \text{min}\left(ttd_{u}, ttd_{l}\right)
+
+        """
+        i = self.inl[1]
+        o = self.outl[0]
+        T_i2 = i.calc_T()
+        T_o1 = o.calc_T()
+
+        i = self.inl[0]
+        o = self.outl[1]
+        T_i1 = i.calc_T()
+        T_o2 = o.calc_T()
+
+        ttd_l = T_o1 - T_i2
+        ttd_u = T_i1 - T_o2
+
+        return self.ttd_min.val - min(ttd_l, ttd_u)
+
+    def ttd_min_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of minimum terminal temperature function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.ttd_min_func
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p, increment_filter):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+
     def calc_dh_max_cold(self):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
 
@@ -1074,6 +1175,7 @@ class HeatExchanger(Component):
         )
         self.ttd_u.val = self.inl[0].T.val_SI - self.outl[1].T.val_SI
         self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
+        self.ttd_min.val = min(self.ttd_u.val, self.ttd_min.val)
 
         # pr and zeta
         for i in range(2):

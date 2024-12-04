@@ -48,6 +48,7 @@ class HeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
@@ -55,6 +56,8 @@ class HeatExchanger(Component):
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`
     - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - hot side :py:meth:`tespy.components.component.Component.dp_func`
+    - cold side :py:meth:`tespy.components.component.Component.dp_func`
 
     Inlets/Outlets
 
@@ -1111,7 +1114,6 @@ class HeatExchanger(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # component parameters
         self.Q.val = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
@@ -1121,9 +1123,10 @@ class HeatExchanger(Component):
 
         # pr and zeta
         for i in range(2):
-            self.get_attr('pr' + str(i + 1)).val = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
+            self.get_attr(f'pr{i + 1}').val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI
+            )
+            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
                 self.inl[i], self.outl[i]
             )
             self.get_attr(f'dp{i + 1}').val_SI = (

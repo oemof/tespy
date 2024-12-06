@@ -112,10 +112,12 @@ class HeatExchanger(Component):
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     dp1 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at hot side, :math:`dp/\text{Pa}`.
+        Inlet to outlet pressure delta at hot side, unit is the network's
+        pressure unit!.
 
     dp2 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at cold side, :math:`dp/\text{Pa}`.
+        Inlet to outlet pressure delta at cold side, unit is the network's
+        pressure unit!.
 
     zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
@@ -255,11 +257,11 @@ class HeatExchanger(Component):
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
             'dp1': dc_cp(
-                min_val=0, max_val=10000, num_eq=1,
+                min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.dp_deriv, func=self.dp_func,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}),
             'dp2': dc_cp(
-                min_val=0, max_val=10000, num_eq=1,
+                min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.dp_deriv, func=self.dp_func,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}),
             'zeta1': dc_cp(

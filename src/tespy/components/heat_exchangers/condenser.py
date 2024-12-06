@@ -112,10 +112,12 @@ class Condenser(HeatExchanger):
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
     dp1 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at hot side, :math:`dp/\text{Pa}`.
+        Inlet to outlet pressure delta at hot side, unit is the network's
+        pressure unit!.
 
     dp2 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at cold side, :math:`dp/\text{Pa}`.
+        Inlet to outlet pressure delta at cold side, unit is the network's
+        pressure unit!.
 
     zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,

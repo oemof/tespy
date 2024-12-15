@@ -775,26 +775,24 @@ class Connection:
         ref = self.get_attr(f"{variable}_ref").ref
         self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
         self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
-        print(ref.delta)
-        self._rhs[k] = ref.delta
-        print(self._structure_matrix)
+        self._rhs[k] = ref.delta_SI
 
     def calc_T(self, T0=None):
         if T0 is None:
             T0 = self.T.val_SI
-        return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
+        return T_mix_ph(self.p.get_val_SI(), self.h.get_val_SI(), self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, k, **kwargs):
         self.residual[k] = self.calc_T() - self.T.val_SI
 
     def T_deriv(self, k, **kwargs):
-        if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+        if self.p.get_is_var():
+            self.jacobian[k, self.p.get_J_col()] = (
+                dT_mix_dph(self.p.get_val_SI(), self.h.get_val_SI(), self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
-        if self.h.is_var:
-            self.jacobian[k, self.h.J_col] = (
-                dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
+        if self.h.get_is_var():
+            self.jacobian[k, self.h.get_J_col()] = (
+                dT_mix_pdh(self.p.get_val_SI(), self.h.get_val_SI(), self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
         for fluid in self.fluid.is_var:
             self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
@@ -811,13 +809,13 @@ class Connection:
         # first part of sum is identical to direct temperature specification
         self.T_deriv(k, **kwargs)
         ref = self.T_ref.ref
-        if ref.obj.p.is_var:
-            self.jacobian[k, ref.obj.p.J_col] = -(
-                dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+        if ref.obj.p.get_is_var():
+            self.jacobian[k, ref.obj.p.get_J_col()] = -(
+                dT_mix_dph(ref.obj.p.get_val_SI(), ref.obj.h.get_val_SI(), ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
-        if ref.obj.h.is_var:
-            self.jacobian[k, ref.obj.h.J_col] = -(
-                dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
+        if ref.obj.h.get_is_var():
+            self.jacobian[k, ref.obj.h.get_J_col()] = -(
+                dT_mix_pdh(ref.obj.p.get_val_SI(), ref.obj.h.get_val_SI(), ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
         for fluid in ref.obj.fluid.is_var:
             if not self._increment_filter[ref.obj.fluid.J_col[fluid]]:
@@ -878,19 +876,22 @@ class Connection:
 
     def calc_x(self):
         try:
-            return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return Q_mix_ph(self.p.get_val_SI(), self.h.get_val_SI(), self.fluid_data)
         except NotImplementedError:
             return np.nan
 
     def x_func(self, k, **kwargs):
         # saturated steam fraction
-        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        self.residual[k] = (
+            self.h.get_val_SI()
+            - h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+        )
 
     def x_deriv(self, k, **kwargs):
-        if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-        if self.h.is_var:
-            self.jacobian[k, self.h.J_col] = 1
+        if self.p.get_is_var():
+            self.jacobian[k, self.p.get_J_col()] = -dh_mix_dpQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+        if self.h.get_is_var():
+            self.jacobian[k, self.h.get_J_col()] = 1
 
     def calc_T_sat(self):
         try:

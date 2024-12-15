@@ -1814,12 +1814,13 @@ class Network:
                 logger.warning(msg)
 
             for key in ['m', 'p', 'h']:
-                if c.get_attr(key).is_var:
+                if c.get_attr(key).get_is_var():
                     if not c.good_starting_values:
                         self.init_val0(c, key)
                     c.get_attr(key).val_SI = hlp.convert_to_SI(
                         key, c.get_attr(key).val0, c.get_attr(key).unit
                     )
+                    c.get_attr(key)._reference_container.val_SI = c.get_attr(key).get_reference_val_SI()
 
             self.init_count_connections_parameters(c)
 
@@ -1833,7 +1834,7 @@ class Network:
                                 c.get_attr(key).ref.obj.get_attr(prop).val_SI
                                 * c.get_attr(key).ref.factor
                                 + c.get_attr(key).ref.delta_SI
-                                )
+                            )
 
                 self.init_precalc_properties(c)
 

@@ -619,15 +619,12 @@ class Connection:
                 num_eq = self.parameters[parameter].num_eq
                 # the row index matches the location in the network's rhs
                 # and matrix
-                self._rhs.update({
-                    i + row_idx: 0
-                    for i in range(self.num_eq, self.num_eq + num_eq)
-                })
-                if container.structure_matrix is not None:
-                    container.structure_matrix(row_idx + self.num_eq, **container.func_params)
                 for i in range(self.num_eq, self.num_eq + num_eq):
                     self._equation_lookup[i + row_idx] = parameter
                     self._rhs[i + row_idx] = 0
+                # the structure matrix function also computes the rhs
+                if container.structure_matrix is not None:
+                    container.structure_matrix(row_idx + self.num_eq, **container.func_params)
 
                 self.num_eq += num_eq
 

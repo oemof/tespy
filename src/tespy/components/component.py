@@ -353,11 +353,12 @@ class Component:
         sum_eq = 0
 
         for name, constraint in self.constraints.items():
-            if constraint.structure_matrix is not None:
-                constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
             for i in range(sum_eq, sum_eq + constraint.num_eq):
                 self._rhs[i + row_idx] = 0
                 self._equation_lookup[i + row_idx] = name
+
+            if constraint.structure_matrix is not None:
+                constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
             sum_eq += constraint.num_eq
 
         for key, data in self.parameters.items():

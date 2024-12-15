@@ -310,13 +310,11 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m):
-            self.jacobian[k, i.m.get_J_col()] = o.h.get_val_SI() - i.h.get_val_SI()
-        if self.is_variable(i.h):
-            self.jacobian[k, i.h.get_J_col()] = -i.m.get_val_SI()
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.get_J_col()] = i.m.get_val_SI()
-        # custom variable Q
+        self._partial_derivative(i, 'm', o.h.get_val_SI() - i.h.get_val_SI(), k)
+        self._partial_derivative(i, 'h', -i.m.get_val_SI(), k)
+        self._partial_derivative(o, 'h', i.m.get_val_SI(), k)
+
+        # custom variable Q does not work with the new function yet
         if self.Q.is_var:
             self.jacobian[k, self.Q.J_col] = -1
 

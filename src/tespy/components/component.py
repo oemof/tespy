@@ -495,6 +495,16 @@ class Component:
                 return True
         return False
 
+    def _partial_derivative(self, conn, dx, value, eq_num, increment_filter=None):
+        var = conn.get_attr(dx)
+        if self.is_variable(var, increment_filter):
+            if callable(value):
+                self.jacobian[eq_num, var.get_J_col()] = self.numeric_deriv(value, dx, conn)
+            else:
+                result = value
+            self.jacobian[eq_num, var.get_J_col()] = result
+
+
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
         r"""
         Generic method to access characteristic function parameters.
@@ -924,123 +934,6 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def pressure_equality_func(self):
-        r"""
-        Equation for pressure equality.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_{in,i} - p_{out,i} \;\forall i\in\text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            residual += [self.inl[i].p.val_SI - self.outl[i].p.val_SI]
-        return residual
-
-    def pressure_equality_func_doc(self, label):
-        r"""
-        Equation for pressure equality.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=p_{\mathrm{in,}i}-p_{\mathrm{out,}i}'
-            r'\; \forall i \in [' + indices + r']')
-        return generate_latex_eq(self, latex, label)
-
-    def pressure_equality_deriv(self, k):
-        r"""
-        Calculate partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the mass flow balance
-            equations.
-        """
-        for i in range(self.num_i):
-            if self.inl[i].p.is_var:
-                self.jacobian[k + i, self.inl[i].p.J_col] = 1
-            if self.outl[i].p.is_var:
-                self.jacobian[k + i, self.outl[i].p.J_col] = -1
-
-    def enthalpy_equality_func(self):
-        r"""
-        Equation for enthalpy equality.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equations.
-
-            .. math::
-
-                0 = h_{in,i} - h_{out,i} \;\forall i\in\text{inlets}
-        """
-        residual = []
-        for i in range(self.num_i):
-            residual += [self.inl[i].h.val_SI - self.outl[i].h.val_SI]
-        return residual
-
-    def enthalpy_equality_func_doc(self, label):
-        r"""
-        Equation for enthalpy equality.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        indices = list(range(1, self.num_i + 1))
-        if len(indices) > 1:
-            indices = ', '.join(str(idx) for idx in indices)
-        else:
-            indices = str(indices[0])
-        latex = (
-            r'0=h_{\mathrm{in,}i}-h_{\mathrm{out,}i}'
-            r'\; \forall i \in [' + indices + r']'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def enthalpy_equality_deriv(self, k):
-        r"""
-        Calculate partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the mass flow balance
-            equations.
-        """
-        for i in range(self.num_i):
-            if self.inl[i].h.is_var:
-                self.jacobian[k + i, self.inl[i].h.J_col] = 1
-            if self.outl[i].h.is_var:
-                self.jacobian[k + i, self.outl[i].h.J_col] = -1
-
     def numeric_deriv(self, func, dx, conn=None, **kwargs):
         r"""
         Calculate partial derivative of the function func to dx.
@@ -1075,7 +968,7 @@ class Component:
                 0 = p_{in} \cdot pr - p_{out}
         """
         pr = self.get_attr(pr)
-        return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
+        return self.inl[inconn].p.get_val_SI() * pr.val - self.outl[outconn].p.get_val_SI()
 
     def pr_func_doc(self, label, pr='', inconn=0, outconn=0):
         r"""
@@ -1130,11 +1023,11 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[outconn]
         if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col] = pr.val
+            self.jacobian[k, i.p.get_J_col()] = pr.val
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
+            self.jacobian[k, o.p.get_J_col()] = -1
         if pr.is_var:
-            self.jacobian[k, self.pr.J_col] = i.p.val_SI
+            self.jacobian[k, self.pr.get_J_col()] = i.p.get_val_SI()
 
     def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
         pr = self.get_attr(pr)

@@ -252,14 +252,10 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.get_J_col()] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.get_J_col()] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.get_J_col()] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.get_J_col()] = self.eta_s.val
+        self._partial_derivative(i, 'p', f, k, increment_filter)
+        self._partial_derivative(o, 'p', f, k, increment_filter)
+        self._partial_derivative(i, 'h', f, k, increment_filter)
+        self._partial_derivative(o, 'h', self.eta_s.val, k, increment_filter)
 
     def eta_s_char_func(self):
         r"""

@@ -1,0 +1,14 @@
+v0.7.8 - Newton's Nature (December, 04, 2024)
++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- The `HeatExchanger` class now has three new attributes, :code:`dp1`,
+  :code:`dp2` (hot side and cold side pressure drop in network pressure unit)
+  as well as :code:`ttd_min` for the minimal value of the terminal temperature
+  diference values
+  (`PR #581 <https://github.com/oemof/tespy/pull/581>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

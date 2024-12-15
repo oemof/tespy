@@ -17,13 +17,11 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.helpers import convert_from_SI
 
 
 @component_registry
@@ -50,10 +48,16 @@ class Condenser(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
     - hot side :py:meth:`tespy.components.component.Component.pr_func`
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`
     - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - hot side :py:meth:`tespy.components.component.Component.dp_func`
+    - cold side :py:meth:`tespy.components.component.Component.dp_func`
 
     Inlets/Outlets
 
@@ -107,6 +111,14 @@ class Condenser(HeatExchanger):
     pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
+    dp1 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at hot side, unit is the network's
+        pressure unit!.
+
+    dp2 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at cold side, unit is the network's
+        pressure unit!.
+
     zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
@@ -121,6 +133,19 @@ class Condenser(HeatExchanger):
     ttd_u : float, dict
         Upper terminal temperature difference (referring to saturation
         temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+
+    ttd_min : float, dict
+        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+
+    eff_cold : float, dict
+        Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
+
+    eff_hot : float, dict
+        Hot side heat exchanger effectiveness :math:`eff_\text{hot}/\text{1}`.
+
+    eff_max : float, dict
+        Max value of hot and cold side heat exchanger effectiveness values
+        :math:`eff_\text{max}/\text{1}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,
@@ -218,49 +243,13 @@ class Condenser(HeatExchanger):
         return 'condenser'
 
     def get_parameters(self):
-        return {
-            'Q': dc_cp(
-                max_val=0, func=self.energy_balance_hot_func, num_eq=1,
-                deriv=self.energy_balance_hot_deriv,
-                latex=self.energy_balance_hot_func_doc),
-            'kA': dc_cp(
-                min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
-                deriv=self.kA_deriv),
-            'td_log': dc_cp(min_val=0, is_result=True),
-            'ttd_u': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_u_func,
-                deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),
-            'ttd_l': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_l_func,
-                deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
-            'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
-                latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr1'}),
-            'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
-            'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta1'}),
-            'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
-            'kA_char': dc_gcc(
-                elements=['kA_char1', 'kA_char2'],
-                num_eq=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
-                deriv=self.kA_char_deriv),
-            'kA_char1': dc_cc(param='m'),
-            'kA_char2': dc_cc(
-                param='m', char_params={
-                    'type': 'rel', 'inconn': 1, 'outconn': 1}),
+        params = super().get_parameters()
+        params.update({
             'subcooling': dc_simple(
                 val=False, num_eq=1, latex=self.subcooling_func_doc,
                 deriv=self.subcooling_deriv, func=self.subcooling_func)
-        }
+        })
+        return params
 
     def preprocess(self, num_nw_vars):
 
@@ -480,21 +469,25 @@ class Condenser(HeatExchanger):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # component parameters
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-        self.Q.val = i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI)
-        self.ttd_u.val = i1.calc_T_sat() - o2.T.val_SI
-        self.ttd_l.val = o1.T.val_SI - i2.T.val_SI
+        self.Q.val = self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+        self.ttd_u.val = self.inl[0].calc_T_sat() - self.outl[1].T.val_SI
+        self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
+        self.ttd_min.val = min(self.ttd_u.val, self.ttd_min.val)
 
         # pr and zeta
-        for num, (i, o) in enumerate(zip(self.inl, self.outl)):
-            self.get_attr(f"pr{num + 1}").val = o.p.val_SI / i.p.val_SI
-            self.get_attr(f"zeta{num + 1}").val = (
-                (i.p.val_SI - o.p.val_SI) * math.pi ** 2
-                / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
+        for i in range(2):
+            self.get_attr(f'pr{i + 1}').val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI
+            )
+            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
+                self.inl[i], self.outl[i]
+            )
+            self.get_attr(f'dp{i + 1}').val_SI = (
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI)
+            self.get_attr(f'dp{i + 1}').val = convert_from_SI(
+                'p', self.get_attr(f'dp{i + 1}').val_SI, self.inl[i].p.unit
             )
 
         # kA and logarithmic temperature difference
@@ -508,3 +501,32 @@ class Condenser(HeatExchanger):
                 / math.log(self.ttd_l.val / self.ttd_u.val)
             )
         self.kA.val = -self.Q.val / self.td_log.val
+
+        # heat exchanger efficiencies
+        try:
+            self.eff_hot.val = (
+                (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                / self.calc_dh_max_hot()
+            )
+        except ValueError:
+            self.eff_hot.val = np.nan
+            msg = (
+                "Cannot calculate heat exchanger hot side effectiveness "
+                "because cold side inlet temperature is out of bounds for hot "
+                "side fluid."
+            )
+            logger.warning(msg)
+        try:
+            self.eff_cold.val = (
+                (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                / self.calc_dh_max_cold()
+            )
+        except ValueError:
+            self.eff_cold.val = np.nan
+            msg = (
+                "Cannot calculate heat exchanger cold side effectiveness "
+                "because hot side inlet temperature is out of bounds for cold "
+                "side fluid."
+            )
+            logger.warning(msg)
+        self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)

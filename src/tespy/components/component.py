@@ -1187,3 +1187,61 @@ class Component:
         # custom variable zeta
         if data.is_var:
             self.jacobian[k, data.J_col] = self.numeric_deriv(f, zeta, None, **kwargs)
+
+    def dp_func(self, dp=None, inconn=None, outconn=None):
+        """Calculate residual value of pressure difference function.
+
+        Parameters
+        ----------
+        dp : str
+            Component parameter to evaluate the dp_func on, e.g.
+            :code:`dp1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+
+        Returns
+        -------
+        residual : float
+            Residual value of function.
+
+            .. math::
+
+                0 = p_{in} - p_{out} - dp
+        """
+        inlet_conn = self.inl[inconn]
+        outlet_conn = self.outl[outconn]
+        dp_value = self.get_attr(dp).val_SI
+        return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
+
+    def dp_deriv(self, increment_filter, k, dp=None, inconn=None, outconn=None):
+        r"""
+        Calculate residual value of pressure difference function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+
+        dp : str
+            Component parameter to evaluate the dp_func on, e.g.
+            :code:`dp1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
+        inlet_conn = self.inl[inconn]
+        outlet_conn = self.outl[outconn]
+        if inlet_conn.p.is_var:
+            self.jacobian[k, inlet_conn.p.J_col] = 1
+        if outlet_conn.p.is_var:
+            self.jacobian[k, outlet_conn.p.J_col] = -1

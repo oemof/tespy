@@ -3,10 +3,13 @@ Thermal Engineering Systems in Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
-powerful simulation toolkit for thermal engineering plants such as power
-plants, district heating systems or heat pumps. It is an external extension
-module within the Open Energy Modeling Framework `oemof <https://oemof.org/>`_
-and can be used as a standalone package.
+powerful simulation toolkit for thermal engineering plants such as various
+types of power plants (including organic rankine cycles), heat pumps or
+refrigeration machines. Due to its flexibility it is actually possible to
+model any kind of thermal energy conversion process, this also includes energy
+balancing of industrial processes, district heating or HVAC systems. It is
+part of the Open Energy Modelling Framework `oemof <https://oemof.org/>`_ and
+can be used as a standalone package.
 
 .. image:: /_static/images/logo_tespy_big.svg
    :align: center
@@ -28,18 +31,17 @@ mixers and splitters as well as some advanced components
 Everybody is welcome to use and/or develop TESPy. Contribution is already
 possible on a low level by simply fixing typos in TESPy's documentation or
 rephrasing sections which are unclear. If you want to support us that way
-please fork the TESPy repository to your own GitHub account and make
-changes as described in the GitHub guidelines:
+please fork the `TESPy repository <https://github.com/oemof/tespy>`_ to your
+own GitHub account and make changes as described in the GitHub guidelines:
 https://guides.github.com/activities/hello-world/
 
 Key Features
 ============
 * **Open** Source
 * **Generic** thermal engineering applications
-* **Automatic** model documentation in LaTeX for high transparency and
-  reproducibility
-* **Extendable** framework for the implementation of custom components and
-  component groups
+* **Extendable** framework for the implementation of custom components, fluid
+  property formulations and equations
+* **Integration** of optimization capabilities through an API to pygmo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 Quick installation

@@ -254,8 +254,8 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, row_idx):
-        super().preprocess(row_idx)
+    def _preprocess(self, row_idx):
+        super()._preprocess(row_idx)
 
         # self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
@@ -272,8 +272,8 @@ class SimpleHeatExchanger(Component):
 
                 0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        return self.inl[0].m.get_val_SI() * (
+            self.outl[0].h.get_val_SI() - self.inl[0].h.get_val_SI()
         ) - self.Q.val
 
     def energy_balance_func_doc(self, label):
@@ -310,12 +310,12 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+        if self.is_variable(i.m):
+            self.jacobian[k, i.m.get_J_col()] = o.h.get_val_SI() - i.h.get_val_SI()
+        if self.is_variable(i.h):
+            self.jacobian[k, i.h.get_J_col()] = -i.m.get_val_SI()
+        if self.is_variable(o.h):
+            self.jacobian[k, o.h.get_J_col()] = i.m.get_val_SI()
         # custom variable Q
         if self.Q.is_var:
             self.jacobian[k, self.Q.J_col] = -1

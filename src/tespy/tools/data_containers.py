@@ -417,7 +417,10 @@ class FluidComposition(DataContainer):
     def get_reference_val(self):
         reference = self._reference_container
         if reference:
-            return {f: val * self._factor + self._offset for f, val in reference.val.items()}
+            return {
+                f: val * self._factor + self._offset
+                for f, val in reference.val.items()
+            }
         else:
             return reference.val
 
@@ -566,34 +569,19 @@ class FluidProperties(DataContainer):
         return {k: self.get_attr(k) for k in keys}
 
     def get_is_set(self):
-        reference = self._reference_container
-        if reference:
-            return self._reference_container.is_set
-        else:
-            return self.is_set
+        return self._reference_container.is_set
 
     def get_is_var(self):
-        reference = self._reference_container
-        if reference:
-            return self._reference_container.is_var
-        else:
-            return self.is_var
+        return self._reference_container.is_var
 
     def get_val_SI(self):
-        reference = self._reference_container
-        if reference:
-            return self._reference_container.val_SI * self._factor + self._offset
-        else:
-            return self.val_SI
+        return self._reference_container.val_SI * self._factor + self._offset
 
     def get_reference_val_SI(self):
-        reference = self._reference_container
-        if reference:
-            return (self.val_SI - self._offset) / self._factor
-        else:
-            msg = "DataContainer has no reference object."
-            raise ValueError(msg)
+        return (self.val_SI - self._offset) / self._factor
 
+    def get_J_col(self):
+        return self._reference_container.J_col
 
 class ReferencedFluidProperties(DataContainer):
 

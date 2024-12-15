@@ -206,15 +206,15 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+            (o.h.get_val_SI() - i.h.get_val_SI()) * self.eta_s.val - (
                 isentropic(
-                    i.p.val_SI,
-                    i.h.val_SI,
-                    o.p.val_SI,
+                    i.p.get_val_SI(),
+                    i.h.get_val_SI(),
+                    o.p.get_val_SI(),
                     i.fluid_data,
                     i.mixing_rule,
                     T0=None
-                ) - self.inl[0].h.val_SI
+                ) - i.h.get_val_SI()
             )
         )
 
@@ -253,13 +253,13 @@ class Compressor(Turbomachine):
         o = self.outl[0]
         f = self.eta_s_func
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.get_J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.get_J_col()] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.get_J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+            self.jacobian[k, o.h.get_J_col()] = self.eta_s.val
 
     def eta_s_char_func(self):
         r"""

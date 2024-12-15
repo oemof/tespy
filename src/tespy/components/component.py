@@ -327,7 +327,7 @@ class Component:
 
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, row_idx):
+    def _preprocess(self, row_idx):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -336,34 +336,33 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        # self.it = 0
-        # self.num_eq = 0
-        # self.vars = {}
+        self.vars = {}
         self.num_vars = 0
         self.constraints = self.get_mandatory_constraints().copy()
         self.prop_specifications = {}
         self.var_specifications = {}
         self.group_specifications = {}
         self.char_specifications = {}
+        # ???
         self.__dict__.update(self.constraints)
 
         self._structure_matrix = {}
         self._rhs = {}
+        self._equation_lookup = {}
 
         sum_eq = 0
 
-        for constraint in self.constraints.values():
-            self._rhs.update(
-                {i + row_idx: 0 for i in range(sum_eq, sum_eq + constraint.num_eq)}
-            )
+        for name, constraint in self.constraints.items():
             if constraint.structure_matrix is not None:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
+            for i in range(sum_eq, sum_eq + constraint.num_eq):
+                self._rhs[i + row_idx] = 0
+                self._equation_lookup[i + row_idx] = name
             sum_eq += constraint.num_eq
 
         for key, data in self.parameters.items():
             if isinstance(data, dc_cp):
                 if data.is_var:
-                    # data.J_col = num_nw_vars + self.num_vars
                     self.num_vars += 1
                     self.vars[data] = key
 
@@ -417,49 +416,52 @@ class Component:
             # grouped component characteristics
             elif isinstance(data, dc_gcc):
                 self.group_specifications[key] = data.is_set
-            # component properties
+            # add equations to structure matrix
             if data.is_set and data.func is not None:
-                self._rhs.update(
-                    {i + row_idx: 0 for i in range(sum_eq, sum_eq + data.num_eq)}
-                )
                 if data.structure_matrix is not None:
                     data.structure_matrix(row_idx + sum_eq, **data.func_params)
+                for i in range(sum_eq, sum_eq + constraint.num_eq):
+                    self._rhs[i + row_idx] = 0
+                    self._equation_lookup[i + row_idx] = key
                 sum_eq += data.num_eq
 
         self.num_eq = sum_eq
-        # self._structure_matrix = {}
-        # self._rhs = {i: 0 for i in range(self.num_eq)}
 
-        # sum_eq = 0
-        # for constraint in self.constraints.values():
-        #     if constraint.structure_matrix is not None:
-        #         constraint.structure_matrix(sum_eq, **constraint.func_params)
-        #     # increment happens independently of the fact if there are any
-        #     # values entered in the structure matrix
-        #     sum_eq += constraint.num_eq
+    def _prepare_for_solver(self, system_dependencies):
+        r"""
+        Perform component initialization in network preprocessing.
 
-        # for parameter in self.parameters.values():
-        #     if parameter.is_set and parameter.func is not None:
-        #         if parameter.structure_matrix is not None:
-        #             parameter.structure_matrix(sum_eq, **parameter.func_params)
-        #         # increment happens independently of the fact if there are any
-        #         # values entered in the structure matrix
-        #         sum_eq += parameter.num_eq
+        Parameters
+        ----------
+        nw : tespy.networks.network.Network
+            Network this component is integrated in.
+        """
+        self.it = 0
+        self.mandatory_equations = {}
+        self.user_imposed_equations = {}
+        self.num_eq = 0
 
-        # self.jacobian = {}
-        # self.residual = np.zeros(self.num_eq)
+        for key, value in self._equation_lookup.items():
+            if key in system_dependencies:
+                continue
 
-        # sum_eq = 0
-        # for constraint in self.constraints.values():
-        #     constraint['structure_function'](sum_eq)
-        #     num_eq = constraint['num_eq']
-        #     if constraint['constant_deriv']:
-        #         # this has a side effect
-        #         constraint["deriv"](sum_eq)
-        #     sum_eq += num_eq
+            if value in self.constraints:
+                self.mandatory_equations.update({value: self.constraints[value]})
+                self.num_eq += self.parameters[value].num_eq
 
-        # msg = f"The component {self.label} has {self.num_vars} variables."
-        # logger.debug(msg)
+            elif value in self.parameters:
+                self.user_imposed_equations.update({value: self.parameters[value]})
+                self.num_eq += self.parameters[value].num_eq
+
+        self.jacobian = {}
+        self.residual = np.zeros(self.num_eq)
+
+        sum_eq = 0
+        for constraint in self.mandatory_equations.values():
+            num_eq = constraint['num_eq']
+            if constraint['constant_deriv']:
+                constraint["deriv"](sum_eq)
+            sum_eq += num_eq
 
     def get_parameters(self):
         return {}
@@ -488,8 +490,8 @@ class Component:
 
     @staticmethod
     def is_variable(var, increment_filter=None):
-        if var.is_var:
-            if increment_filter is None or not increment_filter[var.J_col]:
+        if var.get_is_var():
+            if increment_filter is None or not increment_filter[var.get_J_col()]:
                 return True
         return False
 
@@ -630,7 +632,7 @@ class Component:
             Matrix for filtering non-changing variables.
         """
         sum_eq = 0
-        for constraint in self.constraints.values():
+        for constraint in self.mandatory_equations.values():
             num_eq = constraint['num_eq']
             if num_eq > 0:
                 self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
@@ -638,14 +640,13 @@ class Component:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        for data in self.parameters.values():
-            if data.is_set and data.func is not None:
-                self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                    **data.func_params
-                )
-                data.deriv(increment_filter, sum_eq, **data.func_params)
+        for data in self.user_imposed_equations.values():
+            self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
+                **data.func_params
+            )
+            data.deriv(increment_filter, sum_eq, **data.func_params)
 
-                sum_eq += data.num_eq
+            sum_eq += data.num_eq
 
     def bus_func(self, bus):
         r"""
@@ -1128,18 +1129,12 @@ class Component:
         pr = self.get_attr(pr)
         i = self.inl[inconn]
         o = self.outl[outconn]
-        if i.p.is_var:
+        if self.is_variable(i.p):
             self.jacobian[k, i.p.J_col] = pr.val
-        if o.p.is_var:
+        if self.is_variable(o.p):
             self.jacobian[k, o.p.J_col] = -1
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
-
-    def variable_equality_structure_matrix(self, k, **kwargs):
-        variable = kwargs.get("variable")
-        for count, (i, o) in enumerate(zip(self.inl, self.outl)):
-            self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
-            self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
     def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
         pr = self.get_attr(pr)
@@ -1148,10 +1143,14 @@ class Component:
 
         if not pr.is_var:
             self._structure_matrix[k, i.p.sm_col] = pr.val
-        else:
-            self._structure_matrix[k, pr.sm_col] = i.p.val_SI
 
         self._structure_matrix[k, o.p.sm_col] = -1
+
+    def variable_equality_structure_matrix(self, k, **kwargs):
+        variable = kwargs.get("variable")
+        for count, (i, o) in enumerate(zip(self.inl, self.outl)):
+            self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
+            self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
     def calc_zeta(self, i, o):
         if abs(i.m.val_SI) <= 1e-4:

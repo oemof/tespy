@@ -461,14 +461,14 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
             d = 1e-4
         else:
             d = 1e-1
-        conn.get_attr(dx).val_SI += d
+        conn.get_attr(dx)._reference_container.val_SI += d
         exp = func(**kwargs)
 
-        conn.get_attr(dx).val_SI -= 2 * d
+        conn.get_attr(dx)._reference_container.val_SI -= 2 * d
         exp -= func(**kwargs)
         deriv = exp / (2 * d)
 
-        conn.get_attr(dx).val_SI += d
+        conn.get_attr(dx)._reference_container.val_SI += d
 
     else:
         msg = (

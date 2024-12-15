@@ -606,11 +606,12 @@ class Connection:
 
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
 
-    def preprocess(self, row_idx):
+    def _preprocess(self, row_idx):
         self.num_eq = 0
 
         self._structure_matrix = {}
         self._rhs = {}
+        self._equation_lookup = {}
 
         for parameter in self.parameters:
             container = self.get_attr(parameter)
@@ -624,14 +625,22 @@ class Connection:
                 })
                 if container.structure_matrix is not None:
                     container.structure_matrix(row_idx + self.num_eq, **container.func_params)
+                for i in range(self.num_eq, self.num_eq + num_eq):
+                    self._equation_lookup[i + row_idx] = parameter
+                    self._rhs[i + row_idx] = 0
+
                 self.num_eq += num_eq
 
     def _presolve(self):
         specifications = []
         for name, container in self.property_data.items():
-            if name in ["m", "p", "h", "T", "x", "Td_bp", "v"]:
+            if name in ["m", "p", "h"]:
                 if container.get_is_set():
                     specifications += [name]
+            if name in ["T", "x", "Td_bp", "v"]:
+                if container.is_set:
+                    specifications += [name]
+
 
         num_specs = len(specifications)
 
@@ -644,68 +653,58 @@ class Connection:
             )
             raise TESPyNetworkError(msg)
 
-        if not self.h.get_is_set() and self.p.get_is_set():
+        if self.h.get_is_var() and not self.p.get_is_var():
             if self.T.is_set:
                 self.h.val_SI = h_mix_pT(self.p.get_val_SI(), self.T.val_SI, self.fluid_data, self.mixing_rule)
+                self.h.is_var = False
+                self.T._solved = True
+
             elif self.Td_bp.is_set:
                 T_sat = T_sat_p(self.p.get_val_SI(), self.fluid_data)
                 self.h.val_SI = h_mix_pT(self.p.get_val_SI(), T_sat + self.Td_bp.val_SI, self.fluid_data)
+                self.h.is_var = False
+                self.Td_bp._solved = True
+
             elif self.x.is_set:
                 self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+                self.h.is_var = False
+                self.x._solved = True
 
-        elif not self.h.get_is_set() and not self.p.get_is_set():
+        elif self.h.get_is_var() and self.p.get_is_var():
             if self.T.is_set and self.x.is_set:
                 self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
+                self.p.is_var = False
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.is_var = False
+                self.T._solved = True
+                self.x._solved = True
+
             if self.T.is_set and self.Td_bp.is_set:
                 self.p.val_SI = p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pQ(self.p.get_val_SI(), self.x.val_SI, self.fluid_data)
-
-    def simplify_specifications(self):
-        systemvar_specs = []
-        nonsystemvar_specs = []
-        for name, container in self.property_data.items():
-            if container.is_set:
-                if name in ["m", "p", "h"]:
-                    systemvar_specs += [name]
-                elif name in ["T", "x", "Td_bp", "v"]:
-                    nonsystemvar_specs += [name]
-
-        specs = set(systemvar_specs + nonsystemvar_specs)
-        num_specs = len(specs)
-
-        if num_specs > 3:
-            inputs = ", ".join(specs)
-            msg = (
-                "You have specified more than 3 parameters for the connection "
-                f"{self.label} with a known fluid compoistion: {inputs}. This "
-                "overdetermines the state of the fluid."
-            )
-            raise TESPyNetworkError(msg)
-
-        if not self.h.is_set and self.p.is_set:
-            if self.T.is_set:
-                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-                self.h._solved = True
+                self.p.is_var = False
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.is_var = False
                 self.T._solved = True
-            elif self.Td_bp.is_set:
-                T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data)
-                self.h._solved = True
                 self.Td_bp._solved = True
-            elif self.x.is_set:
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-                self.h._solved = True
-                self.x._solved = True
 
-        elif not self.h.is_set and not self.p.is_set:
-            if self.T.is_set and self.x.is_set:
-                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-                self.T._solved = True
-                self.x._solved = True
-                self.p._solved = True
-                self.h._solved = True
+    def _prepare_for_solver(self, system_dependencies):
+        self.num_eq = 0
+        self.it = 0
+        self.equations = {}
+
+        for eq_num, parameter in self._equation_lookup.items():
+            if eq_num in system_dependencies:
+                continue
+
+            container = self.get_attr(parameter)
+            if not container._solved:
+                self.equations[self.num_eq] = parameter
+                self.num_eq += self.parameters[parameter].num_eq
+            elif container._solved:
+                container._solved = False
+
+        self.residual = np.zeros(self.num_eq)
+        self.jacobian = {}
 
     def get_parameters(self):
         return {
@@ -949,20 +948,25 @@ class Connection:
             data.deriv(k, **data.func_params)
 
     def calc_results(self):
+        for prop in ["m", "p", "h"]:
+            self.get_attr(prop).val_SI = self.get_attr(prop).get_val_SI()
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
         if number_fluids > 1:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-            if abs(h_from_T - self.h.val_SI) > ERR ** .5 and abs((h_from_T - self.h.val_SI) / self.h.val_SI) > ERR ** .5:
+            if (
+                abs(h_from_T - self.h.val_SI) > ERR ** .5 and
+                abs((h_from_T - self.h.val_SI) / self.h.val_SI) > ERR ** .5
+            ):
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
                 self.v.val_SI = np.nan
                 self.s.val_SI = np.nan
                 msg = (
-                    "Could not find a feasible value for mixture temperature at "
-                    f"connection {self.label}. The values for temperature, "
-                    "specific volume, volumetric flow and entropy are set to nan."
+                    "Could not find a feasible value for mixture temperature "
+                    f"at connection {self.label}. The values of temperature, "
+                    "specific volume and entropy are set to nan."
                 )
                 logger.error(msg)
                 _converged = False
@@ -987,7 +991,7 @@ class Connection:
                 if not self.Td_bp.is_set:
                     self.Td_bp.val_SI = self.calc_Td_bp()
             except ValueError:
-                self.x.val_SI = np.nan
+                self.Td_bp.val_SI = np.nan
 
         if _converged:
             self.vol.val_SI = self.calc_vol()

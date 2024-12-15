@@ -500,7 +500,7 @@ class Component:
         var = conn.get_attr(dx)
         if self.is_variable(var, increment_filter):
             if callable(value):
-                self.jacobian[eq_num, var.get_J_col()] = self.numeric_deriv(value, dx, conn)
+                result = self.numeric_deriv(value, dx, conn)
             else:
                 result = value
             self.jacobian[eq_num, var.get_J_col()] = result

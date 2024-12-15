@@ -359,6 +359,7 @@ class Component:
 
             if constraint.structure_matrix is not None:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
+
             sum_eq += constraint.num_eq
 
         for key, data in self.parameters.items():
@@ -419,11 +420,13 @@ class Component:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
             if data.is_set and data.func is not None:
-                if data.structure_matrix is not None:
-                    data.structure_matrix(row_idx + sum_eq, **data.func_params)
                 for i in range(sum_eq, sum_eq + constraint.num_eq):
                     self._rhs[i + row_idx] = 0
                     self._equation_lookup[i + row_idx] = key
+
+                if data.structure_matrix is not None:
+                    data.structure_matrix(row_idx + sum_eq, **data.func_params)
+
                 sum_eq += data.num_eq
 
         self.num_eq = sum_eq
@@ -1245,3 +1248,31 @@ class Component:
             self.jacobian[k, inlet_conn.p.J_col] = 1
         if outlet_conn.p.is_var:
             self.jacobian[k, outlet_conn.p.J_col] = -1
+
+    def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
+        r"""
+        Calculate residual value of pressure difference function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of equation in Jacobian matrix.
+
+        dp : str
+            Component parameter to evaluate the dp_func on, e.g.
+            :code:`dp1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
+        inlet_conn = self.inl[inconn]
+        outlet_conn = self.outl[outconn]
+        self._structure_matrix[k, inlet_conn.p.sm_col] = 1
+        self._structure_matrix[k, outlet_conn.p.sm_col] = -1
+        self._rhs[k] = self.dp.val

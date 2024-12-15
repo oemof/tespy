@@ -207,7 +207,8 @@ class SimpleHeatExchanger(Component):
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
                 latex=self.energy_balance_func_doc, num_eq=1,
-                func=self.energy_balance_func),
+                func=self.energy_balance_func
+            ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,
                 deriv=self.pr_deriv,
@@ -216,11 +217,19 @@ class SimpleHeatExchanger(Component):
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix
             ),
+            'dp': dc_cp(
+                min_val=1e-4, max_val=1, num_eq=1,
+                deriv=self.dp_deriv,
+                func=self.dp_func,
+                func_params={'dp': 'dp'},
+                structure_matrix=self.dp_structure_matrix
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 latex=self.zeta_func_doc,
-                func_params={'zeta': 'zeta'}),
+                func_params={'zeta': 'zeta'}
+            ),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
             'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),

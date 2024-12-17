@@ -350,37 +350,6 @@ class Drum(DropletSeparator):
     def propagate_wrapper_to_target(self, branch):
         return super().propagate_wrapper_to_target(branch)
 
-    def propagate_to_target(self, branch):
-
-        if branch["connections"][-1].target_id == "in2":
-            return
-
-        outconn = self.outl[0]
-        subbranch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(subbranch)
-        branch["subbranches"][outconn.label] = subbranch
-
-        outconn = self.outl[1]
-        if subbranch["components"][-1] == self:
-
-            branch["connections"] += [outconn]
-            branch["components"] += [outconn.target]
-
-            outconn.target.propagate_to_target(branch)
-
-        else:
-            subbranch = {
-                "connections": [outconn],
-                "components": [self, outconn.target],
-                "subbranches": {}
-            }
-            outconn.target.propagate_to_target(subbranch)
-            branch["subbranches"][outconn.label] = subbranch
-
     def exergy_balance(self, T0):
         r"""
         Calculate exergy balance of a merge.

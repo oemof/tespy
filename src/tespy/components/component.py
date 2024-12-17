@@ -303,20 +303,6 @@ class Component:
             "design_path", "printout", "fkt_group", "char_warnings"
         ]
 
-    @staticmethod
-    def is_branch_source():
-        return False
-
-    def propagate_to_target(self, branch):
-        inconn = branch["connections"][-1]
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-
-        branch["connections"] += [outconn]
-        branch["components"] += [outconn.target]
-
-        outconn.target.propagate_to_target(branch)
-
     def propagate_wrapper_to_target(self, branch):
         inconn = branch["connections"][-1]
         conn_idx = self.inl.index(inconn)

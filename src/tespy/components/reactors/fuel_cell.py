@@ -709,24 +709,6 @@ class FuelCell(Component):
         )
         return val
 
-
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[1]
-        if "H2O" not in outconn.fluid.val:
-            outconn.fluid.val["H2O"] = 1
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-        return {outconn.label: branch}
-
     def start_fluid_wrapper_branch(self):
         outconn = self.outl[1]
         branch = {
@@ -735,23 +717,6 @@ class FuelCell(Component):
         }
         outconn.target.propagate_wrapper_to_target(branch)
         return {outconn.label: branch}
-
-    def propagate_to_target(self, branch):
-        inconn = branch["connections"][-1]
-        if inconn == self.inl[0]:
-            conn_idx = self.inl.index(inconn)
-            outconn = self.outl[conn_idx]
-
-            branch["connections"] += [outconn]
-            branch["components"] += [outconn.target]
-
-            outconn.target.propagate_to_target(branch)
-        else:
-            if inconn == self.inl[1] and "O2" not in inconn.fluid.val:
-                inconn.fluid.val["O2"] = 1
-            if inconn == self.inl[2] and "H2" not in inconn.fluid.val:
-                inconn.fluid.val["H2"] = 1
-            return
 
     def propagate_wrapper_to_target(self, branch):
         inconn = branch["connections"][-1]

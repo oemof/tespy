@@ -189,10 +189,6 @@ class Merge(NodeBase):
     def outlets():
         return ['out1']
 
-    @staticmethod
-    def is_branch_source():
-        return True
-
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.
@@ -327,24 +323,6 @@ class Merge(NodeBase):
             self.jacobian[k, o.m.J_col] = -o.h.val_SI
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = -o.m.val_SI
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
-
-    def propagate_to_target(self, branch):
-        return
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

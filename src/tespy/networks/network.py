@@ -1,5 +1,4 @@
 # -*- coding: utf-8
-import networkx as nx
 """Module for tespy network class.
 
 The network is the container for every TESPy simulation. The network class
@@ -759,23 +758,22 @@ class Network:
         )
 
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
-
         edges_with_factors = []
         rhs_offsets = {}
-        # the equation indices keep track, which equations to eliminate
-        eq_idx = {}
+        eq_idx = {}  # The equation indices keep track of which equations to eliminate
 
         num_rows = 1 + max([k[0] for k in sparse_matrix.keys()])
         num_cols = 1 + max([k[1] for k in sparse_matrix.keys()])
 
+        # Convert sparse matrix to dense form
         dense_matrix = np.zeros((num_rows, num_cols))
         for idx, value in sparse_matrix.items():
             dense_matrix[idx] = value
 
+        # Extract edges and offsets from rows with two non-zero entries
         for row_idx in range(num_rows):
-            # Get non-zero entries in the current row
             non_zero_indices = [col_idx for col_idx, value in enumerate(dense_matrix[row_idx]) if value != 0]
-            non_zero_values = [dense_matrix[row_idx][col_idx] for col_idx in non_zero_indices]
+            non_zero_values = [dense_matrix[row_idx, col_idx] for col_idx in non_zero_indices]
 
             if len(non_zero_indices) == 2:
                 col1, col2 = non_zero_indices
@@ -786,64 +784,95 @@ class Network:
                 rhs_offsets[(col1, col2)] = offset
                 eq_idx[(col1, col2)] = row_idx
 
-        graph = nx.Graph()
+        # Build adjacency list for the graph
+        adjacency_list = {}
         for col1, col2, factor in edges_with_factors:
-            # If a linear connection is added a second time, the model
-            # is linear dependent
-            if (col1, col2) in graph.edges:
+            if col1 not in adjacency_list:
+                adjacency_list[col1] = []
+            if col2 not in adjacency_list:
+                adjacency_list[col2] = []
+
+            # Check for duplicate edges
+            if col2 in [neighbor for neighbor, _ in adjacency_list[col1]]:
                 msg = f"There already is a linear link between the variables {col1}, {col2}"
-                # this will also include the equation indices, to tell the user
-                # which equation does the doubling
                 raise hlp.TESPyNetworkError(msg)
-            graph.add_edge(col1, col2, factor=factor)
 
-        try:
-            cycle = nx.find_cycle(graph)
-            variable_names = self._map_column_indices_to_variable_names(cycle)
-            # This will also use the equation indices, so the logging can tell the
-            # user, what equations are the reason for circularity
-            msg = f"A circular dependency between the following variables has been detected: {variable_names}"
-            raise hlp.TESPyNetworkError(msg)
-        except nx.exception.NetworkXNoCycle:
-            pass
+            # Add edge with factor
+            adjacency_list[col1].append((col2, factor))
+            adjacency_list[col2].append((col1, 1 / factor))  # Add reverse edge with reciprocal factor
 
-        # the equation indices are added to the lookup tables, because these
-        # will be eliminated for the solver
+        print(adjacency_list)
+        # Detect cycles (to check for circular dependencies)
+        visited = set()
+        parent_map = {}
+
+        def dfs_cycle(node, parent):
+            visited.add(node)
+            for neighbor, _ in adjacency_list.get(node, []):
+                if neighbor not in visited:
+                    parent_map[neighbor] = node
+                    if dfs_cycle(neighbor, node):
+                        return True
+                elif neighbor != parent:  # A back edge is found
+                    return True
+            return False
+
+        for node in adjacency_list:
+            if node not in visited:
+                if dfs_cycle(node, None):
+                    variable_names = self._map_column_indices_to_variable_names(list(parent_map.keys()))
+                    msg = f"A circular dependency between the following variables has been detected: {variable_names}"
+                    raise hlp.TESPyNetworkError(msg)
+
+        # Find connected components and compute factors/offsets
+        visited.clear()
         variables_factors_offsets = []
-        for variables in nx.connected_components(graph):
-            variables = list(variables)  # Convert to a list for easier processing
-            reference = variables[0]  # Use the first variable in the component as the reference
-            factors = {reference: 1.0}
-            offsets = {reference: 0.0}
+
+        def dfs_component(node, reference, current_factor, current_offset):
+            """DFS to calculate factors and offsets relative to the reference variable."""
+            stack = [(node, current_factor, current_offset)]
+            factors = {node: current_factor}
+            offsets = {node: current_offset}
             equation_indices = {}
 
-            # Traverse the graph using DFS to compute factors and offsets relative to the reference variable
-            def dfs(node, current_factor, current_offset):
+            while stack:
+                curr_node, curr_factor, curr_offset = stack.pop()
+                visited.add(curr_node)
 
-                for neighbor in graph.neighbors(node):
-                    if neighbor not in factors:
-                        edge_factor = graph[node][neighbor]['factor']
-                        if (neighbor, node) in rhs_offsets:
-                            edge_factor = 1 / edge_factor
-                            edge_offset = -rhs_offsets[(neighbor, node)] * edge_factor
-                            equation_indices[(neighbor, node)] = eq_idx[neighbor, node]
+                for neighbor, edge_factor in adjacency_list.get(curr_node, []):
+                    if neighbor not in factors:  # Process unvisited neighbor
+                        # Calculate edge offset
+                        edge_offset = rhs_offsets.get((curr_node, neighbor), 0.0) or -rhs_offsets.get((neighbor, curr_node), 0.0)
+                        # Determine which equation to use
+                        if (neighbor, curr_node) in rhs_offsets:
+                            equation_indices[(neighbor, curr_node)] = eq_idx[(neighbor, curr_node)]
                         else:
-                            edge_offset = rhs_offsets[(node, neighbor)]
-                            equation_indices[(node, neighbor)] = eq_idx[node, neighbor]
-                        factors[neighbor] = current_factor * edge_factor
-                        offsets[neighbor] = current_offset * edge_factor + edge_offset
+                            equation_indices[(curr_node, neighbor)] = eq_idx[(curr_node, neighbor)]
 
-                        dfs(neighbor, factors[neighbor], offsets[neighbor])
+                        # Compute new factor and offset
+                        new_factor = curr_factor * edge_factor
+                        new_offset = curr_offset * edge_factor + edge_offset
 
-            dfs(reference, 1.0, 0.0)
+                        # Store and continue traversal
+                        factors[neighbor] = new_factor
+                        offsets[neighbor] = new_offset
+                        stack.append((neighbor, new_factor, new_offset))
 
-            variables_factors_offsets.append({
-                'variables': variables,
-                'reference': reference,
-                'factors': factors,
-                'offsets': offsets,
-                'equation_indices': equation_indices
-            })
+            return factors, offsets, equation_indices
+
+        # Process each connected component
+        for node in adjacency_list:
+            if node not in visited:
+                reference = node
+                factors, offsets, equation_indices = dfs_component(reference, reference, 1.0, 0.0)
+
+                variables_factors_offsets.append({
+                    'variables': list(factors.keys()),
+                    'reference': reference,
+                    'factors': factors,
+                    'offsets': offsets,
+                    'equation_indices': equation_indices
+                })
 
         return variables_factors_offsets
 

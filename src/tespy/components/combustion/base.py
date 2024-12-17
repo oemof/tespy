@@ -216,29 +216,6 @@ class CombustionChamber(Component):
     def outlets():
         return ['out1']
 
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        _, outl = self._get_combustion_connections()
-        outconn = outl[0]
-        for f in ["H2O", "CO2"]:
-            if f not in outconn.fluid.val:
-                outconn.fluid.val[f] = 0
-
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
-
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
             return

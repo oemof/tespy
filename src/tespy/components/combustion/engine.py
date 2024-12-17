@@ -317,20 +317,6 @@ class CombustionEngine(CombustionChamber):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def propagate_to_target(self, branch):
-        inl, outl = self._get_combustion_connections()
-        inconn = branch["connections"][-1]
-        if inconn in inl:
-            return
-
-        conn_idx = self.inl.index(inconn)
-        outconn = self.outl[conn_idx]
-
-        branch["connections"] += [outconn]
-        branch["components"] += [outconn.target]
-
-        outconn.target.propagate_to_target(branch)
-
     def propagate_wrapper_to_target(self, branch):
         inl, outl = self._get_combustion_connections()
         inconn = branch["connections"][-1]

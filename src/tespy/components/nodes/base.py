@@ -201,14 +201,3 @@ class NodeBase(Component):
             return 1e5
         elif key == 'h':
             return 5e5
-
-    def propagate_to_target(self, branch):
-
-        for outconn in self.outl:
-            subbranch = {
-                "connections": [outconn],
-                "components": [self, outconn.target],
-                "subbranches": {}
-            }
-            outconn.target.propagate_to_target(subbranch)
-            branch["subbranches"][outconn.label] = subbranch

@@ -713,22 +713,22 @@ equation, too. The Valve's dp_char parameter methods are the following.
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.dp_char.param == 'v':
             if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = self.numeric_deriv(
+                self.jacobian[k, i.p.J_col()] = self.numeric_deriv(
                     self.dp_char_func, 'p', i
                 )
             if self.is_variable(i.h, increment_filter):
-                self.jacobian[k, i.h.J_col] = self.numeric_deriv(
+                self.jacobian[k, i.h.J_col()] = self.numeric_deriv(
                     self.dp_char_func, 'h', i
                 )
         else:
             if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = 1
+                self.jacobian[k, i.p.J_col()] = 1
 
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
+            self.jacobian[k, o.p.J_col()] = -1
 
 For the Jacobian, the partial derivatives to all variables of the network
 are required. This means, that you have to calculate the partial derivatives

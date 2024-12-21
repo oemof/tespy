@@ -70,10 +70,10 @@ class NodeBase(Component):
         """
         for i in self.inl:
             if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = 1
+                self.jacobian[k, i.m.J_col()] = 1
         for o in self.outl:
             if o.m.is_var:
-                self.jacobian[k, o.m.J_col] = -1
+                self.jacobian[k, o.m.J_col()] = -1
 
     def pressure_equality_func(self):
         r"""
@@ -138,9 +138,9 @@ class NodeBase(Component):
 
         for eq, o in enumerate(conns):
             if self.inl[0].p.is_var:
-                self.jacobian[k + eq, self.inl[0].p.J_col] = 1
+                self.jacobian[k + eq, self.inl[0].p.J_col()] = 1
             if o.p.is_var:
-                self.jacobian[k + eq, o.p.J_col] = -1
+                self.jacobian[k + eq, o.p.J_col()] = -1
 
     @staticmethod
     def initialise_source(c, key):

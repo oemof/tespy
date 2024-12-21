@@ -1000,7 +1000,7 @@ class Network:
             if reference_property == "fluid":
                 reference_container = dc_flu()
             else:
-                reference_container = dc_fp(is_var=True)
+                reference_container = dc_fp(_is_var=True)
 
             self.linear_dependent_variables[reference] = reference_container
 
@@ -1237,28 +1237,13 @@ class Network:
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in reference_container.is_var:
-                reference_container.J_col[fluid] = self.num_conn_vars
+                reference_container._J_col[fluid] = self.num_conn_vars
                 self.variables_dict[self.num_conn_vars] = {
                     "obj": reference_container,
                     "variable": "fluid",
                     "fluid": fluid
                 }
                 self.num_conn_vars += 1
-
-    def reset_topology_reduction_specifications(self):
-        for c in self.conns["object"]:
-            if hasattr(c, "_m_tmp"):
-                value = c.m.val_SI
-                unit = c.m.unit
-                c.m = c._m_tmp
-                c.m.val_SI = value
-                c.m.unit = unit
-                del c._m_tmp
-            if hasattr(c, "_fluid_tmp"):
-                val = c.fluid.val
-                c.fluid = c._fluid_tmp
-                c.fluid.val = val
-                del c._fluid_tmp
 
     def init_set_properties(self):
         """Specification of SI values for user set values."""
@@ -1281,6 +1266,8 @@ class Network:
                     c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
                 # set SI value
                 if c.get_attr(key).is_set:
+                    # this could be externalized to either
+                    # the connections class or actually the data containers
                     if "ref" in key:
                         if prop == 'T':
                             c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
@@ -1293,11 +1280,11 @@ class Network:
                                 c.get_attr(prop).unit
                             )
                     else:
-                        c.get_attr(key).val_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).val, c.get_attr(key).unit
+                        c.get_attr(key)._val_SI = hlp.convert_to_SI(
+                            key, c.get_attr(key)._val, c.get_attr(key).unit
                         )
                 if key in ["m", "p", "h"]:
-                    c.get_attr(key).is_var = not c.get_attr(key).is_set
+                    c.get_attr(key)._is_var = not c.get_attr(key).is_set
 
         # set up results dataframe for connections
         # this should be done based on the connections
@@ -1325,14 +1312,15 @@ class Network:
         for key in ["m", "p", "h"]:
             variable = c.get_attr(key)
             if (
-                variable.get_is_var()
+                variable.is_var()
                 and variable._reference_container not in self._conn_variables
             ):
                 container = variable._reference_container
-                container.J_col = self.num_conn_vars
+                container._J_col = self.num_conn_vars
                 self.variables_dict[self.num_conn_vars] = {
                     "obj": container, "variable": key
                 }
+                print(container._J_col, container, container.J_col())
                 self._conn_variables += [container]
                 self.num_conn_vars += 1
 
@@ -1471,20 +1459,21 @@ class Network:
         # and distribute presolved variables to all linear dependents
         # until the number of variables does not change anymore
         number_variables = sum([
-            conn.get_attr(key).get_is_var()
+            conn.get_attr(key).is_var()
             for conn in self.conns['object']
             for key in ["m", "p", "h"]
         ])
         while True:
             for c in self.conns['object']:
-                if not c.fluid.get_is_var():
+                if not c.fluid.is_var:
                     c._presolve()
             self._presolve_linear_dependents()
-            reduced_variables = sum([
-                conn.get_attr(key).get_is_var()
+            reduced_variables = [
+                conn.get_attr(key).is_var()
                 for conn in self.conns['object']
                 for key in ["m", "p", "h"]
-            ])
+            ]
+            reduced_variables = sum(reduced_variables)
             if reduced_variables == number_variables:
                 break
 
@@ -1538,7 +1527,7 @@ class Network:
                 ) for var in linear_dependents["variables"]
             ]
 
-            number_specifications = sum([not c.is_var for c in all_containers])
+            number_specifications = sum([not c._is_var for c in all_containers])
             if number_specifications > 1:
                 variables_properties = [
                     f"({self._variable_lookup[var]['connection'].label}: "
@@ -1552,9 +1541,9 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
             elif number_specifications == 1:
                 reference_container = self.linear_dependent_variables[reference]
-                reference_container.is_var = False
-                specification = [c for c in all_containers if not c.is_var][0]
-                reference_container.val_SI = specification.get_reference_val_SI()
+                reference_container._is_var = False
+                specification = [c for c in all_containers if not c._is_var][0]
+                reference_container._val_SI = specification.reference_val_SI()
 
     def init_offdesign_params(self):
         r"""
@@ -1843,28 +1832,18 @@ class Network:
                 logger.warning(msg)
 
             for key in ['m', 'p', 'h']:
-                if c.get_attr(key).get_is_var():
+                if c.get_attr(key).is_var():
                     if not c.good_starting_values:
                         self.init_val0(c, key)
-                    c.get_attr(key).val_SI = hlp.convert_to_SI(
-                        key, c.get_attr(key).val0, c.get_attr(key).unit
+                    c.get_attr(key)._val_SI = hlp.convert_to_SI(
+                        key, c.get_attr(key)._val0, c.get_attr(key).unit
                     )
-                    c.get_attr(key)._reference_container.val_SI = c.get_attr(key).get_reference_val_SI()
+                    c.get_attr(key)._reference_container._val_SI = c.get_attr(key).reference_val_SI()
 
             self.init_count_connections_parameters(c)
 
         for c in self.conns['object']:
             if not c.good_starting_values:
-                if self.specifications["Ref"].loc[c.label].any():
-                    for key in self.specifications["Ref"].columns:
-                        prop = key.split("_ref")[0]
-                        if c.get_attr(key).is_set and not c.get_attr(prop).is_set:
-                            c.get_attr(prop).val_SI = (
-                                c.get_attr(key).ref.obj.get_attr(prop).val_SI
-                                * c.get_attr(key).ref.factor
-                                + c.get_attr(key).ref.delta_SI
-                            )
-
                 self.init_precalc_properties(c)
 
             # starting values for specified subcooling/overheating
@@ -1930,16 +1909,16 @@ class Network:
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
-        if c.h.is_var:
+        if c.h.is_var():
             if c.x.is_set:
                 try:
-                    c.h.val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h._val_SI = fp.h_mix_pQ(c.p.val_SI(), c.x.val_SI(), c.fluid_data, c.mixing_rule)
                 except ValueError:
                     pass
 
             if c.T.is_set:
                 try:
-                    c.h.val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h._val_SI = fp.h_mix_pT(c.p.val_SI(), c.T.val_SI(), c.fluid_data, c.mixing_rule)
                 except ValueError:
                     pass
 
@@ -1955,11 +1934,11 @@ class Network:
         c : tespy.connections.connection.Connection
             Connection to initialise.
         """
-        if np.isnan(c.get_attr(key).val0):
+        if np.isnan(c.get_attr(key)._val0):
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                c.get_attr(key).val0 = float(np.random.random() + 1)
+                c.get_attr(key)._val0 = float(np.random.random() + 1)
 
             # generic starting values for pressure and enthalpy
             else:
@@ -1969,20 +1948,20 @@ class Network:
 
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
-                        c.get_attr(key).val0 = 1e5
+                        c.get_attr(key)._val0 = 1e5
                     elif key == 'h':
-                        c.get_attr(key).val0 = 1e6
+                        c.get_attr(key)._val0 = 1e6
 
                 elif val_s == 0:
-                    c.get_attr(key).val0 = val_t
+                    c.get_attr(key)._val0 = val_t
                 elif val_t == 0:
-                    c.get_attr(key).val0 = val_s
+                    c.get_attr(key)._val0 = val_s
                 else:
-                    c.get_attr(key).val0 = (val_s + val_t) / 2
+                    c.get_attr(key)._val0 = (val_s + val_t) / 2
 
                 # change value according to specified unit system
-                c.get_attr(key).val0 = hlp.convert_from_SI(
-                    key, c.get_attr(key).val0, self.get_attr(key + '_unit')
+                c.get_attr(key)._val0 = hlp.convert_from_SI(
+                    key, c.get_attr(key)._val0, self.get_attr(key + '_unit')
                 )
 
     @staticmethod
@@ -2118,8 +2097,11 @@ class Network:
 
         self.initialise()
 
+        for data in self.variables_dict.values():
+            container = data["obj"]
+            print(container._J_col, container._reference_container, container.J_col())
+
         if init_only:
-            self.reset_topology_reduction_specifications()
             return
 
         msg = 'Starting solver.'
@@ -2128,9 +2110,6 @@ class Network:
         self.solve_determination()
 
         self.solve_loop(print_results=print_results)
-
-        if not prepare_fast_lane:
-            self.reset_topology_reduction_specifications()
 
         if self.lin_dep:
             msg = (
@@ -2407,20 +2386,20 @@ class Network:
         increment = [float(val) for val in self.increment]
         # the J_cols here point to actual variables, no need to call to
         # get_J_col yet
-        for data in self.variables_dict.values():
+        for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h"]:
                 container = data["obj"]
-                container.val_SI += increment[container.J_col]
+                container._val_SI += increment[container.J_col()]
             elif data["variable"] == "p":
                 container = data["obj"]
                 relax = max(
-                    1, -2 * increment[container.J_col] / container.val_SI
+                    1, -2 * increment[container.J_col()] / container.val_SI()
                 )
-                container.val_SI += increment[container.J_col] / relax
+                container._val_SI += increment[container.J_col()] / relax
             elif data["variable"] == "fluid":
                 container = data["obj"].fluid
                 container.val[data["fluid"]] += increment[
-                    container.J_col[data["fluid"]]
+                    container.J_col()[data["fluid"]]
                 ]
 
                 if container.val[data["fluid"]] < ERR :
@@ -2429,7 +2408,7 @@ class Network:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                data["obj"].val += increment[data["obj"].J_col]
+                data["obj"].val += increment[data["obj"].J_col()]
 
                 # keep value within specified value range
                 if data["obj"].val < data["obj"].min_val:
@@ -2494,11 +2473,11 @@ class Network:
         # pure fluid
         if fl is not None:
             # pressure
-            if c.p.get_is_var():
+            if c.p.is_var():
                 c.check_pressure_bounds(fl)
 
             # enthalpy
-            if c.h.get_is_var():
+            if c.h.is_var():
                 c.check_enthalpy_bounds(fl)
 
                 # two-phase related
@@ -2547,6 +2526,7 @@ class Network:
         # fetch component equation residuals and component partial derivatives
         sum_eq = 0
         for cp in self.comps['object']:
+            print(cp.label)
             cp.solve(self.increment_filter)
             self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
 

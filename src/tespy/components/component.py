@@ -480,8 +480,8 @@ class Component:
 
     @staticmethod
     def is_variable(var, increment_filter=None):
-        if var.get_is_var():
-            if increment_filter is None or not increment_filter[var.get_J_col()]:
+        if var.is_var():
+            if increment_filter is None or not increment_filter[var.J_col()]:
                 return True
         return False
 
@@ -492,7 +492,7 @@ class Component:
                 result = self.numeric_deriv(value, dx, conn)
             else:
                 result = value
-            self.jacobian[eq_num, var.get_J_col()] = result
+            self.jacobian[eq_num, var.J_col()] = result
 
 
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
@@ -958,7 +958,7 @@ class Component:
                 0 = p_{in} \cdot pr - p_{out}
         """
         pr = self.get_attr(pr)
-        return self.inl[inconn].p.get_val_SI() * pr.val - self.outl[outconn].p.get_val_SI()
+        return self.inl[inconn].p.val_SI() * pr.val - self.outl[outconn].p.val_SI()
 
     def pr_func_doc(self, label, pr='', inconn=0, outconn=0):
         r"""
@@ -1013,11 +1013,11 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[outconn]
         if self.is_variable(i.p):
-            self.jacobian[k, i.p.get_J_col()] = pr.val
+            self.jacobian[k, i.p.J_col()] = pr.val
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.get_J_col()] = -1
+            self.jacobian[k, o.p.J_col()] = -1
         if pr.is_var:
-            self.jacobian[k, self.pr.get_J_col()] = i.p.get_val_SI()
+            self.jacobian[k, self.pr.J_col()] = i.p.val_SI()
 
     def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
         pr = self.get_attr(pr)
@@ -1164,18 +1164,18 @@ class Component:
         o = self.outl[outconn]
         kwargs = dict(zeta=zeta, inconn=inconn, outconn=outconn)
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i, **kwargs)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i, **kwargs)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i, **kwargs)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i, **kwargs)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i, **kwargs)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i, **kwargs)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o, **kwargs)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o, **kwargs)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o, **kwargs)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o, **kwargs)
         # custom variable zeta
         if data.is_var:
-            self.jacobian[k, data.J_col] = self.numeric_deriv(f, zeta, None, **kwargs)
+            self.jacobian[k, data.J_col()] = self.numeric_deriv(f, zeta, None, **kwargs)
 
     def dp_func(self, dp=None, inconn=None, outconn=None):
         """Calculate residual value of pressure difference function.
@@ -1231,9 +1231,9 @@ class Component:
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         if inlet_conn.p.is_var:
-            self.jacobian[k, inlet_conn.p.J_col] = 1
+            self.jacobian[k, inlet_conn.p.J_col()] = 1
         if outlet_conn.p.is_var:
-            self.jacobian[k, outlet_conn.p.J_col] = -1
+            self.jacobian[k, outlet_conn.p.J_col()] = -1
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
         r"""

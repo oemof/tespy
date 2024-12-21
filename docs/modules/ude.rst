@@ -98,8 +98,8 @@ inside the Jacobian of the :code:`UserDefinedEquation` and returns it:
   connection required by the :code:`UserDefinedEquation`.
 - derivatives are referred to with the :code:`J_col` attribute of the
   variables of a :code:`Connection` object, i.e.
-  :code:`c.m.J_col` for mass flow, :code:`c.p.J_col` for pressure,
-  :code:`c.h.J_col` for enthalpy, and :code:`c.fluid.J_col[fluid_name]` for the
+  :code:`c.m.J_col()` for mass flow, :code:`c.p.J_col()` for pressure,
+  :code:`c.h.J_col()` for enthalpy, and :code:`c.fluid.J_col()[fluid_name]` for the
   derivative of the fluid composition towards a specific fluid
   :code:`fluid_name`.
 
@@ -116,9 +116,9 @@ derivatives to mass flow are not zero.
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
     ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1
+    ...         ude.jacobian[c1.m.J_col()] = 1
     ...     if c2.m.is_var:
-    ...         ude.jacobian[c2.m.J_col] = -2 * ude.conns[1].m.val_SI
+    ...         ude.jacobian[c2.m.J_col()] = -2 * ude.conns[1].m.val_SI
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
@@ -187,17 +187,17 @@ respectively to calculate the partial derivatives.
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
     ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1 / ude.conns[0].m.val_SI
+    ...         ude.jacobian[c1.m.J_col()] = 1 / ude.conns[0].m.val_SI
     ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = - 2 / ude.conns[0].p.val_SI
+    ...         ude.jacobian[c1.p.J_col()] = - 2 / ude.conns[0].p.val_SI
     ...     T = c2.calc_T()
     ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = (
+    ...         ude.jacobian[c2.p.J_col()] = (
     ...             dT_mix_dph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
     ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = (
+    ...         ude.jacobian[c2.h.J_col()] = (
     ...             dT_mix_pdh(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
@@ -215,13 +215,13 @@ for the above derivatives would therefore look like this:
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
     ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = ude.numeric_deriv('m', c1)
+    ...         ude.jacobian[c1.m.J_col()] = ude.numeric_deriv('m', c1)
     ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
+    ...         ude.jacobian[c1.p.J_col()] = ude.numeric_deriv('p', c1)
     ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = ude.numeric_deriv('p', c2)
+    ...         ude.jacobian[c2.p.J_col()] = ude.numeric_deriv('p', c2)
     ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = ude.numeric_deriv('h', c2)
+    ...         ude.jacobian[c2.h.J_col()] = ude.numeric_deriv('h', c2)
 
     >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
     >>> nw.add_ude(ude)
@@ -279,11 +279,11 @@ instance must therefore be changed as below.
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
     ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = dh_mix_dpQ(c1.p.val_SI, b, c1.fluid_data)
+    ...         ude.jacobian[c1.p.J_col()] = dh_mix_dpQ(c1.p.val_SI, b, c1.fluid_data)
     ...     if c1.h.is_var:
-    ...         ude.jacobian[c1.h.J_col] = -a
+    ...         ude.jacobian[c1.h.J_col()] = -a
     ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = a - 1
+    ...         ude.jacobian[c2.p.J_col()] = a - 1
 
     >>> ude = UserDefinedEquation(
     ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}

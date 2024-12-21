@@ -387,11 +387,11 @@ class HeatExchanger(Component):
         for _c_num, i in enumerate(self.inl):
             o = self.outl[_c_num]
             if self.is_variable(i.m, increment_filter):
-                self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+                self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
             if self.is_variable(i.h, increment_filter):
-                self.jacobian[k, i.h.J_col] = -i.m.val_SI
+                self.jacobian[k, i.h.J_col()] = -i.m.val_SI
             if self.is_variable(o.h, increment_filter):
-                self.jacobian[k, o.h.J_col] = i.m.val_SI
+                self.jacobian[k, o.h.J_col()] = i.m.val_SI
 
     def energy_balance_hot_func(self):
         r"""
@@ -444,11 +444,11 @@ class HeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         if self.is_variable(i.h):
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
         if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+            self.jacobian[k, o.h.J_col()] = i.m.val_SI
 
     def calculate_td_log(self):
         i1 = self.inl[0]
@@ -543,12 +543,12 @@ class HeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         for c in self.inl + self.outl:
             if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def kA_char_func(self):
         r"""
@@ -635,12 +635,12 @@ class HeatExchanger(Component):
         f = self.kA_char_func
         for i in self.inl:
             if self.is_variable(i.m):
-                self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+                self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         for c in self.inl + self.outl:
             if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def ttd_u_func(self):
         r"""
@@ -693,9 +693,9 @@ class HeatExchanger(Component):
         f = self.ttd_u_func
         for c in [self.inl[0], self.outl[1]]:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def ttd_l_func(self):
         r"""
@@ -748,9 +748,9 @@ class HeatExchanger(Component):
         f = self.ttd_l_func
         for c in [self.inl[1], self.outl[0]]:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def ttd_min_func(self):
         r"""
@@ -798,9 +798,9 @@ class HeatExchanger(Component):
         f = self.ttd_min_func
         for c in self.inl + self.outl:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def calc_dh_max_cold(self):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
@@ -860,12 +860,12 @@ class HeatExchanger(Component):
 
         for c in [i1, o2]:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
         if self.is_variable(i2.h):
-            self.jacobian[k, i2.h.J_col] = 1 - self.eff_cold.val
+            self.jacobian[k, i2.h.J_col()] = 1 - self.eff_cold.val
 
     def calc_dh_max_hot(self):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side
@@ -924,13 +924,13 @@ class HeatExchanger(Component):
         i2 = self.inl[1]
 
         if self.is_variable(i1.h):
-            self.jacobian[k, i1.h.J_col] = 1 - self.eff_hot.val
+            self.jacobian[k, i1.h.J_col()] = 1 - self.eff_hot.val
 
         for c in [o1, i2]:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def eff_max_func(self):
         r"""Equation for maximum heat exchanger effectiveness.
@@ -978,9 +978,9 @@ class HeatExchanger(Component):
 
         for c in self.inl + self.outl:
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
             if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+                self.jacobian[k, c.h.J_col()] = self.numeric_deriv(f, 'h', c)
 
     def bus_func(self, bus):
         r"""
@@ -1042,19 +1042,19 @@ class HeatExchanger(Component):
         """
         f = self.calc_bus_value
         if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            if self.inl[0].m.J_col() not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col()] = 0
+            bus.jacobian[self.inl[0].m.J_col()] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
 
         if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            if self.inl[0].h.J_col() not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col()] = 0
+            bus.jacobian[self.inl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
 
         if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            if self.outl[0].h.J_col() not in bus.jacobian:
+                bus.jacobian[self.outl[0].h.J_col()] = 0
+            bus.jacobian[self.outl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
 
     def initialise_source(self, c, key):
         r"""

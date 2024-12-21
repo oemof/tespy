@@ -271,9 +271,9 @@ class DiabaticCombustionChamber(CombustionChamber):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col] = self.pr.val
+            self.jacobian[k, i.p.J_col()] = self.pr.val
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
+            self.jacobian[k, o.p.J_col()] = -1
 
     def energy_balance_func(self):
         r"""

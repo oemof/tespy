@@ -296,10 +296,10 @@ class FuelCell(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         if self.inl[2].m.is_var:
-            self.jacobian[k, self.inl[2].m.J_col] = -self.eta.val * self.e0
+            self.jacobian[k, self.inl[2].m.J_col()] = -self.eta.val * self.e0
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col()] = 1
 
     def heat_func(self):
         r"""
@@ -351,11 +351,11 @@ class FuelCell(Component):
         i = self.inl[0]
         o = self.outl[0]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+            self.jacobian[k, o.h.J_col()] = i.m.val_SI
 
     def specific_energy_func(self):
         r"""
@@ -402,13 +402,13 @@ class FuelCell(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         if self.inl[2].m.is_var:
-            self.jacobian[k, self.inl[2].m.J_col] = -self.e.val
+            self.jacobian[k, self.inl[2].m.J_col()] = -self.e.val
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col()] = 1
         # derivatives for variable e
         if self.e.is_var:
-            self.jacobian[k, self.e.J_col] = -self.inl[2].m.val_SI
+            self.jacobian[k, self.eJ_col()] = -self.inl[2].m.val_SI
 
     def energy_balance_func(self):
         r"""
@@ -489,39 +489,39 @@ class FuelCell(Component):
         # derivatives cooling water inlet
         i = self.inl[0]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = self.outl[0].h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = self.outl[0].h.val_SI - i.h.val_SI
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
 
         # derivatives water outlet
         o = self.outl[1]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col] = o.h.val_SI - h_refh2o
+            self.jacobian[k, o.m.J_col()] = o.h.val_SI - h_refh2o
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = o.m.val_SI
+            self.jacobian[k, o.h.J_col()] = o.m.val_SI
 
         # derivative cooling water outlet
         o = self.outl[0]
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = self.inl[0].m.val_SI
+            self.jacobian[k, o.h.J_col()] = self.inl[0].m.val_SI
 
         # derivatives oxygen inlet
         i = self.inl[1]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refo2)
+            self.jacobian[k, i.m.J_col()] = -(i.h.val_SI - h_refo2)
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
 
         # derivatives hydrogen inlet
         i = self.inl[2]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refh2 - self.e0)
+            self.jacobian[k, i.m.J_col()] = -(i.h.val_SI - h_refh2 - self.e0)
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col()] = 1
 
     def mass_flow_func(self):
         r"""
@@ -592,16 +592,16 @@ class FuelCell(Component):
         # number of equations may vary here
         if self.inl[1].m.is_var or self.outl[1].m.is_var:
             if self.inl[1].m.is_var:
-                self.jacobian[k, self.inl[1].m.J_col] = -1
+                self.jacobian[k, self.inl[1].m.J_col()] = -1
             if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col] = o2
+                self.jacobian[k, self.outl[1].m.J_col()] = o2
             k += 1
 
         # derivatives for mass flow balance for hydrogen input
         if self.outl[1].m.is_var:
-            self.jacobian[k, self.outl[1].m.J_col] = (1 - o2)
+            self.jacobian[k, self.outl[1].m.J_col()] = (1 - o2)
         if self.inl[2].m.is_var:
-            self.jacobian[k, self.inl[2].m.J_col] = -1
+            self.jacobian[k, self.inl[2].m.J_col()] = -1
 
     def reactor_pressure_func(self):
         r"""
@@ -655,9 +655,9 @@ class FuelCell(Component):
         o = self.outl[1]
         for i in self.inl[1:]:
             if i.p.is_var:
-                self.jacobian[k, i.p.J_col] = -1
+                self.jacobian[k, i.p.J_col()] = -1
             if o.p.is_var:
-                self.jacobian[k, o.p.J_col] = 1
+                self.jacobian[k, o.p.J_col()] = 1
             k += 1
 
     def calc_P(self):

@@ -449,40 +449,40 @@ class CombustionEngine(CombustionChamber):
         # mass flow cooling water
         for i, o in zip(self.inl[:2], self.outl[:2]):
             if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = -(o.h.val_SI - i.h.val_SI)
+                self.jacobian[k, i.m.J_col()] = -(o.h.val_SI - i.h.val_SI)
 
         # mass flow and pressure for combustion reaction
         inl, outl = self._get_combustion_connections()
         for c in inl + outl:
             if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
+                self.jacobian[k, c.m.J_col()] = self.numeric_deriv(f, 'm', c)
             if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+                self.jacobian[k, c.p.J_col()] = self.numeric_deriv(f, 'p', c)
 
         # enthalpy all connections
         for i in self.inl:
             if i.h.is_var:
-                self.jacobian[k, i.h.J_col] = i.m.val_SI
+                self.jacobian[k, i.h.J_col()] = i.m.val_SI
 
         for o in self.outl:
             if o.h.is_var:
-                self.jacobian[k, o.h.J_col] = -o.m.val_SI
+                self.jacobian[k, o.h.J_col()] = -o.m.val_SI
 
         # fluid composition
         for c in inl:
             for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = c.m.val_SI * self.fuels[fl]['LHV']
+                self.jacobian[k, c.fluid.J_col()[fl]] = c.m.val_SI * self.fuels[fl]['LHV']
 
         c = outl[0]
         for fl in (self.fuel_list & c.fluid.is_var):
-            self.jacobian[k, c.fluid.J_col[fl]] = -c.m.val_SI * self.fuels[fl]['LHV']
+            self.jacobian[k, c.fluid.J_col()[fl]] = -c.m.val_SI * self.fuels[fl]['LHV']
 
 
         # power and heat loss
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col()] = 1
         if self.Qloss.is_var:
-            self.jacobian[k, self.Qloss.J_col] = 1
+            self.jacobian[k, self.QlossJ_col()] = 1
 
     def Q1_func(self):
         r"""
@@ -536,11 +536,11 @@ class CombustionEngine(CombustionChamber):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+            self.jacobian[k, o.h.J_col()] = i.m.val_SI
 
     def Q2_func(self):
         r"""
@@ -594,11 +594,11 @@ class CombustionEngine(CombustionChamber):
         i = self.inl[1]
         o = self.outl[1]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+            self.jacobian[k, o.h.J_col()] = i.m.val_SI
 
     def tiP_char_func(self):
         r"""
@@ -669,12 +669,12 @@ class CombustionEngine(CombustionChamber):
         f = self.tiP_char_func
         for c in inl + outl:
             if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
+                self.jacobian[k, c.m.J_col()] = self.numeric_deriv(f, 'm', c)
             for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+                self.jacobian[k, c.fluid.J_col()[fl]] = self.numeric_deriv(f, fl, c)
 
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.numeric_deriv(f, 'P', None)
+            self.jacobian[k, self.p.J_col()] = self.numeric_deriv(f, 'P', None)
 
     def Q1_char_func(self):
         r"""
@@ -754,22 +754,22 @@ class CombustionEngine(CombustionChamber):
         f = self.Q1_char_func
         i = self.inl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         o = self.outl[0]
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
 
         inl, outl = self._get_combustion_connections()
         for c in inl + outl:
             if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
+                self.jacobian[k, c.m.J_col()] = self.numeric_deriv(f, 'm', c)
             for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+                self.jacobian[k, c.fluid.J_col()[fl]] = self.numeric_deriv(f, fl, c)
 
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.numeric_deriv(f, 'P', None)
+            self.jacobian[k, self.p.J_col()] = self.numeric_deriv(f, 'P', None)
 
     def Q2_char_func(self):
         r"""
@@ -851,22 +851,22 @@ class CombustionEngine(CombustionChamber):
         f = self.Q2_char_func
         i = self.inl[1]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         o = self.outl[1]
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
 
         inl, outl = self._get_combustion_connections()
         for c in inl + outl:
             if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
+                self.jacobian[k, c.m.J_col()] = self.numeric_deriv(f, 'm', c)
             for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+                self.jacobian[k, c.fluid.J_col()[fl]] = self.numeric_deriv(f, fl, c)
 
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.numeric_deriv(f, 'P', None)
+            self.jacobian[k, self.p.J_col()] = self.numeric_deriv(f, 'P', None)
 
     def Qloss_char_func(self):
         r"""
@@ -937,14 +937,14 @@ class CombustionEngine(CombustionChamber):
         inl, outl = self._get_combustion_connections()
         for c in inl + outl:
             if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
+                self.jacobian[k, c.m.J_col()] = self.numeric_deriv(f, 'm', c)
             for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+                self.jacobian[k, c.fluid.J_col()[fl]] = self.numeric_deriv(f, fl, c)
 
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.numeric_deriv(f, 'P', None)
+            self.jacobian[k, self.p.J_col()] = self.numeric_deriv(f, 'P', None)
         if self.Qloss.is_var:
-            self.jacobian[k, self.Qloss.J_col] = self.numeric_deriv(f, 'Qloss', None)
+            self.jacobian[k, self.QlossJ_col()] = self.numeric_deriv(f, 'Qloss', None)
 
     def calc_P(self):
         r"""
@@ -1145,14 +1145,14 @@ class CombustionEngine(CombustionChamber):
         if b['param'] == 'TI':
             for c in inl + outl:
                 if c.m.is_var:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
+                    if c.m.J_col() not in bus.jacobian:
+                        bus.jacobian[c.m.J_col()] = 0
+                    bus.jacobian[c.m.J_col()] -= self.numeric_deriv(f, 'm', c, bus=bus)
 
                 for fluid in c.fluid.is_var:
-                    if c.fluid.J_col[fluid] not in bus.jacobian:
-                        bus.jacobian[c.fluid.J_col[fluid]] = 0
-                    bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
+                    if c.fluid.J_col()[fluid] not in bus.jacobian:
+                        bus.jacobian[c.fluid.J_col()[fluid]] = 0
+                    bus.jacobian[c.fluid.J_col()[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of power production (P) or
@@ -1160,38 +1160,38 @@ class CombustionEngine(CombustionChamber):
         elif b['param'] == 'P' or b['param'] == 'Qloss':
             for c in inl + outl:
                 if c.m.is_var:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
+                    if c.m.J_col() not in bus.jacobian:
+                        bus.jacobian[c.m.J_col()] = 0
+                    bus.jacobian[c.m.J_col()] -= self.numeric_deriv(f, 'm', c, bus=bus)
 
                 for fluid in c.fluid.is_var:
-                    if c.fluid.J_col[fluid] not in bus.jacobian:
-                        bus.jacobian[c.fluid.J_col[fluid]] = 0
-                    bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
+                    if c.fluid.J_col()[fluid] not in bus.jacobian:
+                        bus.jacobian[c.fluid.J_col()[fluid]] = 0
+                    bus.jacobian[c.fluid.J_col()[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
 
             # variable power
             if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
+                if self.p.J_col() not in bus.jacobian:
+                    bus.jacobian[self.p.J_col()] = 0
+                bus.jacobian[self.p.J_col()] -= self.numeric_deriv(f, 'P', None, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)
         elif b['param'] == 'Q':
             for i, o in zip(self.inl[:2], self.outl[:2]):
                 if i.m.is_var:
-                    if i.m.J_col not in bus.jacobian:
-                        bus.jacobian[i.m.J_col] = 0
-                    bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
+                    if i.m.J_col() not in bus.jacobian:
+                        bus.jacobian[i.m.J_col()] = 0
+                    bus.jacobian[i.m.J_col()] -= self.numeric_deriv(f, 'm', i, bus=bus)
                 if i.h.is_var:
-                    if i.h.J_col not in bus.jacobian:
-                        bus.jacobian[i.h.J_col] = 0
-                    bus.jacobian[i.h.J_col] -= self.numeric_deriv(f, 'h', i, bus=bus)
+                    if i.h.J_col() not in bus.jacobian:
+                        bus.jacobian[i.h.J_col()] = 0
+                    bus.jacobian[i.h.J_col()] -= self.numeric_deriv(f, 'h', i, bus=bus)
 
                 if o.h.is_var:
-                    if o.h.J_col not in bus.jacobian:
-                        bus.jacobian[o.h.J_col] = 0
-                    bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                    if o.h.J_col() not in bus.jacobian:
+                        bus.jacobian[o.h.J_col()] = 0
+                    bus.jacobian[o.h.J_col()] -= self.numeric_deriv(f, 'h', o, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 1 and 2 (Q1, Q2)
@@ -1200,18 +1200,18 @@ class CombustionEngine(CombustionChamber):
             o = self.outl[int(b["param"][-1]) - 1]
 
             if i.m.is_var:
-                if i.m.J_col not in bus.jacobian:
-                    bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
+                if i.m.J_col() not in bus.jacobian:
+                    bus.jacobian[i.m.J_col()] = 0
+                bus.jacobian[i.m.J_col()] -= self.numeric_deriv(f, 'm', i, bus=bus)
             if i.h.is_var:
-                if i.h.J_col not in bus.jacobian:
-                    bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= self.numeric_deriv(f, 'h', i, bus=bus)
+                if i.h.J_col() not in bus.jacobian:
+                    bus.jacobian[i.h.J_col()] = 0
+                bus.jacobian[i.h.J_col()] -= self.numeric_deriv(f, 'h', i, bus=bus)
 
             if o.h.is_var:
-                if o.h.J_col not in bus.jacobian:
-                    bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                if o.h.J_col() not in bus.jacobian:
+                    bus.jacobian[o.h.J_col()] = 0
+                bus.jacobian[o.h.J_col()] -= self.numeric_deriv(f, 'h', o, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter

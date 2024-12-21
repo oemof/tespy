@@ -543,20 +543,20 @@ class FluidProperties(DataContainer):
             values.
         """
         return {
-            'design': np.nan,
-            'val': np.nan,
-            'val0': np.nan,
-            'val_SI': 0,
-            'unit': None,
+            '_design': np.nan,
+            '_val': np.nan,
+            '_val0': np.nan,
+            '_val_SI': 0,
+            '_unit': None,
             'is_set': False,
-            "is_var": False,
+            "_is_var": False,
             "func": None,
             "deriv": None,
             "constant_deriv": False,
             "structure_matrix": None,
             "latex": None,
             "num_eq": 0,
-            "J_col": None,
+            "_J_col": None,
             "func_params": {},
             "_solved": False,
             "_reference_container": None,
@@ -565,23 +565,32 @@ class FluidProperties(DataContainer):
         }
 
     def _serialize(self):
-        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        keys = ["_val", "_val0", "_val_SI", "_is_set", "_unit"]
         return {k: self.get_attr(k) for k in keys}
 
-    def get_is_set(self):
-        return self._reference_container.is_set
+    # def is_set(self):
+    #     if self._reference_container is not None:
+    #         return self._reference_container._is_set
+    #     else:
+    #         return self._is_set
 
-    def get_is_var(self):
-        return self._reference_container.is_var
+    def is_var(self):
+        return self._reference_container._is_var
 
-    def get_val_SI(self):
-        return self._reference_container.val_SI * self._factor + self._offset
+    def val_SI(self):
+        if self._reference_container is not None:
+            return self._reference_container._val_SI * self._factor + self._offset
+        else:
+            return self._val_SI
 
-    def get_reference_val_SI(self):
-        return (self.val_SI - self._offset) / self._factor
+    def reference_val_SI(self):
+        return (self._val_SI - self._offset) / self._factor
 
-    def get_J_col(self):
-        return self._reference_container.J_col
+    def J_col(self):
+        if self._reference_container is not None:
+            return self._reference_container._J_col
+        else:
+            return self._J_col
 
 class ReferencedFluidProperties(DataContainer):
 
@@ -618,6 +627,9 @@ class ReferencedFluidProperties(DataContainer):
             return export
         else:
             return {}
+
+    # def is_set(self):
+    #     return self._is_set
 
 
 class SimpleDataContainer(DataContainer):
@@ -657,3 +669,6 @@ class SimpleDataContainer(DataContainer):
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+    # def is_set(self):
+    #     return self._is_set

@@ -211,6 +211,6 @@ class Splitter(NodeBase):
         """
         for eq, o in enumerate(self.outl):
             if self.inl[0].h.is_var:
-                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
+                self.jacobian[k + eq, self.inl[0].h.J_col()] = 1
             if o.h.is_var:
-                self.jacobian[k + eq, o.h.J_col] = -1
+                self.jacobian[k + eq, o.h.J_col()] = -1

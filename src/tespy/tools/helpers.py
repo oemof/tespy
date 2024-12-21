@@ -279,15 +279,15 @@ class UserDefinedEquation:
         ...     c0 = ude.conns[0]
         ...     c1 = ude.conns[1]
         ...     if c0.m.is_var:
-        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
+        ...         ude.jacobian[c0.m.J_col()] = ude.numeric_deriv('m', c0)
         ...     if c0.p.is_var:
-        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
+        ...         ude.jacobian[c0.p.J_col()] = ude.numeric_deriv('p', c0)
         ...     if c0.h.is_var:
-        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
+        ...         ude.jacobian[c0.h.J_col()] = ude.numeric_deriv('h', c0)
         ...     if c1.p.is_var:
-        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
+        ...         ude.jacobian[c1.p.J_col()] = ude.numeric_deriv('p', c1)
         ...     if c1.h.is_var:
-        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
+        ...         ude.jacobian[c1.h.J_col()] = ude.numeric_deriv('h', c1)
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -461,14 +461,14 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
             d = 1e-4
         else:
             d = 1e-1
-        conn.get_attr(dx)._reference_container.val_SI += d
+        conn.get_attr(dx)._reference_container._val_SI += d
         exp = func(**kwargs)
 
-        conn.get_attr(dx)._reference_container.val_SI -= 2 * d
+        conn.get_attr(dx)._reference_container._val_SI -= 2 * d
         exp -= func(**kwargs)
         deriv = exp / (2 * d)
 
-        conn.get_attr(dx)._reference_container.val_SI += d
+        conn.get_attr(dx)._reference_container._val_SI += d
 
     else:
         msg = (

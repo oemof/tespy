@@ -281,8 +281,8 @@ class SimpleHeatExchanger(Component):
 
                 0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        return self.inl[0].m.get_val_SI() * (
-            self.outl[0].h.get_val_SI() - self.inl[0].h.get_val_SI()
+        return self.inl[0].m.val_SI() * (
+            self.outl[0].h.val_SI() - self.inl[0].h.val_SI()
         ) - self.Q.val
 
     def energy_balance_func_doc(self, label):
@@ -319,13 +319,13 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-        self._partial_derivative(i, 'm', o.h.get_val_SI() - i.h.get_val_SI(), k)
-        self._partial_derivative(i, 'h', -i.m.get_val_SI(), k)
-        self._partial_derivative(o, 'h', i.m.get_val_SI(), k)
+        self._partial_derivative(i, 'm', o.h.val_SI() - i.h.val_SI(), k)
+        self._partial_derivative(i, 'h', -i.m.val_SI(), k)
+        self._partial_derivative(o, 'h', i.m.val_SI(), k)
 
         # custom variable Q does not work with the new function yet
         if self.Q.is_var:
-            self.jacobian[k, self.Q.J_col] = -1
+            self.jacobian[k, self.Q.J_col()] = -1
 
     def darcy_func(self):
         r"""
@@ -410,20 +410,20 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(func, 'm', i)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(func, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(func, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(func, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(func, 'h', o)
         # custom variables of hydro group
         for variable_name in self.darcy_group.elements:
             parameter = self.get_attr(variable_name)
             if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
+                self.jacobian[k, parameterJ_col()] = (
                     self.numeric_deriv(func, variable_name, None)
                 )
 
@@ -507,20 +507,20 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(func, 'm', i)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(func, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(func, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(func, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(func, 'h', o)
         # custom variables of hydro group
         for variable_name in self.hw_group.elements:
             parameter = self.get_attr(variable_name)
             if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
+                self.jacobian[k, parameterJ_col()] = (
                     self.numeric_deriv(func, variable_name, None)
                 )
 
@@ -616,17 +616,17 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
         if self.kA.is_var:
-            self.jacobian[k, self.kA.J_col] = self.numeric_deriv(f, self.vars[self.kA])
+            self.jacobian[k, self.kAJ_col()] = self.numeric_deriv(f, self.vars[self.kA])
 
     def kA_char_group_func(self):
         r"""
@@ -734,15 +734,15 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
 
     def bus_func(self, bus):
         r"""
@@ -802,19 +802,19 @@ class SimpleHeatExchanger(Component):
         """
         f = self.calc_bus_value
         if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            if self.inl[0].m.J_col() not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col()] = 0
+            bus.jacobian[self.inl[0].m.J_col()] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
 
         if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            if self.inl[0].h.J_col() not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col()] = 0
+            bus.jacobian[self.inl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
 
         if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            if self.outl[0].h.J_col() not in bus.jacobian:
+                bus.jacobian[self.outl[0].h.J_col()] = 0
+            bus.jacobian[self.outl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
 
     def initialise_source(self, c, key):
         r"""

@@ -252,13 +252,13 @@ class Pump(Turbomachine):
         o = self.outl[0]
         f = self.eta_s_func
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+            self.jacobian[k, o.h.J_col()] = self.eta_s.val
 
     def eta_s_char_func(self):
         r"""
@@ -335,15 +335,15 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
 
     def flow_char_func(self):
         r"""
@@ -398,13 +398,13 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
 
     def convergence_check(self):
         r"""

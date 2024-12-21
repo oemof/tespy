@@ -240,17 +240,17 @@ class Drum(DropletSeparator):
         """
         if self.inl[1].m == self.outl[0].m:
             if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = 1
+                self.jacobian[k, self.inl[0].m.J_col()] = 1
             if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col] = -1
+                self.jacobian[k, self.outl[1].m.J_col()] = -1
 
         else:
             for i in self.inl:
                 if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = 1
+                    self.jacobian[k, i.m.J_col()] = 1
             for o in self.outl:
                 if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -1
+                    self.jacobian[k, o.m.J_col()] = -1
 
     def energy_balance_func(self):
         r"""
@@ -298,18 +298,18 @@ class Drum(DropletSeparator):
         # due to topology reduction this is the case quite often
         if self.inl[1].m == self.outl[0].m:
             if self.outl[0].m.is_var:
-                self.jacobian[k, self.outl[0].m.J_col] = (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
+                self.jacobian[k, self.outl[0].m.J_col()] = (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
             if self.inl[1].h.is_var:
-                self.jacobian[k, self.inl[1].h.J_col] = self.outl[0].m.val_SI
+                self.jacobian[k, self.inl[1].h.J_col()] = self.outl[0].m.val_SI
             if self.outl[0].h.is_var:
-                self.jacobian[k, self.outl[0].h.J_col] = -self.outl[0].m.val_SI
+                self.jacobian[k, self.outl[0].h.J_col()] = -self.outl[0].m.val_SI
 
             if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = self.inl[0].h.val_SI - self.outl[1].h.val_SI
+                self.jacobian[k, self.inl[0].m.J_col()] = self.inl[0].h.val_SI - self.outl[1].h.val_SI
             if self.inl[0].h.is_var:
-                self.jacobian[k, self.inl[0].h.J_col] = self.inl[0].m.val_SI
+                self.jacobian[k, self.inl[0].h.J_col()] = self.inl[0].m.val_SI
             if self.outl[1].h.is_var:
-                self.jacobian[k, self.outl[1].h.J_col] = -self.outl[1].m.val_SI
+                self.jacobian[k, self.outl[1].h.J_col()] = -self.outl[1].m.val_SI
         else:
             super().energy_balance_deriv(increment_filter, k)
 

@@ -1121,7 +1121,7 @@ class HeatExchanger(Component):
         )
         self.ttd_u.val = self.inl[0].T.val_SI - self.outl[1].T.val_SI
         self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
-        self.ttd_min.val = min(self.ttd_u.val, self.ttd_min.val)
+        self.ttd_min.val = min(self.ttd_u.val, self.ttd_l.val)
 
         # pr and zeta
         for i in range(2):

@@ -10,11 +10,11 @@ tests/test_components/test_heat_exchangers.py
 SPDX-License-Identifier: MIT
 """
 import math
+
+import numpy as np
 from pytest import approx
 from pytest import fixture
 from pytest import mark
-
-import numpy as np
 
 from tespy.components import Condenser
 from tespy.components import Desuperheater

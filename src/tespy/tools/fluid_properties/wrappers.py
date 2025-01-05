@@ -382,14 +382,17 @@ class IAPWSWrapper(FluidPropertyWrapper):
 
     def state_ph(self, p, h):
         p = self._make_p_subcritical(p)
-        x = self.AS(h=h / 1e3, P=p / 1e6).x
 
-        if x == 0:
+        phase = self.AS(h=h / 1e3, P=p / 1e6).phase
+
+        if phase in ["Liquid"]:
             return "l"
-        elif x == 1:
+        elif phase in  ["Vapour"]:
             return "g"
-        else:
+        elif phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
             return "tp"
+        else:  # to ensure consistent behaviour to CoolPropWrapper
+            return "phase not recognised"
 
     def d_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).rho

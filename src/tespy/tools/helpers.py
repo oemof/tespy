@@ -133,7 +133,8 @@ def convert_from_SI(property, SI_value, unit):
     if property == 'T':
         converters = fluid_property_data['T']['units'][unit]
         return SI_value / converters[1] - converters[0]
-
+    elif property == "state":
+        return SI_value
     else:
         return SI_value / fluid_property_data[property]['units'][unit]
 

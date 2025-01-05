@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import CoolProp as CP
+import numpy as np
 
 from tespy.tools.global_vars import ERR
 
@@ -91,6 +92,9 @@ class FluidPropertyWrapper:
         self._not_implemented()
 
     def Q_ph(self, p, h):
+        self._not_implemented()
+
+    def state_ph(self, p, h):
         self._not_implemented()
 
     def d_ph(self, p, h):
@@ -227,7 +231,28 @@ class CoolPropWrapper(FluidPropertyWrapper):
     def Q_ph(self, p, h):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.Q()
+
+        if self.AS.phase() == CP.iphase_twophase:
+            return self.AS.Q()
+        elif self.AS.phase() == CP.iphase_liquid:
+            return 0
+        elif self.AS.phase() == CP.iphase_gas:
+            return 1
+        else:  # all other phases - though this should be unreachable as p is sub-critical
+            return -1
+
+    def state_ph(self, p, h):
+        p = self._make_p_subcritical(p)
+        self.AS.update(CP.HmassP_INPUTS, h, p)
+
+        if self.AS.phase() == CP.iphase_twophase:
+            return "tp"
+        elif self.AS.phase() == CP.iphase_liquid:
+            return "l"
+        elif self.AS.phase() == CP.iphase_gas:
+            return "g"
+        else:  # all other phases - though this should be unreachable as p is sub-critical
+            return "state not recognised"
 
     def d_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
@@ -354,6 +379,17 @@ class IAPWSWrapper(FluidPropertyWrapper):
     def Q_ph(self, p, h):
         p = self._make_p_subcritical(p)
         return self.AS(h=h / 1e3, P=p / 1e6).x
+
+    def state_ph(self, p, h):
+        p = self._make_p_subcritical(p)
+        x = self.AS(h=h / 1e3, P=p / 1e6).x
+
+        if x == 0:
+            return "l"
+        elif x == 1:
+            return "g"
+        else:
+            return "tp"
 
     def d_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).rho

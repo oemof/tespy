@@ -21,6 +21,7 @@ from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
+from tespy.tools.fluid_properties import state_mix_ph
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -704,6 +705,8 @@ class Connection:
             "v_ref": dc_ref(
                 func=self.v_ref_func, deriv=self.v_ref_deriv, num_eq=1
             ),
+            "state": dc_prop(is_var=True),
+
         }
 
     def build_fluid_data(self):
@@ -933,6 +936,11 @@ class Connection:
             except ValueError:
                 self.x.val_SI = np.nan
             try:
+                if not self.state.is_set:
+                    self.state.val_SI = self.calc_state()
+            except ValueError:
+                self.state.val_SI = np.nan
+            try:
                 if not self.Td_bp.is_set:
                     self.Td_bp.val_SI = self.calc_Td_bp()
             except ValueError:
@@ -1125,6 +1133,12 @@ class Connection:
             )
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
+
+    def calc_state(self):
+        try:
+            return state_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
 
 
 class Ref:

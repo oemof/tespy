@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-from .functions import state_mix_ph
+from .functions import phase_mix_ph
 from .functions import Q_mix_ph  # noqa: F401
 from .functions import T_mix_ph  # noqa: F401
 from .functions import T_mix_ps  # noqa: F401

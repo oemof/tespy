@@ -94,7 +94,7 @@ class FluidPropertyWrapper:
     def Q_ph(self, p, h):
         self._not_implemented()
 
-    def state_ph(self, p, h):
+    def phase_ph(self, p, h):
         self._not_implemented()
 
     def d_ph(self, p, h):
@@ -241,7 +241,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
         else:  # all other phases - though this should be unreachable as p is sub-critical
             return -1
 
-    def state_ph(self, p, h):
+    def phase_ph(self, p, h):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
 
@@ -380,7 +380,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         p = self._make_p_subcritical(p)
         return self.AS(h=h / 1e3, P=p / 1e6).x
 
-    def state_ph(self, p, h):
+    def phase_ph(self, p, h):
         p = self._make_p_subcritical(p)
 
         phase = self.AS(h=h / 1e3, P=p / 1e6).phase

@@ -98,13 +98,6 @@ fluid_property_data = {
         'latex_eq': r'0 = s_\mathrm{spec} - s\left(p, h \right)',
         'documentation': {'float_fmt': '{:,.2f}'}
     },
-    'state': {
-        'text': 'state',
-        'SI_unit': '-',
-        'units': {'-': 1},
-        'latex_eq': r'',
-        'documentation': {'string_fmt': '{}'}
-    }
 
 }
 

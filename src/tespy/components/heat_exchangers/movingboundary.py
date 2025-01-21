@@ -11,33 +11,40 @@ tespy/components/heat_exchangers/movingboundary.py
 SPDX-License-Identifier: MIT
 """
 import math
+import numpy as np
 
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.global_vars import ERR
-from tespy.tools.fluid_properties import h_mix_pQ
 
 
-class MovingBoundaryCondenser(HeatExchanger):
+class MovingBoundaryHeatExchanger(HeatExchanger):
 
     @staticmethod
     def component():
-        return 'moving boundary condenser'
+        return 'moving boundary heat exchanger'
 
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'U_desup': dc_cp(min_val=0),
-            'U_cond': dc_cp(min_val=0),
-            'U_subcool': dc_cp(min_val=0),
+            'U_gas_gas': dc_cp(min_val=0),
+            'U_gas_twophase': dc_cp(min_val=0),
+            'U_gas_liquid': dc_cp(min_val=0),
+            'U_liquid_gas': dc_cp(min_val=0),
+            'U_liquid_twophase': dc_cp(min_val=0),
+            'U_liquid_liquid': dc_cp(min_val=0),
+            'U_twophase_gas': dc_cp(min_val=0),
+            'U_twophase_twophase': dc_cp(min_val=0),
+            'U_twophase_liquid': dc_cp(min_val=0),
             'A': dc_cp(min_val=0),
-            'U_sections_group': dc_gcp(
-                elements=['U_desup', 'U_cond', 'U_subcool', 'A'],
-                func=self.U_sections_func, deriv=self.U_sections_deriv, latex=None,
-                num_eq=1
-            ),
+            # 'U_sections_group': dc_gcp(
+            #     elements=['U_desup', 'U_cond', 'U_subcool', 'A'],
+            #     func=self.U_sections_func, deriv=self.U_sections_deriv, latex=None,
+            #     num_eq=1
+            # ),
             'UA': dc_cp(
                 min_val=0, num_eq=1, func=self.UA_func, deriv=self.UA_deriv
             ),
@@ -48,56 +55,99 @@ class MovingBoundaryCondenser(HeatExchanger):
         })
         return params
 
-    def get_U_sections_and_h_steps(self, get_U_values=False):
-        """Get the U values of the sections and the boundary hot side enthalpies
+    @staticmethod
+    def _get_h_steps(c1, c2):
+        """Get the steps for enthalpy for a change of state from one connection
+        to another
 
         Parameters
         ----------
-        get_U_values : boolean
-            Also return the U values for the sections of the heat exchanger.
+        c1 : tespy.connections.connection.Connection
+            Inlet connection.
+
+        c2 : tespy.connections.connection.Connection
+            Outlet connection.
 
         Returns
         -------
-        tuple
-            U values in the heat exchange sections and boundary hot side
-            enthalpies
+        list
+            Steps of enthalpy of the specified connections
         """
-        i1, _ = self.inl
-        o1, _ = self.outl
-        U_in_sections = []
+        if c1.fluid_data != c2.fluid_data:
+            msg = "Both connections need to utilize the same fluid data."
+            raise ValueError(msg)
 
-        h_sat_gas = h_mix_pQ(o1.p.val_SI, 1, o1.fluid_data)
-        h_sat_liquid = h_mix_pQ(o1.p.val_SI, 0, o1.fluid_data)
+        if c1.p.val_SI != c2.p.val_SI:
+            msg = (
+                "This method assumes equality of pressure for the inlet and "
+                "the outlet connection. The pressure values provided are not "
+                "equal, the results may be incorrect."
+            )
+        # change the order of connections to have c1 as the lower enthalpy
+        # connection (enthalpy will be rising in the list)
+        if c1.h.val_SI > c2.h.val_SI:
+            c1, c2 = c2, c1
 
-        if i1.h.val_SI > h_sat_gas + ERR and o1.h.val_SI < h_sat_liquid - ERR:
-            h_at_steps_1 = [i1.h.val_SI, h_sat_gas, h_sat_liquid, o1.h.val_SI]
-            if get_U_values:
-                U_in_sections = [self.U_desup.val, self.U_cond.val, self.U_subcool.val]
+        h_at_steps = [c1.h.val_SI, c2.h.val_SI]
+        fluid = single_fluid(c1.fluid_data)
+        # this should be generalized to "supports two-phase"
+        is_pure_fluid = fluid is not None
 
-        elif ((i1.h.val_SI > h_sat_gas + ERR) ^ (o1.h.val_SI < h_sat_liquid - ERR)):
-            if i1.h.val_SI > h_sat_gas + ERR:
-                h_at_steps_1 = [i1.h.val_SI, h_sat_gas, o1.h.val_SI]
-                if get_U_values:
-                    U_in_sections = [self.U_desup.val, self.U_cond.val]
-            else:
-                h_at_steps_1 = [i1.h.val_SI, h_sat_liquid, o1.h.val_SI]
-                if get_U_values:
-                    U_in_sections = [self.U_cond.val, self.U_subcool.val]
+        if is_pure_fluid:
+            try:
+                h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
+                h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
+            except (ValueError, NotImplementedError):
+                return h_at_steps
 
-        else:
-            h_at_steps_1 = [i1.h.val_SI, o1.h.val_SI]
+            if c1.h.val_SI < h_sat_liquid:
+                if c2.h.val_SI > h_sat_gas:
+                    h_at_steps = [c1.h.val_SI, h_sat_liquid, h_sat_gas, c2.h.val_SI]
+                elif c2.h.val_SI > h_sat_liquid:
+                    h_at_steps = [c1.h.val_SI, h_sat_liquid, c2.h.val_SI]
 
-            if get_U_values:
-                if i1.h.val_SI > h_sat_gas + ERR:
-                    U_in_sections = [self.U_desup.val]
-                elif i1.h.val_SI > h_sat_liquid - ERR:
-                    U_in_sections = [self.U_cond.val]
-                else:
-                    U_in_sections = [self.U_subcool.val]
+            elif c1.h.val_SI < h_sat_gas:
+                if c2.h.val_SI > h_sat_gas:
+                    h_at_steps = [c1.h.val_SI, h_sat_gas, c2.h.val_SI]
 
-        return U_in_sections, h_at_steps_1
+        return h_at_steps
 
-    def calc_td_log_and_Q_in_sections(self, h_at_steps_1):
+    @staticmethod
+    def _get_Q_sections(h_at_steps, mass_flow):
+        return [
+            (h_at_steps[i + 1] - h_at_steps[i]) * mass_flow
+            for i in range(len(h_at_steps) - 1)
+        ]
+
+    def _assign_sections(self):
+        h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
+        Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
+        Q_sections_hot = np.cumsum(Q_sections_hot).round(6).tolist()
+
+        h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])
+        Q_sections_cold = self._get_Q_sections(h_steps_cold, self.inl[1].m.val_SI)
+        Q_sections_cold = np.cumsum(Q_sections_cold).round(6).tolist()
+
+        all_sections = [Q for Q in Q_sections_hot + Q_sections_cold + [0.0]]
+        return sorted(list(set(all_sections)))
+
+    def _get_T_at_steps(self, Q_sections):
+        # now put the Q_sections back on the h_steps on both sides
+        h_steps_hot = [self.inl[0].h.val_SI - Q / self.inl[0].m.val_SI for Q in Q_sections]
+        h_steps_cold = [self.inl[1].h.val_SI + Q / self.inl[1].m.val_SI for Q in Q_sections]
+
+        T_steps_hot = [
+            T_mix_ph(self.inl[0].p.val_SI, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
+            for h in h_steps_hot
+        ]
+        T_steps_cold = [
+            T_mix_ph(self.inl[1].p.val_SI, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+            for h in h_steps_cold
+        ]
+        return T_steps_hot, T_steps_cold
+
+    @staticmethod
+    def _calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_sections):
         """Calculate logarithmic temperature difference and heat exchange in
         heat exchanger sections.
 
@@ -112,60 +162,31 @@ class MovingBoundaryCondenser(HeatExchanger):
             Lists of logarithmic temperature difference and heat exchange in
             the heat exchanger sections starting from hot side inlet.
         """
-        i1, i2 = self.inl
-        steps = len(h_at_steps_1)
-        sections = steps - 1
-
-        p_at_steps_1 = [i1.p.val_SI for _ in range(steps)]
-        T_at_steps_1 = [
-            T_mix_ph(p, h, i1.fluid_data, i1.mixing_rule)
-            for p, h in zip(p_at_steps_1, h_at_steps_1)
-        ]
-
-        Q_in_sections = [
-            i1.m.val_SI * (h_at_steps_1[i + 1] - h_at_steps_1[i])
-            for i in range(sections)
-        ]
-
-        h_at_steps_2 = [i2.h.val_SI]
-        for Q in Q_in_sections[::-1]:
-            h_at_steps_2.append(h_at_steps_2[-1] + abs(Q) / i2.m.val_SI)
-
-        p_at_steps_2 = [i2.p.val_SI for _ in range(sections + 1)]
-        T_at_steps_2 = [
-            T_mix_ph(p, h, i2.fluid_data, i2.mixing_rule)
-            for p, h in zip(p_at_steps_2, h_at_steps_2)
-        ]
-
         # counter flow version
         td_at_steps = [
-            T1 - T2 for T1, T2 in zip(T_at_steps_1, T_at_steps_2[::-1])
+            T_hot - T_cold
+            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold[::-1])
         ]
 
         td_at_steps = [abs(td) for td in td_at_steps]
         td_log_in_sections = [
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            for i in range(sections)
+            if td_at_steps[i + 1] != td_at_steps[i] else td_at_steps[i + 1]
+            for i in range(len(Q_sections))
         ]
-        return td_log_in_sections, Q_in_sections
-
-    def calc_UA_in_sections(self):
-        """Calc UA values for all sections.
-
-        Returns
-        -------
-        list
-            List of UA values starting from hot side inlet.
-        """
-        _, h_at_steps_1 = self.get_U_sections_and_h_steps()
-        td_log_in_sections, Q_in_sections = self.calc_td_log_and_Q_in_sections(h_at_steps_1)
         UA_in_sections = [
             abs(Q) / td_log
-            for Q, td_log in zip(Q_in_sections, td_log_in_sections)
+            for Q, td_log in zip(Q_sections, td_log_in_sections)
         ]
-
         return UA_in_sections
+
+    def calc_UA(self):
+        Q_sections = self._assign_sections()
+        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
+        Q_per_section = np.diff(Q_sections)
+        UA_sections = self._calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_per_section)
+        return sum(UA_sections)
 
     def UA_func(self, **kwargs):
         r"""
@@ -320,27 +341,29 @@ class MovingBoundaryCondenser(HeatExchanger):
     def calc_parameters(self):
         super().calc_parameters()
 
-        U_sections_specified = all([
-            self.get_attr(f"U_{key}").is_set
-            for key in ["desup", "cond", "subcool"]
-        ])
+        UA = self.calc_UA()
+        print(UA)
+        # U_sections_specified = all([
+        #     self.get_attr(f"U_{key}").is_set
+        #     for key in ["desup", "cond", "subcool"]
+        # ])
 
-        if U_sections_specified:
-            U_in_sections, h_at_steps_1 = self.get_U_sections_and_h_steps(get_U_values=True)
-            td_log_in_sections, Q_in_sections = self.calc_td_log_and_Q_in_sections(h_at_steps_1)
-            self.A.val = self.Q.val ** 2 / (
-                sum([
-                    abs(Q) * td_log * U
-                    for Q, td_log, U
-                    in zip(Q_in_sections, td_log_in_sections, U_in_sections)
-                ])
-            )
-            assert abs(abs(self.Q.val) / sum([
-                ((Q / self.Q.val) * td_log * U)
-                for Q, td_log, U
-                in zip(Q_in_sections, td_log_in_sections, U_in_sections)
-            ]) - self.A.val) < 1e-6
-            assert round(sum([Q for Q in Q_in_sections]), 3) == round(self.Q.val, 3)
+        # if U_sections_specified:
+        #     U_in_sections, h_at_steps_1 = self.get_U_sections_and_h_steps(get_U_values=True)
+        #     td_log_in_sections, Q_in_sections = self.calc_td_log_and_Q_in_sections(h_at_steps_1)
+        #     self.A.val = self.Q.val ** 2 / (
+        #         sum([
+        #             abs(Q) * td_log * U
+        #             for Q, td_log, U
+        #             in zip(Q_in_sections, td_log_in_sections, U_in_sections)
+        #         ])
+        #     )
+        #     assert abs(abs(self.Q.val) / sum([
+        #         ((Q / self.Q.val) * td_log * U)
+        #         for Q, td_log, U
+        #         in zip(Q_in_sections, td_log_in_sections, U_in_sections)
+        #     ]) - self.A.val) < 1e-6
+        #     assert round(sum([Q for Q in Q_in_sections]), 3) == round(self.Q.val, 3)
 
-        self.UA.val = sum(self.calc_UA_in_sections())
-        self.td_pinch.val = self.calc_td_pinch()
+        # self.UA.val = sum(self.calc_UA_in_sections())
+        # self.td_pinch.val = self.calc_td_pinch()

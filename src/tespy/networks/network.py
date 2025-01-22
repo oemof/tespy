@@ -1187,7 +1187,7 @@ class Network:
         self.all_fluids = set(self.all_fluids)
         cols = (
             [col for prop in properties for col in [prop, f"{prop}_unit"]]
-            + list(self.all_fluids)
+            + list(self.all_fluids) + ['phase']
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
@@ -2476,7 +2476,10 @@ class Network:
                 ] + [
                     c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
                     for fluid in self.all_fluids
+                ] + [
+                    c.phase.val
                 ]
+
             )
 
     def process_components(self):
@@ -2571,7 +2574,7 @@ class Network:
                         )
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']].copy()
+        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T', 'x', 'phase']].copy()
         df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:

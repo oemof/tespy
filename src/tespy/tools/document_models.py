@@ -333,6 +333,8 @@ def document_connection_params(nw, df, specs, eqs, c, rpt):
         unit = col + '_unit'
         if col == 'Td_bp':
             unit = 'T_unit'
+        elif col == 'phase':
+            continue
         col_header = (
             col.replace('_', r'\_') + ' in ' +
             hlp.latex_unit(nw.get_attr(unit)))

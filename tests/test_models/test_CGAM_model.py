@@ -31,7 +31,6 @@ from tespy.tools.helpers import get_chem_ex_lib
 class TestCGAM:
 
     def setup_method(self):
-        fluid_list = ['O2', 'H2O', 'N2', 'CO2', 'CH4']
         self.nwk = Network(p_unit='bar', T_unit='C')
 
         air_molar = {

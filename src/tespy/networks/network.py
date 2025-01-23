@@ -1121,7 +1121,7 @@ class Network:
                 }
                 self.num_conn_vars += 1
 
-    def _reset_topology_reduction_specifications(self):
+    def reset_topology_reduction_specifications(self):
         for c in self.conns["object"]:
             if hasattr(c, "_m_tmp"):
                 value = c.m.val_SI
@@ -1187,7 +1187,7 @@ class Network:
         self.all_fluids = set(self.all_fluids)
         cols = (
             [col for prop in properties for col in [prop, f"{prop}_unit"]]
-            + list(self.all_fluids)
+            + list(self.all_fluids) + ['phase']
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
@@ -1661,7 +1661,7 @@ class Network:
         Initialise the fluid properties on every connection of the network.
 
         - Set generic starting values for mass flow, enthalpy and pressure if
-          not user specified, read from :code:`ìnit_path` or available from
+          not user specified, read from :code:`init_path` or available from
           previous calculation.
         - For generic starting values precalculate enthalpy value at points of
           given temperature, vapor mass fraction, temperature difference to
@@ -1963,7 +1963,7 @@ class Network:
         self.initialise()
 
         if init_only:
-            self._reset_topology_reduction_specifications()
+            self.reset_topology_reduction_specifications()
             return
 
         msg = 'Starting solver.'
@@ -1974,7 +1974,7 @@ class Network:
         self.solve_loop(print_results=print_results)
 
         if not prepare_fast_lane:
-            self._reset_topology_reduction_specifications()
+            self.reset_topology_reduction_specifications()
 
         if self.lin_dep:
             msg = (
@@ -2476,7 +2476,10 @@ class Network:
                 ] + [
                     c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
                     for fluid in self.all_fluids
+                ] + [
+                    c.phase.val
                 ]
+
             )
 
     def process_components(self):
@@ -2571,7 +2574,7 @@ class Network:
                         )
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']].copy()
+        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T', 'x', 'phase']].copy()
         df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:

@@ -12,6 +12,39 @@ your project.
 
 .. card::
 
+    **Dashboard for the exploration of various heat pump designs**
+    ^^^
+
+    .. image:: /_static/images/examples/heatpumps.png
+      :align: center
+      :alt: Heatpumps Dashboard
+      :class: only-light
+      :target: https://github.com/jfreissmann/heatpumps
+
+    .. image:: /_static/images/examples/heatpumps_darkmode.png
+      :align: center
+      :alt: Heatpumps Dashboard
+      :class: only-dark
+      :target: https://github.com/jfreissmann/heatpumps
+
+    The streamlit dashboard *heatpumps* provides users with powerful tools for
+    both design and part load simulation of a comprehensive library of heat
+    pump topologies. Furthermore, TESPy's integration of CoolProp facilitates
+    the use of a wide range of refrigerants. The exploration of simulation
+    results is supported by fluprodia's state diagrams as well as the TESPy
+    built-in exergy analysis feature. An assessment of the economic
+    attractiveness of different heat pump setups is enabled through a
+    component-based cost estimation.
+
+    +++
+    Title: heatpumps
+
+    Authors: Jonas Freißmann, Malte Fritz
+
+    Reference: :cite:`Fritz2024`
+
+.. card::
+
     **Coupled Porous Media Storage and Power Plant Simulation**
     ^^^
 

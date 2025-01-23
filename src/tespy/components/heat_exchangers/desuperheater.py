@@ -181,18 +181,16 @@ class Desuperheater(HeatExchanger):
         return 'desuperheater'
 
     def get_mandatory_constraints(self):
-        return {
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
             'saturated_gas_constraints': {
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
                 'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
-                'num_eq': 1}
-        }
+                'num_eq': 1
+            }
+        })
+        return constraints
 
     def saturated_gas_func(self):
         r"""

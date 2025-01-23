@@ -88,23 +88,27 @@ evaporator and how to unset the parameter again.
 
 .. code-block:: python
 
-    from tespy.components import HeatExchanger
-    from tespy.tools import ComponentProperties as dc_cp
-    import numpy as np
+    >>> from tespy.components import HeatExchanger
+    >>> from tespy.tools import ComponentProperties as dc_cp
+    >>> import numpy as np
 
-    he = HeatExchanger('evaporator')
+    >>> he = HeatExchanger('evaporator')
 
-    # specify the value
-    he.set_attr(kA=1e5)
-    # specify via dictionary
-    he.set_attr(kA={'val': 1e5, 'is_set': True})
-    # set data container parameters
-    he.kA.set_attr(val=1e5, is_set=True)
+    >>> # specify the value
+    >>> he.set_attr(kA=1e5)
+    >>> # specify via dictionary
+    >>> he.set_attr(kA={'val': 1e5, 'is_set': True})
+    >>> # set data container parameters
+    >>> he.kA.set_attr(val=1e5, is_set=True)
+    >>> he.kA.is_set
+    True
 
-    # possibilities to unset a value
-    he.set_attr(kA=np.nan)
-    he.set_attr(kA=None)
-    he.kA.set_attr(is_set=False)
+    >>> # possibilities to unset a value
+    >>> he.set_attr(kA=np.nan)
+    >>> he.set_attr(kA=None)
+    >>> he.kA.set_attr(is_set=False)
+    >>> he.kA.is_set
+    False
 
 Grouped parameters
 ^^^^^^^^^^^^^^^^^^
@@ -118,17 +122,35 @@ not be implemented by the solver.
 
 .. code-block:: python
 
-    from tespy.components import Pipe
-    import numpy as np
+    >>> from tespy.components import Pipe, Source, Sink
+    >>> from tespy.networks import Network
+    >>> from tespy.connections import Connection
 
-    my_pipe = Pipe('pipe')
+    >>> nw = Network(T_unit='C', p_unit='bar')
 
-    # specify grouped parameters
-    my_pipe.set_attr(D=0.1, L=20, ks=0.00005)
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> my_pipe = Pipe('pipe')
 
-    # the solver will not apply an equation, since the information of the
-    # pipe's length is missing.
-    my_pipe.set_attr(D=0.1, ks=0.00005)
+    >>> c1 = Connection(so, 'out1', my_pipe, 'in1')
+    >>> c2 = Connection(my_pipe, 'out1', si, 'in1')
+    >>> nw.add_conns(c1, c2)
+    >>> c1.set_attr(fluid={"CH4": 1}, m=1, p=10, T=25)
+    >>> c2.set_attr(p0=10, T=25)
+
+    >>> # specify grouped parameters
+    >>> my_pipe.set_attr(D=0.1, L=20, ks=0.00005)
+    >>> nw.solve('design', init_only=True)
+    >>> my_pipe.darcy_group.is_set
+    True
+
+    >>> # the solver will not apply an equation, since the information of the
+    >>> # pipe's length is now missing (by removing it as follows).
+    >>> c2.set_attr(p=10)
+    >>> my_pipe.set_attr(L=None)
+    >>> nw.solve('design', init_only=True)
+    >>> my_pipe.darcy_group.is_set
+    False
 
 There are several components using parameter groups:
 
@@ -168,21 +190,22 @@ diameter the following way.
 
 .. code-block:: python
 
-    from tespy.components import Pipe
-    from tespy.tools import ComponentProperties as dc_cp
-    import numpy as np
+    >>> # make diameter variable of system
+    >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
+    >>> c2.set_attr(p=None)
+    >>> nw.solve("design", init_only=True)
+    >>> my_pipe.darcy_group.is_set
+    True
 
-    # custom variables
-    my_pipe = Pipe('my pipe')
-
-    # make diameter variable of system
-    my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
-
-    # a second way of specifying this is similar to the
-    # way used in the component parameters section
-    # val will be used as starting value
-    my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
-    my_pipe.set_attr(D={'val': 0.2, 'is_set': True, 'is_var': True})
+    >>> # a second way of specifying this is similar to the
+    >>> # way used in the component parameters section
+    >>> # val will be used as starting value
+    >>> my_pipe.darcy_group.is_set = False
+    >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
+    >>> my_pipe.set_attr(D={'val': 0.2, 'is_set': True, 'is_var': True})
+    >>> nw.solve("design", init_only=True)
+    >>> my_pipe.darcy_group.is_set
+    True
 
 It is also possible to set value boundaries for you custom variable. You can do
 this, if you expect the result to be within a specific range. But beware: This
@@ -191,12 +214,14 @@ specified range.
 
 .. code-block:: python
 
-    # data container specification with identical result,
-    # benefit: specification of bounds will increase stability
-    my_pipe.set_attr(D={
-        'val': 0.2, 'is_set': True, 'is_var': True,
-        'min_val': 0.1, 'max_val': 0.3}
-    )
+    >>> # data container specification with identical result,
+    >>> # benefit: specification of bounds will increase stability
+    >>> my_pipe.set_attr(D={
+    ...     'val': 0.2, 'is_set': True, 'is_var': True,
+    ...     'min_val': 0.1, 'max_val': 0.3}
+    ... )
+    >>> round(my_pipe.D.max_val, 1)
+    0.3
 
 .. _component_characteristic_specification_label:
 
@@ -233,88 +258,127 @@ For example, :code:`kA_char` specification for heat exchangers:
 
 .. code-block:: python
 
-    from tespy.components import HeatExchanger
-    from tespy.tools.characteristics import load_default_char as ldc
-    from tespy.tools.characteristics import CharLine
-    import numpy as np
+    >>> from tespy.components import HeatExchanger
+    >>> from tespy.tools.characteristics import load_default_char as ldc
+    >>> from tespy.tools.characteristics import CharLine
 
-    he = HeatExchanger('evaporator')
+    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
 
-    # the characteristic function requires the design value of the property,
-    # therefore the design value of kA must be set and additionally we set
-    # the kA_char method. This is performed automatically, if you specify the
-    # kA_char as offdesign parameter (usual case).
-    he.set_attr(kA={'design': 1e5}, kA_char={'is_set': True})
+    >>> he = HeatExchanger('evaporator')
+    >>> cond = Source('condensate')
+    >>> steam = Sink('steam')
+    >>> gas_hot = Source('air inlet')
+    >>> gas_cold = Sink('air outlet')
 
-    # use a characteristic line from the defaults: specify the component, the
-    # parameter and the name of the characteristic function. Also, specify,
-    # what type of characteristic function you want to use.
-    kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
-    kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    he.set_attr(kA_char2=kA_char2)
+    >>> c1 = Connection(cond, "out1", he, "in2")
+    >>> c2 = Connection(he, "out2", steam, "in1")
+    >>> c3 = Connection(gas_hot, "out1", he, "in1")
+    >>> c4 = Connection(he, "out1", gas_cold, "in1")
 
-    # specification of a data container yields the same result. It is
-    # additionally possible to specify the characteristics parameter, e.g. mass
-    # flow for kA_char1 and volumetric flow for kA_char2
-    he.set_attr(
-        kA_char1={'char_func': kA_char1, 'param': 'm'},
-        kA_char2={'char_func': kA_char2, 'param': 'v'}
-    )
+    >>> nw.add_conns(c1, c2, c3, c4)
 
-    # or use custom values for the characteristic line e.g. kA vs volumetric
-    # flow
-    x = np.array([0, 0.5, 1, 2])
-    y = np.array([0, 0.8, 1, 1.2])
-    kA_char1 = CharLine(x, y)
-    he.set_attr(kA_char1={'char_func': kA_char1, 'param': 'v'})
+    >>> c1.set_attr(fluid={'water': 1}, m=10, p=10, x=0)
+    >>> c2.set_attr(p=10, x=1)
+    >>> c3.set_attr(fluid={'air': 1}, T=250, p=1)
+    >>> c4.set_attr(T=200, p=1)
+
+    >>> nw.solve("design")
+    >>> nw.save("design_case")
+    >>> round(he.kA.val)
+    503013
+
+    >>> # the characteristic function is made for offdesign calculation.
+    >>> he.set_attr(kA_char={'is_set': True})
+    >>> c4.set_attr(T=None)
+    >>> nw.solve("offdesign", design_path="design_case")
+    >>> # since we did not change any property, the offdesign case yields the
+    >>> # same value as the design kA value
+    >>> round(he.kA.val)
+    503013
+
+    >>> c1.set_attr(m=9)
+    >>> # use a characteristic line from the defaults: specify the component, the
+    >>> # parameter and the name of the characteristic function. Also, specify,
+    >>> # what type of characteristic function you want to use.
+    >>> kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
+    >>> kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> he.set_attr(kA_char2=kA_char2)
+    >>> nw.solve("offdesign", design_path="design_case")
+    >>> round(he.kA.val)
+    481745
+
+    >>> # specification of a data container yields the same result. It is
+    >>> # additionally possible to specify the characteristics parameter, e.g.
+    >>> # mass flow for kA_char1 (identical to default case) and volumetric
+    >>> # flow for kA_char2
+    >>> he.set_attr(
+    ...     kA_char1={'char_func': kA_char1, 'param': 'm'},
+    ...     kA_char2={'char_func': kA_char2, 'param': 'v'}
+    ... )
+    >>> nw.solve("offdesign", design_path="design_case")
+    >>> round(he.kA.val)
+    481745
+
+    >>> # or use custom values for the characteristic line e.g. kA vs volumetric
+    >>> # flow
+    >>> x = np.array([0, 0.5, 1, 2])
+    >>> y = np.array([0, 0.8, 1, 1.2])
+    >>> kA_char2 = CharLine(x, y)
+    >>> he.set_attr(kA_char2={'char_func': kA_char2, 'param': 'v'})
+    >>> nw.solve("offdesign", design_path="design_case")
+    >>> round(he.kA.val)
+    475107
 
 Full working example for :code:`eta_s_char` specification of a turbine.
 
 .. code-block:: python
 
-    from tespy.components import Sink, Source, Turbine
-    from tespy.connections import Connection
-    from tespy.networks import Network
-    from tespy.tools.characteristics import CharLine
-    import numpy as np
+    >>> from tespy.components import Sink, Source, Turbine
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools.characteristics import CharLine
+    >>> import numpy as np
 
-    nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg')
-    si = Sink('sink')
-    so = Source('source')
-    t = Turbine('turbine')
-    inc = Connection(so, 'out1', t, 'in1')
-    outg = Connection(t, 'out1', si, 'in1')
-    nw.add_conns(inc, outg)
+    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> si = Sink('sink')
+    >>> so = Source('source')
+    >>> t = Turbine('turbine')
+    >>> inc = Connection(so, 'out1', t, 'in1')
+    >>> outg = Connection(t, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
 
-    # design value specification, cone law and eta_s characteristic as
-    # offdesign parameters
-    eta_s_design = 0.855
-    t.set_attr(eta_s=eta_s_design, design=['eta_s'], offdesign=['eta_s_char','cone'])
+    >>> # design value specification, cone law and eta_s characteristic as
+    >>> # offdesign parameters
+    >>> eta_s_design = 0.855
+    >>> t.set_attr(eta_s=eta_s_design, design=['eta_s'], offdesign=['eta_s_char','cone'])
 
-    # Characteristics x as m/m_design and y as eta_s(m)/eta_s_design
-    # make sure to cross the 1/1 point (design point) to yield the same
-    # output in the design state of the system
-    line = CharLine(
-        x=[0.1, 0.3, 0.5, 0.7, 0.9, 1, 1.1],
-        y=np.array([0.6, 0.65, 0.75, 0.82, 0.85, 0.855, 0.79]) / eta_s_design)
+    >>> # Characteristics x as m/m_design and y as eta_s(m)/eta_s_design
+    >>> # make sure to cross the 1/1 point (design point) to yield the same
+    >>> # output in the design state of the system
+    >>> line = CharLine(
+    ...     x=[0.1, 0.3, 0.5, 0.7, 0.9, 1, 1.1],
+    ...     y=np.array([0.6, 0.65, 0.75, 0.82, 0.85, 0.855, 0.79]) / eta_s_design
+    ... )
 
-    # default parameter for x is m / m_design
-    t.set_attr(eta_s_char={'char_func': line})
-    inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
-    outg.set_attr(p=0.5)
-    nw.solve('design')
-    nw.save('tmp')
-    # change mass flow value, e.g. 3 kg/s and run offdesign calculation
-    inc.set_attr(m=3)
-    nw.solve('offdesign', design_path='tmp')
-    # isentropic efficiency should be at 0.65
-    nw.print_results()
+    >>> # default parameter for x is m / m_design
+    >>> t.set_attr(eta_s_char={'char_func': line})
+    >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
+    >>> outg.set_attr(p=0.5)
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
+    >>> # change mass flow value, e.g. 3 kg/s and run offdesign calculation
+    >>> inc.set_attr(m=3)
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> # isentropic efficiency should be at 0.65
+    >>> round(t.eta_s.val, 2)
+    0.65
 
-    # alternatively, we can specify the volumetric flow v / v_design for
-    # the x lookup
-    t.set_attr(eta_s_char={'param': 'v'})
-    nw.solve('offdesign', design_path='tmp')
-    nw.print_results()
+    >>> # alternatively, we can specify the volumetric flow v / v_design for
+    >>> # the x lookup
+    >>> t.set_attr(eta_s_char={'param': 'v'})
+    >>> nw.solve('offdesign', design_path='tmp')
+    >>> round(t.eta_s.val, 2)
+    0.84
 
 Instead of writing your custom characteristic line information directly into
 your Python script, TESPy provides a second method of implementation: It is
@@ -336,14 +400,16 @@ parameter to :code:`True`.
 .. code-block:: python
 
     # use custom specification parameters
-    x = np.array([0, 0.5, 1, 2])
-    y = np.array([0, 0.8, 1, 1.2])
-    kA_char1 = CharLine(x, y, extrapolate=True)
-    he.set_attr(kA_char1=kA_char1)
+    >>> x = np.array([0, 0.5, 1, 2])
+    >>> y = np.array([0, 0.8, 1, 1.2])
+    >>> kA_char1 = CharLine(x, y, extrapolate=True)
+    >>> kA_char1.extrapolate
+    True
 
-    # set extrapolation to True for existing lines, e.g.
-    he.kA_char1.func.extrapolate = True
-    pu.eta_s_char.func.extrapolate = True
+    >>> # set extrapolation to True for existing lines, e.g.
+    >>> he.kA_char1.char_func.extrapolate = True
+    >>> he.kA_char1.char_func.extrapolate
+    True
 
 Characteristics are available for the following components and parameters:
 
@@ -755,115 +821,107 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
 .. code-block:: python
 
-    from tespy.components import Subsystem, HeatExchanger, Drum
-    from tespy.connections import Connection
+    >>> from tespy.components import Subsystem, HeatExchanger, Drum
+    >>> from tespy.connections import Connection
 
+    >>> class WasteHeatSteamGenerator(Subsystem):
+    ...     """Class documentation"""
+    ...
+    ...     def create_comps(self):
+    ...         """Create the subsystem's components."""
+    ...         self.comps['eco'] = HeatExchanger(f'{self.label}_economizer')
+    ...         self.comps['eva'] = HeatExchanger(f'{self.label}_evaporator')
+    ...         self.comps['sup'] = HeatExchanger(f'{self.label}_superheater')
+    ...         self.comps['drum'] = Drum(f'{self.label}_drum')
+    ...
+    ...     def create_conns(self):
+    ...         """Define the subsystem's connections."""
+    ...         self.conns['eco_dr'] = Connection(
+    ...             self.comps['eco'], 'out2', self.comps['drum'], 'in1')
+    ...         self.conns['dr_eva'] = Connection(
+    ...             self.comps['drum'], 'out1', self.comps['eva'], 'in2')
+    ...         self.conns['eva_dr'] = Connection(
+    ...             self.comps['eva'], 'out2', self.comps['drum'], 'in2')
+    ...         self.conns['dr_sup'] = Connection(
+    ...             self.comps['drum'], 'out2', self.comps['sup'], 'in2')
+    ...         self.conns['sup_eva'] = Connection(
+    ...             self.comps['sup'], 'out1', self.comps['eva'], 'in1')
+    ...         self.conns['eva_eco'] = Connection(
+    ...             self.comps['eva'], 'out1', self.comps['eco'], 'in1')
 
-    class WasteHeatSteamGenerator(Subsystem):
-        """Class documentation"""
+.. note::
 
-        def create_comps(self):
-            """Create the subsystem's components."""
-            self.comps['eco'] = HeatExchanger('economizer')
-            self.comps['eva'] = HeatExchanger('evaporator')
-            self.comps['sup'] = HeatExchanger('superheater')
-            self.comps['drum'] = Drum('drum')
+    Please note, that you should label your components (and connections) with
+    unitque names, otherwise you can only use the subsystem once per model. In
+    this case, it is achieved by adding the subsystem label to all of the
+    component labels.
 
-        def create_conns(self):
-            """Define the subsystem's connections."""
-            self.conns['eco_dr'] = Connection(
-                self.comps['eco'], 'out2', self.comps['drum'], 'in1')
-            self.conns['dr_eva'] = Connection(
-                self.comps['drum'], 'out1', self.comps['eva'], 'in2')
-            self.conns['eva_dr'] = Connection(
-                self.comps['eva'], 'out2', self.comps['drum'], 'in2')
-            self.conns['dr_sup'] = Connection(
-                self.comps['drum'], 'out2', self.comps['sup'], 'in2')
-            self.conns['sup_eva'] = Connection(
-                self.comps['sup'], 'out1', self.comps['eva'], 'in1')
-            self.conns['eva_eco'] = Connection(
-                self.comps['eva'], 'out1', self.comps['eco'], 'in1')
+Make use of your subsystem
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Import your subsystem
-^^^^^^^^^^^^^^^^^^^^^
-
-In a different script, we create a network and import the subsystem we just
-created along with the different tespy classes required. The location of the
-:code:`mysubsystems.py` file must be known by your python installation or lie
-within the same folder as your script.
+We create a network and use the subsystem we just created along with the
+different tespy classes required.
 
 .. code-block:: python
 
-    from tespy.networks import Network
-    from tespy.components import Source, Sink
-    from tespy.connections import Connection
-    import numpy as np
+    >>> from tespy.networks import Network
+    >>> from tespy.components import Source, Sink
+    >>> from tespy.connections import Connection
+    >>> import numpy as np
 
-    from mysubsystems import WasteHeatSteamGenerator as WHSG
+    >>> # %% network definition
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
 
-    # %% network definition
+    >>> # %% component definition
+    >>> feed_water = Source('feed water inlet')
+    >>> steam = Sink('live steam outlet')
+    >>> waste_heat = Source('waste heat inlet')
+    >>> chimney = Sink('waste heat chimney')
 
-    nw = Network(p_unit='bar', T_unit='C')
+    >>> sg = WasteHeatSteamGenerator('waste heat steam generator')
 
-    # %% component definition
+    >>> # %% connection definition
+    >>> fw_sg = Connection(feed_water, 'out1', sg.comps['eco'], 'in2')
+    >>> sg_ls = Connection(sg.comps['sup'], 'out2', steam, 'in1')
+    >>> fg_sg = Connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
+    >>> sg_ch = Connection(sg.comps['eco'], 'out1', chimney, 'in1')
 
-    feed_water = Source('feed water inlet')
-    steam = Sink('live steam outlet')
+    >>> nw.add_conns(fw_sg, sg_ls, fg_sg, sg_ch)
+    >>> nw.add_subsys(sg)
 
-    waste_heat = Source('waste heat inlet')
-    chimney = Sink('waste heat chimney')
+    >>> # %% connection parameters
+    >>> fw_sg.set_attr(fluid={'water': 1}, T=25)
+    >>> fg_sg.set_attr(fluid={'air': 1}, T=650, m=100)
+    >>> sg_ls.set_attr(p=130)
+    >>> sg_ch.set_attr(p=1)
 
-    sg = WHSG('waste heat steam generator')
+    >>> sg.conns['eva_dr'].set_attr(x=0.6)
 
-    # %% connection definition
+    >>> # %% component parameters
+    >>> sg.comps['eco'].set_attr(
+    ...     pr1=0.999,  pr2=0.97, design=['pr1', 'pr2', 'ttd_u'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
 
-    fw_sg = Connection(feed_water, 'out1', sg.comps['eco'], 'in2')
-    sg_ls = Connection(sg.comps['sup'], 'out2', steam, 'in1')
-    fg_sg = Connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
-    sg_ch = Connection(sg.comps['eco'], 'out1', chimney, 'in1')
+    >>> sg.comps['eva'].set_attr(
+    ...     pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
+    ...     offdesign=['zeta1', 'kA_char']
+    ... )
 
-    nw.add_conns(fw_sg, sg_ls, fg_sg, sg_ch)
-    nw.add_subsys(sg)
+    >>> sg.comps['sup'].set_attr(
+    ...     pr1=0.999,  pr2=0.99, ttd_u=50, design=['pr1', 'pr2', 'ttd_u'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
 
-    # %% connection parameters
+    >>> sg.conns['eco_dr'].set_attr(Td_bp=-5, design=['Td_bp'])
 
-    fw_sg.set_attr(fluid={'water': 1}, T=25)
-    fg_sg.set_attr(fluid={'air': 1}, T=650, m=100)
+    >>> # %% solve
+    >>> # solve design case
+    >>> nw.solve('design')
+    >>> nw.save('tmp')
 
-    sg_ls.set_attr(p=130)
-    sg_ch.set_attr(p=1)
-
-    sg.conns['eva_dr'].set_attr(x=0.6)
-
-    # %% component parameters
-
-    sg.comps['eco'].set_attr(
-        pr1=0.999,  pr2=0.97, design=['pr1', 'pr2', 'ttd_u'],
-        offdesign=['zeta1', 'zeta2', 'kA_char']
-    )
-
-    sg.comps['eva'].set_attr(
-        pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
-        offdesign=['zeta1', 'kA_char']
-    )
-
-    sg.comps['sup'].set_attr(
-        pr1=0.999,  pr2=0.99, ttd_u=50, design=['pr1', 'pr2', 'ttd_u'],
-        offdesign=['zeta1', 'zeta2', 'kA_char']
-    )
-
-    sg.conns['eco_dr'].set_attr(Td_bp=-5, design=['Td_bp'])
-
-    # %% solve
-
-    # solve design case
-    nw.solve('design')
-    nw.print_results()
-    nw.save('tmp')
-
-    # offdesign test
-    nw.solve('offdesign', design_path='tmp')
-
+    >>> # offdesign test
+    >>> nw.solve('offdesign', design_path='tmp')
 
 Add more flexibility
 --------------------

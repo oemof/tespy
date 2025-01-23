@@ -1,0 +1,34 @@
+v0.7.7 - Newton's Nature (October, 27, 2024)
+++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- Only :code:`.json` format files are loaded by the `load_network` method.
+  Furthermore, it is checked whether a file is represented by a class
+  available in the namespace via the :code:`@component_registry` decorator
+  (`PR #536 <https://github.com/oemof/tespy/pull/536>`__).
+- Fixed a typo in the Jacobian of the hot side and cold side
+  :code:`HeatExchanger` effectiveness.
+
+Other Changes
+#############
+- Make the :code:`reset_topology_reduction_specifications` method of the
+  `Network` class a public method
+  (`PR #559 <https://github.com/oemof/tespy/pull/559>`__).
+- Components of class :code:`SimpleHeatExchanger` need explicit specification
+  of the :code:`dissipative` attribute in the next major version of tespy in
+  context of the exergy analysis
+  (`PR #563 <https://github.com/oemof/tespy/pull/563>`__).
+
+Documentation
+#############
+- Update deprecated information on the indices of variables in the Jacobian of
+  a :code:`UserDefinedEquation`
+  (`PR #552 <https://github.com/oemof/tespy/pull/552>`__).
+- A note has been added, that the component and connection labels in subsystems
+  should be made unique. On top of that, most of the components module docs isn
+  now testable (`PR #553 <https://github.com/oemof/tespy/pull/553>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

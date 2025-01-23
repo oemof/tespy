@@ -186,9 +186,22 @@ def load_network(path):
 
     files = os.listdir(path_comps)
     for f in files:
-        fn = os.path.join(path_comps, f)
+        if not f.endswith(".json"):
+            continue
+
         component = f.replace(".json", "")
 
+        if component not in component_registry.items:
+            msg = (
+                f"A class {component} is not available through the "
+                "tespy.components.component.component_registry decorator. "
+                "If you are using a custom component make sure to decorate the "
+                "class."
+            )
+            logger.warning(msg)
+            continue
+
+        fn = os.path.join(path_comps, f)
         msg = f"Reading component data ({component}) from {fn}."
         logger.debug(msg)
 

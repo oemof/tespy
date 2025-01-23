@@ -9,7 +9,7 @@ tests/test_networks/test_network.py
 
 SPDX-License-Identifier: MIT
 """
-
+import json
 import os
 
 from pytest import mark
@@ -143,6 +143,38 @@ class TestNetworks:
         a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
+        imported_nwk = load_network(tmp_path)
+        imported_nwk.solve('design', init_only=True)
+        msg = ('If the network import was successful the network check '
+               'should have been successful, too, but it is not.')
+        assert imported_nwk.checked, msg
+
+    def test_Network_reader_superflouus_files(self, tmp_path):
+        """Test state of network if loaded successfully from export."""
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
+        self.nw.solve('design', init_only=True)
+        self.nw.export(tmp_path)
+        with open(os.path.join(tmp_path, "components", "test.csv"), "w") as f:
+            f.write("nothing to see here")
+
+        imported_nwk = load_network(tmp_path)
+        imported_nwk.solve('design', init_only=True)
+        msg = ('If the network import was successful the network check '
+               'should have been successful, too, but it is not.')
+        assert imported_nwk.checked, msg
+
+    def test_Network_reader_unknown_component_class(self, tmp_path):
+        """Test state of network if loaded successfully from export."""
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
+        self.nw.solve('design', init_only=True)
+        self.nw.export(tmp_path)
+        with open(os.path.join(tmp_path, "components", "Test.json"), "w") as f:
+            json.dump({}, f)
+
         imported_nwk = load_network(tmp_path)
         imported_nwk.solve('design', init_only=True)
         msg = ('If the network import was successful the network check '

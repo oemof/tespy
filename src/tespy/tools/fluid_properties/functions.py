@@ -155,6 +155,14 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
         msg = "Saturation function cannot be called on mixtures."
         raise ValueError(msg)
 
+def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].phase_ph(p, h)
+    else:
+        msg = "State function cannot be called on mixtures."
+        raise ValueError(msg)
+
 
 def p_sat_T(T, fluid_data, mixing_rule=None):
     if get_number_of_fluids(fluid_data) == 1:

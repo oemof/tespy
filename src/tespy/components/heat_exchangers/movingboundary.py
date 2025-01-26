@@ -102,13 +102,13 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 return h_at_steps
 
             if c1.h.val_SI < h_sat_liquid:
-                if c2.h.val_SI > h_sat_gas:
+                if c2.h.val_SI > h_sat_gas + ERR:
                     h_at_steps = [c1.h.val_SI, h_sat_liquid, h_sat_gas, c2.h.val_SI]
-                elif c2.h.val_SI > h_sat_liquid:
+                elif c2.h.val_SI > h_sat_liquid + ERR:
                     h_at_steps = [c1.h.val_SI, h_sat_liquid, c2.h.val_SI]
 
-            elif c1.h.val_SI < h_sat_gas:
-                if c2.h.val_SI > h_sat_gas:
+            elif c1.h.val_SI < h_sat_gas - ERR:
+                if c2.h.val_SI > h_sat_gas + ERR:
                     h_at_steps = [c1.h.val_SI, h_sat_gas, c2.h.val_SI]
 
         return h_at_steps
@@ -146,14 +146,13 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         """
         h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
-        Q_sections_hot = np.cumsum(Q_sections_hot).round(6).tolist()
+        Q_sections_hot = [0.0] + np.cumsum(Q_sections_hot).tolist()[:-1]
 
         h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])
         Q_sections_cold = self._get_Q_sections(h_steps_cold, self.inl[1].m.val_SI)
-        Q_sections_cold = np.cumsum(Q_sections_cold).round(6).tolist()
+        Q_sections_cold = np.cumsum(Q_sections_cold).tolist()
 
-        all_sections = [Q for Q in Q_sections_hot + Q_sections_cold + [0.0]]
-        return sorted(list(set(all_sections)))
+        return sorted(Q_sections_cold + Q_sections_hot)
 
     def _get_T_at_steps(self, Q_sections):
         """Calculate the temperature values for the provided sections.
@@ -170,9 +169,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             Lists of cold side and hot side temperature
         """
         # now put the Q_sections back on the h_steps on both sides
-        h_steps_hot = [self.inl[0].h.val_SI - Q / self.inl[0].m.val_SI for Q in Q_sections]
+        # Since Q_sections is defined increasing we have to start back from the
+        # outlet of the hot side
+        h_steps_hot = [self.outl[0].h.val_SI + Q / self.inl[0].m.val_SI for Q in Q_sections]
         h_steps_cold = [self.inl[1].h.val_SI + Q / self.inl[1].m.val_SI for Q in Q_sections]
-
         T_steps_hot = [
             T_mix_ph(self.inl[0].p.val_SI, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
             for h in h_steps_hot
@@ -203,17 +203,20 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         list
             Lists of UA values per section of heat exchanged.
         """
-        # counter flow version
+        # the temperature ranges both come with increasing values
         td_at_steps = [
             T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold[::-1])
+            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
         ]
 
         td_at_steps = [abs(td) for td in td_at_steps]
         td_log_in_sections = [
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            if td_at_steps[i + 1] != td_at_steps[i] else td_at_steps[i + 1]
+            # round is required because tiny differences may cause
+            # inconsistencies due to rounding errors
+            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
+            else td_at_steps[i + 1]
             for i in range(len(Q_sections))
         ]
         UA_in_sections = [
@@ -328,7 +331,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
         td_at_steps = [
             T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold[::-1])
+            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
         ]
         return min(td_at_steps)
 
@@ -376,9 +379,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     def calc_parameters(self):
         super().calc_parameters()
-
-        UA = self.calc_UA()
-        print(UA)
         # U_sections_specified = all([
         #     self.get_attr(f"U_{key}").is_set
         #     for key in ["desup", "cond", "subcool"]
@@ -401,5 +401,5 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         #     ]) - self.A.val) < 1e-6
         #     assert round(sum([Q for Q in Q_in_sections]), 3) == round(self.Q.val, 3)
 
-        # self.UA.val = sum(self.calc_UA_in_sections())
-        # self.td_pinch.val = self.calc_td_pinch()
+        self.UA.val = self.calc_UA()
+        self.td_pinch.val = self.calc_td_pinch()

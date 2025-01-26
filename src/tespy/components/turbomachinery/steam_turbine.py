@@ -109,11 +109,9 @@ class SteamTurbine(Turbine):
     to 0,5 bar at the outlet. For example, it is possible to calulate the power
     output and vapour content at the outlet for a given isentropic efficiency.
 
-    >>> from tespy.components import Sink, Source, Turbine
+    >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> si = Sink('sink')
     >>> so = Source('source')

@@ -16,6 +16,7 @@ from scipy.optimize import brentq
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -136,7 +137,7 @@ class SteamTurbine(Turbine):
     To capture the effect of liquid drop-out on the isentropic
     efficiency, the dry turbine efficiency is specified
     >>> st.set_attr(eta_s=None)
-    >>> st.set_attr(eta_dry_s=0.9)
+    >>> st.set_attr(eta_dry_s=0.9, alpha=1.0)
     >>> nw.solve('design')
     >>> round(st.P.val, 0)
     -7009682.0
@@ -151,20 +152,19 @@ class SteamTurbine(Turbine):
     def get_parameters(self):
 
         params = super().get_parameters()
-        params["alpha"] = dc_cp(
-            min_val=0.4, max_val=2.5, num_eq=0)
-        params["eta_dry_s"] = dc_cp(
-            min_val=0, max_val=1, num_eq=1,
-            func=self.eta_dry_s_func,
-            deriv=self.eta_dry_s_deriv,
-            latex=self.eta_dry_s_func_doc
-        )
+        params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
+        params["eta_s_dry"] = dc_cp(min_val=0.0, max_val=1.0)
+        params["eta_s_dry_group"] = dc_gcp(
+            num_eq=1, elements=["alpha", "eta_s_dry"],
+            func=self.eta_s_wet_func,
+            deriv=self.eta_s_wet_deriv,
+            latex=self.eta_s_wet_func_doc)
 
         return params
 
-    def eta_dry_s_func(self):
+    def eta_s_wet_func(self):
         r"""
-                Equation for given dry isentropic efficiency of a turbine.
+                Equation for given dry isentropic efficiency of a turbine under wet expansion.
 
                 Returns
                 -------
@@ -209,7 +209,7 @@ class SteamTurbine(Turbine):
                                     inl.mixing_rule,
                                     T0=inl.T.val_SI
                                 )
-                hout = inl.h.val_SI - self.eta_dry_s.val * (inl.h.val_SI - hout_isen)
+                hout = inl.h.val_SI - self.eta_s_dry.val * (inl.h.val_SI - hout_isen)
 
                 # calculate enthalpy of saturated vapour at psat
                 hsat = h_mix_pQ(psat, 1, inl.fluid_data)
@@ -221,7 +221,7 @@ class SteamTurbine(Turbine):
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_dry_s.val * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val * (1 - self.alpha.val * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(
@@ -241,7 +241,7 @@ class SteamTurbine(Turbine):
             # return residual
             return -dh + dh_isen
 
-    def eta_dry_s_deriv(self, increment_filter, k):
+    def eta_s_wet_deriv(self, increment_filter, k):
 
         r"""
                 Partial derivatives for dry isentropic efficiency function.
@@ -255,7 +255,7 @@ class SteamTurbine(Turbine):
                     Position of derivatives in Jacobian matrix (k-th equation).
                 """
 
-        f = self.eta_dry_s_func
+        f = self.eta_s_wet_func
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.p, increment_filter):
@@ -267,7 +267,7 @@ class SteamTurbine(Turbine):
         if self.is_variable(o.h, increment_filter):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, "h", o)
 
-    def eta_dry_s_func_doc(self, label):
+    def eta_s_wet_func_doc(self, label):
         r"""
         Equation for given dry isentropic efficiency of a turbine.
 

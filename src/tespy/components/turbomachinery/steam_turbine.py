@@ -239,12 +239,8 @@ class SteamTurbine(Turbine):
             )
             hout = hsat - eta_s * (hsat - hout_isen)
 
-            # calculate the difference in enthalpy
-            dh_bisectioned = hout - inl.h.val_SI
-            dh = outl.h.val_SI - inl.h.val_SI
-
-            # return residual
-            return dh - dh_bisectioned
+            # return residual: outlet enthalpy = calculated outlet enthalpy
+            return outl.h.val_SI - hout
 
     def eta_s_wet_deriv(self, increment_filter, k):
         r"""

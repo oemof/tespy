@@ -222,21 +222,21 @@ class SteamTurbine(Turbine):
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(
-                                psat,
-                                hsat,
-                                outl.p.val_SI,
-                                inl.fluid_data,
-                                inl.mixing_rule,
-                                T0=inl.T.val_SI
-                            )
+                psat,
+                hsat,
+                outl.p.val_SI,
+                inl.fluid_data,
+                inl.mixing_rule,
+                T0=inl.T.val_SI
+            )
             hout = hsat - eta_s * (hsat - hout_isen)
 
             # calculate the difference in enthalpy
-            dh_isen = hout - inl.h.val_SI
+            dh_bisectioned = hout - inl.h.val_SI
             dh = outl.h.val_SI - inl.h.val_SI
 
             # return residual
-            return -dh + dh_isen
+            return dh - dh_bisectioned
 
     def eta_s_wet_deriv(self, increment_filter, k):
 

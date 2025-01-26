@@ -26,5 +26,5 @@ from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
+from .turbomachinery.steam_turbine import SteamTurbine
 from .turbomachinery.turbine import Turbine # noqa: F401
-from .turbomachinery.turbine import SteamTurbine

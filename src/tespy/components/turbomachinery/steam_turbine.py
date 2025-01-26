@@ -151,7 +151,6 @@ class SteamTurbine(Turbine):
     def get_parameters(self):
 
         params = super().get_parameters()
-
         params["alpha"] = dc_cp(
             min_val=0.4, max_val=2.5, num_eq=0)
         params["eta_dry_s"] = dc_cp(
@@ -164,6 +163,23 @@ class SteamTurbine(Turbine):
         return params
 
     def eta_dry_s_func(self):
+        r"""
+                Equation for given dry isentropic efficiency of a turbine.
+
+                Returns
+                -------
+                residual : float
+                    Residual value of equation.
+
+                    .. math::
+
+                        0 = -\left( h_{out} - h_{in} \right) +
+                        \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
+
+                        \eta_{s,e} = \eta_{s,e}^{dry} \cdot \left( 1 - \alpha \cdot y_m \right)
+
+                        y_m = \frac{\left( 1-x_{in}\right)+ \left( 1-x_{out} \right)}{2}
+                """
 
         inl = self.inl[0]
         outl = self.outl[0]
@@ -227,6 +243,18 @@ class SteamTurbine(Turbine):
 
     def eta_dry_s_deriv(self, increment_filter, k):
 
+        r"""
+                Partial derivatives for dry isentropic efficiency function.
+
+                Parameters
+                ----------
+                increment_filter : ndarray
+                    Matrix for filtering non-changing variables.
+
+                k : int
+                    Position of derivatives in Jacobian matrix (k-th equation).
+                """
+
         f = self.eta_dry_s_func
         i = self.inl[0]
         o = self.outl[0]
@@ -257,8 +285,8 @@ class SteamTurbine(Turbine):
             r'\begin{split}' + '\n'
             r'0 &=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
             r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}\\' + '\n'
-            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot(1 - \alpha*y_\mathrm{m})\\' + '\n'
-            r'y_\mathrm{m} &=\frac{(1-x_\mathrm{in})+(1-x_\mathrm{out})}{2}\\' + '\n'
+            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot \left( 1 - \alpha \cdot y_\mathrm{m} \right)\\' + '\n'
+            r'y_\mathrm{m} &=\frac{\left( 1-x_\mathrm{in} \right)+\left( 1-x_\mathrm{out} \right)}{2}\\' + '\n'
             r'\end{split}'
         )
         return generate_latex_eq(self, latex, label)

@@ -16,6 +16,7 @@ from scipy.optimize import brentq
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import h_mix_pQ
 
@@ -132,7 +133,8 @@ class SteamTurbine(Turbine):
     >>> round(outg.x.val, 3)
     0.821
 
-    To capture the effect of liquid drop-out on the isentropic efficiency, the dry turbine efficiency is specified
+    To capture the effect of liquid drop-out on the isentropic
+    efficiency, the dry turbine efficiency is specified
     >>> st.set_attr(eta_s=None)
     >>> st.set_attr(eta_dry_s=0.9)
     >>> nw.solve('design')
@@ -141,7 +143,6 @@ class SteamTurbine(Turbine):
     >>> round(outg.x.val, 3)
     0.840
     """
-
 
     @staticmethod
     def component():
@@ -156,7 +157,8 @@ class SteamTurbine(Turbine):
         params["eta_dry_s"] = dc_cp(
             min_val=0, max_val=1, num_eq=1,
             func=self.eta_dry_s_func,
-            deriv=self.eta_dry_s_deriv
+            deriv=self.eta_dry_s_deriv,
+            latex=self.eta_dry_s_func_doc
         )
 
         return params
@@ -177,7 +179,8 @@ class SteamTurbine(Turbine):
         else:  # superheated vapour
             dp = inl.p.val_SI - outl.p.val_SI
 
-            # compute the pressure and enthalpy at which the expansion enters the vapour dome
+            # compute the pressure and enthalpy at which the expansion
+            # enters the vapour dome
             def find_sat(frac):
                 psat = inl.p.val_SI - frac * dp
 
@@ -213,7 +216,7 @@ class SteamTurbine(Turbine):
                                 inl.mixing_rule,
                                 T0=inl.T.val_SI
                             )
-            hout = hsat - eta_s * (hsat- hout_isen)
+            hout = hsat - eta_s * (hsat - hout_isen)
 
             # calculate the difference in enthalpy
             dh_isen = hout - inl.h.val_SI
@@ -235,3 +238,27 @@ class SteamTurbine(Turbine):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
         if self.is_variable(o.h, increment_filter):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, "h", o)
+
+    def eta_dry_s_func_doc(self, label):
+        r"""
+        Equation for given dry isentropic efficiency of a turbine.
+
+        Parameters
+        ----------
+        label : str
+            Label for equation.
+
+        Returns
+        -------
+        latex : str
+            LaTeX code of equations applied.
+        """
+        latex = (
+            r'\begin{split}' + '\n'
+            r'0 &=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
+            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}\\' + '\n'
+            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot(1 - \alpha*y_\mathrm{m})\\' + '\n'
+            r'y_\mathrm{m} &=\frac{(1-x_\mathrm{in})+(1-x_\mathrm{out})}{2}\\' + '\n'
+            r'\end{split}'
+        )
+        return generate_latex_eq(self, latex, label)

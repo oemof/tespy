@@ -583,4 +583,3 @@ class Turbine(Turbomachine):
         self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
-

@@ -186,9 +186,7 @@ class SteamTurbine(Turbine):
         if state == "tp":  # two-phase or saturated vapour
 
             ym = 1 - (inl.calc_x() + outl.calc_x()) / 2  # average wetness
-            self.eta_s.val = self.eta_dry.val * (1 - self.alpha.val * ym)
-
-            return self.eta_s_func()
+            return self.calc_eta_s() - self.eta_s_dry.val * (1 - self.alpha.val * ym)
 
         else:  # superheated vapour
             dp = inl.p.val_SI - outl.p.val_SI
@@ -213,6 +211,7 @@ class SteamTurbine(Turbine):
                 hsat = h_mix_pQ(psat, 1, inl.fluid_data)
 
                 return hout - hsat
+
             frac = brentq(find_sat, 1, 0)
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)

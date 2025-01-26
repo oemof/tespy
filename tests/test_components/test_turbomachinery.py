@@ -16,6 +16,7 @@ from tespy.components import Compressor
 from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
+from tespy.components import SteamTurbine
 from tespy.components import Turbine
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.connections import Connection
@@ -328,6 +329,9 @@ class TestTurbomachinery:
                str(round(instance.eta_s.val, 3)) +
                ') must be (' + str(eta_s) + ').')
         assert eta_s == round(instance.eta_s.val, 3), msg
+
+    def test_SteamTurbine(self, temp_path):
+        pass
 
     def test_Turbomachine(self):
         """Test component properties of turbomachines."""

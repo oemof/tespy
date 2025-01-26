@@ -117,7 +117,7 @@ class SteamTurbine(Turbine):
     >>> so = Source('source')
     >>> st = SteamTurbine('steam turbine')
     >>> st.component()
-    'turbine'
+    'steam turbine'
     >>> inc = Connection(so, 'out1', st, 'in1')
     >>> outg = Connection(st, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -135,12 +135,12 @@ class SteamTurbine(Turbine):
     To capture the effect of liquid drop-out on the isentropic
     efficiency, the dry turbine efficiency is specified
     >>> st.set_attr(eta_s=None)
-    >>> st.set_attr(eta_dry_s=0.9, alpha=1.0)
+    >>> st.set_attr(eta_s_dry=0.9, alpha=1.0)
     >>> nw.solve('design')
     >>> round(st.P.val, 0)
     -7009682.0
     >>> round(outg.x.val, 3)
-    0.840
+    0.84
     """
 
     @staticmethod

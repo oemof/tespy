@@ -162,23 +162,25 @@ class SteamTurbine(Turbine):
 
     def eta_s_wet_func(self):
         r"""
-                Equation for given dry isentropic efficiency of a turbine under wet expansion.
+        Equation for given dry isentropic efficiency of a turbine under wet
+        expansion.
 
-                Returns
-                -------
-                residual : float
-                    Residual value of equation.
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
 
-                    .. math::
+            .. math::
 
-                        0 = -\left( h_{out} - h_{in} \right) +
-                        \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
+                0 = -\left( h_{out} - h_{in} \right) +
+                \left( h_{out,s} - h_{in} \right) \cdot \eta_{s,e}
 
-                        \eta_{s,e} = \eta_{s,e}^{dry} \cdot \left( 1 - \alpha \cdot y_m \right)
+                \eta_{s,e} = \eta_{s,e}^{dry} \cdot \left( 1 - \alpha
+                \cdot y_m \right)
 
-                        y_m = \frac{\left( 1-x_{in}\right)+ \left( 1-x_{out} \right)}{2}
-                """
-
+                y_m = \frac{\left( 1-x_{in}\right)+ \left( 1-x_{out}
+                \right)}{2}
+        """
         inl = self.inl[0]
         outl = self.outl[0]
 
@@ -186,7 +188,10 @@ class SteamTurbine(Turbine):
         if state == "tp":  # two-phase or saturated vapour
 
             ym = 1 - (inl.calc_x() + outl.calc_x()) / 2  # average wetness
-            return self.calc_eta_s() - self.eta_s_dry.val * (1 - self.alpha.val * ym)
+            return (
+                self.calc_eta_s()
+                - self.eta_s_dry.val * (1 - self.alpha.val * ym)
+            )
 
         else:  # superheated vapour
             dp = inl.p.val_SI - outl.p.val_SI
@@ -198,14 +203,17 @@ class SteamTurbine(Turbine):
 
                 # calculate enthalpy under dry expansion to psat
                 hout_isen = isentropic(
-                                    inl.p.val_SI,
-                                    inl.h.val_SI,
-                                    psat,
-                                    inl.fluid_data,
-                                    inl.mixing_rule,
-                                    T0=inl.T.val_SI
-                                )
-                hout = inl.h.val_SI - self.eta_s_dry.val * (inl.h.val_SI - hout_isen)
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    psat,
+                    inl.fluid_data,
+                    inl.mixing_rule,
+                    T0=inl.T.val_SI
+                )
+                hout = (
+                    inl.h.val_SI - self.eta_s_dry.val
+                    * (inl.h.val_SI - hout_isen)
+                )
 
                 # calculate enthalpy of saturated vapour at psat
                 hsat = h_mix_pQ(psat, 1, inl.fluid_data)
@@ -239,19 +247,17 @@ class SteamTurbine(Turbine):
             return dh - dh_bisectioned
 
     def eta_s_wet_deriv(self, increment_filter, k):
-
         r"""
-                Partial derivatives for dry isentropic efficiency function.
+        Partial derivatives for dry isentropic efficiency function.
 
-                Parameters
-                ----------
-                increment_filter : ndarray
-                    Matrix for filtering non-changing variables.
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
-                k : int
-                    Position of derivatives in Jacobian matrix (k-th equation).
-                """
-
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
         f = self.eta_s_wet_func
         i = self.inl[0]
         o = self.outl[0]
@@ -281,9 +287,12 @@ class SteamTurbine(Turbine):
         latex = (
             r'\begin{split}' + '\n'
             r'0 &=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
-            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}\\' + '\n'
-            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot \left( 1 - \alpha \cdot y_\mathrm{m} \right)\\' + '\n'
-            r'y_\mathrm{m} &=\frac{\left( 1-x_\mathrm{in} \right)+\left( 1-x_\mathrm{out} \right)}{2}\\' + '\n'
+            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}\\'
+            + '\n'
+            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot \left( 1 - '
+            r'\alpha \cdot y_\mathrm{m} \right)\\' + '\n'
+            r'y_\mathrm{m} &=\frac{\left( 1-x_\mathrm{in} \right)+\left( '
+            r'1-x_\mathrm{out} \right)}{2}\\' + '\n'
             r'\end{split}'
         )
         return generate_latex_eq(self, latex, label)

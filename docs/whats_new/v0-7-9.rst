@@ -1,4 +1,4 @@
-v0.7.9 - Under development
+v0.8.0 - Under development
 ++++++++++++++++++++++++++
 
 New Features
@@ -7,8 +7,30 @@ New Features
   i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
   gaseous. The phase is only reported in subcritical pressure
   (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+- Change the export of a :py:class:`tespy.networks.network.Network` instance to
+  separate writing to the filesystem from creating the data to export. This
+  breaks the API of the :py:meth:`tespy.networks.network_reader.load_network`
+  method, meaning exported network data based on :code:`tespy<0.8` are not
+  compatible with how :code:`tespy>=0.8` is handling the data
+  (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
+
+  .. code-block:: python
+
+    >>> from tespy.networks import Network
+    >>> from tespy.connections import Connection
+    >>> from tespy.components import Source, Sink
+    >>> nwk = Network()
+    >>> so = Source("source")
+    >>> si = Sink("sink")
+    >>> c1 = Connection(so, "out1", si, "in1")
+    >>> nwk.add_conns(c1)
+    >>> data = nwk.export()
+    >>> list(data.keys())
+    ['Network', 'Connection', 'Component', 'Bus']
+    >>> list(data["Component"])
+    ['Source', 'Sink']
 
 Contributors
 ############
-- `@tlmerbecks <https://github.com/tlmerbecks>`__
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@tlmerbecks <https://github.com/tlmerbecks>`__

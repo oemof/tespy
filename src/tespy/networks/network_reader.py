@@ -55,12 +55,10 @@ def load_network(path):
     The structure of the path must be as follows:
 
     - Folder: path (e.g. 'mynetwork')
-    - Subfolder: components ('mynetwork/components') containing
-      {component_class_name}.json (e.g. HeatExchanger.json)
-
-    - connections.json
-    - busses.json
-    - network.json
+      - Component.json
+      - Connection.json
+      - Bus.json
+      - Network.json
 
     Example
     -------
@@ -130,7 +128,7 @@ def load_network(path):
     >>> nw.lin_dep
     False
     >>> nw.save('design_state')
-    >>> nw.export('exported_nwk')
+    >>> _ = nw.export('exported_nwk')
     >>> mass_flow = round(nw.get_conn('ambient air').m.val_SI, 1)
     >>> c.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='design_state')
@@ -173,8 +171,6 @@ def load_network(path):
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     >>> shutil.rmtree('./design_state', ignore_errors=True)
     """
-    path_comps = os.path.join(path, 'components')
-
     msg = f'Reading network data from base path {path}.'
     logger.info(msg)
 
@@ -184,13 +180,13 @@ def load_network(path):
     module_name = "tespy.components"
     _ = importlib.import_module(module_name)
 
-    files = os.listdir(path_comps)
-    for f in files:
-        if not f.endswith(".json"):
-            continue
+    fn = os.path.join(path, "Component.json")
+    with open(fn, "r", encoding="utf-8") as f:
+        component_data = json.load(f)
+        msg = f"Reading component data from {fn}."
+        logger.debug(msg)
 
-        component = f.replace(".json", "")
-
+    for component, data in component_data.items():
         if component not in component_registry.items:
             msg = (
                 f"A class {component} is not available through the "
@@ -200,13 +196,6 @@ def load_network(path):
             )
             logger.warning(msg)
             continue
-
-        fn = os.path.join(path_comps, f)
-        msg = f"Reading component data ({component}) from {fn}."
-        logger.debug(msg)
-
-        with open(fn, "r", encoding="utf-8") as c:
-            data = json.load(c)
 
         target_class = component_registry.items[component]
         comps.update(_construct_components(target_class, data))
@@ -218,7 +207,7 @@ def load_network(path):
     nw = _construct_network(path)
 
     # load connections
-    fn = os.path.join(path, 'connections.json')
+    fn = os.path.join(path, 'Connection.json')
     msg = f"Reading connection data from {fn}."
     logger.debug(msg)
 
@@ -235,7 +224,7 @@ def load_network(path):
     logger.info(msg)
 
     # load busses
-    fn = os.path.join(path, 'busses.json')
+    fn = os.path.join(path, 'Bus.json')
     if os.path.isfile(fn):
 
         msg = f"Reading bus data from {fn}."
@@ -316,7 +305,7 @@ def _construct_network(path):
         TESPy network object.
     """
     # read network .json-file
-    fn = os.path.join(path, 'network.json')
+    fn = os.path.join(path, 'Network.json')
     with open(fn, 'r') as f:
         data = json.load(f)
 

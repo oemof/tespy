@@ -2663,8 +2663,20 @@ class Network:
         else:
             return np.nan
 
-    def export(self, path):
-        """Export the network structure and parametrization."""
+    def export(self, path=None):
+        """Export the parametrization and structure of the Network instance
+
+        Parameters
+        ----------
+        path : str, optional
+            Path for exporting to filesystem. If path is None, the data are
+            only returned and not written to the filesystem, by default None
+
+        Returns
+        -------
+        dict
+            Parametrization and structure of the Network instance.
+        """
         export = {}
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
@@ -2672,7 +2684,7 @@ class Network:
         export["Bus"] = self._export_busses()
 
         if path:
-            path, path_comps = self._create_export_paths(path)
+            path, _ = self._create_export_paths(path)
             for key, value in export.items():
 
                 fn = os.path.join(path, f'{key}.json')
@@ -2786,20 +2798,6 @@ class Network:
 
         return path, path_comps
 
-    def export_network(self, fn):
-        r"""
-        Save basic network configuration.
-
-        Parameters
-        ----------
-        fn : str
-            Path/filename for the network configuration file.
-        """
-        with open(os.path.join(fn, 'network.json'), 'w') as f:
-            json.dump(self._serialize(), f, indent=4)
-
-        logger.debug('Network information saved to %s.', fn)
-
     def save_connections(self, fn):
         r"""
         Save the connection properties.
@@ -2846,33 +2844,55 @@ class Network:
                 json.dump(bus_data, f, indent=4)
             logger.debug('Bus information saved to %s.', fn)
 
-    def export_connections(self, fn):
+    def _export_network(self):
+        r"""Export network information
+
+        Returns
+        -------
+        dict
+            Serialization of network object.
+        """
+        return self._serialize()
+
+    def _export_connections(self):
+        """Export connection information
+
+        Returns
+        -------
+        dict
+            Serialization of connection objects.
+        """
         connections = {}
         for c in self.conns["object"]:
             connections.update(c._serialize())
+        return connections
 
-        fn = os.path.join(fn, "connections.json")
-        with open(fn, "w", encoding="utf-8") as f:
-            json.dump(connections, f, indent=4)
-        logger.debug('Connection information exported to %s.', fn)
+    def _export_components(self):
+        """Export component information
 
-    def export_components(self, fn):
+        Returns
+        -------
+        dict
+            Dict of dicts with per class serialization of component objects.
+        """
+        components = {}
         for c in self.comps["comp_type"].unique():
-            components = {}
+            components[c] = {}
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
-                components.update(cp._serialize())
+                components[c].update(cp._serialize())
 
-            fname = os.path.join(fn, f"{c}.json")
-            with open(fname, "w", encoding="utf-8") as f:
-                json.dump(components, f, indent=4)
-            logger.debug('Component information exported to %s.', fname)
+        return components
 
-    def export_busses(self, fn):
-        if len(self.busses) > 0:
-            busses = {}
-            for bus in self.busses.values():
-                busses.update(bus._serialize())
-            fn = os.path.join(fn, 'busses.json')
-            with open(fn, "w", encoding="utf-8") as f:
-                json.dump(busses, f, indent=4)
-            logger.debug('Bus information exported to %s.', fn)
+    def _export_busses(self):
+        """Export bus information
+
+        Returns
+        -------
+        dict
+            Serialization of bus objects.
+        """
+        busses = {}
+        for bus in self.busses.values():
+            busses.update(bus._serialize())
+
+        return busses

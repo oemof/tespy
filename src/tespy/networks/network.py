@@ -2665,11 +2665,89 @@ class Network:
 
     def export(self, path):
         """Export the network structure and parametrization."""
-        path, path_comps = self._create_export_paths(path)
-        self.export_network(path)
-        self.export_connections(path)
-        self.export_components(path_comps)
-        self.export_busses(path)
+        export = {}
+        export["Network"] = self._export_network()
+        export["Connection"] = self._export_connections()
+        export["Component"] = self._export_components()
+        export["Bus"] = self._export_busses()
+
+        if path:
+            path, path_comps = self._create_export_paths(path)
+            for key, value in export.items():
+
+                fn = os.path.join(path, f'{key}.json')
+                with open(fn, 'w') as f:
+                    json.dump(value, f, indent=4)
+                logger.debug(f'{key} information saved to {fn}.')
+
+        return export
+
+    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
+        """Export the network to exerpy
+
+        Parameters
+        ----------
+        Tamb : float
+            Ambient temperature.
+        pamb : float
+            Ambient pressure.
+        exerpy_mappings : dict
+            Mappings for tespy components to exerpy components
+
+        Returns
+        -------
+        dict
+            exerpy compatible input dictionary
+        """
+        component_json = {}
+        for comp_type in self.comps["comp_type"].unique():
+            if comp_type not in exerpy_mappings.keys():
+                msg = f"Component class {comp_type} not available in exerpy."
+                logger.warning(msg)
+                continue
+
+            key = exerpy_mappings[comp_type]
+            if key not in component_json:
+                component_json[key] = {}
+
+            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
+                component_json[key][c.label] = {
+                    "name": c.label,
+                    "type": comp_type,
+                    "type_index": None,
+                }
+
+        connection_json = {}
+        for c in self.conns["object"]:
+            c.get_physical_exergy(pamb, Tamb)
+
+            connection_json[c.label] = {
+                "source_component": c.source.label,
+                "source_connector": int(c.source_id.removeprefix("out")) - 1,
+                "target_component": c.target.label,
+                "target_connector": int(c.target_id.removeprefix("in")) - 1
+            }
+            connection_json[c.label].update({f"mass_composition": c.fluid.val})
+            connection_json[c.label].update({"kind": "material"})
+            for param in ["m", "T", "p", "h", "s"]:
+                connection_json[c.label].update({
+                    param: c.get_attr(param).val_SI,
+                    f"{param}_unit": c.get_attr(param).unit
+                })
+            connection_json[c.label].update(
+                {"e_T": c.ex_therm, "e_M": c.ex_mech, "e_PH": c.ex_physical}
+            )
+
+        return {
+            "components": component_json,
+            "connections": connection_json,
+            "ambient_conditions": {
+                "Tamb": Tamb,
+                "Tamb_unit": "K",
+                "pamb": pamb,
+                "pamb_unit": "Pa"
+            }
+        }
 
     def save(self, path):
         r"""

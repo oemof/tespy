@@ -2750,6 +2750,74 @@ class Network:
                 {"e_T": c.ex_therm, "e_M": c.ex_mech, "e_PH": c.ex_physical}
             )
 
+        from tespy.components.turbomachinery.base import Turbomachine
+        for label, bus in self.busses.items():
+
+            if "Motor" not in component_json:
+                component_json["Motor"] = {}
+            if "Generator" not in component_json:
+                component_json["Generator"] = {}
+
+            for i, (idx, row) in enumerate(bus.comps.iterrows()):
+                if isinstance(idx, Turbomachine):
+                    kind = "power"
+                else:
+                    kind = "heat"
+                if row["base"] == "component":
+                    label = idx.label + "__" + "generator"
+                    connection_json[label] = {
+                        "source_component": idx.label,
+                        "source_connector": 999,
+                        "target_component": f"generator_of_{idx.label}",
+                        "target_connector": 0,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "rate": idx.bus_func(bus)
+                    }
+                    label = "generator__" + label
+                    connection_json[label] = {
+                        "source_component": f"generator_of_{idx.label}",
+                        "source_connector": 0,
+                        "target_component": label,
+                        "target_connector": i,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "rate": idx.calc_bus_value(bus)
+                    }
+                    component_label = f"generator_of_{idx.label}"
+                    component_json["Generator"][component_label] = {
+                        "name": component_label,
+                        "type": "Generator",
+                        "type_index": None,
+                    }
+                else:
+                    label = f"{label}__motor"
+                    component_label = f"motor_of_{idx.label}"
+                    connection_json[label] = {
+                        "source_component": label,
+                        "source_connector": i,
+                        "target_component": component_label,
+                        "target_connector": 0,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "rate": idx.calc_bus_value(bus)
+                    }
+                    label = f"motor__{idx.label}"
+                    connection_json[label] = {
+                        "source_component": component_label,
+                        "source_connector": 0,
+                        "target_component": idx.label,
+                        "target_connector": 999,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "rate": idx.bus_func(bus)
+                    }
+                    component_json["Motor"][component_label] = {
+                        "name": component_label,
+                        "type": "Motor",
+                        "type_index": None,
+                    }
+
         return {
             "components": component_json,
             "connections": connection_json,

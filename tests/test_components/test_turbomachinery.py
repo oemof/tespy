@@ -361,10 +361,46 @@ class TestTurbomachinery:
         instance = SteamTurbine('turbine')
         self.setup_network(instance)
         fl = {'H2O': 1}
+        # start in gas, end in gas
         self.c1.set_attr(fluid=fl, m=15, p=100, T=500)
-        self.c2.set_attr(Td_bp=5)
-        instance.set_attr(eta_s_dry=0.99, alpha=1)
+        self.c2.set_attr(Td_bp=1)
+
+        eta_s_dry = 0.9
+        instance.set_attr(eta_s_dry=0.9, alpha=1)
+
         self.nw.solve('design')
+        self.nw._convergence_check()
+
+        eta_s = round(instance.eta_s.val, 4)
+        msg = (
+            f"In gas expansion isentropic ({eta_s}) and dry "
+            f"efficiency ({eta_s_dry}) have to be identical."
+        )
+        assert eta_s_dry == eta_s, msg
+
+        # end in two phase
+        self.c2.set_attr(Td_bp=None, x=0.9)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+
+        eta_s = round(instance.eta_s.val, 4)
+        msg = (
+            f"In gas expansion isentropic ({eta_s}) and dry "
+            f"efficiency ({eta_s_dry}) cannot be identical."
+        )
+        assert eta_s_dry != eta_s, msg
+
+        # start in two phase
+        self.c1.set_attr(T=None, x=0.99)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+
+        eta_s = round(instance.eta_s.val, 4)
+        msg = (
+            f"In gas expansion isentropic ({eta_s}) and dry "
+            f"efficiency ({eta_s_dry}) cannot be identical."
+        )
+        assert eta_s_dry != eta_s, msg
 
     def test_Turbomachine(self):
         """Test component properties of turbomachines."""

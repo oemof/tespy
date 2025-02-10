@@ -17,9 +17,11 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.logger import logger
+from tespy.tools.helpers import fluidalias_in_list
+from tespy.tools.fluid_properties.helpers import single_fluid
 
 
 @component_registry
@@ -155,10 +157,24 @@ class SteamTurbine(Turbine):
         params["eta_s_dry_group"] = dc_gcp(
             num_eq=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
-            deriv=self.eta_s_wet_deriv,
-            latex=self.eta_s_wet_func_doc)
+            deriv=self.eta_s_wet_deriv
+        )
 
         return params
+
+    def preprocess(self, num_nw_vars):
+
+        fluid = single_fluid(self.inl[0].fluid_data)
+        if fluid is None:
+            msg = "The SteamTurbine can only be used with pure fluids."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        if not fluidalias_in_list(fluid, ["water"]):
+            msg = "The SteamTurbine is intended to be used with water only."
+            logger.warning(msg)
+
+        return super().preprocess(num_nw_vars)
 
     def eta_s_wet_func(self):
         r"""
@@ -194,6 +210,9 @@ class SteamTurbine(Turbine):
             )
 
         else:  # superheated vapour
+            if outl.calc_phase() == "g":
+                return self.calc_eta_s() - self.eta_s_dry.val
+
             dp = inl.p.val_SI - outl.p.val_SI
 
             # compute the pressure and enthalpy at which the expansion
@@ -265,30 +284,3 @@ class SteamTurbine(Turbine):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
         if self.is_variable(o.h, increment_filter):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, "h", o)
-
-    def eta_s_wet_func_doc(self, label):
-        r"""
-        Equation for given dry isentropic efficiency of a turbine.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 &=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
-            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}\\'
-            + '\n'
-            r'\eta_\mathrm{s} &=\eta_\mathrm{s}^\mathrm{dry}\cdot \left( 1 - '
-            r'\alpha \cdot y_\mathrm{m} \right)\\' + '\n'
-            r'y_\mathrm{m} &=\frac{\left( 1-x_\mathrm{in} \right)+\left( '
-            r'1-x_\mathrm{out} \right)}{2}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)

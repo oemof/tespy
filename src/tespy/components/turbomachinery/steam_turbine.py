@@ -109,6 +109,8 @@ class SteamTurbine(Turbine):
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
     to 0,5 bar at the outlet. For example, it is possible to calulate the power
     output and vapour content at the outlet for a given isentropic efficiency.
+    The :code:`SteamTurbine` class follows the implementation of the Baumann
+    rule :cite:`Tanuma2017`
 
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection

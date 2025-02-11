@@ -2764,53 +2764,53 @@ class Network:
                 else:
                     kind = "heat"
                 if row["base"] == "component":
-                    label = idx.label + "__" + "generator"
-                    connection_json[label] = {
+                    component_label = f"generator_of_{idx.label}"
+                    connection_label = f"{idx.label}__{component_label}"
+                    connection_json[connection_label] = {
                         "source_component": idx.label,
                         "source_connector": 999,
-                        "target_component": f"generator_of_{idx.label}",
+                        "target_component": component_label,
                         "target_connector": 0,
                         "mass_composition": None,
                         "kind": kind,
-                        "rate": idx.bus_func(bus)
+                        "energy_flow": idx.bus_func(bus)
                     }
-                    label = "generator__" + label
-                    connection_json[label] = {
-                        "source_component": f"generator_of_{idx.label}",
+                    connection_label = f"{component_label}__{label}"
+                    connection_json[connection_label] = {
+                        "source_component": component_label,
                         "source_connector": 0,
                         "target_component": label,
                         "target_connector": i,
                         "mass_composition": None,
                         "kind": kind,
-                        "rate": idx.calc_bus_value(bus)
+                        "energy_flow": idx.calc_bus_value(bus)
                     }
-                    component_label = f"generator_of_{idx.label}"
                     component_json["Generator"][component_label] = {
                         "name": component_label,
                         "type": "Generator",
                         "type_index": None,
                     }
                 else:
-                    label = f"{label}__motor"
                     component_label = f"motor_of_{idx.label}"
-                    connection_json[label] = {
+                    connection_label = f"{label}__{component_label}"
+                    connection_json[connection_label] = {
                         "source_component": label,
                         "source_connector": i,
                         "target_component": component_label,
                         "target_connector": 0,
                         "mass_composition": None,
                         "kind": kind,
-                        "rate": idx.calc_bus_value(bus)
+                        "energy_flow": idx.calc_bus_value(bus)
                     }
-                    label = f"motor__{idx.label}"
-                    connection_json[label] = {
+                    connection_label = f"{component_label}__{idx.label}"
+                    connection_json[connection_label] = {
                         "source_component": component_label,
                         "source_connector": 0,
                         "target_component": idx.label,
                         "target_connector": 999,
                         "mass_composition": None,
                         "kind": kind,
-                        "rate": idx.bus_func(bus)
+                        "energy_flow": idx.bus_func(bus)
                     }
                     component_json["Motor"][component_label] = {
                         "name": component_label,

@@ -1109,9 +1109,11 @@ class Network:
                 main_conn.fluid.val.update(fixed_fractions)
                 main_conn.fluid.is_set = {f for f in fixed_fractions}
                 main_conn.fluid.is_var = variable
-                num_var = len(variable)
-                for f in variable:
-                    main_conn.fluid.val[f]: (1 - mass_fraction_sum) / num_var
+                # this seems to be a problem in some cases, e.g. the basic
+                # gas turbine tutorial
+                # num_var = len(variable)
+                # for f in variable:
+                #     main_conn.fluid.val[f] = (1 - mass_fraction_sum) / num_var
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in main_conn.fluid.is_var:
@@ -1992,8 +1994,6 @@ class Network:
             logger.error(msg)
             return
 
-        self.postprocessing()
-
         if not self.progress:
             msg = (
                 'The solver does not seem to make any progress, aborting '
@@ -2004,6 +2004,8 @@ class Network:
             )
             logger.warning(msg)
             return
+
+        self.postprocessing()
 
         msg = 'Calculation complete.'
         logger.info(msg)

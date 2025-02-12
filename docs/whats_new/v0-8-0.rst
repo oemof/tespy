@@ -1,4 +1,4 @@
-v0.7.9 - Under development
+v0.8.0 - Under development
 ++++++++++++++++++++++++++
 
 API Changes

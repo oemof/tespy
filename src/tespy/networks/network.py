@@ -2663,13 +2663,172 @@ class Network:
         else:
             return np.nan
 
-    def export(self, path):
-        """Export the network structure and parametrization."""
-        path, path_comps = self._create_export_paths(path)
-        self.export_network(path)
-        self.export_connections(path)
-        self.export_components(path_comps)
-        self.export_busses(path)
+    def export(self, path=None):
+        """Export the parametrization and structure of the Network instance
+
+        Parameters
+        ----------
+        path : str, optional
+            Path for exporting to filesystem. If path is None, the data are
+            only returned and not written to the filesystem, by default None
+
+        Returns
+        -------
+        dict
+            Parametrization and structure of the Network instance.
+        """
+        export = {}
+        export["Network"] = self._export_network()
+        export["Connection"] = self._export_connections()
+        export["Component"] = self._export_components()
+        export["Bus"] = self._export_busses()
+
+        if path:
+            path, _ = self._create_export_paths(path)
+            for key, value in export.items():
+
+                fn = os.path.join(path, f'{key}.json')
+                with open(fn, 'w') as f:
+                    json.dump(value, f, indent=4)
+                logger.debug(f'{key} information saved to {fn}.')
+
+        return export
+
+    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
+        """Export the network to exerpy
+
+        Parameters
+        ----------
+        Tamb : float
+            Ambient temperature.
+        pamb : float
+            Ambient pressure.
+        exerpy_mappings : dict
+            Mappings for tespy components to exerpy components
+
+        Returns
+        -------
+        dict
+            exerpy compatible input dictionary
+        """
+        component_json = {}
+        for comp_type in self.comps["comp_type"].unique():
+            if comp_type not in exerpy_mappings.keys():
+                msg = f"Component class {comp_type} not available in exerpy."
+                logger.warning(msg)
+                continue
+
+            key = exerpy_mappings[comp_type]
+            if key not in component_json:
+                component_json[key] = {}
+
+            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
+                component_json[key][c.label] = {
+                    "name": c.label,
+                    "type": comp_type
+                }
+
+        connection_json = {}
+        for c in self.conns["object"]:
+            c.get_physical_exergy(pamb, Tamb)
+
+            connection_json[c.label] = {
+                "source_component": c.source.label,
+                "source_connector": int(c.source_id.removeprefix("out")) - 1,
+                "target_component": c.target.label,
+                "target_connector": int(c.target_id.removeprefix("in")) - 1
+            }
+            connection_json[c.label].update({f"mass_composition": c.fluid.val})
+            connection_json[c.label].update({"kind": "material"})
+            for param in ["m", "T", "p", "h", "s"]:
+                connection_json[c.label].update({
+                    param: c.get_attr(param).val_SI,
+                    f"{param}_unit": c.get_attr(param).unit
+                })
+            connection_json[c.label].update(
+                {"e_T": c.ex_therm, "e_M": c.ex_mech, "e_PH": c.ex_physical}
+            )
+
+        from tespy.components.turbomachinery.base import Turbomachine
+        for label, bus in self.busses.items():
+
+            if "Motor" not in component_json:
+                component_json["Motor"] = {}
+            if "Generator" not in component_json:
+                component_json["Generator"] = {}
+
+            for i, (idx, row) in enumerate(bus.comps.iterrows()):
+                if isinstance(idx, Turbomachine):
+                    kind = "power"
+                else:
+                    kind = "heat"
+
+                if row["base"] == "component":
+                    component_label = f"generator_of_{idx.label}"
+                    connection_label = f"{idx.label}__{component_label}"
+                    connection_json[connection_label] = {
+                        "source_component": idx.label,
+                        "source_connector": 999,
+                        "target_component": component_label,
+                        "target_connector": 0,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "energy_flow": abs(idx.bus_func(bus))
+                    }
+                    connection_label = f"{component_label}__{label}"
+                    connection_json[connection_label] = {
+                        "source_component": component_label,
+                        "source_connector": 0,
+                        "target_component": label,
+                        "target_connector": i,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "energy_flow": abs(idx.calc_bus_value(bus))
+                    }
+                    component_json["Generator"][component_label] = {
+                        "name": component_label,
+                        "type": "Generator",
+                        "type_index": None,
+                    }
+
+                else:
+                    component_label = f"motor_of_{idx.label}"
+                    connection_label = f"{label}__{component_label}"
+                    connection_json[connection_label] = {
+                        "source_component": label,
+                        "source_connector": i,
+                        "target_component": component_label,
+                        "target_connector": 0,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "energy_flow": idx.calc_bus_value(bus)
+                    }
+                    connection_label = f"{component_label}__{idx.label}"
+                    connection_json[connection_label] = {
+                        "source_component": component_label,
+                        "source_connector": 0,
+                        "target_component": idx.label,
+                        "target_connector": 999,
+                        "mass_composition": None,
+                        "kind": kind,
+                        "energy_flow": idx.bus_func(bus)
+                    }
+                    component_json["Motor"][component_label] = {
+                        "name": component_label,
+                        "type": "Motor",
+                        "type_index": None,
+                    }
+
+        return {
+            "components": component_json,
+            "connections": connection_json,
+            "ambient_conditions": {
+                "Tamb": Tamb,
+                "Tamb_unit": "K",
+                "pamb": pamb,
+                "pamb_unit": "Pa"
+            }
+        }
 
     def save(self, path):
         r"""
@@ -2707,20 +2866,6 @@ class Network:
         os.makedirs(path_comps, exist_ok=True)
 
         return path, path_comps
-
-    def export_network(self, fn):
-        r"""
-        Save basic network configuration.
-
-        Parameters
-        ----------
-        fn : str
-            Path/filename for the network configuration file.
-        """
-        with open(os.path.join(fn, 'network.json'), 'w') as f:
-            json.dump(self._serialize(), f, indent=4)
-
-        logger.debug('Network information saved to %s.', fn)
 
     def save_connections(self, fn):
         r"""
@@ -2768,33 +2913,55 @@ class Network:
                 json.dump(bus_data, f, indent=4)
             logger.debug('Bus information saved to %s.', fn)
 
-    def export_connections(self, fn):
+    def _export_network(self):
+        r"""Export network information
+
+        Returns
+        -------
+        dict
+            Serialization of network object.
+        """
+        return self._serialize()
+
+    def _export_connections(self):
+        """Export connection information
+
+        Returns
+        -------
+        dict
+            Serialization of connection objects.
+        """
         connections = {}
         for c in self.conns["object"]:
             connections.update(c._serialize())
+        return connections
 
-        fn = os.path.join(fn, "connections.json")
-        with open(fn, "w", encoding="utf-8") as f:
-            json.dump(connections, f, indent=4)
-        logger.debug('Connection information exported to %s.', fn)
+    def _export_components(self):
+        """Export component information
 
-    def export_components(self, fn):
+        Returns
+        -------
+        dict
+            Dict of dicts with per class serialization of component objects.
+        """
+        components = {}
         for c in self.comps["comp_type"].unique():
-            components = {}
+            components[c] = {}
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
-                components.update(cp._serialize())
+                components[c].update(cp._serialize())
 
-            fname = os.path.join(fn, f"{c}.json")
-            with open(fname, "w", encoding="utf-8") as f:
-                json.dump(components, f, indent=4)
-            logger.debug('Component information exported to %s.', fname)
+        return components
 
-    def export_busses(self, fn):
-        if len(self.busses) > 0:
-            busses = {}
-            for bus in self.busses.values():
-                busses.update(bus._serialize())
-            fn = os.path.join(fn, 'busses.json')
-            with open(fn, "w", encoding="utf-8") as f:
-                json.dump(busses, f, indent=4)
-            logger.debug('Bus information exported to %s.', fn)
+    def _export_busses(self):
+        """Export bus information
+
+        Returns
+        -------
+        dict
+            Serialization of bus objects.
+        """
+        busses = {}
+        for bus in self.busses.values():
+            busses.update(bus._serialize())
+
+        return busses

@@ -16,10 +16,8 @@ API Changes
 
 New Features
 ############
-- Implement a new property for connections to report the phase of the fluid,
-  i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
-  gaseous. The phase is only reported in subcritical pressure
-  (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+- Modify the :code:`OptimizationProblem` class to allow multi-objective
+  optimization (`PR #610 <https://github.com/oemof/tespy/pull/610>`__).
 
 Contributors
 ############

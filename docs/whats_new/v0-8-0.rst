@@ -1,0 +1,24 @@
+v0.8.0 - Under development
+++++++++++++++++++++++++++
+
+API Changes
+###########
+- The :code:`OptimizationProblem` implements the following changes:
+  - The dtype for :code:`objective` has been changed to list. With a single
+    element list, a single objective optimization is carried out. With lists
+    containing more elements, multi-objective optimization will be carried out.
+  - The function argument :code:`gen` of the :code:`run` method has been
+    renamed to :code:`evo`. The same applies for the :code:`individuals`
+    dataframe.
+  - Your tespy model now needs to have a function :code:`get_objectives`
+    instead of :code:`get_objective` and it must return a list of values.
+  - The intermediate printing during optimization has been removed.
+
+New Features
+############
+- Modify the :code:`OptimizationProblem` class to allow multi-objective
+  optimization (`PR #610 <https://github.com/oemof/tespy/pull/610>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

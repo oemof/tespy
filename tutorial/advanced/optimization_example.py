@@ -196,6 +196,21 @@ class SamplePlant:
             self.nw.lin_dep = True
             self.nw.solve("design", init_only=True, init_path=self.stable)
 
+    def get_objectives(self, objective_list):
+        """Get the objective values
+
+        Parameters
+        ----------
+        objective_list : list
+            Names of the objectives
+
+        Returns
+        -------
+        list
+            Values of the objectives
+        """
+        return [self.get_objective(obj) for obj in objective_list]
+
     def get_objective(self, objective=None):
         """
         Get the current objective function evaluation.
@@ -242,7 +257,7 @@ constraints = {
 }
 
 optimize = OptimizationProblem(
-    plant, variables, constraints, objective="efficiency"
+    plant, variables, constraints, objective=["efficiency"]
 )
 # %%[sec_4]
 num_ind = 10

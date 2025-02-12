@@ -2725,8 +2725,7 @@ class Network:
             for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
                 component_json[key][c.label] = {
                     "name": c.label,
-                    "type": comp_type,
-                    "type_index": None,
+                    "type": comp_type
                 }
 
         connection_json = {}
@@ -2763,6 +2762,7 @@ class Network:
                     kind = "power"
                 else:
                     kind = "heat"
+
                 if row["base"] == "component":
                     component_label = f"generator_of_{idx.label}"
                     connection_label = f"{idx.label}__{component_label}"
@@ -2773,7 +2773,7 @@ class Network:
                         "target_connector": 0,
                         "mass_composition": None,
                         "kind": kind,
-                        "energy_flow": idx.bus_func(bus)
+                        "energy_flow": abs(idx.bus_func(bus))
                     }
                     connection_label = f"{component_label}__{label}"
                     connection_json[connection_label] = {
@@ -2783,13 +2783,14 @@ class Network:
                         "target_connector": i,
                         "mass_composition": None,
                         "kind": kind,
-                        "energy_flow": idx.calc_bus_value(bus)
+                        "energy_flow": abs(idx.calc_bus_value(bus))
                     }
                     component_json["Generator"][component_label] = {
                         "name": component_label,
                         "type": "Generator",
                         "type_index": None,
                     }
+
                 else:
                     component_label = f"motor_of_{idx.label}"
                     connection_label = f"{label}__{component_label}"

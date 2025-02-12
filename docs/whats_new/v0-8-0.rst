@@ -1,0 +1,26 @@
+v0.7.9 - Under development
+++++++++++++++++++++++++++
+
+API Changes
+###########
+- The :code:`OptimizationProblem` implements the following changes:
+  - The dtype for :code:`objective` has been changed to list. With a single
+    element list, a single objective optimization is carried out. With lists
+    containing more elements, multi-objective optimization will be carried out.
+  - The function argument :code:`gen` of the :code:`run` method has been
+    renamed to :code:`evo`. The same applies for the :code:`individuals`
+    dataframe.
+  - Your tespy model now needs to have a function :code:`get_objectives`
+    instead of :code:`get_objective` and it must return a list of values.
+  - The intermediate printing during optimization has been removed.
+
+New Features
+############
+- Implement a new property for connections to report the phase of the fluid,
+  i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
+  gaseous. The phase is only reported in subcritical pressure
+  (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -1992,8 +1992,6 @@ class Network:
             logger.error(msg)
             return
 
-        self.postprocessing()
-
         if not self.progress:
             msg = (
                 'The solver does not seem to make any progress, aborting '
@@ -2004,6 +2002,8 @@ class Network:
             )
             logger.warning(msg)
             return
+
+        self.postprocessing()
 
         msg = 'Calculation complete.'
         logger.info(msg)

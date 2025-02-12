@@ -27,6 +27,10 @@ class Turbine(Turbomachine):
     r"""
     Class for gas or steam turbines.
 
+    The component Turbine is the parent class for the components:
+
+    - :py:class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
+
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
@@ -245,6 +249,22 @@ class Turbine(Turbomachine):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
         if o.h.is_var and self.it == 0:
             self.jacobian[k, o.h.J_col] = -1
+
+    def calc_eta_s(self):
+        inl = self.inl[0]
+        outl = self.outl[0]
+        return (
+            (outl.h.val_SI - inl.h.val_SI)
+            / (isentropic(
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    inl.mixing_rule,
+                    T0=inl.T.val_SI
+                ) - inl.h.val_SI
+            )
+        )
 
     def cone_func(self):
         r"""
@@ -505,20 +525,8 @@ class Turbine(Turbomachine):
 
         inl = self.inl[0]
         outl = self.outl[0]
-        self.eta_s.val = (
-            (outl.h.val_SI - inl.h.val_SI)
-            / (
-                isentropic(
-                    inl.p.val_SI,
-                    inl.h.val_SI,
-                    outl.p.val_SI,
-                    inl.fluid_data,
-                    inl.mixing_rule,
-                    T0=inl.T.val_SI
-                )
-                - inl.h.val_SI
-            )
-        )
+        self.eta_s.val = self.calc_eta_s()
+        self.pr.val = outl.p.val_SI / inl.p.val_SI
 
     def exergy_balance(self, T0):
         r"""

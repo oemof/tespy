@@ -7,6 +7,18 @@ New Features
   i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
   gaseous. The phase is only reported in subcritical pressure
   (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+- Implement the Baumann correlation for wet expansion in steamturbines. The
+  feature is available in a new component class,
+  :py:class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`. To
+  use the feature check the documentation of the component class
+  (`PR #602 <https://github.com/oemof/tespy/pull/602>`__).
+
+Bug Fixes
+#########
+- Run the postprocessing only for a converged solution. Otherwise specified
+  values on buses, components or connections may change to nonsense, because
+  the calculation is based on not-converged results of the variables
+  (`PR #609 <https://github.com/oemof/tespy/pull/609>`__).
 
 Contributors
 ############

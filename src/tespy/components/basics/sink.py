@@ -14,6 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry
@@ -77,6 +78,11 @@ class Sink(Component):
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         return
+
+    def get_parameters(self):
+        return {
+            'status': dc_simple(val="active")
+                }
 
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a sink.

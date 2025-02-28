@@ -19,6 +19,8 @@ Bug Fixes
   values on buses, components or connections may change to nonsense, because
   the calculation is based on not-converged results of the variables
   (`PR #609 <https://github.com/oemof/tespy/pull/609>`__).
+- Fix the fuel cell example and make sure it is tested properly
+  (`PR #618 <https://github.com/oemof/tespy/pull/618>`__).
 
 Contributors
 ############

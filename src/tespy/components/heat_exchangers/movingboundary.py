@@ -28,7 +28,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     The heat exchanger is internally discretized into multiple sections, which
     are defined by phase changes. The component assumes, that no pressure
-    losses occur.
+    losses occur. In principle the implementations follows :cite:`bell2015`.
 
     **Mandatory Equations**
 

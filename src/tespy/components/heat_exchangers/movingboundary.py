@@ -40,11 +40,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'U_twophase_twophase': dc_cp(min_val=0),
             'U_twophase_liquid': dc_cp(min_val=0),
             'A': dc_cp(min_val=0),
-            # 'U_sections_group': dc_gcp(
-            #     elements=['U_desup', 'U_cond', 'U_subcool', 'A'],
-            #     func=self.U_sections_func, deriv=self.U_sections_deriv, latex=None,
-            #     num_eq=1
-            # ),
             'UA': dc_cp(
                 min_val=0, num_eq=1, func=self.UA_func, deriv=self.UA_deriv
             ),
@@ -272,52 +267,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             if self.is_variable(c.h):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
-    def U_sections_func(self, **kwargs):
-        r"""
-        Calculate heat transfer from heat transfer coefficients for
-        desuperheating and condensation as well as total heat exchange area.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-        """
-        U_in_sections, h_at_steps_1 = self.get_U_sections_and_h_steps(get_U_values=True)
-        td_log_in_sections, Q_in_sections = self.calc_td_log_and_Q_in_sections(h_at_steps_1)
-
-        Q_total = sum(Q_in_sections)
-
-        return (
-            Q_total
-            + self.A.val / Q_total
-            * sum([
-                    Q * td_log * U
-                    for Q, td_log, U
-                    in zip(Q_in_sections, td_log_in_sections, U_in_sections)
-            ])
-        )
-
-    def U_sections_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of heat transfer coefficient function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.U_sections_func
-        for c in self.inl + self.outl:
-            if self.is_variable(c.m):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, "m", c)
-            if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
-
     def calc_td_pinch(self):
         """Calculate the pinch point temperature difference
 
@@ -379,27 +328,5 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     def calc_parameters(self):
         super().calc_parameters()
-        # U_sections_specified = all([
-        #     self.get_attr(f"U_{key}").is_set
-        #     for key in ["desup", "cond", "subcool"]
-        # ])
-
-        # if U_sections_specified:
-        #     U_in_sections, h_at_steps_1 = self.get_U_sections_and_h_steps(get_U_values=True)
-        #     td_log_in_sections, Q_in_sections = self.calc_td_log_and_Q_in_sections(h_at_steps_1)
-        #     self.A.val = self.Q.val ** 2 / (
-        #         sum([
-        #             abs(Q) * td_log * U
-        #             for Q, td_log, U
-        #             in zip(Q_in_sections, td_log_in_sections, U_in_sections)
-        #         ])
-        #     )
-        #     assert abs(abs(self.Q.val) / sum([
-        #         ((Q / self.Q.val) * td_log * U)
-        #         for Q, td_log, U
-        #         in zip(Q_in_sections, td_log_in_sections, U_in_sections)
-        #     ]) - self.A.val) < 1e-6
-        #     assert round(sum([Q for Q in Q_in_sections]), 3) == round(self.Q.val, 3)
-
         self.UA.val = self.calc_UA()
         self.td_pinch.val = self.calc_td_pinch()

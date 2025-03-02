@@ -1231,9 +1231,11 @@ class Network:
                 reference_container.val.update(fixed_fractions)
                 reference_container.is_set = {f for f in fixed_fractions}
                 reference_container.is_var = variable
-                num_var = len(variable)
-                for f in variable:
-                    reference_container.val[f] = (1 - mass_fraction_sum) / num_var
+                # this seems to be a problem in some cases, e.g. the basic
+                # gas turbine tutorial
+                # num_var = len(variable)
+                # for f in variable:
+                #     reference_container.val[f] = (1 - mass_fraction_sum) / num_var
 
             [c.build_fluid_data() for c in all_connections]
             for fluid in reference_container.is_var:
@@ -1292,7 +1294,7 @@ class Network:
         self.all_fluids = set(self.all_fluids)
         cols = (
             [col for prop in properties for col in [prop, f"{prop}_unit"]]
-            + list(self.all_fluids)
+            + list(self.all_fluids) + ['phase']
         )
         self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
         # include column for fluid balance in specs dataframe
@@ -2127,8 +2129,6 @@ class Network:
             logger.error(msg)
             return
 
-        self.postprocessing()
-
         if not self.progress:
             msg = (
                 'The solver does not seem to make any progress, aborting '
@@ -2139,6 +2139,8 @@ class Network:
             )
             logger.warning(msg)
             return
+
+        self.postprocessing()
 
         msg = 'Calculation complete.'
         logger.info(msg)
@@ -2613,7 +2615,10 @@ class Network:
                 ] + [
                     c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
                     for fluid in self.all_fluids
+                ] + [
+                    c.phase.val
                 ]
+
             )
 
     def process_components(self):
@@ -2708,7 +2713,7 @@ class Network:
                         )
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']].copy()
+        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T', 'x', 'phase']].copy()
         df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:

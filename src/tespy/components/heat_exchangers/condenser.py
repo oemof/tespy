@@ -17,6 +17,7 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
@@ -474,7 +475,7 @@ class Condenser(HeatExchanger):
         )
         self.ttd_u.val = self.inl[0].calc_T_sat() - self.outl[1].T.val_SI
         self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
-        self.ttd_min.val = min(self.ttd_u.val, self.ttd_min.val)
+        self.ttd_min.val = min(self.ttd_u.val, self.ttd_l.val)
 
         # pr and zeta
         for i in range(2):

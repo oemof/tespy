@@ -31,6 +31,7 @@ from tespy.tools.fluid_properties import dv_mix_dph
 from tespy.tools.fluid_properties import dv_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
@@ -266,6 +267,7 @@ class Connection:
             if hasattr(v, "func") and v.func is not None
         }
         self.state = dc_simple()
+        self.phase = dc_simple()
         self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.__dict__.update(self.property_data)
         self.mixing_rule = None
@@ -745,6 +747,7 @@ class Connection:
             "v_ref": dc_ref(
                 func=self.v_ref_func, deriv=self.v_ref_deriv, num_eq=1
             ),
+
         }
 
     def build_fluid_data(self):
@@ -989,6 +992,12 @@ class Connection:
                     self.x._val_SI = self.calc_x()
             except ValueError:
                 self.x._val_SI = np.nan
+
+            try:
+                self.phase.val = self.calc_phase()
+            except ValueError:
+                self.phase.val = np.nan
+
             try:
                 if not self.Td_bp.is_set:
                     self.Td_bp._val_SI = self.calc_Td_bp()
@@ -1183,6 +1192,12 @@ class Connection:
             )
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
+
+    def calc_phase(self):
+        try:
+            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
 
 
 class Ref:

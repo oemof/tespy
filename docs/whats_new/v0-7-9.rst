@@ -1,0 +1,38 @@
+v0.7.9 - Newton's Nature (March, 02, 2024)
+++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- Implement a new property for connections to report the phase of the fluid,
+  i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
+  gaseous. The phase is only reported in subcritical pressure
+  (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+- Implement the Baumann correlation for wet expansion in steamturbines. The
+  feature is available in a new component class,
+  :py:class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`. To
+  use the feature check the documentation of the component class
+  (`PR #602 <https://github.com/oemof/tespy/pull/602>`__).
+- Implement a new component class
+  :py:class:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`,
+  which allows to make specification of internal pinch temperature difference
+  in case of heat exchanger internal phase changes on the hot or the cold side
+  of the component. It splits the heat exchange automatically in sections,
+  where in each section the phase of the hot and the cold fluid does not change.
+  These sections are utilized to find the minimum pinch internally, and allow
+  to assing heat transfer coefficients `UA` for all individual sections as well
+  as the total sum
+  (`PR #515 <https://github.com/oemof/tespy/pull/515>`__).
+
+Bug Fixes
+#########
+- Run the postprocessing only for a converged solution. Otherwise specified
+  values on buses, components or connections may change to nonsense, because
+  the calculation is based on not-converged results of the variables
+  (`PR #609 <https://github.com/oemof/tespy/pull/609>`__).
+- Fix the fuel cell example and make sure it is tested properly
+  (`PR #618 <https://github.com/oemof/tespy/pull/618>`__).
+
+Contributors
+############
+- `@tlmerbecks <https://github.com/tlmerbecks>`__
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

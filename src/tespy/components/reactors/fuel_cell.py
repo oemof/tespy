@@ -132,19 +132,24 @@ class FuelCell(Component):
     >>> water_out = Connection(fc, 'out2', water_sink, 'in1')
     >>> nw.add_conns(cw_in, cw_out, oxygen_in, hydrogen_in, water_out)
 
-    The fuel cell shall produce 200kW of electrical power and 200kW of heat
-    with an efficiency of 0.45. The thermodynamic parameters of the input
-    oxygen and hydrogen are given, the mass flow rates are calculated out of
-    the given power output. The cooling fluid is pure water.
+    The fuel cell produces 200kW of electrical power with an efficiency of 0.45.
+    The thermodynamic parameters of the input oxygen and hydrogen are given,
+    the mass flow rates are calculated out of the given power output. The
+    temperature of the water at the outlet should be 50 °C. The cooling fluid is
+    pure water and is heated up from 25 °C to 40 °C.
 
-    >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9)
-    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1})
+    >>> fc.set_attr(eta=0.45, P=-200e03, pr=0.9)
+    >>> cw_in.set_attr(T=25, p=1, fluid={'H2O': 1})
+    >>> cw_out.set_attr(T=40)
     >>> oxygen_in.set_attr(T=25, p=1)
     >>> hydrogen_in.set_attr(T=25)
+    >>> water_out.set_attr(T=50)
     >>> nw.solve('design')
-    >>> P_design = fc.P.val / 1e3
-    >>> round(P_design, 0)
-    -200.0
+    >>> round(cw_in.m.val, 1)
+    10.2
+    >>> Q = fc.Q.val / 1e3
+    >>> round(Q, 0)
+    -642.0
     >>> round(fc.eta.val, 2)
     0.45
     """

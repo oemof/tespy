@@ -266,7 +266,7 @@ class SimpleHeatExchanger(Component):
     def _preprocess(self, row_idx):
         super()._preprocess(row_idx)
 
-        # self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
     def energy_balance_func(self):
         r"""
@@ -406,26 +406,19 @@ class SimpleHeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        func = self.darcy_func
+        f = self.darcy_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
+
         # custom variables of hydro group
         for variable_name in self.darcy_group.elements:
             parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
+            self._partial_derivative(parameter, k, f, increment_filter)
 
     def hazen_williams_func(self):
         r"""
@@ -503,26 +496,19 @@ class SimpleHeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        func = self.hazen_williams_func
+        f = self.hazen_williams_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
+
         # custom variables of hydro group
         for variable_name in self.hw_group.elements:
             parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
+            self._partial_derivative(parameter, k, f, increment_filter)
 
     def kA_group_func(self):
         r"""
@@ -615,18 +601,14 @@ class SimpleHeatExchanger(Component):
         f = self.kA_group_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        if self.kA.is_var:
-            self.jacobian[k, self.kAJ_col()] = self.numeric_deriv(f, self.vars[self.kA])
+
+        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
+
+        self._partial_derivative(self.kA, k, f, increment_filter)
 
     def kA_char_group_func(self):
         r"""
@@ -733,16 +715,12 @@ class SimpleHeatExchanger(Component):
         f = self.kA_char_group_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
 
     def bus_func(self, bus):
         r"""

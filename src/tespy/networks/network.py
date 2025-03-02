@@ -2461,10 +2461,19 @@ class Network:
         increment = [float(val) for val in self.increment]
         # the J_cols here point to actual variables, no need to call to
         # get_J_col yet
+        if self.iter < 3:
+            relax = 0.25
+        elif self.iter < 5:
+            relax = 0.5
+        elif self.iter < 8:
+            relax = 0.75
+        else:
+            relax = 1
+
         for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h"]:
                 container = data["obj"]
-                container._val_SI += increment[container.J_col]
+                container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":
                 container = data["obj"]
                 relax = max(

@@ -774,11 +774,11 @@ class Connection:
             } for fluid in self.fluid.val
         }
 
-    def primary_ref_func(self, k, **kwargs):
+    def primary_ref_func(self, **kwargs):
         variable = kwargs["variable"]
         self.get_attr(variable)
         ref = self.get_attr(f"{variable}_ref").ref
-        self.residual[k] = (
+        return (
             self.get_attr(variable).val_SI
             - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
         )
@@ -809,8 +809,8 @@ class Connection:
             T0 = self.T.val_SI
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
-    def T_func(self, k, **kwargs):
-        self.residual[k] = self.calc_T() - self.T.val_SI
+    def T_func(self, **kwargs):
+        return self.calc_T() - self.T.val_SI
 
     def T_deriv(self, k, **kwargs):
         if _is_variable(self.p):
@@ -826,11 +826,9 @@ class Connection:
                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
             )
 
-    def T_ref_func(self, k, **kwargs):
+    def T_ref_func(self, **kwargs):
         ref = self.T_ref.ref
-        self.residual[k] = (
-            self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
-        )
+        return self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
 
     def T_ref_deriv(self, k, **kwargs):
         # first part of sum is identical to direct temperature specification
@@ -862,8 +860,8 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-    def v_func(self, k, **kwargs):
-        self.residual[k] = self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
+    def v_func(self, **kwargs):
+        return self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
 
     def v_deriv(self, k, **kwargs):
         if _is_variable(self.m):
@@ -881,9 +879,9 @@ class Connection:
                 * self.m.val_SI
             )
 
-    def v_ref_func(self, k, **kwargs):
+    def v_ref_func(self, **kwargs):
         ref = self.v_ref.ref
-        self.residual[k] = (
+        return (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
             - (
                 ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI
@@ -917,9 +915,9 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-    def x_func(self, k, **kwargs):
+    def x_func(self, **kwargs):
         # saturated steam fraction
-        self.residual[k] = (
+        return (
             self.h.val_SI
             - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         )
@@ -942,25 +940,19 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-    def Td_bp_func(self, k, **kwargs):
+    def Td_bp_func(self, **kwargs):
         # temperature difference to boiling point
-        self.residual[k] = self.calc_Td_bp() - self.Td_bp.val_SI
+        return self.calc_Td_bp() - self.Td_bp.val_SI
 
     def Td_bp_deriv(self, k, **kwargs):
-        if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-                - dT_sat_dp(self.p.val_SI, self.fluid_data)
-            )
-        if self.h.is_var:
-            self.jacobian[k, self.h.J_col] = dT_mix_pdh(
-                self.p.val_SI, self.h.val_SI, self.fluid_data
-            )
+        f = self.Td_bp_func
+        self._partial_derivative(self.p, k, f)
+        self._partial_derivative(self.h, k, f)
 
-    def fluid_balance_func(self, k, **kwargs):
+    def fluid_balance_func(self, **kwargs):
         residual = 1 - sum(self.fluid.val[f] for f in self.fluid.is_set)
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
-        self.residual[k] = residual
+        return residual
 
     def fluid_balance_deriv(self, k, **kwargs):
         for f in self.fluid.is_var:
@@ -979,7 +971,7 @@ class Connection:
         self._increment_filter = increment_filter
         for k, parameter in self.equations.items():
             data = self.get_attr(parameter)
-            data.func(k, **data.func_params)
+            self.residual[k] = data.func(**data.func_params)
             data.deriv(k, **data.func_params)
 
     def calc_results(self):

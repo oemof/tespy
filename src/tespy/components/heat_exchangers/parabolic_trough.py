@@ -229,19 +229,25 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
+            'E': dc_cp(min_val=0),
+            'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
-            'c_1': dc_cp(min_val=0), 'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(), 'iam_2': dc_cp(),
+            'c_1': dc_cp(min_val=0),
+            'c_2': dc_cp(min_val=0),
+            'iam_1': dc_cp(),
+            'iam_2': dc_cp(),
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_cp(),
             'Q_loss': dc_cp(max_val=0, val=0),
             'energy_group': dc_gcp(
-                elements=['E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
-                          'iam_2', 'A', 'Tamb'], num_eq=1,
+                elements=[
+                    'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
+                    'iam_2', 'A', 'Tamb'
+                ], num_eq=1,
                 latex=self.energy_group_func_doc,
-                func=self.energy_group_func, deriv=self.energy_group_deriv
+                func=self.energy_group_func,
+                deriv=self.energy_group_deriv
             )
         })
         return data
@@ -333,25 +339,18 @@ class ParabolicTrough(SimpleHeatExchanger):
         f = self.energy_group_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+
+        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
         # custom variables for the energy-group
         for variable_name in self.energy_group.elements:
             parameter = self.get_attr(variable_name)
             if parameter == self.Tamb:
                 continue
-            if parameter.is_var:
-                self.jacobian[k, parameterJ_col()] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+            self._partial_derivative(parameter, k, f, increment_filter)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

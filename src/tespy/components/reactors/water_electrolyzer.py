@@ -176,10 +176,10 @@ class WaterElectrolyzer(Component):
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
-    >>> el.set_attr(P=P_design * 0.66)
+    >>> el.set_attr(P=P_design * 1e6 * 0.2)
     >>> nw.solve('offdesign', design_path='tmp')
     >>> round(el.eta.val, 2)
-    0.88
+    0.84
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 

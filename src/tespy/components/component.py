@@ -339,7 +339,12 @@ class Component:
         self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
-        self.constraints = self.get_mandatory_constraints().copy()
+
+        if self.get_attr("status").val == "active":
+            self.constraints = self.get_mandatory_constraints().copy()
+        else:
+            self.constraints = self.get_bypass_constraints().copy()
+
         self.prop_specifications = {}
         self.var_specifications = {}
         self.group_specifications = {}
@@ -349,68 +354,69 @@ class Component:
         for constraint in self.constraints.values():
             self.num_eq += constraint['num_eq']
 
-        for key, val in self.parameters.items():
-            data = self.get_attr(key)
-            if isinstance(val, dc_cp):
-                if data.is_var:
-                    data.J_col = num_nw_vars + self.num_vars
-                    self.num_vars += 1
-                    self.vars[data] = key
+        if self.get_attr("status").val == "active":
+            for key, val in self.parameters.items():
+                data = self.get_attr(key)
+                if isinstance(val, dc_cp):
+                    if data.is_var:
+                        data.J_col = num_nw_vars + self.num_vars
+                        self.num_vars += 1
+                        self.vars[data] = key
 
-                self.prop_specifications[key] = val.is_set
-                self.var_specifications[key] = val.is_var
+                    self.prop_specifications[key] = val.is_set
+                    self.var_specifications[key] = val.is_var
 
-            # component characteristics
-            elif isinstance(val, dc_cc):
-                if data.func is not None:
-                    self.char_specifications[key] = val.is_set
-                if data.char_func is None:
-                    try:
-                        data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharLine)
-                    except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                # component characteristics
+                elif isinstance(val, dc_cc):
+                    if data.func is not None:
+                        self.char_specifications[key] = val.is_set
+                    if data.char_func is None:
+                        try:
+                            data.char_func = ldc(
+                                self.component(), key, 'DEFAULT', CharLine)
+                        except KeyError:
+                            data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
-            # component characteristics
-            elif isinstance(val, dc_cm):
-                if data.func is not None:
-                    self.char_specifications[key] = val.is_set
-                if data.char_func is None:
-                    try:
-                        data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharMap)
-                    except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                # component characteristics
+                elif isinstance(val, dc_cm):
+                    if data.func is not None:
+                        self.char_specifications[key] = val.is_set
+                    if data.char_func is None:
+                        try:
+                            data.char_func = ldc(
+                                self.component(), key, 'DEFAULT', CharMap)
+                        except KeyError:
+                            data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
-            # grouped component properties
-            elif isinstance(val, dc_gcp):
-                is_set = True
-                for e in data.elements:
-                    if not self.get_attr(e).is_set:
-                        is_set = False
+                # grouped component properties
+                elif isinstance(val, dc_gcp):
+                    is_set = True
+                    for e in data.elements:
+                        if not self.get_attr(e).is_set:
+                            is_set = False
 
-                if is_set:
-                    data.set_attr(is_set=True)
-                elif data.is_set:
-                    start = (
-                        'All parameters of the component group have to be '
-                        'specified! This component group uses the following '
-                        'parameters: '
-                    )
-                    end = f" at {self.label}. Group will be set to False."
-                    logger.warning(start + ', '.join(val.elements) + end)
-                    val.set_attr(is_set=False)
-                else:
-                    val.set_attr(is_set=False)
-                self.group_specifications[key] = val.is_set
+                    if is_set:
+                        data.set_attr(is_set=True)
+                    elif data.is_set:
+                        start = (
+                            'All parameters of the component group have to be '
+                            'specified! This component group uses the following '
+                            'parameters: '
+                        )
+                        end = f" at {self.label}. Group will be set to False."
+                        logger.warning(start + ', '.join(val.elements) + end)
+                        val.set_attr(is_set=False)
+                    else:
+                        val.set_attr(is_set=False)
+                    self.group_specifications[key] = val.is_set
 
-            # grouped component characteristics
-            elif isinstance(val, dc_gcc):
-                self.group_specifications[key] = val.is_set
+                # grouped component characteristics
+                elif isinstance(val, dc_gcc):
+                    self.group_specifications[key] = val.is_set
 
-            # component properties
-            if data.is_set and data.func is not None:
-                self.num_eq += data.num_eq
+                # component properties
+                if data.is_set and data.func is not None:
+                    self.num_eq += data.num_eq
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
@@ -430,6 +436,9 @@ class Component:
         return {}
 
     def get_mandatory_constraints(self):
+        return {}
+
+    def get_bypass_constraints(self):
         return {}
 
     @staticmethod
@@ -592,14 +601,15 @@ class Component:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        for data in self.parameters.values():
-            if data.is_set and data.func is not None:
-                self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                    **data.func_params
-                )
-                data.deriv(increment_filter, sum_eq, **data.func_params)
+        if self.get_attr("status") == "active":
+            for data in self.parameters.values():
+                if data.is_set and data.func is not None:
+                    self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
+                        **data.func_params
+                    )
+                    data.deriv(increment_filter, sum_eq, **data.func_params)
 
-                sum_eq += data.num_eq
+                    sum_eq += data.num_eq
 
     def bus_func(self, bus):
         r"""
@@ -919,7 +929,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self, k):
+    def pressure_equality_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -978,7 +988,7 @@ class Component:
         )
         return generate_latex_eq(self, latex, label)
 
-    def enthalpy_equality_deriv(self, k):
+    def enthalpy_equality_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 

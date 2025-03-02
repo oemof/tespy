@@ -234,15 +234,15 @@ class DropletSeparator(NodeBase):
         """
         for i in self.inl:
             if i.m.is_var:
-                self.jacobian[k, i.m.J_col()] = i.h.val_SI
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
             if i.h.is_var:
-                self.jacobian[k, i.h.J_col()] = i.m.val_SI
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
 
         for o in self.outl:
             if o.m.is_var:
-                self.jacobian[k, o.m.J_col()] = -o.h.val_SI
+                self.jacobian[k, o.m.J_col] = -o.h.val_SI
             if o.h.is_var:
-                self.jacobian[k, o.h.J_col()] = -o.m.val_SI
+                self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
 
     def outlet_states_func(self):
@@ -303,18 +303,18 @@ class DropletSeparator(NodeBase):
         o0 = self.outl[0]
         o1 = self.outl[1]
         if o0.p.is_var:
-            self.jacobian[k, o0.p.J_col()] = (
+            self.jacobian[k, o0.p.J_col] = (
                 dh_mix_dpQ(o0.p.val_SI, 0, o0.fluid_data)
             )
         if o0.h.is_var and self.it == 0:
-            self.jacobian[k, o0.h.J_col()] = -1
+            self.jacobian[k, o0.h.J_col] = -1
 
         if o1.p.is_var:
-            self.jacobian[k + 1, o1.p.J_col()] = (
+            self.jacobian[k + 1, o1.p.J_col] = (
                 dh_mix_dpQ(o1.p.val_SI, 1, o1.fluid_data)
             )
         if o1.h.is_var and self.it == 0:
-            self.jacobian[k + 1, o1.h.J_col()] = -1
+            self.jacobian[k + 1, o1.h.J_col] = -1
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

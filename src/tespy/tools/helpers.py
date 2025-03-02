@@ -278,15 +278,15 @@ class UserDefinedEquation:
         ...     c0 = ude.conns[0]
         ...     c1 = ude.conns[1]
         ...     if c0.m.is_var:
-        ...         ude.jacobian[c0.m.J_col()] = ude.numeric_deriv('m', c0)
+        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
         ...     if c0.p.is_var:
-        ...         ude.jacobian[c0.p.J_col()] = ude.numeric_deriv('p', c0)
+        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
         ...     if c0.h.is_var:
-        ...         ude.jacobian[c0.h.J_col()] = ude.numeric_deriv('h', c0)
+        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
         ...     if c1.p.is_var:
-        ...         ude.jacobian[c1.p.J_col()] = ude.numeric_deriv('p', c1)
+        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
         ...     if c1.h.is_var:
-        ...         ude.jacobian[c1.h.J_col()] = ude.numeric_deriv('h', c1)
+        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -389,7 +389,59 @@ class UserDefinedEquation:
         return _numeric_deriv(self, self.func, dx, conn, ude=self)
 
 
-def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
+def _is_variable(var, increment_filter=None):
+    if var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col]:
+            return True
+    return False
+
+
+def _partial_derivative(var, value, increment_filter, **kwargs):
+    if _is_variable(var, increment_filter):
+        if callable(value):
+            return _numeric_deriv(var, value, **kwargs)
+        else:
+            return value
+    else:
+        return None
+
+
+def _numeric_deriv(variable, func, **kwargs):
+    r"""
+    Calculate partial derivative of the function func to dx.
+
+    Parameters
+    ----------
+    variable : object
+        Variable container.
+
+    func : function
+        Function :math:`f` to calculate the partial derivative for.
+
+    Returns
+    -------
+    deriv : float/list
+        Partial derivative(s) of the function :math:`f` to variable(s)
+        :math:`x`.
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+    """
+    d = variable._reference_container.d
+    variable._reference_container.val_SI += d
+    exp = func(**kwargs)
+
+    variable._reference_container.val_SI -= 2 * d
+    exp -= func(**kwargs)
+    deriv = exp / (2 * d)
+
+    variable._reference_container.val_SI += d
+
+    return deriv
+
+
+def _numeric_deriv_fluid(obj, func, dx, conn=None, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -417,66 +469,38 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
 
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
-    if conn is None:
-        d = obj.get_attr(dx).d
-        exp = 0
-        obj.get_attr(dx).val += d
-        exp += func(**kwargs)
+    d = 1e-5
 
-        obj.get_attr(dx).val -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        obj.get_attr(dx).val += d
-
-    elif dx in conn.fluid.is_var:
-        d = 1e-5
-
-        val = conn.fluid.val[dx]
-        if conn.fluid.val[dx] + d <= 1:
-            conn.fluid.val[dx] += d
-        else:
-            conn.fluid.val[dx] = 1
-
-        conn.build_fluid_data()
-        exp = func(**kwargs)
-
-        if conn.fluid.val[dx] - 2 * d >= 0:
-            conn.fluid.val[dx] -= 2 * d
-        else:
-            conn.fluid.val[dx] = 0
-
-        conn.build_fluid_data()
-        exp -= func(**kwargs)
-
-        conn.fluid.val[dx] = val
-        conn.build_fluid_data()
-
-        deriv = exp / (2 * d)
-
-    elif dx in ['m', 'p', 'h']:
-
-        if dx == 'm':
-            d = 1e-4
-        else:
-            d = 1e-1
-        conn.get_attr(dx)._reference_container._val_SI += d
-        exp = func(**kwargs)
-
-        conn.get_attr(dx)._reference_container._val_SI -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        conn.get_attr(dx)._reference_container._val_SI += d
-
+    val = conn.fluid.val[dx]
+    if conn.fluid.val[dx] + d <= 1:
+        conn.fluid.val[dx] += d
     else:
-        msg = (
-            "Your variable specification for the numerical derivative "
-            "calculation seems to be wrong. It has to be a fluid name, m, "
-            "p, h or the name of a component variable."
-        )
-        logger.exception(msg)
-        raise ValueError(msg)
+        conn.fluid.val[dx] = 1
+
+    conn.build_fluid_data()
+    exp = func(**kwargs)
+
+    if conn.fluid.val[dx] - 2 * d >= 0:
+        conn.fluid.val[dx] -= 2 * d
+    else:
+        conn.fluid.val[dx] = 0
+
+    conn.build_fluid_data()
+    exp -= func(**kwargs)
+
+    conn.fluid.val[dx] = val
+    conn.build_fluid_data()
+
+    deriv = exp / (2 * d)
+
+    # else:
+    #     msg = (
+    #         "Your variable specification for the numerical derivative "
+    #         "calculation seems to be wrong. It has to be a fluid name, m, "
+    #         "p, h or the name of a component variable."
+    #     )
+    #     logger.exception(msg)
+    #     raise ValueError(msg)
     return deriv
 
 

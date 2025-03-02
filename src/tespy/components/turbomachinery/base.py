@@ -152,14 +152,14 @@ class Turbomachine(Component):
         i = self.inl[0]
         o = self.outl[0]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = i.m.val_SI
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
         # custom variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col()] = -1
+            self.jacobian[k, self.p.J_col] = -1
 
     def bus_func(self, bus):
         r"""
@@ -220,19 +220,19 @@ class Turbomachine(Component):
         """
         f = self.calc_bus_value
         if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col() not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col()] = 0
-            bus.jacobian[self.inl[0].m.J_col()] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            if self.inl[0].m.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].m.J_col] = 0
+            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
 
         if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col() not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col()] = 0
-            bus.jacobian[self.inl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            if self.inl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.inl[0].h.J_col] = 0
+            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
 
         if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col() not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col()] = 0
-            bus.jacobian[self.outl[0].h.J_col()] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            if self.outl[0].h.J_col not in bus.jacobian:
+                bus.jacobian[self.outl[0].h.J_col] = 0
+            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

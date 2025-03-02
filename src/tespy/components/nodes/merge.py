@@ -251,13 +251,13 @@ class Merge(NodeBase):
         for fluid, x in self.outl[0].fluid.val.items():
             for i in self.inl:
                 if i.m.is_var:
-                    self.jacobian[k, i.m.J_col()] = i.fluid.val[fluid]
+                    self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
                 if fluid in i.fluid.is_var:
-                    self.jacobian[k, i.fluid.J_col()[fluid]] = i.m.val_SI
+                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
             if o.m.is_var:
-                self.jacobian[k, o.m.J_col()] = -x
+                self.jacobian[k, o.m.J_col] = -x
             if fluid in o.fluid.is_var:
-                self.jacobian[k, o.fluid.J_col()[fluid]] = -o.m.val_SI
+                self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
             k += 1
 
     def energy_balance_func(self):
@@ -315,14 +315,14 @@ class Merge(NodeBase):
         """
         for i in self.inl:
             if i.m.is_var:
-                self.jacobian[k, i.m.J_col()] = i.h.val_SI
+                self.jacobian[k, i.m.J_col] = i.h.val_SI
             if i.h.is_var:
-                self.jacobian[k, i.h.J_col()] = i.m.val_SI
+                self.jacobian[k, i.h.J_col] = i.m.val_SI
         o = self.outl[0]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col()] = -o.h.val_SI
+            self.jacobian[k, o.m.J_col] = -o.h.val_SI
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = -o.m.val_SI
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

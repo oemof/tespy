@@ -334,15 +334,15 @@ class ParabolicTrough(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
         if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
         if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
         if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o)
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
         # custom variables for the energy-group
         for variable_name in self.energy_group.elements:
             parameter = self.get_attr(variable_name)

@@ -344,16 +344,16 @@ class WaterElectrolyzer(Component):
         # derivatives for outlet 1
         o = self.outl[1]
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+            self.jacobian[k, o.p.J_col] = dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col()] = dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+            self.jacobian[k, o.h.J_col] = dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
 
         # derivatives for outlet 2
         o = self.outl[2]
         if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = -dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+            self.jacobian[k, o.p.J_col] = -dT_mix_dph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
         if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col()] = -dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
+            self.jacobian[k, o.h.J_col] = -dT_mix_pdh(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
 
     def eta_func(self):
         r"""
@@ -400,10 +400,10 @@ class WaterElectrolyzer(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         if self.outl[2].m.is_var:
-            self.jacobian[k, self.outl[2].m.J_col()] = -self.e0
+            self.jacobian[k, self.outl[2].m.J_col] = -self.e0
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col()] = self.eta.val
+            self.jacobian[k, self.p.J_col] = self.eta.val
 
     def heat_func(self):
         r"""
@@ -455,11 +455,11 @@ class WaterElectrolyzer(Component):
         i = self.inl[0]
         o = self.outl[0]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col()] = o.h.val_SI - i.h.val_SI
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col()] = -i.m.val_SI
+            self.jacobian[k, i.h.J_col] = -i.m.val_SI
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = i.m.val_SI
+            self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def specific_energy_consumption_func(self):
         r"""
@@ -506,10 +506,10 @@ class WaterElectrolyzer(Component):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         if self.outl[2].m.is_var:
-            self.jacobian[k, self.outl[2].m.J_col()] = -self.e.val
+            self.jacobian[k, self.outl[2].m.J_col] = -self.e.val
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col()] = 1
+            self.jacobian[k, self.p.J_col] = 1
         # derivatives for variable e
         if self.e.is_var:
             self.jacobian[k, self.eJ_col()] = -self.outl[2].m.val_SI
@@ -593,39 +593,39 @@ class WaterElectrolyzer(Component):
         # derivatives cooling water inlet
         i = self.inl[0]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col()] = i.h.val_SI - self.outl[0].h.val_SI
+            self.jacobian[k, i.m.J_col] = i.h.val_SI - self.outl[0].h.val_SI
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col()] = i.m.val_SI
+            self.jacobian[k, i.h.J_col] = i.m.val_SI
 
         # derivatives feed water inlet
         i = self.inl[1]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col()] = i.h.val_SI - h_refh2o
+            self.jacobian[k, i.m.J_col] = i.h.val_SI - h_refh2o
         if i.h.is_var:
-            self.jacobian[k, i.h.J_col()] = i.m.val_SI
+            self.jacobian[k, i.h.J_col] = i.m.val_SI
 
         # derivative cooling water outlet
         o = self.outl[0]
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = -self.inl[0].m.val_SI
+            self.jacobian[k, o.h.J_col] = -self.inl[0].m.val_SI
 
         # derivatives oxygen outlet
         o = self.outl[1]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col()] = -(o.h.val_SI - h_refo2)
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refo2)
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = -o.m.val_SI
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives hydrogen outlet
         o = self.outl[2]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col()] = -(o.h.val_SI - h_refh2 + self.e0)
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refh2 + self.e0)
         if o.h.is_var:
-            self.jacobian[k, o.h.J_col()] = -o.m.val_SI
+            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col()] = 1
+            self.jacobian[k, self.p.J_col] = 1
 
     def eta_char_func(self):
         r"""
@@ -695,10 +695,10 @@ class WaterElectrolyzer(Component):
         o = self.outl[2]
         if o.m.is_var:
             f = self.eta_char_func
-            self.jacobian[k, o.m.J_col()] = self.numeric_deriv(f, 'm', o)
+            self.jacobian[k, o.m.J_col] = self.numeric_deriv(f, 'm', o)
 
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col()] = 1
+            self.jacobian[k, self.p.J_col] = 1
 
     def mass_flow_func(self):
         r"""
@@ -774,16 +774,16 @@ class WaterElectrolyzer(Component):
         # number of equations may vary here
         if self.inl[1].m.is_var or self.outl[1].m.is_var:
             if self.inl[1].m.is_var:
-                self.jacobian[k, self.inl[1].m.J_col()] = o2
+                self.jacobian[k, self.inl[1].m.J_col] = o2
             if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col()] = -1
+                self.jacobian[k, self.outl[1].m.J_col] = -1
             k += 1
 
         # derivatives for mass flow balance for hydrogen output
         if self.inl[1].m.is_var:
-            self.jacobian[k, self.inl[1].m.J_col()] = (1 - o2)
+            self.jacobian[k, self.inl[1].m.J_col] = (1 - o2)
         if self.outl[2].m.is_var:
-            self.jacobian[k, self.outl[2].m.J_col()] = -1
+            self.jacobian[k, self.outl[2].m.J_col] = -1
 
     def reactor_pressure_func(self):
         r"""
@@ -837,9 +837,9 @@ class WaterElectrolyzer(Component):
         i = self.inl[1]
         for o in self.outl[1:]:
             if i.p.is_var:
-                self.jacobian[k, i.p.J_col()] = 1
+                self.jacobian[k, i.p.J_col] = 1
             if o.p.is_var:
-                self.jacobian[k, o.p.J_col()] = -1
+                self.jacobian[k, o.p.J_col] = -1
             k += 1
 
     def calc_P(self):
@@ -986,20 +986,20 @@ class WaterElectrolyzer(Component):
         if b['param'] == 'P':
             for c in self.inl + self.outl:
                 if c.m.is_var and c != self.outl[0]:
-                    if c.m.J_col() not in bus.jacobian:
-                        bus.jacobian[c.m.J_col()] = 0
-                    bus.jacobian[c.m.J_col()] -= self.numeric_deriv(f, 'm', c, bus=bus)
+                    if c.m.J_col not in bus.jacobian:
+                        bus.jacobian[c.m.J_col] = 0
+                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
 
                 if c.h.is_var:
-                    if c.h.J_col() not in bus.jacobian:
-                        bus.jacobian[c.h.J_col()] = 0
-                    bus.jacobian[c.h.J_col()] -= self.numeric_deriv(f, 'h', c, bus=bus)
+                    if c.h.J_col not in bus.jacobian:
+                        bus.jacobian[c.h.J_col] = 0
+                    bus.jacobian[c.h.J_col] -= self.numeric_deriv(f, 'h', c, bus=bus)
 
             # variable power
             if self.P.is_var:
-                if self.p.J_col() not in bus.jacobian:
-                    bus.jacobian[self.p.J_col()] = 0
-                bus.jacobian[self.p.J_col()] -= self.numeric_deriv(f, 'P', None, bus=bus)
+                if self.p.J_col not in bus.jacobian:
+                    bus.jacobian[self.p.J_col] = 0
+                bus.jacobian[self.p.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
 
         ######################################################################
         # derivatives for heat on bus
@@ -1008,19 +1008,19 @@ class WaterElectrolyzer(Component):
             i = self.inl[0]
             o = self.outl[0]
             if i.m.is_var:
-                if i.m.J_col() not in bus.jacobian:
-                    bus.jacobian[i.m.J_col()] = 0
-                bus.jacobian[i.m.J_col()] -= self.numeric_deriv(f, 'm', i, bus=bus)
+                if i.m.J_col not in bus.jacobian:
+                    bus.jacobian[i.m.J_col] = 0
+                bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
 
             if o.h.is_var:
-                if o.h.J_col() not in bus.jacobian:
-                    bus.jacobian[o.h.J_col()] = 0
-                bus.jacobian[o.h.J_col()] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                if o.h.J_col not in bus.jacobian:
+                    bus.jacobian[o.h.J_col] = 0
+                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
 
             if o.h.is_var:
-                if o.h.J_col() not in bus.jacobian:
-                    bus.jacobian[o.h.J_col()] = 0
-                bus.jacobian[o.h.J_col()] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                if o.h.J_col not in bus.jacobian:
+                    bus.jacobian[o.h.J_col] = 0
+                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter

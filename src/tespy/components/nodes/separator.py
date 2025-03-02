@@ -251,14 +251,14 @@ class Separator(NodeBase):
         for fluid in self.variable_fluids:
             for o in self.outl:
                 if self.is_variable(o.m):
-                    self.jacobian[k, o.m.J_col()] = -o.fluid.val[fluid]
+                    self.jacobian[k, o.m.J_col] = -o.fluid.val[fluid]
                 if fluid in o.fluid.is_var:
-                    self.jacobian[k, o.fluid.J_col()[fluid]] = -o.m.val_SI
+                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
 
             if self.is_variable(i.m):
-                self.jacobian[k, i.m.J_col()] = i.fluid.val[fluid]
+                self.jacobian[k, i.m.J_col] = i.fluid.val[fluid]
             if fluid in i.fluid.is_var:
-                self.jacobian[k, i.fluid.J_col()[fluid]] = i.m.val_SI
+                self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
 
             k += 1
 
@@ -322,14 +322,14 @@ class Separator(NodeBase):
         #     dT_dfluid_in[fluid] = dT_mix_ph_dfluid(i)
         for o in self.outl:
             if self.is_variable(i.p):
-                self.jacobian[k, i.p.J_col()] = dT_dp_in
+                self.jacobian[k, i.p.J_col] = dT_dp_in
             if self.is_variable(i.h):
-                self.jacobian[k, i.h.J_col()] = dT_dh_in
+                self.jacobian[k, i.h.J_col] = dT_dh_in
             # for fluid in i.fluid.is_var:
-            #     self.jacobian[k, i.fluid.J_col()[fluid]] = dT_dfluid_in[fluid]
+            #     self.jacobian[k, i.fluid.J_col[fluid]] = dT_dfluid_in[fluid]
             args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
-            self.jacobian[k, o.p.J_col()] = -dT_mix_dph(*args)
-            self.jacobian[k, o.h.J_col()] = -dT_mix_pdh(*args)
+            self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
+            self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
             # for fluid in o.fluid.is_var:
-            #     self.jacobian[k, o.fluid.J_col()[fluid]] = -dT_mix_ph_dfluid(o)
+            #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
             k += 1

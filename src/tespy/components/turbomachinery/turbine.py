@@ -241,14 +241,10 @@ class Turbine(Turbomachine):
         f = self.eta_s_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, "p", i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, "p", o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, "h", i)
-        if o.h.is_var and self.it == 0:
-            self.jacobian[k, o.h.J_col()] = -1
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, -1, increment_filter)
 
     def calc_eta_s(self):
         inl = self.inl[0]
@@ -287,7 +283,7 @@ class Turbine(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         vol = i.calc_vol(T0=i.T.val_SI)
-        return (
+        residual = (
             - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
             * (i.p.design * i.vol.design / (i.p.val_SI * vol)) ** 0.5
             * abs(
@@ -295,6 +291,7 @@ class Turbine(Turbomachine):
                     / (1 - (self.pr.design) ** ((n + 1) / n))
             ) ** 0.5
         )
+        return residual
 
     def cone_func_doc(self, label):
         r"""
@@ -335,14 +332,10 @@ class Turbine(Turbomachine):
         f = self.cone_func
         i = self.inl[0]
         o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col()] = -1
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o)
+        self._partial_derivative(i.m, k, -1, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
 
     def eta_s_char_func(self):
         r"""
@@ -418,19 +411,14 @@ class Turbine(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        f = self.eta_s_char_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, "p", i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, "h", i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, "p", o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, "h", o)
+        f = self.eta_s_char_func
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
 
     def convergence_check(self):
         r"""

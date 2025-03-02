@@ -28,9 +28,8 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import ERR
-from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
@@ -436,8 +435,10 @@ class Component:
                 continue
 
             if value in self.constraints:
-                self.mandatory_equations.update({value: self.constraints[value]})
-                self.num_eq += self.parameters[value].num_eq
+                self.mandatory_equations.update(
+                    {value: self.constraints[value]}
+                )
+                self.num_eq += self.constraints[value].num_eq
 
             elif value in self.parameters:
                 self.user_imposed_equations.update({value: self.parameters[value]})
@@ -448,9 +449,9 @@ class Component:
 
         sum_eq = 0
         for constraint in self.mandatory_equations.values():
-            num_eq = constraint['num_eq']
-            if constraint['constant_deriv']:
-                constraint["deriv"](sum_eq)
+            num_eq = constraint.num_eq
+            if constraint.constant_deriv:
+                constraint.deriv(sum_eq)
             sum_eq += num_eq
 
     def get_parameters(self):
@@ -478,21 +479,18 @@ class Component:
     def outlets():
         return []
 
-    @staticmethod
-    def is_variable(var, increment_filter=None):
-        if var.is_var():
-            if increment_filter is None or not increment_filter[var.J_col()]:
-                return True
-        return False
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
 
-    def _partial_derivative(self, conn, dx, value, eq_num, increment_filter=None):
-        var = conn.get_attr(dx)
+    def _partial_derivative_fluid(self, var, eq_num, value, increment_filter=None):
         if self.is_variable(var, increment_filter):
             if callable(value):
-                result = self.numeric_deriv(value, dx, conn)
+                result = self.numeric_deriv(var, value)
             else:
                 result = value
-            self.jacobian[eq_num, var.J_col()] = result
+            self.jacobian[eq_num, var.J_col] = result
 
 
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
@@ -527,11 +525,7 @@ class Component:
             elif param == 'm_out':
                 return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
             elif param == 'v':
-                v = self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
-                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
-                    T0=self.inl[inconn].T.val_SI
-                )
+                v = self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
                 return v / self.inl[inconn].v.design
             elif param == 'pr':
                 return (
@@ -551,11 +545,7 @@ class Component:
             elif param == 'm_out':
                 return self.outl[outconn].m.val_SI
             elif param == 'v':
-                return self.inl[inconn].m.val_SI * v_mix_ph(
-                    self.inl[inconn].p.val_SI, self.inl[inconn].h.val_SI,
-                    self.inl[inconn].fluid_data, self.inl[inconn].mixing_rule,
-                    T0=self.inl[inconn].T.val_SI
-                )
+                return self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
             elif param == 'pr':
                 return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
@@ -632,12 +622,12 @@ class Component:
             Matrix for filtering non-changing variables.
         """
         sum_eq = 0
-        for constraint in self.mandatory_equations.values():
-            num_eq = constraint['num_eq']
+        for data in self.mandatory_equations.values():
+            num_eq = data.num_eq
             if num_eq > 0:
-                self.residual[sum_eq:sum_eq + num_eq] = constraint['func']()
-            if not constraint['constant_deriv']:
-                constraint['deriv'](increment_filter, sum_eq)
+                self.residual[sum_eq:sum_eq + num_eq] = data.func()
+            if not data.constant_deriv:
+                data.deriv(increment_filter, sum_eq)
             sum_eq += num_eq
 
         for data in self.user_imposed_equations.values():
@@ -924,14 +914,6 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def numeric_deriv(self, func, dx, conn=None, **kwargs):
-        r"""
-        Calculate partial derivative of the function func to dx.
-
-        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
-        """
-        return _numeric_deriv(self, func, dx, conn, **kwargs)
-
     def pr_func(self, pr='', inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
@@ -958,7 +940,7 @@ class Component:
                 0 = p_{in} \cdot pr - p_{out}
         """
         pr = self.get_attr(pr)
-        return self.inl[inconn].p.val_SI() * pr.val - self.outl[outconn].p.val_SI()
+        return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
 
     def pr_func_doc(self, label, pr='', inconn=0, outconn=0):
         r"""
@@ -1013,11 +995,11 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[outconn]
         if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col()] = pr.val
+            self.jacobian[k, i.p.J_col] = pr.val
         if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col()] = -1
+            self.jacobian[k, o.p.J_col] = -1
         if pr.is_var:
-            self.jacobian[k, self.pr.J_col()] = i.p.val_SI()
+            self.jacobian[k, self.pr.J_col] = i.p.val_SI
 
     def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
         pr = self.get_attr(pr)
@@ -1094,8 +1076,8 @@ class Component:
             return i.p.val_SI - o.p.val_SI
 
         else:
-            v_i = v_mix_ph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule, T0=i.T.val_SI)
-            v_o = v_mix_ph(o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+            v_i = i.calc_vol(T0=i.T.val_SI)
+            v_o = o.calc_vol(T0=o.T.val_SI)
             return (
                 data.val - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
@@ -1163,19 +1145,13 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[outconn]
         kwargs = dict(zeta=zeta, inconn=inconn, outconn=outconn)
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col()] = self.numeric_deriv(f, 'm', i, **kwargs)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col()] = self.numeric_deriv(f, 'p', i, **kwargs)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col()] = self.numeric_deriv(f, 'h', i, **kwargs)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col()] = self.numeric_deriv(f, 'p', o, **kwargs)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col()] = self.numeric_deriv(f, 'h', o, **kwargs)
+        self._partial_derivative(i.m, k, f, increment_filter, **kwargs)
+        self._partial_derivative(i.p, k, f, increment_filter, **kwargs)
+        self._partial_derivative(i.h, k, f, increment_filter, **kwargs)
+        self._partial_derivative(o.p, k, f, increment_filter, **kwargs)
+        self._partial_derivative(o.h, k, f, increment_filter, **kwargs)
         # custom variable zeta
-        if data.is_var:
-            self.jacobian[k, data.J_col()] = self.numeric_deriv(f, zeta, None, **kwargs)
+        self._partial_derivative(data, k, f, increment_filter, **kwargs)
 
     def dp_func(self, dp=None, inconn=None, outconn=None):
         """Calculate residual value of pressure difference function.
@@ -1231,9 +1207,9 @@ class Component:
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         if inlet_conn.p.is_var:
-            self.jacobian[k, inlet_conn.p.J_col()] = 1
+            self.jacobian[k, inlet_conn.p.J_col] = 1
         if outlet_conn.p.is_var:
-            self.jacobian[k, outlet_conn.p.J_col()] = -1
+            self.jacobian[k, outlet_conn.p.J_col] = -1
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
         r"""

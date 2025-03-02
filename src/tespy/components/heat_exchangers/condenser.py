@@ -252,11 +252,11 @@ class Condenser(HeatExchanger):
         })
         return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, row_idx):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        super().preprocess(num_nw_vars)
+        super()._preprocess(row_idx)
 
     def subcooling_func(self):
         r"""
@@ -308,10 +308,10 @@ class Condenser(HeatExchanger):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         o = self.outl[0]
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col()] = -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data)
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col()] = 1
+        self._partial_derivative(
+            o.p, k, -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data), increment_filter
+        )
+        self._partial_derivative(o.h, k, 1, increment_filter)
 
     def calculate_td_log(self):
 

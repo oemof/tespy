@@ -159,7 +159,7 @@ class Turbomachine(Component):
             self.jacobian[k, o.h.J_col] = i.m.val_SI
         # custom variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = -1
+            self.jacobian[k, self.p.J_col] = -1
 
     def bus_func(self, bus):
         r"""

@@ -18,6 +18,7 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.document_models import generate_latex_eq
@@ -202,6 +203,7 @@ class HeatExchanger(Component):
     ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
     >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
     ... offdesign=['m'])
+    >>> he_cw.set_attr(h0=1e2)
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
@@ -216,7 +218,6 @@ class HeatExchanger(Component):
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
     >>> nw.solve('offdesign', design_path='tmp')
-    >>> document_model(nw)
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)
@@ -251,19 +252,27 @@ class HeatExchanger(Component):
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr1'}),
+                structure_matrix=self.pr_structure_matrix,
+                func=self.pr_func, func_params={'pr': 'pr1'}
+            ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
+            ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.dp_deriv, func=self.dp_func,
-                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}),
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}
+            ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.dp_deriv, func=self.dp_func,
-                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}),
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}
+            ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -296,13 +305,18 @@ class HeatExchanger(Component):
         }
 
     def get_mandatory_constraints(self):
-        return {
-            'energy_balance_constraints': {
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1}
-        }
+                'constant_deriv': False,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': 1,
+                'structure_matrix': None
+            })
+        })
+        return constraints
 
     @staticmethod
     def inlets():
@@ -374,14 +388,12 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        for _c_num, i in enumerate(self.inl):
-            o = self.outl[_c_num]
-            if self.is_variable(i.m, increment_filter):
-                self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-            if self.is_variable(i.h, increment_filter):
-                self.jacobian[k, i.h.J_col] = -i.m.val_SI
-            if self.is_variable(o.h, increment_filter):
-                self.jacobian[k, o.h.J_col] = i.m.val_SI
+        for i, o in zip(self.inl, self.outl):
+            self._partial_derivative(
+                i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
+            )
+            self._partial_derivative(i.h, k, -i.m.val_SI, increment_filter)
+            self._partial_derivative(o.h, k, i.m.val_SI, increment_filter)
 
     def energy_balance_hot_func(self):
         r"""
@@ -433,12 +445,11 @@ class HeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.h):
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+        self._partial_derivative(
+            i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
+        )
+        self._partial_derivative(i.h, k, -i.m.val_SI, increment_filter)
+        self._partial_derivative(o.h, k, i.m.val_SI, increment_filter)
 
     def calculate_td_log(self):
         i1 = self.inl[0]
@@ -532,13 +543,12 @@ class HeatExchanger(Component):
         f = self.kA_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        self._partial_derivative(
+            i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
+        )
         for c in self.inl + self.outl:
-            if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def kA_char_func(self):
         r"""
@@ -624,13 +634,10 @@ class HeatExchanger(Component):
         """
         f = self.kA_char_func
         for i in self.inl:
-            if self.is_variable(i.m):
-                self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+            self._partial_derivative(i.m, k, f, increment_filter)
         for c in self.inl + self.outl:
-            if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def ttd_u_func(self):
         r"""
@@ -682,10 +689,8 @@ class HeatExchanger(Component):
         """
         f = self.ttd_u_func
         for c in [self.inl[0], self.outl[1]]:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def ttd_l_func(self):
         r"""
@@ -737,10 +742,8 @@ class HeatExchanger(Component):
         """
         f = self.ttd_l_func
         for c in [self.inl[1], self.outl[0]]:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def ttd_min_func(self):
         r"""
@@ -787,10 +790,8 @@ class HeatExchanger(Component):
         """
         f = self.ttd_min_func
         for c in self.inl + self.outl:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def calc_dh_max_cold(self):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
@@ -849,13 +850,12 @@ class HeatExchanger(Component):
         o2 = self.outl[1]
 
         for c in [i1, o2]:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
-        if self.is_variable(i2.h):
-            self.jacobian[k, i2.h.J_col] = 1 - self.eff_cold.val
+        self._partial_derivative(
+            i2.h, k, 1 - self.eff_cold.val, increment_filter
+        )
 
     def calc_dh_max_hot(self):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side

@@ -149,24 +149,33 @@ class Merge(NodeBase):
             num_m_eq = 1
         return {
             'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': num_m_eq},
+                'func': self.mass_flow_func,
+                'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,
+                'latex': self.mass_flow_func_doc,
+                'num_eq': num_m_eq
+            },
             'fluid_constraints': {
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
-                'num_eq': num_fluid_eq},
+                'func': self.fluid_func,
+                'deriv': self.fluid_deriv,
+                'constant_deriv': False,
+                'latex': self.fluid_func_doc,
+                'num_eq': num_fluid_eq
+            },
             'energy_balance_constraints': {
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
+                'constant_deriv': False,
+                'latex': self.energy_balance_func_doc,
+                'num_eq': 1
+            },
             'pressure_constraints': {
                 'func': self.pressure_equality_func,
                 'deriv': self.pressure_equality_deriv,
                 'constant_deriv': True,
                 'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1}
+                'num_eq': self.num_i + self.num_o - 1
+            }
         }
 
     def inlets(self):
@@ -179,10 +188,6 @@ class Merge(NodeBase):
     @staticmethod
     def outlets():
         return ['out1']
-
-    @staticmethod
-    def is_branch_source():
-        return True
 
     def fluid_func(self):
         r"""
@@ -318,24 +323,6 @@ class Merge(NodeBase):
             self.jacobian[k, o.m.J_col] = -o.h.val_SI
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = -o.m.val_SI
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
-
-    def propagate_to_target(self, branch):
-        return
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

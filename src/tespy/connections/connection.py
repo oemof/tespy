@@ -14,8 +14,8 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import DataContainer as dc
-from tespy.tools.data_containers import FluidComposition as dc_flu
+from tespy.tools.data_containers import FluidComposition as dc_skavar
+from tespy.tools.data_containers import FluidComposition as dc_vecvar
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
@@ -44,6 +44,8 @@ from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import convert_from_SI
+from tespy.tools.helpers import _partial_derivative
+from tespy.tools.helpers import _is_variable
 
 
 class Connection:
@@ -521,16 +523,11 @@ class Connection:
 
             if f"{key}_ref" in self.property_data:
                 self.get_attr(f"{key}_ref").set_attr(is_set=False)
-            if key in ["m", "p", "h"]:
-                self.get_attr(key).is_var = True
 
         elif is_numeric:
             # value specification
             if key in self.property_data:
                 self.get_attr(key).set_attr(is_set=True, val=value)
-                if key in ["m", "p", "h"]:
-                    self.get_attr(key).is_var = False
-            # starting value specification
             else:
                 self.get_attr(key.replace('0', '')).set_attr(val0=value)
 
@@ -608,76 +605,133 @@ class Connection:
 
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
 
-    def preprocess(self):
+    def _preprocess(self, row_idx):
+        self.num_eq = 0
+
+        self._structure_matrix = {}
+        self._rhs = {}
+        self._equation_lookup = {}
+
+        for parameter in self.parameters:
+            container = self.get_attr(parameter)
+            if container.is_set and container.func is not None:
+                num_eq = self.parameters[parameter].num_eq
+                # the row index matches the location in the network's rhs
+                # and matrix
+                for i in range(self.num_eq, self.num_eq + num_eq):
+                    self._equation_lookup[i + row_idx] = parameter
+                    self._rhs[i + row_idx] = 0
+                # the structure matrix function also computes the rhs
+                if container.structure_matrix is not None:
+                    container.structure_matrix(
+                        row_idx + self.num_eq, **container.func_params
+                    )
+
+                self.num_eq += num_eq
+
+    def _presolve(self):
+        specifications = []
+        for name, container in self.property_data.items():
+            if name in ["m", "p", "h", "T", "x", "Td_bp", "v"]:
+                if container.is_set:
+                    specifications += [name]
+
+        num_specs = len(specifications)
+
+        if num_specs > 3:
+            msg = (
+                "You have specified more than 3 parameters for the connection "
+                f"{self.label} with a known fluid compoistion: "
+                f"{', '.join(specifications)}. This overdetermines the state "
+                "of the fluid."
+            )
+            raise TESPyNetworkError(msg)
+        presolved_equations = []
+        if self.h.is_var and not self.p.is_var:
+            if self.T.is_set:
+                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
+                self.h._potential_var = False
+                if "T" in self._equation_lookup.values():
+                    presolved_equations += ["T"]
+                msg = "Presolved T by known pressure."
+                logger.info(msg)
+
+            elif self.Td_bp.is_set:
+                T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
+                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val_SI, self.fluid_data)
+                self.h._potential_var = False
+                if "Td_bp" in self._equation_lookup.values():
+                    presolved_equations += ["Td_bp"]
+                msg = "Presolved Td_bp by known pressure."
+                logger.info(msg)
+
+            elif self.x.is_set:
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h._potential_var = False
+                if "x" in self._equation_lookup.values():
+                    presolved_equations += ["x"]
+                msg = "Presolved x by known pressure."
+                logger.info(msg)
+
+        elif self.h.is_var and self.p.is_var:
+            if self.T.is_set and self.x.is_set:
+                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
+                self.p._potential_var = False
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h._potential_var = False
+                if "T" in self._equation_lookup.values():
+                    presolved_equations += ["T"]
+                if "x" in self._equation_lookup.values():
+                    presolved_equations += ["x"]
+                msg = "Presolved T and x."
+                logger.info(msg)
+
+            if self.T.is_set and self.Td_bp.is_set:
+                self.p.val_SI = p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data)
+                self.p._potential_var = False
+                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h._potential_var = False
+                if "T" in self._equation_lookup.values():
+                    presolved_equations += ["T"]
+                if "Td_bp" in self._equation_lookup.values():
+                    presolved_equations += ["Td_bp"]
+                msg = "Presolved T and Td_bp."
+                logger.info(msg)
+
+
+        presolved_equations = [
+            key for parameter in presolved_equations
+            for key, value in self._equation_lookup.items()
+            if value == parameter
+        ]
+        return presolved_equations
+
+    def _prepare_for_solver(self, system_dependencies):
         self.num_eq = 0
         self.it = 0
         self.equations = {}
 
-        for parameter in self.parameters:
-            container = self.get_attr(parameter)
-            if container.is_set and not container._solved:
-                self.equations[self.num_eq] = parameter
-                self.num_eq += self.parameters[parameter].num_eq
-            elif container._solved:
-                container._solved = False
+        for eq_num, parameter in self._equation_lookup.items():
+            if eq_num in system_dependencies:
+                continue
+
+            self.equations[self.num_eq] = parameter
+            self.num_eq += self.parameters[parameter].num_eq
 
         self.residual = np.zeros(self.num_eq)
         self.jacobian = {}
 
-    def simplify_specifications(self):
-        systemvar_specs = []
-        nonsystemvar_specs = []
-        for name, container in self.property_data.items():
-            if container.is_set:
-                if name in ["m", "p", "h"]:
-                    systemvar_specs += [name]
-                elif name in ["T", "x", "Td_bp", "v"]:
-                    nonsystemvar_specs += [name]
-
-        specs = set(systemvar_specs + nonsystemvar_specs)
-        num_specs = len(specs)
-
-        if num_specs > 3:
-            inputs = ", ".join(specs)
-            msg = (
-                "You have specified more than 3 parameters for the connection "
-                f"{self.label} with a known fluid compoistion: {inputs}. This "
-                "overdetermines the state of the fluid."
-            )
-            raise TESPyNetworkError(msg)
-
-        if not self.h.is_set and self.p.is_set:
-            if self.T.is_set:
-                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-                self.h._solved = True
-                self.T._solved = True
-            elif self.Td_bp.is_set:
-                T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val, self.fluid_data)
-                self.h._solved = True
-                self.Td_bp._solved = True
-            elif self.x.is_set:
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-                self.h._solved = True
-                self.x._solved = True
-
-        elif not self.h.is_set and not self.p.is_set:
-            if self.T.is_set and self.x.is_set:
-                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
-                self.T._solved = True
-                self.x._solved = True
-                self.p._solved = True
-                self.h._solved = True
+    def get_variables(self):
+        return {"m": self.m, "p": self.p, "h": self.h}
 
     def get_parameters(self):
         return {
-            "m": dc_prop(is_var=True),
-            "p": dc_prop(is_var=True),
-            "h": dc_prop(is_var=True),
+            "m": dc_prop(),
+            "p": dc_prop(),
+            "h": dc_prop(),
             "vol": dc_prop(),
             "s": dc_prop(),
-            "fluid": dc_flu(),
+            "fluid": dc_vecvar(),
             "fluid_balance": dc_simple(
                 func=self.fluid_balance_func, deriv=self.fluid_balance_deriv,
                 val=False, num_eq=1
@@ -690,15 +744,18 @@ class Connection:
             ),
             "m_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "m"}
+                num_eq=1, func_params={"variable": "m"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "p_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "p"}
+                num_eq=1, func_params={"variable": "p"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "h_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
-                num_eq=1, func_params={"variable": "h"}
+                num_eq=1, func_params={"variable": "h"},
+                structure_matrix=self.primary_ref_structure_matrix
             ),
             "T_ref": dc_ref(
                 func=self.T_ref_func, deriv=self.T_ref_deriv, num_eq=1
@@ -717,11 +774,11 @@ class Connection:
             } for fluid in self.fluid.val
         }
 
-    def primary_ref_func(self, k, **kwargs):
+    def primary_ref_func(self, **kwargs):
         variable = kwargs["variable"]
         self.get_attr(variable)
         ref = self.get_attr(f"{variable}_ref").ref
-        self.residual[k] = (
+        return (
             self.get_attr(variable).val_SI
             - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
         )
@@ -735,20 +792,32 @@ class Connection:
         if ref.obj.get_attr(variable).is_var:
             self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
+    def primary_ref_structure_matrix(self, k, **kwargs):
+        variable = kwargs["variable"]
+        ref = self.get_attr(f"{variable}_ref").ref
+        self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
+        self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
+        self._rhs[k] = ref.delta_SI
+
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
     def calc_T(self, T0=None):
         if T0 is None:
             T0 = self.T.val_SI
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
-    def T_func(self, k, **kwargs):
-        self.residual[k] = self.calc_T() - self.T.val_SI
+    def T_func(self, **kwargs):
+        return self.calc_T() - self.T.val_SI
 
     def T_deriv(self, k, **kwargs):
-        if self.p.is_var:
+        if _is_variable(self.p):
             self.jacobian[k, self.p.J_col] = (
                 dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
-        if self.h.is_var:
+        if _is_variable(self.h):
             self.jacobian[k, self.h.J_col] = (
                 dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
@@ -757,21 +826,19 @@ class Connection:
                 self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
             )
 
-    def T_ref_func(self, k, **kwargs):
+    def T_ref_func(self, **kwargs):
         ref = self.T_ref.ref
-        self.residual[k] = (
-            self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
-        )
+        return self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
 
     def T_ref_deriv(self, k, **kwargs):
         # first part of sum is identical to direct temperature specification
         self.T_deriv(k, **kwargs)
         ref = self.T_ref.ref
-        if ref.obj.p.is_var:
+        if _is_variable(ref.obj.p):
             self.jacobian[k, ref.obj.p.J_col] = -(
                 dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
-        if ref.obj.h.is_var:
+        if _is_variable(ref.obj.h):
             self.jacobian[k, ref.obj.h.J_col] = -(
                 dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
@@ -787,29 +854,39 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-
     def calc_vol(self, T0=None):
         try:
             return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
         except NotImplementedError:
             return np.nan
 
-    def v_func(self, k, **kwargs):
-        self.residual[k] = self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
+    def v_func(self, **kwargs):
+        return self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
 
     def v_deriv(self, k, **kwargs):
-        if self.m.is_var:
-            self.jacobian[k, self.m.J_col] = self.calc_vol(T0=self.T.val_SI)
-        if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
-        if self.h.is_var:
-            self.jacobian[k, self.h.J_col] = dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data) * self.m.val_SI
+        if _is_variable(self.m):
+            self._partial_derivative(self.m, k, self.calc_vol(T0=self.T.val_SI))
+        if _is_variable(self.p):
+            self._partial_derivative(
+                self.p, k,
+                dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                * self.m.val_SI
+            )
+        if _is_variable(self.h):
+            self._partial_derivative(
+                self.h, k,
+                dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                * self.m.val_SI
+            )
 
-    def v_ref_func(self, k, **kwargs):
+    def v_ref_func(self, **kwargs):
         ref = self.v_ref.ref
-        self.residual[k] = (
+        return (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
-            - (ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI * ref.factor + ref.delta_SI)
+            - (
+                ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.obj.m.val_SI
+                * ref.factor + ref.delta_SI
+            )
         )
 
     def v_ref_deriv(self, k, **kwargs):
@@ -838,9 +915,12 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-    def x_func(self, k, **kwargs):
+    def x_func(self, **kwargs):
         # saturated steam fraction
-        self.residual[k] = self.h.val_SI - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        return (
+            self.h.val_SI
+            - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+        )
 
     def x_deriv(self, k, **kwargs):
         if self.p.is_var:
@@ -860,25 +940,19 @@ class Connection:
         except NotImplementedError:
             return np.nan
 
-    def Td_bp_func(self, k, **kwargs):
+    def Td_bp_func(self, **kwargs):
         # temperature difference to boiling point
-        self.residual[k] = self.calc_Td_bp() - self.Td_bp.val_SI
+        return self.calc_Td_bp() - self.Td_bp.val_SI
 
     def Td_bp_deriv(self, k, **kwargs):
-        if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = (
-                dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-                - dT_sat_dp(self.p.val_SI, self.fluid_data)
-            )
-        if self.h.is_var:
-            self.jacobian[k, self.h.J_col] = dT_mix_pdh(
-                self.p.val_SI, self.h.val_SI, self.fluid_data
-            )
+        f = self.Td_bp_func
+        self._partial_derivative(self.p, k, f)
+        self._partial_derivative(self.h, k, f)
 
-    def fluid_balance_func(self, k, **kwargs):
+    def fluid_balance_func(self, **kwargs):
         residual = 1 - sum(self.fluid.val[f] for f in self.fluid.is_set)
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
-        self.residual[k] = residual
+        return residual
 
     def fluid_balance_deriv(self, k, **kwargs):
         for f in self.fluid.is_var:
@@ -897,24 +971,31 @@ class Connection:
         self._increment_filter = increment_filter
         for k, parameter in self.equations.items():
             data = self.get_attr(parameter)
-            data.func(k, **data.func_params)
+            self.residual[k] = data.func(**data.func_params)
             data.deriv(k, **data.func_params)
 
     def calc_results(self):
+        for variable in self.get_variables().values():
+            variable.val_SI = variable.val_SI
+            variable._reference_container = None
+
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
         if number_fluids > 1:
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-            if abs(h_from_T - self.h.val_SI) > ERR ** .5 and abs((h_from_T - self.h.val_SI) / self.h.val_SI) > ERR ** .5:
+            if (
+                abs(h_from_T - self.h.val_SI) > ERR ** .5 and
+                abs((h_from_T - self.h.val_SI) / self.h.val_SI) > ERR ** .5
+            ):
                 self.T.val_SI = np.nan
                 self.vol.val_SI = np.nan
                 self.v.val_SI = np.nan
                 self.s.val_SI = np.nan
                 msg = (
-                    "Could not find a feasible value for mixture temperature at "
-                    f"connection {self.label}. The values for temperature, "
-                    "specific volume, volumetric flow and entropy are set to nan."
+                    "Could not find a feasible value for mixture temperature "
+                    f"at connection {self.label}. The values of temperature, "
+                    "specific volume and entropy are set to nan."
                 )
                 logger.error(msg)
                 _converged = False
@@ -945,7 +1026,7 @@ class Connection:
                 if not self.Td_bp.is_set:
                     self.Td_bp.val_SI = self.calc_Td_bp()
             except ValueError:
-                self.x.val_SI = np.nan
+                self.Td_bp.val_SI = np.nan
 
         if _converged:
             self.vol.val_SI = self.calc_vol()
@@ -997,6 +1078,7 @@ class Connection:
         else:
 
             T = self.fluid.wrapper[fluid]._T_max
+            # T_max depends on pressure for incompressibles
             while True:
                 try:
                     hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)

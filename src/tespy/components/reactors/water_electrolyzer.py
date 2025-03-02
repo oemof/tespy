@@ -403,7 +403,7 @@ class WaterElectrolyzer(Component):
             self.jacobian[k, self.outl[2].m.J_col] = -self.e0
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.eta.val
+            self.jacobian[k, self.p.J_col] = self.eta.val
 
     def heat_func(self):
         r"""
@@ -509,10 +509,10 @@ class WaterElectrolyzer(Component):
             self.jacobian[k, self.outl[2].m.J_col] = -self.e.val
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col] = 1
         # derivatives for variable e
         if self.e.is_var:
-            self.jacobian[k, self.e.J_col] = -self.outl[2].m.val_SI
+            self.jacobian[k, self.eJ_col()] = -self.outl[2].m.val_SI
 
     def energy_balance_func(self):
         r"""
@@ -625,7 +625,7 @@ class WaterElectrolyzer(Component):
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col] = 1
 
     def eta_char_func(self):
         r"""
@@ -698,7 +698,7 @@ class WaterElectrolyzer(Component):
             self.jacobian[k, o.m.J_col] = self.numeric_deriv(f, 'm', o)
 
         if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
+            self.jacobian[k, self.p.J_col] = 1
 
     def mass_flow_func(self):
         r"""
@@ -997,9 +997,9 @@ class WaterElectrolyzer(Component):
 
             # variable power
             if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
+                if self.p.J_col not in bus.jacobian:
+                    bus.jacobian[self.p.J_col] = 0
+                bus.jacobian[self.p.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
 
         ######################################################################
         # derivatives for heat on bus
@@ -1033,27 +1033,6 @@ class WaterElectrolyzer(Component):
             logger.error(msg)
             raise ValueError(msg)
 
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        branches = {}
-        for outconn in self.outl[1:]:
-            if outconn == self.outl[1] and "O2" not in outconn.fluid.val:
-                outconn.fluid.val["O2"] = 1
-            if outconn == self.outl[2] and "H2" not in outconn.fluid.val:
-                outconn.fluid.val["H2"] = 1
-            branch = {
-                "connections": [outconn],
-                "components": [self, outconn.target],
-                "subbranches": {}
-            }
-            outconn.target.propagate_to_target(branch)
-            branches.update({outconn.label: branch})
-
-        return branches
-
     def start_fluid_wrapper_branch(self):
         branches = {}
         for outconn in self.outl[1:]:
@@ -1065,21 +1044,6 @@ class WaterElectrolyzer(Component):
             branches.update({outconn.label: branch})
 
         return branches
-
-    def propagate_to_target(self, branch):
-        inconn = branch["connections"][-1]
-        if inconn == self.inl[0]:
-            conn_idx = self.inl.index(inconn)
-            outconn = self.outl[conn_idx]
-
-            branch["connections"] += [outconn]
-            branch["components"] += [outconn.target]
-
-            outconn.target.propagate_to_target(branch)
-        else:
-            if "H2O" not in inconn.fluid.val:
-                inconn.fluid.val["H2O"] = 1
-            return
 
     def propagate_wrapper_to_target(self, branch):
         inconn = branch["connections"][-1]

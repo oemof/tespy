@@ -173,8 +173,10 @@ class Compressor(Turbomachine):
             'pr': dc_cp(
                 min_val=1, num_eq=1,
                 deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
+                func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr'}
+            ),
             'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
@@ -214,7 +216,7 @@ class Compressor(Turbomachine):
                     i.fluid_data,
                     i.mixing_rule,
                     T0=None
-                ) - self.inl[0].h.val_SI
+                ) - i.h.val_SI
             )
         )
 
@@ -252,14 +254,10 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
 
     def eta_s_char_func(self):
         r"""
@@ -446,7 +444,7 @@ class Compressor(Turbomachine):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
 
         if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
+            self.jacobian[k, self.igvaJ_col()] = self.numeric_deriv(
                 f, 'igva', None
             )
 
@@ -560,7 +558,7 @@ class Compressor(Turbomachine):
             self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
 
         if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
+            self.jacobian[k, self.igvaJ_col()] = self.numeric_deriv(
                 f, 'igva', None
             )
 

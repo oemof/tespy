@@ -34,9 +34,9 @@ class OptimizationProblem:
     constraints : dict
         Dictionary containing the constraints for the model.
 
-    objective : str
-        Name of the objective. :code:`objective` is passed to the
-        :code:`get_objective` method of your tespy model instance.
+    objective : list
+        Name of the objective(s). :code:`objective` is passed to the
+        :code:`get_objectives` method of your tespy model instance.
 
     Note
     ----
@@ -53,7 +53,7 @@ class OptimizationProblem:
     documentation.
     """
 
-    def __init__(self, model, variables={}, constraints={}, objective="objective"):
+    def __init__(self, model, variables={}, constraints={}, objective=[]):
         if pg is None:
             msg = (
                 "For this function of TESPy pygmo has to be installed. Either"
@@ -71,11 +71,14 @@ class OptimizationProblem:
         # merge the passed values into the default dictionary structure
         self.variables = merge_dicts(variables, default_variables)
         self.constraints = merge_dicts(constraints, default_constraints)
-        self.objective = objective
         self.variable_list = []
         self.constraint_list = []
 
-        self.objective_list = [objective]
+        if not isinstance(objective, list):
+            msg = "The objective(s) must be passed as a list."
+            raise TypeError(msg)
+
+        self.objective_list = objective
         self.nobj = len(self.objective_list)
 
         self.bounds = [[], []]
@@ -183,7 +186,7 @@ class OptimizationProblem:
                     i += 1
 
         self.model.solve_model(**self.input_dict)
-        f1 = [self.model.get_objective(self.objective)]
+        f1 = self.model.get_objectives(self.objective_list)
 
         cu = self.collect_constraints("upper")
         cl = self.collect_constraints("lower")
@@ -203,35 +206,25 @@ class OptimizationProblem:
         """Return bounds of decision variables."""
         return self.bounds
 
-    def _process_generation_data(self, gen, pop):
-        """Process the data of the individuals within one generation.
+    def _process_generation_data(self, evo, pop):
+        """Process the data of the individuals within one evolution.
 
         Parameters
         ----------
-        gen : int
-            Generation number.
+        evo : int
+            Evolution number.
 
         pop : pygmo.population
             PyGMO population object.
         """
-        individual = 0
-        for x in pop.get_x():
-            self.individuals.loc[(gen, individual), self.variable_list] = x
-            individual += 1
-
-        individual = 0
-        for objective in pop.get_f():
+        for individual, (x, obj) in enumerate(zip(pop.get_x(), pop.get_f())):
+            self.individuals.loc[(evo, individual), self.variable_list] = x
             self.individuals.loc[
-                (gen, individual),
+                (evo, individual),
                 self.objective_list + self.constraint_list
-            ] = objective
-            individual += 1
+            ] = obj
 
-        self.individuals['valid'] = (
-            self.individuals[self.constraint_list] < 0
-        ).all(axis='columns')
-
-    def run(self, algo, pop, num_ind, num_gen):
+    def run(self, algo, pop, num_ind, num_evo):
         """Run the optimization algorithm.
 
         Parameters
@@ -245,60 +238,28 @@ class OptimizationProblem:
         num_ind : int
             Number of individuals.
 
-        num_gen : int
-            Number of generations.
+        num_evo : int
+            Number of evolutions.
         """
 
-        self.individuals = pd.DataFrame(
-            index=range(num_gen * num_ind)
-        )
+        self.individuals = pd.DataFrame(index=range(num_evo * num_ind))
 
-        self.individuals["gen"] = [
-            gen for gen in range(num_gen) for ind in range(num_ind)
+        self.individuals["evo"] = [
+            evo for evo in range(num_evo) for _ in range(num_ind)
         ]
         self.individuals["ind"] = [
-            ind for gen in range(num_gen) for ind in range(num_ind)
+            ind for _ in range(num_evo) for ind in range(num_ind)
         ]
 
-        self.individuals.set_index(["gen", "ind"], inplace=True)
+        self.individuals.set_index(["evo", "ind"], inplace=True)
 
-        # replace prints with logging
-        gen = 0
-        for gen in range(num_gen - 1):
-            self._process_generation_data(gen, pop)
-
-            print('Evolution: {}'.format(gen))
-            for i in range(len(self.objective_list)):
-                print(
-                    self.objective_list[i] + ': {}'.format(
-                        round(pop.champion_f[i], 4)
-                    )
-                )
-            for i in range(len(self.variable_list)):
-                print(
-                    self.variable_list[i] + ': {}'.format(
-                        round(pop.champion_x[i], 4)
-                    )
-                )
+        evo = 0
+        for evo in range(num_evo - 1):
+            self._process_generation_data(evo, pop)
             pop = algo.evolve(pop)
 
-        if num_gen > 1:
-            gen += 1
+        if num_evo > 1:
+            evo += 1
 
-        self._process_generation_data(gen, pop)
-
-        print('Final evolution: {}'.format(gen))
-        for i in range(len(self.objective_list)):
-            print(
-                self.objective_list[i] + ': {}'.format(
-                    round(pop.champion_f[i], 4)
-                )
-            )
-        for i in range(len(self.variable_list)):
-            print(
-                self.variable_list[i] + ': {}'.format(
-                    round(pop.champion_x[i], 4)
-                )
-            )
-
+        self._process_generation_data(evo, pop)
         return pop

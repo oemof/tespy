@@ -436,13 +436,15 @@ class Component:
 
             if value in self.constraints:
                 self.mandatory_equations.update(
-                    {value: self.constraints[value]}
+                    {(value, key): self.constraints[value]}
                 )
                 self.num_eq += self.constraints[value].num_eq
 
             elif value in self.parameters:
-                self.user_imposed_equations.update({value: self.parameters[value]})
-                self.num_eq += self.parameters[value].num_eq
+                self.user_imposed_equations.update(
+                    {(value, key): self.parameters[value]}
+                )
+                self.num_eq += 1
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)

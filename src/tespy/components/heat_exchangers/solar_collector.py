@@ -299,7 +299,7 @@ class SolarCollector(SimpleHeatExchanger):
             if parameter == self.Tamb:
                 continue
             if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
+                self.jacobian[k, parameterJ_col()] = (
                     self.numeric_deriv(f, variable_name, None)
                 )
 

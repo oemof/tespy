@@ -196,7 +196,7 @@ class ComponentCharacteristics(DataContainer):
             'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq': 0
+            'num_eq': 0, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -241,7 +241,7 @@ class ComponentCharacteristicMaps(DataContainer):
         return {
             'char_func': None, 'is_set': False, 'param': None, 'latex': None,
             'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq': 0
+            'num_eq': 0, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -253,6 +253,43 @@ class ComponentCharacteristicMaps(DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
+
+class ComponentMandatoryConstraints(DataContainer):
+    """
+    Data container for component mandatory constraints.
+    """
+
+    @staticmethod
+    def attr():
+        """
+        Return the available attributes for a ComponentProperties type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            'num_eq': 0,
+            'num_eq_vector': None,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
+            'latex': None,
+            'constant_deriv': False,
+            'structure_matrix': None
+        }
+
+    def _serialize(self):
+        keys = self._serializable_keys()
+        return {k: self.get_attr(k) for k in keys}
+
+    @staticmethod
+    def _serializable_keys():
+        return [
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+        ]
 
 class ComponentProperties(DataContainer):
     """
@@ -302,7 +339,7 @@ class ComponentProperties(DataContainer):
             'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
             'design': np.nan, 'is_result': False,
             'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
-            'latex': None
+            'latex': None, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -314,61 +351,6 @@ class ComponentProperties(DataContainer):
         return [
             "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
         ]
-
-
-class FluidComposition(DataContainer):
-    """
-    Data container for fluid composition.
-
-    Parameters
-    ----------
-    val : dict
-        Mass fractions of the fluids in a mixture, default: val={}.
-        Pattern for dictionary: keys are fluid name, values are mass fractions.
-
-    val0 : dict
-        Starting values for mass fractions of the fluids in a mixture,
-        default: val0={}. Pattern for dictionary: keys are fluid name, values
-        are mass fractions.
-
-    is_set : dict
-        Which fluid mass fractions have been set, default is_set={}.
-        Pattern for dictionary: keys are fluid name, values are True or False.
-
-    balance : boolean
-        Should the fluid balance equation be applied for this mixture?
-        default: False.
-    """
-
-    @staticmethod
-    def attr():
-        """
-        Return the available attributes for a FluidComposition type object.
-
-        Returns
-        -------
-        out : dict
-            Dictionary of available attributes (dictionary keys) with default
-            values.
-        """
-        return {
-            'val': dict(),
-            'val0': dict(),
-            'is_set': set(),
-            'design': dict(),
-            'wrapper': dict(),
-            'back_end': dict(),
-            'engine': dict(),
-            "is_var": set(),
-            "J_col": dict(),
-        }
-
-    def _serialize(self):
-        export = {"val": self.val}
-        export["is_set"] = list(self.is_set)
-        export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
-        export["back_end"] = {k: b for k, b in self.back_end.items()}
-        return export
 
 
 class GroupedComponentProperties(DataContainer):
@@ -405,7 +387,7 @@ class GroupedComponentProperties(DataContainer):
         return {
             'is_set': False, 'elements': [],
             'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
-            'func_params': {}
+            'func_params': {}, 'structure_matrix': None
         }
 
 
@@ -438,7 +420,8 @@ class GroupedComponentCharacteristics(DataContainer):
         """
         return {
             'is_set': False, 'elements': [], 'func': None, 'deriv': None,
-            'num_eq': 0, 'latex': None, 'func_params': {}
+            'num_eq': 0, 'latex': None, 'func_params': {},
+            'structure_matrix': None
         }
 
 
@@ -482,26 +465,295 @@ class FluidProperties(DataContainer):
             values.
         """
         return {
-            'design': np.nan,
-            'val': np.nan,
-            'val0': np.nan,
-            'val_SI': 0,
-            'unit': None,
-            'is_set': False,
-            "is_var": False,
+            "design": np.nan,
+            "val": np.nan,
+            "val0": np.nan,
+            "_val_SI": 0,
+            "_unit": None,
+            "is_set": False,
+            "_potential_var": False,
             "func": None,
             "deriv": None,
+            "structure_matrix": None,
             "constant_deriv": False,
-            "latex": None,
             "num_eq": 0,
-            "J_col": None,
             "func_params": {},
-            "_solved": False
+            "latex": None,
+            "_reference_container": None,
+            "_offset": None,
+            "_factor": None
         }
 
     def _serialize(self):
-        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        keys = ["_val", "_val0", "_val_SI", "_is_set", "_unit"]
         return {k: self.get_attr(k) for k in keys}
+
+    def get_reference_val_SI(self):
+        return (self._val_SI - self._offset) / self._factor
+
+    def get_J_col(self):
+        if self._reference_container is not None:
+            return self._reference_container.J_col
+        else:
+            raise ValueError()
+
+    def get_val_SI(self):
+        if self._reference_container is not None:
+            return self._reference_container.val_SI * self._factor + self._offset
+        else:
+            return float(self._val_SI)
+
+    def set_val_SI(self, value):
+        self._val_SI = value
+
+    def get_is_var(self):
+        if self._reference_container is not None:
+            return self._reference_container.is_var
+        else:
+            raise ValueError()
+
+    def set_is_var(self, value):
+        if self._reference_container is not None:
+            self._reference_container.is_var = value
+        else:
+            raise ValueError()
+
+    val_SI = property(get_val_SI, set_val_SI)
+    J_col = property(get_J_col)
+    is_var = property(get_is_var, set_is_var)
+
+
+class ScalarVariable(DataContainer):
+
+    @staticmethod
+    def attr():
+        r"""
+        Return the available attributes for a FluidProperties type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            "_val_SI": 0,
+            "_is_var": True,
+            "_J_col": None,
+            "_d": 1e-4
+        }
+
+    def get_val_SI(self):
+        return float(self._val_SI)
+
+    def set_val_SI(self, value):
+        self._val_SI = value
+
+    def get_is_var(self):
+        return self._is_var
+
+    def set_is_var(self, value):
+        if type(value) != bool:
+            raise TypeError()
+
+        self._is_var = value
+
+    def get_J_col(self):
+        if self.is_var:
+            return self._J_col
+        else:
+            raise ValueError()
+
+    def set_J_col(self, value):
+        if self.is_var:
+            self._J_col = value
+        else:
+            raise ValueError()
+
+    def get_d(self):
+        return self._d
+
+    J_col = property(get_J_col, set_J_col)
+    is_var = property(get_is_var, set_is_var)
+    val_SI = property(get_val_SI, set_val_SI)
+    d = property(get_d)
+
+
+class FluidComposition(DataContainer):
+    """
+    Data container for fluid composition.
+
+    Parameters
+    ----------
+    val : dict
+        Mass fractions of the fluids in a mixture, default: val={}.
+        Pattern for dictionary: keys are fluid name, values are mass fractions.
+
+    val0 : dict
+        Starting values for mass fractions of the fluids in a mixture,
+        default: val0={}. Pattern for dictionary: keys are fluid name, values
+        are mass fractions.
+
+    is_set : dict
+        Which fluid mass fractions have been set, default is_set={}.
+        Pattern for dictionary: keys are fluid name, values are True or False.
+
+    balance : boolean
+        Should the fluid balance equation be applied for this mixture?
+        default: False.
+    """
+
+    @staticmethod
+    def attr():
+        """
+        Return the available attributes for a FluidComposition type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            '_val': dict(),
+            'val0': dict(),
+            '_is_set': set(),
+            'design': dict(),
+            'wrapper': dict(),
+            'back_end': dict(),
+            'engine': dict(),
+            '_is_var': set(),
+            '_J_col': dict(),
+            '_reference_container': None,
+            '_offset': None,
+            '_factor': None
+        }
+
+    def _serialize(self):
+        export = {"val": self.val}
+        export["is_set"] = list(self.is_set)
+        export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
+        export["back_end"] = {k: b for k, b in self.back_end.items()}
+        return export
+
+    def get_is_var(self):
+        reference = self._reference_container
+        if reference:
+            return reference.is_var
+        else:
+            return self._is_var
+
+    def get_J_col(self):
+        reference = self._reference_container
+        if reference:
+            return reference.J_col
+        else:
+            raise ValueError("")
+
+    def get_is_set(self):
+        return self._is_set
+
+    def get_val(self):
+        reference = self._reference_container
+        if reference:
+            return {
+                f: val * self._factor + self._offset
+                for f, val in reference.val.items()
+            }
+        else:
+            return self._val
+
+    def get_reference_val(self):
+        reference = self._reference_variable
+        if reference:
+            return {
+                f: val * self._factor + self._offset
+                for f, val in reference.val.items()
+            }
+        else:
+            return reference.val
+
+    val = property(get_val)
+    is_set = property(get_is_set)
+    is_var = property(get_is_var)
+    J_col = property(get_J_col)
+
+class VectorVariable(DataContainer):
+    """
+    Data container for fluid composition.
+
+    Parameters
+    ----------
+    val : dict
+        Mass fractions of the fluids in a mixture, default: val={}.
+        Pattern for dictionary: keys are fluid name, values are mass fractions.
+
+    val0 : dict
+        Starting values for mass fractions of the fluids in a mixture,
+        default: val0={}. Pattern for dictionary: keys are fluid name, values
+        are mass fractions.
+
+    is_set : dict
+        Which fluid mass fractions have been set, default is_set={}.
+        Pattern for dictionary: keys are fluid name, values are True or False.
+
+    balance : boolean
+        Should the fluid balance equation be applied for this mixture?
+        default: False.
+    """
+
+    @staticmethod
+    def attr():
+        """
+        Return the available attributes for a FluidComposition type object.
+
+        Returns
+        -------
+        out : dict
+            Dictionary of available attributes (dictionary keys) with default
+            values.
+        """
+        return {
+            "_val": dict(),
+            "_is_var": set(),
+            "_J_col": dict(),
+            "_d": 1e-4
+        }
+
+    def get_val_SI(self):
+        return self._val
+
+    def set_val_SI(self, value):
+        self._val = value
+
+    def get_is_var(self):
+        return self._is_var
+
+    def set_is_var(self, value):
+        if type(value) != set:
+            raise TypeError()
+
+        self._is_var = value
+
+    def get_J_col(self):
+        if self.is_var:
+            return self._J_col
+        else:
+            raise ValueError()
+
+    def set_J_col(self, value):
+        if self.is_var:
+            self._J_col = value
+        else:
+            raise ValueError()
+
+    def get_d(self):
+        return self._d
+
+    J_col = property(get_J_col, set_J_col)
+    is_var = property(get_is_var, set_is_var)
+    val = property(get_val_SI, set_val_SI)
+    d = property(get_d)
 
 
 class ReferencedFluidProperties(DataContainer):
@@ -523,6 +775,7 @@ class ReferencedFluidProperties(DataContainer):
             "unit": None,
             "func": None,
             "deriv": None,
+            "structure_matrix": None,
             "num_eq": 0,
             "func_params": {},
             "_solved": False
@@ -572,6 +825,7 @@ class SimpleDataContainer(DataContainer):
             "deriv": None,
             "latex": None,
             "num_eq": 0,
+            "structure_matrix": None,
             "_solved": False
         }
 

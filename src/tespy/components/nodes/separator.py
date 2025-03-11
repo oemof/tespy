@@ -182,26 +182,6 @@ class Separator(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        branches = {}
-        for outconn in self.outl:
-            branch = {
-                "connections": [outconn],
-                "components": [self, outconn.target],
-                "subbranches": {}
-            }
-            outconn.target.propagate_to_target(branch)
-
-            branches[outconn.label] = branch
-        return branches
-
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         for outconn in self.outl:

@@ -16,6 +16,7 @@ from tespy.components.nodes.base import NodeBase
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 
 
 @component_registry
@@ -144,27 +145,35 @@ class DropletSeparator(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'energy_balance_constraints': {
+            'mass_flow_constraints': dc_cmc(**{
+                'func': self.mass_flow_func,
+                'deriv': self.mass_flow_deriv,
+                'constant_deriv': True,
+                'num_eq': 1
+            }),
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1},
-            'outlet_constraints': {
+                'constant_deriv': False,
+                'num_eq': 1
+            }),
+            'pressure_constraints': dc_cmc(**{
+                # 'func': self.pressure_equality_func,
+                # 'deriv': self.pressure_equality_deriv,
+                # 'constant_deriv': True,
+                'structure_matrix': self.pressure_structure_matrix,
+                'num_eq': self.num_i + self.num_o - 1
+            }),
+            'outlet_constraints': dc_cmc(**{
                 'func': self.outlet_states_func,
                 'deriv': self.outlet_states_deriv,
                 'constant_deriv': False,
-                'latex': self.outlet_states_func_doc,
-                'num_eq': 2}
+                'num_eq': 2
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.fluid_structure_matrix,
+                'num_eq': self.num_o
+            })
         }
 
     @staticmethod
@@ -315,6 +324,19 @@ class DropletSeparator(NodeBase):
             )
         if o1.h.is_var and self.it == 0:
             self.jacobian[k + 1, o1.h.J_col] = -1
+
+    def fluid_structure_matrix(self, k):
+        r"""
+        Calculate partial derivatives for all pressure equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
+        """
+        for eq, conn in enumerate(self.outl):
+            self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
+            self._structure_matrix[k + eq, conn.fluid.sm_col] = -1
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

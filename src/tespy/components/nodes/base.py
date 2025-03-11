@@ -142,6 +142,24 @@ class NodeBase(Component):
             if o.p.is_var:
                 self.jacobian[k + eq, o.p.J_col] = -1
 
+    def pressure_structure_matrix(self, k):
+        r"""
+        Calculate partial derivatives for all pressure equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
+        """
+        if self.num_i > 1:
+            conns = self.inl[1:] + self.outl
+        else:
+            conns = self.outl
+
+        for eq, conn in enumerate(conns):
+            self._structure_matrix[k + eq, self.inl[0].p.sm_col] = 1
+            self._structure_matrix[k + eq, conn.p.sm_col] = -1
+
     @staticmethod
     def initialise_source(c, key):
         r"""

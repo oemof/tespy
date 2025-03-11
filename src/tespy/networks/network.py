@@ -730,9 +730,6 @@ class Network:
             self._variable_lookup[container.sm_col] = {
                 "object": conn, "property": "fluid"
             }
-            container._reference_container = dc_flu()
-            container._factor = 1
-            container._offset = 0
             num_vars += 1
 
         # not sure if useful. In principle component variables should also be
@@ -789,10 +786,22 @@ class Network:
                 "fluid": 1e-5
             }[reference_variable["property"]]
 
-            reference_container = dc_scavar(
-                _is_var=True,
-                _d=d
-            )
+            if reference_variable["property"] != "fluid":
+                DataContainer = dc_scavar
+                reference_container = DataContainer(
+                    _is_var=True,
+                    _d=d
+                )
+            else:
+                DataContainer = dc_vecvar
+                reference_container = DataContainer(
+                    _d=d
+                )
+
+            self.linear_dependent_variables[
+                linear_dependents['reference']
+            ] = reference_container
+
             for variable in linear_dependents["variables"]:
                 variable_data = self._variable_lookup[variable]
                 if variable_data["property"] != reference_variable["property"]:
@@ -809,12 +818,15 @@ class Network:
                 container = variable_data["object"].get_attr(variable_data["property"])
                 container._reference_container = reference_container
                 container._factor = linear_dependents["factors"][variable]
-                container._offset = linear_dependents["factors"][variable]
+                container._offset = linear_dependents["offsets"][variable]
 
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
         edges_with_factors = []
         rhs_offsets = {}
         eq_idx = {}  # The equation indices keep track of which equations to eliminate
+
+        if len(sparse_matrix) == 0:
+            return []
 
         num_rows = 1 + max([k[0] for k in sparse_matrix.keys()])
         num_cols = 1 + max([k[1] for k in sparse_matrix.keys()])
@@ -1039,44 +1051,44 @@ class Network:
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
 
-    def _map_linear_dependent_variables(self):
+    # def _map_linear_dependent_variables(self):
 
-        for linear_dependents in self._variable_dependencies:
-            is_fluid_list = [
-                self._variable_lookup[var]["property"] == "fluid"
-                for var in linear_dependents["variables"]
-            ]
-            # this is suspicious, because it was found, that fluid variables
-            # are linear dependent to non-fluid variables
-            if not all(is_fluid_list) and any(is_fluid_list):
-                msg = "We found linear dependency between fluid and non-fluid variables."
-                raise hlp.TESPyNetworkError(msg)
+    #     for linear_dependents in self._variable_dependencies:
+    #         is_fluid_list = [
+    #             self._variable_lookup[var]["property"] == "fluid"
+    #             for var in linear_dependents["variables"]
+    #         ]
+    #         # this is suspicious, because it was found, that fluid variables
+    #         # are linear dependent to non-fluid variables
+    #         if not all(is_fluid_list) and any(is_fluid_list):
+    #             msg = "We found linear dependency between fluid and non-fluid variables."
+    #             raise hlp.TESPyNetworkError(msg)
 
-            # no matter what object we use, they will all be non fluid or fluid
-            reference = linear_dependents["reference"]
-            reference_property = self._variable_lookup[reference]["property"]
-            if reference_property == "fluid":
-                reference_container = dc_flu()
-            else:
-                reference_container = dc_prop()
-                if reference_property == "m":
-                    reference_container.d = 1e-4
-                elif reference_property == "p":
-                    reference_container.d = 1e-1
-                elif reference_property == "h":
-                    reference_container.d = 1e-1
+    #         # no matter what object we use, they will all be non fluid or fluid
+    #         reference = linear_dependents["reference"]
+    #         reference_property = self._variable_lookup[reference]["property"]
+    #         if reference_property == "fluid":
+    #             reference_container = dc_flu()
+    #         else:
+    #             reference_container = dc_scavar()
+    #             if reference_property == "m":
+    #                 reference_container.d = 1e-4
+    #             elif reference_property == "p":
+    #                 reference_container.d = 1e-1
+    #             elif reference_property == "h":
+    #                 reference_container.d = 1e-1
 
-            self.linear_dependent_variables[reference] = reference_container
+            # self.linear_dependent_variables[reference] = reference_container
 
-            for dependent in linear_dependents["variables"]:
-                dependent_object = (
-                    self._variable_lookup[dependent]["object"].get_attr(
-                        self._variable_lookup[dependent]["property"]
-                        )
-                    )
-                dependent_object._reference_variable = reference_container
-                dependent_object._factor = linear_dependents["factors"][dependent]
-                dependent_object._offset = linear_dependents["offsets"][dependent]
+    #         for dependent in linear_dependents["variables"]:
+    #             dependent_object = (
+    #                 self._variable_lookup[dependent]["object"].get_attr(
+    #                     self._variable_lookup[dependent]["property"]
+    #                     )
+    #                 )
+    #             dependent_object._reference_variable = reference_container
+    #             dependent_object._factor = linear_dependents["factors"][dependent]
+    #             dependent_object._offset = linear_dependents["offsets"][dependent]
 
     def initialise(self):
         r"""
@@ -1146,7 +1158,7 @@ class Network:
         # components, user defined equations and buses
         self.init_set_properties()
         self._create_structure_matrix()
-        self._map_linear_dependent_variables()
+        # self._map_linear_dependent_variables()
         self._presolve_fluid_vectors()
         self._prepare_problem()
 
@@ -1235,7 +1247,6 @@ class Network:
                 self._variable_lookup[var]["object"]
                 for var in linear_dependents["variables"]
             ]
-
             reference_container = self.linear_dependent_variables[reference]
             reference_conn = all_connections[0]
 
@@ -1243,9 +1254,17 @@ class Network:
             if len(fluid_specs) == 0:
 
                 if len(reference_conn._potential_fluids) > 1:
-                    reference_container.is_var = {f for f in reference_conn.fluid.val}
+                    reference_container.is_var = {
+                        f for f in reference_conn._potential_fluids
+                    }
+                    reference_container.val = {
+                        f: 1 / len(reference_container.is_var)
+                        for f in reference_container.is_var
+                    }
                 else:
-                    reference_container.val[list(reference_conn._potential_fluids)[0]] = 1
+                    reference_container.val[
+                        list(reference_conn._potential_fluids)[0]
+                    ] = 1
 
             elif len(fluid_specs) != len(set(fluid_specs)):
                 msg = (
@@ -1255,10 +1274,10 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
             else:
                 fixed_fractions = {
-                    f: c.fluid.val[f]
+                    f: c.fluid._val[f]
                     for c in all_connections
                     for f in fluid_specs
-                    if f in c.fluid.is_set
+                    if f in c.fluid._is_set
                 }
                 mass_fraction_sum = sum(fixed_fractions.values())
                 if mass_fraction_sum > 1 + ERR:
@@ -1267,11 +1286,11 @@ class Network:
                 elif mass_fraction_sum < 1 - ERR:
                     # set the fluids with specified mass fraction
                     # remaining fluids are variable, create wrappers for them
-                    all_fluids = reference_container.val.keys()
+                    all_fluids = reference_conn._potential_fluids
                     num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
                     if num_remaining_fluids == 1:
                         missing_fluid = list(
-                            reference_container.val.keys() - fixed_fractions.keys()
+                            set(all_fluids) - set(fixed_fractions.keys())
                         )[0]
                         fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
                         variable = set()
@@ -2481,7 +2500,7 @@ class Network:
                 )
                 container._val_SI += increment[container.J_col] / relax
             elif data["variable"] == "fluid":
-                container = data["obj"].fluid
+                container = data["obj"]
                 container.val[data["fluid"]] += increment[
                     container.J_col[data["fluid"]]
                 ]

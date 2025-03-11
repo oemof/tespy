@@ -14,8 +14,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import FluidComposition as dc_skavar
-from tespy.tools.data_containers import FluidComposition as dc_vecvar
+from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
@@ -653,7 +652,7 @@ class Connection:
                 self.h._potential_var = False
                 if "T" in self._equation_lookup.values():
                     presolved_equations += ["T"]
-                msg = "Presolved T by known pressure."
+                msg = f"Determined h by known p and T at {self.label}."
                 logger.info(msg)
 
             elif self.Td_bp.is_set:
@@ -662,7 +661,7 @@ class Connection:
                 self.h._potential_var = False
                 if "Td_bp" in self._equation_lookup.values():
                     presolved_equations += ["Td_bp"]
-                msg = "Presolved Td_bp by known pressure."
+                msg = f"Determined h by known p and Td_bp at {self.label}."
                 logger.info(msg)
 
             elif self.x.is_set:
@@ -670,7 +669,7 @@ class Connection:
                 self.h._potential_var = False
                 if "x" in self._equation_lookup.values():
                     presolved_equations += ["x"]
-                msg = "Presolved x by known pressure."
+                msg = f"Determined h by known p and x at {self.label}."
                 logger.info(msg)
 
         elif self.h.is_var and self.p.is_var:
@@ -683,7 +682,7 @@ class Connection:
                     presolved_equations += ["T"]
                 if "x" in self._equation_lookup.values():
                     presolved_equations += ["x"]
-                msg = "Presolved T and x."
+                msg = f"Determined h and p by known T and x at {self.label}."
                 logger.info(msg)
 
             if self.T.is_set and self.Td_bp.is_set:
@@ -695,7 +694,7 @@ class Connection:
                     presolved_equations += ["T"]
                 if "Td_bp" in self._equation_lookup.values():
                     presolved_equations += ["Td_bp"]
-                msg = "Presolved T and Td_bp."
+                msg = f"Determined h and p by known T and Td_bp at {self.label}."
                 logger.info(msg)
 
 
@@ -721,6 +720,9 @@ class Connection:
         self.residual = np.zeros(self.num_eq)
         self.jacobian = {}
 
+    def reset_fluid_vector(self):
+        self.fluid = dc_flu()
+
     def get_variables(self):
         return {"m": self.m, "p": self.p, "h": self.h}
 
@@ -731,7 +733,7 @@ class Connection:
             "h": dc_prop(),
             "vol": dc_prop(),
             "s": dc_prop(),
-            "fluid": dc_vecvar(),
+            "fluid": dc_flu(),
             "fluid_balance": dc_simple(
                 func=self.fluid_balance_func, deriv=self.fluid_balance_deriv,
                 val=False, num_eq=1

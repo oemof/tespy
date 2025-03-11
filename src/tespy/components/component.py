@@ -438,7 +438,15 @@ class Component:
                 self.mandatory_equations.update(
                     {(value, key): self.constraints[value]}
                 )
-                self.num_eq += self.constraints[value].num_eq
+                # we increment by only 1 because the number of equations
+                # is one per equation lookup. This is not true, if the
+                # equation relates to fluid vectors, there the number of
+                # variable fluids is the number of equations, not sure how to
+                # tackle that right now
+                if self.constraints[value].num_eq_vector is not None:
+                    self.num_eq += self.constraints[value].num_eq_vector()
+                else:
+                    self.num_eq += 1
 
             elif value in self.parameters:
                 self.user_imposed_equations.update(
@@ -451,6 +459,10 @@ class Component:
 
         sum_eq = 0
         for constraint in self.mandatory_equations.values():
+            if self.constraints[value].num_eq_vector is not None:
+                num_eq = self.constraints[value].num_eq_vector()
+            else:
+                num_eq = 1
             num_eq = constraint.num_eq
             if constraint.constant_deriv:
                 constraint.deriv(sum_eq)
@@ -625,7 +637,11 @@ class Component:
         """
         sum_eq = 0
         for data in self.mandatory_equations.values():
-            num_eq = data.num_eq
+            if data.num_eq_vector is not None:
+                num_eq = data.num_eq_vector()
+            else:
+                num_eq = 1
+
             if num_eq > 0:
                 self.residual[sum_eq:sum_eq + num_eq] = data.func()
             if not data.constant_deriv:

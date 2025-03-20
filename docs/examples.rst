@@ -19,13 +19,13 @@ your project.
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-light
-      :target: https://github.com/jfreissmann/heatpumps
+      :target: https://heatpumps.streamlit.app/
 
     .. image:: /_static/images/examples/heatpumps_darkmode.png
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-dark
-      :target: https://github.com/jfreissmann/heatpumps
+      :target: https://heatpumps.streamlit.app/
 
     The streamlit dashboard *heatpumps* provides users with powerful tools for
     both design and part load simulation of a comprehensive library of heat

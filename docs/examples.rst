@@ -34,12 +34,16 @@ your project.
     results is supported by fluprodia's state diagrams as well as the TESPy
     built-in exergy analysis feature. An assessment of the economic
     attractiveness of different heat pump setups is enabled through a
-    component-based cost estimation.
+    component-based cost estimation. See the
+    `GitHub repository <https://github.com/jfreissmann/heatpumps>`_ for more 
+    information and if you would like to contribute.
 
     +++
     Title: heatpumps
 
     Authors: Jonas Freißmann, Malte Fritz
+
+    URL: https://heatpumps.streamlit.app/
 
     Reference: :cite:`Fritz2024`
 

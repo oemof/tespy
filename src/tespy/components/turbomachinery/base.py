@@ -98,7 +98,11 @@ class Turbomachine(Component):
             'pr': dc_cp(
                 deriv=self.pr_deriv, num_eq=1,
                 func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc)
+                latex=self.pr_func_doc),
+            'dp': dc_cp(
+                deriv=self.dp_deriv, num_eq=1,
+                func=self.dp_func, func_params={'dp': 'dp'},
+                )
         }
 
     @staticmethod

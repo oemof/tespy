@@ -5,7 +5,7 @@ New Features
 ############
 - The parameter for delta pressure (:code:`dp`) is now available on all
   components, that do feature the pressure ratio :code:`pr` parameter
-  (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
+  (`PR #628 <https://github.com/oemof/tespy/pull/628>`__).
 
 Contributors
 ############

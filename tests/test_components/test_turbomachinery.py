@@ -366,7 +366,7 @@ class TestTurbomachinery:
         self.c2.set_attr(Td_bp=1)
 
         eta_s_dry = 0.9
-        instance.set_attr(eta_s_dry=0.9, alpha=1)
+        instance.set_attr(eta_s_dry=eta_s_dry, alpha=1)
 
         self.nw.solve('design')
         self.nw._convergence_check()

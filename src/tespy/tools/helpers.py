@@ -477,7 +477,6 @@ def _numeric_deriv_fluid(obj, func, dx, conn=None, **kwargs):
     else:
         conn.fluid.val[dx] = 1
 
-    conn.build_fluid_data()
     exp = func(**kwargs)
 
     if conn.fluid.val[dx] - 2 * d >= 0:
@@ -485,11 +484,9 @@ def _numeric_deriv_fluid(obj, func, dx, conn=None, **kwargs):
     else:
         conn.fluid.val[dx] = 0
 
-    conn.build_fluid_data()
     exp -= func(**kwargs)
 
     conn.fluid.val[dx] = val
-    conn.build_fluid_data()
 
     deriv = exp / (2 * d)
 

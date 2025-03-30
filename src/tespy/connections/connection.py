@@ -476,12 +476,10 @@ class Connection:
                 if fraction is None:
                     if fluid in self.fluid.is_set:
                         self.fluid.is_set.remove(fluid)
-                    self.fluid.is_var.add(fluid)
+
                 else:
                     self.fluid.val[fluid] = fraction
                     self.fluid.is_set.add(fluid)
-                    if fluid in self.fluid.is_var:
-                        self.fluid.is_var.remove(fluid)
                     self.fluid.back_end[fluid] = back_end
 
         elif key == "fluid0":
@@ -768,13 +766,15 @@ class Connection:
 
         }
 
-    def build_fluid_data(self):
-        self.fluid_data = {
+    def get_fluid_data(self):
+        return {
             fluid: {
                 "wrapper": self.fluid.wrapper[fluid],
                 "mass_fraction": self.fluid.val[fluid]
             } for fluid in self.fluid.val
         }
+
+    fluid_data = property(get_fluid_data)
 
     def primary_ref_func(self, **kwargs):
         variable = kwargs["variable"]
@@ -978,8 +978,12 @@ class Connection:
 
     def calc_results(self):
         for variable in self.get_variables().values():
+            # this gets from the reference container value and sets on the internal value
             variable.val_SI = variable.val_SI
             variable._reference_container = None
+
+        self.fluid.val = self.fluid.val
+        self.fluid._reference_container = None
 
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)

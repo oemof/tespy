@@ -1228,7 +1228,6 @@ class CombustionChamber(Component):
         total_mass_fractions = sum(outl.fluid.val.values())
         for fluid in outl.fluid.is_var:
             outl.fluid.val[fluid] /= total_mass_fractions
-        outl.build_fluid_data()
 
         if outl.m.val_SI < 0 and outl.m.is_var:
             outl.m.val_SI = 10

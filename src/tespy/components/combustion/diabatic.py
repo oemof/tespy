@@ -312,14 +312,12 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
@@ -367,14 +365,12 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")

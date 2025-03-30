@@ -1320,7 +1320,6 @@ class Network:
                 # for f in variable:
                 #     reference_container.val[f] = (1 - mass_fraction_sum) / num_var
 
-            [c.build_fluid_data() for c in all_connections]
             for fluid in reference_container.is_var:
                 reference_container._J_col[fluid] = self.num_conn_vars
                 self.variables_dict[self.num_conn_vars] = {
@@ -1915,7 +1914,6 @@ class Network:
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
         for c in self.conns['object']:
-            c.build_fluid_data()
             if self.init_path is not None:
                 self.init_conn_params_from_path(c, df)
 
@@ -2521,14 +2519,14 @@ class Network:
 
     def check_variable_bounds(self):
 
+        for idx, data in self.variables_dict.items():
+            if type(data["obj"]) == dc_vecvar:
+                total_mass_fractions = sum(data["obj"].val.values())
+                for fluid in data["obj"].is_var:
+                    data["obj"]._val[fluid] /= total_mass_fractions
+
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
-            if len(c.fluid.is_var) > 0:
-                total_mass_fractions = sum(c.fluid.val.values())
-                for fluid in c.fluid.is_var:
-                    c.fluid.val[fluid] /= total_mass_fractions
-
-            c.build_fluid_data()
             self.check_connection_properties(c)
 
         # second property check for first three iterations without an init_file
@@ -2560,7 +2558,7 @@ class Network:
             return
 
         self.update_variables()
-        # self.check_variable_bounds()
+        self.check_variable_bounds()
 
     def check_connection_properties(self, c):
         r"""

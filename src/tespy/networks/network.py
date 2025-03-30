@@ -2589,7 +2589,7 @@ class Network:
                 c.check_enthalpy_bounds(fl)
 
                 # two-phase related
-                if (c.Td_bp.is_set or c.state.is_set) and self.iter < 3:
+                if (c.Td_bp.is_set or c.state.is_set or c.x.is_set) and self.iter < 3:
                     c.check_two_phase_bounds(fl)
 
         # mixture

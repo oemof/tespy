@@ -1110,6 +1110,10 @@ class Connection:
             if self.h.val_SI > h:
                 self.h.set_reference_val_SI(h * 0.99)
                 logger.debug(self._property_range_message('h'))
+        elif self.x.is_set:
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)
+            self.h.set_reference_val_SI(h)
+
 
     def check_temperature_bounds(self):
         r"""

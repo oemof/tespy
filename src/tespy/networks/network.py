@@ -1951,12 +1951,15 @@ class Network:
                         (c.state.val == 'g' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
-                        c.h.val_SI = h * 1.001
+                        c.h.set_reference_val_SI(h * 1.001)
+
                 elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or
                       (c.state.val == 'l' and c.state.is_set)):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
-                        c.h.val_SI = h * 0.999
+                        c.h.set_reference_val_SI(h * 0.999)
+
+
 
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
@@ -2008,13 +2011,17 @@ class Network:
         if c.h.is_var:
             if c.x.is_set:
                 try:
-                    c.h._val_SI = fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h.set_reference_val_SI(
+                        fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
+                    )
                 except ValueError:
                     pass
 
             if c.T.is_set:
                 try:
-                    c.h._val_SI = fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                    c.h.set_reference_val_SI(
+                        fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
+                    )
                 except ValueError:
                     pass
 
@@ -2590,21 +2597,21 @@ class Network:
             # pressure
             if c.p.is_var:
                 if c.p.val_SI <= self.p_range_SI[0]:
-                    c.p.val_SI = self.p_range_SI[0]
+                    c.p.set_reference_val_SI(self.p_range_SI[0])
                     logger.debug(c._property_range_message('p'))
 
                 elif c.p.val_SI >= self.p_range_SI[1]:
-                    c.p.val_SI = self.p_range_SI[1]
+                    c.p.set_reference_val_SI(self.p_range_SI[1])
                     logger.debug(c._property_range_message('p'))
 
             # enthalpy
             if c.h.is_var:
                 if c.h.val_SI < self.h_range_SI[0]:
-                    c.h.val_SI = self.h_range_SI[0]
+                    c.h.set_reference_val_SI(self.h_range_SI[0])
                     logger.debug(c._property_range_message('h'))
 
                 elif c.h.val_SI > self.h_range_SI[1]:
-                    c.h.val_SI = self.h_range_SI[1]
+                    c.h.set_reference_val_SI(self.h_range_SI[1])
                     logger.debug(c._property_range_message('h'))
 
                 # temperature
@@ -2613,11 +2620,11 @@ class Network:
 
         # mass flow
         if c.m.val_SI <= self.m_range_SI[0] and c.m.is_var:
-            c.m.val_SI = self.m_range_SI[0]
+            c.m.set_reference_val_SI(self.m_range_SI[0])
             logger.debug(c._property_range_message('m'))
 
         elif c.m.val_SI >= self.m_range_SI[1] and c.m.is_var:
-            c.m.val_SI = self.m_range_SI[1]
+            c.m.set_reference_val_SI(self.m_range_SI[1])
             logger.debug(c._property_range_message('m'))
 
     def solve_components(self):

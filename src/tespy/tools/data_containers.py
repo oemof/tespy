@@ -538,7 +538,21 @@ class FluidProperties(DataContainer):
         return {k: self.get_attr(k) for k in keys}
 
     def get_reference_val_SI(self):
+        """Get value of the reference corresponding to own value
+
+        Returns
+        -------
+        float
+            Value of reference container corresponding to this data container's
+            value.
+        """
         return (self._val_SI - self._offset) / self._factor
+
+    def set_reference_val_SI(self, value):
+        if self._reference_container is not None:
+            self._reference_container.val_SI = (value - self._offset) / self._factor
+        else:
+            raise ValueError()
 
     def get_J_col(self):
         if self._reference_container is not None:

@@ -338,14 +338,14 @@ class Component:
         sum_eq = 0
 
         for name, constraint in self.constraints.items():
-            for i in range(sum_eq, sum_eq + constraint.num_eq):
+            for i in range(sum_eq, sum_eq + constraint.num_eq_sets):
                 self._rhs[i + row_idx] = 0
                 self._equation_lookup[i + row_idx] = name
 
             if constraint.structure_matrix is not None:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
 
-            sum_eq += constraint.num_eq
+            sum_eq += constraint.num_eq_sets
 
         for key, data in self.parameters.items():
             if isinstance(data, dc_cp):
@@ -405,16 +405,19 @@ class Component:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
             if data.is_set and data.func is not None:
-                for i in range(sum_eq, sum_eq + constraint.num_eq):
+                for i in range(sum_eq, sum_eq + constraint.num_eq_sets):
                     self._rhs[i + row_idx] = 0
                     self._equation_lookup[i + row_idx] = key
 
                 if data.structure_matrix is not None:
                     data.structure_matrix(row_idx + sum_eq, **data.func_params)
 
-                sum_eq += data.num_eq
+                sum_eq += data.num_eq_sets
 
         self.num_eq = sum_eq
+
+    def _update_num_eq(self):
+        pass
 
     def _prepare_for_solver(self, system_dependencies):
         r"""
@@ -430,39 +433,31 @@ class Component:
         self.user_imposed_equations = {}
         self.num_eq = 0
 
+        self._update_num_eq()
+
         for key, value in self._equation_lookup.items():
             if key in system_dependencies:
                 continue
 
             if value in self.constraints:
-                self.mandatory_equations.update(
-                    {(value, key): self.constraints[value]}
-                )
-                # we increment by only 1 because the number of equations
-                # is one per equation lookup. This is not true, if the
-                # equation relates to fluid vectors, there the number of
-                # variable fluids is the number of equations, not sure how to
-                # tackle that right now
-                if self.constraints[value].num_eq_vector is not None:
-                    self.num_eq += self.constraints[value].num_eq_vector()
-                else:
-                    self.num_eq += 1
+                if value not in self.mandatory_equations:
+                    self.mandatory_equations.update({
+                        value: self.constraints[value]
+                    })
+                    self.num_eq += self.constraints[value].num_eq
 
             elif value in self.parameters:
-                self.user_imposed_equations.update(
-                    {(value, key): self.parameters[value]}
-                )
-                self.num_eq += 1
+                if value not in self.user_imposed_equations:
+                    self.user_imposed_equations.update(
+                        {value: self.parameters[value]}
+                    )
+                    self.num_eq += self.parameters[value].num_eq
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
 
         sum_eq = 0
         for constraint in self.mandatory_equations.values():
-            if self.constraints[value].num_eq_vector is not None:
-                num_eq = self.constraints[value].num_eq_vector()
-            else:
-                num_eq = 1
             num_eq = constraint.num_eq
             if constraint.constant_deriv:
                 constraint.deriv(sum_eq)
@@ -475,12 +470,12 @@ class Component:
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq': self.num_i,
+                'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'}
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq': self.num_i,
+                'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'}
             })
         }
@@ -636,16 +631,15 @@ class Component:
             Matrix for filtering non-changing variables.
         """
         sum_eq = 0
-        for data in self.mandatory_equations.values():
-            if data.num_eq_vector is not None:
-                num_eq = data.num_eq_vector()
-            else:
-                num_eq = 1
+        for label, data in self.mandatory_equations.items():
+            num_eq = data.num_eq
 
             if num_eq > 0:
                 self.residual[sum_eq:sum_eq + num_eq] = data.func()
+
             if not data.constant_deriv:
                 data.deriv(increment_filter, sum_eq)
+
             sum_eq += num_eq
 
         for data in self.user_imposed_equations.values():

@@ -163,10 +163,10 @@ class CombustionChamber(Component):
         return {
             'lamb': dc_cp(
                 min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq=1),
+                latex=self.lambda_func_doc, num_eq_sets=1),
             'ti': dc_cp(
                 min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq=1)
+                latex=self.ti_func_doc, num_eq_sets=1)
         }
 
     def get_mandatory_constraints(self):

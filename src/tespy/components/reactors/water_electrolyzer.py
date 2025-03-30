@@ -191,27 +191,27 @@ class WaterElectrolyzer(Component):
         return {
             'P': dc_cp(min_val=0),
             'Q': dc_cp(
-                max_val=0, num_eq=1,
+                max_val=0, num_eq_sets=1,
                 deriv=self.heat_deriv, func=self.heat_func,
                 latex=self.heat_func_doc),
             'pr': dc_cp(
-                max_val=1, num_eq=1,
+                max_val=1, num_eq_sets=1,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr'}, latex=self.pr_func_doc),
             'zeta': dc_cp(
-                min_val=0, num_eq=1,
+                min_val=0, num_eq_sets=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
             'eta': dc_cp(
-                min_val=0, max_val=1, num_eq=1, latex=self.eta_func_doc,
+                min_val=0, max_val=1, num_eq_sets=1, latex=self.eta_func_doc,
                 deriv=self.eta_deriv, func=self.eta_func),
             'eta_char': dc_cc(
                 deriv=self.eta_char_deriv, func=self.eta_char_func,
-                latex=self.eta_char_func_doc, num_eq=1,
+                latex=self.eta_char_func_doc, num_eq_sets=1,
                 param='m_out', char_params={
                     'type': 'rel', 'outconn': 2}),
             'e': dc_cp(
-                min_val=0, num_eq=1,
+                min_val=0, num_eq_sets=1,
                 deriv=self.specific_energy_consumption_deriv,
                 func=self.specific_energy_consumption_func,
                 latex=self.specific_energy_consumption_func_doc)

@@ -156,7 +156,7 @@ class SteamTurbine(Turbine):
         params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
         params["eta_s_dry"] = dc_cp(min_val=0.0, max_val=1.0)
         params["eta_s_dry_group"] = dc_gcp(
-            num_eq=1, elements=["alpha", "eta_s_dry"],
+            num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
             deriv=self.eta_s_wet_deriv
         )

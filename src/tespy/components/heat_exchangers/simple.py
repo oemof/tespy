@@ -206,11 +206,11 @@ class SimpleHeatExchanger(Component):
         return {
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
-                latex=self.energy_balance_func_doc, num_eq=1,
+                latex=self.energy_balance_func_doc, num_eq_sets=1,
                 func=self.energy_balance_func
             ),
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
+                min_val=1e-4, max_val=1, num_eq_sets=1,
                 deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
                 func=self.pr_func,
@@ -218,14 +218,14 @@ class SimpleHeatExchanger(Component):
                 structure_matrix=self.pr_structure_matrix
             ),
             'dp': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
+                min_val=1e-4, max_val=1, num_eq_sets=1,
                 deriv=self.dp_deriv,
                 func=self.dp_func,
                 func_params={'dp': 'dp'},
                 structure_matrix=self.dp_structure_matrix
             ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 latex=self.zeta_func_doc,
                 func_params={'zeta': 'zeta'}
@@ -238,19 +238,19 @@ class SimpleHeatExchanger(Component):
             'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
             'dissipative': dc_simple(val=None),
             'darcy_group': dc_gcp(
-                elements=['L', 'ks', 'D'], num_eq=1,
+                elements=['L', 'ks', 'D'], num_eq_sets=1,
                 latex=self.darcy_func_doc,
                 func=self.darcy_func, deriv=self.darcy_deriv),
             'hw_group': dc_gcp(
-                elements=['L', 'ks_HW', 'D'], num_eq=1,
+                elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
                 latex=self.hazen_williams_func_doc,
                 func=self.hazen_williams_func, deriv=self.hazen_williams_deriv),
             'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'], num_eq=1,
+                elements=['kA', 'Tamb'], num_eq_sets=1,
                 latex=self.kA_group_func_doc,
                 func=self.kA_group_func, deriv=self.kA_group_deriv),
             'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'], num_eq=1,
+                elements=['kA_char', 'Tamb'], num_eq_sets=1,
                 latex=self.kA_char_group_func_doc,
                 func=self.kA_char_group_func, deriv=self.kA_char_group_deriv)
         }

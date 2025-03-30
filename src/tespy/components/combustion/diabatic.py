@@ -200,18 +200,18 @@ class DiabaticCombustionChamber(CombustionChamber):
         return {
             'lamb': dc_cp(
                 min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq=1),
+                latex=self.lambda_func_doc, num_eq_sets=1),
             'ti': dc_cp(
                 min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq=1),
+                latex=self.ti_func_doc, num_eq_sets=1),
             'pr': dc_cp(
                 min_val=0, deriv=self.pr_deriv,
                 func=self.pr_func,
-                latex=self.pr_func_doc, num_eq=1),
+                latex=self.pr_func_doc, num_eq_sets=1),
             'eta': dc_cp(
                 max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc, num_eq=1),
+                latex=self.energy_balance_func_doc, num_eq_sets=1),
             'Q_loss': dc_cp(max_val=0, is_result=True)
         }
 

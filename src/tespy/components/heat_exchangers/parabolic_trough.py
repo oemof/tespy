@@ -244,7 +244,7 @@ class ParabolicTrough(SimpleHeatExchanger):
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
                     'iam_2', 'A', 'Tamb'
-                ], num_eq=1,
+                ], num_eq_sets=1,
                 latex=self.energy_group_func_doc,
                 func=self.energy_group_func,
                 deriv=self.energy_group_deriv

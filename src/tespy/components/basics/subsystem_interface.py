@@ -135,12 +135,12 @@ class SubsystemInterface(Component):
         constraints.update({
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq': self.num_i,
+                'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'p'}
             }),
             'enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq': self.num_i,
+                'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'h'}
             })
         })

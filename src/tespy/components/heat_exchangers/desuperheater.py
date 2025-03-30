@@ -192,7 +192,7 @@ class Desuperheater(HeatExchanger):
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
                 'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
-                'num_eq': 1
+                'num_eq_sets': 1
             })
         })
         return constraints

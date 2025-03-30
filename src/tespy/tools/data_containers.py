@@ -196,7 +196,7 @@ class ComponentCharacteristics(DataContainer):
             'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq': 0, 'structure_matrix': None
+            'num_eq_sets': 0, '_num_eq': None, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -207,6 +207,17 @@ class ComponentCharacteristics(DataContainer):
         for k in ["is_set", "param", "char_params"]:
             export.update({k: self.get_attr(k)})
         return export
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
 
 
 class ComponentCharacteristicMaps(DataContainer):
@@ -241,7 +252,7 @@ class ComponentCharacteristicMaps(DataContainer):
         return {
             'char_func': None, 'is_set': False, 'param': None, 'latex': None,
             'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq': 0, 'structure_matrix': None
+            'num_eq_sets': 0, 'structure_matrix': None
         }
 
     def _serialize(self):
@@ -252,6 +263,17 @@ class ComponentCharacteristicMaps(DataContainer):
         for k in ["is_set", "param"]:
             export.update({k: self.get_attr(k)})
         return export
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
 
 
 class ComponentMandatoryConstraints(DataContainer):
@@ -271,8 +293,8 @@ class ComponentMandatoryConstraints(DataContainer):
             values.
         """
         return {
-            'num_eq': 0,
-            'num_eq_vector': None,
+            'num_eq_sets': 0,
+            '_num_eq': None,
             'func_params': {},
             'func': None,
             'deriv': None,
@@ -290,6 +312,18 @@ class ComponentMandatoryConstraints(DataContainer):
         return [
             "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
         ]
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
+
 
 class ComponentProperties(DataContainer):
     """
@@ -335,11 +369,22 @@ class ComponentProperties(DataContainer):
             values.
         """
         return {
-            'val': 1, 'val_SI': 0, 'is_set': False, 'd': 1e-4,
-            'min_val': -1e12, 'max_val': 1e12, 'is_var': False,
-            'design': np.nan, 'is_result': False,
-            'num_eq': 0, 'func_params': {}, 'func': None, 'deriv': None,
-            'latex': None, 'structure_matrix': None
+            'val': 1,
+            'val_SI': 0,
+            'is_set': False,
+            'd': 1e-4,
+            'min_val': -1e12,
+            'max_val': 1e12,
+            'is_var': False,
+            'design': np.nan,
+            'is_result': False,
+            'num_eq_sets': 0,
+            '_num_eq': None,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
+            'latex': None,
+            'structure_matrix': None
         }
 
     def _serialize(self):
@@ -351,6 +396,17 @@ class ComponentProperties(DataContainer):
         return [
             "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
         ]
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
 
 
 class GroupedComponentProperties(DataContainer):
@@ -385,13 +441,24 @@ class GroupedComponentProperties(DataContainer):
             values.
         """
         return {
-            'is_set': False, 'elements': [],
-            'func': None, 'deriv': None, 'num_eq': 0, 'latex': None,
+            'is_set': False, 'elements': [], '_num_eq': None,
+            'func': None, 'deriv': None, 'num_eq_sets': 0, 'latex': None,
             'func_params': {}, 'structure_matrix': None
         }
 
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
 
-class GroupedComponentCharacteristics(DataContainer):
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
+
+
+class GroupedComponentCharacteristics(GroupedComponentProperties):
     """
     Data container for grouped component characteristics.
 
@@ -405,25 +472,7 @@ class GroupedComponentCharacteristics(DataContainer):
         Which component properties are part of this component group?
         default elements=[].
     """
-
-    @staticmethod
-    def attr():
-        """
-        Return the available attributes for a GroupedComponentCharacteristics
-        type object.
-
-        Returns
-        -------
-        out : dict
-            Dictionary of available attributes (dictionary keys) with default
-            values.
-        """
-        return {
-            'is_set': False, 'elements': [], 'func': None, 'deriv': None,
-            'num_eq': 0, 'latex': None, 'func_params': {},
-            'structure_matrix': None
-        }
-
+    pass
 
 class FluidProperties(DataContainer):
     """
@@ -663,17 +712,20 @@ class FluidComposition(DataContainer):
         else:
             return self._val
 
+    def set_val(self, value):
+        self._val = value
+
     def get_reference_val(self):
-        reference = self._reference_variable
+        reference = self._reference_container
         if reference:
             return {
                 f: val * self._factor + self._offset
                 for f, val in reference.val.items()
             }
         else:
-            return reference.val
+            return self._val
 
-    val = property(get_val)
+    val = property(get_val, set_val)
     is_set = property(get_is_set)
     is_var = property(get_is_var)
     J_col = property(get_J_col)
@@ -824,10 +876,22 @@ class SimpleDataContainer(DataContainer):
             "func": None,
             "deriv": None,
             "latex": None,
-            "num_eq": 0,
+            "num_eq_sets": 0,
+            "_num_eq": None,
             "structure_matrix": None,
             "_solved": False
         }
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)

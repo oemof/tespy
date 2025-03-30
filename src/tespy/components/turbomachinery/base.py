@@ -85,11 +85,11 @@ class Turbomachine(Component):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                deriv=self.energy_balance_deriv, num_eq=1,
+                deriv=self.energy_balance_deriv, num_eq_sets=1,
                 func=self.energy_balance_func,
                 latex=self.energy_balance_func_doc),
             'pr': dc_cp(
-                deriv=self.pr_deriv, num_eq=1,
+                deriv=self.pr_deriv, num_eq_sets=1,
                 func=self.pr_func, func_params={'pr': 'pr'},
                 latex=self.pr_func_doc)
         }

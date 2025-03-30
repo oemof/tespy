@@ -173,7 +173,7 @@ class Merge(NodeBase):
     def get_parameters():
         return {'num_in': dc_simple()}
 
-    def _get_num_fluid_eq(self):
+    def _update_num_eq(self):
         variable_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
         )
@@ -182,55 +182,43 @@ class Merge(NodeBase):
         )
         self.all_fluids = variable_fluids | set_fluids
         if len(variable_fluids) == 0:
-            return len(self.all_fluids)
-        return len(variable_fluids)
+            num_eq = len(self.all_fluids)
+        else:
+            num_eq = len(variable_fluids)
+        self.constraints["fluid_constraints"].num_eq = num_eq
 
-    def _get_num_m_eq(self):
         variable_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
         )
         if len(variable_fluids) == 0:
-            return 0
+            self.constraints["mass_flow_constraints"].num_eq = 0
 
     def get_mandatory_constraints(self):
-        variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        # assert variable_fluids == True, variable_fluids
-        # num_fluid_eq = len(variable_fluids)
-
-        # if num_fluid_eq == 0:
-        #     num_fluid_eq = len(self.inl[0].fluid.val)
-        #     num_m_eq = 0
-        # else:
-        #     num_m_eq = 1
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True,
                 'latex': self.mass_flow_func_doc,
-                'num_eq': 1,
-                'num_eq_vector': self._get_num_m_eq
+                'num_eq_sets': 1,
             }),
             'fluid_constraints': dc_cmc(**{
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
                 'constant_deriv': False,
                 'latex': self.fluid_func_doc,
-                'num_eq': 1,
-                'num_eq_vector': self._get_num_fluid_eq
+                'num_eq_sets': 1,
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'constant_deriv': False,
                 'latex': self.energy_balance_func_doc,
-                'num_eq': 1
+                'num_eq_sets': 1
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1
             })
         }
 

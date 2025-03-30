@@ -275,10 +275,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'U_twophase_liquid': dc_cp(min_val=0),
             'A': dc_cp(min_val=0),
             'UA': dc_cp(
-                min_val=0, num_eq=1, func=self.UA_func, deriv=self.UA_deriv
+                min_val=0, num_eq_sets=1, func=self.UA_func, deriv=self.UA_deriv
             ),
             'td_pinch': dc_cp(
-                min_val=0, num_eq=1, func=self.td_pinch_func,
+                min_val=0, num_eq_sets=1, func=self.td_pinch_func,
                 deriv=self.td_pinch_deriv
             )
         })

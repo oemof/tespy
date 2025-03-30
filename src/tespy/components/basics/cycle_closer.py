@@ -107,12 +107,12 @@ class CycleCloser(Component):
     def get_mandatory_constraints(self):
         return {
             'pressure_equality_constraint': dc_cmc(**{
-                'num_eq': 1,
+                'num_eq_sets': 1,
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'func_params': {'variable': 'p'}
             }),
             'enthalpy_equality_constraint': dc_cmc(**{
-                'num_eq': 1,
+                'num_eq_sets': 1,
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'func_params': {'variable': 'h'}
             })

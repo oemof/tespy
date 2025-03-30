@@ -233,57 +233,57 @@ class HeatExchanger(Component):
     def get_parameters(self):
         return {
             'Q': dc_cp(
-                max_val=0, func=self.energy_balance_hot_func, num_eq=1,
+                max_val=0, func=self.energy_balance_hot_func, num_eq_sets=1,
                 deriv=self.energy_balance_hot_deriv,
                 latex=self.energy_balance_hot_func_doc),
             'kA': dc_cp(
-                min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
+                min_val=0, num_eq_sets=1, func=self.kA_func, latex=self.kA_func_doc,
                 deriv=self.kA_deriv),
             'td_log': dc_cp(min_val=0, is_result=True),
             'ttd_u': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_u_func,
+                min_val=0, num_eq_sets=1, func=self.ttd_u_func,
                 deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),
             'ttd_l': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_l_func,
+                min_val=0, num_eq_sets=1, func=self.ttd_l_func,
                 deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
             'ttd_min': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_min_func,
+                min_val=0, num_eq_sets=1, func=self.ttd_min_func,
                 deriv=self.ttd_min_deriv),
             'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
+                min_val=1e-4, max_val=1, num_eq_sets=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
                 structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func, func_params={'pr': 'pr1'}
             ),
             'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
+                min_val=1e-4, max_val=1, num_eq_sets=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
             ),
             'dp1': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 deriv=self.dp_deriv, func=self.dp_func,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}
             ),
             'dp2': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 deriv=self.dp_deriv, func=self.dp_func,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}
             ),
             'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
+                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta1'}),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
+                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
-                num_eq=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
+                num_eq_sets=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
                 deriv=self.kA_char_deriv),
             'kA_char1': dc_cc(param='m'),
             'kA_char2': dc_cc(
@@ -291,15 +291,15 @@ class HeatExchanger(Component):
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
             ),
             'eff_cold': dc_cp(
-                min_val=0, max_val=1, num_eq=1, func=self.eff_cold_func,
+                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_cold_func,
                 deriv=self.eff_cold_deriv
             ),
             'eff_hot': dc_cp(
-                min_val=0, max_val=1, num_eq=1, func=self.eff_hot_func,
+                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_hot_func,
                 deriv=self.eff_hot_deriv
             ),
             'eff_max': dc_cp(
-                min_val=0, max_val=1, num_eq=1, func=self.eff_max_func,
+                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_max_func,
                 deriv=self.eff_max_deriv
             )
         }
@@ -312,7 +312,7 @@ class HeatExchanger(Component):
                 'deriv': self.energy_balance_deriv,
                 'constant_deriv': False,
                 'latex': self.energy_balance_func_doc,
-                'num_eq': 1,
+                'num_eq_sets': 1,
                 'structure_matrix': None
             })
         })

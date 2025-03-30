@@ -200,7 +200,7 @@ class SolarCollector(SimpleHeatExchanger):
             'Q_loss': dc_cp(max_val=0, val=0),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
-                num_eq=1, latex=self.energy_group_func_doc,
+                num_eq_sets=1, latex=self.energy_group_func_doc,
                 func=self.energy_group_func, deriv=self.energy_group_deriv
             )
         })

@@ -158,20 +158,20 @@ class Compressor(Turbomachine):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                min_val=0, num_eq=1,
+                min_val=0, num_eq_sets=1,
                 deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
                 latex=self.energy_balance_func_doc),
             'eta_s': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
+                min_val=0, max_val=1, num_eq_sets=1,
                 deriv=self.eta_s_deriv,
                 func=self.eta_s_func, latex=self.eta_s_func_doc),
             'eta_s_char': dc_cc(
-                param='m', num_eq=1,
+                param='m', num_eq_sets=1,
                 deriv=self.eta_s_char_deriv,
                 func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
             'pr': dc_cp(
-                min_val=1, num_eq=1,
+                min_val=1, num_eq_sets=1,
                 deriv=self.pr_deriv,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
@@ -180,14 +180,14 @@ class Compressor(Turbomachine):
             'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
-                elements=['char_map_eta_s', 'igva'], num_eq=1,
+                elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 latex=self.char_map_eta_s_func_doc,
                 func=self.char_map_eta_s_func,
                 deriv=self.char_map_eta_s_deriv),
             'char_map_pr': dc_cm(),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
-                deriv=self.char_map_pr_deriv, num_eq=1,
+                deriv=self.char_map_pr_deriv, num_eq_sets=1,
                 func=self.char_map_pr_func, latex=self.char_map_pr_func_doc)
         }
 

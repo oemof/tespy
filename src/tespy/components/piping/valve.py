@@ -140,7 +140,7 @@ class Valve(Component):
     def get_parameters(self):
         return {
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
+                min_val=1e-4, max_val=1, num_eq_sets=1,
                 deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
                 func=self.pr_func,
@@ -148,11 +148,11 @@ class Valve(Component):
                 structure_matrix=self.pr_structure_matrix
             ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
             'dp_char': dc_cc(
-                param='m', num_eq=1,
+                param='m', num_eq_sets=1,
                 deriv=self.dp_char_deriv, func=self.dp_char_func,
                 char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
         }
@@ -162,7 +162,7 @@ class Valve(Component):
         constraints.update({
             'enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq': 1,
+                'num_eq_sets': 1,
                 'func_params': {'variable': 'h'}
             })
         })

@@ -251,32 +251,32 @@ class CombustionEngine(CombustionChamber):
         return {
             'lamb': dc_cp(
                 min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq=1),
+                latex=self.lambda_func_doc, num_eq_sets=1),
             'ti': dc_cp(
                 min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq=1),
+                latex=self.ti_func_doc, num_eq_sets=1),
             'P': dc_cp(val=-1e6, d=1, max_val=-1),
             'Q1': dc_cp(
                 max_val=-1, deriv=self.Q1_deriv, func=self.Q1_func,
-                num_eq=1, latex=self.Q1_func_doc),
+                num_eq_sets=1, latex=self.Q1_func_doc),
             'Q2': dc_cp(
                 max_val=-1, deriv=self.Q2_deriv, func=self.Q2_func,
-                num_eq=1, latex=self.Q2_func_doc),
+                num_eq_sets=1, latex=self.Q2_func_doc),
             'Qloss': dc_cp(val=-1e5, d=1, max_val=-1),
             'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
+                min_val=1e-4, max_val=1, num_eq_sets=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr1'}),
             'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
+                min_val=1e-4, max_val=1, num_eq_sets=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
             'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
+                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta1'}),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
+                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
             'tiP_char': dc_cc(), 'Q1_char': dc_cc(), 'Q2_char': dc_cc(),

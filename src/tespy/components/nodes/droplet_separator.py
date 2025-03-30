@@ -149,30 +149,30 @@ class DropletSeparator(NodeBase):
                 'func': self.mass_flow_func,
                 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True,
-                'num_eq': 1
+                'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'constant_deriv': False,
-                'num_eq': 1
+                'num_eq_sets': 1
             }),
             'pressure_constraints': dc_cmc(**{
                 # 'func': self.pressure_equality_func,
                 # 'deriv': self.pressure_equality_deriv,
                 # 'constant_deriv': True,
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1
             }),
             'outlet_constraints': dc_cmc(**{
                 'func': self.outlet_states_func,
                 'deriv': self.outlet_states_deriv,
                 'constant_deriv': False,
-                'num_eq': 2
+                'num_eq_sets': 2
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq': self.num_o
+                'num_eq_sets': self.num_o
             })
         }
 

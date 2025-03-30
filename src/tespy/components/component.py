@@ -365,7 +365,7 @@ class Component:
         for constraint in self.constraints.values():
             num_eq = constraint['num_eq']
             if constraint['constant_deriv']:
-                constraint["deriv"](sum_eq)
+                constraint["deriv"](None, sum_eq)
             sum_eq += num_eq
 
         # done

@@ -379,7 +379,7 @@ class Component:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
             # grouped component properties
-            elif isinstance(data, dc_gcp):
+            elif type(data) == dc_gcp:
                 is_set = True
                 for e in data.elements:
                     if not self.get_attr(e).is_set:
@@ -401,7 +401,7 @@ class Component:
                 self.group_specifications[key] = data.is_set
 
             # grouped component characteristics
-            elif isinstance(data, dc_gcc):
+            elif type(data) == dc_gcc:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
             if data.is_set and data.func is not None:

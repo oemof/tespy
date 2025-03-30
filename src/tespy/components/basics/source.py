@@ -69,13 +69,16 @@ class Source(Component):
         return ['out1']
 
     @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
+    @staticmethod
+    def get_bypass_constraints():
+        return {}
+
+    @staticmethod
     def is_branch_source():
         return True
-
-    def get_parameters(self):
-        return {
-            'status': dc_simple(val="active")
-                }
 
     def start_branch(self):
         outconn = self.outl[0]
@@ -97,10 +100,6 @@ class Source(Component):
         outconn.target.propagate_wrapper_to_target(branch)
 
         return {outconn.label: branch}
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
 
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.

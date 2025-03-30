@@ -128,6 +128,7 @@ class Component:
         self.local_offdesign = False
         self.char_warnings = True
         self.printout = True
+        self.bypass = False
         self.fkt_group = self.label
 
         # add container for components attributes
@@ -241,7 +242,7 @@ class Component:
                     raise ValueError(msg)
 
             elif key in ['local_design', 'local_offdesign',
-                         'printout', 'char_warnings']:
+                         'printout', 'char_warnings', 'bypass']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
                         f"Please provide the {key} parameters as bool for "
@@ -299,7 +300,7 @@ class Component:
     def _serializable():
         return [
             "design", "offdesign", "local_design", "local_offdesign",
-            "design_path", "printout", "fkt_group", "char_warnings"
+            "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
     @staticmethod
@@ -340,10 +341,10 @@ class Component:
         self.vars = {}
         self.num_vars = 0
 
-        if self.get_attr("status").val == "active":
-            self.constraints = self.get_mandatory_constraints().copy()
-        else:
+        if self.bypass:
             self.constraints = self.get_bypass_constraints().copy()
+        else:
+            self.constraints = self.get_mandatory_constraints().copy()
 
         self.prop_specifications = {}
         self.var_specifications = {}
@@ -354,69 +355,8 @@ class Component:
         for constraint in self.constraints.values():
             self.num_eq += constraint['num_eq']
 
-        if self.get_attr("status").val == "active":
-            for key, val in self.parameters.items():
-                data = self.get_attr(key)
-                if isinstance(val, dc_cp):
-                    if data.is_var:
-                        data.J_col = num_nw_vars + self.num_vars
-                        self.num_vars += 1
-                        self.vars[data] = key
-
-                    self.prop_specifications[key] = val.is_set
-                    self.var_specifications[key] = val.is_var
-
-                # component characteristics
-                elif isinstance(val, dc_cc):
-                    if data.func is not None:
-                        self.char_specifications[key] = val.is_set
-                    if data.char_func is None:
-                        try:
-                            data.char_func = ldc(
-                                self.component(), key, 'DEFAULT', CharLine)
-                        except KeyError:
-                            data.char_func = CharLine(x=[0, 1], y=[1, 1])
-
-                # component characteristics
-                elif isinstance(val, dc_cm):
-                    if data.func is not None:
-                        self.char_specifications[key] = val.is_set
-                    if data.char_func is None:
-                        try:
-                            data.char_func = ldc(
-                                self.component(), key, 'DEFAULT', CharMap)
-                        except KeyError:
-                            data.char_func = CharLine(x=[0, 1], y=[1, 1])
-
-                # grouped component properties
-                elif isinstance(val, dc_gcp):
-                    is_set = True
-                    for e in data.elements:
-                        if not self.get_attr(e).is_set:
-                            is_set = False
-
-                    if is_set:
-                        data.set_attr(is_set=True)
-                    elif data.is_set:
-                        start = (
-                            'All parameters of the component group have to be '
-                            'specified! This component group uses the following '
-                            'parameters: '
-                        )
-                        end = f" at {self.label}. Group will be set to False."
-                        logger.warning(start + ', '.join(val.elements) + end)
-                        val.set_attr(is_set=False)
-                    else:
-                        val.set_attr(is_set=False)
-                    self.group_specifications[key] = val.is_set
-
-                # grouped component characteristics
-                elif isinstance(val, dc_gcc):
-                    self.group_specifications[key] = val.is_set
-
-                # component properties
-                if data.is_set and data.func is not None:
-                    self.num_eq += data.num_eq
+        if not self.bypass:
+            self._setup_user_imposed_constraints(num_nw_vars)
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
@@ -432,6 +372,70 @@ class Component:
         msg = f"The component {self.label} has {self.num_vars} variables."
         logger.debug(msg)
 
+    def _setup_user_imposed_constraints(self, num_nw_vars):
+        for key, val in self.parameters.items():
+            data = self.get_attr(key)
+            if isinstance(val, dc_cp):
+                if data.is_var:
+                    data.J_col = num_nw_vars + self.num_vars
+                    self.num_vars += 1
+                    self.vars[data] = key
+
+                self.prop_specifications[key] = val.is_set
+                self.var_specifications[key] = val.is_var
+
+            # component characteristics
+            elif isinstance(val, dc_cc):
+                if data.func is not None:
+                    self.char_specifications[key] = val.is_set
+                if data.char_func is None:
+                    try:
+                        data.char_func = ldc(
+                            self.component(), key, 'DEFAULT', CharLine)
+                    except KeyError:
+                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+
+            # component characteristics
+            elif isinstance(val, dc_cm):
+                if data.func is not None:
+                    self.char_specifications[key] = val.is_set
+                if data.char_func is None:
+                    try:
+                        data.char_func = ldc(
+                            self.component(), key, 'DEFAULT', CharMap)
+                    except KeyError:
+                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+
+            # grouped component properties
+            elif isinstance(val, dc_gcp):
+                is_set = True
+                for e in data.elements:
+                    if not self.get_attr(e).is_set:
+                        is_set = False
+
+                if is_set:
+                    data.set_attr(is_set=True)
+                elif data.is_set:
+                    start = (
+                        'All parameters of the component group have to be '
+                        'specified! This component group uses the following '
+                        'parameters: '
+                    )
+                    end = f" at {self.label}. Group will be set to False."
+                    logger.warning(start + ', '.join(val.elements) + end)
+                    val.set_attr(is_set=False)
+                else:
+                    val.set_attr(is_set=False)
+                self.group_specifications[key] = val.is_set
+
+            # grouped component characteristics
+            elif isinstance(val, dc_gcc):
+                self.group_specifications[key] = val.is_set
+
+            # component properties
+            if data.is_set and data.func is not None:
+                self.num_eq += data.num_eq
+
     def get_parameters(self):
         return {}
 
@@ -439,7 +443,22 @@ class Component:
         return {}
 
     def get_bypass_constraints(self):
-        return {}
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i
+            },
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': self.num_i
+            }
+        }
 
     @staticmethod
     def inlets():
@@ -601,15 +620,17 @@ class Component:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
 
-        if self.get_attr("status") == "active":
-            for data in self.parameters.values():
-                if data.is_set and data.func is not None:
-                    self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                        **data.func_params
-                    )
-                    data.deriv(increment_filter, sum_eq, **data.func_params)
+        if self.bypass:
+            return
 
-                    sum_eq += data.num_eq
+        for data in self.parameters.values():
+            if data.is_set and data.func is not None:
+                self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
+                    **data.func_params
+                )
+                data.deriv(increment_filter, sum_eq, **data.func_params)
+
+                sum_eq += data.num_eq
 
     def bus_func(self, bus):
         r"""

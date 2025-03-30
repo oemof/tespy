@@ -72,17 +72,16 @@ class Sink(Component):
     def get_mandatory_constraints():
         return {}
 
+    @staticmethod
+    def get_bypass_constraints():
+        return {}
+
     def propagate_to_target(self, branch):
         return
 
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         return
-
-    def get_parameters(self):
-        return {
-            'status': dc_simple(val="active")
-                }
 
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a sink.

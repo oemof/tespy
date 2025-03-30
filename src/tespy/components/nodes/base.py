@@ -19,6 +19,10 @@ from tespy.tools.document_models import generate_latex_eq
 class NodeBase(Component):
     """Class NodeBase is parent class for all components of submodule nodes."""
 
+    @staticmethod
+    def get_bypass_constraints():
+        return {}
+
     def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.

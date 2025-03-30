@@ -204,7 +204,6 @@ class SimpleHeatExchanger(Component):
 
     def get_parameters(self):
         return {
-            'status': dc_simple(val="active"),
             'Q': dc_cp(
                 deriv=self.energy_balance_deriv,
                 latex=self.energy_balance_func_doc, num_eq=1,
@@ -255,22 +254,6 @@ class SimpleHeatExchanger(Component):
         super().preprocess(num_nw_vars)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
-
-    def get_bypass_constraints(self):
-        return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 1},
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
-        }
 
     def energy_balance_func(self):
         r"""

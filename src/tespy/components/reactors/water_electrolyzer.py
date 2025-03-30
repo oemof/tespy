@@ -247,6 +247,10 @@ class WaterElectrolyzer(Component):
         }
 
     @staticmethod
+    def get_bypass_constraints():
+        return {}
+
+    @staticmethod
     def inlets():
         return ['in1', 'in2']
 

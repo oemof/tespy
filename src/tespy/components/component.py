@@ -1006,10 +1006,9 @@ class Component:
         pr = self.get_attr(pr)
         i = self.inl[inconn]
         o = self.outl[outconn]
-        if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col] = pr.val
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
+
+        self._partial_derivative(i.p, k, pr.val)
+        self._partial_derivative(o.p, k, -1)
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
 

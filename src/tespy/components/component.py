@@ -30,6 +30,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _partial_derivative
+from tespy.tools.helpers import _partial_derivative2
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
@@ -502,6 +503,11 @@ class Component:
     def outlets():
         return []
 
+    def _partial_derivative2(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative2(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)
         if result is not None:
@@ -634,6 +640,9 @@ class Component:
                 return (
                     r'\frac{p_\mathrm{out,' + str(outconn + 1) +
                     r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
+
+    def _get_dependents(self, variable_list):
+        return set(var._reference_container for var in variable_list if var.is_var)
 
     def solve(self, increment_filter):
         """

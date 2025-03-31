@@ -389,12 +389,15 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        for i, o in zip(self.inl, self.outl):
-            self._partial_derivative(
-                i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
-            )
-            self._partial_derivative(i.h, k, -i.m.val_SI, increment_filter)
-            self._partial_derivative(o.h, k, i.m.val_SI, increment_filter)
+        dependents = self._get_dependents([self.inl[0].m,
+        self.inl[1].m,
+        self.inl[0].h,
+        self.inl[1].h,
+        self.outl[0].h,
+        self.outl[1].h])
+        f = self.energy_balance_func
+        for dependant in dependents:
+            self._partial_derivative2(dependant, k, f)
 
     def energy_balance_hot_func(self):
         r"""

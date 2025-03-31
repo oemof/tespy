@@ -179,7 +179,7 @@ class Drum(DropletSeparator):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,
+                'constant_deriv': False,
                 'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
@@ -222,18 +222,15 @@ class Drum(DropletSeparator):
                 0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
                 \forall i \in inlets, \forall j \in outlets
         """
-        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
-            return self.inl[0].m.val_SI - self.outl[1].m.val_SI
-        else:
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI
-            for o in self.outl:
-                res -= o.m.val_SI
+        res = 0
+        for i in self.inl:
+            res += i.m.val_SI
+        for o in self.outl:
+            res -= o.m.val_SI
 
-            return res
+        return res
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for mass flow equation.
 
@@ -242,15 +239,12 @@ class Drum(DropletSeparator):
         deriv : list
             Matrix with partial derivatives for the fluid equations.
         """
-        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
-            self._partial_derivative(self.inl[0].m, k, 1)
-            self._partial_derivative(self.outl[1].m, k, -1)
-
-        else:
-            for i in self.inl:
-                self._partial_derivative(i.m, k, 1)
-            for o in self.outl:
-                self._partial_derivative(o.m, k, -1)
+        dependents = self._get_dependents([
+            self.inl[0].m, self.inl[1].m, self.outl[0].m, self.outl[1].m
+        ])
+        f  = self.mass_flow_func
+        for dependant in dependents:
+            self._partial_derivative2(dependant, k, f)
 
     def energy_balance_func(self):
         r"""
@@ -267,19 +261,11 @@ class Drum(DropletSeparator):
                 \sum_j \left(\dot{m}_{out,j} \cdot h_{out,j} \right)\\
                 \forall i \in \text{inlets} \; \forall j \in \text{outlets}
         """
-        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
-            res = (
-                (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
-                * self.outl[0].m.val_SI
-                + (self.inl[0].h.val_SI - self.outl[1].h.val_SI)
-                * self.inl[0].m.val_SI
-            )
-        else:
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI * i.h.val_SI
-            for o in self.outl:
-                res -= o.m.val_SI * o.h.val_SI
+        res = 0
+        for i in self.inl:
+            res += i.m.val_SI * i.h.val_SI
+        for o in self.outl:
+            res -= o.m.val_SI * o.h.val_SI
 
         return res
 
@@ -295,21 +281,17 @@ class Drum(DropletSeparator):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        from tespy.tools.logger import logger
         # due to topology reduction this is the case quite often
-        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
-            self._partial_derivative(
-                self.outl[0].m, k, self.inl[1].h.val_SI - self.outl[0].h.val_SI
-            )
-            self._partial_derivative(self.inl[1].h, k, self.outl[0].m.val_SI)
-            self._partial_derivative(self.outl[0].h, k, -self.outl[0].m.val_SI)
-
-            self._partial_derivative(
-                self.inl[0].m, k, self.inl[0].h.val_SI - self.outl[1].h.val_SI
-            )
-            self._partial_derivative(self.inl[0].h, k, self.inl[0].m.val_SI)
-            self._partial_derivative(self.outl[1].h, k, -self.inl[0].m.val_SI)
-        else:
-            super().energy_balance_deriv(increment_filter, k)
+        dependents = self._get_dependents([
+            self.inl[0].m, self.inl[1].m, self.outl[0].m, self.outl[1].m,
+            self.inl[0].h, self.inl[1].h, self.outl[0].h, self.outl[1].h
+        ])
+        f  = self.energy_balance_func
+        for dependant in dependents:
+            logger.error(dependant)
+            self._partial_derivative2(dependant, k, f)
+        logger.error(self.jacobian)
 
     @staticmethod
     def initialise_target(c, key):

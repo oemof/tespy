@@ -400,6 +400,16 @@ def _partial_derivative(var, value, increment_filter, **kwargs):
         return None
 
 
+def _partial_derivative2(var, value, increment_filter, **kwargs):
+    if _is_variable(var, increment_filter):
+        if callable(value):
+            return _numeric_deriv2(var, value, **kwargs)
+        else:
+            return value
+    else:
+        return None
+
+
 def _numeric_deriv(variable, func, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
@@ -431,6 +441,41 @@ def _numeric_deriv(variable, func, **kwargs):
     deriv = exp / (2 * d)
 
     variable._reference_container.val_SI += d
+
+    return deriv
+
+
+def _numeric_deriv2(variable, func, **kwargs):
+    r"""
+    Calculate partial derivative of the function func to dx.
+
+    Parameters
+    ----------
+    variable : object
+        Variable container.
+
+    func : function
+        Function :math:`f` to calculate the partial derivative for.
+
+    Returns
+    -------
+    deriv : float/list
+        Partial derivative(s) of the function :math:`f` to variable(s)
+        :math:`x`.
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+    """
+    d = variable.d
+    variable.val_SI += d
+    exp = func(**kwargs)
+
+    variable.val_SI -= 2 * d
+    exp -= func(**kwargs)
+    deriv = exp / (2 * d)
+
+    variable.val_SI += d
 
     return deriv
 

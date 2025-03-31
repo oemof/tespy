@@ -167,7 +167,7 @@ class Component:
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
                     try:
-                        data.set_attr(is_var=False)
+                        data.set_attr(_is_var=False)
                     except KeyError:
                         pass
                     continue
@@ -186,12 +186,12 @@ class Component:
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
                     if is_numeric:
-                        data.set_attr(val=kwargs[key], is_set=True)
+                        data.set_attr(_val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
-                            data.set_attr(is_var=False)
+                            data.set_attr(_is_var=False)
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, is_var=True)
+                        data.set_attr(is_set=True, _is_var=True)
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
@@ -311,6 +311,18 @@ class Component:
         branch["components"] += [self]
 
         outconn.target.propagate_wrapper_to_target(branch)
+
+    def get_variables(self):
+        variables = {}
+        for key, data in self.parameters.items():
+            if isinstance(data, dc_cp):
+                if data.is_var:
+                    variables.update({key: data})
+                    data._potential_var = True
+                else:
+                    data._potential_var = False
+
+        return variables
 
     def _preprocess(self, row_idx):
         r"""
@@ -434,6 +446,8 @@ class Component:
         self.num_eq = 0
 
         self._update_num_eq()
+
+
 
         for key, value in self._equation_lookup.items():
             if key in system_dependencies:
@@ -642,7 +656,7 @@ class Component:
 
             sum_eq += num_eq
 
-        for data in self.user_imposed_equations.values():
+        for label, data in self.user_imposed_equations.items():
             self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                 **data.func_params
             )
@@ -1019,8 +1033,7 @@ class Component:
 
         if not pr.is_var:
             self._structure_matrix[k, i.p.sm_col] = pr.val
-
-        self._structure_matrix[k, o.p.sm_col] = -1
+            self._structure_matrix[k, o.p.sm_col] = -1
 
     def variable_equality_structure_matrix(self, k, **kwargs):
         variable = kwargs.get("variable")

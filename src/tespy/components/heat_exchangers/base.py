@@ -26,6 +26,7 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import convert_to_SI
+from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
@@ -1034,17 +1035,17 @@ class HeatExchanger(Component):
         if self.inl[0].m.is_var:
             if self.inl[0].m.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m, f, bus=bus)
 
         if self.inl[0].h.is_var:
             if self.inl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h, f, bus=bus)
 
         if self.outl[0].h.is_var:
             if self.outl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h, f, bus=bus)
 
     def initialise_source(self, c, key):
         r"""

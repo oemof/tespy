@@ -277,16 +277,11 @@ class UserDefinedEquation:
         >>> def myjacobian(ude):
         ...     c0 = ude.conns[0]
         ...     c1 = ude.conns[1]
-        ...     if c0.m.is_var:
-        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
-        ...     if c0.p.is_var:
-        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
-        ...     if c0.h.is_var:
-        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
-        ...     if c1.p.is_var:
-        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-        ...     if c1.h.is_var:
-        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
+        ...     ude._partial_derivative(c0.m)
+        ...     ude._partial_derivative(c0.p)
+        ...     ude._partial_derivative(c0.h)
+        ...     ude._partial_derivative(c1.p)
+        ...     ude._partial_derivative(c1.h)
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -376,18 +371,17 @@ class UserDefinedEquation:
     def solve(self):
         self.residual = self.func(self)
         self.deriv(self)
+        logger.error(self.jacobian)
 
     def get_structure_matrix(self):
         return
 
-    def numeric_deriv(self, dx, conn):
-        r"""
-        Calculate partial derivative of the user defined function to dx.
-
-        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
-        """
-        return _numeric_deriv(self, self.func, dx, conn, ude=self)
-
+    def _partial_derivative(self, var, value=None):
+        if value is None:
+            value = self.func
+        result = _partial_derivative(var, value, None, ude=self)
+        if result is not None:
+            self.jacobian[var.J_col] = result
 
 def _is_variable(var, increment_filter=None):
     if var.is_var:

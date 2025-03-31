@@ -197,7 +197,7 @@ class SolarCollector(SimpleHeatExchanger):
             'lkf_lin': dc_cp(min_val=0),
             'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq_sets=1, latex=self.energy_group_func_doc,
@@ -283,25 +283,18 @@ class SolarCollector(SimpleHeatExchanger):
         f = self.energy_group_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
+
         # custom variables for the energy-group
         for variable_name in self.energy_group.elements:
             parameter = self.get_attr(variable_name)
             if parameter == self.Tamb:
                 continue
-            if parameter.is_var:
-                self.jacobian[k, parameterJ_col()] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+            self._partial_derivative(parameter, k, f, increment_filter)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

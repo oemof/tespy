@@ -181,17 +181,15 @@ class Merge(NodeBase):
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_set]
         )
         self.all_fluids = variable_fluids | set_fluids
-        if len(variable_fluids) == 0:
-            num_eq = len(self.all_fluids)
-        else:
-            num_eq = len(variable_fluids)
-        self.constraints["fluid_constraints"].num_eq = num_eq
-
-        variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        if len(variable_fluids) == 0:
+        if len(variable_fluids) == 0 and len(set_fluids) == 0:
+            fluid_eq = 0
+            self.constraints["mass_flow_constraints"].num_eq = 1
+        elif len(variable_fluids) == 0:
+            fluid_eq = len(self.all_fluids)
             self.constraints["mass_flow_constraints"].num_eq = 0
+        else:
+            fluid_eq = len(variable_fluids)
+        self.constraints["fluid_constraints"].num_eq = fluid_eq
 
     def get_mandatory_constraints(self):
         return {

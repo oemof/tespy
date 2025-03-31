@@ -70,7 +70,7 @@ class DataContainer:
     <class 'tespy.tools.data_containers.ComponentCharacteristicMaps'>
     >>> type(ComponentCharacteristics(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.ComponentCharacteristics'>
-    >>> type(ComponentProperties(val=100, is_set=True, is_var=True,
+    >>> type(ComponentProperties(_val=100, is_set=True, _is_var=True,
     ...      max_val=1000, min_val=1))
     <class 'tespy.tools.data_containers.ComponentProperties'>
     >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
@@ -79,12 +79,12 @@ class DataContainer:
     ... ))
     <class 'tespy.tools.data_containers.GroupedComponentProperties'>
     >>> type(FluidComposition(
-    ... val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03}, is_set={'O2'}
+    ... _val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03}, _is_set={'O2'}
     ... ))
     <class 'tespy.tools.data_containers.FluidComposition'>
-    >>> type(FluidProperties(val=5, val_SI=500000, is_set=True, unit='bar'))
+    >>> type(FluidProperties(val=5, _val_SI=500000, is_set=True, unit='bar'))
     <class 'tespy.tools.data_containers.FluidProperties'>
-    >>> type(SimpleDataContainer(val=5, is_set=False))
+    >>> type(SimpleDataContainer(_val=5, is_set=False))
     <class 'tespy.tools.data_containers.SimpleDataContainer'>
     """
 
@@ -369,13 +369,13 @@ class ComponentProperties(DataContainer):
             values.
         """
         return {
-            'val': 1,
+            '_val': 1,
             'val_SI': 0,
             'is_set': False,
             'd': 1e-4,
             'min_val': -1e12,
             'max_val': 1e12,
-            'is_var': False,
+            '_is_var': False,
             'design': np.nan,
             'is_result': False,
             'num_eq_sets': 0,
@@ -384,7 +384,10 @@ class ComponentProperties(DataContainer):
             'func': None,
             'deriv': None,
             'latex': None,
-            'structure_matrix': None
+            'structure_matrix': None,
+            '_reference_container': None,
+            '_factor': None,
+            '_offset': None
         }
 
     def _serialize(self):
@@ -394,7 +397,7 @@ class ComponentProperties(DataContainer):
     @staticmethod
     def _serializable_keys():
         return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
+            "_val", "val_SI", "is_set", "d", "min_val", "max_val", "_is_var",
         ]
 
     def get_num_eq(self):
@@ -406,8 +409,61 @@ class ComponentProperties(DataContainer):
     def set_num_eq(self, value):
         self._num_eq = value
 
-    num_eq = property(get_num_eq, set_num_eq)
+    def get_J_col(self):
+        reference = self._reference_container
+        if reference:
+            return reference.J_col
+        else:
+            raise ValueError("")
 
+    def get_reference_val_SI(self):
+        """Get value of the reference corresponding to own value
+
+        Returns
+        -------
+        float
+            Value of reference container corresponding to this data container's
+            value.
+        """
+        return (self._val - self._offset) / self._factor
+
+    def set_reference_val_SI(self, value):
+        if self._reference_container is not None:
+            self._reference_container.val_SI = (value - self._offset) / self._factor
+        else:
+            raise ValueError()
+
+    def get_J_col(self):
+        if self._reference_container is not None:
+            return self._reference_container.J_col
+        else:
+            raise ValueError()
+
+    def get_val_SI(self):
+        if self._reference_container is not None:
+            return self._reference_container.val_SI * self._factor + self._offset
+        else:
+            return float(self._val)
+
+    def set_val_SI(self, value):
+        self._val = value
+
+    def get_is_var(self):
+        if self._reference_container is not None:
+            return self._reference_container.is_var
+        else:
+            return self._is_var
+
+    def set_is_var(self, value):
+        if self._reference_container is not None:
+            self._reference_container.is_var = value
+        else:
+            raise ValueError()
+
+    num_eq = property(get_num_eq, set_num_eq)
+    val = property(get_val_SI, set_val_SI)
+    J_col = property(get_J_col)
+    is_var = property(get_is_var, set_is_var)
 
 class GroupedComponentProperties(DataContainer):
     """
@@ -518,7 +574,8 @@ class FluidProperties(DataContainer):
             "val": np.nan,
             "val0": np.nan,
             "_val_SI": 0,
-            "_unit": None,
+            "d": 1e-1,
+            "unit": None,
             "is_set": False,
             "_potential_var": False,
             "func": None,
@@ -534,7 +591,7 @@ class FluidProperties(DataContainer):
         }
 
     def _serialize(self):
-        keys = ["_val", "_val0", "_val_SI", "_is_set", "_unit"]
+        keys = ["val", "val0", "_val_SI", "is_set", "unit"]
         return {k: self.get_attr(k) for k in keys}
 
     def get_reference_val_SI(self):
@@ -603,7 +660,9 @@ class ScalarVariable(DataContainer):
             "_val_SI": 0,
             "_is_var": True,
             "_J_col": None,
-            "_d": 1e-4
+            "_d": 1e-4,
+            "min_val": None,
+            "max_val": None
         }
 
     def get_val_SI(self):
@@ -680,6 +739,7 @@ class FluidComposition(DataContainer):
         return {
             '_val': dict(),
             'val0': dict(),
+            'd': 1e-5,
             '_is_set': set(),
             'design': dict(),
             'wrapper': dict(),
@@ -693,8 +753,8 @@ class FluidComposition(DataContainer):
         }
 
     def _serialize(self):
-        export = {"val": self.val}
-        export["is_set"] = list(self.is_set)
+        export = {"_val": self.val}
+        export["_is_set"] = list(self.is_set)
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
         export["back_end"] = {k: b for k, b in self.back_end.items()}
         return export
@@ -884,7 +944,7 @@ class SimpleDataContainer(DataContainer):
             values.
         """
         return {
-            "val": np.nan,
+            "_val": np.nan,
             "is_set": False,
             "func_params": {},
             "func": None,
@@ -897,7 +957,7 @@ class SimpleDataContainer(DataContainer):
         }
 
     def _serialize(self):
-        return {"val": self.val, "is_set": self.is_set}
+        return {"_val": self.val, "is_set": self.is_set}
 
     def get_num_eq(self):
         if self._num_eq is None:
@@ -908,4 +968,11 @@ class SimpleDataContainer(DataContainer):
     def set_num_eq(self, value):
         self._num_eq = value
 
+    def get_val(self):
+        return self._val
+
+    def set_val(self, value):
+        self._val = value
+
     num_eq = property(get_num_eq, set_num_eq)
+    val = property(get_val, set_val)

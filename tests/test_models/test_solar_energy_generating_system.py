@@ -199,7 +199,7 @@ class TestSEGS:
         c66 = Connection(ct, 'out2', air_out, 'in1', label='66')
 
         # parabolic trough cycle
-        c70 = Connection(pt, 'out1', closer_pt, 'in1', label='67')
+        c70 = Connection(pt, 'out1', closer_pt, 'in1', label='70')
         c71 = Connection(closer_pt, 'out1', sp7, 'in1', label='71')
         c72 = Connection(sp7, 'out1', sup, 'in1', label='72')
         c75 = Connection(eco, 'out1', m5, 'in1', label='75')

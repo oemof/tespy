@@ -27,6 +27,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import convert_to_SI
+from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
@@ -232,11 +233,11 @@ class SimpleHeatExchanger(Component):
             ),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
-            'ks_HW': dc_cp(val=10, min_val=1e-1, max_val=1e3, d=1e-2),
+            'ks': dc_cp(_val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+            'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3, d=1e-2),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
-            'dissipative': dc_simple(val=None),
+            'dissipative': dc_simple(_val=None),
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
                 latex=self.darcy_func_doc,
@@ -358,7 +359,6 @@ class SimpleHeatExchanger(Component):
         visc_o = o.calc_viscosity(T0=o.T.val_SI)
         v_i = i.calc_vol(T0=i.T.val_SI)
         v_o = o.calc_vol(T0=o.T.val_SI)
-
         Re = 4 * abs(i.m.val_SI) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
 
         return (
@@ -782,17 +782,17 @@ class SimpleHeatExchanger(Component):
         if self.inl[0].m.is_var:
             if self.inl[0].m.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m, f, bus=bus)
 
         if self.inl[0].h.is_var:
             if self.inl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h, f, bus=bus)
 
         if self.outl[0].h.is_var:
             if self.outl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h, f, bus=bus)
 
     def initialise_source(self, c, key):
         r"""

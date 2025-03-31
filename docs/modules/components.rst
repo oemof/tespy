@@ -97,9 +97,9 @@ evaporator and how to unset the parameter again.
     >>> # specify the value
     >>> he.set_attr(kA=1e5)
     >>> # specify via dictionary
-    >>> he.set_attr(kA={'val': 1e5, 'is_set': True})
+    >>> he.set_attr(kA={'_val': 1e5, 'is_set': True})
     >>> # set data container parameters
-    >>> he.kA.set_attr(val=1e5, is_set=True)
+    >>> he.kA.set_attr(_val=1e5, is_set=True)
     >>> he.kA.is_set
     True
 
@@ -202,7 +202,7 @@ diameter the following way.
     >>> # val will be used as starting value
     >>> my_pipe.darcy_group.is_set = False
     >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
-    >>> my_pipe.set_attr(D={'val': 0.2, 'is_set': True, 'is_var': True})
+    >>> my_pipe.set_attr(D={'_val': 0.2, 'is_set': True, '_is_var': True})
     >>> nw.solve("design", init_only=True)
     >>> my_pipe.darcy_group.is_set
     True
@@ -217,7 +217,7 @@ specified range.
     >>> # data container specification with identical result,
     >>> # benefit: specification of bounds will increase stability
     >>> my_pipe.set_attr(D={
-    ...     'val': 0.2, 'is_set': True, 'is_var': True,
+    ...     '_val': 0.2, 'is_set': True, '_is_var': True,
     ...     'min_val': 0.1, 'max_val': 0.3}
     ... )
     >>> round(my_pipe.D.max_val, 1)
@@ -890,16 +890,17 @@ different tespy classes required.
     >>> nw.add_subsys(sg)
 
     >>> # %% connection parameters
-    >>> fw_sg.set_attr(fluid={'water': 1}, T=25)
+    >>> fw_sg.set_attr(fluid={'water': 1}, T=25, m0=15)
     >>> fg_sg.set_attr(fluid={'air': 1}, T=650, m=100)
-    >>> sg_ls.set_attr(p=130)
+    >>> sg_ls.set_attr(p=130, T=600, design=['T'])
     >>> sg_ch.set_attr(p=1)
+    >>> sg.conns['eva_eco'].set_attr()
 
     >>> sg.conns['eva_dr'].set_attr(x=0.6)
 
     >>> # %% component parameters
     >>> sg.comps['eco'].set_attr(
-    ...     pr1=0.999,  pr2=0.97, design=['pr1', 'pr2', 'ttd_u'],
+    ...     pr1=0.999,  pr2=0.97, design=['pr1', 'pr2'],
     ...     offdesign=['zeta1', 'zeta2', 'kA_char']
     ... )
 
@@ -909,7 +910,7 @@ different tespy classes required.
     ... )
 
     >>> sg.comps['sup'].set_attr(
-    ...     pr1=0.999,  pr2=0.99, ttd_u=50, design=['pr1', 'pr2', 'ttd_u'],
+    ...     pr1=0.999,  pr2=0.99, design=['pr1', 'pr2'],
     ...     offdesign=['zeta1', 'zeta2', 'kA_char']
     ... )
 
@@ -918,6 +919,7 @@ different tespy classes required.
     >>> # %% solve
     >>> # solve design case
     >>> nw.solve('design')
+    >>> nw._convergence_check()
     >>> nw.save('tmp')
 
     >>> # offdesign test

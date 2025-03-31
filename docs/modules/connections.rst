@@ -97,7 +97,7 @@ If you want to specify the fluid vector you can do it in the following way.
     >>> myconn.set_attr(fluid={'water': 1})
 
     # same thing, but using data container
-    >>> myconn.fluid.set_attr(val={'water': 1}, is_set={'water'})
+    >>> myconn.fluid.set_attr(_val={'water': 1}, _is_set={'water'})
     >>> myconn.fluid.is_set
     {'water'}
 

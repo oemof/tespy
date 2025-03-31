@@ -247,7 +247,7 @@ class Condenser(HeatExchanger):
         params = super().get_parameters()
         params.update({
             'subcooling': dc_simple(
-                val=False, num_eq_sets=1, latex=self.subcooling_func_doc,
+                _val=False, num_eq_sets=1, latex=self.subcooling_func_doc,
                 deriv=self.subcooling_deriv, func=self.subcooling_func)
         })
         return params

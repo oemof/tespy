@@ -243,18 +243,14 @@ class Drum(DropletSeparator):
             Matrix with partial derivatives for the fluid equations.
         """
         if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
-            if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = 1
-            if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col] = -1
+            self._partial_derivative(self.inl[0].m, k, 1)
+            self._partial_derivative(self.outl[1].m, k, -1)
 
         else:
             for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = 1
+                self._partial_derivative(i.m, k, 1)
             for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -1
+                self._partial_derivative(o.m, k, -1)
 
     def energy_balance_func(self):
         r"""
@@ -271,7 +267,7 @@ class Drum(DropletSeparator):
                 \sum_j \left(\dot{m}_{out,j} \cdot h_{out,j} \right)\\
                 \forall i \in \text{inlets} \; \forall j \in \text{outlets}
         """
-        if self.inl[1].m == self.outl[0].m:
+        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
             res = (
                 (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
                 * self.outl[0].m.val_SI
@@ -300,20 +296,18 @@ class Drum(DropletSeparator):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         # due to topology reduction this is the case quite often
-        if self.inl[1].m == self.outl[0].m:
-            if self.outl[0].m.is_var:
-                self.jacobian[k, self.outl[0].m.J_col] = (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
-            if self.inl[1].h.is_var:
-                self.jacobian[k, self.inl[1].h.J_col] = self.outl[0].m.val_SI
-            if self.outl[0].h.is_var:
-                self.jacobian[k, self.outl[0].h.J_col] = -self.outl[0].m.val_SI
+        if self.inl[1].m._reference_container == self.outl[0].m._reference_container:
+            self._partial_derivative(
+                self.outl[0].m, k, self.inl[1].h.val_SI - self.outl[0].h.val_SI
+            )
+            self._partial_derivative(self.inl[1].h, k, self.outl[0].m.val_SI)
+            self._partial_derivative(self.outl[0].h, k, -self.outl[0].m.val_SI)
 
-            if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = self.inl[0].h.val_SI - self.outl[1].h.val_SI
-            if self.inl[0].h.is_var:
-                self.jacobian[k, self.inl[0].h.J_col] = self.inl[0].m.val_SI
-            if self.outl[1].h.is_var:
-                self.jacobian[k, self.outl[1].h.J_col] = -self.outl[1].m.val_SI
+            self._partial_derivative(
+                self.inl[0].m, k, self.inl[0].h.val_SI - self.outl[1].h.val_SI
+            )
+            self._partial_derivative(self.inl[0].h, k, self.inl[0].m.val_SI)
+            self._partial_derivative(self.outl[1].h, k, -self.inl[0].m.val_SI)
         else:
             super().energy_balance_deriv(increment_filter, k)
 

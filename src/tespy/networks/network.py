@@ -725,12 +725,22 @@ class Network:
                     "object": conn, "property": prop
                 }
 
+            # fluid is handled separately
             container = conn.fluid
             container.sm_col = num_vars
             self._variable_lookup[container.sm_col] = {
                 "object": conn, "property": "fluid"
             }
             num_vars += 1
+
+        for comp in self.comps["object"]:
+            for prop, container in comp.get_variables().items():
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": comp, "property": prop
+                }
 
         # not sure if useful. In principle component variables should also be
         # part of the structure matrix in order to presolve them. There should
@@ -746,11 +756,6 @@ class Network:
 
         for cp in self.comps["object"]:
             cp._preprocess(sum_eq)
-
-            # see comment on sm_col above
-            for var in cp.vars:
-                var.sm_col = num_vars
-                num_vars += 1
 
             self._structure_matrix.update(cp._structure_matrix)
             self._rhs.update(cp._rhs)
@@ -779,18 +784,24 @@ class Network:
             reference_variable = self._variable_lookup[
                 linear_dependents["reference"]
             ]
-            d = {
-                "h": 1e-1,
-                "p": 1e-1,
-                "m": 1e-4,
-                "fluid": 1e-5
-            }[reference_variable["property"]]
+            reference = reference_variable["object"].get_attr(
+                reference_variable["property"]
+            )
+            d = reference.d
+            if hasattr(reference, "min_val"):
+                min_val = reference.min_val
+                max_val = reference.max_val
+            else:
+                min_val = None
+                max_val = None
 
             if reference_variable["property"] != "fluid":
                 DataContainer = dc_scavar
                 reference_container = DataContainer(
                     _is_var=True,
-                    _d=d
+                    _d=d,
+                    min_val=min_val,
+                    max_val=max_val,
                 )
             else:
                 DataContainer = dc_vecvar
@@ -819,6 +830,11 @@ class Network:
                 container._reference_container = reference_container
                 container._factor = linear_dependents["factors"][variable]
                 container._offset = linear_dependents["offsets"][variable]
+
+        for conn in self.conns["object"]:
+            for prop, container in conn.get_variables().items():
+                if conn.get_attr(prop).is_set:
+                    conn.get_attr(prop).set_reference_val_SI(conn.get_attr(prop)._val_SI)
 
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
         edges_with_factors = []
@@ -1198,7 +1214,7 @@ class Network:
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
             any_fluids = [f for c in all_connections for f in c.fluid.val]
-            any_fluids0 = [f for c in all_connections for f in c.fluid.val]
+            any_fluids0 = [f for c in all_connections for f in c.fluid.val0]
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             num_potential_fluids = len(potential_fluids)
@@ -1251,6 +1267,7 @@ class Network:
             reference_conn = all_connections[0]
 
             fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
+            fluid0 = {f: value for c in all_connections for f, value in c.fluid.val0.items()}
             if len(fluid_specs) == 0:
 
                 if len(reference_conn._potential_fluids) > 1:
@@ -1261,6 +1278,9 @@ class Network:
                         f: 1 / len(reference_container.is_var)
                         for f in reference_container.is_var
                     }
+                    # load up specification of starting values if any are
+                    # available
+                    reference_container.val.update(fluid0)
                 else:
                     reference_container.val[
                         list(reference_conn._potential_fluids)[0]
@@ -1587,11 +1607,11 @@ class Network:
                     )
 
             # count number of component equations and variables
-            i = self.num_conn_vars + self.num_comp_vars
-            for container, name in cp.vars.items():
-                self.variables_dict[i] = {"obj": container, "variable": name}
-                i += 1
-            self.num_comp_vars += cp.num_vars
+            # i = self.num_conn_vars + self.num_comp_vars
+            # for container, name in cp.vars.items():
+            #     self.variables_dict[i] = {"obj": container, "variable": name}
+            #     i += 1
+            # self.num_comp_vars += cp.num_vars
             self.num_comp_eq += cp.num_eq
 
         for b in self.busses.values():
@@ -1609,11 +1629,6 @@ class Network:
                 self._variable_lookup[var]["object"].get_attr(
                     self._variable_lookup[var]["property"]
                 ) for var in linear_dependents["variables"]
-            ]
-
-            properties = [
-                self._variable_lookup[var]["property"]
-                for var in linear_dependents["variables"]
             ]
 
             number_specifications = sum(
@@ -1636,11 +1651,6 @@ class Network:
                     reference_data["property"]
                 )._reference_container
                 reference_container.is_var = False
-                specification = [
-                    c for c in all_containers if not c._potential_var
-                ][0]
-                reference_container.val_SI = specification.get_reference_val_SI()
-
 
     def init_offdesign_params(self):
         r"""
@@ -1864,6 +1874,7 @@ class Network:
                     param = c.get_attr(var)
                     param.is_set = True
                     param.val_SI = param.design
+                    param.val = hlp.convert_from_SI(var, param.val_SI, param.unit)
 
                 c.new_design = False
 
@@ -1938,6 +1949,11 @@ class Network:
 
             self.init_count_connections_parameters(c)
 
+        for cp in self.comps["object"]:
+            for key, variable in cp.get_variables().items():
+                if variable.is_var:
+                    variable._reference_container.val_SI = variable.get_reference_val_SI()
+
         for c in self.conns['object']:
             if not c.good_starting_values:
                 self.init_precalc_properties(c)
@@ -1958,8 +1974,6 @@ class Network:
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.set_reference_val_SI(h * 0.999)
-
-
 
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
@@ -2516,13 +2530,13 @@ class Network:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
-                data["obj"].val += increment[data["obj"].J_col]
+                data["obj"]._val_SI += increment[data["obj"].J_col] * relax
 
                 # keep value within specified value range
-                if data["obj"].val < data["obj"].min_val:
-                    data["obj"].val = data["obj"].min_val
-                elif data["obj"].val > data["obj"].max_val:
-                    data["obj"].val = data["obj"].max_val
+                if data["obj"].val_SI < data["obj"].min_val:
+                    data["obj"].val_SI = data["obj"].min_val
+                elif data["obj"].val_SI > data["obj"].max_val:
+                    data["obj"].val_SI = data["obj"].max_val
 
     def check_variable_bounds(self):
 
@@ -2700,12 +2714,27 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
+        self.unload_variables()
         self.process_connections()
         self.process_components()
         self.process_busses()
 
         msg = 'Postprocessing complete.'
         logger.info(msg)
+
+    def unload_variables(self):
+        for dependents in self._variable_dependencies:
+            for variable_num in dependents["variables"]:
+                variable_dict = self._variable_lookup[variable_num]
+                variable = variable_dict["object"].get_attr(variable_dict["property"])
+                if variable_dict["property"] != "fluid":
+                    if isinstance(variable, dc_cp):
+                        variable.val = variable.val
+                    else:
+                        variable.val_SI = variable.val_SI
+                else:
+                    variable.val = variable.val
+                variable._reference_container = None
 
     def process_connections(self):
         """Process the Connection results."""

@@ -143,6 +143,8 @@ class Compressor(Turbomachine):
     >>> nw.save('tmp')
     >>> round(comp.P.val, 0)
     12772.0
+    >>> round(comp.eta_s.val, 2)
+    0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='tmp')
@@ -177,7 +179,7 @@ class Compressor(Turbomachine):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'}
             ),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, _val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
@@ -333,16 +335,11 @@ class Compressor(Turbomachine):
         f = self.eta_s_char_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
 
     def char_map_pr_func(self):
         r"""
@@ -432,21 +429,13 @@ class Compressor(Turbomachine):
         f = self.char_map_pr_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = 1 / i.p.val_SI
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
 
-        if self.igva.is_var:
-            self.jacobian[k, self.igvaJ_col()] = self.numeric_deriv(
-                f, 'igva', None
-            )
+        self._partial_derivative(self.igva, k, f, increment_filter)
 
     def char_map_eta_s_func(self):
         r"""
@@ -546,21 +535,13 @@ class Compressor(Turbomachine):
         f = self.char_map_eta_s_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+        self._partial_derivative(i.m, k, f, increment_filter)
+        self._partial_derivative(i.p, k, f, increment_filter)
+        self._partial_derivative(i.h, k, f, increment_filter)
+        self._partial_derivative(o.p, k, f, increment_filter)
+        self._partial_derivative(o.h, k, f, increment_filter)
 
-        if self.igva.is_var:
-            self.jacobian[k, self.igvaJ_col()] = self.numeric_deriv(
-                f, 'igva', None
-            )
+        self._partial_derivative(self.igva, k, f, increment_filter)
 
     def convergence_check(self):
         r"""

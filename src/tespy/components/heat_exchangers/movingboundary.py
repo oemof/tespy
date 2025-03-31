@@ -557,8 +557,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             self._partial_derivative(c.p, k, f, increment_filter)
             self._partial_derivative(c.h, k, f, increment_filter)
 
-        logger.error(f"{self.jacobian}")
-
     def calc_parameters(self):
         super().calc_parameters()
         self.UA.val = self.calc_UA()

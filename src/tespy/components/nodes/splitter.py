@@ -131,19 +131,19 @@ class Splitter(NodeBase):
                 'deriv': self.mass_flow_deriv,
                 'constant_deriv': True,
                 'latex': self.mass_flow_func_doc,
-                'num_eq': 1
+                'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
-                'num_eq': self.num_o
+                'num_eq_sets': self.num_o
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq': self.num_o
+                'num_eq_sets': self.num_o
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq': self.num_o
+                'num_eq_sets': self.num_o
             })
         }
 

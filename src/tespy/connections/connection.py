@@ -411,7 +411,7 @@ class Connection:
 
             elif key == 'state':
                 if kwargs[key] in ['l', 'g']:
-                    self.state.set_attr(val=kwargs[key], is_set=True)
+                    self.state.set_attr(_val=kwargs[key], is_set=True)
                 elif kwargs[key] is None:
                     self.state.set_attr(is_set=False)
                 else:
@@ -646,7 +646,7 @@ class Connection:
         presolved_equations = []
         if self.h.is_var and not self.p.is_var:
             if self.T.is_set:
-                self.h.val_SI = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
+                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "T" in self._equation_lookup.values():
                     presolved_equations += ["T"]
@@ -655,7 +655,7 @@ class Connection:
 
             elif self.Td_bp.is_set:
                 T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
-                self.h.val_SI = h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val_SI, self.fluid_data)
+                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "Td_bp" in self._equation_lookup.values():
                     presolved_equations += ["Td_bp"]
@@ -663,7 +663,7 @@ class Connection:
                 logger.info(msg)
 
             elif self.x.is_set:
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "x" in self._equation_lookup.values():
                     presolved_equations += ["x"]
@@ -672,9 +672,9 @@ class Connection:
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
-                self.p.val_SI = p_sat_T(self.T.val_SI, self.fluid_data)
+                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI, self.fluid_data))
                 self.p._potential_var = False
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "T" in self._equation_lookup.values():
                     presolved_equations += ["T"]
@@ -684,9 +684,9 @@ class Connection:
                 logger.info(msg)
 
             if self.T.is_set and self.Td_bp.is_set:
-                self.p.val_SI = p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data)
+                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data))
                 self.p._potential_var = False
-                self.h.val_SI = h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "T" in self._equation_lookup.values():
                     presolved_equations += ["T"]
@@ -694,7 +694,6 @@ class Connection:
                     presolved_equations += ["Td_bp"]
                 msg = f"Determined h and p by known T and Td_bp at {self.label}."
                 logger.info(msg)
-
 
         presolved_equations = [
             key for parameter in presolved_equations
@@ -726,15 +725,15 @@ class Connection:
 
     def get_parameters(self):
         return {
-            "m": dc_prop(),
-            "p": dc_prop(),
-            "h": dc_prop(),
+            "m": dc_prop(d=1e-4),
+            "p": dc_prop(d=1e-1),
+            "h": dc_prop(d=1e-1),
             "vol": dc_prop(),
             "s": dc_prop(),
-            "fluid": dc_flu(),
+            "fluid": dc_flu(d=1e-5),
             "fluid_balance": dc_simple(
                 func=self.fluid_balance_func, deriv=self.fluid_balance_deriv,
-                val=False, num_eq=1
+                _val=False, num_eq_sets=1
             ),
             "T": dc_prop(func=self.T_func, deriv=self.T_deriv, num_eq=1),
             "v": dc_prop(func=self.v_func, deriv=self.v_deriv, num_eq=1),
@@ -977,14 +976,6 @@ class Connection:
             data.deriv(k, **data.func_params)
 
     def calc_results(self):
-        for variable in self.get_variables().values():
-            # this gets from the reference container value and sets on the internal value
-            variable.val_SI = variable.val_SI
-            variable._reference_container = None
-
-        self.fluid.val = self.fluid.val
-        self.fluid._reference_container = None
-
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
         _converged = True
@@ -1100,6 +1091,8 @@ class Connection:
 
     def check_two_phase_bounds(self, fluid):
 
+        if self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+            self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
         if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.h.val_SI < h:

@@ -239,7 +239,7 @@ class ParabolicTrough(SimpleHeatExchanger):
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',

@@ -189,7 +189,7 @@ class Bus:
         ).astype(dtypes)
 
         self.label = label
-        self.P = dc_simple(val=np.nan, is_set=False)
+        self.P = dc_simple(_val=np.nan, is_set=False)
         self.char = CharLine(x=np.array([0, 3]), y=np.array([1, 1]))
         self.printout = True
         self.jacobian = {}
@@ -231,7 +231,7 @@ class Bus:
                     if np.isnan(kwargs[key]):
                         self.P.set_attr(is_set=False)
                     else:
-                        self.P.set_attr(val=kwargs[key], is_set=True)
+                        self.P.set_attr(_val=kwargs[key], is_set=True)
                 elif kwargs[key] is None:
                     self.P.set_attr(is_set=False)
                 else:

@@ -20,6 +20,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -198,6 +199,11 @@ class WaterElectrolyzer(Component):
                 max_val=1, num_eq=1,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'zeta': dc_cp(
                 min_val=0, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -270,6 +276,9 @@ class WaterElectrolyzer(Component):
         self.e0 = self.calc_e0()
 
         super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def calc_e0(self):
         r"""
@@ -1161,6 +1170,8 @@ class WaterElectrolyzer(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
         self.e.val = self.P.val / self.outl[2].m.val_SI
         self.eta.val = self.e0 / self.e.val
 

@@ -212,6 +212,11 @@ class SimpleHeatExchanger(Component):
                 min_val=1e-4, max_val=1, num_eq=1,
                 deriv=self.pr_deriv, latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr'}),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -254,6 +259,9 @@ class SimpleHeatExchanger(Component):
         super().preprocess(num_nw_vars)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def energy_balance_func(self):
         r"""
@@ -889,6 +897,8 @@ class SimpleHeatExchanger(Component):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:

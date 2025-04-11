@@ -7,6 +7,12 @@ New Features
   components, that do feature the pressure ratio :code:`pr` parameter
   (`PR #628 <https://github.com/oemof/tespy/pull/628>`__).
 
+  .. attention::
+
+    Please note, that the :code:`dp` parameter follows the network unit
+    specification for pressure. If your network unit is :code:`bar`, then the
+    pressure drop will also use bar as unit.
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

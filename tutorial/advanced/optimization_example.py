@@ -129,7 +129,7 @@ class SamplePlant:
         # parametrization
         # components
         self.nw.solve("design")
-        self.stable = "_stable"
+        self.stable = "_stable.json"
         self.nw.save(self.stable)
         self.solved = True
         self.nw.print_results()

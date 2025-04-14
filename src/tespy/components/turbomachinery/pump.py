@@ -138,7 +138,7 @@ class Pump(Turbomachine):
     ... design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(pu.pr.val, 0)
     7.0
     >>> round(outg.p.val - inc.p.val, 0)
@@ -146,7 +146,7 @@ class Pump(Turbomachine):
     >>> round(pu.P.val, 0)
     1125.0
     >>> outg.set_attr(p=12)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(pu.eta_s.val, 2)
     0.71
     >>> round(inc.v.val, 1)

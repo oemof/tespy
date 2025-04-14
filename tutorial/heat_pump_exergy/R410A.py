@@ -136,7 +136,7 @@ cd.set_attr(Q=-4e3)
 
 # %% design calculation
 
-path = 'R410A'
+path = 'R410A.json'
 nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path=path)

@@ -118,6 +118,7 @@ class TestNetworks:
 
     def test_Network_missing_connection_in_init_path(self, tmp_path):
         """Test debug message for missing connection in init_path."""
+        tmp_path = f"{tmp_path}.json"
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
@@ -138,53 +139,43 @@ class TestNetworks:
 
     def test_Network_reader_checked(self, tmp_path):
         """Test state of network if loaded successfully from export."""
+        tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
-        imported_nwk = load_network(tmp_path)
+        imported_nwk = Network.from_json(tmp_path)
         imported_nwk.solve('design', init_only=True)
-        msg = ('If the network import was successful the network check '
-               'should have been successful, too, but it is not.')
-        assert imported_nwk.checked, msg
-
-    def test_Network_reader_superflouus_files(self, tmp_path):
-        """Test state of network if loaded successfully from export."""
-        a = Connection(self.source, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a)
-        a.set_attr(fluid={"H2O": 1})
-        self.nw.solve('design', init_only=True)
-        self.nw.export(tmp_path)
-        with open(os.path.join(tmp_path, "components", "test.csv"), "w") as f:
-            f.write("nothing to see here")
-
-        imported_nwk = load_network(tmp_path)
-        imported_nwk.solve('design', init_only=True)
-        msg = ('If the network import was successful the network check '
-               'should have been successful, too, but it is not.')
+        msg = (
+            'If the network import was successful the network check '
+            'should have been successful, too, but it is not.'
+        )
         assert imported_nwk.checked, msg
 
     def test_Network_reader_unknown_component_class(self, tmp_path):
-        """Test state of network if loaded successfully from export."""
+        """Test notsupported component."""
+        tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         a.set_attr(fluid={"H2O": 1})
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
-        with open(os.path.join(tmp_path, "components", "Test.json"), "w") as f:
-            json.dump({}, f)
 
-        imported_nwk = load_network(tmp_path)
-        imported_nwk.solve('design', init_only=True)
-        msg = ('If the network import was successful the network check '
-               'should have been successful, too, but it is not.')
-        assert imported_nwk.checked, msg
+        with open(tmp_path, "r") as f:
+            data = json.load(f)
 
-    def test_Network_missing_data_in_design_case_files(self, tmp_path_factory):
+        data["Component"]["TestComponent"] = {}
+
+        with open(tmp_path, "w") as f:
+            json.dump(data, f)
+
+        with raises(TESPyNetworkError):
+            Network.from_json(tmp_path)
+
+    def test_Network_missing_component_data_in_design_case_files(self, tmp_path):
         """Test for missing data in design case files."""
-        tmp_path = tmp_path_factory.mktemp("tmp")
-        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        tmp_path = f"{tmp_path}.json"
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1')
         a.set_attr(m=1, p=1, T=20, fluid={'water': 1})
@@ -192,24 +183,21 @@ class TestNetworks:
         self.nw.add_conns(a, b)
         self.nw.solve('design')
         self.nw.save(tmp_path)
-        self.nw.save(tmp_path2)
 
-        path = os.path.join(tmp_path, "connections.csv")
-        inputs = open(path)
-        all_lines = inputs.readlines()
-        all_lines.pop(len(all_lines) - 1)
-        inputs.close()
+        with open(tmp_path, "r") as f:
+            data = json.load(f)
 
-        with open(os.path.join(tmp_path2, 'connections.csv'), 'w') as out:
-            for line in all_lines:
-                out.write(line.strip() + '\n')
+        data["Component"]["Pipe"] = {}
 
-        self.offdesign_TESPyNetworkError(design_path=tmp_path2, init_only=True)
+        with open(tmp_path, "w") as f:
+            json.dump(data, f)
 
-    def test_Network_missing_data_in_individual_design_case_file(self, tmp_path_factory):
+        self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
+
+    def test_Network_missing_data_in_individual_design_case_file(self, tmp_path):
         """Test for missing data in individual design case files."""
-        tmp_path = tmp_path_factory.mktemp("tmp")
-        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        tmp_path = f"{tmp_path}1.json"
+        tmp_path2 = f"{tmp_path}2.json"
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1')
         a.set_attr(m=1, p=1, T=293.15, fluid={'water': 1})
@@ -218,22 +206,20 @@ class TestNetworks:
         self.nw.add_conns(a, b)
         self.nw.solve('design')
         self.nw.save(tmp_path)
-        self.nw.save(tmp_path2)
 
-        path = os.path.join(tmp_path, "connections.csv")
-        inputs = open(path)
-        all_lines = inputs.readlines()
-        all_lines.pop(len(all_lines) - 1)
-        inputs.close()
+        with open(tmp_path, "r") as f:
+            data = json.load(f)
 
-        with open(os.path.join(tmp_path2, 'connections.csv'), 'w') as out:
-            for line in all_lines:
-                out.write(line.strip() + '\n')
+        data["Connection"] = {}
+
+        with open(tmp_path2, "w") as f:
+            json.dump(data, f)
 
         self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
 
     def test_Network_missing_connection_in_design_path(self, tmp_path):
         """Test for missing connection data in design case files."""
+        tmp_path = f"{tmp_path}.json"
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
@@ -244,15 +230,13 @@ class TestNetworks:
         self.nw.solve('design')
         self.nw.save(tmp_path)
 
-        path = os.path.join(tmp_path, "connections.csv")
-        inputs = open(path)
-        all_lines = inputs.readlines()
-        all_lines.pop(len(all_lines) - 1)
-        inputs.close()
+        with open(tmp_path, "r") as f:
+            data = json.load(f)
 
-        with open(path, 'w') as out:
-            for line in all_lines:
-                out.write(line.strip() + '\n')
+        data["Connection"] = {}
+
+        with open(tmp_path, "w") as f:
+            json.dump(data, f)
 
         self.offdesign_TESPyNetworkError(design_path=tmp_path)
 
@@ -324,13 +308,15 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2 = Connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
         v2_me = Connection(v2, 'out1', me, 'in2')
 
-        self.nw.add_conns(inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
-                          v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me)
+        self.nw.add_conns(
+            inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
+            v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me
+        )
 
-    def test_individual_design_path_on_connections_and_components(self, tmp_path_factory):
+    def test_individual_design_path_on_connections_and_components(self, tmp_path):
         """Test individual design path specification."""
-        tmp_path1 = tmp_path_factory.mktemp("tmp1")
-        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        tmp_path1 = f"{tmp_path}1.json"
+        tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -396,10 +382,10 @@ class TestNetworkIndividualOffdesign:
         )
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
-    def test_local_offdesign_on_connections_and_components(self, tmp_path_factory):
+    def test_local_offdesign_on_connections_and_components(self, tmp_path):
         """Test local offdesign feature."""
-        tmp_path1 = tmp_path_factory.mktemp("tmp1")
-        tmp_path2 = tmp_path_factory.mktemp("tmp2")
+        tmp_path1 = f"{tmp_path}1.json"
+        tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw._convergence_check()
@@ -425,9 +411,11 @@ class TestNetworkIndividualOffdesign:
 
         # connections and components on side 1 must have switched to offdesign
 
-        msg = ('Solar collector outlet temperature must be different from ' +
-               'design value ' + str(round(self.sc1_v1.T.design - 273.15, 1)) +
-               ', is ' + str(round(self.sc1_v1.T.val, 1)) + '.')
+        msg = (
+            'Solar collector outlet temperature must be different from design '
+            f'value {round(self.sc1_v1.T.design - 273.15, 1)}, is '
+            f'{round(self.sc1_v1.T.val, 1)}.'
+        )
         assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
 
         msg = "Parameter eta_s_char must be set for pump one."
@@ -441,6 +429,7 @@ class TestNetworkIndividualOffdesign:
 
     def test_missing_design_path_local_offdesign_on_connections(self, tmp_path):
         """Test missing design path on connections in local offdesign mode."""
+        tmp_path = f'{tmp_path}.json'
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw._convergence_check()

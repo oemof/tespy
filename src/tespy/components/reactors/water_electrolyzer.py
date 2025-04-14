@@ -166,18 +166,18 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val / 1e6
     >>> round(P_design, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.66)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(el.eta.val, 2)
     0.88
     >>> shutil.rmtree('./tmp', ignore_errors=True)

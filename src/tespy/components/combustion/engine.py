@@ -221,21 +221,21 @@ class CombustionEngine(CombustionChamber):
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(chp.ti.val, 0)
     25300000.0
     >>> round(chp.Q1.val, 0)
     -4980000.0
     >>> chp.set_attr(Q1=-4e6, P=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
+    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
     >>> round(chp.ti.val, 0)
     17794554.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.617
     >>> chp.set_attr(P=chp.P.design * 0.75, Q1=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp', design_path='tmp')
+    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
     >>> round(chp.ti.val, 0)
     20550000.0
     >>> round(chp.P.val / chp.P.design, 3)

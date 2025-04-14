@@ -140,12 +140,12 @@ class Compressor(Turbomachine):
     ... offdesign=['char_map_pr', 'char_map_eta_s'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(comp.P.val, 0)
     12772.0
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
     0.77
     >>> shutil.rmtree('./tmp', ignore_errors=True)

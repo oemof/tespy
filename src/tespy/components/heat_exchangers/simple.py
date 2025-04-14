@@ -178,19 +178,19 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -52581.0
     >>> round(heat_sink.kA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -56599.0
     >>> round(outg.T.val, 1)
     156.9
     >>> inc.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 1)
     -47275.8
     >>> round(outg.T.val, 1)

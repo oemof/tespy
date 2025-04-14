@@ -211,7 +211,7 @@ class Condenser(HeatExchanger):
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(amb_he.v.val, 2)
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
@@ -220,7 +220,7 @@ class Condenser(HeatExchanger):
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
@@ -231,7 +231,7 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(subcooling=True)
     >>> he_c.set_attr(Td_bp=-5)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)

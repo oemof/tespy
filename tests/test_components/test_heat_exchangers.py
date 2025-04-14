@@ -553,6 +553,7 @@ class TestHeatExchangers:
 
     def test_HeatExchanger(self, tmp_path):
         """Test component properties of heat exchanger."""
+        tmp_path = f'{tmp_path}.json'
         instance = HeatExchanger('heat exchanger')
         self.setup_HeatExchanger_network(instance)
 
@@ -736,6 +737,7 @@ class TestHeatExchangers:
 
     def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""
+        tmp_path = f'{tmp_path}.json'
         instance = Condenser('condenser')
         self.setup_HeatExchanger_network(instance)
 
@@ -829,14 +831,3 @@ class TestHeatExchangers:
             f"ttd_l={ttd_l}."
         )
         assert instance.td_log.val == instance.ttd_l.val, msg
-
-        # self.nw.save(tmp_path)
-        # self.c1.set_attr(m=1)
-        # self.nw.solve("offdesign", design_path="tmp")
-        # self.nw._convergence_check()
-        # msg = (
-        #     "Value of logarithmic and lower terminal temperature differences "
-        #     f"must be identical, but they are not: td_log={td_log}, "
-        #     f"ttd_l={self.c3.m.val}."
-        # )
-        # assert instance.td_log.val == instance.ttd_l.val, msg

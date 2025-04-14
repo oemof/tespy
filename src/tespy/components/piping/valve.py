@@ -112,7 +112,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -124,7 +124,7 @@ class Valve(Component):
     we can determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)

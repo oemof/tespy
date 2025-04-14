@@ -1395,7 +1395,7 @@ class Network:
         """
         # components with offdesign parameters
         components_with_parameters = [
-            cp.label for cp in self.comps["object"] if len(cp.offdesign) > 0
+            cp.label for cp in self.comps["object"] if len(cp.parameters) > 0
         ]
         # fetch all components, reindex with label
         df_comps = self.comps.loc[components_with_parameters].copy()
@@ -1411,7 +1411,7 @@ class Network:
             if path is not None:
                 if path not in ind_designs:
                     ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path][c]
+                data = ind_designs[path][row["comp_type"]]
 
             else:
                 data = df
@@ -1461,12 +1461,12 @@ class Network:
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find connection '{c.label}' in design case. Make "
-                "sure no connections have been modified or components have "
-                "been relabeled for your offdesign calculation."
+                f"Could not find component '{c.label}' in design case file. "
+                "This is is critical only to components, which need to load "
+                "design values from this case."
             )
-            logger.exception(msg)
-            raise hlp.TESPyNetworkError(msg)
+            logger.debug(msg)
+            return
         # write component design data
         data = df.loc[c.label]
         c.set_parameters(self.mode, data)
@@ -1826,11 +1826,15 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index")
+        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
+        dfs["Connection"].index = dfs["Connection"].index.astype(str)
         for key, value in data["Component"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Bus"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key].index = dfs[key].index.astype(str)
+
         return dfs
 
     def solve(self, mode, init_path=None, design_path=None,

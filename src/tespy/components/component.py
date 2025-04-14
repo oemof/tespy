@@ -443,22 +443,12 @@ class Component:
         return {}
 
     def get_bypass_constraints(self):
-        return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i
-            },
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': self.num_i
-            }
-        }
+        msg = (
+            f"The component {self.label} of type {self.__class__.__name__} "
+            "does not have bypassing functionality yet."
+        )
+        logger.exception(msg)
+        raise NotImplementedError(msg)
 
     @staticmethod
     def inlets():

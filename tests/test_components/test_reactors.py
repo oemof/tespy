@@ -48,6 +48,7 @@ class TestReactors:
 
     def test_WaterElectrolyzer(self, tmp_path):
         """Test component properties of water electrolyzer."""
+        tmp_path = f'{tmp_path}.json'
         # check bus function:
         # power output on component and bus must be indentical
         self.nw.get_conn('h2o').set_attr(T=25, p=1)

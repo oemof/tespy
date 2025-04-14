@@ -138,7 +138,7 @@ class Pump(Turbomachine):
     ... design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(pu.pr.val, 0)
     7.0
     >>> round(outg.p.val - inc.p.val, 0)
@@ -146,7 +146,7 @@ class Pump(Turbomachine):
     >>> round(pu.P.val, 0)
     1125.0
     >>> outg.set_attr(p=12)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(pu.eta_s.val, 2)
     0.71
     >>> round(inc.v.val, 1)
@@ -159,22 +159,13 @@ class Pump(Turbomachine):
         return 'pump'
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                min_val=0, num_eq=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
                 func=self.eta_s_func,
                 latex=self.eta_s_func_doc),
-            'pr': dc_cp(
-                min_val=1, num_eq=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
             'eta_s_char': dc_cc(
                 param='v', num_eq=1,
                 deriv=self.eta_s_char_deriv,
@@ -186,7 +177,8 @@ class Pump(Turbomachine):
                 func=self.flow_char_func,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
                 latex=self.flow_char_func_doc)
-        }
+        })
+        return parameters
 
     def eta_s_func(self):
         r"""

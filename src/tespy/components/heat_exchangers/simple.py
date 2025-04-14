@@ -178,19 +178,19 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -52581.0
     >>> round(heat_sink.kA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -56599.0
     >>> round(outg.T.val, 1)
     156.9
     >>> inc.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 1)
     -47275.8
     >>> round(outg.T.val, 1)
@@ -212,6 +212,11 @@ class SimpleHeatExchanger(Component):
                 min_val=1e-4, max_val=1, num_eq=1,
                 deriv=self.pr_deriv, latex=self.pr_func_doc,
                 func=self.pr_func, func_params={'pr': 'pr'}),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -254,6 +259,9 @@ class SimpleHeatExchanger(Component):
         super().preprocess(num_nw_vars)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def energy_balance_func(self):
         r"""
@@ -889,6 +897,8 @@ class SimpleHeatExchanger(Component):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:

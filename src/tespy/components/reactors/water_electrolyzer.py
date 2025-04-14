@@ -20,6 +20,7 @@ from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -166,18 +167,18 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
-    >>> P_design = el.P.val / 1e6
-    >>> round(P_design, 1)
+    >>> P_design = el.P.val
+    >>> round(P_design / 1e6, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
-    >>> el.set_attr(P=P_design * 1e6 * 0.2)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> el.set_attr(P=P_design * 0.2)
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(el.eta.val, 2)
     0.84
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -198,6 +199,11 @@ class WaterElectrolyzer(Component):
                 max_val=1, num_eq=1,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'zeta': dc_cp(
                 min_val=0, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -274,6 +280,9 @@ class WaterElectrolyzer(Component):
         self.e0 = self.calc_e0()
 
         super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def calc_e0(self):
         r"""
@@ -1165,6 +1174,8 @@ class WaterElectrolyzer(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
         self.e.val = self.P.val / self.outl[2].m.val_SI
         self.eta.val = self.e0 / self.e.val
 

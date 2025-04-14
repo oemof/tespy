@@ -129,7 +129,7 @@ class SamplePlant:
         # parametrization
         # components
         self.nw.solve("design")
-        self.stable = "_stable"
+        self.stable = "_stable.json"
         self.nw.save(self.stable)
         self.solved = True
         self.nw.print_results()
@@ -286,9 +286,9 @@ plt.rc("font", **{"size": 18})
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 
-filter_valid_constraint = optimize.individuals["valid"].values
-filter_valid_result = ~np.isnan(optimize.individuals["efficiency"].values)
-data = optimize.individuals.loc[filter_valid_constraint & filter_valid_result]
+mask_constraint = optimize.individuals["Connections-2-p>=Connections-4-p"] < 0
+mask_objective = ~np.isnan(optimize.individuals["efficiency"].values)
+data = optimize.individuals.loc[mask_constraint & mask_objective]
 
 sc = ax.scatter(
     data["Connections-2-p"],

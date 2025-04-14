@@ -391,7 +391,7 @@ definitions the value of the bus power will differ in part load.
     >>> pu.set_attr(eta_s=0.75)
 
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> print('Bus based efficiency:', round(pu.calc_bus_efficiency(bus1), 2))
     Bus based efficiency: 0.97
 
@@ -405,7 +405,7 @@ definitions the value of the bus power will differ in part load.
     Component based bus power: 6883
 
     >>> so_pu.set_attr(m=8)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> print('Bus based efficiency:', round(pu.calc_bus_efficiency(bus1), 2))
     Bus based efficiency: 0.96
 

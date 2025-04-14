@@ -225,7 +225,7 @@ To solve your offdesign calculation, use:
 
 .. code-block:: python
 
-    my_plant.solve(mode='offdesign', design_path='path/to/network_designpoint')
+    my_plant.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
 Solving
 -------

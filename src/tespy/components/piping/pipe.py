@@ -147,14 +147,14 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.add_conns(inc, outg)
     >>> inc.set_attr(fluid={'ethanol': 1}, m=10, T=30, p=3)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(pi.D.val, 3)
     0.119
     >>> outg.p.val / inc.p.val == pi.pr.val
     True
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(D=pi.D.val)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(pi.pr.val, 2)
     0.94
     >>> shutil.rmtree('./tmp', ignore_errors=True)

@@ -15,6 +15,7 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -82,6 +83,12 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
     def get_parameters(self):
         return {
             'P': dc_cp(
@@ -91,7 +98,11 @@ class Turbomachine(Component):
             'pr': dc_cp(
                 deriv=self.pr_deriv, num_eq=1,
                 func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc)
+                latex=self.pr_func_doc),
+            'dp': dc_cp(
+                deriv=self.dp_deriv, num_eq=1,
+                func=self.dp_func, func_params={'dp': 'dp'},
+                )
         }
 
     @staticmethod
@@ -239,6 +250,8 @@ class Turbomachine(Component):
         self.P.val = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
 
     def entropy_balance(self):
         r"""

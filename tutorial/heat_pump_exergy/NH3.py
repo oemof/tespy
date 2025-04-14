@@ -136,7 +136,7 @@ cd.set_attr(Q=-4e3)
 
 # %% design calculation
 
-path = 'NH3'
+path = 'NH3.json'
 nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path = path)

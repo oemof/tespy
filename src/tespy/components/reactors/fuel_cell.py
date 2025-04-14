@@ -17,6 +17,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -132,19 +133,24 @@ class FuelCell(Component):
     >>> water_out = Connection(fc, 'out2', water_sink, 'in1')
     >>> nw.add_conns(cw_in, cw_out, oxygen_in, hydrogen_in, water_out)
 
-    The fuel cell shall produce 200kW of electrical power and 200kW of heat
-    with an efficiency of 0.45. The thermodynamic parameters of the input
-    oxygen and hydrogen are given, the mass flow rates are calculated out of
-    the given power output. The cooling fluid is pure water.
+    The fuel cell produces 200kW of electrical power with an efficiency of 0.45.
+    The thermodynamic parameters of the input oxygen and hydrogen are given,
+    the mass flow rates are calculated out of the given power output. The
+    temperature of the water at the outlet should be 50 °C. The cooling fluid is
+    pure water and is heated up from 25 °C to 40 °C.
 
-    >>> fc.set_attr(eta=0.45, P=-200e03, Q=-200e03, pr=0.9)
-    >>> cw_in.set_attr(T=25, p=1, m=1, fluid={'H2O': 1})
+    >>> fc.set_attr(eta=0.45, P=-200e03, pr=0.9)
+    >>> cw_in.set_attr(T=25, p=1, fluid={'H2O': 1})
+    >>> cw_out.set_attr(T=40)
     >>> oxygen_in.set_attr(T=25, p=1)
     >>> hydrogen_in.set_attr(T=25)
+    >>> water_out.set_attr(T=50)
     >>> nw.solve('design')
-    >>> P_design = fc.P.val / 1e3
-    >>> round(P_design, 0)
-    -200.0
+    >>> round(cw_in.m.val, 1)
+    10.2
+    >>> Q = fc.Q.val / 1e3
+    >>> round(Q, 0)
+    -642.0
     >>> round(fc.eta.val, 2)
     0.45
     """
@@ -163,6 +169,11 @@ class FuelCell(Component):
                 max_val=1, num_eq=1,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'zeta': dc_cp(
                 min_val=0, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -223,6 +234,9 @@ class FuelCell(Component):
         self.e0 = self.calc_e0()
 
         super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def calc_e0(self):
         r"""
@@ -833,6 +847,8 @@ class FuelCell(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
         self.e.val = self.P.val / self.inl[2].m.val_SI
         self.eta.val = self.e.val / self.e0
 

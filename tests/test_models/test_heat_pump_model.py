@@ -248,6 +248,7 @@ class TestHeatPump:
         By now, not all characteristic functions of the original model are
         available in detail, thus perfect matching is not possible!
         """
+        tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
         self.nw.save(tmp_path)
         self.nw.print_results()

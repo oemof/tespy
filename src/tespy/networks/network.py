@@ -1554,7 +1554,7 @@ class Network:
                     msg = f"{msg[:-2]} to design value at component {cp.label}."
                     logger.debug(msg)
 
-                cp.new_design = False
+                cp.new_design = True
 
             else:
                 # switch connections to design mode
@@ -1901,6 +1901,8 @@ class Network:
                     msg = f"{msg[:-2]} to design value at component {cp.label}."
                     logger.debug(msg)
 
+                cp.new_design = False
+
         msg = 'Switched components from design to offdesign.'
         logger.debug(msg)
 
@@ -2092,13 +2094,13 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
+        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index")
         dfs["Connection"].index = dfs["Connection"].index.astype(str)
         for key, value in data["Component"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
             dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Bus"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
             dfs[key].index = dfs[key].index.astype(str)
 
         return dfs

@@ -906,8 +906,11 @@ class Component:
 
         for key, dc in self.parameters.items():
             if isinstance(dc, dc_cp):
-                if ((mode == 'offdesign' and not self.local_design) or
-                        (mode == 'design' and self.local_offdesign)):
+                if (
+                        ((mode == 'offdesign' and not self.local_design) or
+                        (mode == 'design' and self.local_offdesign)) and
+                        (data[key] is not None)
+                    ):
                     self.get_attr(key).design = float(data[key])
 
                 else:

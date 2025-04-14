@@ -173,6 +173,7 @@ class TestCombustion:
 
     def test_CombustionEngine(self, tmp_path):
         """Test component properties of combustion engine."""
+        tmp_path = f'{tmp_path}.json'
         instance = CombustionEngine('combustion engine')
         self.setup_CombustionEngine_network(instance)
 

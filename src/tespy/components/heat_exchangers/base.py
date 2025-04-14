@@ -204,17 +204,17 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(he_cw.T.val, 1)
     27.5
     >>> round(he_ex.T.val, 1)
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> document_model(nw)
     >>> round(he_cw.T.val, 1)
     33.9

@@ -168,7 +168,7 @@ cp2.set_attr(eta_s=0.8)
 
 c8.set_attr(h=None, Td_bp=4)
 nw.solve("design")
-nw.save("system_design")
+nw.save("system_design.json")
 # %% [sec_17]
 cp1.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
 cp2.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
@@ -199,7 +199,7 @@ ic.set_attr(
     design=["pr1", "pr2"], offdesign=["zeta1", "zeta2", "kA_char"]
 )
 c14.set_attr(design=["T"])
-nw.solve("offdesign", design_path="system_design")
+nw.solve("offdesign", design_path="system_design.json")
 nw.print_results()
 # %% [sec_18]
 import numpy as np
@@ -207,7 +207,7 @@ nw.set_attr(iterinfo=False)
 
 for Q in np.linspace(1, 0.6, 5) * cons.Q.val:
     cons.set_attr(Q=Q)
-    nw.solve("offdesign", design_path="system_design")
+    nw.solve("offdesign", design_path="system_design.json")
     print(
         "COP:",
         abs(cons.Q.val) / (cp1.P.val + cp2.P.val + hsp.P.val + rp.P.val)

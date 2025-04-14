@@ -142,7 +142,7 @@ class Bus:
     >>> cw_pu.set_attr(m=None)
     >>> fgc_fg.set_attr(T=120, design=['T'])
     >>> nw.solve(mode=mode)
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
 
     The heat bus characteristic for the combustion engine and the flue gas
     cooler have automatically been transformed into an array. The total heat
@@ -166,7 +166,7 @@ class Bus:
     0.98
     >>> power_bus.set_attr(P=-7.5e6)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
+    >>> nw.solve(mode=mode, design_path='tmp.json', init_path='tmp.json')
     >>> round(chp.ti.val, 0)
     21192700.0
     >>> round(chp.P.val / chp.P.design, 3)

@@ -253,6 +253,10 @@ class WaterElectrolyzer(Component):
         }
 
     @staticmethod
+    def get_bypass_constraints():
+        return {}
+
+    @staticmethod
     def inlets():
         return ['in1', 'in2']
 
@@ -766,7 +770,7 @@ class WaterElectrolyzer(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -834,7 +838,7 @@ class WaterElectrolyzer(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def reactor_pressure_deriv(self, k):
+    def reactor_pressure_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 

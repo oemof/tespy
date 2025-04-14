@@ -229,7 +229,7 @@ class Drum(DropletSeparator):
 
             return res
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for mass flow equation.
 

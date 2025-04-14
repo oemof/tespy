@@ -194,7 +194,7 @@ class Splitter(NodeBase):
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, k):
+    def energy_balance_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for energy balance equation.
 

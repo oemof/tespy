@@ -1,0 +1,22 @@
+{
+    "air": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "air",
+        "char_warnings": true
+    },
+    "fuel": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "fuel",
+        "char_warnings": true
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "sink": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "sink",
+        "char_warnings": true
+    }
+}

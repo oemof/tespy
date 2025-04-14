@@ -29,6 +29,7 @@ New Features
     ['Network', 'Connection', 'Component', 'Bus']
     >>> list(data["Component"])
     ['Source', 'Sink']
+
 - The parameter for delta pressure (:code:`dp`) is now available on all
   components, that do feature the pressure ratio :code:`pr` parameter
   (`PR #628 <https://github.com/oemof/tespy/pull/628>`__).

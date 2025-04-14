@@ -3121,7 +3121,40 @@ class Network:
         return busses
 
 
-def v07_to_v08_design(path):
+def v07_to_v08_save(path):
+    """Transform the v0.7 network save to a dictionary compatible to v0.8.
+
+    Parameters
+    ----------
+    path : str
+        Path to the save structure
+
+    Returns
+    -------
+    dict
+        Dictionary of the v0.8 network save
+    """
+    data = {
+        "Component": {},
+        "Bus": {},
+        "Connection": {},
+    }
+    component_files_path = os.path.join(path, "components")
+    for file in os.listdir(component_files_path):
+        df = pd.read_csv(
+            os.path.join(component_files_path, file),
+            sep=';', decimal='.', index_col=0
+        )
+        data["Component"][file.removesuffix(".csv")] = df.to_dict(orient="index")
+    df = pd.read_csv(
+        os.path.join(path, f"connections.csv"),
+        sep=';', decimal='.', index_col=0
+    )
+    data["Connection"] = df.to_dict(orient="index")
+
+    with open(os.path.join(path, "busses.json"), "r") as f:
+        data["Bus"] = json.load(f)
+
     return data
 
 

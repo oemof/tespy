@@ -613,9 +613,11 @@ class TestHeatExchangers:
         assert round(Q, 0) == round(instance.Q.val, 0), msg
 
         # check upper terminal temperature difference
-        msg = ('Value of terminal temperature difference must be ' +
-               str(round(instance.ttd_u.val, 1)) + ', is ' +
-               str(round(self.c1.T.val - self.c4.T.val, 1)) + '.')
+        msg = (
+            'Value of terminal temperature difference must be '
+            f'{round(instance.ttd_u.val, 1)}, is '
+            f'{round(self.c1.T.val - self.c4.T.val, 1)}.'
+        )
         ttd_u_calc = round(self.c1.T.val - self.c4.T.val, 1)
         ttd_u = round(instance.ttd_u.val, 1)
         assert ttd_u_calc == ttd_u, msg

@@ -426,5 +426,4 @@ class Bus:
             cp.bus_deriv(self)
 
     def clear_jacobian(self):
-        for k in self.jacobian:
-            self.jacobian[k] = 0
+        self.jacobian = {}

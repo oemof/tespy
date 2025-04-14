@@ -155,10 +155,11 @@ class Desuperheater(HeatExchanger):
     ethanol. Controlling the ethanol's state at the outlet is only possible,
     if the cooling water flow rate is adjusted accordingly.
 
-    >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-    ... offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1,
-    ... design=['v'])
+    >>> desu.set_attr(
+    ...     pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
+    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)
     >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
     >>> de_et.set_attr(p=1)
@@ -173,7 +174,7 @@ class Desuperheater(HeatExchanger):
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=10)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> et_de.set_attr(v=7)
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
@@ -191,7 +192,8 @@ class Desuperheater(HeatExchanger):
             'saturated_gas_constraints': dc_cmc(**{
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
+                'constant_deriv': False,
+                'latex': self.saturated_gas_func_doc,
                 'num_eq_sets': 1
             })
         })

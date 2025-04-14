@@ -163,20 +163,23 @@ class Pump(Turbomachine):
         parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
-                deriv=self.eta_s_deriv,
                 func=self.eta_s_func,
-                latex=self.eta_s_func_doc),
+                dependents=self.energy_balance_dependents,
+                latex=self.eta_s_func_doc
+            ),
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
-                deriv=self.eta_s_char_deriv,
                 func=self.eta_s_char_func,
-                latex=self.eta_s_char_func_doc),
+                dependents=self.eta_s_char_dependents,
+                latex=self.eta_s_char_func_doc
+            ),
             'flow_char': dc_cc(
                 param='v', num_eq_sets=1,
-                deriv=self.flow_char_deriv,
                 func=self.flow_char_func,
+                dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
-                latex=self.flow_char_func_doc)
+                latex=self.flow_char_func_doc
+            )
         })
         return parameters
 
@@ -228,25 +231,13 @@ class Pump(Turbomachine):
             r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        f = self.eta_s_func
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -307,26 +298,14 @@ class Pump(Turbomachine):
             r'\left( h_{out,s} - h_{in} \right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def flow_char_func(self):
         r"""
@@ -365,25 +344,13 @@ class Pump(Turbomachine):
             r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
         return generate_latex_eq(self, latex, label)
 
-    def flow_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for flow characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.flow_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
+    def flow_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+        ]
 
     def convergence_check(self):
         r"""

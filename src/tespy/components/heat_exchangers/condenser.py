@@ -247,8 +247,11 @@ class Condenser(HeatExchanger):
         params = super().get_parameters()
         params.update({
             'subcooling': dc_simple(
-                _val=False, num_eq_sets=1, latex=self.subcooling_func_doc,
-                deriv=self.subcooling_deriv, func=self.subcooling_func)
+                _val=False, num_eq_sets=1,
+                latex=self.subcooling_func_doc,
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+            )
         })
         return params
 
@@ -295,23 +298,11 @@ class Condenser(HeatExchanger):
         latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
         return generate_latex_eq(self, latex, label)
 
-    def subcooling_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of subcooling function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        o = self.outl[0]
-        self._partial_derivative(
-            o.p, k, -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data), increment_filter
-        )
-        self._partial_derivative(o.h, k, 1, increment_filter)
+    def subcooling_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]
 
     def calculate_td_log(self):
 

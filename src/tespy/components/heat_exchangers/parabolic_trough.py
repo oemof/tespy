@@ -247,7 +247,7 @@ class ParabolicTrough(SimpleHeatExchanger):
                 ], num_eq_sets=1,
                 latex=self.energy_group_func_doc,
                 func=self.energy_group_func,
-                deriv=self.energy_group_deriv
+                dependents=self.energy_group_dependents
             )
         })
         return data
@@ -324,33 +324,14 @@ class ParabolicTrough(SimpleHeatExchanger):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy group function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.energy_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
-        # custom variables for the energy-group
-        for variable_name in self.energy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter == self.Tamb:
-                continue
-            self._partial_derivative(parameter, k, f, increment_filter)
+    def energy_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.energy_group.elements]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

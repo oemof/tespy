@@ -195,8 +195,8 @@ class Merge(NodeBase):
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
-                'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,
+                'dependents': self.mass_flow_dependents,
+                'constant_deriv': False,
                 'latex': self.mass_flow_func_doc,
                 'num_eq_sets': 1,
             }),
@@ -209,7 +209,8 @@ class Merge(NodeBase):
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
+                'dependents': self.energy_balance_dependents,
+                # 'deriv': self.energy_balance_deriv,
                 'constant_deriv': False,
                 'latex': self.energy_balance_func_doc,
                 'num_eq_sets': 1
@@ -321,6 +322,12 @@ class Merge(NodeBase):
         for i in self.inl:
             res += i.m.val_SI * i.h.val_SI
         return res
+
+    def energy_balance_dependents(self):
+        dependents = []
+        for c in self.inl + self.outl:
+            dependents += [c.m, c.h]
+        return dependents
 
     def energy_balance_func_doc(self, label):
         r"""

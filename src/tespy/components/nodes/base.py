@@ -59,21 +59,8 @@ class NodeBase(Component):
             r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
-        r"""
-        Calculate partial derivatives for mass flow equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        for i in self.inl:
-            if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = 1
-        for o in self.outl:
-            if o.m.is_var:
-                self.jacobian[k, o.m.J_col] = -1
+    def mass_flow_dependents(self):
+        return [c.m for c in self.inl + self.outl]
 
     def pressure_equality_func(self):
         r"""
@@ -122,34 +109,9 @@ class NodeBase(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self, k):
-        r"""
-        Calculate partial derivatives for all pressure equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        if self.num_i > 1:
-            conns = self.inl[1:] + self.outl
-        else:
-            conns = self.outl
-
-        for eq, o in enumerate(conns):
-            if self.inl[0].p.is_var:
-                self.jacobian[k + eq, self.inl[0].p.J_col] = 1
-            if o.p.is_var:
-                self.jacobian[k + eq, o.p.J_col] = -1
-
     def pressure_structure_matrix(self, k):
         r"""
         Calculate partial derivatives for all pressure equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
         """
         if self.num_i > 1:
             conns = self.inl[1:] + self.outl

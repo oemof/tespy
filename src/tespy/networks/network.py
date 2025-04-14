@@ -759,11 +759,18 @@ class Network:
         # however not be many, that can create direct dependencies to just a
         # single other variable. Currently only 1-1 linear dependent variables
         # are used in the presolving stage
+        self._equation_lookup = {}
+
         sum_eq = 0
         for conn in self.conns["object"]:
             conn._preprocess(sum_eq)
             self._structure_matrix.update(conn._structure_matrix)
             self._rhs.update(conn._rhs)
+            eq_map = {
+                eq_num: (conn.label, eq_name)
+                for eq_num, eq_name in conn._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
             sum_eq += conn.num_eq
 
         for cp in self.comps["object"]:
@@ -771,6 +778,11 @@ class Network:
 
             self._structure_matrix.update(cp._structure_matrix)
             self._rhs.update(cp._rhs)
+            eq_map = {
+                eq_num: (cp.label, eq_name)
+                for eq_num, eq_name in cp._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
             sum_eq += cp.num_eq
 
         _linear_dependencies = self._find_linear_dependent_variables(
@@ -1497,6 +1509,7 @@ class Network:
             b.comps['P_ref'] = np.nan
 
         series = pd.Series(dtype='float64')
+        _local_design_paths = {}
         for cp in self.comps['object']:
             c = cp.__class__.__name__
             # read design point information of components with
@@ -1860,12 +1873,6 @@ class Network:
                     param.val = hlp.convert_from_SI(var, param.val_SI, param.unit)
 
                 c.new_design = False
-
-        for c in self.conns['object']:
-            if not c.fluid.is_var:
-                c.simplify_specifications()
-            self._assign_variable_space(c)
-            c.preprocess()
 
         msg = 'Switched connections from design to offdesign.'
         logger.debug(msg)

@@ -158,7 +158,7 @@ class SteamTurbine(Turbine):
         params["eta_s_dry_group"] = dc_gcp(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
-            deriv=self.eta_s_wet_deriv
+            dependents=self.eta_s_dependents  # same depedents!
         )
 
         return params
@@ -261,23 +261,3 @@ class SteamTurbine(Turbine):
 
             # return residual: outlet enthalpy = calculated outlet enthalpy
             return outl.h.val_SI - hout
-
-    def eta_s_wet_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for dry isentropic efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        f = self.eta_s_wet_func
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)

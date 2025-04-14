@@ -448,8 +448,6 @@ class Component:
 
         self._update_num_eq()
 
-
-
         for key, value in self._equation_lookup.items():
             if key in system_dependencies:
                 continue
@@ -658,10 +656,10 @@ class Component:
             num_eq = data.num_eq
 
             if num_eq > 0:
-                self.residual[sum_eq:sum_eq + num_eq] = data.func()
+                self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
 
             if not data.constant_deriv:
-                data.deriv(increment_filter, sum_eq)
+                self._solve_jacobian(data, increment_filter, sum_eq)
 
             sum_eq += num_eq
 
@@ -669,9 +667,20 @@ class Component:
             self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                 **data.func_params
             )
-            data.deriv(increment_filter, sum_eq, **data.func_params)
+            self._solve_jacobian(data, increment_filter, sum_eq)
 
             sum_eq += data.num_eq
+
+    def _solve_jacobian(self, data, increment_filter, sum_eq):
+        if data.deriv is not None:
+            data.deriv(increment_filter, sum_eq, **data.func_params)
+        else:
+            dependents = self._get_dependents(data.dependents(**data.func_params))
+            for dependent in dependents:
+                f = data.func
+                self._partial_derivative2(
+                    dependent, sum_eq, f, increment_filter, **data.func_params
+                )
 
     def bus_func(self, bus):
         r"""

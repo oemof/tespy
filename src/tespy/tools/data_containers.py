@@ -196,7 +196,8 @@ class ComponentCharacteristics(DataContainer):
             'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq_sets': 0, '_num_eq': None, 'structure_matrix': None
+            'num_eq_sets': 0, '_num_eq': None, 'structure_matrix': None,
+            'dependents': None
         }
 
     def _serialize(self):
@@ -252,7 +253,8 @@ class ComponentCharacteristicMaps(DataContainer):
         return {
             'char_func': None, 'is_set': False, 'param': None, 'latex': None,
             'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq_sets': 0, 'structure_matrix': None
+            'num_eq_sets': 0, 'structure_matrix': None,
+            'dependents': None
         }
 
     def _serialize(self):
@@ -300,7 +302,8 @@ class ComponentMandatoryConstraints(DataContainer):
             'deriv': None,
             'latex': None,
             'constant_deriv': False,
-            'structure_matrix': None
+            'structure_matrix': None,
+            'dependents': None
         }
 
     def _serialize(self):
@@ -387,7 +390,8 @@ class ComponentProperties(DataContainer):
             'structure_matrix': None,
             '_reference_container': None,
             '_factor': None,
-            '_offset': None
+            '_offset': None,
+            'dependents': None
         }
 
     def _serialize(self):
@@ -497,9 +501,16 @@ class GroupedComponentProperties(DataContainer):
             values.
         """
         return {
-            'is_set': False, 'elements': [], '_num_eq': None,
-            'func': None, 'deriv': None, 'num_eq_sets': 0, 'latex': None,
-            'func_params': {}, 'structure_matrix': None
+            'is_set': False,
+            'elements': [],
+            '_num_eq': None,
+            'func': None,
+            'deriv': None,
+            'num_eq_sets': 0,
+            'latex': None,
+            'func_params': {},
+            'structure_matrix': None,
+            'dependents': None
         }
 
     def get_num_eq(self):
@@ -587,7 +598,8 @@ class FluidProperties(DataContainer):
             "latex": None,
             "_reference_container": None,
             "_offset": None,
-            "_factor": None
+            "_factor": None,
+            'dependents': None
         }
 
     def _serialize(self):
@@ -953,7 +965,8 @@ class SimpleDataContainer(DataContainer):
             "num_eq_sets": 0,
             "_num_eq": None,
             "structure_matrix": None,
-            "_solved": False
+            "_solved": False,
+            'dependents': None
         }
 
     def _serialize(self):

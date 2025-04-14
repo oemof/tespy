@@ -128,8 +128,8 @@ class Splitter(NodeBase):
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
-                'deriv': self.mass_flow_deriv,
-                'constant_deriv': True,
+                'dependents': self.mass_flow_dependents,
+                'constant_deriv': False,
                 'latex': self.mass_flow_func_doc,
                 'num_eq_sets': 1
             }),

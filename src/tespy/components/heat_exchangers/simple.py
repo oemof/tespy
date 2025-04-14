@@ -206,29 +206,31 @@ class SimpleHeatExchanger(Component):
     def get_parameters(self):
         return {
             'Q': dc_cp(
-                deriv=self.energy_balance_deriv,
-                latex=self.energy_balance_func_doc, num_eq_sets=1,
-                func=self.energy_balance_func
+                num_eq_sets=1,
+                func=self.energy_balance_func,
+                dependents=self.energy_balance_dependents,
+                latex=self.energy_balance_func_doc,
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv,
-                latex=self.pr_func_doc,
                 func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
+                dependents=self.pr_dependents,
+                latex=self.pr_func_doc,
                 func_params={'pr': 'pr'},
-                structure_matrix=self.pr_structure_matrix
             ),
             'dp': dc_cp(
-                min_val=1e-4, max_val=1, num_eq_sets=1,
-                deriv=self.dp_deriv,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.dp_func,
-                func_params={'dp': 'dp'},
-                structure_matrix=self.dp_structure_matrix
+                dependents=self.dp_dependents,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp'}
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
                 latex=self.zeta_func_doc,
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'}
             ),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
@@ -241,19 +243,27 @@ class SimpleHeatExchanger(Component):
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
                 latex=self.darcy_func_doc,
-                func=self.darcy_func, deriv=self.darcy_deriv),
+                func=self.darcy_func,
+                dependents=self.darcy_dependents
+            ),
             'hw_group': dc_gcp(
                 elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
                 latex=self.hazen_williams_func_doc,
-                func=self.hazen_williams_func, deriv=self.hazen_williams_deriv),
+                func=self.hazen_williams_func,
+                dependents=self.hazen_williams_dependents
+            ),
             'kA_group': dc_gcp(
                 elements=['kA', 'Tamb'], num_eq_sets=1,
                 latex=self.kA_group_func_doc,
-                func=self.kA_group_func, deriv=self.kA_group_deriv),
+                func=self.kA_group_func,
+                dependents=self.kA_group_dependents
+            ),
             'kA_char_group': dc_gcp(
                 elements=['kA_char', 'Tamb'], num_eq_sets=1,
                 latex=self.kA_char_group_func_doc,
-                func=self.kA_char_group_func, deriv=self.kA_char_group_deriv)
+                func=self.kA_char_group_func,
+                dependents=self.kA_char_group_dependents
+            )
         }
 
     @staticmethod
@@ -309,27 +319,13 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI)
-        self._partial_derivative(i.h, k, -i.m.val_SI)
-        self._partial_derivative(o.h, k, i.m.val_SI)
-
-        # custom variable Q does not work with the new function yet
-        if self.Q.is_var:
-            self.jacobian[k, self.Q.J_col] = -1
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.Q,
+        ]
 
     def darcy_func(self):
         r"""
@@ -397,31 +393,14 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def darcy_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.darcy_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
-
-        # custom variables of hydro group
-        for variable_name in self.darcy_group.elements:
-            parameter = self.get_attr(variable_name)
-            self._partial_derivative(parameter, k, f, increment_filter)
+    def darcy_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.darcy_group.elements]
 
     def hazen_williams_func(self):
         r"""
@@ -487,31 +466,14 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def hazen_williams_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.hazen_williams_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
-
-        # custom variables of hydro group
-        for variable_name in self.hw_group.elements:
-            parameter = self.get_attr(variable_name)
-            self._partial_derivative(parameter, k, f, increment_filter)
+    def hazen_williams_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.hw_group.elements]
 
     def kA_group_func(self):
         r"""
@@ -589,29 +551,15 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def kA_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA group.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self._partial_derivative(i.m, k, o.h.val_SI - i.h.val_SI, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
-
-        self._partial_derivative(self.kA, k, f, increment_filter)
+    def kA_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.kA
+        ]
 
     def kA_char_group_func(self):
         r"""
@@ -703,27 +651,14 @@ class SimpleHeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def kA_char_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA characteristics.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_char_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
+    def kA_char_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def bus_func(self, bus):
         r"""

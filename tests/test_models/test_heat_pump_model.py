@@ -151,7 +151,7 @@ class TestHeatPump:
         ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
+            pr1=1, pr2=.999, design=['ttd_l'], offdesign=['kA_char'],
             kA_char1=kA_char1, kA_char2=kA_char2
         )
 
@@ -203,18 +203,20 @@ class TestHeatPump:
 
         # characteristic line for intercooler kA
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
-             0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
-             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
-             1.7058, 1.7488])
+        y = np.array([
+            0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
+            0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
+            1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
+            1.7058, 1.7488
+        ])
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
-             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
-             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        y = np.array([
+            0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
+            0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
+            1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         he.set_attr(
@@ -224,18 +226,20 @@ class TestHeatPump:
 
         # characteristic line for condenser kA
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
-             0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
-             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
-             1.7058, 1.7488])
+        y = np.array([
+            0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
+            0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
+            1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
+            1.7058, 1.7488
+        ])
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
-             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
-             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        y = np.array([
+            0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
+            0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
+            1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         cd.set_attr(
@@ -251,14 +255,14 @@ class TestHeatPump:
         cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), Td_bp=-5, design=['Td_bp'])
 
         # evaporator system cold side
-        pu_ev.set_attr(m=Ref(va_dr, 10, 0))
-        dr_su.set_attr(p=5.1556)
+        pu_ev.set_attr(m=Ref(dr_su, 10, 0))
+        dr_su.set_attr(p=5)
         su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
 
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})
         su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
-        ev_amb_out.set_attr()
+        ev_amb_out.set_attr(T=7)
 
         # compressor-system
         cp1_he.set_attr(p=15)
@@ -277,7 +281,10 @@ class TestHeatPump:
         self.nw.solve('design')
         # the model does not consistently solve!!
         self.nw._convergence_check()
-        self.nw.get_conn("drum:out2_superheater:in2").set_attr(T=5, p=None)
+        dr_su = self.nw.get_conn("drum:out2_superheater:in2")
+        dr_su.set_attr(T=5, p=None)
+        self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
+        self.nw.get_comp("evaporator").set_attr(ttd_l=5)
         self.nw.solve('design')
         self.nw.save(tmp_path)
         self.nw.print_results()

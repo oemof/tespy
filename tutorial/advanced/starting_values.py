@@ -107,7 +107,6 @@ try:
     nw.solve("design")
 except ValueError as e:
     print(e)
-    nw.reset_topology_reduction_specifications()
 
 # %%[sec_4]
 import CoolProp.CoolProp as CP

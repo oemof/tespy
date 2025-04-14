@@ -156,15 +156,22 @@ class Turbine(Turbomachine):
         parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
-                deriv=self.eta_s_deriv,
-                func=self.eta_s_func, latex=self.eta_s_func_doc),
+                func=self.eta_s_func,
+                latex=self.eta_s_func_doc,
+                dependents=self.eta_s_dependents
+            ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
-                deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
+                func=self.eta_s_char_func,
+                latex=self.eta_s_char_func_doc,
+                dependents=self.eta_s_char_dependents
+            ),
             'cone': dc_simple(
-                deriv=self.cone_deriv, num_eq_sets=1,
-                func=self.cone_func, latex=self.cone_func_doc)
+                num_eq_sets=1,
+                func=self.cone_func,
+                latex=self.cone_func_doc,
+                dependents=self.cone_dependents
+            )
         })
         return parameters
 
@@ -218,41 +225,13 @@ class Turbine(Turbomachine):
             r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, -1, increment_filter)
-
-    def calc_eta_s(self):
-        inl = self.inl[0]
-        outl = self.outl[0]
-        return (
-            (outl.h.val_SI - inl.h.val_SI)
-            / (isentropic(
-                    inl.p.val_SI,
-                    inl.h.val_SI,
-                    outl.p.val_SI,
-                    inl.fluid_data,
-                    inl.mixing_rule,
-                    T0=inl.T.val_SI
-                ) - inl.h.val_SI
-            )
-        )
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def cone_func(self):
         r"""
@@ -309,25 +288,13 @@ class Turbine(Turbomachine):
             r'\right)^{2}}} -\dot{m}_\mathrm{in}')
         return generate_latex_eq(self, latex, label)
 
-    def cone_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for stodolas cone law.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.cone_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, -1, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
+    def cone_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -391,26 +358,30 @@ class Turbine(Turbomachine):
             r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        f = self.eta_s_char_func
-        self._partial_derivative(i.m, k, f, increment_filter)
-        self._partial_derivative(i.p, k, f, increment_filter)
-        self._partial_derivative(i.h, k, f, increment_filter)
-        self._partial_derivative(o.p, k, f, increment_filter)
-        self._partial_derivative(o.h, k, f, increment_filter)
+    def calc_eta_s(self):
+        inl = self.inl[0]
+        outl = self.outl[0]
+        return (
+            (outl.h.val_SI - inl.h.val_SI)
+            / (isentropic(
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    inl.mixing_rule,
+                    T0=inl.T.val_SI
+                ) - inl.h.val_SI
+            )
+        )
 
     def convergence_check(self):
         r"""
@@ -502,11 +473,7 @@ class Turbine(Turbomachine):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
-
-        inl = self.inl[0]
-        outl = self.outl[0]
         self.eta_s.val = self.calc_eta_s()
-        self.pr.val = outl.p.val_SI / inl.p.val_SI
 
     def exergy_balance(self, T0):
         r"""

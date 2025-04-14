@@ -156,13 +156,17 @@ class Separator(NodeBase):
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
+                'func': self.mass_flow_func,
+                'dependents': self.mass_flow_dependents,
+                'constant_deriv': False,
+                'latex': self.mass_flow_func_doc,
                 'num_eq_sets': 1
             }),
             'fluid_constraints': dc_cmc(**{
-                'func': self.fluid_func, 'deriv': self.fluid_deriv,
-                'constant_deriv': False, 'latex': self.fluid_func_doc,
+                'func': self.fluid_func,
+                'deriv': self.fluid_deriv,
+                'constant_deriv': False,
+                'latex': self.fluid_func_doc,
                 'num_eq_sets': self.num_o
             }),
             'energy_balance_constraints': dc_cmc(**{
@@ -173,11 +177,8 @@ class Separator(NodeBase):
                 'num_eq_sets': self.num_o
             }),
             'pressure_constraints': dc_cmc(**{
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq_sets': self.num_i + self.num_o - 1
+                'structure_matrix': self.pressure_structure_matrix,
+                'num_eq_sets': self.num_o
             })
         }
 

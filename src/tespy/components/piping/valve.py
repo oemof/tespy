@@ -148,26 +148,34 @@ class Valve(Component):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
+                structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func,
+                dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
-                structure_matrix=self.pr_structure_matrix
             ),
             'dp': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
-                func=self.dp_func,
+                min_val=0,
                 num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func=self.dp_func,
+                dependents=self.dp_dependents,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
+                func_params={'zeta': 'zeta'},
+                latex=self.zeta_func_doc
+            ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
-                deriv=self.dp_char_deriv, func=self.dp_char_func,
-                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+                dependents=self.dp_char_dependents,
+                func=self.dp_char_func,
+                char_params={'type': 'abs'},
+                latex=self.dp_char_func_doc
+            )
         }
 
     def get_mandatory_constraints(self):
@@ -241,29 +249,15 @@ class Valve(Component):
             r'\right)')
         return generate_latex_eq(self, latex, label)
 
-    def dp_char_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of difference pressure characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.dp_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(i.m, k, f, increment_filter)
+    def dp_char_dependents(self):
+        dependents = [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.outl[0].p,
+        ]
         if self.dp_char.param == 'v':
-            self._partial_derivative(i.p, k, f, increment_filter)
-            self._partial_derivative(i.h, k, f, increment_filter)
-        else:
-            self._partial_derivative(i.p, k, 1, increment_filter)
-
-        self._partial_derivative(o.p, k, -1, increment_filter)
+            dependents += [self.inl[0].h]
+        return dependents
 
     def initialise_source(self, c, key):
         r"""

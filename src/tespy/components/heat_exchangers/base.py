@@ -233,74 +233,106 @@ class HeatExchanger(Component):
     def get_parameters(self):
         return {
             'Q': dc_cp(
-                max_val=0, func=self.energy_balance_hot_func, num_eq_sets=1,
-                deriv=self.energy_balance_hot_deriv,
-                latex=self.energy_balance_hot_func_doc),
+                max_val=0, num_eq_sets=1,
+                func=self.energy_balance_hot_func,
+                dependents=self.energy_balance_hot_dependents,
+                latex=self.energy_balance_hot_func_doc
+            ),
             'kA': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.kA_func, latex=self.kA_func_doc,
-                deriv=self.kA_deriv),
+                min_val=0, num_eq_sets=1,
+                func=self.kA_func,
+                dependents=self.kA_dependents,
+                latex=self.kA_func_doc,
+            ),
             'td_log': dc_cp(min_val=0, is_result=True),
             'ttd_u': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.ttd_u_func,
-                deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),
+                min_val=0, num_eq_sets=1,
+                func=self.ttd_u_func,
+                dependents=self.ttd_u_dependents,
+                latex=self.ttd_u_func_doc
+            ),
             'ttd_l': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.ttd_l_func,
-                deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
+                min_val=0,
+                num_eq_sets=1,
+                func=self.ttd_l_func,
+                dependents=self.ttd_l_dependents,
+                latex=self.ttd_l_func_doc
+            ),
             'ttd_min': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.ttd_min_func,
-                deriv=self.ttd_min_deriv),
+                min_val=0, num_eq_sets=1,
+                func=self.ttd_min_func,
+                dependents=self.ttd_min_dependents
+            ),
             'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq_sets=1, deriv=self.pr_deriv,
-                latex=self.pr_func_doc,
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                func=self.pr_func,
+                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
-                func=self.pr_func, func_params={'pr': 'pr1'}
+                latex=self.pr_func_doc,
+                func_params={'pr': 'pr1'}
             ),
             'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq_sets=1, latex=self.pr_func_doc,
-                deriv=self.pr_deriv, func=self.pr_func,
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                latex=self.pr_func_doc,
+                func=self.pr_func,
+                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                deriv=self.dp_deriv, func=self.dp_func,
+                func=self.dp_func,
+                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                deriv=self.dp_deriv, func=self.dp_func,
+                func=self.dp_func,
+                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}
             ),
             'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta1'}),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                latex=self.zeta_func_doc,
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
+                func_params={'zeta': 'zeta1'}
+            ),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                latex=self.zeta_func_doc,
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
+                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}
+            ),
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
-                num_eq_sets=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
-                deriv=self.kA_char_deriv),
+                num_eq_sets=1,
+                latex=self.kA_char_func_doc,
+                func=self.kA_char_func,
+                dependents=self.kA_char_dependents
+            ),
             'kA_char1': dc_cc(param='m'),
             'kA_char2': dc_cc(
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
             ),
             'eff_cold': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_cold_func,
-                deriv=self.eff_cold_deriv
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eff_cold_func,
+                dependents=self.eff_cold_dependents
             ),
             'eff_hot': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_hot_func,
-                deriv=self.eff_hot_deriv
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eff_hot_func,
+                dependents=self.eff_hot_dependents
             ),
             'eff_max': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1, func=self.eff_max_func,
-                deriv=self.eff_max_deriv
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eff_max_func,
+                dependents=self.eff_max_dependents
             )
         }
 
@@ -309,7 +341,7 @@ class HeatExchanger(Component):
         constraints.update({
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
+                'dependents': self.energy_balance_dependents,
                 'constant_deriv': False,
                 'latex': self.energy_balance_func_doc,
                 'num_eq_sets': 1,
@@ -376,27 +408,15 @@ class HeatExchanger(Component):
             r'\left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of energy balance function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        dependents = self._get_dependents([self.inl[0].m,
-        self.inl[1].m,
-        self.inl[0].h,
-        self.inl[1].h,
-        self.outl[0].h,
-        self.outl[1].h])
-        f = self.energy_balance_func
-        for dependant in dependents:
-            self._partial_derivative2(dependant, k, f)
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[1].m,
+            self.inl[0].h,
+            self.inl[1].h,
+            self.outl[0].h,
+            self.outl[1].h
+        ]
 
     def energy_balance_hot_func(self):
         r"""
@@ -434,25 +454,12 @@ class HeatExchanger(Component):
             r'h_{in,1}\right)-\dot{Q}')
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_hot_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for hot side heat exchanger energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(
-            i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
-        )
-        self._partial_derivative(i.h, k, -i.m.val_SI, increment_filter)
-        self._partial_derivative(o.h, k, i.m.val_SI, increment_filter)
+    def energy_balance_hot_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h,
+        ]
 
     def calculate_td_log(self):
         i1 = self.inl[0]
@@ -531,27 +538,18 @@ class HeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def kA_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of heat transfer coefficient function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_func
-        i = self.inl[0]
-        o = self.outl[0]
-        self._partial_derivative(
-            i.m, k, o.h.val_SI - i.h.val_SI, increment_filter
-        )
-        for c in self.inl + self.outl:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def kA_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def kA_char_func(self):
         r"""
@@ -623,24 +621,19 @@ class HeatExchanger(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def kA_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_char_func
-        for i in self.inl:
-            self._partial_derivative(i.m, k, f, increment_filter)
-        for c in self.inl + self.outl:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def kA_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.inl[1].m,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def ttd_u_func(self):
         r"""
@@ -678,22 +671,13 @@ class HeatExchanger(Component):
         latex = r'0 = ttd_\mathrm{u} - T_\mathrm{in,1} + T_\mathrm{out,2}'
         return generate_latex_eq(self, latex, label)
 
-    def ttd_u_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of upper terminal temperature function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.ttd_u_func
-        for c in [self.inl[0], self.outl[1]]:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def ttd_u_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def ttd_l_func(self):
         r"""
@@ -731,22 +715,13 @@ class HeatExchanger(Component):
         latex = r'0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}'
         return generate_latex_eq(self, latex, label)
 
-    def ttd_l_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of upper terminal temperature function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.ttd_l_func
-        for c in [self.inl[1], self.outl[0]]:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def ttd_l_dependents(self):
+        return [
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def ttd_min_func(self):
         r"""
@@ -779,22 +754,17 @@ class HeatExchanger(Component):
 
         return self.ttd_min.val - min(ttd_l, ttd_u)
 
-    def ttd_min_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of minimum terminal temperature function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.ttd_min_func
-        for c in self.inl + self.outl:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def ttd_min_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def calc_dh_max_cold(self):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
@@ -834,31 +804,14 @@ class HeatExchanger(Component):
             - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
         )
 
-    def eff_cold_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of hot side effectiveness function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eff_cold_func
-
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o2 = self.outl[1]
-
-        for c in [i1, o2]:
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
-
-        self._partial_derivative(
-            i2.h, k, 1 - self.eff_cold.val, increment_filter
-        )
+    def eff_cold_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.inl[1].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def calc_dh_max_hot(self):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side
@@ -898,32 +851,14 @@ class HeatExchanger(Component):
             - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
 
-    def eff_hot_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of hot side effectiveness function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eff_hot_func
-
-        i1 = self.inl[0]
-        o1 = self.outl[0]
-        i2 = self.inl[1]
-
-        if self.is_variable(i1.h):
-            self.jacobian[k, i1.h.J_col] = 1 - self.eff_hot.val
-
-        for c in [o1, i2]:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+    def eff_hot_dependents(self):
+        return [
+            self.inl[0].h,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eff_max_func(self):
         r"""Equation for maximum heat exchanger effectiveness.
@@ -955,25 +890,17 @@ class HeatExchanger(Component):
         )
         return self.eff_max.val - max(eff_hot, eff_cold)
 
-    def eff_max_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of max effectiveness function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eff_max_func
-
-        for c in self.inl + self.outl:
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+    def eff_max_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def bus_func(self, bus):
         r"""

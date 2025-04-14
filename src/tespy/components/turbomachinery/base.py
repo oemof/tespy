@@ -93,17 +93,26 @@ class Turbomachine(Component):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                deriv=self.energy_balance_deriv, num_eq_sets=1,
+                num_eq_sets=1,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+                dependents=self.energy_balance_dependents,
+                latex=self.energy_balance_func_doc
+            ),
             'pr': dc_cp(
-                deriv=self.pr_deriv, num_eq_sets=1,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
+                num_eq_sets=1,
+                func=self.pr_func,
+                dependents=self.pr_dependents,
+                func_params={'pr': 'pr'},
+                latex=self.pr_func_doc,
+                structure_matrix=self.pr_structure_matrix
+            ),
             'dp': dc_cp(
-                deriv=self.dp_deriv, num_eq=1,
-                func=self.dp_func, func_params={'dp': 'dp'},
-                )
+                num_eq_sets=1,
+                func=self.dp_func,
+                dependents=self.dp_dependents,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp'},
+            )
         }
 
     @staticmethod
@@ -149,29 +158,12 @@ class Turbomachine(Component):
             r'\right)-P')
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance of a turbomachine.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
-        # custom variable P
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = -1
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h,
+        ]
 
     def bus_func(self, bus):
         r"""

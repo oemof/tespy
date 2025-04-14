@@ -163,7 +163,7 @@ class SteamTurbine(Turbine):
 
         return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, num_nw_vars):
 
         fluid = single_fluid(self.inl[0].fluid_data)
         if fluid is None:
@@ -175,7 +175,7 @@ class SteamTurbine(Turbine):
             msg = "The SteamTurbine is intended to be used with water only."
             logger.warning(msg)
 
-        return super().preprocess(num_nw_vars)
+        return super()._preprocess(num_nw_vars)
 
     def eta_s_wet_func(self):
         r"""

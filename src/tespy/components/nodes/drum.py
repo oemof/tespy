@@ -174,10 +174,6 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
-
     @staticmethod
     def initialise_target(c, key):
         r"""

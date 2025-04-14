@@ -164,10 +164,6 @@ class Splitter(NodeBase):
             branch["connections"] += [outconn]
             outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
-
     def energy_balance_func(self):
         r"""
         Calculate energy balance.
@@ -199,7 +195,7 @@ class Splitter(NodeBase):
         latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, k):
+    def energy_balance_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for energy balance equation.
 

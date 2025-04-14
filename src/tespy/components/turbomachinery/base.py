@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import convert_to_SI
@@ -84,11 +85,11 @@ class Turbomachine(Component):
     def component():
         return 'turbomachine'
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-
+    def _preprocess(self, num_nw_vars):
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
+        super()._preprocess(num_nw_vars)
 
     def get_parameters(self):
         return {
@@ -113,6 +114,24 @@ class Turbomachine(Component):
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
             )
+        }
+
+    def get_bypass_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i
+            },
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': self.num_i
+            }
         }
 
     @staticmethod

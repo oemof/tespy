@@ -253,6 +253,10 @@ class WaterElectrolyzer(Component):
         }
 
     @staticmethod
+    def get_bypass_constraints():
+        return {}
+
+    @staticmethod
     def inlets():
         return ['in1', 'in2']
 
@@ -260,13 +264,17 @@ class WaterElectrolyzer(Component):
     def outlets():
         return ['out1', 'out2', 'out3']
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, num_nw_vars):
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
         if not self.P.is_set:
             self.set_attr(P='var')
-            msg = ('The power input of a water electrolyzer must be set! '
-                   'We are adding the power input of component ' +
-                   self.label + ' as custom variable of the system.')
+            msg = (
+                'The power input of a water electrolyzer must be set! We are '
+                f'adding the power input of component {self.label} as custom '
+                'variable of the system.'
+            )
             logger.info(msg)
 
         self.o2 = "O2"
@@ -275,10 +283,7 @@ class WaterElectrolyzer(Component):
 
         self.e0 = self.calc_e0()
 
-        super().preprocess(num_nw_vars)
-
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+        super()._preprocess(num_nw_vars)
 
     def calc_e0(self):
         r"""
@@ -766,7 +771,7 @@ class WaterElectrolyzer(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -834,7 +839,7 @@ class WaterElectrolyzer(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def reactor_pressure_deriv(self, k):
+    def reactor_pressure_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 

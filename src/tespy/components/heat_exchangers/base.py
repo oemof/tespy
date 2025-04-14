@@ -350,6 +350,24 @@ class HeatExchanger(Component):
         })
         return constraints
 
+    def get_bypass_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i
+            },
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': self.num_i
+            }
+        }
+
     @staticmethod
     def inlets():
         return ['in1', 'in2']
@@ -358,14 +376,14 @@ class HeatExchanger(Component):
     def outlets():
         return ['out1', 'out2']
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-
+    def _preprocess(self, num_nw_vars):
         if self.dp1.is_set:
             self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
 
         if self.dp2.is_set:
             self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
+
+        super()._preprocess(num_nw_vars)
 
     def energy_balance_func(self):
         r"""

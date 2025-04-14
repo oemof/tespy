@@ -225,8 +225,8 @@ class CombustionChamber(Component):
         branch["components"] += [self]
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
+    def _preprocess(self, num_nw_vars):
+        super()._preprocess(num_nw_vars)
         self.setup_reaction_parameters()
 
     def _get_combustion_connections(self):
@@ -375,7 +375,7 @@ class CombustionChamber(Component):
             r'\dot{m}_\mathrm{out,1}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -441,7 +441,7 @@ class CombustionChamber(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def combustion_pressure_deriv(self, k):
+    def combustion_pressure_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 

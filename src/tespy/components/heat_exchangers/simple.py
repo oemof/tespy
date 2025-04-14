@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
@@ -266,6 +267,24 @@ class SimpleHeatExchanger(Component):
             )
         }
 
+    def get_bypass_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i
+            },
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': self.num_i
+            }
+        }
+
     @staticmethod
     def inlets():
         return ['in1']
@@ -275,12 +294,12 @@ class SimpleHeatExchanger(Component):
         return ['out1']
 
     def _preprocess(self, row_idx):
-        super()._preprocess(row_idx)
-
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
+        super()._preprocess(row_idx)
 
     def energy_balance_func(self):
         r"""

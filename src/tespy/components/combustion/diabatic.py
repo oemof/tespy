@@ -197,11 +197,11 @@ class DiabaticCombustionChamber(CombustionChamber):
     def component():
         return 'diabatic combustion chamber'
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-
+    def _preprocess(self, num_nw_vars):
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
+        super()._preprocess(num_nw_vars)
 
     def get_parameters(self):
         return {

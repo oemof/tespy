@@ -140,10 +140,6 @@ class CycleCloser(Component):
         branch["components"] += [self]
         return
 
-    def preprocess(self, row_idx):
-        super().preprocess(row_idx)
-        self._propagation_start = False
-
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow

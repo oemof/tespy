@@ -129,6 +129,7 @@ class Component:
         self.local_offdesign = False
         self.char_warnings = True
         self.printout = True
+        self.bypass = False
         self.fkt_group = self.label
 
         # add container for components attributes
@@ -242,7 +243,7 @@ class Component:
                     raise ValueError(msg)
 
             elif key in ['local_design', 'local_offdesign',
-                         'printout', 'char_warnings']:
+                         'printout', 'char_warnings', 'bypass']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
                         f"Please provide the {key} parameters as bool for "
@@ -300,7 +301,7 @@ class Component:
     def _serializable():
         return [
             "design", "offdesign", "local_design", "local_offdesign",
-            "design_path", "printout", "fkt_group", "char_warnings"
+            "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
     def propagate_wrapper_to_target(self, branch):
@@ -336,7 +337,14 @@ class Component:
         """
         self.vars = {}
         self.num_vars = 0
-        self.constraints = self.get_mandatory_constraints().copy()
+
+        if self.bypass:
+            self.constraints = self.get_bypass_constraints().copy()
+        else:
+            self.constraints = self.get_mandatory_constraints().copy()
+
+        self.parameters
+
         self.prop_specifications = {}
         self.var_specifications = {}
         self.group_specifications = {}
@@ -360,6 +368,12 @@ class Component:
 
             sum_eq += constraint.num_eq_sets
 
+        if not self.bypass:
+            sum_eq = self._setup_user_imposed_constraints(row_idx, sum_eq)
+
+        self.num_eq = sum_eq
+
+    def _setup_user_imposed_constraints(self, row_idx, sum_eq):
         for key, data in self.parameters.items():
             if isinstance(data, dc_cp):
                 if data.is_var:
@@ -418,7 +432,7 @@ class Component:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
             if data.is_set and data.func is not None:
-                for i in range(sum_eq, sum_eq + constraint.num_eq_sets):
+                for i in range(sum_eq, sum_eq + data.num_eq_sets):
                     self._rhs[i + row_idx] = 0
                     self._equation_lookup[i + row_idx] = key
 
@@ -427,7 +441,7 @@ class Component:
 
                 sum_eq += data.num_eq_sets
 
-        self.num_eq = sum_eq
+        return sum_eq
 
     def _update_num_eq(self):
         pass
@@ -492,6 +506,14 @@ class Component:
                 'func_params': {'variable': 'fluid'}
             })
         }
+
+    def get_bypass_constraints(self):
+        msg = (
+            f"The component {self.label} of type {self.__class__.__name__} "
+            "does not have bypassing functionality yet."
+        )
+        logger.exception(msg)
+        raise NotImplementedError(msg)
 
     @staticmethod
     def inlets():
@@ -663,6 +685,8 @@ class Component:
 
             sum_eq += num_eq
 
+        if self.bypass:
+            return
         for label, data in self.user_imposed_equations.items():
             self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                 **data.func_params
@@ -1217,4 +1241,4 @@ class Component:
         outlet_conn = self.outl[outconn]
         self._structure_matrix[k, inlet_conn.p.sm_col] = 1
         self._structure_matrix[k, outlet_conn.p.sm_col] = -1
-        self._rhs[k] = self.dp.val_SI
+        self._rhs[k] = self.get_attr(dp).val_SI

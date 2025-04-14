@@ -344,8 +344,7 @@ class CombustionEngine(CombustionChamber):
 
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_nw_vars):
-
+    def _preprocess(self, num_nw_vars):
         if not self.P.is_set:
             self.set_attr(P='var')
             msg = ('The power output of combustion engines must be set! '
@@ -360,14 +359,14 @@ class CombustionEngine(CombustionChamber):
                    self.label + ' as custom variable of the system.')
             logger.info(msg)
 
-        super().preprocess(num_nw_vars)
-        self.setup_reaction_parameters()
-
         if self.dp1.is_set:
             self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
 
         if self.dp2.is_set:
             self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
+
+        super()._preprocess(num_nw_vars)
+        self.setup_reaction_parameters()
 
     def _get_combustion_connections(self):
         return (self.inl[2:], [self.outl[2]])

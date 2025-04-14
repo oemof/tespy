@@ -448,6 +448,9 @@ class Network:
             logger.debug(msg)
             # set status "checked" to false, if connection is added to network.
             self.checked = False
+
+        self.conns = self.conns.sort_index()
+
         self._add_comps(*args)
 
     def del_conns(self, *args):
@@ -549,6 +552,7 @@ class Network:
             comp_type = comp.__class__.__name__
             self.comps.loc[comp.label, 'comp_type'] = comp_type
             self.comps.loc[comp.label, 'object'] = comp
+        self.comps = self.comps.sort_index()
 
     def _del_comps(self, comps):
         r"""

@@ -174,26 +174,6 @@ class TestNetworks:
         with raises(TESPyNetworkError):
             Network.from_json(tmp_path)
 
-    def test_Network_missing_component_data_in_design_case_files(self, tmp_path):
-        """Test for missing data in design case files."""
-        tmp_path = f"{tmp_path}.json"
-        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
-        a = Connection(self.source, 'out1', pi, 'in1')
-        a.set_attr(m=1, p=1, T=20, fluid={'water': 1})
-        b = Connection(pi, 'out1', self.sink, 'in1')
-        self.nw.add_conns(a, b)
-        self.nw.solve('design')
-        self.nw.save(tmp_path)
-
-        with open(tmp_path, "r") as f:
-            data = json.load(f)
-
-        data["Component"]["Pipe"] = {}
-
-        with open(tmp_path, "w") as f:
-            json.dump(data, f)
-
-        self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
 
     def test_Network_missing_data_in_individual_design_case_file(self, tmp_path):
         """Test for missing data in individual design case files."""

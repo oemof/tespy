@@ -3,6 +3,18 @@ v0.8.0 - Under development
 
 API breaking changes
 ####################
+- The :code:`OptimizationProblem` implements the following changes
+  (see `PR #610 <https://github.com/oemof/tespy/pull/610>`__):
+  - The dtype for :code:`objective` has been changed to list. With a single
+    element list, a single objective optimization is carried out. With lists
+    containing more elements, multi-objective optimization will be carried out.
+  - The function argument :code:`gen` of the :code:`run` method has been
+    renamed to :code:`evo`. The same applies for the :code:`individuals`
+    dataframe.
+  - Your tespy model now needs to have a function :code:`get_objectives`
+    instead of :code:`get_objective` and it must return a list of values.
+  - The intermediate printing during optimization has been removed.
+
 - Exporting or saving a network state to the filesystem will create a single
   :code:`json` file in the future, meaning you need to change the path to
   :code:`"export.json"`, for example. Also, you need to replace the
@@ -33,7 +45,7 @@ API breaking changes
     >>> list(data.keys())
     ['Network', 'Connection', 'Component', 'Bus']
     >>> list(data["Component"])
-    ['Source', 'Sink']
+    ['Sink', 'Source']
     >>> imported_nw = Network.from_json("tmp.json")
 
   Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
@@ -49,6 +61,9 @@ New Features
     Please note, that the :code:`dp` parameter follows the network unit
     specification for pressure. If your network unit is :code:`bar`, then the
     pressure drop will also use bar as unit.
+
+- Modify the :code:`OptimizationProblem` class to allow multi-objective
+  optimization (`PR #610 <https://github.com/oemof/tespy/pull/610>`__).
 
 Contributors
 ############

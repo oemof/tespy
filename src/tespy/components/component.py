@@ -986,7 +986,7 @@ class Component:
         pr = self.get_attr(pr)
         return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
 
-    def pr_func_doc(self, label, pr='', inconn=0, outconn=0):
+    def pr_func_doc(self, label, pr=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
 
@@ -1013,7 +1013,7 @@ class Component:
         )
         return generate_latex_eq(self, latex, label)
 
-    def pr_deriv(self, increment_filter, k, pr='', inconn=0, outconn=0):
+    def pr_deriv(self, increment_filter, k, pr=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
 
@@ -1044,7 +1044,14 @@ class Component:
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
 
-    def pr_structure_matrix(self, k, pr='', inconn=0, outconn=0):
+    def pr_dependents(self, pr=None, inconn=0, outconn=0):
+        return [
+            self.inl[inconn].p,
+            self.outl[outconn].p,
+            self.get_attr(pr)
+        ]
+
+    def pr_structure_matrix(self, k, pr=None, inconn=0, outconn=0):
         pr = self.get_attr(pr)
         i = self.inl[inconn]
         o = self.outl[outconn]
@@ -1068,7 +1075,7 @@ class Component:
                 / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
             )
 
-    def zeta_func(self, zeta='', inconn=0, outconn=0):
+    def zeta_func(self, zeta=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
@@ -1125,7 +1132,7 @@ class Component:
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 
-    def zeta_func_doc(self, label, zeta='', inconn=0, outconn=0):
+    def zeta_func_doc(self, label, zeta=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of :math:`\zeta`-function.
 
@@ -1160,40 +1167,15 @@ class Component:
         )
         return generate_latex_eq(self, latex, label)
 
-    def zeta_deriv(self, increment_filter, k, zeta='', inconn=0, outconn=0):
-        r"""
-        Calculate partial derivatives of zeta function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-
-        zeta : str
-            Component parameter to evaluate the zeta_func on, e.g.
-            :code:`zeta1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-        """
-        data = self.get_attr(zeta)
-        f = self.zeta_func
-        i = self.inl[inconn]
-        o = self.outl[outconn]
-        kwargs = dict(zeta=zeta, inconn=inconn, outconn=outconn)
-        self._partial_derivative(i.m, k, f, increment_filter, **kwargs)
-        self._partial_derivative(i.p, k, f, increment_filter, **kwargs)
-        self._partial_derivative(i.h, k, f, increment_filter, **kwargs)
-        self._partial_derivative(o.p, k, f, increment_filter, **kwargs)
-        self._partial_derivative(o.h, k, f, increment_filter, **kwargs)
-        # custom variable zeta
-        self._partial_derivative(data, k, f, increment_filter, **kwargs)
+    def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
+        return [
+            self.inl[inconn].m,
+            self.inl[inconn].p,
+            self.inl[inconn].h,
+            self.outl[outconn].p,
+            self.outl[outconn].h,
+            self.get_attr(zeta)
+        ]
 
     def dp_func(self, dp=None, inconn=None, outconn=None):
         """Calculate residual value of pressure difference function.
@@ -1224,59 +1206,15 @@ class Component:
         dp_value = self.get_attr(dp).val_SI
         return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
 
-    def dp_deriv(self, increment_filter, k, dp=None, inconn=None, outconn=None):
-        r"""
-        Calculate residual value of pressure difference function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-
-        dp : str
-            Component parameter to evaluate the dp_func on, e.g.
-            :code:`dp1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-        """
-        inlet_conn = self.inl[inconn]
-        outlet_conn = self.outl[outconn]
-        if inlet_conn.p.is_var:
-            self.jacobian[k, inlet_conn.p.J_col] = 1
-        if outlet_conn.p.is_var:
-            self.jacobian[k, outlet_conn.p.J_col] = -1
+    def dp_dependents(self, dp=None, inconn=None, outconn=None):
+        return [
+            self.inl[inconn].p,
+            self.outl[outconn].p
+        ]
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure difference function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-
-        dp : str
-            Component parameter to evaluate the dp_func on, e.g.
-            :code:`dp1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-        """
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         self._structure_matrix[k, inlet_conn.p.sm_col] = 1
         self._structure_matrix[k, outlet_conn.p.sm_col] = -1
-        self._rhs[k] = self.dp.val
+        self._rhs[k] = self.dp.val_SI

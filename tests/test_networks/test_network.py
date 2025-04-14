@@ -30,7 +30,7 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from tespy.networks import load_network
+from tespy.networks.network import v07_to_v08_export
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -638,3 +638,17 @@ def test_missing_source_sink_cycle_closer():
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
         nw.check_network()
+
+
+def test_v07_to_v08_export(tmp_path):
+    tmp_path = f"{tmp_path}.json"
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "exported_nwk"
+    )
+
+    with open(tmp_path, "w") as f:
+        json.dump(v07_to_v08_export(path), f)
+
+    nw = Network.from_json(tmp_path)
+    assert nw.checked, "The network import was not successful"

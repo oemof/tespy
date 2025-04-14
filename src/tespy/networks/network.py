@@ -1318,7 +1318,8 @@ class Network:
                     raise hlp.TESPyNetworkError(msg)
                 if path not in _local_designs:
                     _local_designs[path] = self._load_network_state(path)
-                data = _local_designs[path][c].loc[cp.label]
+
+                data = _local_designs[path][c]
                 # write data
                 self.init_comp_design_params(cp, data)
 
@@ -1390,9 +1391,9 @@ class Network:
         :py:meth:`tespy.networks.network.Network.init_conn_design_params`
         (connections) handle the parameter specification.
         """
-        # components without any parameters
+        # components with offdesign parameters
         components_with_parameters = [
-            cp.label for cp in self.comps["object"] if len(cp.parameters) > 0
+            cp.label for cp in self.comps["object"] if len(cp.offdesign) > 0
         ]
         # fetch all components, reindex with label
         df_comps = self.comps.loc[components_with_parameters].copy()
@@ -1400,23 +1401,21 @@ class Network:
         dfs = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         ind_designs = {}
-        for c in df_comps['comp_type'].unique():
-            df = dfs[c]
+        for label, row in df_comps.iterrows():
+            df = dfs[row["comp_type"]]
+            comp = row["object"]
+            path = comp.design_path
+            # read data of components with individual design_path
+            if path is not None:
+                if path not in ind_designs:
+                    ind_designs[path] = self._load_network_state(path)
+                data = ind_designs[path][c]
 
-            for c_label in df.index:
-                comp = self.comps.loc[c_label, 'object']
-                path = comp.design_path
-                # read data of components with individual design_path
-                if path is not None:
-                    if path not in ind_designs:
-                        ind_designs[path] = self._load_network_state(path)
-                    data = ind_designs[path][c].loc[comp.label]
+            else:
+                data = df
 
-                else:
-                    data = df.loc[comp.label]
-
-                # write data to components
-                self.init_comp_design_params(comp, data)
+            # write data to components
+            self.init_comp_design_params(comp, data)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
@@ -1431,21 +1430,21 @@ class Network:
 
         # iter through connections
         for c in self.conns['object']:
-
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
                 if path not in ind_designs:
                     ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path]["Connection"].loc[c.label]
-                self.init_conn_design_params(c, data)
+                data = ind_designs[path]["Connection"]
             else:
-                self.init_conn_design_params(c, df)
+                data = df
+
+            self.init_conn_design_params(c, data)
 
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def init_comp_design_params(self, component, data):
+    def init_comp_design_params(self, c, df):
         r"""
         Write design point information to components.
 
@@ -1457,8 +1456,18 @@ class Network:
         data : pandas.core.series.Series, pandas.core.frame.DataFrame
             Design point information.
         """
+        if c.label not in df.index:
+            # no matches in the connections of the network and the design files
+            msg = (
+                f"Could not find connection '{c.label}' in design case. Make "
+                "sure no connections have been modified or components have "
+                "been relabeled for your offdesign calculation."
+            )
+            logger.exception(msg)
+            raise hlp.TESPyNetworkError(msg)
         # write component design data
-        component.set_parameters(self.mode, data)
+        data = df.loc[c.label]
+        c.set_parameters(self.mode, data)
 
     def init_conn_design_params(self, c, df):
         r"""
@@ -1474,7 +1483,6 @@ class Network:
         """
         # match connection (source, source_id, target, target_id) on
         # connection objects of design file
-        df.index = df.index.astype(str)
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
@@ -3109,6 +3117,41 @@ class Network:
             busses.update(bus._serialize())
 
         return busses
+
+
+def v07_to_v08_design(path):
+    return data
+
+
+def v07_to_v08_export(path):
+    """Transform the v0.7 network export to a dictionary compatible to v0.8.
+
+    Parameters
+    ----------
+    path : str
+        Path to the export structure
+
+    Returns
+    -------
+    dict
+        Dictionary of the v0.8 network export
+    """
+    data = {
+        "Component": {},
+        "Bus": {},
+        "Connection": {},
+        "Network": {}
+    }
+    component_files_path = os.path.join(path, "components")
+    for file in os.listdir(component_files_path):
+        with open(os.path.join(component_files_path, file), "r") as f:
+            data["Component"][file.removesuffix(".json")] = json.load(f)
+    files = {"busses": "Bus", "connections": "Connection", "network": "Network"}
+    for file, key in files.items():
+        with open(os.path.join(path, f"{file}.json"), "r") as f:
+            data[key] = json.load(f)
+
+    return data
 
 
 def _construct_components(target_class, data):

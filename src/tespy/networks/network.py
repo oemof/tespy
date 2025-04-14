@@ -1586,6 +1586,7 @@ class Network:
 
                 c.new_design = False
 
+        for c in self.conns['object']:
             if not c.fluid.is_var:
                 c.simplify_specifications()
             self._assign_variable_space(c)

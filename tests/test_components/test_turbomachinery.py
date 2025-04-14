@@ -40,6 +40,7 @@ class TestTurbomachinery:
 
     def test_Compressor(self, tmp_path):
         """Test component properties of compressors."""
+        tmp_path = f'{tmp_path}.json'
         instance = Compressor('compressor')
         self.setup_network(instance)
 
@@ -157,6 +158,7 @@ class TestTurbomachinery:
 
     def test_Pump(self, tmp_path):
         """Test component properties of pumps."""
+        tmp_path = f'{tmp_path}.json'
         instance = Pump('pump')
         self.setup_network(instance)
         self.c1.set_attr(fluid={'INCOMP::DowQ': 1}, v=1, p=5, T=50)
@@ -246,6 +248,7 @@ class TestTurbomachinery:
 
     def test_Turbine(self, tmp_path):
         """Test component properties of turbines."""
+        tmp_path = f'{tmp_path}.json'
         instance = Turbine('turbine')
         self.setup_network(instance)
         fl = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}

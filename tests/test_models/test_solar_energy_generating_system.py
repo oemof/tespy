@@ -242,10 +242,7 @@ class TestSEGS:
         self.nw.add_busses(power, heat_input_bus, exergy_loss_bus)
 
         # component parameters
-        pt.set_attr(doc=0.95, aoi=0,
-                    Tamb=25, A='var', eta_opt=0.73,
-                    c_1=0.00496, c_2=0.000691, E=1000,
-                    iam_1=1, iam_2=1, dissipative=False)
+        pt.set_attr(dissipative=False)
 
         ptpump.set_attr(eta_s=0.6)
 
@@ -253,13 +250,13 @@ class TestSEGS:
         eva.set_attr(ttd_l=5)
         sup.set_attr()
 
-        hpt1.set_attr(eta_s=0.8376)
-        hpt2.set_attr(eta_s=0.8463)
-        lpt1.set_attr(eta_s=0.8623)
-        lpt2.set_attr(eta_s=0.917)
-        lpt3.set_attr(eta_s=0.9352)
-        lpt4.set_attr(eta_s=0.88)
-        lpt5.set_attr(eta_s=0.6445)
+        c3.set_attr(h=Ref(c2, 1, -200))
+        c5.set_attr(h=Ref(c4, 1, -200))
+        c8.set_attr(h=Ref(c7, 1, -200))
+        c10.set_attr(h=Ref(c9, 1, -200))
+        c12.set_attr(h=Ref(c11, 1, -200))
+        c14.set_attr(h=Ref(c13, 1, -200))
+        c16.set_attr(h=Ref(c15, 1, -200))
 
         cond.set_attr(pr1=1, pr2=0.9, ttd_u=5)
         condpump.set_attr(eta_s=0.7)
@@ -274,12 +271,6 @@ class TestSEGS:
         hppre1.set_attr(pr1=1, ttd_u=5)
         hppre2.set_attr(pr1=1, ttd_u=5)
 
-        lppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        lppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        lppre3_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        hppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        hppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-
         # connection parameters
         # parabolic trough cycle
         c70.set_attr(fluid={'INCOMP::TVP1': 1}, T=390, p=23.304)
@@ -290,11 +281,12 @@ class TestSEGS:
         c79.set_attr(p=41.024)
 
         # cooling water
-        c62.set_attr(
-            fluid={'water': 1}, T=30, p=self.pamb)
+        c60.set_attr(h0=120)
+        c61.set_attr(h0=122)
+        c63.set_attr(h0=90)
+        c62.set_attr(fluid={'INCOMP::Water': 1}, T=30, p=self.pamb)
         # cooling tower
-        c64.set_attr(
-            fluid={'air': 1}, p=self.pamb, T=self.Tamb)
+        c64.set_attr(fluid={'air': 1}, p=self.pamb, T=self.Tamb)
         c65.set_attr(p=self.pamb + 0.0005)
         c66.set_attr(p=self.pamb, T=30)
         # power cycle
@@ -361,7 +353,23 @@ class TestSEGS:
 
         self.nw.add_conns(
             c19, c20, c21, c22, c23, c24, c27, c28, c29, c30, c37, c38, c42,
-            c43, c47, c48, c52, c53, c57, c58)
+            c43, c47, c48, c52, c53, c57, c58
+        )
+
+        hpt1.set_attr(eta_s=0.8376)
+        hpt2.set_attr(eta_s=0.8463)
+        lpt1.set_attr(eta_s=0.8623)
+        lpt2.set_attr(eta_s=0.917)
+        lpt3.set_attr(eta_s=0.9352)
+        lpt4.set_attr(eta_s=0.88)
+        lpt5.set_attr(eta_s=0.6445)
+        c3.set_attr(h=None)
+        c5.set_attr(h=None)
+        c8.set_attr(h=None)
+        c10.set_attr(h=None)
+        c12.set_attr(h=None)
+        c14.set_attr(h=None)
+        c16.set_attr(h=None)
 
         # specification of missing parameters
         c19.set_attr(p=14.755)
@@ -370,7 +378,26 @@ class TestSEGS:
         c27.set_attr(p=125)
         c29.set_attr(p=112)
 
+        c48.set_attr(Td_bp=-10)
+        c53.set_attr(Td_bp=-10)
+        c58.set_attr(Td_bp=-10)
+
+        lppre1_sub.set_attr(pr1=1, pr2=1)
+        lppre2_sub.set_attr(pr1=1, pr2=1)
+        lppre3_sub.set_attr(pr1=1, pr2=1)
+        hppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
+        hppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
+
         # solve final state
+        self.nw.solve(mode='design')
+
+        c48.set_attr(Td_bp=None)
+        c53.set_attr(Td_bp=None)
+        c58.set_attr(Td_bp=None)
+        lppre1_sub.set_attr(ttd_l=10)
+        lppre2_sub.set_attr(ttd_l=10)
+        lppre3_sub.set_attr(ttd_l=10)
+
         self.nw.solve(mode='design')
 
     def test_model(self):
@@ -379,17 +406,18 @@ class TestSEGS:
         power_tespy = round(
             self.nw.busses['total output power'].P.val / 1e6, 3)
         msg = (
-            'The total power calculated (' + str(power_tespy) + ') does not '
-            'match the power calculated with the EBSILON model (' +
-            str(power_ebsilon) + ').')
+            f'The total power calculated ({power_tespy}) does not match the '
+            f'power calculated with the EBSILON model ({power_ebsilon}).'
+        )
         assert power_tespy == power_ebsilon, msg
 
         T_c79_ebsilon = 296.254
         T_c79_tespy = round(self.nw.get_conn('79').T.val, 3)
         msg = (
-            'The temperature at connection 79 calculated (' +
-            str(T_c79_tespy) + ') does not match the temperature calculated '
-            'with the EBSILON model (' + str(T_c79_ebsilon) + ').')
+            f'The temperature at connection 79 calculated ({T_c79_tespy}) '
+            'does not match the temperature calculated with the EBSILON model '
+            f'({T_c79_ebsilon}).'
+        )
         assert T_c79_tespy == T_c79_ebsilon, msg
 
     def test_exergy_analysis(self):
@@ -410,7 +438,7 @@ class TestSEGS:
         power_links = round(links['value'][position], 0)
         power_bus = round(-self.nw.busses['total output power'].P.val, 0)
         msg = (
-            'The exergy product value in the links (' + str(power_links) +
-            ') must be equal to the power on the respective bus (' +
-            str(power_bus) + ').')
+            f'The exergy product value in the links ({power_links}) must be '
+            f'equal to the power on the respective bus ({power_bus}).'
+        )
         assert power_links == power_bus, msg

@@ -179,19 +179,19 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -52581.0
     >>> round(heat_sink.kA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 0)
     -56599.0
     >>> round(outg.T.val, 1)
     156.9
     >>> inc.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(heat_sink.Q.val, 1)
     -47275.8
     >>> round(outg.T.val, 1)
@@ -268,6 +268,9 @@ class SimpleHeatExchanger(Component):
         super()._preprocess(row_idx)
 
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
     def energy_balance_func(self):
         r"""
@@ -878,6 +881,8 @@ class SimpleHeatExchanger(Component):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:

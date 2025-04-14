@@ -170,16 +170,16 @@ class SolarCollector(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(sc.A.val, 1)
     14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(sc.Q.val, 1)
     6083.8
     >>> round(outg.T.val, 1)
     70.5
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> shutil.rmtree('./tmp.json', ignore_errors=True)
     """
 
     @staticmethod

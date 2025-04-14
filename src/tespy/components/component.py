@@ -949,7 +949,7 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def pr_func(self, pr='', inconn=0, outconn=0):
+    def pr_func(self, pr=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
 

@@ -12,23 +12,9 @@ available from its original location tespy/networks/network_reader.py
 
 SPDX-License-Identifier: MIT
 """
-import importlib
-import json
-import os
+import warnings
 
-from tespy.components.component import component_registry
-from tespy.connections import Bus
-from tespy.connections import Connection
-from tespy.connections import Ref
-from tespy.networks.network import Network
-from tespy.tools import logger
-from tespy.tools.characteristics import CharLine
-from tespy.tools.characteristics import CharMap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import DataContainer as dc
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.fluid_properties.wrappers import wrapper_registry
+from .network import Network
 
 
 def load_network(path):
@@ -55,12 +41,10 @@ def load_network(path):
     The structure of the path must be as follows:
 
     - Folder: path (e.g. 'mynetwork')
-    - Subfolder: components ('mynetwork/components') containing
-      {component_class_name}.json (e.g. HeatExchanger.json)
-
-    - connections.json
-    - busses.json
-    - network.json
+      - Component.json
+      - Connection.json
+      - Bus.json
+      - Network.json
 
     Example
     -------
@@ -129,15 +113,15 @@ def load_network(path):
     >>> nw.solve('design')
     >>> nw.lin_dep
     False
-    >>> nw.save('design_state')
-    >>> nw.export('exported_nwk')
+    >>> nw.save('design_state.json')
+    >>> _ = nw.export('exported_nwk.json')
     >>> mass_flow = round(nw.get_conn('ambient air').m.val_SI, 1)
     >>> c.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='design_state')
+    >>> nw.solve('offdesign', design_path='design_state.json')
     >>> round(t.eta_s.val, 1)
     0.9
     >>> power.set_attr(P=-0.75e6)
-    >>> nw.solve('offdesign', design_path='design_state')
+    >>> nw.solve('offdesign', design_path='design_state.json')
     >>> nw.lin_dep
     False
     >>> eta_s_t = round(t.eta_s.val, 3)
@@ -151,7 +135,7 @@ def load_network(path):
     network and recalculate. Check if the results match with the previous
     calculation in design and offdesign case.
 
-    >>> imported_nwk = load_network('exported_nwk')
+    >>> imported_nwk = load_network('exported_nwk.json')
     >>> imported_nwk.set_attr(iterinfo=False)
     >>> imported_nwk.solve('design')
     >>> imported_nwk.lin_dep
@@ -161,11 +145,11 @@ def load_network(path):
     >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
     0.9
     >>> imported_nwk.get_comp('compressor').set_attr(igva='var')
-    >>> imported_nwk.solve('offdesign', design_path='design_state')
+    >>> imported_nwk.solve('offdesign', design_path='design_state.json')
     >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
     0.9
     >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
-    >>> imported_nwk.solve('offdesign', design_path='design_state')
+    >>> imported_nwk.solve('offdesign', design_path='design_state.json')
     >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
     True
     >>> round(imported_nwk.get_comp('compressor').igva.val, 3) == igva
@@ -173,249 +157,10 @@ def load_network(path):
     >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
     >>> shutil.rmtree('./design_state', ignore_errors=True)
     """
-    path_comps = os.path.join(path, 'components')
-
-    msg = f'Reading network data from base path {path}.'
-    logger.info(msg)
-
-    # load components
-    comps = {}
-
-    module_name = "tespy.components"
-    _ = importlib.import_module(module_name)
-
-    files = os.listdir(path_comps)
-    for f in files:
-        if not f.endswith(".json"):
-            continue
-
-        component = f.replace(".json", "")
-
-        if component not in component_registry.items:
-            msg = (
-                f"A class {component} is not available through the "
-                "tespy.components.component.component_registry decorator. "
-                "If you are using a custom component make sure to decorate the "
-                "class."
-            )
-            logger.warning(msg)
-            continue
-
-        fn = os.path.join(path_comps, f)
-        msg = f"Reading component data ({component}) from {fn}."
-        logger.debug(msg)
-
-        with open(fn, "r", encoding="utf-8") as c:
-            data = json.load(c)
-
-        target_class = component_registry.items[component]
-        comps.update(_construct_components(target_class, data))
-
-    msg = 'Created network components.'
-    logger.info(msg)
-
-    # create network
-    nw = _construct_network(path)
-
-    # load connections
-    fn = os.path.join(path, 'connections.json')
-    msg = f"Reading connection data from {fn}."
-    logger.debug(msg)
-
-    with open(fn, "r", encoding="utf-8") as c:
-        data = json.load(c)
-
-    conns = _construct_connections(data, comps)
-
-    # add connections to network
-    for c in conns.values():
-        nw.add_conns(c)
-
-    msg = 'Created connections.'
-    logger.info(msg)
-
-    # load busses
-    fn = os.path.join(path, 'busses.json')
-    if os.path.isfile(fn):
-
-        msg = f"Reading bus data from {fn}."
-        logger.debug(msg)
-
-        with open(fn, "r", encoding="utf-8") as c:
-            data = json.load(c)
-
-        busses = _construct_busses(data, comps)
-        # add busses to network
-        for b in busses.values():
-            nw.add_busses(b)
-
-        msg = 'Created busses.'
-        logger.info(msg)
-
-    else:
-        msg = 'No bus data found!'
-        logger.debug(msg)
-
-    msg = 'Created network.'
-    logger.info(msg)
-
-    nw.check_network()
-
-    return nw
-
-
-def _construct_components(target_class, data):
-    r"""
-    Create TESPy component from class name and set parameters.
-
-    Parameters
-    ----------
-    component : str
-        Name of the component class to be constructed.
-
-    data : dict
-        Dictionary with component information.
-
-    Returns
-    -------
-    dict
-        Dictionary of all components of the specified type.
-    """
-    instances = {}
-    for cp, cp_data in data.items():
-        instances[cp] = target_class(cp)
-        for param, param_data in cp_data.items():
-            container = instances[cp].get_attr(param)
-            if isinstance(container, dc):
-                if "char_func" in param_data:
-                    if isinstance(container, dc_cc):
-                        param_data["char_func"] = CharLine(**param_data["char_func"])
-                    elif isinstance(container, dc_cm):
-                        param_data["char_func"] = CharMap(**param_data["char_func"])
-                if isinstance(container, dc_prop):
-                    param_data["val0"] = param_data["val"]
-                container.set_attr(**param_data)
-            else:
-                instances[cp].set_attr(**{param: param_data})
-
-    return instances
-
-
-def _construct_network(path):
-    r"""
-    Create TESPy network from the path provided by the user.
-
-    Parameters
-    ----------
-    path : str
-        Base-path to stored network data.
-
-    Returns
-    -------
-    nw : tespy.networks.network.Network
-        TESPy network object.
-    """
-    # read network .json-file
-    fn = os.path.join(path, 'network.json')
-    with open(fn, 'r') as f:
-        data = json.load(f)
-
-    # create network object with its properties
-    return Network(**data)
-
-
-def _construct_connections(data, comps):
-    r"""
-    Create TESPy connection from data in the .json-file and its parameters.
-
-    Parameters
-    ----------
-    data : dict
-        Dictionary with connection data.
-
-    comps : dict
-        Dictionary of constructed components.
-
-    Returns
-    -------
-    dict
-        Dictionary of TESPy connection objects.
-    """
-    conns = {}
-
-    arglist = [
-        _ for _ in data[list(data.keys())[0]]
-        if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
-        and "ref" not in _
-    ]
-    arglist_ref = [_ for _ in data[list(data.keys())[0]] if "ref" in _]
-
-    module_name = "tespy.tools.fluid_properties.wrappers"
-    _ = importlib.import_module(module_name)
-
-    for label, conn in data.items():
-        conns[label] = Connection(
-            comps[conn["source"]], conn["source_id"],
-            comps[conn["target"]], conn["target_id"],
-            label=label
-        )
-        for arg in arglist:
-            container = conns[label].get_attr(arg)
-            if isinstance(container, dc):
-                container.set_attr(**conn[arg])
-            else:
-                conns[label].set_attr(**{arg: conn[arg]})
-
-        for f, engine in conn["fluid"]["engine"].items():
-            conn["fluid"]["engine"][f] = wrapper_registry.items[engine]
-
-        conns[label].fluid.set_attr(**conn["fluid"])
-        conns[label]._create_fluid_wrapper()
-
-    for label, conn in data.items():
-        for arg in arglist_ref:
-            if len(conn[arg]) > 0:
-                param = arg.replace("_ref", "")
-                ref = Ref(
-                    conns[conn[arg]["conn"]],
-                    conn[arg]["factor"],
-                    conn[arg]["delta"]
-                )
-                conns[label].set_attr(**{param: ref})
-
-    return conns
-
-
-def _construct_busses(data, comps):
-    r"""
-    Create busses of the network.
-
-    Parameters
-    ----------
-    data : dict
-        Bus information from .json file.
-
-    comps : dict
-        TESPy components dictionary.
-
-    Returns
-    -------
-    dict
-        Dict with TESPy bus objects.
-    """
-    busses = {}
-
-    for label, bus_data in data.items():
-        busses[label] = Bus(label)
-        busses[label].P.set_attr(**bus_data["P"])
-
-        components = [_ for _ in bus_data if _ != "P"]
-        for cp in components:
-            char = CharLine(**bus_data[cp]["char"])
-            component_data = {
-                "comp": comps[cp], "param": bus_data[cp]["param"],
-                "base": bus_data[cp]["base"], "char": char
-            }
-            busses[label].add_comps(component_data)
-
-    return busses
+    msg = (
+        f'The load_network method is deprecated and will be removed in the '
+        'next major release of TESPy. Please use the Network class function '
+        'Network.from_json() instead.'
+    )
+    warnings.warn(msg, FutureWarning)
+    return Network.from_json(path)

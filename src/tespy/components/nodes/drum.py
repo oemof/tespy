@@ -142,7 +142,7 @@ class Drum(DropletSeparator):
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw._convergence_check()
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
@@ -154,7 +154,7 @@ class Drum(DropletSeparator):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)

@@ -19,6 +19,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -113,7 +114,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -125,7 +126,7 @@ class Valve(Component):
     we can determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
@@ -137,6 +138,12 @@ class Valve(Component):
     def component():
         return 'valve'
 
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
     def get_parameters(self):
         return {
             'pr': dc_cp(
@@ -146,6 +153,12 @@ class Valve(Component):
                 func=self.pr_func,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix
+            ),
+            'dp': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq_sets=1,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
@@ -315,6 +328,8 @@ class Valve(Component):
         i = self.inl[0]
         o = self.outl[0]
         self.pr.val = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)
 
     def entropy_balance(self):

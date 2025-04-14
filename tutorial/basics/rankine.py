@@ -214,14 +214,14 @@ c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
 # %%[sec_10]
 my_plant.solve("design")
-my_plant.save("rankine_design")
+my_plant.save("rankine_design.json")
 # %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
 for m in partload_m_range:
     c1.set_attr(m=m)
-    my_plant.solve("offdesign", design_path="rankine_design")
+    my_plant.solve("offdesign", design_path="rankine_design.json")
     partload_efficiency += [abs(powergen.P.val) / sg.Q.val * 100]
 
 

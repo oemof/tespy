@@ -24,7 +24,6 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import _numeric_deriv
 
@@ -208,17 +207,17 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(he_cw.T.val, 1)
     27.5
     >>> round(he_ex.T.val, 1)
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)
@@ -1136,9 +1135,10 @@ class HeatExchanger(Component):
                 self.inl[i], self.outl[i]
             )
             self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI)
-            self.get_attr(f'dp{i + 1}').val = convert_from_SI(
-                'p', self.get_attr(f'dp{i + 1}').val_SI, self.inl[i].p.unit
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            )
+            self.get_attr(f'dp{i + 1}').val = (
+                self.inl[i].p.val - self.outl[i].p.val
             )
 
         # kA and logarithmic temperature difference

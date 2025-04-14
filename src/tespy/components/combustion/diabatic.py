@@ -19,6 +19,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -196,6 +197,12 @@ class DiabaticCombustionChamber(CombustionChamber):
     def component():
         return 'diabatic combustion chamber'
 
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
+
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
     def get_parameters(self):
         return {
             'lamb': dc_cp(
@@ -205,9 +212,20 @@ class DiabaticCombustionChamber(CombustionChamber):
                 min_val=0, deriv=self.ti_deriv, func=self.ti_func,
                 latex=self.ti_func_doc, num_eq_sets=1),
             'pr': dc_cp(
-                min_val=0, deriv=self.pr_deriv,
+                min_val=0,
+                deriv=self.pr_deriv,
                 func=self.pr_func,
-                latex=self.pr_func_doc, num_eq_sets=1),
+                latex=self.pr_func_doc,
+                num_eq_sets=1,
+                func_params={"inconn": 0, "outconn": 0, "pr": "pr"}
+            ),
+            'dp': dc_cp(
+                min_val=0,
+                deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq_sets=2,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+            ),
             'eta': dc_cp(
                 max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
@@ -220,60 +238,6 @@ class DiabaticCombustionChamber(CombustionChamber):
             k: v for k, v in super().get_mandatory_constraints().items()
             if k in ["mass_flow_constraints", "stoichiometry_constraints"]
         }
-
-    def pr_func(self):
-        r"""
-        Equation for pressure drop.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
-        """
-        return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
-
-    def pr_func_doc(self, label):
-        r"""
-        Equation for inlet pressure equality.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}\\' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
-
-    def pr_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure ratio.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col] = self.pr.val
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
 
     def energy_balance_func(self):
         r"""
@@ -380,6 +344,8 @@ class DiabaticCombustionChamber(CombustionChamber):
         self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
 
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
         for num, i in enumerate(self.inl):
             if i.p.val < self.outl[0].p.val:
                 msg = (

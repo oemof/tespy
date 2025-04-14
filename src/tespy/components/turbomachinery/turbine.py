@@ -133,13 +133,13 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
     >>> inc.set_attr(m=8)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(t.eta_s.val, 3)
     0.898
     >>> round(inc.p.val, 1)
@@ -152,12 +152,8 @@ class Turbine(Turbomachine):
         return 'turbine'
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                max_val=0, num_eq_sets=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 deriv=self.eta_s_deriv,
@@ -166,15 +162,11 @@ class Turbine(Turbomachine):
                 param='m', num_eq_sets=1,
                 deriv=self.eta_s_char_deriv,
                 func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
-            'pr': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
             'cone': dc_simple(
                 deriv=self.cone_deriv, num_eq_sets=1,
                 func=self.cone_func, latex=self.cone_func_doc)
-        }
+        })
+        return parameters
 
     def eta_s_func(self):
         r"""

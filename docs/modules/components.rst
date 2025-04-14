@@ -283,14 +283,14 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> c4.set_attr(T=200, p=1)
 
     >>> nw.solve("design")
-    >>> nw.save("design_case")
+    >>> nw.save("design_case.json")
     >>> round(he.kA.val)
     503013
 
     >>> # the characteristic function is made for offdesign calculation.
     >>> he.set_attr(kA_char={'is_set': True})
     >>> c4.set_attr(T=None)
-    >>> nw.solve("offdesign", design_path="design_case")
+    >>> nw.solve("offdesign", design_path="design_case.json")
     >>> # since we did not change any property, the offdesign case yields the
     >>> # same value as the design kA value
     >>> round(he.kA.val)
@@ -303,7 +303,7 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
     >>> kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
     >>> he.set_attr(kA_char2=kA_char2)
-    >>> nw.solve("offdesign", design_path="design_case")
+    >>> nw.solve("offdesign", design_path="design_case.json")
     >>> round(he.kA.val)
     481745
 
@@ -315,7 +315,7 @@ For example, :code:`kA_char` specification for heat exchangers:
     ...     kA_char1={'char_func': kA_char1, 'param': 'm'},
     ...     kA_char2={'char_func': kA_char2, 'param': 'v'}
     ... )
-    >>> nw.solve("offdesign", design_path="design_case")
+    >>> nw.solve("offdesign", design_path="design_case.json")
     >>> round(he.kA.val)
     481745
 
@@ -325,7 +325,7 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> y = np.array([0, 0.8, 1, 1.2])
     >>> kA_char2 = CharLine(x, y)
     >>> he.set_attr(kA_char2={'char_func': kA_char2, 'param': 'v'})
-    >>> nw.solve("offdesign", design_path="design_case")
+    >>> nw.solve("offdesign", design_path="design_case.json")
     >>> round(he.kA.val)
     475107
 
@@ -365,10 +365,10 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> # change mass flow value, e.g. 3 kg/s and run offdesign calculation
     >>> inc.set_attr(m=3)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> # isentropic efficiency should be at 0.65
     >>> round(t.eta_s.val, 2)
     0.65
@@ -376,7 +376,7 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> # alternatively, we can specify the volumetric flow v / v_design for
     >>> # the x lookup
     >>> t.set_attr(eta_s_char={'param': 'v'})
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(t.eta_s.val, 2)
     0.84
 
@@ -920,10 +920,10 @@ different tespy classes required.
     >>> # solve design case
     >>> nw.solve('design')
     >>> nw._convergence_check()
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
 
     >>> # offdesign test
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
 
 Add more flexibility
 --------------------

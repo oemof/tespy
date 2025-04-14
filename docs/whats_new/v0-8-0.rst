@@ -1,18 +1,23 @@
 v0.8.0 - Under development
 ++++++++++++++++++++++++++
 
-New Features
-############
-- Implement a new property for connections to report the phase of the fluid,
-  i.e. :code:`"l"` for liquid, :code:`"tp"` for two-phase and :code:`"g"` for
-  gaseous. The phase is only reported in subcritical pressure
-  (`PR #592 <https://github.com/oemof/tespy/pull/592>`__).
-- Change the export of a :py:class:`tespy.networks.network.Network` instance to
-  separate writing to the filesystem from creating the data to export. This
-  breaks the API of the :py:meth:`tespy.networks.network_reader.load_network`
-  method, meaning exported network data based on :code:`tespy<0.8` are not
-  compatible with how :code:`tespy>=0.8` is handling the data
-  (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
+API breaking changes
+####################
+- Exporting or saving a network state to the filesystem will create a single
+  :code:`json` file in the future, meaning you need to change the path to
+  :code:`"export.json"`, for example. Also, you need to replace the
+  :code:`design_path` and :code:`init_path` arguments for your networks to
+  point to the respective json file. To transform an existing export or save
+  state from the old API of v0.7, you can use the :code:`v07_to_v08_export` and
+  the :code:`v07_to_v08_save` methods. They will return a dictionary with the
+  respective data, which you can dump into a :code:`.json` file.
+
+  This also breaks the API of the
+  :py:meth:`tespy.networks.network_reader.load_network` method, meaning
+  exported network data based on :code:`tespy<0.8` are not compatible with how
+  :code:`tespy>=0.8` is handling the data. Use the described method above to
+  adjust that. On top of that, instead of the :code:`load_network` method, use
+  the :code:`from_json` class method to import networks in the future:
 
   .. code-block:: python
 
@@ -24,12 +29,17 @@ New Features
     >>> si = Sink("sink")
     >>> c1 = Connection(so, "out1", si, "in1")
     >>> nwk.add_conns(c1)
-    >>> data = nwk.export()
+    >>> data = nwk.export("tmp.json")
     >>> list(data.keys())
     ['Network', 'Connection', 'Component', 'Bus']
     >>> list(data["Component"])
     ['Source', 'Sink']
+    >>> imported_nw = Network.from_json("tmp.json")
 
+  Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
+
+New Features
+############
 - The parameter for delta pressure (:code:`dp`) is now available on all
   components, that do feature the pressure ratio :code:`pr` parameter
   (`PR #628 <https://github.com/oemof/tespy/pull/628>`__).
@@ -43,4 +53,3 @@ New Features
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
-- `@tlmerbecks <https://github.com/tlmerbecks>`__

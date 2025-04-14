@@ -391,7 +391,7 @@ class CombustionChamber(Component):
             r'\dot{m}_\mathrm{out,1}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -457,7 +457,7 @@ class CombustionChamber(Component):
             r'\end{split}')
         return generate_latex_eq(self, latex, label)
 
-    def combustion_pressure_deriv(self, k):
+    def combustion_pressure_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for combustion pressure equations.
 

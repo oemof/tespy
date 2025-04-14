@@ -3033,7 +3033,7 @@ class Network:
         dump = {}
 
         # save relevant state information only
-        dump["Connection"] = self.results["Connection"].to_dict(orient="index")
+        dump["Connection"] = self.results["Connection"].replace(np.nan, None).to_dict(orient="index")
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()
         with open(json_file_path, "w") as f:
@@ -3050,7 +3050,7 @@ class Network:
         """
         dump = {}
         for c in self.comps['comp_type'].unique():
-            dump[c] = self.results[c].to_dict(orient="index")
+            dump[c] = self.results[c].replace(np.nan, None).to_dict(orient="index")
         return dump
 
     def _save_busses(self):
@@ -3064,7 +3064,7 @@ class Network:
         """
         dump = {}
         for label, bus in self.busses.items():
-            dump[label] = self.results[label]["design value"].to_dict()
+            dump[label] = self.results[label]["design value"].replace(np.nan, None).to_dict()
         return dump
 
     def _export_network(self):

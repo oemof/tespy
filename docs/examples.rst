@@ -19,13 +19,13 @@ your project.
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-light
-      :target: https://github.com/jfreissmann/heatpumps
+      :target: https://heatpumps.streamlit.app/
 
     .. image:: /_static/images/examples/heatpumps_darkmode.png
       :align: center
       :alt: Heatpumps Dashboard
       :class: only-dark
-      :target: https://github.com/jfreissmann/heatpumps
+      :target: https://heatpumps.streamlit.app/
 
     The streamlit dashboard *heatpumps* provides users with powerful tools for
     both design and part load simulation of a comprehensive library of heat
@@ -34,12 +34,16 @@ your project.
     results is supported by fluprodia's state diagrams as well as the TESPy
     built-in exergy analysis feature. An assessment of the economic
     attractiveness of different heat pump setups is enabled through a
-    component-based cost estimation.
+    component-based cost estimation. See the
+    `GitHub repository <https://github.com/jfreissmann/heatpumps>`_ for more 
+    information and if you would like to contribute.
 
     +++
     Title: heatpumps
 
     Authors: Jonas Freißmann, Malte Fritz
+
+    URL: https://heatpumps.streamlit.app/
 
     Reference: :cite:`Fritz2024`
 

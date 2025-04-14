@@ -23,7 +23,6 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import convert_to_SI
 
 
@@ -1132,9 +1131,10 @@ class HeatExchanger(Component):
                 self.inl[i], self.outl[i]
             )
             self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI)
-            self.get_attr(f'dp{i + 1}').val = convert_from_SI(
-                'p', self.get_attr(f'dp{i + 1}').val_SI, self.inl[i].p.unit
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            )
+            self.get_attr(f'dp{i + 1}').val = (
+                self.inl[i].p.val - self.outl[i].p.val
             )
 
         # kA and logarithmic temperature difference

@@ -271,6 +271,16 @@ class CombustionEngine(CombustionChamber):
                 min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+            'dp1': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp1"}
+            ),
+            'dp2': dc_cp(
+                min_val=0, deriv=self.dp_deriv,
+                func=self.dp_func,
+                num_eq=1, func_params={"inconn": 1, "outconn": 1, "dp": "dp2"}
+            ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -366,6 +376,12 @@ class CombustionEngine(CombustionChamber):
 
         super().preprocess(num_nw_vars)
         self.setup_reaction_parameters()
+
+        if self.dp1.is_set:
+            self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
+
+        if self.dp2.is_set:
+            self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
 
     def _get_combustion_connections(self):
         return (self.inl[2:], [self.outl[2]])
@@ -1299,11 +1315,19 @@ class CombustionEngine(CombustionChamber):
         r"""Postprocessing parameter calculation."""
         # Q, pr and zeta
         for i in range(2):
-            self.get_attr('Q' + str(i + 1)).val = -self.inl[i].m.val_SI * (
-                self.outl[i].h.val_SI - self.inl[i].h.val_SI)
-            self.get_attr('pr' + str(i + 1)).val = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
+            self.get_attr(f'Q{i + 1}').val = -self.inl[i].m.val_SI * (
+                self.outl[i].h.val_SI - self.inl[i].h.val_SI
+            )
+            self.get_attr(f'dp{i + 1}').val_SI = (
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            )
+            self.get_attr(f'dp{i + 1}').val = (
+                self.inl[i].p.val - self.outl[i].p.val
+            )
+            self.get_attr(f'pr{i + 1}').val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI
+            )
+            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
                 self.inl[i], self.outl[i]
             )
 

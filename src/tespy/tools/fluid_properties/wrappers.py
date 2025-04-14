@@ -231,7 +231,15 @@ class CoolPropWrapper(FluidPropertyWrapper):
     def Q_ph(self, p, h):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.Q()
+
+        if self.AS.phase() == CP.iphase_twophase:
+            return self.AS.Q()
+        elif self.AS.phase() == CP.iphase_liquid:
+            return 0
+        elif self.AS.phase() == CP.iphase_gas:
+            return 1
+        else:  # all other phases - though this should be unreachable as p is sub-critical
+            return -1
 
     def phase_ph(self, p, h):
         p = self._make_p_subcritical(p)

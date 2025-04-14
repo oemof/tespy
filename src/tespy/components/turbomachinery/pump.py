@@ -159,22 +159,13 @@ class Pump(Turbomachine):
         return 'pump'
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                min_val=0, num_eq=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
                 func=self.eta_s_func,
                 latex=self.eta_s_func_doc),
-            'pr': dc_cp(
-                min_val=1, num_eq=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
             'eta_s_char': dc_cc(
                 param='v', num_eq=1,
                 deriv=self.eta_s_char_deriv,
@@ -186,7 +177,8 @@ class Pump(Turbomachine):
                 func=self.flow_char_func,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
                 latex=self.flow_char_func_doc)
-        }
+        })
+        return parameters
 
     def eta_s_func(self):
         r"""

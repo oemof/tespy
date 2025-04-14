@@ -65,6 +65,38 @@ New Features
 - Modify the :code:`OptimizationProblem` class to allow multi-objective
   optimization (`PR #610 <https://github.com/oemof/tespy/pull/610>`__).
 
+- Component bypassing is now possible by specifying :code:`bypass` on a
+  component. This applies pressure and enthalpy equality to the inlet and
+  corresponding outlet connection pairs of components. This only works for
+  single inlet-single outlet components as well as heat exchanger components
+  with two sides (`PR #615 <https://github.com/oemof/tespy/pull/615>`__).
+
+  .. code-block:: python
+
+    >>> from tespy.networks import Network
+    >>> from tespy.connections import Connection
+    >>> from tespy.components import Source, Sink, SimpleHeatExchanger
+
+    >>> nw = Network(p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False)
+
+    >>> source = Source("In")
+    >>> sink = Sink("Out")
+    >>> heater = SimpleHeatExchanger("Heater")
+
+    >>> c1 = Connection(source, "out1", heater, "in1", "1")
+    >>> c2 = Connection(heater, "out1", sink, "in1", "2")
+
+    >>> nw.add_conns(c1, c2)
+
+    >>> c1.set_attr(T=100, p=2, m=1, fluid={"water":1})
+    >>> heater.set_attr(Q=2e6, pr=0.9)
+
+    >>> nw.solve("design")
+
+    >>> heater.set_attr(bypass=True)
+    >>> nw.solve("design")
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@tlmerbecks <https://github.com/tlmerbecks>`__

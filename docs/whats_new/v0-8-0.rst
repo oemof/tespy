@@ -73,7 +73,8 @@ API breaking changes
     >>> list(data_without_json_writing["Connection"])
     ['1']
 
-  Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
+  Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__ and
+  `PR #638 <https://github.com/oemof/tespy/pull/638>`).
 
 New Features
 ############

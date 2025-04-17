@@ -3136,7 +3136,11 @@ class Network:
             if isinstance(value, dict):
                 dictionary[key] = self._nested_dict_of_dataframes_to_dict(value)
             else:
-                dictionary[key] = value.to_dict(orient="index")
+                # Series to csv does not have orient
+                kwargs = {}
+                if isinstance(value, pd.DataFrame):
+                    kwargs = {"orient": "index"}
+                dictionary[key] = value.to_dict(**kwargs)
 
         return dictionary
 

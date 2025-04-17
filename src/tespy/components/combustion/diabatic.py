@@ -148,13 +148,15 @@ class DiabaticCombustionChamber(CombustionChamber):
     identical lambda or outlet temperature as in an adiabatic combustion
     chamber.
 
-    >>> comb.set_attr(ti=500000, pr=0.95, eta=1, lamb=1.5)
-    >>> amb_comb.set_attr(p=1.2, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}, p=1.3)
-    >>> nw.solve('design')
+    >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
+    >>> amb_comb.set_attr(
+    ...     p=1.2, T=20,
+    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'CO2': 0.0004, 'O2': 0.2314}
+    ... )
+    >>> sf_comb.set_attr(
+    ...     p=1.3, T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}
+    ... )
     >>> comb_fg.set_attr(T=1200)
-    >>> comb.set_attr(lamb=None)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014
@@ -213,17 +215,16 @@ class DiabaticCombustionChamber(CombustionChamber):
                 latex=self.ti_func_doc, num_eq_sets=1),
             'pr': dc_cp(
                 min_val=0,
-                deriv=self.pr_deriv,
-                func=self.pr_func,
-                latex=self.pr_func_doc,
                 num_eq_sets=1,
+                func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "pr": "pr"}
             ),
             'dp': dc_cp(
                 min_val=0,
-                deriv=self.dp_deriv,
+                num_eq_sets=1,
                 func=self.dp_func,
-                num_eq_sets=2,
+                structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'eta': dc_cp(

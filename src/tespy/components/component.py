@@ -487,7 +487,7 @@ class Component:
         for constraint in self.mandatory_equations.values():
             num_eq = constraint.num_eq
             if constraint.constant_deriv:
-                constraint.deriv(sum_eq)
+                constraint.deriv(None, sum_eq)
             sum_eq += num_eq
 
     def get_parameters(self):
@@ -541,6 +541,8 @@ class Component:
                 result = value
             self.jacobian[eq_num, var.J_col] = result
 
+    def _add_missing_fluids(self):
+        return []
 
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
         r"""

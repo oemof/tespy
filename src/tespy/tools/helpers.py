@@ -480,7 +480,7 @@ def _numeric_deriv2(variable, func, **kwargs):
     return deriv
 
 
-def _numeric_deriv_fluid(obj, func, dx, conn=None, **kwargs):
+def _numeric_deriv_fluid(obj, func, dx, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -508,35 +508,19 @@ def _numeric_deriv_fluid(obj, func, dx, conn=None, **kwargs):
 
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
-    d = 1e-5
-
-    val = conn.fluid.val[dx]
-    if conn.fluid.val[dx] + d <= 1:
-        conn.fluid.val[dx] += d
-    else:
-        conn.fluid.val[dx] = 1
-
+    variable = obj._reference_container
+    original_composition = variable.val.copy()
+    d1 = min(variable.d, 1 - variable.val[dx])
+    variable.val[dx] += d1
     exp = func(**kwargs)
-
-    if conn.fluid.val[dx] - 2 * d >= 0:
-        conn.fluid.val[dx] -= 2 * d
-    else:
-        conn.fluid.val[dx] = 0
-
+    d2 = min(variable.d * 2, variable.val[dx])
+    variable.val[dx] -= d2
     exp -= func(**kwargs)
 
-    conn.fluid.val[dx] = val
-
-    deriv = exp / (2 * d)
-
-    # else:
-    #     msg = (
-    #         "Your variable specification for the numerical derivative "
-    #         "calculation seems to be wrong. It has to be a fluid name, m, "
-    #         "p, h or the name of a component variable."
-    #     )
-    #     logger.exception(msg)
-    #     raise ValueError(msg)
+    variable.val = original_composition
+    # d2 is the complete delta of the central difference no matter how big
+    # d1 is actually
+    deriv = exp / d2
     return deriv
 
 

@@ -1216,6 +1216,9 @@ class Network:
             any_fluids_set = []
             engines = {}
             back_ends = {}
+            any_fluids = []
+            any_fluids0 = []
+            mixing_rules = []
             for c in all_connections:
                 for f in c.fluid.is_set:
                     any_fluids_set += [f]
@@ -1223,22 +1226,25 @@ class Network:
                         engines[f] = c.fluid.engine[f]
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
+                any_fluids += list(c.fluid.val.keys())
+                any_fluids0 += list(c.fluid.val0.keys())
+                if c.mixing_rule is not None:
+                    mixing_rules += [c.mixing_rule]
 
-            mixing_rules = [
-                c.mixing_rule for c in all_connections
-                if c.mixing_rule is not None
-            ]
-            mixing_rule = set(mixing_rules)
+            mixing_rule = list(set(mixing_rules))
             if len(mixing_rule) > 1:
                 msg = "You have provided more than one mixing rule."
                 raise hlp.TESPyNetworkError(msg)
             elif len(mixing_rule) == 0:
-                mixing_rule = set(["ideal-cond"])
+                mixing_rule = "ideal-cond"
+            else:
+                mixing_rule = mixing_rules[0]
 
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
-            any_fluids = [f for c in all_connections for f in c.fluid.val]
-            any_fluids0 = [f for c in all_connections for f in c.fluid.val0]
+
+            for cp in self.comps["object"]:
+                any_fluids += cp._add_missing_fluids()
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             num_potential_fluids = len(potential_fluids)
@@ -1251,7 +1257,7 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             for c in all_connections:
-                c.mixing_rule = list(mixing_rule)[0]
+                c.mixing_rule = mixing_rule
                 c._potential_fluids = potential_fluids
                 if num_potential_fluids == 1:
                     f = list(potential_fluids)[0]
@@ -2479,6 +2485,7 @@ class Network:
     def matrix_inversion(self):
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
+
         try:
             # Let the matrix inversion be computed by the GPU if use_cuda in
             # global_vars.py is true.

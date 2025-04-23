@@ -1188,14 +1188,3 @@ class SimpleHeatExchanger(Component):
                 'ending_point_value': self.outl[0].s.val
             }
         }
-
-
-class HeatExchangerSimple(SimpleHeatExchanger):
-
-    def __init__(self, label, **kwargs):
-        super().__init__(label, **kwargs)
-        msg = (
-            "The API for the component HeatExchangerSimple will change with "
-            "the next major release, please import SimpleHeatExchanger instead."
-        )
-        warnings.warn(msg, FutureWarning)

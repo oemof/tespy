@@ -1,0 +1,13 @@
+v0.8.0.post1 - Newton's Nature (April, 23, 2025)
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- A bug was fixed in CoolProp version 6.8.0
+  `#2447 <https://github.com/CoolProp/CoolProp/issues/2447>`__ for the S800
+  fluid. The tests/examples affected by this in tespy have been updated
+  (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -183,10 +183,12 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     >>> aoi = 20
     >>> E = 1000 * math.cos(aoi / 180 * math.pi)
-    >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
+    >>> pt.set_attr(
+    ... pr=1, aoi=aoi, doc=1,
     ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
-    ... iam_1=-1.59e-3, iam_2=9.77e-5)
-    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=2)
+    ... iam_1=-1.59e-3, iam_2=9.77e-5
+    ... )
+    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=10)
     >>> outg.set_attr(T=260)
     >>> nw.solve('design')
     >>> round(pt.Q.val, 0)
@@ -216,7 +218,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> round(outg.T.val, 0)
     244.0
     >>> round(pt.Q.val, 0)
-    3603027.0
+    3602817.0
     """
 
     @staticmethod
@@ -244,7 +246,8 @@ class ParabolicTrough(SimpleHeatExchanger):
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
                     'iam_2', 'A', 'Tamb'
-                ], num_eq_sets=1,
+                ],
+                num_eq_sets=1,
                 latex=self.energy_group_func_doc,
                 func=self.energy_group_func,
                 dependents=self.energy_group_dependents

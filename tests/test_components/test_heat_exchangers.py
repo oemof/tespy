@@ -378,22 +378,23 @@ class TestHeatExchangers:
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')
         self.setup_SimpleHeatExchanger_network(instance)
-        self.c1.set_attr(fluid={'INCOMP::S800': 1}, p=2, T=200)
+        self.c1.set_attr(fluid={'INCOMP::S800': 1}, p=10, T=200)
         self.c2.set_attr(T=350)
 
         # test grouped parameter settings with missing parameters
         instance.darcy_group.is_set = True
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
-        msg = ('Darcy group must no be set, if one parameter is missing!')
+        msg = 'Darcy group must no be set, if one parameter is missing!'
         assert not instance.darcy_group.is_set, msg
-        msg = ('Energy group must no be set, if one parameter is missing!')
+        msg = 'Energy group must no be set, if one parameter is missing!'
         assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
         instance.set_attr(
             pr=1, aoi=10, doc=0.95, Q=1e6, Tamb=25, A='var', eta_opt=0.816,
-            c_1=0.0622, c_2=0.00023, E=8e2, iam_1=-1.59e-3, iam_2=9.77e-5)
+            c_1=0.0622, c_2=0.00023, E=8e2, iam_1=-1.59e-3, iam_2=9.77e-5
+        )
         self.nw.solve('design')
         self.nw._convergence_check()
         # heat loss must be identical to E * A - Q (internal heat loss
@@ -408,8 +409,9 @@ class TestHeatExchangers:
                 1 - instance.eta_opt.val * instance.doc.val ** 1.5 * iam
             ) + T_diff * instance.c_1.val + T_diff ** 2 * instance.c_2.val), 0)
         msg = (
-            'Value for heat loss of parabolic trough must be ' + str(Q_loss) +
-            ', is ' + str(round(instance.Q_loss.val, 0)) + '.')
+            f'Value for heat loss of parabolic trough must be {Q_loss}, is '
+            f'{round(instance.Q_loss.val, 0)}.'
+        )
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: E

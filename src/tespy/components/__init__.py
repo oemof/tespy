@@ -12,7 +12,6 @@ from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401
 from .heat_exchangers.movingboundary import MovingBoundaryHeatExchanger  # noqa: F401
 from .heat_exchangers.parabolic_trough import ParabolicTrough  # noqa: F401
-from .heat_exchangers.simple import HeatExchangerSimple  # noqa: F401
 from .heat_exchangers.simple import SimpleHeatExchanger  # noqa: F401
 from .heat_exchangers.solar_collector import SolarCollector  # noqa: F401
 from .nodes.droplet_separator import DropletSeparator  # noqa: F401

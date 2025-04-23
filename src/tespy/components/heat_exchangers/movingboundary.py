@@ -52,8 +52,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     - cold side :py:meth:`tespy.components.component.Component.zeta_func`
     - hot side :py:meth:`tespy.components.component.Component.dp_func`
     - cold side :py:meth:`tespy.components.component.Component.dp_func`
-    - hot side :py:meth:`tespy.components.component.Component.UA_func`
-    - cold side :py:meth:`tespy.components.component.Component.td_pinch_func`
+    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.td_pinch_func`
 
     Inlets/Outlets
 
@@ -214,13 +214,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     exchanger. Since the water vapor is cooled, condensed and then subcooled,
     while the air does not change phase, three sections will form:
 
-    >>> Q_sections = cd._assign_sections()
+    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
     >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
-    >>> delta_T_between_sections = [
-    ...     round(T_hot - T_cold, 2)
-    ...     for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-    ... ]
-    >>> delta_T_between_sections
+    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
+    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [5.0, 19.75, 10.11, 25.0]
 
     We can see that the lowest delta T is the first one. This is the delta T
@@ -237,13 +234,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042
-    >>> Q_sections = cd._assign_sections()
+    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
     >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
-    >>> delta_T_between_sections = [
-    ...     round(T_hot - T_cold, 2)
-    ...     for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-    ... ]
-    >>> delta_T_between_sections
+    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
+    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [9.88, 14.8, 5.0, 19.88]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
@@ -360,10 +354,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         float
             Heat exchanged between defined steps of enthalpy.
         """
-        return [
-            (h_at_steps[i + 1] - h_at_steps[i]) * mass_flow
-            for i in range(len(h_at_steps) - 1)
-        ]
+        return np.diff(h_at_steps) * mass_flow
 
     def _assign_sections(self):
         """Assign the sections of the heat exchanger
@@ -376,13 +367,13 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         """
         h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
-        Q_sections_hot = [0.0] + np.cumsum(Q_sections_hot).tolist()[:-1]
+        Q_sections_hot = np.insert(np.cumsum(Q_sections_hot)[:-1], 0, 0.0)
 
         h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])
         Q_sections_cold = self._get_Q_sections(h_steps_cold, self.inl[1].m.val_SI)
-        Q_sections_cold = np.cumsum(Q_sections_cold).tolist()
+        Q_sections_cold = np.cumsum(Q_sections_cold)
 
-        return sorted(Q_sections_cold + Q_sections_hot)
+        return np.sort(np.r_[Q_sections_cold, Q_sections_hot])
 
     def _get_T_at_steps(self, Q_sections):
         """Calculate the temperature values for the provided sections.
@@ -401,21 +392,22 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         # now put the Q_sections back on the h_steps on both sides
         # Since Q_sections is defined increasing we have to start back from the
         # outlet of the hot side
-        h_steps_hot = [self.outl[0].h.val_SI + Q / self.inl[0].m.val_SI for Q in Q_sections]
-        h_steps_cold = [self.inl[1].h.val_SI + Q / self.inl[1].m.val_SI for Q in Q_sections]
-        T_steps_hot = [
+        h_steps_hot = self.outl[0].h.val_SI + Q_sections / self.inl[0].m.val_SI
+        h_steps_cold = self.inl[1].h.val_SI + Q_sections / self.inl[1].m.val_SI
+        T_steps_hot = np.array([
             T_mix_ph(self.inl[0].p.val_SI, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
             for h in h_steps_hot
-        ]
-        T_steps_cold = [
+        ])
+        T_steps_cold = np.array([
             T_mix_ph(self.inl[1].p.val_SI, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
             for h in h_steps_cold
-        ]
+        ])
         return T_steps_hot, T_steps_cold
 
     @staticmethod
-    def _calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_sections):
-        """Calculate the UA values per section of heat exchanged.
+    def _calc_td_log_per_section(T_steps_hot, T_steps_cold):
+        """Calculate the logarithmic temperature difference values per section
+        of heat exchanged.
 
         Parameters
         ----------
@@ -425,37 +417,40 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         T_steps_cold : list
             Temperature cold side at beginning and end of sections.
 
-        Q_sections : list
-            Heat transferred in each section.
-
         Returns
         -------
         list
-            Lists of UA values per section of heat exchanged.
+            Lists of temperature differences per section of heat exchanged.
         """
         # the temperature ranges both come with increasing values
-        td_at_steps = [
-            T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-        ]
+        td_at_steps = np.abs(T_steps_hot - T_steps_cold)
 
-        td_at_steps = [abs(td) for td in td_at_steps]
-        td_log_in_sections = [
+        return np.array([
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
             # round is required because tiny differences may cause
             # inconsistencies due to rounding errors
             if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
             else td_at_steps[i + 1]
-            for i in range(len(Q_sections))
-        ]
-        UA_in_sections = [
-            abs(Q) / td_log
-            for Q, td_log in zip(Q_sections, td_log_in_sections)
-        ]
-        return UA_in_sections
+            for i in range(len(td_at_steps) - 1)
+        ])
 
-    def calc_UA(self):
+    def calc_sections(self):
+        """Calculate the sections of the heat exchanger.
+
+        Returns
+        -------
+        tuple
+            Cumulated heat transfer over sections, temperature at steps hot
+            side, temperature at steps cold side, heat transfer per section
+        """
+        Q_sections = self._assign_sections()
+        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
+        Q_per_section = np.diff(Q_sections)
+        td_log_per_section = self._calc_td_log_per_section(T_steps_hot, T_steps_cold)
+        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
+
+    def calc_UA(self, sections):
         """Calculate the sum of UA for all sections in the heat exchanger
 
         Returns
@@ -463,10 +458,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         float
             Sum of UA values of all heat exchanger sections.
         """
-        Q_sections = self._assign_sections()
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
-        Q_per_section = np.diff(Q_sections)
-        UA_sections = self._calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_per_section)
+        _, _, _, Q_per_section, td_log_per_section = sections
+        UA_sections = Q_per_section / td_log_per_section
         return sum(UA_sections)
 
     def UA_func(self, **kwargs):
@@ -479,7 +472,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         residual : float
             Residual value of equation.
         """
-        return self.UA.val - self.calc_UA()
+        sections = self.calc_sections()
+        return self.UA.val - self.calc_UA(sections)
 
     def UA_deriv(self, increment_filter, k):
         r"""
@@ -502,7 +496,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             if self.is_variable(c.h):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
-    def calc_td_pinch(self):
+    def calc_td_pinch(self, sections):
         """Calculate the pinch point temperature difference
 
         Returns
@@ -510,14 +504,9 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         float
             Value of the pinch point temperature difference
         """
-        Q_sections = self._assign_sections()
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
+        _, T_steps_hot, T_steps_cold, _, _ = sections
 
-        td_at_steps = [
-            T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-        ]
-        return min(td_at_steps)
+        return min(T_steps_hot - T_steps_cold)
 
     def td_pinch_func(self):
         r"""
@@ -538,7 +527,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                     \right]
                 \right)
         """
-        return self.td_pinch.val - self.calc_td_pinch()
+        sections = self.calc_sections()
+        return self.td_pinch.val - self.calc_td_pinch(sections)
 
     def td_pinch_deriv(self, increment_filter, k):
         """
@@ -563,8 +553,11 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     def calc_parameters(self):
         super().calc_parameters()
-        self.UA.val = self.calc_UA()
-        self.td_pinch.val = self.calc_td_pinch()
+
+        sections = self.calc_sections()
+        self.UA.val = self.calc_UA(sections)
+        self.td_pinch.val = self.calc_td_pinch(sections)
+
         if round(self.inl[0].p.val_SI) != round(self.outl[0].p.val_SI):
             msg = (
                 f"The {self.__class__.__name__} instance {self.label} is "

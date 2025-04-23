@@ -1429,7 +1429,8 @@ class Network:
         if len(self.busses) > 0:
             for b, bus in self.busses.items():
                 # the bus design data are stored in dfs[b][0] (column is not named)
-                bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
+                if len(bus.comps) > 0:
+                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
 
         # read connection design point information
         df = dfs["Connection"]

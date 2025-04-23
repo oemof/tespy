@@ -427,7 +427,7 @@ class FuelCell(Component):
             self.jacobian[k, self.p.J_col] = 1
         # derivatives for variable e
         if self.e.is_var:
-            self.jacobian[k, self.eJ_col()] = -self.inl[2].m.val_SI
+            self.jacobian[k, self.e.J_col] = -self.inl[2].m.val_SI
 
     def energy_balance_func(self):
         r"""

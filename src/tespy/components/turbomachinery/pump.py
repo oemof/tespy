@@ -164,7 +164,7 @@ class Pump(Turbomachine):
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
-                dependents=self.energy_balance_dependents,
+                dependents=self.eta_s_dependents,
                 latex=self.eta_s_func_doc
             ),
             'eta_s_char': dc_cc(

@@ -30,7 +30,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _partial_derivative
-from tespy.tools.helpers import _partial_derivative2
+from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
@@ -170,6 +170,7 @@ class Component:
                     data.set_attr(is_set=False)
                     try:
                         data.set_attr(_is_var=False)
+                        data._potential_var = False
                     except KeyError:
                         pass
                     continue
@@ -191,9 +192,11 @@ class Component:
                         data.set_attr(_val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
                             data.set_attr(_is_var=False)
+                            data._potential_var = False
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, _is_var=True)
+                        data._potential_var = True
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
@@ -320,9 +323,6 @@ class Component:
             if isinstance(data, dc_cp):
                 if data.is_var:
                     variables.update({key: data})
-                    data._potential_var = True
-                else:
-                    data._potential_var = False
 
         return variables
 
@@ -523,25 +523,17 @@ class Component:
     def outlets():
         return []
 
-    def _partial_derivative2(self, var, eq_num, value, increment_filter=None, **kwargs):
-        result = _partial_derivative2(var, value, increment_filter, **kwargs)
-        if result is not None:
-            self.jacobian[eq_num, var.J_col] = result
-
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)
         if result is not None:
             self.jacobian[eq_num, var.J_col] = result
 
-    def _partial_derivative_fluid(self, var, eq_num, value, increment_filter=None):
-        if self.is_variable(var, increment_filter):
-            if callable(value):
-                result = self.numeric_deriv(var, value)
-            else:
-                result = value
-            self.jacobian[eq_num, var.J_col] = result
+    def _partial_derivative_fluid(self, var, eq_num, value, dx, increment_filter=None, **kwargs):
+        result = _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col[dx]] = result
 
-    def _add_missing_fluids(self):
+    def _add_missing_fluids(self, connections):
         return []
 
     def get_char_expr(self, param, type='rel', inconn=0, outconn=0):
@@ -704,7 +696,7 @@ class Component:
             dependents = self._get_dependents(data.dependents(**data.func_params))
             for dependent in dependents:
                 f = data.func
-                self._partial_derivative2(
+                self._partial_derivative(
                     dependent, sum_eq, f, increment_filter, **data.func_params
                 )
 

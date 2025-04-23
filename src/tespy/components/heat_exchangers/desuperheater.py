@@ -133,7 +133,7 @@ class Desuperheater(HeatExchanger):
     >>> import shutil
     >>> nw = Network(
     ...     T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
-    ...     m_range=[0.001, 10], iterinfo=False
+    ...     iterinfo=False
     ... )
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
@@ -173,10 +173,8 @@ class Desuperheater(HeatExchanger):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     1.94
-    >>> et_de.set_attr(v=10)
-    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', init_path='tmp.json', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     0.41
     >>> shutil.rmtree('./tmp', ignore_errors=True)

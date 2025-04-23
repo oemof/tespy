@@ -1243,8 +1243,9 @@ class Network:
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
 
-            for cp in self.comps["object"]:
-                any_fluids += cp._add_missing_fluids()
+            all_components = [c for c in branch_data["components"]]
+            for cp in all_components:
+                any_fluids += cp._add_missing_fluids(all_connections)
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             num_potential_fluids = len(potential_fluids)
@@ -1346,7 +1347,7 @@ class Network:
                         variable = set()
                     else:
                         missing_fluids = (
-                            reference_container.val.keys() - fixed_fractions.keys()
+                            set(all_fluids) - set(fixed_fractions.keys())
                         )
                         variable = {f for f in missing_fluids}
 
@@ -1366,9 +1367,11 @@ class Network:
                 reference_container.is_var = variable
                 # this seems to be a problem in some cases, e.g. the basic
                 # gas turbine tutorial
-                # num_var = len(variable)
-                # for f in variable:
-                #     reference_container.val[f] = (1 - mass_fraction_sum) / num_var
+                num_var = len(variable)
+                for f in variable:
+                    reference_container.val[f] = (1 - mass_fraction_sum) / num_var
+                    if f in fluid0:
+                        reference_container.val[f] = fluid0[f]
 
             for fluid in reference_container.is_var:
                 reference_container._J_col[fluid] = self.num_conn_vars
@@ -1724,7 +1727,8 @@ class Network:
         if len(self.busses) > 0:
             for b, bus in self.busses.items():
                 # the bus design data are stored in dfs[b][0] (column is not named)
-                bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
+                if len(bus.comps) > 0:
+                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
 
         # read connection design point information
         df = dfs["Connection"]
@@ -1796,6 +1800,7 @@ class Network:
 
         conn = df.loc[c.label]
         for var in fpd.keys():
+
             c.get_attr(var).design = hlp.convert_to_SI(
                 var, float(conn[var]), conn[f"{var}_unit"]
             )
@@ -2100,13 +2105,13 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index")
+        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
         dfs["Connection"].index = dfs["Connection"].index.astype(str)
         for key, value in data["Component"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Bus"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
 
         return dfs

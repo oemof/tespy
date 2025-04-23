@@ -183,13 +183,13 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     Now, if we change the efficiency value, e.g. to 0.9, a total of 10 % of
     heat respective to the thermal input will be transferred to the ambient.
-    Note, that the heat loss :code:`Q_loss` has a negative value as it is
+    Note, that the heat loss :code:`Qloss` has a negative value as it is
     extracted from the system.
 
     >>> eta = 0.9
     >>> comb.set_attr(eta=eta)
     >>> nw.solve('design')
-    >>> round(comb.Q_loss.val, 0)
+    >>> round(comb.Qloss.val, 0)
     -50000.0
     >>> round(comb.ti.val * comb.eta.val, 0)
     450000.0
@@ -206,13 +206,8 @@ class DiabaticCombustionChamber(CombustionChamber):
         super()._preprocess(num_nw_vars)
 
     def get_parameters(self):
-        return {
-            'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq_sets=1),
-            'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq_sets=1),
+        params = super().get_parameters()
+        params.update({
             'pr': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
@@ -231,8 +226,9 @@ class DiabaticCombustionChamber(CombustionChamber):
                 max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
                 latex=self.energy_balance_func_doc, num_eq_sets=1),
-            'Q_loss': dc_cp(max_val=0, is_result=True)
-        }
+            'Qloss': dc_cp(max_val=0, is_result=True)
+        })
+        return params
 
     def get_mandatory_constraints(self):
         return {
@@ -342,7 +338,7 @@ class DiabaticCombustionChamber(CombustionChamber):
             )
 
         self.eta.val = -res / self.ti.val
-        self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
+        self.Qloss.val = -(1 - self.eta.val) * self.ti.val
 
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI

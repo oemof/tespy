@@ -53,7 +53,7 @@ class Bus:
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
     >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', p_range=[0.5, 10], iterinfo=False)
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -166,6 +166,7 @@ class Bus:
     0.98
     >>> power_bus.set_attr(P=-7.5e6)
     >>> mode = 'offdesign'
+    >>> nw.set_attr(iterinfo=True)
     >>> nw.solve(mode=mode, design_path='tmp.json', init_path='tmp.json')
     >>> round(chp.ti.val, 0)
     21192700.0

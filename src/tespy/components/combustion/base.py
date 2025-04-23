@@ -27,7 +27,8 @@ from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
-from tespy.tools.helpers import _numeric_deriv_fluid
+from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import _numeric_deriv_vecvar
 
 
 @component_registry
@@ -336,8 +337,12 @@ class CombustionChamber(Component):
 
         return val
 
-    def _add_missing_fluids(self):
-        return ["H2O", "CO2"]
+    def _add_missing_fluids(self, connections):
+        inl, outl = self._get_combustion_connections()
+        if set(inl + outl) & set(connections):
+            return ["H2O", "CO2"]
+        else:
+            return super()._add_missing_fluids(connections)
 
     def mass_flow_func(self):
         r"""
@@ -728,15 +733,13 @@ class CombustionChamber(Component):
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
         f = self.stoichiometry
-        conns = inl
+        conns = inl + outl
         for fluid, conn in itertools.product(self.fluid_eqs_list, conns):
             eq_num = self.fluid_eqs_list.index(fluid)
             self._partial_derivative(conn.m, k + eq_num, f, fluid=fluid)
             for fluid_name in conn.fluid.is_var:
-                if fluid == "O2":
-                    pass
-                self.jacobian[k + eq_num, conn.fluid.J_col[fluid_name]] = _numeric_deriv_fluid(
-                    conn.fluid, f, fluid_name, fluid=fluid
+                self._partial_derivative_fluid(
+                    conn.fluid, k + eq_num, f, fluid_name, fluid=fluid
                 )
 
         # dependency on outlet state is super simple!
@@ -841,13 +844,13 @@ class CombustionChamber(Component):
             Position of equation in Jacobian matrix.
         """
         f = self.energy_balance_func
+        variables = self._get_dependents([var for c in self.inl + self.outl for var in (c.m, c.p, c.h)])
+        for var in variables:
+            self._partial_derivative(var, k, f, increment_filter)
+
         for c in self.inl + self.outl:
-            self._partial_derivative(c.m, k, f, increment_filter)
-            self._partial_derivative(c.p, k, f, increment_filter)
-            if c == self.outl[0]:
-                self._partial_derivative(c.h, k, -c.m.val_SI)
-            else:
-                self._partial_derivative(c.h, k, c.m.val_SI)
+            for fl in (self.fuel_list & c.fluid.is_var):
+                self._partial_derivative_fluid(c.fluid, k, f, fl)
 
     def lambda_func(self):
         r"""
@@ -911,7 +914,9 @@ class CombustionChamber(Component):
         for conn in inl:
             self._partial_derivative(conn.m, k, f, increment_filter)
             for fluid in conn.fluid.is_var:
-                self.jacobian[k, conn.fluid.J_col[fluid]] = _numeric_deriv_fluid(conn.fluid, f, fluid)
+                self._partial_derivative_fluid(
+                    conn.fluid, k, f, fluid, increment_filter
+                )
 
     def calc_lambda(self):
         r"""
@@ -1115,17 +1120,18 @@ class CombustionChamber(Component):
         deriv : ndarray
             Matrix of partial derivatives.
         """
+        inl, outl = self._get_combustion_connections()
         f = self.calc_bus_value
-        for c in self.inl + self.outl:
+        for c in inl + outl:
             if c.m.is_var:
                 if c.m.J_col not in bus.jacobian:
                     bus.jacobian[c.m.J_col] = 0
-                bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
+                bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
 
-            for fluid in c.fluid.is_var:
-                if c.fluid.J_col[fluid] not in bus.jacobian:
-                    bus.jacobian[c.fluid.J_col[fluid]] = 0
-                bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
+            for fl in (self.fuel_list & c.fluid.is_var):
+                if c.fluid.J_col[fl] not in bus.jacobian:
+                    bus.jacobian[c.fluid.J_col[fl]] = 0
+                bus.jacobian[c.fluid.J_col[fl]] -= _numeric_deriv_vecvar(c.fluid._reference_container, f, fl, bus=bus)
 
     def convergence_check(self):
         r"""
@@ -1276,7 +1282,6 @@ class CombustionChamber(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        inl, _ = self._get_combustion_connections()
         self.ti.val = self.calc_ti()
         self.lamb.val = self.calc_lambda()
 

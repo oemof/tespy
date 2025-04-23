@@ -823,9 +823,10 @@ class Connection:
                 dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
         for fluid in self.fluid.is_var:
-            self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
-            )
+            if not self._increment_filter[self.fluid.J_col[fluid]]:
+                self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
+                    self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
+                )
 
     def T_ref_func(self, **kwargs):
         ref = self.T_ref.ref

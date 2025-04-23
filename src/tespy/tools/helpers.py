@@ -390,9 +390,21 @@ def _is_variable(var, increment_filter=None):
     return False
 
 
+def _is_variable_vecvar(var, dx, increment_filter=None):
+    if dx in var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col[dx]]:
+            return True
+    return False
+
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
+
+
 def _partial_derivative(var, value, increment_filter, **kwargs):
     if _is_variable(var, increment_filter):
         if callable(value):
+            if type(var) != dc_scavar:
+                var = var._reference_container
             return _numeric_deriv(var, value, **kwargs)
         else:
             return value
@@ -400,10 +412,12 @@ def _partial_derivative(var, value, increment_filter, **kwargs):
         return None
 
 
-def _partial_derivative2(var, value, increment_filter, **kwargs):
-    if _is_variable(var, increment_filter):
+def _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs):
+    if _is_variable_vecvar(var, dx, increment_filter):
         if callable(value):
-            return _numeric_deriv2(var, value, **kwargs)
+            if type(var) != dc_vecvar:
+                var = var._reference_container
+            return _numeric_deriv_vecvar(var, value, dx, **kwargs)
         else:
             return value
     else:
@@ -411,41 +425,6 @@ def _partial_derivative2(var, value, increment_filter, **kwargs):
 
 
 def _numeric_deriv(variable, func, **kwargs):
-    r"""
-    Calculate partial derivative of the function func to dx.
-
-    Parameters
-    ----------
-    variable : object
-        Variable container.
-
-    func : function
-        Function :math:`f` to calculate the partial derivative for.
-
-    Returns
-    -------
-    deriv : float/list
-        Partial derivative(s) of the function :math:`f` to variable(s)
-        :math:`x`.
-
-        .. math::
-
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
-    """
-    d = variable._reference_container.d
-    variable._reference_container.val_SI += d
-    exp = func(**kwargs)
-
-    variable._reference_container.val_SI -= 2 * d
-    exp -= func(**kwargs)
-    deriv = exp / (2 * d)
-
-    variable._reference_container.val_SI += d
-
-    return deriv
-
-
-def _numeric_deriv2(variable, func, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -480,7 +459,7 @@ def _numeric_deriv2(variable, func, **kwargs):
     return deriv
 
 
-def _numeric_deriv_fluid(obj, func, dx, **kwargs):
+def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -508,8 +487,8 @@ def _numeric_deriv_fluid(obj, func, dx, **kwargs):
 
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
-    variable = obj._reference_container
-    original_composition = variable.val.copy()
+    original_vector = variable.val.copy()
+    # this is specific to fluids right now (upper limit of 1, lower limit of 0)
     d1 = min(variable.d, 1 - variable.val[dx])
     variable.val[dx] += d1
     exp = func(**kwargs)
@@ -517,7 +496,7 @@ def _numeric_deriv_fluid(obj, func, dx, **kwargs):
     variable.val[dx] -= d2
     exp -= func(**kwargs)
 
-    variable.val = original_composition
+    variable.val = original_vector
     # d2 is the complete delta of the central difference no matter how big
     # d1 is actually
     deriv = exp / d2

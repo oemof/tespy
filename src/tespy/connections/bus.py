@@ -166,7 +166,6 @@ class Bus:
     0.98
     >>> power_bus.set_attr(P=-7.5e6)
     >>> mode = 'offdesign'
-    >>> nw.set_attr(iterinfo=True)
     >>> nw.solve(mode=mode, design_path='tmp.json', init_path='tmp.json')
     >>> round(chp.ti.val, 0)
     21192700.0

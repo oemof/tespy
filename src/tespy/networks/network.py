@@ -2118,7 +2118,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, prepare_fast_lane=False):
+              use_cuda=False, print_results=True, robust_relax=False):
         r"""
         Solve the network.
 
@@ -2191,6 +2191,7 @@ class Network:
         self.init_previous = init_previous
         self.iter = 0
         self.use_cuda = use_cuda
+        self.robust_relax = robust_relax
 
         if self.use_cuda and cu is None:
             msg = (
@@ -2516,14 +2517,14 @@ class Network:
         increment = [float(val) for val in self.increment]
         # the J_cols here point to actual variables, no need to call to
         # get_J_col yet
-        if self.iter < 3:
-            relax = 0.25
-        elif self.iter < 5:
-            relax = 0.5
-        elif self.iter < 8:
-            relax = 0.75
-        else:
-            relax = 1
+        relax = 1
+        if self.robust_relax:
+            if self.iter < 3:
+                relax = 0.25
+            elif self.iter < 5:
+                relax = 0.5
+            elif self.iter < 8:
+                relax = 0.75
 
         for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h"]:

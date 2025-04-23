@@ -2571,8 +2571,15 @@ class Network:
             # check the fluid properties for physical ranges
             self.check_connection_properties(c)
 
-        # second property check for first three iterations without an init_file
-        if self.iter < 3:
+        # second check based on component heuristics
+        # - for first three iterations
+        # - only if the increment is sufficiently large
+        # - only in design case
+        if (
+                self.iter < 3
+                and norm(self.increment) > 1e3
+                and self.mode == "design"
+            ):
             for cp in self.comps['object']:
                 cp.convergence_check()
 

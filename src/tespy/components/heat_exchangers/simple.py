@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 
 import math
-import warnings
 
 import numpy as np
 

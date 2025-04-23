@@ -10,8 +10,6 @@ available from its original location tespy/components/nodes/drum.py
 SPDX-License-Identifier: MIT
 """
 
-import warnings
-
 import numpy as np
 
 from tespy.components.component import component_registry

@@ -2280,6 +2280,15 @@ class Network:
 
     def check_variable_bounds(self):
 
+<<<<<<< Updated upstream
+=======
+        for data in self.variables_dict.values():
+            if type(data["obj"]) == dc_vecvar:
+                total_mass_fractions = sum(data["obj"].val.values())
+                for fluid in data["obj"].is_var:
+                    data["obj"]._val[fluid] /= total_mass_fractions
+
+>>>>>>> Stashed changes
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
             if len(c.fluid.is_var) > 0:
@@ -2290,8 +2299,15 @@ class Network:
             c.build_fluid_data()
             self.check_connection_properties(c)
 
-        # second property check for first three iterations without an init_file
-        if self.iter < 3:
+        # second check based on component heuristics
+        # - for first three iterations
+        # - only if the increment is sufficiently large
+        # - only in design case
+        if (
+                self.iter < 3
+                and norm(self.increment) > 1e3
+                and self.mode == "design"
+            ):
             for cp in self.comps['object']:
                 cp.convergence_check()
 

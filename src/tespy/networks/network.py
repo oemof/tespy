@@ -3350,28 +3350,6 @@ class Network:
         dump = {}
 
         # save relevant state information only
-        dump["Connection"] = self.results["Connection"].replace(np.nan, None).to_dict(orient="index")
-        dump["Component"] = self._save_components()
-        dump["Bus"] = self._save_busses()
-        with open(json_file_path, "w") as f:
-            json.dump(dump, f)
-
-    def save(self, json_file_path):
-        r"""
-        Dump the results to a json style output.
-
-        Parameters
-        ----------
-        json_file_path : str
-            Filename to dump results into.
-
-        Note
-        ----
-        Results will be saved to specified file path
-        """
-        dump = {}
-
-        # save relevant state information only
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()

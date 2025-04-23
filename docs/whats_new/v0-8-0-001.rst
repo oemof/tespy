@@ -1,4 +1,4 @@
-v0.8.0.post1 - Newton's Nature (April, 23, 2025)
+v0.8.0.post2 - Newton's Nature (April, 23, 2025)
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
 Bug Fixes
@@ -14,6 +14,7 @@ Other Changes
   initial increment of the variables the heuristics for the convergence check
   based on the components have been adjusted
   (`PR #641 <https://github.com/oemof/tespy/pull/641>`__).
+- Update code, which was subject to be changed with the major release of 0.8.
 
 Contributors
 ############

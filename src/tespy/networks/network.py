@@ -1832,13 +1832,13 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index")
+        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
         dfs["Connection"].index = dfs["Connection"].index.astype(str)
         for key, value in data["Component"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Bus"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
 
         return dfs

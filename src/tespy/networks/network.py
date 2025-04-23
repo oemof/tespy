@@ -2280,15 +2280,6 @@ class Network:
 
     def check_variable_bounds(self):
 
-<<<<<<< Updated upstream
-=======
-        for data in self.variables_dict.values():
-            if type(data["obj"]) == dc_vecvar:
-                total_mass_fractions = sum(data["obj"].val.values())
-                for fluid in data["obj"].is_var:
-                    data["obj"]._val[fluid] /= total_mass_fractions
-
->>>>>>> Stashed changes
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
             if len(c.fluid.is_var) > 0:

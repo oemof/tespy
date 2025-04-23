@@ -17,11 +17,15 @@ from tespy.components.combustion.base import CombustionChamber
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
+from tespy.tools.helpers import convert_to_SI
+from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import _numeric_deriv_vecvar
 
 
 @component_registry
@@ -248,74 +252,105 @@ class CombustionEngine(CombustionChamber):
         return 'combustion engine'
 
     def get_parameters(self):
-        return {
-            'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq_sets=1),
-            'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq_sets=1),
+        params = super().get_parameters()
+        params.update({
             'P': dc_cp(_val=-1e6, d=1, max_val=-1),
             'Q1': dc_cp(
                 max_val=-1, deriv=self.Q1_deriv, func=self.Q1_func,
-                num_eq_sets=1, latex=self.Q1_func_doc),
+                num_eq_sets=1, latex=self.Q1_func_doc
+            ),
             'Q2': dc_cp(
-                max_val=-1, deriv=self.Q2_deriv, func=self.Q2_func,
-                num_eq_sets=1, latex=self.Q2_func_doc),
+                max_val=-1,
+                deriv=self.Q2_deriv,
+                func=self.Q2_func,
+                num_eq_sets=1,
+                latex=self.Q2_func_doc
+            ),
             'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1),
             'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq_sets=1, deriv=self.pr_deriv,
-                latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr1'}),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                deriv=self.pr_deriv,
+                func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr1'}
+            ),
             'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq_sets=1, latex=self.pr_func_doc,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                deriv=self.pr_deriv,
+                func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
+            ),
             'dp1': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
+                min_val=0, num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
-                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp1"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp1"}
             ),
             'dp2': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
+                min_val=0, num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
-                num_eq=1, func_params={"inconn": 1, "outconn": 1, "dp": "dp2"}
+                func_params={"inconn": 1, "outconn": 1, "dp": "dp2"}
             ),
             'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta1'}),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                latex=self.zeta_func_doc,
+                dependents=self.zeta_dependents,
+                func=self.zeta_func,
+                func_params={'zeta': 'zeta1'}
+            ),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                latex=self.zeta_func_doc,
+                dependents=self.zeta_dependents,
+                func=self.zeta_func,
+                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}
+            ),
             'tiP_char': dc_cc(), 'Q1_char': dc_cc(), 'Q2_char': dc_cc(),
             'Qloss_char': dc_cc(),
-            'eta_mech': dc_simple(_val=0.85), 'T_v_inner': dc_simple()}
+            'eta_mech': dc_simple(_val=0.85),
+            'T_v_inner': dc_simple()
+        })
+        return params
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'power_constraints': {
+            'power_constraints': dc_cmc(**{
                 'func': self.tiP_char_func,
                 'deriv': self.tiP_char_deriv,
-                'constant_deriv': False, 'latex': self.tiP_char_func_doc,
-                'num_eq': 1, 'char': 'tiP_char'},
-            'heat1_constraints': {
+                'constant_deriv': False,
+                'num_eq_sets': 1,
+            }),
+            'heat1_constraints': dc_cmc(**{
                 'func': self.Q1_char_func,
                 'deriv': self.Q1_char_deriv,
-                'constant_deriv': False, 'latex': self.Q1_char_func_doc,
-                'num_eq': 1, 'char': 'Q1_char'},
-            'heat2_constraints': {
+                'constant_deriv': False,
+                'num_eq_sets': 1,
+            }),
+            'heat2_constraints': dc_cmc(**{
                 'func': self.Q2_char_func,
                 'deriv': self.Q2_char_deriv,
-                'constant_deriv': False, 'latex': self.Q2_char_func_doc,
-                'num_eq': 1, 'char': 'Q2_char'},
-            'heatloss_constraints': {
+                'constant_deriv': False,
+                'num_eq_sets': 1,
+            }),
+            'heatloss_constraints': dc_cmc(**{
                 'func': self.Qloss_char_func,
                 'deriv': self.Qloss_char_deriv,
-                'constant_deriv': False, 'latex': self.Qloss_char_func_doc,
-                'num_eq': 1, 'char': 'Qloss_char'},
+                'constant_deriv': False,
+                'num_eq_sets': 1,
+            }),
+            'mass_flow_cooling_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': 2,
+                'func_params': {'variable': 'm'}
+            }),
+            'fluid_cooling_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': 2,
+                'func_params': {'variable': 'fluid'}
+            })
         })
         return constraints
 
@@ -344,21 +379,30 @@ class CombustionEngine(CombustionChamber):
 
         outconn.target.propagate_wrapper_to_target(branch)
 
-    def _preprocess(self, num_nw_vars):
+    def get_variables(self):
         if not self.P.is_set:
             self.set_attr(P='var')
-            msg = ('The power output of combustion engines must be set! '
-                   'We are adding the power output of component ' +
-                   self.label + ' as custom variable of the system.')
+            msg = (
+                f'The power output of combustion engines ({self.label}) must '
+                'be either a set value or part of the system variables. Since '
+                'it has not been set to a fixed value it will be added to the '
+                'system\'s variables.'
+            )
             logger.info(msg)
 
         if not self.Qloss.is_set:
             self.set_attr(Qloss='var')
-            msg = ('The heat loss of combustion engines must be set! '
-                   'We are adding the heat loss of component ' +
-                   self.label + ' as custom variable of the system.')
+            msg = (
+                f'The heat loss of combustion engines ({self.label}) must '
+                'be either a set value or part of the system variables. Since '
+                'it has not been set to a fixed value it will be added to the '
+                'system\'s variables.'
+            )
             logger.info(msg)
 
+        return super().get_variables()
+
+    def _preprocess(self, num_nw_vars):
         if self.dp1.is_set:
             self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
 
@@ -370,6 +414,12 @@ class CombustionEngine(CombustionChamber):
 
     def _get_combustion_connections(self):
         return (self.inl[2:], [self.outl[2]])
+
+    def variable_equality_structure_matrix(self, k, **kwargs):
+        variable = kwargs.get("variable")
+        for count, (i, o) in enumerate(zip(self.inl[:2], self.outl[:2])):
+            self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
+            self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
     def energy_balance_func(self):
         r"""
@@ -462,17 +512,25 @@ class CombustionEngine(CombustionChamber):
         """
         f = self.energy_balance_func
         # mass flow cooling water
-        for i, o in zip(self.inl[:2], self.outl[:2]):
-            if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = -(o.h.val_SI - i.h.val_SI)
+        i0 = self.inl[0]
+        i1 = self.inl[1]
+        o0 = self.outl[0]
+        o1 = self.outl[1]
+        if i0.m.is_var:
+            if i0.m._reference_container != i1.m._reference_container:
+                self.jacobian[k, i0.m.J_col] = -(o0.h.val_SI - i0.h.val_SI)
+                self.jacobian[k, i1.m.J_col] = -(o1.h.val_SI - i1.h.val_SI)
+            else:
+                self.jacobian[k, i0.m.J_col] = (
+                    -(o0.h.val_SI - i0.h.val_SI)
+                    -(o1.h.val_SI - i1.h.val_SI)
+                )
 
         # mass flow and pressure for combustion reaction
         inl, outl = self._get_combustion_connections()
-        for c in inl + outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+        variables = self._get_dependents([var for c in inl + outl for var in (c.m, c.p)])
+        for variable in variables:
+            self._partial_derivative(variable, k, f, increment_filter)
 
         # enthalpy all connections
         for i in self.inl:
@@ -495,9 +553,9 @@ class CombustionEngine(CombustionChamber):
 
         # power and heat loss
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = 1
+            self.jacobian[k, self.P.J_col] = 1
         if self.Qloss.is_var:
-            self.jacobian[k, self.QlossJ_col()] = 1
+            self.jacobian[k, self.Qloss.J_col] = 1
 
     def Q1_func(self):
         r"""
@@ -550,11 +608,11 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
+        if i.m.is_var:
             self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.h, increment_filter):
+        if i.h.is_var:
             self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if self.is_variable(o.h, increment_filter):
+        if o.h.is_var:
             self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def Q2_func(self):
@@ -608,11 +666,11 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[1]
         o = self.outl[1]
-        if self.is_variable(i.m, increment_filter):
+        if i.m.is_var:
             self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.h, increment_filter):
+        if i.h.is_var:
             self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if self.is_variable(o.h, increment_filter):
+        if o.h.is_var:
             self.jacobian[k, o.h.J_col] = i.m.val_SI
 
     def tiP_char_func(self):
@@ -682,14 +740,16 @@ class CombustionEngine(CombustionChamber):
         """
         inl, outl = self._get_combustion_connections()
         f = self.tiP_char_func
-        for c in inl + outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
 
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = self.numeric_deriv(f, 'P', None)
+        variables = self._get_dependents([c.m for c in inl + outl] + [self.P])
+        for variable in variables:
+            self._partial_derivative(variable, k, f, increment_filter)
+
+        for c in inl + outl:
+            for fl in (self.fuel_list & c.fluid.is_var):
+                self._partial_derivative_fluid(
+                    c.fluid, k, f, fl, increment_filter
+                )
 
     def Q1_char_func(self):
         r"""
@@ -720,9 +780,11 @@ class CombustionEngine(CombustionChamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Q1_char.char_func.evaluate(expr) -
-                self.tiP_char.char_func.evaluate(expr) * i.m.val_SI *
-                (o.h.val_SI - i.h.val_SI))
+        return (
+            self.calc_ti() * self.Q1_char.char_func.evaluate(expr)
+            - self.tiP_char.char_func.evaluate(expr) * i.m.val_SI
+            * (o.h.val_SI - i.h.val_SI)
+        )
 
     def Q1_char_func_doc(self, label):
         r"""
@@ -767,24 +829,17 @@ class CombustionEngine(CombustionChamber):
             Position of equation in Jacobian matrix.
         """
         f = self.Q1_char_func
-        i = self.inl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        o = self.outl[0]
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
         inl, outl = self._get_combustion_connections()
-        for c in inl + outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+        variables = self._get_dependents([c.m for c in inl + outl + [self.inl[0]]] + [self.P] + [self.inl[0].h, self.outl[0].h])
 
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = self.numeric_deriv(f, 'P', None)
+        for variable in variables:
+            self._partial_derivative(variable, k, f, increment_filter)
+
+        for c in inl + outl:
+            for fl in (self.fuel_list & c.fluid.is_var):
+                self._partial_derivative_fluid(
+                    c.fluid, k, f, fl, increment_filter
+                )
 
     def Q2_char_func(self):
         r"""
@@ -864,24 +919,17 @@ class CombustionEngine(CombustionChamber):
             Position of equation in Jacobian matrix.
         """
         f = self.Q2_char_func
-        i = self.inl[1]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        o = self.outl[1]
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
         inl, outl = self._get_combustion_connections()
-        for c in inl + outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+        variables = self._get_dependents([c.m for c in inl + outl + [self.inl[1]]] + [self.P] + [self.inl[1].h, self.outl[1].h])
 
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = self.numeric_deriv(f, 'P', None)
+        for variable in variables:
+            self._partial_derivative(variable, k, f, increment_filter)
+
+        for c in inl + outl:
+            for fl in (self.fuel_list & c.fluid.is_var):
+                self._partial_derivative_fluid(
+                    c.fluid, k, f, fl, increment_filter
+                )
 
     def Qloss_char_func(self):
         r"""
@@ -909,8 +957,10 @@ class CombustionEngine(CombustionChamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (self.calc_ti() * self.Qloss_char.char_func.evaluate(expr) +
-                self.tiP_char.char_func.evaluate(expr) * self.Qloss.val)
+        return (
+            self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
+            + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val
+        )
 
     def Qloss_char_func_doc(self, label):
         r"""
@@ -948,18 +998,18 @@ class CombustionEngine(CombustionChamber):
         k : int
             Position of equation in Jacobian matrix.
         """
-        f = self.Qloss_char_func
         inl, outl = self._get_combustion_connections()
-        for c in inl + outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = self.numeric_deriv(f, fl, c)
+        f = self.Qloss_char_func
 
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = self.numeric_deriv(f, 'P', None)
-        if self.Qloss.is_var:
-            self.jacobian[k, self.QlossJ_col()] = self.numeric_deriv(f, 'Qloss', None)
+        variables = self._get_dependents([c.m for c in inl + outl] + [self.P, self.Qloss])
+        for variable in variables:
+            self._partial_derivative(variable, k, f, increment_filter)
+
+        for c in inl + outl:
+            for fl in (self.fuel_list & c.fluid.is_var):
+                self._partial_derivative_fluid(
+                    c.fluid, k, f, fl, increment_filter
+                )
 
     def calc_P(self):
         r"""
@@ -1003,8 +1053,10 @@ class CombustionEngine(CombustionChamber):
         else:
             expr = self.P.val / self.P.design
 
-        return (-self.calc_ti() * self.Qloss_char.char_func.evaluate(expr) /
-                self.tiP_char.char_func.evaluate(expr))
+        return (
+            -self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
+            / self.tiP_char.char_func.evaluate(expr)
+        )
 
     def bus_func(self, bus):
         r"""
@@ -1151,62 +1203,44 @@ class CombustionEngine(CombustionChamber):
         deriv : ndarray
             Matrix of partial derivatives.
         """
-        inl, outl = self._get_combustion_connections()
         f = self.calc_bus_value
         b = bus.comps.loc[self]
 
         ######################################################################
         # derivatives for bus parameter of thermal input (TI)
         if b['param'] == 'TI':
-            for c in inl + outl:
-                if c.m.is_var:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
-
-                for fluid in c.fluid.is_var:
-                    if c.fluid.J_col[fluid] not in bus.jacobian:
-                        bus.jacobian[c.fluid.J_col[fluid]] = 0
-                    bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
+            # ti deriv is identical to super ti deriv
+            super().bus_deriv(bus)
 
         ######################################################################
         # derivatives for bus parameter of power production (P) or
         # heat loss (Qloss)
         elif b['param'] == 'P' or b['param'] == 'Qloss':
-            for c in inl + outl:
-                if c.m.is_var:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= self.numeric_deriv(f, 'm', c, bus=bus)
-
-                for fluid in c.fluid.is_var:
-                    if c.fluid.J_col[fluid] not in bus.jacobian:
-                        bus.jacobian[c.fluid.J_col[fluid]] = 0
-                    bus.jacobian[c.fluid.J_col[fluid]] -= self.numeric_deriv(f, fluid, c, bus=bus)
+            super().bus_deriv(bus)
 
             # variable power
             if self.P.is_var:
-                if self.p.J_col not in bus.jacobian:
-                    bus.jacobian[self.p.J_col] = 0
-                bus.jacobian[self.p.J_col] -= self.numeric_deriv(f, 'P', None, bus=bus)
+                if self.P.J_col not in bus.jacobian:
+                    bus.jacobian[self.P.J_col] = 0
+                bus.jacobian[self.P.J_col] -= _numeric_deriv(self.P._reference_container, f, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of total heat production (Q)
         elif b['param'] == 'Q':
-            for i, o in zip(self.inl[:2], self.outl[:2]):
+            for i, o in  zip(self.inl[:2], self.outl[:2]):
                 if i.m.is_var:
                     if i.m.J_col not in bus.jacobian:
                         bus.jacobian[i.m.J_col] = 0
-                    bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
+                    bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
                 if i.h.is_var:
                     if i.h.J_col not in bus.jacobian:
                         bus.jacobian[i.h.J_col] = 0
-                    bus.jacobian[i.h.J_col] -= self.numeric_deriv(f, 'h', i, bus=bus)
+                    bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
 
                 if o.h.is_var:
                     if o.h.J_col not in bus.jacobian:
                         bus.jacobian[o.h.J_col] = 0
-                    bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                    bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
 
         ######################################################################
         # derivatives for bus parameter of heat production 1 and 2 (Q1, Q2)
@@ -1217,22 +1251,24 @@ class CombustionEngine(CombustionChamber):
             if i.m.is_var:
                 if i.m.J_col not in bus.jacobian:
                     bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= self.numeric_deriv(f, 'm', i, bus=bus)
+                bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
             if i.h.is_var:
                 if i.h.J_col not in bus.jacobian:
                     bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= self.numeric_deriv(f, 'h', i, bus=bus)
+                bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
 
             if o.h.is_var:
                 if o.h.J_col not in bus.jacobian:
                     bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= self.numeric_deriv(f, 'h', o, bus=bus)
+                bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
 
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = ('The parameter ' + str(b['param']) +
-                   ' is not a valid parameter for a ' + self.component() + '.')
+            msg = (
+                f'The parameter {b["param"]} is not a valid parameter for a '
+                f'component of type {self.__class__.__name__}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 

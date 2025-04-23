@@ -8,6 +8,13 @@ Bug Fixes
   fluid. The tests/examples affected by this in tespy have been updated
   (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
 
+Other Changes
+#############
+- To improve convergence for offdesign calculation and problems with small
+  initial increment of the variables the heuristics for the convergence check
+  based on the components have been adjusted
+  (`PR #641 <https://github.com/oemof/tespy/pull/641>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

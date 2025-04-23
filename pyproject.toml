@@ -24,7 +24,7 @@ exclude = ["docs/_build"]
 
 [project]
 name = "tespy"
-version = "0.8.0.dev0"
+version = "0.8.0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [

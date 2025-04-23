@@ -2105,13 +2105,13 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
+        dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index")
         dfs["Connection"].index = dfs["Connection"].index.astype(str)
         for key, value in data["Component"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
             dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Bus"].items():
-            dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key] = pd.DataFrame.from_dict(value, orient="index")
             dfs[key].index = dfs[key].index.astype(str)
 
         return dfs
@@ -2837,7 +2837,8 @@ class Network:
             msg = (
                 'It is not possible to print the results of a network, that '
                 'has never been solved successfully. Results DataFrames are '
-                'only available after a full simulation run is performed.')
+                'only available after a full simulation run is performed.'
+            )
             raise hlp.TESPyNetworkError(msg)
 
         for cp in self.comps['comp_type'].unique():
@@ -3345,6 +3346,111 @@ class Network:
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
 
+    def save(self, json_file_path):
+        r"""
+        Dump the results to a json style output.
+
+        Parameters
+        ----------
+        json_file_path : str
+            Filename to dump results into.
+
+        Note
+        ----
+        Results will be saved to specified file path
+        """
+        dump = {}
+
+        # save relevant state information only
+        dump["Connection"] = self._save_connections()
+        dump["Component"] = self._save_components()
+        dump["Bus"] = self._save_busses()
+
+        dump = self._nested_dict_of_dataframes_to_dict(dump)
+
+        with open(json_file_path, "w") as f:
+            json.dump(dump, f)
+
+    def save_csv(self, folder_path):
+        """Export the results in multiple csv files in a folder structure
+
+        - Connection.csv
+        - Component/
+          - Compressor.csv
+          - ....
+        - Bus/
+          - power input bus.csv
+          - ...
+
+        Parameters
+        ----------
+        folder_path : str
+            Path to dump results to
+        """
+        dump = {}
+        # save relevant state information only
+        dump["Connection"] = self._save_connections()
+        dump["Component"] = self._save_components()
+        dump["Bus"] = self._save_busses()
+        self._nested_dict_of_dataframes_to_csv(dump, folder_path)
+
+    def _nested_dict_of_dataframes_to_csv(self, dictionary, basepath):
+        """Dump a nested dict with dataframes into a folder structrue
+
+        The upper level keys with subdictionaries are folder names, the lower
+        level keys (where a dataframe is the value) will be the names of the
+        csv files.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Nested dictionary to write to filesystem.
+        basepath : str
+            path to dump data to
+        """
+        os.makedirs(basepath, exist_ok=True)
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                basepath = os.path.join(basepath, key)
+                self._nested_dict_of_dataframes_to_csv(value, basepath)
+            else:
+                value.to_csv(os.path.join(basepath, f"{key}.csv"))
+
+    def _nested_dict_of_dataframes_to_dict(self, dictionary):
+        """Transpose a nested dict with dataframes in a json style dict
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary of dataframes
+
+        Returns
+        -------
+        dict
+            json style dictionary containing all data from the dataframes
+        """
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                dictionary[key] = self._nested_dict_of_dataframes_to_dict(value)
+            else:
+                # Series to csv does not have orient
+                kwargs = {}
+                if isinstance(value, pd.DataFrame):
+                    kwargs = {"orient": "index"}
+                dictionary[key] = value.to_dict(**kwargs)
+
+        return dictionary
+
+    def _save_connections(self):
+        """Save the connection properties.
+
+        Returns
+        -------
+        pandas.DataFrame
+            pandas.Dataframe of the connection results
+        """
+        return self.results["Connection"].replace(np.nan, None)
+
     def _save_components(self):
         r"""
         Save the component properties.
@@ -3356,7 +3462,7 @@ class Network:
         """
         dump = {}
         for c in self.comps['comp_type'].unique():
-            dump[c] = self.results[c].replace(np.nan, None).to_dict(orient="index")
+            dump[c] = self.results[c].replace(np.nan, None)
         return dump
 
     def _save_busses(self):
@@ -3369,8 +3475,8 @@ class Network:
             Dump of the component information.
         """
         dump = {}
-        for label, bus in self.busses.items():
-            dump[label] = self.results[label]["design value"].replace(np.nan, None).to_dict()
+        for label in self.busses:
+            dump[label] = self.results[label]["design value"].replace(np.nan, None)
         return dump
 
     def _export_network(self):

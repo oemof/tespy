@@ -31,24 +31,50 @@ API breaking changes
   adjust that. On top of that, instead of the :code:`load_network` method, use
   the :code:`from_json` class method to import networks in the future:
 
+  **Saving a state of the network and using it to initialize**
+
   .. code-block:: python
 
     >>> from tespy.networks import Network
     >>> from tespy.connections import Connection
     >>> from tespy.components import Source, Sink
-    >>> nwk = Network()
+    >>> nwk = Network(iterinfo=False)
     >>> so = Source("source")
     >>> si = Sink("sink")
-    >>> c1 = Connection(so, "out1", si, "in1")
+    >>> c1 = Connection(so, "out1", si, "in1", label="1")
     >>> nwk.add_conns(c1)
+    >>> c1.set_attr(m=1, p=10, T=100, fluid={"air": 1})
+    >>> nwk.solve("design")
+    >>> data = nwk.save("design.json")
+    >>> nwk.solve("design", init_path="design.json")
+
+  **Saving the state of the network to csv files**
+
+  You can also export your state to a folder + csv files tree.
+
+    >>> nwk.save_csv("csv_state_export_folder")
+
+  **Exporting and Importing a Network**
+
+  The export of the network is written to the specified path, and will return
+  the data as a dictionary as well. If you only want to retain the data without
+  writing them to the filesystem, you can call the method without passing a
+  path.
+
+  .. code-block:: python
+
     >>> data = nwk.export("tmp.json")
     >>> list(data.keys())
     ['Network', 'Connection', 'Component', 'Bus']
     >>> list(data["Component"])
     ['Sink', 'Source']
     >>> imported_nw = Network.from_json("tmp.json")
+    >>> data_without_json_writing = nwk.export()
+    >>> list(data_without_json_writing["Connection"])
+    ['1']
 
-  Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__).
+  Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__ and
+  `PR #638 <https://github.com/oemof/tespy/pull/638>`).
 
 New Features
 ############

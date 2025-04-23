@@ -19,6 +19,10 @@ from tespy.tools.document_models import generate_latex_eq
 class NodeBase(Component):
     """Class NodeBase is parent class for all components of submodule nodes."""
 
+    @staticmethod
+    def get_bypass_constraints():
+        return {}
+
     def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.
@@ -59,7 +63,7 @@ class NodeBase(Component):
             r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, k):
+    def mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for mass flow equation.
 
@@ -122,7 +126,7 @@ class NodeBase(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self, k):
+    def pressure_equality_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for all pressure equations.
 

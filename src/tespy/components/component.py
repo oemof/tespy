@@ -128,6 +128,7 @@ class Component:
         self.local_offdesign = False
         self.char_warnings = True
         self.printout = True
+        self.bypass = False
         self.fkt_group = self.label
 
         # add container for components attributes
@@ -241,7 +242,7 @@ class Component:
                     raise ValueError(msg)
 
             elif key in ['local_design', 'local_offdesign',
-                         'printout', 'char_warnings']:
+                         'printout', 'char_warnings', 'bypass']:
                 if not isinstance(kwargs[key], bool):
                     msg = (
                         f"Please provide the {key} parameters as bool for "
@@ -299,7 +300,7 @@ class Component:
     def _serializable():
         return [
             "design", "offdesign", "local_design", "local_offdesign",
-            "design_path", "printout", "fkt_group", "char_warnings"
+            "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
     @staticmethod
@@ -339,7 +340,12 @@ class Component:
         self.num_eq = 0
         self.vars = {}
         self.num_vars = 0
-        self.constraints = self.get_mandatory_constraints().copy()
+
+        if self.bypass:
+            self.constraints = self.get_bypass_constraints().copy()
+        else:
+            self.constraints = self.get_mandatory_constraints().copy()
+
         self.prop_specifications = {}
         self.var_specifications = {}
         self.group_specifications = {}
@@ -349,6 +355,24 @@ class Component:
         for constraint in self.constraints.values():
             self.num_eq += constraint['num_eq']
 
+        if not self.bypass:
+            self._setup_user_imposed_constraints(num_nw_vars)
+
+        self.jacobian = {}
+        self.residual = np.zeros(self.num_eq)
+
+        sum_eq = 0
+        for constraint in self.constraints.values():
+            num_eq = constraint['num_eq']
+            if constraint['constant_deriv']:
+                constraint["deriv"](None, sum_eq)
+            sum_eq += num_eq
+
+        # done
+        msg = f"The component {self.label} has {self.num_vars} variables."
+        logger.debug(msg)
+
+    def _setup_user_imposed_constraints(self, num_nw_vars):
         for key, val in self.parameters.items():
             data = self.get_attr(key)
             if isinstance(val, dc_cp):
@@ -412,25 +436,19 @@ class Component:
             if data.is_set and data.func is not None:
                 self.num_eq += data.num_eq
 
-        self.jacobian = {}
-        self.residual = np.zeros(self.num_eq)
-
-        sum_eq = 0
-        for constraint in self.constraints.values():
-            num_eq = constraint['num_eq']
-            if constraint['constant_deriv']:
-                constraint["deriv"](sum_eq)
-            sum_eq += num_eq
-
-        # done
-        msg = f"The component {self.label} has {self.num_vars} variables."
-        logger.debug(msg)
-
     def get_parameters(self):
         return {}
 
     def get_mandatory_constraints(self):
         return {}
+
+    def get_bypass_constraints(self):
+        msg = (
+            f"The component {self.label} of type {self.__class__.__name__} "
+            "does not have bypassing functionality yet."
+        )
+        logger.exception(msg)
+        raise NotImplementedError(msg)
 
     @staticmethod
     def inlets():
@@ -591,6 +609,9 @@ class Component:
             if not constraint['constant_deriv']:
                 constraint['deriv'](increment_filter, sum_eq)
             sum_eq += num_eq
+
+        if self.bypass:
+            return
 
         for data in self.parameters.values():
             if data.is_set and data.func is not None:
@@ -801,8 +822,11 @@ class Component:
 
         for key, dc in self.parameters.items():
             if isinstance(dc, dc_cp):
-                if ((mode == 'offdesign' and not self.local_design) or
-                        (mode == 'design' and self.local_offdesign)):
+                if (
+                        ((mode == 'offdesign' and not self.local_design) or
+                        (mode == 'design' and self.local_offdesign)) and
+                        (data[key] is not None)
+                    ):
                     self.get_attr(key).design = float(data[key])
 
                 else:
@@ -919,7 +943,7 @@ class Component:
             r'\; \forall i \in [' + indices + r']')
         return generate_latex_eq(self, latex, label)
 
-    def pressure_equality_deriv(self, k):
+    def pressure_equality_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -978,7 +1002,7 @@ class Component:
         )
         return generate_latex_eq(self, latex, label)
 
-    def enthalpy_equality_deriv(self, k):
+    def enthalpy_equality_deriv(self, increment_filter, k):
         r"""
         Calculate partial derivatives for all mass flow balance equations.
 
@@ -1002,7 +1026,7 @@ class Component:
         """
         return _numeric_deriv(self, func, dx, conn, **kwargs)
 
-    def pr_func(self, pr='', inconn=0, outconn=0):
+    def pr_func(self, pr=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
 

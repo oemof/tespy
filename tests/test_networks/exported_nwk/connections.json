@@ -1,0 +1,705 @@
+{
+    "ambient air": {
+        "source": "air",
+        "target": "compressor",
+        "source_id": "out1",
+        "target_id": "in1",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 2.9806404310591366,
+            "val0": 2.9806404310591366,
+            "val_SI": 2.9806404310591366,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 1.0,
+            "val0": 1.0,
+            "val_SI": 100000.0,
+            "is_set": true,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 298.5072132870764,
+            "val0": 298.5072132870764,
+            "val_SI": 298507.2132870764,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 0.8558662069179369,
+            "val0": NaN,
+            "val_SI": 0.8558662069179369,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 6863.951017983647,
+            "val0": NaN,
+            "val_SI": 6863.951017983647,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "N2": 0.7556,
+                "O2": 0.2315,
+                "Ar": 0.0129,
+                "CO2": 0,
+                "CH4": 0,
+                "H2O": 0
+            },
+            "is_set": [
+                "O2",
+                "Ar",
+                "N2"
+            ],
+            "engine": {
+                "N2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "CO2": "CoolPropWrapper",
+                "CH4": "CoolPropWrapper",
+                "H2O": "CoolPropWrapper"
+            },
+            "back_end": {
+                "N2": null,
+                "O2": null,
+                "Ar": null,
+                "CH4": null,
+                "CO2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 25.0,
+            "val0": NaN,
+            "val_SI": 298.15,
+            "is_set": true,
+            "unit": "C"
+        },
+        "v": {
+            "val": 2.5510294199168277,
+            "val0": NaN,
+            "val_SI": 2.5510294199168277,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {},
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    },
+    "compressor:out1_combustion:in1": {
+        "source": "compressor",
+        "target": "combustion",
+        "source_id": "out1",
+        "target_id": "in1",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 2.9806404310591366,
+            "val0": 2.9806404310591366,
+            "val_SI": 2.9806404310591366,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 10.0,
+            "val0": 10.0,
+            "val_SI": 1000000.0,
+            "is_set": false,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 614.8696114025389,
+            "val0": 614.8696114025389,
+            "val_SI": 614869.611402539,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 0.174747437765401,
+            "val0": NaN,
+            "val_SI": 0.174747437765401,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 6928.423164802237,
+            "val0": NaN,
+            "val_SI": 6928.423164802237,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "N2": 0.7556,
+                "O2": 0.2315,
+                "Ar": 0.0129,
+                "CO2": 0,
+                "CH4": 0,
+                "H2O": 0
+            },
+            "is_set": [],
+            "engine": {
+                "CO2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "N2": "CoolPropWrapper",
+                "CH4": "CoolPropWrapper",
+                "H2O": "CoolPropWrapper"
+            },
+            "back_end": {
+                "CH4": null,
+                "CO2": null,
+                "O2": null,
+                "Ar": null,
+                "N2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 333.9145499752034,
+            "val0": NaN,
+            "val_SI": 607.0645499752034,
+            "is_set": false,
+            "unit": "C"
+        },
+        "v": {
+            "val": 0.5208592782275445,
+            "val0": NaN,
+            "val_SI": 0.5208592782275445,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {},
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    },
+    "fuel:out1_fuel preheater:in1": {
+        "source": "fuel",
+        "target": "fuel preheater",
+        "source_id": "out1",
+        "target_id": "in1",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 0.058941183587408866,
+            "val0": 0.058941183587408866,
+            "val_SI": 0.058941183587408866,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 40.0,
+            "val0": 40.0,
+            "val_SI": 4000000.0,
+            "is_set": true,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 856.9279645910249,
+            "val0": 856.9279645910249,
+            "val_SI": 856927.9645910249,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 0.035256723144882506,
+            "val0": NaN,
+            "val_SI": 0.035256723144882506,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 4608.521667706131,
+            "val0": NaN,
+            "val_SI": 4608.521667706131,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "CH4": 0.96,
+                "CO2": 0.04,
+                "O2": 0,
+                "Ar": 0,
+                "N2": 0,
+                "H2O": 0
+            },
+            "is_set": [
+                "CH4",
+                "CO2"
+            ],
+            "engine": {
+                "CH4": "CoolPropWrapper",
+                "CO2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "N2": "CoolPropWrapper",
+                "H2O": "CoolPropWrapper"
+            },
+            "back_end": {
+                "CH4": null,
+                "CO2": null,
+                "O2": null,
+                "Ar": null,
+                "N2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 25.0,
+            "val0": NaN,
+            "val_SI": 298.15,
+            "is_set": true,
+            "unit": "C"
+        },
+        "v": {
+            "val": 0.002078072991572967,
+            "val0": NaN,
+            "val_SI": 0.002078072991572967,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {},
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    },
+    "fuel preheater:out1_combustion:in2": {
+        "source": "fuel preheater",
+        "target": "combustion",
+        "source_id": "out1",
+        "target_id": "in2",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 0.058941183587408866,
+            "val0": 0.058941183587408866,
+            "val_SI": 0.058941183587408866,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 10.0,
+            "val0": 10.0,
+            "val_SI": 1000000.0,
+            "is_set": false,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 885.4828440965908,
+            "val0": 885.4828440965908,
+            "val_SI": 885482.8440965909,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 0.14814002973483156,
+            "val0": NaN,
+            "val_SI": 0.14814002973483156,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 5379.530355955076,
+            "val0": NaN,
+            "val_SI": 5379.530355955076,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "CH4": 0.96,
+                "CO2": 0.04,
+                "O2": 0,
+                "Ar": 0,
+                "N2": 0,
+                "H2O": 0
+            },
+            "is_set": [],
+            "engine": {
+                "CO2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "N2": "CoolPropWrapper",
+                "CH4": "CoolPropWrapper",
+                "H2O": "CoolPropWrapper"
+            },
+            "back_end": {
+                "CH4": null,
+                "CO2": null,
+                "O2": null,
+                "Ar": null,
+                "N2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 25.0,
+            "val0": NaN,
+            "val_SI": 298.15,
+            "is_set": true,
+            "unit": "C"
+        },
+        "v": {
+            "val": 0.008731548689244915,
+            "val0": NaN,
+            "val_SI": 0.008731548689244915,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {},
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    },
+    "combustion:out1_turbine:in1": {
+        "source": "combustion",
+        "target": "turbine",
+        "source_id": "out1",
+        "target_id": "in1",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 3.0395816146465453,
+            "val0": 3.0395816146465453,
+            "val_SI": 3.0395816146465453,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 10.0,
+            "val0": 10.0,
+            "val_SI": 1000000.0,
+            "is_set": false,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 1646.6569281296815,
+            "val0": 1646.6569281296815,
+            "val_SI": 1646656.9281296816,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 0.4006619940210889,
+            "val0": NaN,
+            "val_SI": 0.4006619940210889,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 7814.209028623375,
+            "val0": NaN,
+            "val_SI": 7814.209028623375,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "H2O": 0.041808719122961115,
+                "CO2": 0.051843258872292027,
+                "O2": 0.15275011552273818,
+                "Ar": 0.012649854253243864,
+                "N2": 0.7409480522287648,
+                "CH4": 0.0
+            },
+            "is_set": [],
+            "engine": {
+                "H2O": "CoolPropWrapper",
+                "CO2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "N2": "CoolPropWrapper",
+                "CH4": "CoolPropWrapper"
+            },
+            "back_end": {
+                "CH4": null,
+                "CO2": null,
+                "O2": null,
+                "Ar": null,
+                "N2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 1099.9999032861042,
+            "val0": NaN,
+            "val_SI": 1373.1499032861043,
+            "is_set": true,
+            "unit": "C"
+        },
+        "v": {
+            "val": 1.2178448307141259,
+            "val0": NaN,
+            "val_SI": 1.2178448307141259,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {},
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    },
+    "turbine:out1_sink:in1": {
+        "source": "turbine",
+        "target": "sink",
+        "source_id": "out1",
+        "target_id": "in1",
+        "design_path": null,
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "printout": true,
+        "mixing_rule": "ideal-cond",
+        "m": {
+            "val": 3.0395816146465453,
+            "val0": 3.0395816146465453,
+            "val_SI": 3.0395816146465453,
+            "is_set": false,
+            "unit": "kg / s"
+        },
+        "p": {
+            "val": 1.0,
+            "val0": 1.0,
+            "val_SI": 100000.0,
+            "is_set": false,
+            "unit": "bar"
+        },
+        "h": {
+            "val": 1007.4365349915588,
+            "val0": 1007.4365349915588,
+            "val_SI": 1007436.5349915588,
+            "is_set": false,
+            "unit": "kJ / kg"
+        },
+        "vol": {
+            "val": 2.473267971068434,
+            "val0": NaN,
+            "val_SI": 2.473267971068434,
+            "is_set": false,
+            "unit": "m3 / kg"
+        },
+        "s": {
+            "val": 7901.06842523744,
+            "val0": NaN,
+            "val_SI": 7901.06842523744,
+            "is_set": false,
+            "unit": "J / kgK"
+        },
+        "fluid": {
+            "val": {
+                "H2O": 0.041808719122961115,
+                "CO2": 0.051843258872292027,
+                "O2": 0.15275011552273818,
+                "Ar": 0.012649854253243864,
+                "N2": 0.7409480522287648,
+                "CH4": 0.0
+            },
+            "is_set": [],
+            "engine": {
+                "CO2": "CoolPropWrapper",
+                "O2": "CoolPropWrapper",
+                "Ar": "CoolPropWrapper",
+                "N2": "CoolPropWrapper",
+                "CH4": "CoolPropWrapper",
+                "H2O": "CoolPropWrapper"
+            },
+            "back_end": {
+                "CH4": null,
+                "CO2": null,
+                "O2": null,
+                "Ar": null,
+                "N2": null,
+                "H2O": null
+            }
+        },
+        "fluid_balance": {
+            "val": false,
+            "is_set": false
+        },
+        "T": {
+            "val": 575.6266962800413,
+            "val0": NaN,
+            "val_SI": 848.7766962800413,
+            "is_set": false,
+            "unit": "C"
+        },
+        "v": {
+            "val": 7.5176998529537755,
+            "val0": NaN,
+            "val_SI": 7.5176998529537755,
+            "is_set": false,
+            "unit": "m3 / s"
+        },
+        "x": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "-"
+        },
+        "Td_bp": {
+            "val": 0.0,
+            "val0": NaN,
+            "val_SI": 0,
+            "is_set": false,
+            "unit": "C"
+        },
+        "m_ref": {},
+        "p_ref": {
+            "is_set": true,
+            "unit": "bar",
+            "conn": "ambient air",
+            "factor": 1,
+            "delta": 0
+        },
+        "h_ref": {},
+        "T_ref": {},
+        "v_ref": {},
+        "state": {
+            "val": NaN,
+            "is_set": false
+        }
+    }
+}

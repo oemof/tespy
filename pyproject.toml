@@ -46,7 +46,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "CoolProp>=6.6",
+    "CoolProp>=6.8",
     "jinja2",
     "matplotlib>=3.2.1",
     "numpy>=1.13.3",

@@ -22,6 +22,9 @@ from tespy.tools.optimization import OptimizationProblem
 class SamplePlant:
     """Class template for TESPy model usage in optimization module."""
     def __init__(self):
+        self._create_network()
+
+    def _create_network(self):
 
         self.nw = Network()
         self.nw.set_attr(
@@ -114,7 +117,7 @@ class SamplePlant:
 
         sg.set_attr(pr=0.92)
 
-        con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
+        con.set_attr(pr1=1, pr2=0.99)
         fwh1.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         fwh2.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         dsh.set_attr(pr1=0.99, pr2=0.99)
@@ -122,12 +125,17 @@ class SamplePlant:
         c1.set_attr(m=200, T=650, p=100, fluid={"water": 1})
         c2.set_attr(p=20)
         c4.set_attr(p=3)
+        c6.set_attr(p=0.05)
 
         c41.set_attr(T=20, p=3, fluid={"INCOMP::Water": 1})
-        c42.set_attr(T=28, p0=3, h0=100)
+        c42.set_attr(T=28)
 
         # parametrization
         # components
+        self.nw.solve("design")
+        con.set_attr(ttd_u=5)
+        c6.set_attr(p=None)
+
         self.nw.solve("design")
         self.stable = "_stable.json"
         self.nw.save(self.stable)

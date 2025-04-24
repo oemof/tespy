@@ -101,7 +101,7 @@ for T in data['T_ambient']:
     pipe_feed.set_attr(Tamb=T)
     pipe_return.set_attr(Tamb=T)
     nw.solve('design')
-    eta['T_ambient'] += [abs(cons.Q.val) / hs.Q.val * 100]
+    eta['T_ambient'] += [abs(cons.Q.val) / (hs.Q.val + pu.P.val) * 100]
     heat_loss['T_ambient'] += [abs(pipe_feed.Q.val + pipe_return.Q.val)]
 
 # reset to base temperature
@@ -111,7 +111,7 @@ pipe_return.set_attr(Tamb=0)
 for Q in data['heat_load']:
     cons.set_attr(Q=-1e3 * Q)
     nw.solve('design')
-    eta['heat_load'] += [abs(cons.Q.val) / hs.Q.val * 100]
+    eta['heat_load'] += [abs(cons.Q.val) / (hs.Q.val + pu.P.val) * 100]
     heat_loss['heat_load'] += [abs(pipe_feed.Q.val + pipe_return.Q.val)]
 
 # reset to base temperature
@@ -121,7 +121,7 @@ for T in data['T_level']:
     c1.set_attr(T=T)
     c4.set_attr(T=T - 20)  # return flow temperature assumed 20 °C lower than feed
     nw.solve('design')
-    eta['T_level'] += [abs(cons.Q.val) / hs.Q.val * 100]
+    eta['T_level'] += [abs(cons.Q.val) / (hs.Q.val + pu.P.val) * 100]
     heat_loss['T_level'] += [abs(pipe_feed.Q.val + pipe_return.Q.val)]
 
 fig, ax = plt.subplots(2, 3, figsize=(16, 8), sharex='col', sharey='row')

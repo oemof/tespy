@@ -384,7 +384,7 @@ class CombustionEngine(CombustionChamber):
             self.set_attr(P='var')
             msg = (
                 f'The power output of combustion engines ({self.label}) must '
-                'be either a set value or part of the system variables. Since '
+                'either be a set value or part of the system variables. Since '
                 'it has not been set to a fixed value it will be added to the '
                 'system\'s variables.'
             )
@@ -394,7 +394,7 @@ class CombustionEngine(CombustionChamber):
             self.set_attr(Qloss='var')
             msg = (
                 f'The heat loss of combustion engines ({self.label}) must '
-                'be either a set value or part of the system variables. Since '
+                'either be a set value or part of the system variables. Since '
                 'it has not been set to a fixed value it will be added to the '
                 'system\'s variables.'
             )

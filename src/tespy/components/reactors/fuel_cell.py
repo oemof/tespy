@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
@@ -163,52 +164,72 @@ class FuelCell(Component):
             'P': dc_cp(max_val=0),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
-                deriv=self.heat_deriv, func=self.heat_func,
-                latex=self.heat_func_doc),
+                deriv=self.heat_deriv,
+                func=self.heat_func
+            ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+                structure_matrix=self.pr_structure_matrix,
+                deriv=self.pr_deriv,
+                func=self.pr_func,
+                func_params={'pr': 'pr'}
+            ),
             'dp': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
+                min_val=0,
+                structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
-                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                num_eq_sets=1,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'zeta': dc_cp(
-                min_val=0, num_eq_sets=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+                min_val=0,
+                num_eq_sets=1,
+                dependents=self.zeta_dependents,
+                func=self.zeta_func,
+                func_params={'zeta': 'zeta'}
+            ),
             'eta': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1, latex=self.eta_func_doc,
-                deriv=self.eta_deriv, func=self.eta_func),
+                min_val=0, max_val=1, num_eq_sets=1,
+                deriv=self.eta_deriv,
+                func=self.eta_func
+            ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 deriv=self.specific_energy_deriv,
-                func=self.specific_energy_func,
-                latex=self.specific_energy_func_doc)
+                func=self.specific_energy_func
+            )
         }
 
     def get_mandatory_constraints(self):
-        num_mass_eq = (
-            (self.inl[1].m.is_var or self.outl[1].m.is_var)
-            + (self.inl[1].m.is_var or self.outl[2].m.is_var)
-        )
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': num_mass_eq},
-            'energy_balance_constraints': {
+            'mass_flow_constraints': dc_cmc(**{
+                'func': self.reactor_mass_flow_func,
+                'deriv': self.reactor_mass_flow_deriv,
+                'constant_deriv': True,
+                'num_eq_sets': 2
+            }),
+            'cooling_mass_flow_constraints': dc_cmc(**{
+                'func': self.cooling_mass_flow_func,
+                'structure_matrix': self.cooling_mass_flow_structure_matrix,
+                'num_eq_sets': 1
+            }),
+            'cooling_fluid_constraints': dc_cmc(**{
+                'func': self.cooling_fluid_func,
+                'structure_matrix': self.cooling_fluid_structure_matrix,
+                'num_eq_sets': 1
+            }),
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
-            'reactor_pressure_constraints': {
+                'constant_deriv': False,
+                'num_eq_sets': 1
+            }),
+            'reactor_pressure_constraints': dc_cmc(**{
                 'func': self.reactor_pressure_func,
-                'deriv': self.reactor_pressure_deriv,
+                'structure_matrix': self.reactor_pressure_structure_matrix,
                 'constant_deriv': True,
-                'latex': self.reactor_pressure_func_doc,
-                'num_eq': 2},
+                'num_eq_sets': 2
+            })
         }
 
     @staticmethod
@@ -223,18 +244,32 @@ class FuelCell(Component):
     def outlets():
         return ['out1', 'out2']
 
-    def _preprocess(self, num_nw_vars):
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+    def _add_missing_fluids(self, connections):
+        if self.inl[1] in connections:
+            return ["O2"]
+        elif self.inl[2] in connections:
+            return ["H2"]
+        elif self.outl[1] in connections:
+            return ["H2O"]
+        else:
+            return super()._add_missing_fluids(connections)
 
+    def get_variables(self):
         if not self.P.is_set:
             self.set_attr(P='var')
             msg = (
-                'The power output of a fuel cell must be set! We are adding '
-                f'the power output of component {self.label} as custom '
-                'variable of the system.'
+                f'The power output of fuel cells ({self.label}) must either '
+                'be a set value or part of the system variables. Since it has '
+                'not been set to a fixed value it will be added to the '
+                'system\'s variables.'
             )
             logger.info(msg)
+        return super().get_variables()
+
+
+    def _preprocess(self, num_nw_vars):
+        if self.dp.is_set:
+            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
         self.o2 = "O2"
         self.h2 = "H2"
@@ -542,7 +577,7 @@ class FuelCell(Component):
         if self.P.is_var:
             self.jacobian[k, self.p.J_col] = 1
 
-    def mass_flow_func(self):
+    def reactor_mass_flow_func(self):
         r"""
         Equations for mass conservation.
 
@@ -565,38 +600,11 @@ class FuelCell(Component):
         o2 = M_o2 / (M_o2 + 2 * M_h2)
         # equations for mass flow balance of the fuel cell
         residual = []
-        if self.inl[1].m.is_var or self.outl[1].m.is_var:
-            residual += [o2 * self.outl[1].m.val_SI - self.inl[1].m.val_SI]
-        if self.inl[2].m.is_var or self.outl[1].m.is_var:
-            residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
+        residual += [o2 * self.outl[1].m.val_SI - self.inl[1].m.val_SI]
+        residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
         return residual
 
-    def mass_flow_func_doc(self, label):
-        r"""
-        Equations for mass conservation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'O_2 = &\frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\' + '\n'
-            r'0=&O_2\cdot\dot{m}_\mathrm{H_{2}O,out,1}-'
-            r'\dot{m}_\mathrm{O_2,in,2}\\' + '\n'
-            r'0 =&\left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,out,2}-'
-            r'\dot{m}_\mathrm{H_2,in,3}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def mass_flow_deriv(self, increment_filter, k):
+    def reactor_mass_flow_deriv(self, increment_filter, k):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -608,19 +616,32 @@ class FuelCell(Component):
         M_o2 = self.inl[1].fluid.wrapper[self.o2]._molar_mass
         M_h2 = self.inl[2].fluid.wrapper[self.h2]._molar_mass
         o2 = M_o2 / (M_o2 + 2 * M_h2)
-        # number of equations may vary here
-        if self.inl[1].m.is_var or self.outl[1].m.is_var:
-            if self.inl[1].m.is_var:
-                self.jacobian[k, self.inl[1].m.J_col] = -1
-            if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col] = o2
-            k += 1
-
-        # derivatives for mass flow balance for hydrogen input
+        # oxygen input to water output
+        if self.inl[1].m.is_var:
+            self.jacobian[k, self.inl[1].m.J_col] = -1
         if self.outl[1].m.is_var:
-            self.jacobian[k, self.outl[1].m.J_col] = (1 - o2)
+            self.jacobian[k, self.outl[1].m.J_col] = o2
+        k += 1
+
+        # hydrogen input to water output
         if self.inl[2].m.is_var:
             self.jacobian[k, self.inl[2].m.J_col] = -1
+        if self.outl[1].m.is_var:
+            self.jacobian[k, self.outl[1].m.J_col] = (1 - o2)
+
+    def cooling_mass_flow_func(self):
+        return self.inl[0].m.val_SI - self.outl[0].m.val_SI
+
+    def cooling_mass_flow_structure_matrix(self, k):
+        self._structure_matrix[k, self.inl[0].m.sm_col] = 1
+        self._structure_matrix[k, self.outl[0].m.sm_col] = -1
+
+    def cooling_fluid_func(self):
+        return 0
+
+    def cooling_fluid_structure_matrix(self, k):
+        self._structure_matrix[k, self.inl[0].fluid.sm_col] = 1
+        self._structure_matrix[k, self.outl[0].fluid.sm_col] = -1
 
     def reactor_pressure_func(self):
         r"""
@@ -641,43 +662,25 @@ class FuelCell(Component):
             self.outl[1].p.val_SI - self.inl[2].p.val_SI
         ]
 
-    def reactor_pressure_func_doc(self, label):
+    def reactor_pressure_structure_matrix(self, k):
         r"""
         Equations for reactor pressure balance.
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
         Returns
         -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & p_\mathrm{in,2} - p_\mathrm{out,2}\\' + '\n'
-            r'0 = & p_\mathrm{in,3} - p_\mathrm{out,2}\\' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
+        residual : list
+            Residual values of equations.
 
-    def reactor_pressure_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure equations.
+            .. math::
 
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the pressure equations.
+                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
+                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
         """
-        o = self.outl[1]
-        for i in self.inl[1:]:
-            if i.p.is_var:
-                self.jacobian[k, i.p.J_col] = -1
-            if o.p.is_var:
-                self.jacobian[k, o.p.J_col] = 1
-            k += 1
+        self._structure_matrix[k, self.inl[1].p.sm_col] = 1
+        self._structure_matrix[k, self.outl[1].p.sm_col] = -1
+
+        self._structure_matrix[k + 1, self.inl[2].p.sm_col] = 1
+        self._structure_matrix[k + 1, self.outl[1].p.sm_col] = -1
 
     def calc_P(self):
         r"""

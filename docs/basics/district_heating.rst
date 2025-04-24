@@ -107,7 +107,7 @@ Next, we want to investigate what happens, in case the
 - overall temperature level in the heating system is reduced.
 
 To do that, we will use similar setups as show in the Rankine cycle
-introduction. The :code:`KA` value of both pipes is assumed to be fixed, the
+introduction. The :code:`kA` value of both pipes is assumed to be fixed, the
 efficiency of the pump and pressure losses in consumer and heat source are
 constant as well.
 
@@ -135,8 +135,10 @@ constant as well.
 .. note::
 
     The efficiency value is defined as ratio of the heat delivered to the
-    consumer to the heat production in the central heating plant.
+    consumer to the total energy input, which is the sum of heat production in
+    the central heating plant and pump power.
 
     .. math::
 
-        \eta = \frac{\dot{Q}_\text{consumer}}{\dot{Q}_\text{production}}
+        \eta = \frac{\dot{Q}_\text{consumer}}
+        {\dot{Q}_\text{production} + \dot W_\text{pump}}

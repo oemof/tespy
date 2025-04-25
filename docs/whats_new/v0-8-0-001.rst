@@ -9,7 +9,7 @@ Bug Fixes
   (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
 - In case a heat exchanger heats up the same mass flow (e.g. in a recuperator
   or internal heat exchanger), the derivative to the mass flow was assigned
-  wrong (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
+  wrong (`PR #646 <https://github.com/oemof/tespy/pull/646>`__).
 
 Other Changes
 #############

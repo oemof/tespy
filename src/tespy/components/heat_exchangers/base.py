@@ -391,10 +391,23 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        # in case the heat exchanger reheats the same mass flow
+        # the derivative is different
+        if self.inl[0].m == self.inl[1].m:
+            if self.is_variable(self.inl[0].m, increment_filter):
+                self.jacobian[k, self.inl[0].m.J_col] = (
+                    (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                    + (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                )
+
+        else:
+            for _c_num, i in enumerate(self.inl):
+                o = self.outl[_c_num]
+                if self.is_variable(i.m, increment_filter):
+                    self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+
         for _c_num, i in enumerate(self.inl):
             o = self.outl[_c_num]
-            if self.is_variable(i.m, increment_filter):
-                self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
             if self.is_variable(i.h, increment_filter):
                 self.jacobian[k, i.h.J_col] = -i.m.val_SI
             if self.is_variable(o.h, increment_filter):

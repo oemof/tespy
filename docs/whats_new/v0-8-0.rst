@@ -5,6 +5,7 @@ API breaking changes
 ####################
 - The :code:`OptimizationProblem` implements the following changes
   (see `PR #610 <https://github.com/oemof/tespy/pull/610>`__):
+
   - The dtype for :code:`objective` has been changed to list. With a single
     element list, a single objective optimization is carried out. With lists
     containing more elements, multi-objective optimization will be carried out.

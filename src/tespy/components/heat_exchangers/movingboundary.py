@@ -281,8 +281,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     @staticmethod
     def _get_h_steps(c1, c2):
-        """Get the steps for enthalpy for a change of state from one connection
-        to another
+        """Get the steps for enthalpy at the boundaries of phases during the
+        change of enthalpy from one state to another
 
         Parameters
         ----------
@@ -471,6 +471,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         -------
         residual : float
             Residual value of equation.
+
+            .. math::
+
+                0 = UA - \sum UA_\text{i}
         """
         sections = self.calc_sections()
         return self.UA.val - self.calc_UA(sections)
@@ -519,13 +523,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
             .. math::
 
-                0 = td_\text{pinch} - T_\text{sat,in,1}
-                + T_\left(
-                    p_\text{in,2},\left[
-                        h_\text{in,2}
-                        + \frac{\dot Q_\text{cond}}{\dot m_\text{in,2}}
-                    \right]
-                \right)
+                0 = td_\text{pinch} - min(td_\text{sections})
         """
         sections = self.calc_sections()
         return self.td_pinch.val - self.calc_td_pinch(sections)

@@ -1,5 +1,5 @@
-v0.8.0.post2 - Newton's Nature (April, 23, 2025)
-++++++++++++++++++++++++++++++++++++++++++++++++
+Fixes for v0.8.0
+++++++++++++++++
 
 Bug Fixes
 #########
@@ -7,6 +7,9 @@ Bug Fixes
   `#2447 <https://github.com/CoolProp/CoolProp/issues/2447>`__ for the S800
   fluid. The tests/examples affected by this in tespy have been updated
   (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
+- In case a heat exchanger heats up the same mass flow (e.g. in a recuperator
+  or internal heat exchanger), the derivative to the mass flow was assigned
+  wrong (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
 
 Other Changes
 #############

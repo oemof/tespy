@@ -85,7 +85,7 @@ class TestNetworks:
         """Test deleting a network's connection."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        self.nw.check_network()
+        self.nw.check_topology()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -618,7 +618,7 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_network()
+        nw.check_topology()
 
 
 def test_v07_to_v08_export(tmp_path):

@@ -432,7 +432,7 @@ class TestNetworkErrors:
         b = Connection(source, 'out1', sink2, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_Connection_error_target(self):
         source1 = Source('source1')
@@ -442,7 +442,7 @@ class TestNetworkErrors:
         b = Connection(source2, 'out1', sink, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_inlets(self):
         merge = Merge('merge')
@@ -450,7 +450,7 @@ class TestNetworkErrors:
         a = Connection(merge, 'out1', sink, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_outlets(self):
         source = Source('source')
@@ -458,7 +458,7 @@ class TestNetworkErrors:
         a = Connection(source, 'out1', splitter, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_component_label_duplicates(self):
         source = Source('label')

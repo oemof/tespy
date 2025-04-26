@@ -702,7 +702,7 @@ class Network:
             logger.error(msg)
             raise TypeError(msg)
 
-    def check_network(self):
+    def check_topology(self):
         r"""Check if components are connected properly within the network."""
         if len(self.conns) == 0:
             msg = (
@@ -2212,7 +2212,7 @@ class Network:
             self.mode = mode
 
         if not self.checked:
-            self.check_network()
+            self.check_topology()
 
         msg = (
             "Solver properties:\n"
@@ -3166,7 +3166,7 @@ class Network:
         msg = 'Created network.'
         logger.info(msg)
 
-        nw.check_network()
+        nw.check_topology()
 
         return nw
 

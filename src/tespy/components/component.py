@@ -353,14 +353,14 @@ class Component:
 
         self._structure_matrix = {}
         self._rhs = {}
-        self._equation_lookup = {}
+        self._equation_set_lookup = {}
 
         sum_eq = 0
 
         for name, constraint in self.constraints.items():
             for i in range(sum_eq, sum_eq + constraint.num_eq_sets):
                 self._rhs[i + row_idx] = 0
-                self._equation_lookup[i + row_idx] = name
+                self._equation_set_lookup[i + row_idx] = name
 
             if constraint.structure_matrix is not None:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
@@ -432,7 +432,7 @@ class Component:
             if data.is_set and data.func is not None:
                 for i in range(sum_eq, sum_eq + data.num_eq_sets):
                     self._rhs[i + row_idx] = 0
-                    self._equation_lookup[i + row_idx] = key
+                    self._equation_set_lookup[i + row_idx] = key
 
                 if data.structure_matrix is not None:
                     data.structure_matrix(row_idx + sum_eq, **data.func_params)
@@ -460,7 +460,7 @@ class Component:
 
         self._update_num_eq()
 
-        for key, value in self._equation_lookup.items():
+        for key, value in self._equation_set_lookup.items():
             if key in system_dependencies:
                 continue
 

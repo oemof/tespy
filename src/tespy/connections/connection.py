@@ -607,7 +607,7 @@ class Connection:
 
         self._structure_matrix = {}
         self._rhs = {}
-        self._equation_lookup = {}
+        self._equation_set_lookup = {}
 
         for parameter in self.parameters:
             container = self.get_attr(parameter)
@@ -616,7 +616,7 @@ class Connection:
                 # the row index matches the location in the network's rhs
                 # and matrix
                 for i in range(self.num_eq, self.num_eq + num_eq):
-                    self._equation_lookup[i + row_idx] = parameter
+                    self._equation_set_lookup[i + row_idx] = parameter
                     self._rhs[i + row_idx] = 0
                 # the structure matrix function also computes the rhs
                 if container.structure_matrix is not None:
@@ -648,7 +648,7 @@ class Connection:
             if self.T.is_set:
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
-                if "T" in self._equation_lookup.values():
+                if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
                 msg = f"Determined h by known p and T at {self.label}."
                 logger.info(msg)
@@ -657,7 +657,7 @@ class Connection:
                 T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val_SI, self.fluid_data))
                 self.h._potential_var = False
-                if "Td_bp" in self._equation_lookup.values():
+                if "Td_bp" in self._equation_set_lookup.values():
                     presolved_equations += ["Td_bp"]
                 msg = f"Determined h by known p and Td_bp at {self.label}."
                 logger.info(msg)
@@ -665,7 +665,7 @@ class Connection:
             elif self.x.is_set:
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
-                if "x" in self._equation_lookup.values():
+                if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
                 msg = f"Determined h by known p and x at {self.label}."
                 logger.info(msg)
@@ -676,9 +676,9 @@ class Connection:
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
-                if "T" in self._equation_lookup.values():
+                if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
-                if "x" in self._equation_lookup.values():
+                if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
                 msg = f"Determined h and p by known T and x at {self.label}."
                 logger.info(msg)
@@ -688,16 +688,16 @@ class Connection:
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
                 self.h._potential_var = False
-                if "T" in self._equation_lookup.values():
+                if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
-                if "Td_bp" in self._equation_lookup.values():
+                if "Td_bp" in self._equation_set_lookup.values():
                     presolved_equations += ["Td_bp"]
                 msg = f"Determined h and p by known T and Td_bp at {self.label}."
                 logger.info(msg)
 
         presolved_equations = [
             key for parameter in presolved_equations
-            for key, value in self._equation_lookup.items()
+            for key, value in self._equation_set_lookup.items()
             if value == parameter
         ]
         return presolved_equations
@@ -707,7 +707,7 @@ class Connection:
         self.it = 0
         self.equations = {}
 
-        for eq_num, parameter in self._equation_lookup.items():
+        for eq_num, parameter in self._equation_set_lookup.items():
             if eq_num in system_dependencies:
                 continue
 

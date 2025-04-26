@@ -335,7 +335,6 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
-        self.vars = {}
         self.num_vars = 0
 
         if self.bypass:
@@ -378,7 +377,6 @@ class Component:
             if isinstance(data, dc_cp):
                 if data.is_var:
                     self.num_vars += 1
-                    self.vars[data] = key
 
                 self.prop_specifications[key] = data.is_set
                 self.var_specifications[key] = data.is_var

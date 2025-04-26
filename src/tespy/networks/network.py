@@ -479,47 +479,6 @@ class Network:
         # set status "checked" to false, if connection is deleted from network.
         self.checked = False
 
-    def check_conns(self):
-        r"""Check connections for multiple usage of inlets or outlets."""
-        dub = self.conns.loc[self.conns.duplicated(["source", "source_id"])]
-        for c in dub['object']:
-            targets = []
-            mask = (
-                (self.conns["source"].values == c.source)
-                & (self.conns["source_id"].values == c.source_id)
-            )
-            for conns in self.conns.loc[mask, "object"]:
-                targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
-            targets = ", ".join(targets)
-
-            msg = (
-                f"The source \"{c.source.label}\" ({c.source_id}) is attached "
-                f"to more than one component on the target side: {targets}. "
-                "Please check your network configuration."
-            )
-            logger.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        dub = self.conns.loc[
-            self.conns.duplicated(['target', 'target_id'])
-        ]
-        for c in dub['object']:
-            sources = []
-            mask = (
-                (self.conns["target"].values == c.target)
-                & (self.conns["target_id"].values == c.target_id)
-            )
-            for conns in self.conns.loc[mask, "object"]:
-                sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
-            sources = ", ".join(sources)
-            msg = (
-                f"The target \"{c.target.label}\" ({c.target_id}) is attached "
-                f"to more than one component on the source side: {sources}. "
-                "Please check your network configuration."
-            )
-            logger.error(msg)
-            raise hlp.TESPyNetworkError(msg)
-
     def _add_comps(self, *args):
         r"""
         Add to network's component DataFrame from added connections.
@@ -712,20 +671,367 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        self.check_conns()
-        self.init_components()
-        self.check_components()
-        self.create_fluid_wrapper_branches()
+        self._check_conns()
+        self._init_components()
+        self._check_components()
+        self._create_fluid_wrapper_branches()
 
         # network checked
         self.checked = True
         msg = 'Networkcheck successful.'
         logger.info(msg)
 
+    def _check_conns(self):
+        r"""Check connections for multiple usage of inlets or outlets."""
+        dub = self.conns.loc[self.conns.duplicated(["source", "source_id"])]
+        for c in dub['object']:
+            targets = []
+            mask = (
+                (self.conns["source"].values == c.source)
+                & (self.conns["source_id"].values == c.source_id)
+            )
+            for conns in self.conns.loc[mask, "object"]:
+                targets += [f"\"{conns.target.label}\" ({conns.target_id})"]
+            targets = ", ".join(targets)
+
+            msg = (
+                f"The source \"{c.source.label}\" ({c.source_id}) is attached "
+                f"to more than one component on the target side: {targets}. "
+                "Please check your network configuration."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        dub = self.conns.loc[
+            self.conns.duplicated(['target', 'target_id'])
+        ]
+        for c in dub['object']:
+            sources = []
+            mask = (
+                (self.conns["target"].values == c.target)
+                & (self.conns["target_id"].values == c.target_id)
+            )
+            for conns in self.conns.loc[mask, "object"]:
+                sources += [f"\"{conns.source.label}\" ({conns.source_id})"]
+            sources = ", ".join(sources)
+            msg = (
+                f"The target \"{c.target.label}\" ({c.target_id}) is attached "
+                f"to more than one component on the source side: {sources}. "
+                "Please check your network configuration."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+    def _init_components(self):
+        r"""Set up necessary component information."""
+        for comp in self.comps["object"]:
+            # get incoming and outgoing connections of a component
+            sources = self.conns[self.conns['source'] == comp]
+            sources = sources['source_id'].sort_values().index.tolist()
+            targets = self.conns[self.conns['target'] == comp]
+            targets = targets['target_id'].sort_values().index.tolist()
+            # save the incoming and outgoing as well as the number of
+            # connections as component attribute
+            comp.inl = self.conns.loc[targets, 'object'].tolist()
+            comp.outl = self.conns.loc[sources, 'object'].tolist()
+            comp.num_i = len(comp.inlets())
+            comp.num_o = len(comp.outlets())
+
+            # set up restults and specification dataframes
+            comp_type = comp.__class__.__name__
+            if comp_type not in self.results:
+                cols = [
+                    col for col, data in comp.parameters.items()
+                    if isinstance(data, dc_cp)
+                ]
+                self.results[comp_type] = pd.DataFrame(
+                    columns=cols, dtype='float64'
+                )
+            if comp_type not in self.specifications:
+
+                cols, groups, chars = [], [], []
+                for col, data in comp.parameters.items():
+                    if isinstance(data, dc_cp):
+                        cols += [col]
+                    elif isinstance(data, dc_gcp) or isinstance(data, dc_gcc):
+                        groups += [col]
+                    elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
+                        chars += [col]
+                self.specifications[comp_type] = {
+                    'groups': pd.DataFrame(columns=groups, dtype='bool'),
+                    'chars': pd.DataFrame(columns=chars, dtype='object'),
+                    'variables': pd.DataFrame(columns=cols, dtype='bool'),
+                    'properties': pd.DataFrame(columns=cols, dtype='bool')
+                }
+
+    def _check_components(self):
+        # count number of incoming and outgoing connections and compare to
+        # expected values
+        for comp in self.comps['object']:
+            counts = (self.conns[['source', 'target']] == comp).sum()
+
+            if counts["source"] != comp.num_o:
+                msg = (
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_o - counts['source']} outgoing connections. "
+                    "Make sure all outlets are connected and all connections "
+                    "have been added to the network."
+                )
+                logger.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
+            elif counts["target"] != comp.num_i:
+                msg = (
+                    f"The component {comp.label} is missing "
+                    f"{comp.num_i - counts['target']} incoming connections. "
+                    "Make sure all inlets are connected and all connections "
+                    "have been added to the network."
+                )
+                logger.error(msg)
+                # raise an error in case network check is unsuccesful
+                raise hlp.TESPyNetworkError(msg)
+
+    def initialise(self):
+        r"""
+        Initilialise the network depending on calclation mode.
+
+        Design
+
+        - Generic fluid composition and fluid property initialisation.
+        - Starting values from initialisation path if provided.
+
+        Offdesign
+
+        - Check offdesign path specification.
+        - Set component and connection design point properties.
+        - Switch from design/offdesign parameter specification.
+        """
+        # keep track of the number of bus, component and connection equations
+        # as well as number of component variables
+        self.num_bus_eq = 0
+        self.num_comp_eq = 0
+        self.num_conn_eq = 0
+        self.num_vars = 0
+        self.num_comp_vars = 0
+        self.num_conn_vars = 0
+        self.variables_dict = {}
+
+        self._propagate_fluid_wrappers()
+
+        if self.mode == 'offdesign':
+            self.redesign = True
+            if self.design_path is None:
+                # must provide design_path
+                msg = "Please provide a design_path for offdesign mode."
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            # load design case
+            if self.new_design:
+                self._init_offdesign_params()
+
+            self._init_offdesign()
+
+        else:
+            # reset any preceding offdesign calculation
+            self._init_design()
+
+        # this method will distribute units and set SI values from given values
+        # and units
+        self._init_set_properties()
+
+        self._create_structure_matrix()
+        self._presolve_fluid_vectors()
+        self._prepare_problem()
+
+        # generic fluid property initialisation
+        self._init_properties()
+
+        msg = 'Network initialised.'
+        logger.info(msg)
+
+    def _propagate_fluid_wrappers(self):
+
+        for branch_data in self.fluid_wrapper_branches.values():
+            all_connections = [c for c in branch_data["connections"]]
+
+            any_fluids_set = []
+            engines = {}
+            back_ends = {}
+            any_fluids = []
+            any_fluids0 = []
+            mixing_rules = []
+            for c in all_connections:
+                for f in c.fluid.is_set:
+                    any_fluids_set += [f]
+                    if f in c.fluid.engine:
+                        engines[f] = c.fluid.engine[f]
+                    if f in c.fluid.back_end:
+                        back_ends[f] = c.fluid.back_end[f]
+                any_fluids += list(c.fluid.val.keys())
+                any_fluids0 += list(c.fluid.val0.keys())
+                if c.mixing_rule is not None:
+                    mixing_rules += [c.mixing_rule]
+
+            mixing_rule = list(set(mixing_rules))
+            if len(mixing_rule) > 1:
+                msg = "You have provided more than one mixing rule."
+                raise hlp.TESPyNetworkError(msg)
+            elif len(mixing_rule) == 0:
+                mixing_rule = "ideal-cond"
+            else:
+                mixing_rule = mixing_rules[0]
+
+            if not any_fluids_set:
+                msg = "You are missing fluid specifications."
+
+            all_components = [c for c in branch_data["components"]]
+            for cp in all_components:
+                any_fluids += cp._add_missing_fluids(all_connections)
+
+            potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
+            num_potential_fluids = len(potential_fluids)
+            if num_potential_fluids == 0:
+                msg = (
+                    "The follwing connections of your network are missing any "
+                    "kind of fluid composition information:"
+                    f"{', '.join([c.label for c in all_connections])}."
+                )
+                raise hlp.TESPyNetworkError(msg)
+
+            for c in all_connections:
+                c.mixing_rule = mixing_rule
+                c._potential_fluids = potential_fluids
+                if num_potential_fluids == 1:
+                    f = list(potential_fluids)[0]
+                    c.fluid.val[f] = 1
+
+                else:
+                    for f in potential_fluids:
+                        if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
+                            c.fluid.val[f] = 1 / len(potential_fluids)
+                        elif f not in c.fluid.is_set and f not in c.fluid.val and f in c.fluid.val0:
+                            c.fluid.val[f] = c.fluid.val0[f]
+
+                for f, engine in engines.items():
+                    c.fluid.engine[f] = engine
+                for f, back_end in back_ends.items():
+                    c.fluid.back_end[f] = back_end
+
+                c._create_fluid_wrapper()
+
+    def _presolve_fluid_vectors(self):
+
+        # right now, this ignores potential factors and offsets between the
+        # fluids.
+        # On top of that, branches of constant fluid composition are not
+        # caught, if they only consist of a single connection!
+        for linear_dependents in self._variable_dependencies:
+            reference = linear_dependents["reference"]
+
+            if self._variable_lookup[reference]["property"] != "fluid":
+                continue
+
+            all_connections = [
+                self._variable_lookup[var]["object"]
+                for var in linear_dependents["variables"]
+            ]
+            reference_container = self._reference_container_lookup[reference]
+            reference_conn = all_connections[0]
+
+            fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
+            fluid0 = {f: value for c in all_connections for f, value in c.fluid.val0.items()}
+            if len(fluid_specs) == 0:
+
+                if len(reference_conn._potential_fluids) > 1:
+                    reference_container.is_var = {
+                        f for f in reference_conn._potential_fluids
+                    }
+                    reference_container.val = {
+                        f: 1 / len(reference_container.is_var)
+                        for f in reference_container.is_var
+                    }
+                    # load up specification of starting values if any are
+                    # available
+                    reference_container.val.update(fluid0)
+                else:
+                    reference_container.val[
+                        list(reference_conn._potential_fluids)[0]
+                    ] = 1
+
+            elif len(fluid_specs) != len(set(fluid_specs)):
+                msg = (
+                    "The mass fraction of a single fluid cannot be specified "
+                    "twice within a branch."
+                )
+                raise hlp.TESPyNetworkError(msg)
+            else:
+                fixed_fractions = {
+                    f: c.fluid._val[f]
+                    for c in all_connections
+                    for f in fluid_specs
+                    if f in c.fluid._is_set
+                }
+                mass_fraction_sum = sum(fixed_fractions.values())
+                if mass_fraction_sum > 1 + ERR:
+                    msg = "Total mass fractions within a branch cannot exceed 1"
+                    raise ValueError(msg)
+                elif mass_fraction_sum < 1 - ERR:
+                    # set the fluids with specified mass fraction
+                    # remaining fluids are variable, create wrappers for them
+                    all_fluids = reference_conn._potential_fluids
+                    num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
+                    if num_remaining_fluids == 1:
+                        missing_fluid = list(
+                            set(all_fluids) - set(fixed_fractions.keys())
+                        )[0]
+                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
+                        variable = set()
+                    else:
+                        missing_fluids = (
+                            set(all_fluids) - set(fixed_fractions.keys())
+                        )
+                        variable = {f for f in missing_fluids}
+
+                else:
+                    # fluid mass fraction is 100 %, all other fluids are 0 %
+                    all_fluids = reference_container.val.keys()
+                    remaining_fluids = (
+                        reference_container.val.keys() - fixed_fractions.keys()
+                    )
+                    for f in remaining_fluids:
+                        fixed_fractions[f] = 0
+
+                    variable = set()
+
+                reference_container.val.update(fixed_fractions)
+                reference_container.is_set = {f for f in fixed_fractions}
+                reference_container.is_var = variable
+                # this seems to be a problem in some cases, e.g. the basic
+                # gas turbine tutorial
+                num_var = len(variable)
+                for f in variable:
+                    reference_container.val[f] = (1 - mass_fraction_sum) / num_var
+                    if f in fluid0:
+                        reference_container.val[f] = fluid0[f]
+
+            for fluid in reference_container.is_var:
+                reference_container._J_col[fluid] = self.num_conn_vars
+                self.variables_dict[self.num_conn_vars] = {
+                    "obj": reference_container,
+                    "variable": "fluid",
+                    "fluid": fluid
+                }
+                self.num_conn_vars += 1
+
     def _create_structure_matrix(self):
         self._structure_matrix = {}
         self._rhs = {}
         self._variable_lookup = {}
+        self._equation_set_lookup = {}
+        self._reference_container_lookup = {}
+        self._equation_lookup = {}
+        self._jacobian_sparsity_pattern = {}
 
         num_vars = 0
         for conn in self.conns["object"]:
@@ -754,13 +1060,6 @@ class Network:
                     "object": comp, "property": prop
                 }
 
-        # not sure if useful. In principle component variables should also be
-        # part of the structure matrix in order to presolve them. There should
-        # however not be many, that can create direct dependencies to just a
-        # single other variable. Currently only 1-1 linear dependent variables
-        # are used in the presolving stage
-        self._equation_lookup = {}
-
         sum_eq = 0
         for conn in self.conns["object"]:
             conn._preprocess(sum_eq)
@@ -768,9 +1067,9 @@ class Network:
             self._rhs.update(conn._rhs)
             eq_map = {
                 eq_num: (conn.label, eq_name)
-                for eq_num, eq_name in conn._equation_lookup.items()
+                for eq_num, eq_name in conn._equation_set_lookup.items()
             }
-            self._equation_lookup.update(eq_map)
+            self._equation_set_lookup.update(eq_map)
             sum_eq += conn.num_eq
 
         for cp in self.comps["object"]:
@@ -780,9 +1079,9 @@ class Network:
             self._rhs.update(cp._rhs)
             eq_map = {
                 eq_num: (cp.label, eq_name)
-                for eq_num, eq_name in cp._equation_lookup.items()
+                for eq_num, eq_name in cp._equation_set_lookup.items()
             }
-            self._equation_lookup.update(eq_map)
+            self._equation_set_lookup.update(eq_map)
             sum_eq += cp.num_eq
 
         _linear_dependencies = self._find_linear_dependent_variables(
@@ -833,7 +1132,7 @@ class Network:
                     _d=d
                 )
 
-            self.linear_dependent_variables[
+            self._reference_container_lookup[
                 linear_dependents['reference']
             ] = reference_container
 
@@ -850,11 +1149,13 @@ class Network:
                         f"{variable_data['property']}."
                     )
                     logger.warning(msg)
+
                 container = variable_data["object"].get_attr(variable_data["property"])
                 container._reference_container = reference_container
                 container._factor = linear_dependents["factors"][variable]
                 container._offset = linear_dependents["offsets"][variable]
 
+        # impose set values in the reference containers
         for conn in self.conns["object"]:
             for prop, container in conn.get_variables().items():
                 if conn.get_attr(prop).is_set:
@@ -989,7 +1290,7 @@ class Network:
     def _map_column_indices_to_variable_names(self, cycle):
         return cycle
 
-    def create_fluid_wrapper_branches(self):
+    def _create_fluid_wrapper_branches(self):
 
         self.fluid_wrapper_branches = {}
         mask = self.comps["comp_type"].isin(
@@ -1022,367 +1323,114 @@ class Network:
 
         self.fluid_wrapper_branches = merged
 
-    def init_components(self):
-        r"""Set up necessary component information."""
-        for comp in self.comps["object"]:
-            # get incoming and outgoing connections of a component
-            sources = self.conns[self.conns['source'] == comp]
-            sources = sources['source_id'].sort_values().index.tolist()
-            targets = self.conns[self.conns['target'] == comp]
-            targets = targets['target_id'].sort_values().index.tolist()
-            # save the incoming and outgoing as well as the number of
-            # connections as component attribute
-            comp.inl = self.conns.loc[targets, 'object'].tolist()
-            comp.outl = self.conns.loc[sources, 'object'].tolist()
-            comp.num_i = len(comp.inlets())
-            comp.num_o = len(comp.outlets())
+    def _prepare_problem(self):
 
-            # set up restults and specification dataframes
-            comp_type = comp.__class__.__name__
-            if comp_type not in self.results:
-                cols = [
-                    col for col, data in comp.parameters.items()
-                    if isinstance(data, dc_cp)
-                ]
-                self.results[comp_type] = pd.DataFrame(
-                    columns=cols, dtype='float64'
-                )
-            if comp_type not in self.specifications:
+        # set up the actual list of equations for connections, components,
+        # buses and user defined equations
+        self._presolved_equations = [
+            indices
+            for dependents in self._variable_dependencies
+            for indices in dependents["equation_indices"].values()
+        ]
 
-                cols, groups, chars = [], [], []
-                for col, data in comp.parameters.items():
-                    if isinstance(data, dc_cp):
-                        cols += [col]
-                    elif isinstance(data, dc_gcp) or isinstance(data, dc_gcc):
-                        groups += [col]
-                    elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
-                        chars += [col]
-                self.specifications[comp_type] = {
-                    'groups': pd.DataFrame(columns=groups, dtype='bool'),
-                    'chars': pd.DataFrame(columns=chars, dtype='object'),
-                    'variables': pd.DataFrame(columns=cols, dtype='bool'),
-                    'properties': pd.DataFrame(columns=cols, dtype='bool')
-                }
+        self._presolve_linear_dependents()
 
-    def check_components(self):
-        # count number of incoming and outgoing connections and compare to
-        # expected values
-        for comp in self.comps['object']:
-            counts = (self.conns[['source', 'target']] == comp).sum()
+        # iteratively check presolvable fluid properties
+        # and distribute presolved variables to all linear dependents
+        # until the number of variables does not change anymore
+        number_variables = sum([
+            variable.is_var
+            for conn in self.conns['object']
+            for variable in conn.get_variables().values()
+        ])
+        while True:
+            for c in self.conns['object']:
+                if not c.fluid.is_var:
+                    self._presolved_equations += c._presolve()
+            self._presolve_linear_dependents()
+            reduced_variables = [
+                variable.is_var
+                for conn in self.conns['object']
+                for variable in conn.get_variables().values()
+            ]
+            reduced_variables = sum(reduced_variables)
+            if reduced_variables == number_variables:
+                break
 
-            if counts["source"] != comp.num_o:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_o - counts['source']} outgoing connections. "
-                    "Make sure all outlets are connected and all connections "
-                    "have been added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccesful
-                raise hlp.TESPyNetworkError(msg)
-            elif counts["target"] != comp.num_i:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_i - counts['target']} incoming connections. "
-                    "Make sure all inlets are connected and all connections "
-                    "have been added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccesful
-                raise hlp.TESPyNetworkError(msg)
+            number_variables = reduced_variables
 
-    # def _map_linear_dependent_variables(self):
+        for variable in self._variable_dependencies:
+            reference = self._variable_lookup[variable["reference"]]
+            # this check should be carried out in a different way maybe
+            # e.g. datatype of the container?!
+            if reference["property"] != "fluid":
+                self._assign_variable_space(reference)
 
-    #     for linear_dependents in self._variable_dependencies:
-    #         is_fluid_list = [
-    #             self._variable_lookup[var]["property"] == "fluid"
-    #             for var in linear_dependents["variables"]
-    #         ]
-    #         # this is suspicious, because it was found, that fluid variables
-    #         # are linear dependent to non-fluid variables
-    #         if not all(is_fluid_list) and any(is_fluid_list):
-    #             msg = "We found linear dependency between fluid and non-fluid variables."
-    #             raise hlp.TESPyNetworkError(msg)
+        for c in self.conns['object']:
+            c._prepare_for_solver(self._presolved_equations)
 
-    #         # no matter what object we use, they will all be non fluid or fluid
-    #         reference = linear_dependents["reference"]
-    #         reference_property = self._variable_lookup[reference]["property"]
-    #         if reference_property == "fluid":
-    #             reference_container = dc_flu()
-    #         else:
-    #             reference_container = dc_scavar()
-    #             if reference_property == "m":
-    #                 reference_container.d = 1e-4
-    #             elif reference_property == "p":
-    #                 reference_container.d = 1e-1
-    #             elif reference_property == "h":
-    #                 reference_container.d = 1e-1
+        for cp in self.comps['object']:
+            c = cp.__class__.__name__
+            # component initialisation
+            cp._prepare_for_solver(self._presolved_equations)
 
-            # self.linear_dependent_variables[reference] = reference_container
+            for spec in self.specifications[c].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[c][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec])
+                    )
 
-    #         for dependent in linear_dependents["variables"]:
-    #             dependent_object = (
-    #                 self._variable_lookup[dependent]["object"].get_attr(
-    #                     self._variable_lookup[dependent]["property"]
-    #                     )
-    #                 )
-    #             dependent_object._reference_variable = reference_container
-    #             dependent_object._factor = linear_dependents["factors"][dependent]
-    #             dependent_object._offset = linear_dependents["offsets"][dependent]
+            # count number of component equations and variables
+            self.num_comp_eq += cp.num_eq
 
-    def initialise(self):
-        r"""
-        Initilialise the network depending on calclation mode.
+        for b in self.busses.values():
+            self.busses[b.label] = b
+            self.num_bus_eq += b.P.is_set * 1
 
-        Design
-
-        - Generic fluid composition and fluid property initialisation.
-        - Starting values from initialisation path if provided.
-
-        Offdesign
-
-        - Check offdesign path specification.
-        - Set component and connection design point properties.
-        - Switch from design/offdesign parameter specification.
-        """
-        # keep track of the number of bus, component and connection equations
-        # as well as number of component variables
-        self.num_bus_eq = 0
-        self.num_comp_eq = 0
-        self.num_conn_eq = 0
-        self.num_vars = 0
-        self.num_comp_vars = 0
-        self.num_conn_vars = 0
-        self.variables_dict = {}
-        self.linear_dependent_variables = {}
-
-        # in multiprocessing copies are made of all connections
-        # the mass flow branches and fluid branches hold references to
-        # connections from the original run (where network.checked is False)
-        # The assignment of variable spaces etc. is however made on the
-        # copies of the connections which do not correspond to the mass flow
-        # branches and fluid branches anymore. So the topology simplification
-        # does not actually apply to the copied network, therefore the
-        # branches have to be recreated for this case. We can detect that by
-        # checking whether a network holds a massflow branch with some
-        # connections and compare that with the connection object actually
-        # present in the network
-        self._propagate_fluid_wrappers()
-        # self.impose_unit_system()
-
-        if self.mode == 'offdesign':
-            self.redesign = True
-            if self.design_path is None:
-                # must provide design_path
-                msg = "Please provide a design_path for offdesign mode."
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            # load design case
-            if self.new_design:
-                self.init_offdesign_params()
-
-            self.init_offdesign()
-
-        else:
-            # reset any preceding offdesign calculation
-            self.init_design()
-
-        # self.simplify_problem() will
-        # create the structure matrix + rhs of the problem
-        # assign linear dependents to groups
-        # presolve the fluid vectors
-        # determine, which connection equations need to be applied
-        # determine, which component equations need to be applied
-        # set up jacobian and residual vector structures for connections
-        # components, user defined equations and buses
-        self.init_set_properties()
-        self._create_structure_matrix()
-        # self._map_linear_dependent_variables()
-        self._presolve_fluid_vectors()
-        self._prepare_problem()
-
-        # generic fluid property initialisation
-        self.init_properties()
-
-        msg = 'Network initialised.'
-        logger.info(msg)
-
-    def _propagate_fluid_wrappers(self):
-
-        for branch_data in self.fluid_wrapper_branches.values():
-            all_connections = [c for c in branch_data["connections"]]
-
-            any_fluids_set = []
-            engines = {}
-            back_ends = {}
-            any_fluids = []
-            any_fluids0 = []
-            mixing_rules = []
-            for c in all_connections:
-                for f in c.fluid.is_set:
-                    any_fluids_set += [f]
-                    if f in c.fluid.engine:
-                        engines[f] = c.fluid.engine[f]
-                    if f in c.fluid.back_end:
-                        back_ends[f] = c.fluid.back_end[f]
-                any_fluids += list(c.fluid.val.keys())
-                any_fluids0 += list(c.fluid.val0.keys())
-                if c.mixing_rule is not None:
-                    mixing_rules += [c.mixing_rule]
-
-            mixing_rule = list(set(mixing_rules))
-            if len(mixing_rule) > 1:
-                msg = "You have provided more than one mixing rule."
-                raise hlp.TESPyNetworkError(msg)
-            elif len(mixing_rule) == 0:
-                mixing_rule = "ideal-cond"
-            else:
-                mixing_rule = mixing_rules[0]
-
-            if not any_fluids_set:
-                msg = "You are missing fluid specifications."
-
-            all_components = [c for c in branch_data["components"]]
-            for cp in all_components:
-                any_fluids += cp._add_missing_fluids(all_connections)
-
-            potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
-            num_potential_fluids = len(potential_fluids)
-            if num_potential_fluids == 0:
-                msg = (
-                    "The follwing connections of your network are missing any "
-                    "kind of fluid composition information:"
-                    f"{', '.join([c.label for c in all_connections])}."
-                )
-                raise hlp.TESPyNetworkError(msg)
-
-            for c in all_connections:
-                c.mixing_rule = mixing_rule
-                c._potential_fluids = potential_fluids
-                if num_potential_fluids == 1:
-                    f = list(potential_fluids)[0]
-                    c.fluid.val[f] = 1
-
-                else:
-                    for f in potential_fluids:
-                        if (f not in c.fluid.is_set and f not in c.fluid.val and f not in c.fluid.val0):
-                            c.fluid.val[f] = 1 / len(potential_fluids)
-                        elif f not in c.fluid.is_set and f not in c.fluid.val and f in c.fluid.val0:
-                            c.fluid.val[f] = c.fluid.val0[f]
-
-                for f, engine in engines.items():
-                    c.fluid.engine[f] = engine
-                for f, back_end in back_ends.items():
-                    c.fluid.back_end[f] = back_end
-
-                c._create_fluid_wrapper()
-
-    def _presolve_fluid_vectors(self):
-
-        # right now, this ignores potential factors and offsets between the
-        # fluids.
-        # On top of that, branches of constant fluid composition are not
-        # caught, if they only consist of a single connection!
+    def _presolve_linear_dependents(self):
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
 
-            if self._variable_lookup[reference]["property"] != "fluid":
+            if self._variable_lookup[reference]["property"] == "fluid":
                 continue
 
-            all_connections = [
-                self._variable_lookup[var]["object"]
-                for var in linear_dependents["variables"]
+            all_containers = [
+                self._variable_lookup[var]["object"].get_attr(
+                    self._variable_lookup[var]["property"]
+                ) for var in linear_dependents["variables"]
             ]
-            reference_container = self.linear_dependent_variables[reference]
-            reference_conn = all_connections[0]
 
-            fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
-            fluid0 = {f: value for c in all_connections for f, value in c.fluid.val0.items()}
-            if len(fluid_specs) == 0:
-
-                if len(reference_conn._potential_fluids) > 1:
-                    reference_container.is_var = {
-                        f for f in reference_conn._potential_fluids
-                    }
-                    reference_container.val = {
-                        f: 1 / len(reference_container.is_var)
-                        for f in reference_container.is_var
-                    }
-                    # load up specification of starting values if any are
-                    # available
-                    reference_container.val.update(fluid0)
-                else:
-                    reference_container.val[
-                        list(reference_conn._potential_fluids)[0]
-                    ] = 1
-
-            elif len(fluid_specs) != len(set(fluid_specs)):
+            number_specifications = sum(
+                [not c._potential_var for c in all_containers]
+            )
+            if number_specifications > 1:
+                variables_properties = [
+                    f"({self._variable_lookup[var]['object'].label}: "
+                    f"{self._variable_lookup[var]['property']})"
+                    for var in linear_dependents["variables"]
+                ]
                 msg = (
-                    "The mass fraction of a single fluid cannot be specified "
-                    "twice within a branch."
+                    "You specified more than one variable of the linear "
+                    f"dependent variables: {', '.join(variables_properties)}."
                 )
                 raise hlp.TESPyNetworkError(msg)
-            else:
-                fixed_fractions = {
-                    f: c.fluid._val[f]
-                    for c in all_connections
-                    for f in fluid_specs
-                    if f in c.fluid._is_set
-                }
-                mass_fraction_sum = sum(fixed_fractions.values())
-                if mass_fraction_sum > 1 + ERR:
-                    msg = "Total mass fractions within a branch cannot exceed 1"
-                    raise ValueError(msg)
-                elif mass_fraction_sum < 1 - ERR:
-                    # set the fluids with specified mass fraction
-                    # remaining fluids are variable, create wrappers for them
-                    all_fluids = reference_conn._potential_fluids
-                    num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
-                    if num_remaining_fluids == 1:
-                        missing_fluid = list(
-                            set(all_fluids) - set(fixed_fractions.keys())
-                        )[0]
-                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
-                        variable = set()
-                    else:
-                        missing_fluids = (
-                            set(all_fluids) - set(fixed_fractions.keys())
-                        )
-                        variable = {f for f in missing_fluids}
+            elif number_specifications == 1:
+                reference_data = self._variable_lookup[reference]
+                reference_container = reference_data["object"].get_attr(
+                    reference_data["property"]
+                )._reference_container
+                reference_container.is_var = False
 
-                else:
-                    # fluid mass fraction is 100 %, all other fluids are 0 %
-                    all_fluids = reference_container.val.keys()
-                    remaining_fluids = (
-                        reference_container.val.keys() - fixed_fractions.keys()
-                    )
-                    for f in remaining_fluids:
-                        fixed_fractions[f] = 0
+    def _assign_variable_space(self, reference):
+        container = reference["object"].get_attr(reference["property"])._reference_container
+        if container.is_var:
+            container.J_col = self.num_conn_vars
+            self.variables_dict[self.num_conn_vars] = {
+                "obj": container, "variable": reference["property"]
+            }
+            self.num_conn_vars += 1
 
-                    variable = set()
-
-                reference_container.val.update(fixed_fractions)
-                reference_container.is_set = {f for f in fixed_fractions}
-                reference_container.is_var = variable
-                # this seems to be a problem in some cases, e.g. the basic
-                # gas turbine tutorial
-                num_var = len(variable)
-                for f in variable:
-                    reference_container.val[f] = (1 - mass_fraction_sum) / num_var
-                    if f in fluid0:
-                        reference_container.val[f] = fluid0[f]
-
-            for fluid in reference_container.is_var:
-                reference_container._J_col[fluid] = self.num_conn_vars
-                self.variables_dict[self.num_conn_vars] = {
-                    "obj": reference_container,
-                    "variable": "fluid",
-                    "fluid": fluid
-                }
-                self.num_conn_vars += 1
-
-    def init_set_properties(self):
+    def _init_set_properties(self):
         """Specification of SI values for user set values."""
         self.all_fluids = []
         # fluid property values
@@ -1445,16 +1493,7 @@ class Network:
         )
         logger.debug(msg)
 
-    def _assign_variable_space(self, reference):
-        container = reference["object"].get_attr(reference["property"])._reference_container
-        if container.is_var:
-            container.J_col = self.num_conn_vars
-            self.variables_dict[self.num_conn_vars] = {
-                "obj": container, "variable": reference["property"]
-            }
-            self.num_conn_vars += 1
-
-    def init_design(self):
+    def _init_design(self):
         r"""
         Initialise a design calculation.
 
@@ -1493,7 +1532,7 @@ class Network:
 
                 df = _local_designs[c.design_path]["Connection"]
                 # write data to connections
-                self.init_conn_design_params(c, df)
+                self._init_conn_design_params(c, df)
 
             else:
                 # unset all design values
@@ -1538,7 +1577,7 @@ class Network:
 
                 data = _local_designs[path][c]
                 # write data
-                self.init_comp_design_params(cp, data)
+                self._init_comp_design_params(cp, data)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1576,276 +1615,7 @@ class Network:
 
                 cp.set_parameters(self.mode, series)
 
-    def _prepare_problem(self):
-
-        # set up the actual list of equations for connections, components,
-        # buses and user defined equations
-        presolved_equations = [
-            indices
-            for dependents in self._variable_dependencies
-            for indices in dependents["equation_indices"].values()
-        ]
-
-        self._presolve_linear_dependents()
-
-        # iteratively check presolvable fluid properties
-        # and distribute presolved variables to all linear dependents
-        # until the number of variables does not change anymore
-        number_variables = sum([
-            variable.is_var
-            for conn in self.conns['object']
-            for variable in conn.get_variables().values()
-        ])
-        while True:
-            for c in self.conns['object']:
-                if not c.fluid.is_var:
-                    presolved_equations += c._presolve()
-            self._presolve_linear_dependents()
-            reduced_variables = [
-                variable.is_var
-                for conn in self.conns['object']
-                for variable in conn.get_variables().values()
-            ]
-            reduced_variables = sum(reduced_variables)
-            if reduced_variables == number_variables:
-                break
-
-            number_variables = reduced_variables
-
-        for variable in self._variable_dependencies:
-            reference = self._variable_lookup[variable["reference"]]
-            # this check should be carried out in a different way maybe
-            # e.g. datatype of the container?!
-            if reference["property"] != "fluid":
-                self._assign_variable_space(reference)
-
-        for c in self.conns['object']:
-            c._prepare_for_solver(presolved_equations)
-
-        for cp in self.comps['object']:
-            c = cp.__class__.__name__
-            # component initialisation
-            cp._prepare_for_solver(presolved_equations)
-
-            for spec in self.specifications[c].keys():
-                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
-                    self.specifications[c][spec].loc[cp.label] = (
-                        cp.get_attr(self.specifications['lookup'][spec])
-                    )
-
-            # count number of component equations and variables
-            # i = self.num_conn_vars + self.num_comp_vars
-            # for container, name in cp.vars.items():
-            #     self.variables_dict[i] = {"obj": container, "variable": name}
-            #     i += 1
-            # self.num_comp_vars += cp.num_vars
-            self.num_comp_eq += cp.num_eq
-
-        for b in self.busses.values():
-            self.busses[b.label] = b
-            self.num_bus_eq += b.P.is_set * 1
-
-    def _presolve_linear_dependents(self):
-        for linear_dependents in self._variable_dependencies:
-            reference = linear_dependents["reference"]
-
-            if self._variable_lookup[reference]["property"] == "fluid":
-                continue
-
-            all_containers = [
-                self._variable_lookup[var]["object"].get_attr(
-                    self._variable_lookup[var]["property"]
-                ) for var in linear_dependents["variables"]
-            ]
-
-            number_specifications = sum(
-                [not c._potential_var for c in all_containers]
-            )
-            if number_specifications > 1:
-                variables_properties = [
-                    f"({self._variable_lookup[var]['object'].label}: "
-                    f"{self._variable_lookup[var]['property']})"
-                    for var in linear_dependents["variables"]
-                ]
-                msg = (
-                    "You specified more than one variable of the linear "
-                    f"dependent variables: {', '.join(variables_properties)}."
-                )
-                raise hlp.TESPyNetworkError(msg)
-            elif number_specifications == 1:
-                reference_data = self._variable_lookup[reference]
-                reference_container = reference_data["object"].get_attr(
-                    reference_data["property"]
-                )._reference_container
-                reference_container.is_var = False
-
-    def init_offdesign_params(self):
-        r"""
-        Read design point information from specified :code:`design_path`.
-
-        If a :code:`design_path` has been specified individually for components
-        or connections, the data will be read from the specified individual
-        path instead.
-
-        Note
-        ----
-        The methods
-        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
-        (components) and the
-        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
-        (connections) handle the parameter specification.
-        """
-        # components with offdesign parameters
-        components_with_parameters = [
-            cp.label for cp in self.comps["object"] if len(cp.parameters) > 0
-        ]
-        # fetch all components, reindex with label
-        df_comps = self.comps.loc[components_with_parameters].copy()
-        # iter through unique types of components (class names)
-        dfs = self._load_network_state(self.design_path)
-        # iter through all components of this type and set data
-        ind_designs = {}
-        for label, row in df_comps.iterrows():
-            df = dfs[row["comp_type"]]
-            comp = row["object"]
-            path = comp.design_path
-            # read data of components with individual design_path
-            if path is not None:
-                if path not in ind_designs:
-                    ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path][row["comp_type"]]
-
-            else:
-                data = df
-
-            # write data to components
-            self.init_comp_design_params(comp, data)
-
-        msg = 'Done reading design point information for components.'
-        logger.debug(msg)
-
-        if len(self.busses) > 0:
-            for b, bus in self.busses.items():
-                # the bus design data are stored in dfs[b][0] (column is not named)
-                if len(bus.comps) > 0:
-                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
-
-        # read connection design point information
-        df = dfs["Connection"]
-
-        # iter through connections
-        for c in self.conns['object']:
-            # read data of connections with individual design_path
-            path = c.design_path
-            if path is not None:
-                if path not in ind_designs:
-                    ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path]["Connection"]
-            else:
-                data = df
-
-            self.init_conn_design_params(c, data)
-
-        msg = 'Done reading design point information for connections.'
-        logger.debug(msg)
-
-    def init_comp_design_params(self, c, df):
-        r"""
-        Write design point information to components.
-
-        Parameters
-        ----------
-        component : tespy.components.component.Component
-            Write design point information to this component.
-
-        data : pandas.core.series.Series, pandas.core.frame.DataFrame
-            Design point information.
-        """
-        if c.label not in df.index:
-            # no matches in the connections of the network and the design files
-            msg = (
-                f"Could not find component '{c.label}' in design case file. "
-                "This is is critical only to components, which need to load "
-                "design values from this case."
-            )
-            logger.debug(msg)
-            return
-        # write component design data
-        data = df.loc[c.label]
-        c.set_parameters(self.mode, data)
-
-    def init_conn_design_params(self, c, df):
-        r"""
-        Write design point information to connections.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Write design point information to this connection.
-
-        df : pandas.core.frame.DataFrame
-            Dataframe containing design point information.
-        """
-        # match connection (source, source_id, target, target_id) on
-        # connection objects of design file
-        if c.label not in df.index:
-            # no matches in the connections of the network and the design files
-            msg = (
-                f"Could not find connection '{c.label}' in design case. Please "
-                "make sure no connections have been modified or components "
-                "have been relabeled for your offdesign calculation."
-            )
-            logger.exception(msg)
-            raise hlp.TESPyNetworkError(msg)
-
-        conn = df.loc[c.label]
-        for var in fpd.keys():
-
-            c.get_attr(var).design = hlp.convert_to_SI(
-                var, float(conn[var]), conn[f"{var}_unit"]
-            )
-        if c.m.design != 0.0:
-            c.vol.design = c.v.design / c.m.design
-        else:
-            c.vol.design = math.inf
-        for fluid in c.fluid.val:
-            c.fluid.design[fluid] = float(conn[fluid])
-
-    def init_conn_params_from_path(self, c, df):
-        r"""
-        Write parameter information from init_path to connections.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Write init path information to this connection.
-
-        df : pandas.core.frame.DataFrame
-            Dataframe containing init path information.
-        """
-        # match connection (source, source_id, target, target_id) on
-        # connection objects of design file
-        df.index = df.index.astype(str)
-        if c.label not in df.index:
-            # no matches in the connections of the network and the design files
-            msg = f"Could not find connection {c.label} in init path file."
-            logger.debug(msg)
-            return
-
-        conn = df.loc[c.label]
-
-        for prop in ['m', 'p', 'h']:
-            data = c.get_attr(prop)
-            data.val0 = float(conn[prop])
-            data.unit = conn[prop + '_unit']
-
-        for fluid in c.fluid.is_var:
-            c.fluid.val[fluid] = float(conn[fluid])
-            c.fluid.val0[fluid] = float(c.fluid.val[fluid])
-
-        c.good_starting_values = True
-
-    def init_offdesign(self):
+    def _init_offdesign(self):
         r"""
         Switch components and connections from design to offdesign mode.
 
@@ -1917,7 +1687,173 @@ class Network:
         msg = 'Switched components from design to offdesign.'
         logger.debug(msg)
 
-    def init_properties(self):
+    def _init_offdesign_params(self):
+        r"""
+        Read design point information from specified :code:`design_path`.
+
+        If a :code:`design_path` has been specified individually for components
+        or connections, the data will be read from the specified individual
+        path instead.
+
+        Note
+        ----
+        The methods
+        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
+        (components) and the
+        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
+        (connections) handle the parameter specification.
+        """
+        # components with offdesign parameters
+        components_with_parameters = [
+            cp.label for cp in self.comps["object"] if len(cp.parameters) > 0
+        ]
+        # fetch all components, reindex with label
+        df_comps = self.comps.loc[components_with_parameters].copy()
+        # iter through unique types of components (class names)
+        dfs = self._load_network_state(self.design_path)
+        # iter through all components of this type and set data
+        ind_designs = {}
+        for label, row in df_comps.iterrows():
+            df = dfs[row["comp_type"]]
+            comp = row["object"]
+            path = comp.design_path
+            # read data of components with individual design_path
+            if path is not None:
+                if path not in ind_designs:
+                    ind_designs[path] = self._load_network_state(path)
+                data = ind_designs[path][row["comp_type"]]
+
+            else:
+                data = df
+
+            # write data to components
+            self._init_comp_design_params(comp, data)
+
+        msg = 'Done reading design point information for components.'
+        logger.debug(msg)
+
+        if len(self.busses) > 0:
+            for b, bus in self.busses.items():
+                # the bus design data are stored in dfs[b][0] (column is not named)
+                if len(bus.comps) > 0:
+                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
+
+        # read connection design point information
+        df = dfs["Connection"]
+
+        # iter through connections
+        for c in self.conns['object']:
+            # read data of connections with individual design_path
+            path = c.design_path
+            if path is not None:
+                if path not in ind_designs:
+                    ind_designs[path] = self._load_network_state(path)
+                data = ind_designs[path]["Connection"]
+            else:
+                data = df
+
+            self._init_conn_design_params(c, data)
+
+        msg = 'Done reading design point information for connections.'
+        logger.debug(msg)
+
+    def _init_comp_design_params(self, c, df):
+        r"""
+        Write design point information to components.
+
+        Parameters
+        ----------
+        component : tespy.components.component.Component
+            Write design point information to this component.
+
+        data : pandas.core.series.Series, pandas.core.frame.DataFrame
+            Design point information.
+        """
+        if c.label not in df.index:
+            # no matches in the connections of the network and the design files
+            msg = (
+                f"Could not find component '{c.label}' in design case file. "
+                "This is is critical only to components, which need to load "
+                "design values from this case."
+            )
+            logger.debug(msg)
+            return
+        # write component design data
+        data = df.loc[c.label]
+        c.set_parameters(self.mode, data)
+
+    def _init_conn_design_params(self, c, df):
+        r"""
+        Write design point information to connections.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Write design point information to this connection.
+
+        df : pandas.core.frame.DataFrame
+            Dataframe containing design point information.
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        if c.label not in df.index:
+            # no matches in the connections of the network and the design files
+            msg = (
+                f"Could not find connection '{c.label}' in design case. Please "
+                "make sure no connections have been modified or components "
+                "have been relabeled for your offdesign calculation."
+            )
+            logger.exception(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        conn = df.loc[c.label]
+        for var in fpd.keys():
+
+            c.get_attr(var).design = hlp.convert_to_SI(
+                var, float(conn[var]), conn[f"{var}_unit"]
+            )
+        if c.m.design != 0.0:
+            c.vol.design = c.v.design / c.m.design
+        else:
+            c.vol.design = math.inf
+        for fluid in c.fluid.val:
+            c.fluid.design[fluid] = float(conn[fluid])
+
+    def _init_conn_params_from_path(self, c, df):
+        r"""
+        Write parameter information from init_path to connections.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Write init path information to this connection.
+
+        df : pandas.core.frame.DataFrame
+            Dataframe containing init path information.
+        """
+        # match connection (source, source_id, target, target_id) on
+        # connection objects of design file
+        df.index = df.index.astype(str)
+        if c.label not in df.index:
+            # no matches in the connections of the network and the design files
+            msg = f"Could not find connection {c.label} in init path file."
+            logger.debug(msg)
+            return
+
+        conn = df.loc[c.label]
+
+        for prop in ['m', 'p', 'h']:
+            data = c.get_attr(prop)
+            data.val0 = float(conn[prop])
+            data.unit = conn[prop + '_unit']
+
+        for fluid in c.fluid.is_var:
+            c.fluid.val[fluid] = float(conn[fluid])
+            c.fluid.val0[fluid] = float(c.fluid.val[fluid])
+
+        c.good_starting_values = True
+
+    def _init_properties(self):
         """
         Initialise the fluid properties on every connection of the network.
 
@@ -1936,7 +1872,7 @@ class Network:
         # subccooling/overheating and state specification
         for c in self.conns['object']:
             if self.init_path is not None:
-                self.init_conn_params_from_path(c, df)
+                self._init_conn_params_from_path(c, df)
 
             if sum(c.fluid.val.values()) == 0:
                 msg = (

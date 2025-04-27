@@ -811,9 +811,7 @@ class Network:
         self.num_bus_eq = 0
         self.num_comp_eq = 0
         self.num_conn_eq = 0
-        self.num_vars = 0
-        self.num_comp_vars = 0
-        self.num_conn_vars = 0
+        self.variable_counter = 0
         self.variables_dict = {}
 
         self._propagate_fluid_wrappers()
@@ -1016,19 +1014,22 @@ class Network:
                         reference_container.val[f] = fluid0[f]
 
             for fluid in reference_container.is_var:
-                reference_container._J_col[fluid] = self.num_conn_vars
-                self.variables_dict[self.num_conn_vars] = {
+                reference_container._J_col[fluid] = self.variable_counter
+                self.variables_dict[self.variable_counter] = {
                     "obj": reference_container,
                     "variable": "fluid",
-                    "fluid": fluid
+                    "fluid": fluid,
+                    "_represents": linear_dependents["variables"]
                 }
-                self.num_conn_vars += 1
+                self.variable_counter += 1
 
     def _create_structure_matrix(self):
         self._structure_matrix = {}
         self._rhs = {}
         self._variable_lookup = {}
+        self._object_to_variable_lookup = {}
         self._equation_set_lookup = {}
+        self._presolved_equations = []
         self._reference_container_lookup = {}
         self._equation_lookup = {}
         self._jacobian_sparsity_pattern = {}
@@ -1042,14 +1043,24 @@ class Network:
                 self._variable_lookup[container.sm_col] = {
                     "object": conn, "property": prop
                 }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {prop: container.sm_col}
+                )
 
             # fluid is handled separately
             container = conn.fluid
             container.sm_col = num_vars
+            num_vars += 1
             self._variable_lookup[container.sm_col] = {
                 "object": conn, "property": "fluid"
             }
-            num_vars += 1
+            if conn not in self._object_to_variable_lookup:
+                self._object_to_variable_lookup[conn] = {}
+            self._object_to_variable_lookup[conn].update(
+                {"fluid": container.sm_col}
+            )
 
         for comp in self.comps["object"]:
             for prop, container in comp.get_variables().items():
@@ -1059,6 +1070,11 @@ class Network:
                 self._variable_lookup[container.sm_col] = {
                     "object": comp, "property": prop
                 }
+                if comp not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[comp] = {}
+                self._object_to_variable_lookup[comp].update(
+                    {prop: container.sm_col}
+                )
 
         sum_eq = 0
         for conn in self.conns["object"]:
@@ -1361,10 +1377,9 @@ class Network:
 
         for variable in self._variable_dependencies:
             reference = self._variable_lookup[variable["reference"]]
-            # this check should be carried out in a different way maybe
-            # e.g. datatype of the container?!
+            represents = variable["variables"]
             if reference["property"] != "fluid":
-                self._assign_variable_space(reference)
+                self._assign_variable_space(reference, represents)
 
         for c in self.conns['object']:
             c._prepare_for_solver(self._presolved_equations)
@@ -1421,14 +1436,17 @@ class Network:
                 )._reference_container
                 reference_container.is_var = False
 
-    def _assign_variable_space(self, reference):
+    def _assign_variable_space(self, reference, represents):
         container = reference["object"].get_attr(reference["property"])._reference_container
         if container.is_var:
-            container.J_col = self.num_conn_vars
-            self.variables_dict[self.num_conn_vars] = {
-                "obj": container, "variable": reference["property"]
+            container.J_col = self.variable_counter
+            self.variables_dict[self.variable_counter] = {
+                "obj": container,
+                "variable": reference["property"],
+                "fluid": None,
+                "_represents": represents
             }
-            self.num_conn_vars += 1
+            self.variable_counter += 1
 
     def _init_set_properties(self):
         """Specification of SI values for user set values."""
@@ -1909,14 +1927,18 @@ class Network:
             # good starting values, for example, when one exchanges enthalpy
             # with boiling point temperature difference.
             if (c.Td_bp.is_set or c.state.is_set) and c.h.is_var:
-                if ((c.Td_bp.val_SI > 0 and c.Td_bp.is_set) or
-                        (c.state.val == 'g' and c.state.is_set)):
+                if (
+                        (c.Td_bp.val_SI > 0 and c.Td_bp.is_set)
+                        or (c.state.val == 'g' and c.state.is_set)
+                    ):
                     h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
                     if c.h.val_SI < h:
                         c.h.set_reference_val_SI(h * 1.001)
 
-                elif ((c.Td_bp.val_SI < 0 and c.Td_bp.is_set) or
-                      (c.state.val == 'l' and c.state.is_set)):
+                elif (
+                        (c.Td_bp.val_SI < 0 and c.Td_bp.is_set)
+                        or (c.state.val == 'l' and c.state.is_se)
+                    ):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:
                         c.h.set_reference_val_SI(h * 0.999)
@@ -2054,6 +2076,129 @@ class Network:
             dfs[key].index = dfs[key].index.astype(str)
 
         return dfs
+
+    def get_linear_dependent_variables(self) -> list:
+        """Get a list with sublists containing linear dependent variables
+
+        Returns
+        -------
+        list
+            List of lists of linear dependent variables
+        """
+        variable_list = []
+        for dependents in self._variable_dependencies:
+            variables = [
+                self._variable_lookup[v] for v in dependents["variables"]
+            ]
+            variable_list += [
+                [(v["object"].label, v["property"]) for v in variables]
+            ]
+        return variable_list
+
+    def get_presolved_equations(self) -> list:
+        """Get the list of equations, that has been presolved with their
+        respective parent object
+
+        Returns
+        -------
+        list
+            list of presolved equations
+        """
+        return [
+            v for k, v in self._equation_set_lookup.items()
+            if k in self._presolved_equations
+        ]
+
+    def get_presolved_variables(self) -> list:
+        """Get the list of presolved variables with their respective parent
+        object and property.
+
+        Returns
+        -------
+        list
+            list of presolved variables
+        """
+        represented_variables = []
+        for v in self.variables_dict.values():
+            represented_variables += v["_represents"]
+        return [
+            (v["object"].label, v["property"])
+            for key, v in self._variable_lookup.items()
+            if key not in represented_variables
+        ]
+
+    def get_variables(self) -> dict:
+        """Get all variables of the presolved problem with their respective
+        represented original variables.
+
+        Returns
+        -------
+        dict
+            variable number and property with the list of represented variables
+        """
+        return {
+            (key, data["variable"]):
+            [
+                (
+                    self._variable_lookup[v]["object"].label,
+                    self._variable_lookup[v]["property"]
+                ) for v in data["_represents"]
+            ]
+            for key, data in self.variables_dict.items()
+        }
+
+    def get_dependents_by_object(self, obj, prop) -> list:
+        """Get the list of linear dependent variables for a specified variable
+
+        Parameters
+        ----------
+        obj : object
+            Parent object holding a variable
+        prop : str
+            Name of the variable (e.g. 'm' or 'h')
+
+        Returns
+        -------
+        list
+            list of linear dependent variables
+
+        Raises
+        ------
+        KeyError
+            In case the object does not have any variables
+        KeyError
+            In case the specified property is not a variable
+        """
+        if obj not in self._object_to_variable_lookup:
+            msg = f"The object {obj.label} does not have any variables."
+            raise KeyError(msg)
+
+        if prop not in self._object_to_variable_lookup[obj]:
+            msg = f"The object {obj.label} does not have a variable {prop}."
+            raise KeyError(msg)
+
+        variable_idx = self._object_to_variable_lookup[obj][prop]
+        return self._get_dependents_by_variable_index(variable_idx)
+
+    def _get_dependents_by_variable_index(self, idx) -> list:
+        """Get the list of linear dependent variables for a specified variable
+
+        Parameters
+        ----------
+        idx : object
+            Index of the variable
+
+        Returns
+        -------
+        list
+            list of linear dependent variables
+        """
+        for dependents in self._variable_dependencies:
+            if idx in dependents["variables"]:
+                break
+        variables = [self._variable_lookup[v] for v in dependents["variables"]]
+        variable_list = [(v["object"].label, v["property"]) for v in variables]
+        return variable_list
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
@@ -2217,9 +2362,9 @@ class Network:
         r"""Loop of the newton algorithm."""
         # parameter definitions
         self.residual_history = np.array([])
-        self.residual = np.zeros([self.num_vars])
-        self.increment = np.ones([self.num_vars])
-        self.jacobian = np.zeros((self.num_vars, self.num_vars))
+        self.residual = np.zeros([self.variable_counter])
+        self.increment = np.ones([self.variable_counter])
+        self.jacobian = np.zeros((self.variable_counter, self.variable_counter))
 
         self.start_time = time()
         self.progress = True
@@ -2282,11 +2427,6 @@ class Network:
             # remap jacobian
             func.jacobian = {}
 
-        # total number of variables
-        self.num_vars = (
-            self.num_conn_vars + self.num_comp_vars
-        )
-
         msg = f'Number of connection equations: {self.num_conn_eq}.'
         logger.debug(msg)
         msg = f'Number of bus equations: {self.num_bus_eq}.'
@@ -2296,27 +2436,23 @@ class Network:
         msg = f'Number of user defined equations: {self.num_ude_eq}.'
         logger.debug(msg)
 
-        msg = f'Total number of variables: {self.num_vars}.'
-        logger.debug(msg)
-        msg = f'Number of component variables: {self.num_comp_vars}.'
-        logger.debug(msg)
-        msg = f"Number of connection variables: {self.num_conn_vars}."
+        msg = f'Total number of variables: {self.variable_counter}.'
         logger.debug(msg)
 
         n = (
             self.num_comp_eq + self.num_conn_eq +
             self.num_bus_eq + self.num_ude_eq
         )
-        if n > self.num_vars:
+        if n > self.variable_counter:
             msg = (
-                f"You have provided too many parameters: {self.num_vars} "
+                f"You have provided too many parameters: {self.variable_counter} "
                 f"required, {n} supplied. Aborting calculation!"
             )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
-        elif n < self.num_vars:
+        elif n < self.variable_counter:
             msg = (
-                f"You have not provided enough parameters: {self.num_vars} "
+                f"You have not provided enough parameters: {self.variable_counter} "
                 f"required, {n} supplied. Aborting calculation!"
             )
             logger.error(msg)

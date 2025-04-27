@@ -791,7 +791,7 @@ class Network:
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
 
-    def initialise(self):
+    def _prepare_problem(self):
         r"""
         Initilialise the network depending on calclation mode.
 
@@ -815,32 +815,14 @@ class Network:
         self.variables_dict = {}
 
         self._propagate_fluid_wrappers()
-
-        if self.mode == 'offdesign':
-            self.redesign = True
-            if self.design_path is None:
-                # must provide design_path
-                msg = "Please provide a design_path for offdesign mode."
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            # load design case
-            if self.new_design:
-                self._init_offdesign_params()
-
-            self._init_offdesign()
-
-        else:
-            # reset any preceding offdesign calculation
-            self._init_design()
-
+        self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
         self._init_set_properties()
-
         self._create_structure_matrix()
-        self._presolve_fluid_vectors()
-        self._prepare_problem()
+
+        self._presolve()
+        self._prepare_for_solver()
 
         # generic fluid property initialisation
         self._init_properties()
@@ -850,6 +832,7 @@ class Network:
 
     def _propagate_fluid_wrappers(self):
 
+        self.all_fluids = []
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
 
@@ -888,6 +871,7 @@ class Network:
                 any_fluids += cp._add_missing_fluids(all_connections)
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
+            self.all_fluids += list(potential_fluids)
             num_potential_fluids = len(potential_fluids)
             if num_potential_fluids == 0:
                 msg = (
@@ -917,6 +901,27 @@ class Network:
                     c.fluid.back_end[f] = back_end
 
                 c._create_fluid_wrapper()
+
+        self.all_fluids = set(self.all_fluids)
+
+    def _prepare_solve_mode(self):
+        if self.mode == 'offdesign':
+            self.redesign = True
+            if self.design_path is None:
+                # must provide design_path
+                msg = "Please provide a design_path for offdesign mode."
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            # load design case
+            if self.new_design:
+                self._init_offdesign_params()
+
+            self._init_offdesign()
+
+        else:
+            # reset any preceding offdesign calculation
+            self._init_design()
 
     def _presolve_fluid_vectors(self):
 
@@ -1037,6 +1042,8 @@ class Network:
         num_vars = 0
         for conn in self.conns["object"]:
             for prop, container in conn.get_variables().items():
+                # flag potential variables
+                container._potential_var = not container.is_set
                 container.sm_col = num_vars
                 num_vars += 1
 
@@ -1339,8 +1346,9 @@ class Network:
 
         self.fluid_wrapper_branches = merged
 
-    def _prepare_problem(self):
-
+    def _presolve(self):
+        # handle the fluid vector variables
+        self._presolve_fluid_vectors()
         # set up the actual list of equations for connections, components,
         # buses and user defined equations
         self._presolved_equations = [
@@ -1375,6 +1383,7 @@ class Network:
 
             number_variables = reduced_variables
 
+    def _prepare_for_solver(self):
         for variable in self._variable_dependencies:
             reference = self._variable_lookup[variable["reference"]]
             represents = variable["variables"]
@@ -1450,10 +1459,8 @@ class Network:
 
     def _init_set_properties(self):
         """Specification of SI values for user set values."""
-        self.all_fluids = []
         # fluid property values
         for c in self.conns['object']:
-            self.all_fluids += c.fluid.val.keys()
 
             if not self.init_previous:
                 c.good_starting_values = False
@@ -1486,9 +1493,7 @@ class Network:
                         c.get_attr(key).val_SI = hlp.convert_to_SI(
                             key, c.get_attr(key).val, c.get_attr(key).unit
                         )
-            for variable in c.get_variables().values():
-                variable._potential_var = not variable.is_set
-
+        # this will move somewhere else!
         # set up results dataframe for connections
         # this should be done based on the connections
         properties = list(fpd.keys())
@@ -2313,7 +2318,7 @@ class Network:
         )
         logger.debug(msg)
 
-        self.initialise()
+        self._prepare_problem()
 
         if init_only:
             return

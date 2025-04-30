@@ -3138,7 +3138,7 @@ class Network:
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()
 
-        dump = self._nested_dict_of_dataframes_to_dict(dump)
+        dump = hlp._nested_dict_of_dataframes_to_dict(dump)
 
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
@@ -3164,54 +3164,7 @@ class Network:
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()
-        self._nested_dict_of_dataframes_to_csv(dump, folder_path)
-
-    def _nested_dict_of_dataframes_to_csv(self, dictionary, basepath):
-        """Dump a nested dict with dataframes into a folder structrue
-
-        The upper level keys with subdictionaries are folder names, the lower
-        level keys (where a dataframe is the value) will be the names of the
-        csv files.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Nested dictionary to write to filesystem.
-        basepath : str
-            path to dump data to
-        """
-        os.makedirs(basepath, exist_ok=True)
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                basepath = os.path.join(basepath, key)
-                self._nested_dict_of_dataframes_to_csv(value, basepath)
-            else:
-                value.to_csv(os.path.join(basepath, f"{key}.csv"))
-
-    def _nested_dict_of_dataframes_to_dict(self, dictionary):
-        """Transpose a nested dict with dataframes in a json style dict
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary of dataframes
-
-        Returns
-        -------
-        dict
-            json style dictionary containing all data from the dataframes
-        """
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                dictionary[key] = self._nested_dict_of_dataframes_to_dict(value)
-            else:
-                # Series to csv does not have orient
-                kwargs = {}
-                if isinstance(value, pd.DataFrame):
-                    kwargs = {"orient": "index"}
-                dictionary[key] = value.to_dict(**kwargs)
-
-        return dictionary
+        hlp._nested_dict_of_dataframes_to_filetree(dump, folder_path)
 
     def _save_connections(self):
         """Save the connection properties.

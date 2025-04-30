@@ -1959,7 +1959,7 @@ class Network:
 
                 elif (
                         (c.Td_bp.val_SI < 0 and c.Td_bp.is_set)
-                        or (c.state.val == 'l' and c.state.is_se)
+                        or (c.state.val == 'l' and c.state.is_set)
                     ):
                     h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
                     if c.h.val_SI > h:

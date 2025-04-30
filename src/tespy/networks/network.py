@@ -2582,7 +2582,7 @@ class Network:
 
             b.P.val = float(self.results[b.label]['bus value'].sum())
 
-    def print_results(self, colored=True, colors=None, print_results=True):
+    def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""Print the calculations results to prompt."""
         # Define colors for highlighting values in result table
         if colors is None:
@@ -2604,16 +2604,34 @@ class Network:
             )
             raise hlp.TESPyNetworkError(msg)
 
+        result += self._print_components(colored, coloring, subsystem)
+        result += self._print_connections(colored, coloring, subsystem)
+        result += self._print_buses(colored, coloring, subsystem)
+
+        if len(str(result)) > 0:
+            logger.result(result)
+            if print_results:
+                print(result)
+        return
+
+    def _print_components(self, colored, coloring, subsystem) -> str:
+        result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
-
             # are there any parameters to print?
             if df.size > 0:
+                if subsystem is not None:
+                    component_labels = [
+                        c.label for c in subsystem.comps.values()
+                        if c.label in df.index
+                    ]
+                    df = df.loc[component_labels]
+
                 cols = df.columns
                 if len(cols) > 0:
                     for col in cols:
                         df[col] = df.apply(
-                            self.print_components, axis=1,
+                            self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
 
                     df.dropna(how='all', inplace=True)
@@ -2627,9 +2645,20 @@ class Network:
                                 floatfmt='.2e'
                             )
                         )
+        return result
+
+    def _print_connections(self, colored, coloring, subsystem) -> str:
+        result = ""
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T', 'x', 'phase']].copy()
+        df = self.results['Connection'].loc[
+            :, ['m', 'p', 'h', 'T', 'x', 'phase']
+        ].copy()
+
+        if subsystem is not None:
+            connection_labels = [c.label for c in subsystem.conns.values()]
+            df = df.loc[connection_labels]
+
         df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:
@@ -2639,44 +2668,46 @@ class Network:
                 conn = self.get_conn(c)
                 for col in df.columns:
                     if conn.get_attr(col).is_set:
+                        value = conn.get_attr(col).val
                         df.loc[c, col] = (
-                            coloring['set'] + str(conn.get_attr(col).val) +
-                            coloring['end'])
+                            f"{coloring['set']}{value}{coloring['end']}"
+                        )
 
         if len(df) > 0:
             result += ('\n##### RESULTS (Connection) #####\n')
             result += (
                 tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
             )
+        return result
 
-        for b in self.busses.values():
-            if b.printout:
-                df = self.results[b.label].loc[
-                    :, ['component value', 'bus value', 'efficiency']
-                ].copy()
-                df.loc['total'] = df.sum()
-                df.loc['total', 'efficiency'] = np.nan
-                if colored:
-                    df["bus value"] = df["bus value"].astype(str)
-                    if b.P.is_set:
-                        df.loc['total', 'bus value'] = (
-                            coloring['set'] + str(df.loc['total', 'bus value']) +
-                            coloring['end']
+    def _print_buses(self, colored, coloring, subsystem) -> str:
+        result = ""
+        # bus printout only if not subsystem is passed
+        if subsystem is None:
+            for b in self.busses.values():
+                if b.printout:
+                    df = self.results[b.label].loc[
+                        :, ['component value', 'bus value', 'efficiency']
+                    ].copy()
+                    df.loc['total'] = df.sum()
+                    df.loc['total', 'efficiency'] = np.nan
+                    if colored:
+                        df["bus value"] = df["bus value"].astype(str)
+                        if b.P.is_set:
+                            value = df.loc['total', 'bus value']
+                            df.loc['total', 'bus value'] = (
+                                f"{coloring['set']}{value}{coloring['end']}"
+                            )
+                    result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
+                    result += (
+                        tabulate(
+                            df, headers='keys', tablefmt='psql',
+                            floatfmt='.3e'
                         )
-                result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
-                result += (
-                    tabulate(
-                        df, headers='keys', tablefmt='psql',
-                        floatfmt='.3e'
                     )
-                )
-        if len(str(result)) > 0:
-            logger.result(result)
-            if print_results:
-                print(result)
-        return
+        return result
 
-    def print_components(self, c, *args):
+    def _color_component_prints(self, c, *args):
         """
         Get the print values for the component data.
 
@@ -2709,11 +2740,11 @@ class Network:
             # else part
             if (val < comp.get_attr(param).min_val - ERR or
                     val > comp.get_attr(param).max_val + ERR ):
-                return f"{coloring['err']} {val} {coloring['end']}"
+                return f"{coloring['err']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_var:
-                return f"{coloring['var']} {val} {coloring['end']}"
+                return f"{coloring['var']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_set:
-                return f"{coloring['set']} {val} {coloring['end']}"
+                return f"{coloring['set']}{val}{coloring['end']}"
             return str(val)
         else:
             return np.nan

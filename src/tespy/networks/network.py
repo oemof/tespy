@@ -199,6 +199,7 @@ class Network:
         self.user_defined_eq = {}
         # bus dictionary
         self.busses = {}
+        self.subsystems = {}
         # results and specification dictionary
         self.results = {}
         self.specifications = {}
@@ -355,7 +356,7 @@ class Network:
             logger.error(msg)
             raise KeyError(msg)
 
-    def add_subsys(self, *args):
+    def add_subsystems(self, *args):
         r"""
         Add one or more subsystems to the network.
 
@@ -365,9 +366,55 @@ class Network:
             The subsystem to be added to the network, subsystem objects si
             :code:`network.add_subsys(s1, s2, s3, ...)`.
         """
-        for subsys in args:
-            for c in subsys.conns.values():
+        for subsystem in args:
+            if subsystem.label in self.subsystems:
+                msg = (
+                    'There is already a subsystem with the label '
+                    f'{subsystem.label}. The labels must be unique!'
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+
+            for c in subsystem.conns.values():
                 self.add_conns(c)
+
+    def del_subsystems(self, *args):
+        r"""
+        Delete one or more subsystems from the network.
+
+        Parameters
+        ----------
+        c : tespy.components.subsystem.Subsystem
+            The subsystem to be deleted from the network, subsystem objects si
+            :code:`network.add_subsys(s1, s2, s3, ...)`.
+        """
+        for subsystem in args:
+            if subsystem.label in self.subsystems:
+                for c in subsystem.conns.values():
+                    self.del_conns(c)
+
+            del self.subsystems[subsystem.label]
+
+    def get_subsystem(self, label):
+        r"""
+        Get Subsystem via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the Subsystem object.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            Subsystem objectt with specified label, None if no Subsystem of
+            the network has this label.
+        """
+        try:
+            return self.subsystems[label]
+        except KeyError:
+            logger.warning(f"Subsystem with label {label} not found.")
+            return None
 
     def get_conn(self, label):
         r"""

@@ -375,6 +375,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            self.subsystems[subsystem.label] = subsystem
+
             for c in subsystem.conns.values():
                 self.add_conns(c)
 

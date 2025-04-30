@@ -34,8 +34,8 @@ class Subsystem:
     >>> from tespy.components import Subsystem
     >>> class MySubsystem(Subsystem):
     ...     def create_network(self):
-    ...         return
-    >>> mysub = MySubsystem('mySubsystem')
+    ...         pass
+    >>> mysub = MySubsystem('mySubsystem', num_in=0, num_out=0)
     >>> type(mysub)
     <class 'tespy.components.subsystem.MySubsystem'>
     >>> mysub.label
@@ -45,19 +45,12 @@ class Subsystem:
     >>> type(mysub.outlet)
     <class 'tespy.components.basics.subsystem_interface.SubsystemInterface'>
 
-    Because we did not define any interfacing connections through the 'inlets'
-    and 'outlets' methods, the `SubsystemInterface` do not have inlets or
-    outlets.
-
-    >>> mysub.inlets()
-    []
-    >>> mysub.outlets()
-    []
-
     If you want to connect to the subsystem from outside of it in a Network,
-    then you have to define these methods. The number is to your choice, but
-    for the `Subsystem` to be functional, all of the available interfaces must
-    be connected properly to parts of the network.
+    then you have to pass the respective number of inlet and outlet connections.
+    The number is to your choice, but  for the `Subsystem` to be functional,
+    all of the available interfaces must be wired properly internally in the
+    :code:`create_network` method. For example, consider a subsystem which is
+    just passing its inlet to the outlet:
 
     >>> from tespy.components import Source, Sink
     >>> from tespy.connections import Connection
@@ -66,13 +59,7 @@ class Subsystem:
     ...     def create_network(self):
     ...         c1 = Connection(self.inlet, "out1", self.outlet, "in1", label="1")
     ...         self.add_conns(c1)
-    ...     @staticmethod
-    ...     def inlets():
-    ...         return ["in1"]
-    ...     @staticmethod
-    ...     def outlets():
-    ...         return ["out1"]
-    >>> mysub = MySubsystem('mySubsystem')
+    >>> mysub = MySubsystem('mySubsystem', num_in=1, num_out=1)
     >>> nw = Network()
     >>> so = Source("source")
     >>> si = Sink("sink")
@@ -112,7 +99,7 @@ class Subsystem:
     <class 'tespy.components.basics.subsystem_interface.SubsystemInterface'>
     """
 
-    def __init__(self, label):
+    def __init__(self, label, num_in, num_out):
 
         forbidden = [';', ', ', '.']
         if not isinstance(label, str):
@@ -130,9 +117,6 @@ class Subsystem:
         self.comps = {}
         self.conns = {}
 
-        num_in = len(self.inlets())
-        num_out = len(self.outlets())
-
         if num_in == 0 and num_out == 0:
             msg = (
                 "Your subsystem has no interfaces at all. To make interfaces "
@@ -144,18 +128,10 @@ class Subsystem:
             )
             logger.warning(msg)
 
-        self.inlet = SubsystemInterface("inlet", num_inter=len(self.inlets()))
-        self.outlet = SubsystemInterface("outlet", num_inter=len(self.outlets()))
+        self.inlet = SubsystemInterface("inlet", num_inter=num_in)
+        self.outlet = SubsystemInterface("outlet", num_inter=num_out)
 
         self.create_network()
-
-    @staticmethod
-    def inlets():
-        return []
-
-    @staticmethod
-    def outlets():
-        return []
 
     def add_conns(self, *args):
 

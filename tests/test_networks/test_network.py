@@ -17,6 +17,7 @@ from pytest import raises
 
 from tespy.components import Compressor
 from tespy.components import Merge
+from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Pipe
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
@@ -672,3 +673,41 @@ def test_v07_to_v08_complete(tmp_path):
     nw = Network.from_json(tmp_path1)
     nw.solve("offdesign", design_path=tmp_path2)
     nw._convergence_check()
+
+def test_missing_cyclecloser_but_no_missing_source():
+
+    # Define network
+    nw = Network(
+        T_unit="C", p_unit="bar", h_unit="kJ / kg"
+    )
+
+    # Components
+    source = Source("source")
+    sink = Sink("sink")
+    comp = Compressor("compressor")
+    cond = MovingBoundaryHeatExchanger("condenser")
+    valve = Valve("valve")
+    evap = SimpleHeatExchanger("evaporator")
+
+    # Connections (closed loop but no CycleCloser)
+    c1 = Connection(evap, "out1", comp, "in1")
+    c2 = Connection(comp, "out1", cond, "in1")
+    c3 = Connection(cond, "out1", valve, "in1")
+    c4 = Connection(valve, "out1", evap, "in1")
+    c5 = Connection(source, "out1", cond, "in2")
+    c6 = Connection(cond, "out2", sink, "in1")
+
+    nw.add_conns(c1, c2, c3, c4,c5,c6)
+
+    # Set fluid and boundary conditions
+    c2.set_attr(fluid={"PROPANE": 1})
+    c5.set_attr(fluid={'WATER':1},p=1,T=50)
+
+    # Component parameters
+    comp.set_attr(eta_s=0.7)
+    cond.set_attr(td_pinch=3, Q=-15e3)
+    evap.set_attr(pr=1, Tamb = 5)
+
+    # This will fail with a fluid key error (instead of warning for the absence of cycle closer)
+    with raises(TESPyNetworkError):
+        nw.solve(mode="design")

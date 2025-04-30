@@ -832,6 +832,7 @@ class Network:
 
     def _propagate_fluid_wrappers(self):
 
+        connections_in_wrapper_branches = []
         self.all_fluids = []
         for branch_data in self.fluid_wrapper_branches.values():
             all_connections = [c for c in branch_data["connections"]]
@@ -901,6 +902,22 @@ class Network:
                     c.fluid.back_end[f] = back_end
 
                 c._create_fluid_wrapper()
+
+            connections_in_wrapper_branches += all_connections
+
+        missing_wrappers = (
+            set(self.conns["object"].tolist())
+            - set(connections_in_wrapper_branches)
+        )
+        if len(missing_wrappers) > 0:
+            msg = (
+                f"The fluid information propagation for the connections "
+                f"{', '.join([c.label for c in missing_wrappers])} failed. "
+                "The reason for this is likely, that these connections do not "
+                "have any Sources or a CycleCloser attached to them."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
 
         self.all_fluids = set(self.all_fluids)
 

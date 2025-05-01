@@ -481,6 +481,7 @@ class Component:
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
 
+        # this could apply for all equations!
         sum_eq = 0
         for constraint in self.mandatory_equations.values():
             num_eq = constraint.num_eq
@@ -677,8 +678,6 @@ class Component:
 
             sum_eq += num_eq
 
-        if self.bypass:
-            return
         for label, data in self.user_imposed_equations.items():
             self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
                 **data.func_params

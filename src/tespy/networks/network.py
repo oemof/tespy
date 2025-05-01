@@ -1054,7 +1054,7 @@ class Network:
         self._presolved_equations = []
         self._reference_container_lookup = {}
         self._equation_lookup = {}
-        self._jacobian_sparsity_pattern = {}
+        self._incidence_matrix = {}
 
         num_vars = 0
         for conn in self.conns["object"]:

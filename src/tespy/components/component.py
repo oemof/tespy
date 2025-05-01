@@ -444,7 +444,7 @@ class Component:
     def _update_num_eq(self):
         pass
 
-    def _prepare_for_solver(self, system_dependencies):
+    def _prepare_for_solver(self, system_dependencies, eq_counter):
         r"""
         Perform component initialization in network preprocessing.
 
@@ -457,37 +457,53 @@ class Component:
         self.mandatory_equations = {}
         self.user_imposed_equations = {}
         self.num_eq = 0
+        self._equation_lookup = {}
+        self._equation_dependents_lookup = {}
 
         self._update_num_eq()
 
-        for key, value in self._equation_set_lookup.items():
-            if key in system_dependencies:
+        for eq_num, value in self._equation_set_lookup.items():
+            if eq_num in system_dependencies:
                 continue
 
             if value in self.constraints:
                 if value not in self.mandatory_equations:
-                    self.mandatory_equations.update({
-                        value: self.constraints[value]
-                    })
-                    self.num_eq += self.constraints[value].num_eq
+                    data = self.constraints[value]
+                    self.mandatory_equations.update({value: data})
+                    # dependents = self._get_dependents(data.dependents())
+
+                    for i in range(data.num_eq):
+                        self._equation_lookup[eq_counter] = (value, i)
+                        # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                        eq_counter += 1
+
+                    self.num_eq += data.num_eq
 
             elif value in self.parameters:
                 if value not in self.user_imposed_equations:
-                    self.user_imposed_equations.update(
-                        {value: self.parameters[value]}
-                    )
-                    self.num_eq += self.parameters[value].num_eq
+                    data = self.parameters[value]
+                    self.user_imposed_equations.update({value: data})
+                    # dependents = self._get_dependents(data.dependents())
+
+                    for i in range(data.num_eq):
+                        self._equation_lookup[eq_counter] = (value, i)
+                        # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                        eq_counter += 1
+
+                    self.num_eq += data.num_eq
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
 
-        # this could apply for all equations!
+        # this could in principle apply for all equations!
         sum_eq = 0
         for constraint in self.mandatory_equations.values():
             num_eq = constraint.num_eq
             if constraint.constant_deriv:
                 constraint.deriv(None, sum_eq)
             sum_eq += num_eq
+
+        return eq_counter
 
     def get_parameters(self):
         return {}
@@ -670,8 +686,7 @@ class Component:
         for label, data in self.mandatory_equations.items():
             num_eq = data.num_eq
 
-            if num_eq > 0:
-                self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
+            self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
 
             if not data.constant_deriv:
                 self._solve_jacobian(data, increment_filter, sum_eq)

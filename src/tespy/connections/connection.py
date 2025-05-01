@@ -702,20 +702,33 @@ class Connection:
         ]
         return presolved_equations
 
-    def _prepare_for_solver(self, system_dependencies):
+    def _prepare_for_solver(self, system_dependencies, eq_counter):
         self.num_eq = 0
         self.it = 0
         self.equations = {}
+        self._equation_lookup = {}
+        self._equation_dependents_lookup = {}
 
-        for eq_num, parameter in self._equation_set_lookup.items():
+        for eq_num, value in self._equation_set_lookup.items():
             if eq_num in system_dependencies:
                 continue
 
-            self.equations[self.num_eq] = parameter
-            self.num_eq += self.parameters[parameter].num_eq
+            if value not in self.equations:
+                data = self.parameters[value]
+                self.equations.update({value: data})
+                # dependents = self._get_dependents(data.dependents())
+
+                for i in range(data.num_eq):
+                    self._equation_lookup[eq_counter] = (value, i)
+                    # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                    eq_counter += 1
+
+                self.num_eq += data.num_eq
 
         self.residual = np.zeros(self.num_eq)
         self.jacobian = {}
+
+        return eq_counter
 
     def reset_fluid_vector(self):
         self.fluid = dc_flu()
@@ -971,10 +984,12 @@ class Connection:
 
     def solve(self, increment_filter):
         self._increment_filter = increment_filter
-        for k, parameter in self.equations.items():
-            data = self.get_attr(parameter)
-            self.residual[k] = data.func(**data.func_params)
-            data.deriv(k, **data.func_params)
+        sum_eq = 0
+        for label, data in self.equations.items():
+            num_eq = data.num_eq
+            self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
+            data.deriv(sum_eq, **data.func_params)
+            sum_eq += num_eq
 
     def calc_results(self):
         self.T.val_SI = self.calc_T()

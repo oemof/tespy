@@ -1407,13 +1407,15 @@ class Network:
             if reference["property"] != "fluid":
                 self._assign_variable_space(reference, represents)
 
+        eq_counter = 0
+
         for c in self.conns['object']:
-            c._prepare_for_solver(self._presolved_equations)
+            eq_counter += c._prepare_for_solver(self._presolved_equations, eq_counter)
 
         for cp in self.comps['object']:
             c = cp.__class__.__name__
             # component initialisation
-            cp._prepare_for_solver(self._presolved_equations)
+            eq_counter += cp._prepare_for_solver(self._presolved_equations, eq_counter)
 
             for spec in self.specifications[c].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:

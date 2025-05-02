@@ -2140,18 +2140,6 @@ class Network:
 
         return dfs
 
-    def get_equations(self) -> dict:
-        """Get the actual equations after presolving the problem
-
-        Returns
-        -------
-        dict
-            Lookup with equation number as index and tuple of label and
-            parameter defining the equation. In case one parameter defines
-            multiple equations, the same equation is repeated.
-        """
-        return self._equation_lookup
-
     def get_linear_dependent_variables(self) -> list:
         """Get a list with sublists containing linear dependent variables
 
@@ -2173,7 +2161,7 @@ class Network:
     def _get_equation_sets_by_eq_set_number(self, number_list) -> list:
         return [self._equation_set_lookup[num] for num in number_list]
 
-    def _get_variables_by_number(self, number_list) -> list:
+    def _get_variables_before_presolve_by_number(self, number_list) -> list:
         return [
             (v["object"].label, v["property"])
             for k, v in self._variable_lookup.items()
@@ -2245,6 +2233,53 @@ class Network:
                 ) for v in data["_represents"]
             ]
             for key, data in self.variables_dict.items()
+        }
+
+    def get_variables_by_number(self, number_list) -> dict:
+        """Get all variables of the presolved problem by variable numbers.
+
+        Returns
+        -------
+        dict
+            variable number and property with the list of represented variables
+        """
+        return {
+            (key, data["variable"]):
+            [
+                (
+                    self._variable_lookup[v]["object"].label,
+                    self._variable_lookup[v]["property"]
+                ) for v in data["_represents"]
+            ]
+            for key, data in self.variables_dict.items()
+            if key in number_list
+        }
+
+    def get_equations(self) -> dict:
+        """Get the actual equations after presolving the problem
+
+        Returns
+        -------
+        dict
+            Lookup with equation number as index and tuple of label and
+            parameter defining the equation. In case one parameter defines
+            multiple equations, the same equation is repeated.
+        """
+        return self._equation_lookup
+
+    def get_equations_by_number(self, number_list) -> dict:
+        """Get the actual equations after presolving the problem by equation
+        number
+
+        Returns
+        -------
+        dict
+            Lookup with equation number as index and tuple of label and
+            parameter defining the equation. In case one parameter defines
+            multiple equations, the same equation is repeated.
+        """
+        return {
+            k: v for k, v in self._equation_lookup.items() if k in number_list
         }
 
     def get_dependents_by_object(self, obj, prop) -> list:
@@ -2424,21 +2459,10 @@ class Network:
         self.solve_determination()
 
         self.solve_loop(print_results=print_results)
+        self.unload_variables()
 
         if self.lin_dep:
-            msg = (
-                'Singularity in jacobian matrix, calculation aborted! Make '
-                'sure your network does not have any linear dependencies in '
-                'the parametrisation. Other reasons might be\n-> given '
-                'temperature with given pressure in two phase region, try '
-                'setting enthalpy instead or provide accurate starting value '
-                'for pressure.\n-> given logarithmic temperature differences '
-                'or kA-values for heat exchangers, \n-> support better '
-                'starting values.\n-> bad starting value for fuel mass flow '
-                'of combustion chamber, provide small (near to zero, but not '
-                'zero) starting value.'
-            )
-            logger.error(msg)
+            logger.error(self.singularity_msg)
             return
 
         if not self.progress:
@@ -2478,7 +2502,6 @@ class Network:
             self.residual_history = np.append(
                 self.residual_history, norm(self.residual)
             )
-
             if self.iterinfo:
                 self.iterinfo_body(print_results)
 
@@ -2663,7 +2686,7 @@ class Network:
             print(msg)
         return
 
-    def matrix_inversion(self):
+    def _invert_jacobian(self):
         """Invert matrix of derivatives and caluclate increment."""
         self.lin_dep = True
 
@@ -2683,7 +2706,101 @@ class Network:
         except np.linalg.LinAlgError:
             self.increment = self.residual * 0
 
-    def update_variables(self):
+        if self.lin_dep:
+            n = self.variable_counter
+            self._incidence_matrix_dense = np.zeros((n, n))
+            for row, cols in self._incidence_matrix.items():
+                self._incidence_matrix_dense[row, cols] = 1
+
+            _nl = "\n"
+            if self.iter == 0 and np.linalg.det(self._incidence_matrix_dense) == 0.0:
+                self.singularity_msg = (
+                    "Detected singularity in Jacobian matrix. This singularity "
+                    "is most likely caused by the parametrization of your "
+                    "problem and NOT a numerical issue. Double check your "
+                    "setup.\n"
+                )
+                matrix = self._incidence_matrix_dense
+                all_zero_cols = self._check_all_zero_columns(matrix)
+                all_zero_rows = self._check_all_zero_rows(matrix)
+                if len(all_zero_cols) + len(all_zero_rows) == 0:
+                    equations = self._cauchy_schwarz_inequality(matrix)
+                    equations = self.get_equations_by_number(equations)
+                    self.singularity_msg += (
+                        "The following equations form a linear dependency in "
+                        "the incidence matrix: "
+                        f"{', '.join([str(e) for e in equations.values()])}{_nl}"
+                    )
+                else:
+                    if len(all_zero_cols) > 0:
+                        variables = self.get_variables_by_number(all_zero_cols)
+                        self.singularity_msg += (
+                            "The following variables of your problem are not "
+                            "in connection with any equation: "
+                            f"{', '.join([str(v) for v in variables])}{_nl}"
+                        )
+                    if len(all_zero_rows) > 0:
+                        equations = self.get_equations_by_number(all_zero_rows)
+                        self.singularity_msg += (
+                            "The following equations of your problem do not "
+                            "depend on any variable: "
+                            f"{', '.join([str(e) for e in equations.values()])}{_nl}"
+                        )
+                return
+            # here we can analyse the same things as above but on the
+            # Jacobian to give hints what equations/variables are causing
+            # the issue.
+
+            # On top it is possible to compare the contents
+            # of the Jacobian with the contents of the incidence matrix
+            # to maybe pinpoint in more detail, what causes the trouble
+            expected_entries = self._incidence_matrix_dense.astype(bool)
+            actual_entries = self.jacobian.astype(bool)
+            rows, cols = np.where(expected_entries != actual_entries)
+
+            missing_entries = []
+            for row, col in zip(rows, cols):
+                equation = self.get_equations_by_number([row])
+                variable = self.get_variables_by_number([col])
+                missing_entries += [f"{equation}: {variable}"]
+
+            self.singularity_msg = (
+                "Found singularity in Jacobian matrix, calculation "
+                "aborted! The setup of you problem seems to be solvable. It "
+                "failed due to partial derivatives in the Jacobian being "
+                "zero, which were expected not to be zero, or the other way "
+                "around. The reason for this usually lies in starting value "
+                "selection or bad convergence. The following equation (key of "
+                "outer dict) may have an unexpected zero/non-zero in the "
+                "partial derivative towards the variable (value of outer "
+                f"dict) and be the root of evil: {_nl.join(missing_entries)}"
+            )
+            return
+
+    def _check_all_zero_columns(self, matrix):
+        return np.where((matrix == 0).all(axis=0))[0]
+
+    def _check_all_zero_rows(self, matrix):
+        return np.where((matrix == 0).all(axis=1))[0]
+
+    def _cauchy_schwarz_inequality(self, matrix):
+        n = matrix.shape[0]
+        dependent_equations = []
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    inner_product = np.inner(
+                        matrix[i,:],
+                        matrix[j,:]
+                    )
+                    norm_i = np.linalg.norm(matrix[i,:])
+                    norm_j = np.linalg.norm(matrix[j,:])
+
+                    if np.abs(inner_product - norm_j * norm_i) < 1e-5:
+                        dependent_equations += [i]
+        return list(set(dependent_equations))
+
+    def _update_variables(self):
         # cast dtype to float from numpy float64
         # this is necessary to keep the doctests running and note make them
         # look ugly all over the place
@@ -2772,13 +2889,13 @@ class Network:
         self.solve_busses()
         self.solve_connections()
         self.solve_user_defined_eq()
-        self.matrix_inversion()
+        self._invert_jacobian()
 
         # check for linear dependency
         if self.lin_dep:
             return
 
-        self.update_variables()
+        self._update_variables()
         self.check_variable_bounds()
 
     def check_connection_properties(self, c):
@@ -2914,7 +3031,6 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-        self.unload_variables()
         self.process_connections()
         self.process_components()
         self.process_busses()

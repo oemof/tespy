@@ -626,3 +626,17 @@ def extend_basic_path(subfolder):
     if not os.path.isdir(extended_path):
         os.mkdir(extended_path)
     return extended_path
+
+
+def _get_dependents(variable_list):
+    if isinstance(variable_list[0], list):
+        return [set(
+            var._reference_container
+            for var in sublist if var.is_var
+        ) for sublist in variable_list
+    ]
+    else:
+        return [set(
+            var._reference_container
+            for var in variable_list if var.is_var
+        )]

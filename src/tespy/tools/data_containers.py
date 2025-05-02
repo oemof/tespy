@@ -916,7 +916,8 @@ class ReferencedFluidProperties(DataContainer):
             "structure_matrix": None,
             "num_eq": 0,
             "func_params": {},
-            "_solved": False
+            "_solved": False,
+            "dependents": None,
         }
 
     def _serialize(self):

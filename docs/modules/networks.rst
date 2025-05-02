@@ -95,7 +95,7 @@ or via subsystems using the corresponding methods:
 .. code-block:: python
 
     >>> my_plant.add_conns()
-    >>> my_plant.add_subsys()
+    >>> my_plant.add_subsystems()
 
 .. note::
 

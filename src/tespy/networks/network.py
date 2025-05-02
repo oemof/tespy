@@ -364,7 +364,7 @@ class Network:
         ----------
         c : tespy.components.subsystem.Subsystem
             The subsystem to be added to the network, subsystem objects si
-            :code:`network.add_subsys(s1, s2, s3, ...)`.
+            :code:`network.add_subsystems(s1, s2, s3, ...)`.
         """
         for subsystem in args:
             if subsystem.label in self.subsystems:
@@ -388,7 +388,7 @@ class Network:
         ----------
         c : tespy.components.subsystem.Subsystem
             The subsystem to be deleted from the network, subsystem objects si
-            :code:`network.add_subsys(s1, s2, s3, ...)`.
+            :code:`network.del_subsystems(s1, s2, s3, ...)`.
         """
         for subsystem in args:
             if subsystem.label in self.subsystems:

@@ -35,7 +35,7 @@ class Subsystem:
     >>> class MySubsystem(Subsystem):
     ...     def create_network(self):
     ...         pass
-    >>> mysub = MySubsystem('mySubsystem', num_in=0, num_out=0)
+    >>> mysub = MySubsystem('mySubsystem')
     >>> type(mysub)
     <class 'tespy.components.subsystem.MySubsystem'>
     >>> mysub.label
@@ -56,10 +56,15 @@ class Subsystem:
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> class MySubsystem(Subsystem):
+    ...     def __init__(self, label):
+    ...         self.num_in = 1
+    ...         self.num_out = 1
+    ...         super().__init__(label)
+    ...
     ...     def create_network(self):
     ...         c1 = Connection(self.inlet, "out1", self.outlet, "in1", label="1")
     ...         self.add_conns(c1)
-    >>> mysub = MySubsystem('mySubsystem', num_in=1, num_out=1)
+    >>> mysub = MySubsystem('mySubsystem')
     >>> nw = Network()
     >>> so = Source("source")
     >>> si = Sink("sink")

@@ -829,9 +829,10 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
     >>> class WasteHeatSteamGenerator(Subsystem):
     ...     """Class documentation"""
-    ...     def __init__(self):
-    ...         self._num_in = 2
-    ...         self._num_out = 2
+    ...     def __init__(self, label):
+    ...         self.num_in = 2
+    ...         self.num_out = 2
+    ...         super().__init__(label)
     ...
     ...     def create_network(self):
     ...         """Define the subsystem's connections."""

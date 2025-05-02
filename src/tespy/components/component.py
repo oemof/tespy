@@ -34,6 +34,7 @@ from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
+from tespy.tools.helpers import _get_dependents
 
 
 def component_registry(type):
@@ -470,11 +471,13 @@ class Component:
                 if value not in self.mandatory_equations:
                     data = self.constraints[value]
                     self.mandatory_equations.update({value: data})
-                    # dependents = self._get_dependents(data.dependents())
+                    dependents = _get_dependents(
+                        data.dependents(**data.func_params)
+                    )
 
                     for i in range(data.num_eq):
                         self._equation_lookup[eq_counter] = (value, i)
-                        # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                        self._equation_dependents_lookup[eq_counter] = dependents[i]
                         eq_counter += 1
 
                     self.num_eq += data.num_eq
@@ -483,11 +486,13 @@ class Component:
                 if value not in self.user_imposed_equations:
                     data = self.parameters[value]
                     self.user_imposed_equations.update({value: data})
-                    # dependents = self._get_dependents(data.dependents())
+                    dependents = _get_dependents(
+                        data.dependents(**data.func_params)
+                    )
 
                     for i in range(data.num_eq):
                         self._equation_lookup[eq_counter] = (value, i)
-                        # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                        self._equation_dependents_lookup[eq_counter] = dependents[i]
                         eq_counter += 1
 
                     self.num_eq += data.num_eq
@@ -670,9 +675,6 @@ class Component:
                     r'\frac{p_\mathrm{out,' + str(outconn + 1) +
                     r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
 
-    def _get_dependents(self, variable_list):
-        return set(var._reference_container for var in variable_list if var.is_var)
-
     def solve(self, increment_filter):
         """
         Solve equations and calculate partial derivatives of a component.
@@ -705,7 +707,7 @@ class Component:
         if data.deriv is not None:
             data.deriv(increment_filter, sum_eq, **data.func_params)
         else:
-            dependents = self._get_dependents(data.dependents(**data.func_params))
+            dependents = _get_dependents(data.dependents(**data.func_params))[0]
             for dependent in dependents:
                 f = data.func
                 self._partial_derivative(

@@ -1427,22 +1427,19 @@ class Network:
 
         eq_counter = 0
 
-        for c in self.conns['object']:
-            eq_counter += c._prepare_for_solver(self._presolved_equations, eq_counter)
-            eq_map = {
-                eq_num: (c.label, eq_name)
-                for eq_num, eq_name in c._equation_lookup.items()
-            }
-            self._equation_lookup.update(eq_map)
-
         for cp in self.comps['object']:
             # component initialisation
-            eq_counter += cp._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_counter = cp._prepare_for_solver(self._presolved_equations, eq_counter)
             eq_map = {
                 eq_num: (cp.label, eq_name)
                 for eq_num, eq_name in cp._equation_lookup.items()
             }
             self._equation_lookup.update(eq_map)
+            dependents_map = {
+                eq_num: [dependent.J_col for dependent in dependents]
+                for eq_num, dependents in cp._equation_dependents_lookup.items()
+            }
+            self._incidence_matrix.update(dependents_map)
 
             c = cp.__class__.__name__
             for spec in self.specifications[c].keys():
@@ -1453,6 +1450,20 @@ class Network:
 
             # count number of component equations and variables
             self.num_comp_eq += cp.num_eq
+
+        for c in self.conns['object']:
+            eq_counter = c._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_map = {
+                eq_num: (c.label, eq_name)
+                for eq_num, eq_name in c._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
+            dependents_map = {
+                eq_num: [dependent.J_col for dependent in dependents]
+                for eq_num, dependents in c._equation_dependents_lookup.items()
+            }
+            self._incidence_matrix.update(dependents_map)
+
 
         for b in self.busses.values():
             self.busses[b.label] = b

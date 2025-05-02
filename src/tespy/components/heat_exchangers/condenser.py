@@ -459,6 +459,13 @@ class Condenser(HeatExchanger):
             r' + T_\mathrm{out,2}')
         return generate_latex_eq(self, latex, label)
 
+    def ttd_u_dependents(self):
+        return [
+            self.inl[0].p,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         self.Q.val = self.inl[0].m.val_SI * (

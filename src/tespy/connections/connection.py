@@ -45,6 +45,7 @@ from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _is_variable
+from tespy.tools.helpers import _get_dependents
 
 
 class Connection:
@@ -716,11 +717,14 @@ class Connection:
             if value not in self.equations:
                 data = self.parameters[value]
                 self.equations.update({value: data})
-                # dependents = self._get_dependents(data.dependents())
+                if data.dependents is not None:
+                    dependents = _get_dependents(data.dependents())
+                else:
+                    dependents = [[]]
 
                 for i in range(data.num_eq):
                     self._equation_lookup[eq_counter] = (value, i)
-                    # self._equation_dependents_lookup[eq_counter] = dependents[i]
+                    self._equation_dependents_lookup[eq_counter] = dependents[i]
                     eq_counter += 1
 
                 self.num_eq += data.num_eq
@@ -752,7 +756,8 @@ class Connection:
             "v": dc_prop(func=self.v_func, deriv=self.v_deriv, num_eq=1),
             "x": dc_prop(func=self.x_func, deriv=self.x_deriv, num_eq=1),
             "Td_bp": dc_prop(
-                func=self.Td_bp_func, deriv=self.Td_bp_deriv, num_eq=1
+                func=self.Td_bp_func, deriv=self.Td_bp_deriv, num_eq=1,
+                dependents=self.Td_bp_dependents
             ),
             "m_ref": dc_ref(
                 func=self.primary_ref_func, deriv=self.primary_ref_deriv,
@@ -963,6 +968,9 @@ class Connection:
         f = self.Td_bp_func
         self._partial_derivative(self.p, k, f)
         self._partial_derivative(self.h, k, f)
+
+    def Td_bp_dependents(self):
+        return [self.p, self.h]
 
     def fluid_balance_func(self, **kwargs):
         residual = 1 - sum(self.fluid.val[f] for f in self.fluid.is_set)

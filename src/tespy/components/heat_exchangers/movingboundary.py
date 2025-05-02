@@ -272,7 +272,9 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 min_val=0, num_eq_sets=1, func=self.UA_func, deriv=self.UA_deriv
             ),
             'td_pinch': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.td_pinch_func,
+                min_val=0, num_eq_sets=1,
+                func=self.td_pinch_func,
+                dependents=self.td_pinch_dependents,
                 deriv=self.td_pinch_deriv
             )
         })
@@ -510,6 +512,18 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         _, T_steps_hot, T_steps_cold, _, _ = sections
 
         return min(T_steps_hot - T_steps_cold)
+
+    def td_pinch_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.inl[1].m,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].h
+        ]
 
     def td_pinch_func(self):
         r"""

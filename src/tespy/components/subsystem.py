@@ -99,7 +99,7 @@ class Subsystem:
     <class 'tespy.components.basics.subsystem_interface.SubsystemInterface'>
     """
 
-    def __init__(self, label, num_in, num_out):
+    def __init__(self, label):
 
         forbidden = [';', ', ', '.']
         if not isinstance(label, str):
@@ -117,7 +117,25 @@ class Subsystem:
         self.comps = {}
         self.conns = {}
 
-        if num_in == 0 and num_out == 0:
+        if not hasattr(self, "num_in"):
+            msg = (
+                "When creating your own Subsystem class you need to define "
+                "the number of inlets (interfaces to external parts) before "
+                "calling super.__init__() in the 'self.num_in' attribute."
+            )
+            logger.warning(msg)
+            self.num_in = 0
+
+        if not hasattr(self, "num_out"):
+            msg = (
+                "When creating your own Subsystem class you need to define "
+                "the number of outlets (interfaces to external parts) before "
+                "calling super.__init__() in the 'self.num_out' attribute."
+            )
+            logger.warning(msg)
+            self.num_out = 0
+
+        if self.num_in == 0 and self.num_out == 0:
             msg = (
                 "Your subsystem has no interfaces at all. To make interfaces "
                 "available to connect to outside of the subsystem components "
@@ -128,8 +146,8 @@ class Subsystem:
             )
             logger.warning(msg)
 
-        self.inlet = SubsystemInterface("inlet", num_inter=num_in)
-        self.outlet = SubsystemInterface("outlet", num_inter=num_out)
+        self.inlet = SubsystemInterface("inlet", num_inter=self.num_in)
+        self.outlet = SubsystemInterface("outlet", num_inter=self.num_out)
 
         self.create_network()
 

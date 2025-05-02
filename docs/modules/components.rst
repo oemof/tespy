@@ -829,6 +829,9 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
     >>> class WasteHeatSteamGenerator(Subsystem):
     ...     """Class documentation"""
+    ...     def __init__(self):
+    ...         self._num_in = 2
+    ...         self._num_out = 2
     ...
     ...     def create_network(self):
     ...         """Define the subsystem's connections."""
@@ -882,7 +885,7 @@ different tespy classes required.
     >>> waste_heat = Source('waste heat inlet')
     >>> chimney = Sink('waste heat chimney')
 
-    >>> sg = WasteHeatSteamGenerator('waste heat steam generator', num_in=2, num_out=2)
+    >>> sg = WasteHeatSteamGenerator('waste heat steam generator')
 
     >>> # %% connection definition
     >>> fw_sg = Connection(feed_water, 'out1', sg, 'in2')

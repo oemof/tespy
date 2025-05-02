@@ -1234,6 +1234,20 @@ class Network:
                 offset = rhs[row_idx] / val2
                 edges_with_factors.append((col1, col2, factor))
                 rhs_offsets[(col1, col2)] = offset
+                if (col1, col2) in eq_idx:
+                    variables = self._get_variables_by_number([col1, col2])
+                    equations = self._get_equation_sets_by_eq_set_number(
+                        [eq_idx[(col1, col2)], row_idx]
+                    )
+                    msg = (
+                        f"The variables "
+                        f"{', '.join([str(v) for v in variables])} are "
+                        "directly linked with two equations "
+                        f"{', '.join([str(e) for e in equations])}. This "
+                        "overdetermines the problem."
+                    )
+                    raise hlp.TESPyNetworkError(msg)
+
                 eq_idx[(col1, col2)] = row_idx
 
         # Build adjacency list for the graph
@@ -1244,35 +1258,39 @@ class Network:
             if col2 not in adjacency_list:
                 adjacency_list[col2] = []
 
-            # Check for duplicate edges
-            if col2 in [neighbor for neighbor, _ in adjacency_list[col1]]:
-                msg = f"There already is a linear link between the variables {col1}, {col2}"
-                raise hlp.TESPyNetworkError(msg)
-
-            # Add edge with factor
+            # Add edge with factor and reverse edge with reciprocal value
             adjacency_list[col1].append((col2, factor))
-            adjacency_list[col2].append((col1, 1 / factor))  # Add reverse edge with reciprocal factor
+            adjacency_list[col2].append((col1, 1 / factor))
 
         # Detect cycles (to check for circular dependencies)
         visited = set()
-        parent_map = {}
+        edge_list = []
 
         def dfs_cycle(node, parent):
             visited.add(node)
             for neighbor, _ in adjacency_list.get(node, []):
                 if neighbor not in visited:
-                    parent_map[neighbor] = node
+                    edge_list.append(tuple(sorted([neighbor, node])))
                     if dfs_cycle(neighbor, node):
                         return True
                 elif neighbor != parent:  # A back edge is found
+                    edge_list.append(tuple(sorted([neighbor, node])))
                     return True
             return False
 
         for node in adjacency_list:
             if node not in visited:
                 if dfs_cycle(node, None):
-                    variable_names = self._map_column_indices_to_variable_names(list(parent_map.keys()))
-                    msg = f"A circular dependency between the following variables has been detected: {variable_names}"
+                    cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
+                    variable_names = self._get_variables_by_number(visited)
+                    equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
+                    msg = (
+                        "A circular dependency between the variables "
+                        f"{', '.join([str(v) for v in variable_names])} "
+                        "caused by the equations "
+                        f"{', '.join([str(e) for e in equations])} has been "
+                        "detected. This overdetermines the problem."
+                    )
                     raise hlp.TESPyNetworkError(msg)
 
         # Find connected components and compute factors/offsets
@@ -1411,12 +1429,22 @@ class Network:
 
         for c in self.conns['object']:
             eq_counter += c._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_map = {
+                eq_num: (c.label, eq_name)
+                for eq_num, eq_name in c._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
 
         for cp in self.comps['object']:
-            c = cp.__class__.__name__
             # component initialisation
             eq_counter += cp._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_map = {
+                eq_num: (cp.label, eq_name)
+                for eq_num, eq_name in cp._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
 
+            c = cp.__class__.__name__
             for spec in self.specifications[c].keys():
                 if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
                     self.specifications[c][spec].loc[cp.label] = (
@@ -2101,6 +2129,18 @@ class Network:
 
         return dfs
 
+    def get_equations(self) -> dict:
+        """Get the actual equations after presolving the problem
+
+        Returns
+        -------
+        dict
+            Lookup with equation number as index and tuple of label and
+            parameter defining the equation. In case one parameter defines
+            multiple equations, the same equation is repeated.
+        """
+        return self._equation_lookup
+
     def get_linear_dependent_variables(self) -> list:
         """Get a list with sublists containing linear dependent variables
 
@@ -2119,6 +2159,16 @@ class Network:
             ]
         return variable_list
 
+    def _get_equation_sets_by_eq_set_number(self, number_list) -> list:
+        return [self._equation_set_lookup[num] for num in number_list]
+
+    def _get_variables_by_number(self, number_list) -> list:
+        return [
+            (v["object"].label, v["property"])
+            for k, v in self._variable_lookup.items()
+            if k in number_list
+        ]
+
     def get_presolved_equations(self) -> list:
         """Get the list of equations, that has been presolved with their
         respective parent object
@@ -2133,6 +2183,19 @@ class Network:
             if k in self._presolved_equations
         ]
 
+    def get_variables_before_presolve(self) -> list:
+        """Get the list of variables before presolving.
+
+        Returns
+        -------
+        list
+            list of original variables
+        """
+        return [
+            (v["object"].label, v["property"])
+            for v in self._variable_lookup.values()
+        ]
+
     def get_presolved_variables(self) -> list:
         """Get the list of presolved variables with their respective parent
         object and property.
@@ -2145,6 +2208,8 @@ class Network:
         represented_variables = []
         for v in self.variables_dict.values():
             represented_variables += v["_represents"]
+        if len(self.variables_dict) == 0 and len(self._presolved_equations) == 0:
+            return []
         return [
             (v["object"].label, v["property"])
             for key, v in self._variable_lookup.items()

@@ -143,6 +143,8 @@ class Compressor(Turbomachine):
     >>> nw.save('tmp.json')
     >>> round(comp.P.val, 0)
     12772.0
+    >>> round(comp.eta_s.val, 2)
+    0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='tmp.json')
@@ -159,25 +161,31 @@ class Compressor(Turbomachine):
         parameters = super().get_parameters()
         parameters.update({
             'eta_s': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
-                deriv=self.eta_s_deriv,
-                func=self.eta_s_func, latex=self.eta_s_func_doc),
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eta_s_func,
+                dependents=self.eta_s_dependents,
+                latex=self.eta_s_func_doc
+            ),
             'eta_s_char': dc_cc(
-                param='m', num_eq=1,
-                deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
+                param='m', num_eq_sets=1,
+                func=self.eta_s_char_func,
+                dependents=self.eta_s_char_dependents,
+            ),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, _val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
-                elements=['char_map_eta_s', 'igva'], num_eq=1,
-                latex=self.char_map_eta_s_func_doc,
+                elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                deriv=self.char_map_eta_s_deriv),
+                dependents=self.char_map_dependents,
+                latex=self.char_map_eta_s_func_doc,
+            ),
             'char_map_pr': dc_cm(),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
-                deriv=self.char_map_pr_deriv, num_eq=1,
-                func=self.char_map_pr_func, latex=self.char_map_pr_func_doc)
+                num_eq_sets=1,
+                func=self.char_map_pr_func,
+                dependents=self.char_map_dependents
+            )
         })
         return parameters
 
@@ -229,29 +237,13 @@ class Compressor(Turbomachine):
             r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -312,33 +304,17 @@ class Compressor(Turbomachine):
             r'\left( h_{out,s} - h_{in} \right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def char_map_pr_func(self):
+
         r"""
         Calculate pressure ratio from characteristic map.
 
@@ -410,37 +386,6 @@ class Compressor(Turbomachine):
             r'\end{split}'
         )
         return generate_latex_eq(self, latex, label)
-
-    def char_map_pr_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for compressor map characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.char_map_pr_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = 1 / i.p.val_SI
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
-        if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
-                f, 'igva', None
-            )
 
     def char_map_eta_s_func(self):
         r"""
@@ -525,36 +470,15 @@ class Compressor(Turbomachine):
         )
         return generate_latex_eq(self, latex, label)
 
-    def char_map_eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for compressor map characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.char_map_eta_s_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
-        if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
-                f, 'igva', None
-            )
+    def char_map_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.igva
+        ]
 
     def convergence_check(self):
         r"""

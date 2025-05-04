@@ -86,7 +86,7 @@ class TestNetworks:
         """Test deleting a network's connection."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        self.nw.check_network()
+        self.nw.check_topology()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -499,15 +499,15 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design")
         self.nwk._convergence_check()
         variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
-        # no mass flow is variable
+        # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
         # first connection pressure and enthalpy not variable
         assert c1.p not in variables
         assert c1.h not in variables
-        # second connection pressure and enthalpy are variable
-        assert c2.p in variables
-        assert c2.h in variables
+        # second connection pressure and enthalpy not variable
+        assert c2.p not in variables
+        assert c2.h not in variables
 
     @mark.skip("Not implemented")
     def test_splitting_branch_massflow_presolve(self):
@@ -619,7 +619,7 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_network()
+        nw.check_topology()
 
 
 def test_v07_to_v08_export(tmp_path):

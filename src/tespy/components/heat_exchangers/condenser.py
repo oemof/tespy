@@ -247,16 +247,19 @@ class Condenser(HeatExchanger):
         params = super().get_parameters()
         params.update({
             'subcooling': dc_simple(
-                val=False, num_eq=1, latex=self.subcooling_func_doc,
-                deriv=self.subcooling_deriv, func=self.subcooling_func)
+                _val=False, num_eq_sets=1,
+                latex=self.subcooling_func_doc,
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+            )
         })
         return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, row_idx):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        super().preprocess(num_nw_vars)
+        super()._preprocess(row_idx)
 
     def subcooling_func(self):
         r"""
@@ -295,23 +298,11 @@ class Condenser(HeatExchanger):
         latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
         return generate_latex_eq(self, latex, label)
 
-    def subcooling_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of subcooling function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        o = self.outl[0]
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data)
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = 1
+    def subcooling_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]
 
     def calculate_td_log(self):
 
@@ -467,6 +458,13 @@ class Condenser(HeatExchanger):
             r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
             r' + T_\mathrm{out,2}')
         return generate_latex_eq(self, latex, label)
+
+    def ttd_u_dependents(self):
+        return [
+            self.inl[0].p,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

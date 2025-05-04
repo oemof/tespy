@@ -148,13 +148,15 @@ class DiabaticCombustionChamber(CombustionChamber):
     identical lambda or outlet temperature as in an adiabatic combustion
     chamber.
 
-    >>> comb.set_attr(ti=500000, pr=0.95, eta=1, lamb=1.5)
-    >>> amb_comb.set_attr(p=1.2, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}, p=1.3)
-    >>> nw.solve('design')
+    >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
+    >>> amb_comb.set_attr(
+    ...     p=1.2, T=20,
+    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'CO2': 0.0004, 'O2': 0.2314}
+    ... )
+    >>> sf_comb.set_attr(
+    ...     p=1.3, T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}
+    ... )
     >>> comb_fg.set_attr(T=1200)
-    >>> comb.set_attr(lamb=None)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014
@@ -181,13 +183,13 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     Now, if we change the efficiency value, e.g. to 0.9, a total of 10 % of
     heat respective to the thermal input will be transferred to the ambient.
-    Note, that the heat loss :code:`Q_loss` has a negative value as it is
+    Note, that the heat loss :code:`Qloss` has a negative value as it is
     extracted from the system.
 
     >>> eta = 0.9
     >>> comb.set_attr(eta=eta)
     >>> nw.solve('design')
-    >>> round(comb.Q_loss.val, 0)
+    >>> round(comb.Qloss.val, 0)
     -50000.0
     >>> round(comb.ti.val * comb.eta.val, 0)
     450000.0
@@ -197,39 +199,36 @@ class DiabaticCombustionChamber(CombustionChamber):
     def component():
         return 'diabatic combustion chamber'
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-
+    def _preprocess(self, num_nw_vars):
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
+        super()._preprocess(num_nw_vars)
+
     def get_parameters(self):
-        return {
-            'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq=1),
-            'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq=1),
+        params = super().get_parameters()
+        params.update({
             'pr': dc_cp(
                 min_val=0,
-                deriv=self.pr_deriv,
+                num_eq_sets=1,
                 func=self.pr_func,
-                latex=self.pr_func_doc,
-                num_eq=1,
+                structure_matrix=self.pr_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "pr": "pr"}
-                ),
+            ),
             'dp': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
+                min_val=0,
+                num_eq_sets=1,
                 func=self.dp_func,
-                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                structure_matrix=self.dp_structure_matrix,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'eta': dc_cp(
                 max_val=1, min_val=0, deriv=self.energy_balance_deriv,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc, num_eq=1),
-            'Q_loss': dc_cp(max_val=0, is_result=True)
-        }
+                latex=self.energy_balance_func_doc, num_eq_sets=1),
+            'Qloss': dc_cp(max_val=0, is_result=True)
+        })
+        return params
 
     def get_mandatory_constraints(self):
         return {
@@ -274,14 +273,12 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
@@ -329,21 +326,19 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
         self.eta.val = -res / self.ti.val
-        self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
+        self.Qloss.val = -(1 - self.eta.val) * self.ti.val
 
         self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI

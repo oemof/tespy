@@ -193,9 +193,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     with 15 °C superheating and leaves it with 10 °C subcooling.
 
     >>> c1.set_attr(fluid={"Water": 1}, p=1, Td_bp=15, m=1)
-    >>> c2.set_attr(p=1, Td_bp=-15)
+    >>> c2.set_attr(Td_bp=-15)
     >>> c11.set_attr(fluid={"Air": 1}, p=1, T=15)
-    >>> c12.set_attr(p=1, T=25)
+    >>> c12.set_attr(T=25)
+    >>> cd.set_attr(pr1=1, pr2=1)
     >>> nw.solve("design")
 
     Now we can remove the pressure specifications on the air side and impose
@@ -203,9 +204,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     condensation pressure.
 
     >>> c1.set_attr(p=None)
-    >>> c2.set_attr(p=None)
-    >>> c12.set_attr(p=None)
-    >>> cd.set_attr(td_pinch=5, pr1=1, pr2=1)
+    >>> cd.set_attr(td_pinch=5)
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.056
@@ -270,11 +269,13 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'U_twophase_liquid': dc_cp(min_val=0),
             'A': dc_cp(min_val=0),
             'UA': dc_cp(
-                min_val=0, num_eq=1, func=self.UA_func, deriv=self.UA_deriv
+                min_val=0, num_eq_sets=1, func=self.UA_func, deriv=self.UA_deriv
             ),
             'td_pinch': dc_cp(
-                min_val=0, num_eq=1, func=self.td_pinch_func,
-                deriv=self.td_pinch_deriv, latex=None
+                min_val=0, num_eq_sets=1,
+                func=self.td_pinch_func,
+                dependents=self.td_pinch_dependents,
+                deriv=self.td_pinch_deriv
             )
         })
         return params
@@ -297,8 +298,11 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         list
             Steps of enthalpy of the specified connections
         """
-        if c1.fluid_data != c2.fluid_data:
-            msg = "Both connections need to utilize the same fluid data."
+        if c1.fluid.val != c2.fluid.val:
+            msg = (
+                "Both connections need to utilize the same fluid data: "
+                f"{c1.fluid.val}, {c2.fluid.val}"
+            )
             raise ValueError(msg)
 
         if c1.p.val_SI != c2.p.val_SI:
@@ -493,12 +497,9 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         """
         f = self.UA_func
         for c in self.inl + self.outl:
-            if self.is_variable(c.m):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, "m", c)
-            if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.m, k, f, increment_filter)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def calc_td_pinch(self, sections):
         """Calculate the pinch point temperature difference
@@ -511,6 +512,18 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         _, T_steps_hot, T_steps_cold, _, _ = sections
 
         return min(T_steps_hot - T_steps_cold)
+
+    def td_pinch_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.inl[1].m,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].h
+        ]
 
     def td_pinch_func(self):
         r"""
@@ -542,12 +555,9 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         """
         f = self.td_pinch_func
         for c in self.inl + self.outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+            self._partial_derivative(c.m, k, f, increment_filter)
+            self._partial_derivative(c.p, k, f, increment_filter)
+            self._partial_derivative(c.h, k, f, increment_filter)
 
     def calc_parameters(self):
         super().calc_parameters()

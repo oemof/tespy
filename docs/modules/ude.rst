@@ -115,10 +115,8 @@ derivatives to mass flow are not zero.
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1
-    ...     if c2.m.is_var:
-    ...         ude.jacobian[c2.m.J_col] = -2 * ude.conns[1].m.val_SI
+    ...     ude._partial_derivative(c1.m, 1)
+    ...     ude._partial_derivative(c2.m, -2 * ude.conns[1].m.val_SI)
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
@@ -186,11 +184,12 @@ respectively to calculate the partial derivatives.
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1 / ude.conns[0].m.val_SI
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = - 2 / ude.conns[0].p.val_SI
+    ...     ude._partial_derivative(c1.m, 1 / ude.conns[0].m.val_SI)
+    ...     ude._partial_derivative(c1.p, - 2 / ude.conns[0].p.val_SI)
     ...     T = c2.calc_T()
+    ...     # this API also works, it is not as convenient, but saves
+    ...     # computational effort because the derivatives are only calculated
+    ...     # on demand
     ...     if c2.p.is_var:
     ...         ude.jacobian[c2.p.J_col] = (
     ...             dT_mix_dph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
@@ -214,14 +213,10 @@ for the above derivatives would therefore look like this:
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = ude.numeric_deriv('m', c1)
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-    ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = ude.numeric_deriv('p', c2)
-    ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = ude.numeric_deriv('h', c2)
+    ...     ude._partial_derivative(c1.m)
+    ...     ude._partial_derivative(c1.p)
+    ...     ude._partial_derivative(c2.p)
+    ...     ude._partial_derivative(c2.h)
 
     >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
     >>> nw.add_ude(ude)

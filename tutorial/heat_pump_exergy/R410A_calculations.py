@@ -266,7 +266,7 @@ for Tgeo in Tgeo_range:
     # set feed and return flow temperatures around mean value Tgeo
     gh_in_ghp.set_attr(T=Tgeo + 1.5)
     ev_gh_out.set_attr(T=Tgeo - 1.5)
-    nw.solve('offdesign', init_path=path, design_path=path)
+    nw.solve('offdesign', design_path=path)
     ean.analyse(pamb, Tamb_design)
     eps_Tgeo.append(ean.network_data.epsilon)
     print("Case %d: Tgeo = %.1f °C" % (i, Tgeo))

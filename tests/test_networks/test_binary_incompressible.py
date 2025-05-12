@@ -38,14 +38,14 @@ class TestBinaryIncompressibles:
 
         self.nw.add_conns(c1, c2, c3, c4, c5)
 
-        c1.set_attr(v=1, p=1e5, T=300, fluid={"INCOMP::MPG[0.2]": 1})
+        c1.set_attr(v=1, p=1e5, T=300, fluid={"INCOMP::MPG[0.2]|mass": 1})
         c2.set_attr(h0=2e4)
         c3.set_attr(p=1e5, T=320, h0=1e5)
 
         he.set_attr(pr1=0.98, pr2=0.98, ttd_l=10)
         pu.set_attr(eta_s=0.7)
 
-        c4.set_attr(p=1e5, T=350, fluid={"INCOMP::MEG[0.2]": 1})
+        c4.set_attr(p=1e5, T=350, fluid={"INCOMP::MEG[0.2]|mass": 1})
         c5.set_attr(h0=1e5)
 
         self.nw.solve("design")

@@ -50,11 +50,45 @@ class FluidPropertyWrapper:
         """
         self.back_end = back_end
         self.fluid = fluid
+        self.mixture_type = None
+
         if "[" in self.fluid:
-            self.fluid, self._fractions = self.fluid.split("[")
-            self._fractions = self._fractions.replace("]", "")
+            if "|" not in self.fluid:
+                msg = (
+                    f"The fluid {self.fluid} requires the specification of "
+                    "mass, volume or molar based composition information."
+                    "You can do this by appending '|' and 'mass' at the end "
+                    "of the fluid string. For example, "
+                    "'NAMEOFFLUID[0.5]|mass' to indicate a mass based mixture."
+                )
+                raise ValueError(msg)
+
+            self.fluid, self.mixture_type = self.fluid.split("|")
+            allowed = ["mass", "molar", "volume"]
+            if self.mixture_type not in allowed:
+                msg = (
+                    "For the specification of the composition type you have "
+                    f"to select from {', '.join(allowed)}."
+                )
+
+        if "&" in self.fluid:
+            _fluids_with_fractions = self.fluid.split("&")
         else:
-            self._fractions = None
+            _fluids_with_fractions = [self.fluid]
+
+        fluid_names = []
+        fractions = []
+        for fluid in _fluids_with_fractions:
+            if "[" in fluid:
+                _fluid_name, _fraction = fluid.split("[")
+                _fraction = float(_fraction.replace("]", ""))
+                fractions += [_fraction]
+            else:
+                _fluid_name = fluid
+            fluid_names += [_fluid_name]
+
+        self.fractions = fractions
+        self.fluid = "&".join(fluid_names)
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -140,6 +174,13 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self._set_constants()
 
     def _set_constants(self):
+        if self.mixture_type == "mass":
+            self.AS.set_mass_fractions(self.fractions)
+        elif self.mixture_type == "molar":
+            self.AS.set_molar_fractions(self.fractions)
+        elif self.mixture_type == "volume":
+            self.AS.set_volu_fractions(self.fractions)
+
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
         try:
@@ -148,12 +189,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
-            if self._fractions is not None:
-                # how to find if a mixture is volumetric of mass based?
-                try:
-                    self.AS.set_volu_fractions([float(self._fractions)])
-                except ValueError:
-                    self.AS.set_mass_fractions([float(self._fractions)])
             self._p_min = 1e2
             self._p_max = 1e8
             self._p_crit = 1e8

@@ -160,17 +160,17 @@ class Desuperheater(HeatExchanger):
     >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)
     1.0
     >>> et_de.set_attr(v=12)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     0.41
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -181,18 +181,16 @@ class Desuperheater(HeatExchanger):
         return 'desuperheater'
 
     def get_mandatory_constraints(self):
-        return {
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
             'saturated_gas_constraints': {
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
                 'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
-                'num_eq': 1}
-        }
+                'num_eq': 1
+            }
+        })
+        return constraints
 
     def saturated_gas_func(self):
         r"""

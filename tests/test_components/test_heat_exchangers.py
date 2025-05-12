@@ -12,8 +12,12 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+from pytest import approx
+from pytest import fixture
+from pytest import mark
 
 from tespy.components import Condenser
+from tespy.components import Desuperheater
 from tespy.components import HeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import SimpleHeatExchanger
@@ -23,7 +27,227 @@ from tespy.components import Source
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.networks import Network
+from tespy.tools.fluid_properties import h_mix_pT
 
+
+def _calc_Q(c1, c2):
+    return c1.m.val_SI * (c2.h.val_SI - c1.h.val_SI)
+
+
+def _calc_zeta(c1, c2):
+    return (
+        (c1.p.val_SI - c2.p.val_SI) * math.pi ** 2
+        / (4 * c1.m.val_SI ** 2 * (c1.vol.val_SI + c2.vol.val_SI))
+    )
+
+
+def _calc_pr(c1, c2):
+    return c2.p.val_SI / c1.p.val_SI
+
+
+def _calc_dp(c1, c2):
+    return c1.p.val_SI - c2.p.val_SI
+
+
+def _calc_ttd_l(c2, c3):
+    return c2.T.val_SI - c3.T.val_SI
+
+
+def _calc_ttd_u(c1, c4):
+    return c1.T.val_SI - c4.T.val_SI
+
+
+def _calc_ttd_u_condenser(c1, c4):
+    return c1.calc_T_sat() - c4.T.val_SI
+
+
+def _calc_td_log(ttd_u, ttd_l):
+    return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+
+
+def _calc_kA(Q, td_log):
+    return - Q / td_log
+
+
+def _calc_eff_hot(c1, c2, c3):
+    h_at_T_in_cold = h_mix_pT(
+        c2.p.val_SI, c3.T.val_SI, c2.fluid_data, c2.mixing_rule
+    )
+    return (c2.h.val_SI - c1.h.val_SI) / (h_at_T_in_cold - c1.h.val_SI)
+
+
+def _calc_eff_cold(c3, c4, c1):
+    h_at_T_in_hot = h_mix_pT(
+        c4.p.val_SI, c1.T.val_SI, c4.fluid_data, c4.mixing_rule
+    )
+    return (c4.h.val_SI - c3.h.val_SI) / (h_at_T_in_hot - c3.h.val_SI)
+
+
+@fixture
+def heatexchanger_network(request):
+
+    nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+
+    inl1 = Source('inlet 1')
+    outl1 = Sink('outlet 1')
+    inl2 = Source('inlet 2')
+    outl2 = Sink('outlet 2')
+    instance = request.param('heat exchanger')
+
+    c1 = Connection(inl1, 'out1', instance, 'in1', label='1')
+    c2 = Connection(instance, 'out1', outl1, 'in1', label='2')
+    c3 = Connection(inl2, 'out1', instance, 'in2', label='3')
+    c4 = Connection(instance, 'out2', outl2, 'in1', label='4')
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    return nw
+
+
+@fixture
+def heatexchanger_converged_network(heatexchanger_network):
+    # rename for shorter variable name
+    nw = heatexchanger_network
+
+    c1, c2, c3, c4 = nw.get_conn(['1', '2', '3', '4'])
+    instance = nw.get_comp('heat exchanger')
+
+    c1.set_attr(T=120, p=1, fluid={'H2O': 1}, m=1)
+    c2.set_attr(p=0.95)
+    c3.set_attr(T=40, p=5, fluid={'Ar': 1})
+    c4.set_attr(T=90, p=4.9)
+
+    if type(instance) == HeatExchanger:
+        c2.set_attr(T=105)
+
+    nw.solve('design')
+    nw._convergence_check()
+
+    return nw
+
+
+class TestHeatExchanger:
+
+    @mark.parametrize(
+        'heatexchanger_network',
+        [HeatExchanger, Condenser, Desuperheater],
+        indirect=True
+    )
+    def test_postprocessing(self, heatexchanger_converged_network):
+        # rename for shorter variable name
+        nw = heatexchanger_converged_network
+
+        c1, c2, c3, c4 = nw.get_conn(['1', '2', '3', '4'])
+        instance = nw.get_comp('heat exchanger')
+
+        assert approx(instance.Q.val) == _calc_Q(c1, c2)
+
+        assert approx(instance.pr1.val) == _calc_pr(c1, c2)
+        assert approx(instance.pr2.val) == _calc_pr(c3, c4)
+
+        # this already utilizes SI values, it should be changed!
+        assert approx(instance.dp1.val_SI) == _calc_dp(c1, c2)
+        assert approx(instance.dp2.val_SI) == _calc_dp(c3, c4)
+
+        assert approx(instance.zeta1.val) == _calc_zeta(c1, c2)
+        assert approx(instance.zeta2.val) == _calc_zeta(c3, c4)
+
+        assert approx(instance.ttd_l.val) == _calc_ttd_l(c2, c3)
+        # this is not really beautiful
+        if type(instance) == Condenser:
+            assert approx(instance.ttd_u.val) == _calc_ttd_u_condenser(c1, c4)
+        else:
+            assert approx(instance.ttd_u.val) == _calc_ttd_u(c1, c4)
+
+        assert instance.ttd_min.val == min(instance.ttd_l.val, instance.ttd_u.val)
+
+        assert approx(instance.td_log.val) == _calc_td_log(instance.ttd_u.val, instance.ttd_l.val)
+        assert approx(instance.kA.val) == _calc_kA(instance.Q.val, instance.td_log.val)
+
+        assert approx(instance.eff_hot.val) == _calc_eff_hot(c1, c2, c3)
+        assert approx(instance.eff_cold.val) == _calc_eff_cold(c3, c4, c1)
+
+        assert instance.eff_max.val == max(instance.eff_cold.val, instance.eff_hot.val)
+
+    @mark.parametrize(
+        'heatexchanger_network',
+        [HeatExchanger, Condenser, Desuperheater],
+        indirect=True
+    )
+    def test_pr1(self, heatexchanger_converged_network):
+        nw = heatexchanger_converged_network
+
+        c1, c2 = nw.get_conn(['1', '2'])
+        instance = nw.get_comp('heat exchanger')
+
+        pr = 0.95
+        c2.set_attr(p=None)
+        instance.set_attr(pr1=pr)
+
+        nw.solve('design')
+        nw._convergence_check()
+
+        assert approx(pr) == _calc_pr(c1, c2)
+
+    @mark.parametrize(
+        'heatexchanger_network',
+        [HeatExchanger, Condenser, Desuperheater],
+        indirect=True
+    )
+    def test_zeta1(self, heatexchanger_converged_network):
+        nw = heatexchanger_converged_network
+
+        c1, c2 = nw.get_conn(['1', '2'])
+        instance = nw.get_comp('heat exchanger')
+
+        zeta = 100
+        c2.set_attr(p=None)
+        instance.set_attr(zeta1=zeta)
+
+        nw.solve('design')
+        nw._convergence_check()
+
+        assert approx(zeta) == _calc_zeta(c1, c2)
+
+    @mark.parametrize(
+        'heatexchanger_network',
+        [HeatExchanger, Condenser, Desuperheater],
+        indirect=True
+    )
+    def test_pr2(self, heatexchanger_converged_network):
+        nw = heatexchanger_converged_network
+
+        c3, c4 = nw.get_conn(['3', '4'])
+        instance = nw.get_comp('heat exchanger')
+
+        pr = 0.95
+        c4.set_attr(p=None)
+        instance.set_attr(pr2=pr)
+
+        nw.solve('design')
+        nw._convergence_check()
+
+        assert approx(pr) == _calc_pr(c3, c4)
+
+    @mark.parametrize(
+        'heatexchanger_network',
+        [HeatExchanger, Condenser, Desuperheater],
+        indirect=True
+    )
+    def test_zeta2(self, heatexchanger_converged_network):
+        nw = heatexchanger_converged_network
+
+        c3, c4 = nw.get_conn(['3', '4'])
+        instance = nw.get_comp('heat exchanger')
+
+        zeta = 100
+        c4.set_attr(p=None)
+        instance.set_attr(zeta2=zeta)
+
+        nw.solve('design')
+        nw._convergence_check()
+
+        assert approx(zeta) == _calc_zeta(c3, c4)
 
 class TestHeatExchangers:
 
@@ -133,8 +357,8 @@ class TestHeatExchangers:
         self.nw.solve('design')
         self.nw._convergence_check()
         kA_network = self.nw.results['SimpleHeatExchanger'].loc[
-            instance.label, 'kA']
-        print(kA_network)
+            instance.label, 'kA'
+        ]
         msg = 'kA value must not be included in network results.'
         expr = not instance.kA.is_result and np.isnan(kA_network)
         assert expr, msg
@@ -152,22 +376,23 @@ class TestHeatExchangers:
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')
         self.setup_SimpleHeatExchanger_network(instance)
-        self.c1.set_attr(fluid={'INCOMP::S800': 1}, p=2, T=200)
+        self.c1.set_attr(fluid={'INCOMP::S800': 1}, p=10, T=200)
         self.c2.set_attr(T=350)
 
         # test grouped parameter settings with missing parameters
         instance.darcy_group.is_set = True
         instance.energy_group.is_set = True
         self.nw.solve('design', init_only=True)
-        msg = ('Darcy group must no be set, if one parameter is missing!')
+        msg = 'Darcy group must no be set, if one parameter is missing!'
         assert not instance.darcy_group.is_set, msg
-        msg = ('Energy group must no be set, if one parameter is missing!')
+        msg = 'Energy group must no be set, if one parameter is missing!'
         assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
         instance.set_attr(
             pr=1, aoi=10, doc=0.95, Q=1e6, Tamb=25, A='var', eta_opt=0.816,
-            c_1=0.0622, c_2=0.00023, E=8e2, iam_1=-1.59e-3, iam_2=9.77e-5)
+            c_1=0.0622, c_2=0.00023, E=8e2, iam_1=-1.59e-3, iam_2=9.77e-5
+        )
         self.nw.solve('design')
         self.nw._convergence_check()
         # heat loss must be identical to E * A - Q (internal heat loss
@@ -182,8 +407,9 @@ class TestHeatExchangers:
                 1 - instance.eta_opt.val * instance.doc.val ** 1.5 * iam
             ) + T_diff * instance.c_1.val + T_diff ** 2 * instance.c_2.val), 0)
         msg = (
-            'Value for heat loss of parabolic trough must be ' + str(Q_loss) +
-            ', is ' + str(round(instance.Q_loss.val, 0)) + '.')
+            f'Value for heat loss of parabolic trough must be {Q_loss}, is '
+            f'{round(instance.Q_loss.val, 0)}.'
+        )
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: E
@@ -329,6 +555,7 @@ class TestHeatExchangers:
 
     def test_HeatExchanger(self, tmp_path):
         """Test component properties of heat exchanger."""
+        tmp_path = f'{tmp_path}.json'
         instance = HeatExchanger('heat exchanger')
         self.setup_HeatExchanger_network(instance)
 
@@ -512,6 +739,7 @@ class TestHeatExchangers:
 
     def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""
+        tmp_path = f'{tmp_path}.json'
         instance = Condenser('condenser')
         self.setup_HeatExchanger_network(instance)
 
@@ -605,14 +833,3 @@ class TestHeatExchangers:
             f"ttd_l={ttd_l}."
         )
         assert instance.td_log.val == instance.ttd_l.val, msg
-
-        # self.nw.save(tmp_path)
-        # self.c1.set_attr(m=1)
-        # self.nw.solve("offdesign", design_path="tmp")
-        # self.nw._convergence_check()
-        # msg = (
-        #     "Value of logarithmic and lower terminal temperature differences "
-        #     f"must be identical, but they are not: td_log={td_log}, "
-        #     f"ttd_l={self.c3.m.val}."
-        # )
-        # assert instance.td_log.val == instance.ttd_l.val, msg

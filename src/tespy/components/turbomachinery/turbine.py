@@ -27,6 +27,10 @@ class Turbine(Turbomachine):
     r"""
     Class for gas or steam turbines.
 
+    The component Turbine is the parent class for the components:
+
+    - :py:class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
+
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
@@ -129,13 +133,13 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
     >>> inc.set_attr(m=8)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(t.eta_s.val, 3)
     0.898
     >>> round(inc.p.val, 1)
@@ -148,12 +152,8 @@ class Turbine(Turbomachine):
         return 'turbine'
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                max_val=0, num_eq=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
@@ -162,15 +162,11 @@ class Turbine(Turbomachine):
                 param='m', num_eq=1,
                 deriv=self.eta_s_char_deriv,
                 func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
-            'pr': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
             'cone': dc_simple(
                 deriv=self.cone_deriv, num_eq=1,
                 func=self.cone_func, latex=self.cone_func_doc)
-        }
+        })
+        return parameters
 
     def eta_s_func(self):
         r"""
@@ -245,6 +241,22 @@ class Turbine(Turbomachine):
             self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
         if o.h.is_var and self.it == 0:
             self.jacobian[k, o.h.J_col] = -1
+
+    def calc_eta_s(self):
+        inl = self.inl[0]
+        outl = self.outl[0]
+        return (
+            (outl.h.val_SI - inl.h.val_SI)
+            / (isentropic(
+                    inl.p.val_SI,
+                    inl.h.val_SI,
+                    outl.p.val_SI,
+                    inl.fluid_data,
+                    inl.mixing_rule,
+                    T0=inl.T.val_SI
+                ) - inl.h.val_SI
+            )
+        )
 
     def cone_func(self):
         r"""
@@ -505,20 +517,8 @@ class Turbine(Turbomachine):
 
         inl = self.inl[0]
         outl = self.outl[0]
-        self.eta_s.val = (
-            (outl.h.val_SI - inl.h.val_SI)
-            / (
-                isentropic(
-                    inl.p.val_SI,
-                    inl.h.val_SI,
-                    outl.p.val_SI,
-                    inl.fluid_data,
-                    inl.mixing_rule,
-                    T0=inl.T.val_SI
-                )
-                - inl.h.val_SI
-            )
-        )
+        self.eta_s.val = self.calc_eta_s()
+        self.pr.val = outl.p.val_SI / inl.p.val_SI
 
     def exergy_balance(self, T0):
         r"""

@@ -23,6 +23,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -46,6 +47,7 @@ class HeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
@@ -53,6 +55,8 @@ class HeatExchanger(Component):
     - cold side :py:meth:`tespy.components.component.Component.pr_func`
     - hot side :py:meth:`tespy.components.component.Component.zeta_func`
     - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - hot side :py:meth:`tespy.components.component.Component.dp_func`
+    - cold side :py:meth:`tespy.components.component.Component.dp_func`
 
     Inlets/Outlets
 
@@ -106,6 +110,14 @@ class HeatExchanger(Component):
     pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
+    dp1 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at hot side, unit is the network's
+        pressure unit!.
+
+    dp2 : float, dict, :code:`"var"`
+        Inlet to outlet pressure delta at cold side, unit is the network's
+        pressure unit!.
+
     zeta1 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
@@ -119,6 +131,9 @@ class HeatExchanger(Component):
 
     ttd_u : float, dict
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+
+    ttd_min : float, dict
+        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -189,17 +204,17 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(he_cw.T.val, 1)
     27.5
     >>> round(he_ex.T.val, 1)
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> document_model(nw)
     >>> round(he_cw.T.val, 1)
     33.9
@@ -229,6 +244,9 @@ class HeatExchanger(Component):
             'ttd_l': dc_cp(
                 min_val=0, num_eq=1, func=self.ttd_l_func,
                 deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
+            'ttd_min': dc_cp(
+                min_val=0, num_eq=1, func=self.ttd_min_func,
+                deriv=self.ttd_min_deriv),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
                 latex=self.pr_func_doc,
@@ -237,6 +255,14 @@ class HeatExchanger(Component):
                 min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
                 deriv=self.pr_deriv, func=self.pr_func,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
+            'dp1': dc_cp(
+                min_val=0, max_val=1e15, num_eq=1,
+                deriv=self.dp_deriv, func=self.dp_func,
+                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}),
+            'dp2': dc_cp(
+                min_val=0, max_val=1e15, num_eq=1,
+                deriv=self.dp_deriv, func=self.dp_func,
+                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
                 deriv=self.zeta_deriv, func=self.zeta_func,
@@ -277,6 +303,24 @@ class HeatExchanger(Component):
                 'num_eq': 1}
         }
 
+    def get_bypass_constraints(self):
+        return {
+            'pressure_equality_constraints': {
+                'func': self.pressure_equality_func,
+                'deriv': self.pressure_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.pressure_equality_func_doc,
+                'num_eq': self.num_i
+            },
+            'enthalpy_equality_constraints': {
+                'func': self.enthalpy_equality_func,
+                'deriv': self.enthalpy_equality_deriv,
+                'constant_deriv': False,
+                'latex': self.enthalpy_equality_func_doc,
+                'num_eq': self.num_i
+            }
+        }
+
     @staticmethod
     def inlets():
         return ['in1', 'in2']
@@ -284,6 +328,15 @@ class HeatExchanger(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    def preprocess(self, num_nw_vars):
+        super().preprocess(num_nw_vars)
+
+        if self.dp1.is_set:
+            self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
+
+        if self.dp2.is_set:
+            self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
 
     def energy_balance_func(self):
         r"""
@@ -338,10 +391,23 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        # in case the heat exchanger reheats the same mass flow
+        # the derivative is different
+        if self.inl[0].m == self.inl[1].m:
+            if self.is_variable(self.inl[0].m, increment_filter):
+                self.jacobian[k, self.inl[0].m.J_col] = (
+                    (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                    + (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                )
+
+        else:
+            for _c_num, i in enumerate(self.inl):
+                o = self.outl[_c_num]
+                if self.is_variable(i.m, increment_filter):
+                    self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+
         for _c_num, i in enumerate(self.inl):
             o = self.outl[_c_num]
-            if self.is_variable(i.m, increment_filter):
-                self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
             if self.is_variable(i.h, increment_filter):
                 self.jacobian[k, i.h.J_col] = -i.m.val_SI
             if self.is_variable(o.h, increment_filter):
@@ -706,6 +772,56 @@ class HeatExchanger(Component):
             if self.is_variable(c.h, increment_filter):
                 self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
+    def ttd_min_func(self):
+        r"""
+        Equation for upper terminal temperature difference.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                ttd_{l} = T_{out,1} - T_{in,2}
+                ttd_{u} = T_{in,1} - T_{out,2}
+                0 = \text{min}\left(ttd_{u}, ttd_{l}\right)
+
+        """
+        i = self.inl[1]
+        o = self.outl[0]
+        T_i2 = i.calc_T()
+        T_o1 = o.calc_T()
+
+        i = self.inl[0]
+        o = self.outl[1]
+        T_i1 = i.calc_T()
+        T_o2 = o.calc_T()
+
+        ttd_l = T_o1 - T_i2
+        ttd_u = T_i1 - T_o2
+
+        return self.ttd_min.val - min(ttd_l, ttd_u)
+
+    def ttd_min_deriv(self, increment_filter, k):
+        """
+        Calculate partial derivates of minimum terminal temperature function.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        f = self.ttd_min_func
+        for c in self.inl + self.outl:
+            if self.is_variable(c.p, increment_filter):
+                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
+            if self.is_variable(c.h, increment_filter):
+                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
+
     def calc_dh_max_cold(self):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
 
@@ -1030,19 +1146,26 @@ class HeatExchanger(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        # component parameters
         self.Q.val = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
         self.ttd_u.val = self.inl[0].T.val_SI - self.outl[1].T.val_SI
         self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
+        self.ttd_min.val = min(self.ttd_u.val, self.ttd_l.val)
 
         # pr and zeta
         for i in range(2):
-            self.get_attr('pr' + str(i + 1)).val = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI)
-            self.get_attr('zeta' + str(i + 1)).val = self.calc_zeta(
+            self.get_attr(f'pr{i + 1}').val = (
+                self.outl[i].p.val_SI / self.inl[i].p.val_SI
+            )
+            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
                 self.inl[i], self.outl[i]
+            )
+            self.get_attr(f'dp{i + 1}').val_SI = (
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI
+            )
+            self.get_attr(f'dp{i + 1}').val = (
+                self.inl[i].p.val - self.outl[i].p.val
             )
 
         # kA and logarithmic temperature difference

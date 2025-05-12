@@ -1,0 +1,13 @@
+v0.8.1 - Under development
+++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- In case parts of a :code:`Network` were missing a :code:`CycleCloser` or
+  a :code:`Source` and :code:`Sink` combination a misleading error was raised.
+  These cases are checked for explicitly now to make debugging easier
+  (`PR #653 <https://github.com/oemof/tespy/pull/653>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

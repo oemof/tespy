@@ -140,12 +140,12 @@ class Compressor(Turbomachine):
     ... offdesign=['char_map_pr', 'char_map_eta_s'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(comp.P.val, 0)
     12772.0
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
     0.77
     >>> shutil.rmtree('./tmp', ignore_errors=True)
@@ -156,12 +156,8 @@ class Compressor(Turbomachine):
         return 'compressor'
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                min_val=0, num_eq=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq=1,
                 deriv=self.eta_s_deriv,
@@ -170,11 +166,6 @@ class Compressor(Turbomachine):
                 param='m', num_eq=1,
                 deriv=self.eta_s_char_deriv,
                 func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
-            'pr': dc_cp(
-                min_val=1, num_eq=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
             'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
@@ -187,7 +178,8 @@ class Compressor(Turbomachine):
                 elements=['char_map_pr', 'igva'],
                 deriv=self.char_map_pr_deriv, num_eq=1,
                 func=self.char_map_pr_func, latex=self.char_map_pr_func_doc)
-        }
+        })
+        return parameters
 
     def eta_s_func(self):
         r"""

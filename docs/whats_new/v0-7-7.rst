@@ -1,5 +1,5 @@
-Under development
-+++++++++++++++++
+v0.7.7 - Newton's Nature (October, 27, 2024)
+++++++++++++++++++++++++++++++++++++++++++++
 
 Bug Fixes
 #########

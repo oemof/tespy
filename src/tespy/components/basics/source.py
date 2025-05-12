@@ -14,6 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry
@@ -68,6 +69,14 @@ class Source(Component):
         return ['out1']
 
     @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
+    @staticmethod
+    def get_bypass_constraints():
+        return {}
+
+    @staticmethod
     def is_branch_source():
         return True
 
@@ -91,10 +100,6 @@ class Source(Component):
         outconn.target.propagate_wrapper_to_target(branch)
 
         return {outconn.label: branch}
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
 
     def exergy_balance(self, T0):
         r"""Exergy balance calculation method of a source.

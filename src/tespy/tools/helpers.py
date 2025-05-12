@@ -133,7 +133,6 @@ def convert_from_SI(property, SI_value, unit):
     if property == 'T':
         converters = fluid_property_data['T']['units'][unit]
         return SI_value / converters[1] - converters[0]
-
     else:
         return SI_value / fluid_property_data[property]['units'][unit]
 
@@ -513,7 +512,7 @@ def bus_char_derivative(component_value, char_func, reference_value, bus_value, 
 
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
-        tol_rel=ERR, tol_abs=ERR ** 2, tol_mode="rel", **function_kwargs
+        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
     ):
 
     # start newton loop
@@ -556,12 +555,10 @@ def newton_with_kwargs(
             logger.debug(msg)
 
             break
-        if tol_mode == 'abs' or target_value == 0:
+        if tol_mode == 'abs':
             expr = abs(residual) >= tol_abs
         elif tol_mode == 'rel':
             expr = abs(residual / target_value) >= tol_rel
-        else:
-            expr = abs(residual / target_value) >= tol_rel or abs(residual) >= tol_abs
 
     return x
 

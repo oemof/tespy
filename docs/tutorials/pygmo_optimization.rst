@@ -96,7 +96,7 @@ simulation. Furthermore, you have to define methods
 - to get component or connection parameters of the plant :code:`get_param`,
 - to run a new simulation for every new input from PyGMO :code:`solve_model`
   and
-- to return the objective value :code:`get_objective`.
+- to return the objective values :code:`get_objectives`.
 
 First, we set up the class with the TESPy network.
 
@@ -109,9 +109,11 @@ First, we set up the class with the TESPy network.
 
 
 Next, we add the methods :code:`get_param`, :code:`solve_model` and
-:code:`get_objective`. On top of that, we add a setter working similarly as the
+:code:`get_objectives`. On top of that, we add a setter working similarly as the
 getter. The objective is to maximize thermal efficiency as defined in the
-equation below.
+equation below. The :code:`get_objectives` method calls a :code:`get_objective`
+method and collects all objectives values. This is useful if you are
+implementing pareto or multi-objective problems.
 
 .. math::
 

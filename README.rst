@@ -101,9 +101,7 @@ Documentation
 You can find the full documentation at
 `readthedocs <http://tespy.readthedocs.org>`_. Use the
 `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to
-choose the version of the documentation. Go to the
-`download page <http://readthedocs.org/projects/tespy/downloads/>`_ to
-download different versions and formats (pdf, html, epub) of the documentation.
+choose the version of the documentation.
 
 To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 

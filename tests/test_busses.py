@@ -100,6 +100,7 @@ class TestBusses:
 
     def test_model(self, tmp_path):
         """Test the bus functionalities in a gas turbine model."""
+        tmp_path = f'{tmp_path}.json'
         self.nw.save(tmp_path)
         tpo = self.nw.busses['total power output']
         ti = self.nw.busses['thermal input']
@@ -115,17 +116,19 @@ class TestBusses:
         eta_cpi = round(1 / cp.calc_bus_efficiency(cpi), 6)
         eta_cp_tpo = round(cp.calc_bus_efficiency(tpo), 6)
         msg = (
-            'The efficiency value of the compressor on the bus ' + tpo.label +
-            ' (' + str(eta_cp_tpo) + ') must be identical to the efficiency '
-            'on the bus ' + cpi.label + ' (' + str(eta_cpi) + ').')
+            f'The efficiency value of the compressor on the bus {tpo.label} '
+            f' ({eta_cp_tpo}) must be identical to the efficiency on the bus '
+            f'{cpi.label} ({eta_cpi}).'
+        )
         assert eta_cp_tpo == eta_cpi, msg
 
         P_cp_tpo = cp.calc_bus_value(tpo)
         eta_cp_tpo = cp.calc_bus_efficiency(tpo)
         P_cp = round(P_cp_tpo * eta_cp_tpo, 0)
         msg = (
-            'The compressor power must be ' + str(round(cp.P.val, 0)) + ' on '
-            'the bus ' + tpo.label + ' but is ' + str(P_cp) + ').')
+            f'The compressor power must be {round(cp.P.val, 0)} on the bus '
+            f'{tpo.label} but is {P_cp}).'
+        )
         assert round(cp.P.val, 0) == P_cp, msg
 
         P_cp_tpo = round(

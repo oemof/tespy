@@ -12,19 +12,14 @@ SPDX-License-Identifier: MIT
 import math
 #import warnings
 
-#import numpy as np
-
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.components.component import component_registry
-#from tespy.tools import logger
-#from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.document_models import generate_latex_eq
-#from tespy.tools.fluid_properties import s_mix_ph
-#from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
-#from tespy.tools.helpers import convert_to_SI
+
+from tespy.tools.helpers import convert_to_SI
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 
 @component_registry
@@ -180,8 +175,7 @@ class Pipeline(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'water': 1}, m=100, T=300, p=40)
     >>> pi.set_attr(pr=0.95, Tamb = 20, L=1000, D='var',  ks=4.57e-5,
     >>>                     insulation_m=0.1 ,insulation_tc= 0.035, pipe_thickness=0.003,material='Steel', 
-    >>>                     environment_media= 'air', wind_velocity = 0.1,
-    >>>                     #environment_media= 'dry soil', pipe_depth = 5,
+    >>>                     environment_media= 'air', wind_velocity = 0.1,        
     >>>             ) 
     >>> nw.solve('design')
     >>> nw.save('tmp')
@@ -190,6 +184,13 @@ class Pipeline(SimpleHeatExchanger):
     @staticmethod
     def component():
         return 'Pipeline'
+    
+    def preprocess(self, num_nw_vars):
+        self.air= CoolPropWrapper('air')
+
+        super().preprocess(num_nw_vars)
+
+        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
     def get_parameters(self):
         parameters=super().get_parameters()
@@ -201,7 +202,7 @@ class Pipeline(SimpleHeatExchanger):
         parameters['insulation_m']=dc_cp(min_val=1e-3, max_val=1e1)
         parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2) #thermal conductivity insulation
         parameters['material']=dc_simple(val='Steel')
-        parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1e-1)
+        parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1)
         parameters['environment_media']=dc_simple(val='air') 
         parameters['wind_velocity']=dc_cp(min_val=1e-3, max_val=10) #in m/s
         parameters['pipe_depth']= dc_cp(min_val=1e-2, max_val=1e2) #in m
@@ -217,7 +218,11 @@ class Pipeline(SimpleHeatExchanger):
         air= CoolPropWrapper('air')
 
         A= self.L.val * math.pi *(Diameters[2] ) #outer surface area per definition
-        dTm= (T_out - T_in) / math.log((self.Tamb.val - T_in) / (self.Tamb.val - T_out))
+
+        if T_in == T_out:
+            dTm = T_in-self.Tamb.val_SI
+        else:
+            dTm= (T_out - T_in) / math.log((self.Tamb.val_SI - T_in) / (self.Tamb.val_SI - T_out))
         
         #heat transfer resistance
         R_sum=[]
@@ -248,12 +253,12 @@ class Pipeline(SimpleHeatExchanger):
             und turbulent überströmten Einzelkörpern mithilfe einer einheitlichen Gleichung. 
             Forsch. Ing.-Wes. 41(5), 145–153 (1975)
             '''
-            Re= self.wind_velocity.val *math.pi/2*(Diameters[1] +self.insulation_m.val *2)/ air.viscosity_pT(101300,self.Tamb.val+273)*air.d_pT(101300,self.Tamb.val+273)
-            Pr=air.AS.Prandtl()
+            Re= self.wind_velocity.val *math.pi/2*(Diameters[1] +self.insulation_m.val *2)/ self.air.viscosity_pT(101300,self.Tamb.val_SI+273)*self.air.d_pT(101300,self.Tamb.val_SI+273)
+            Pr=self.air.AS.Prandtl()
             Nu_lam =0.664 *Re**0.5 *Pr**(1/3) 
             Nu_turb = 0.037* Re**(0.8) * Pr /(1+ 2.443 * Re**(-0.1)* (Pr**(2/3)-1))
             Nu_ext =0.3 +(Nu_lam**2 +Nu_turb**2)**0.5
-            alpha_ext = Nu_ext/(math.pi/2*(Diameters[1] +self.insulation_m.val *2) )  * air.AS.conductivity() #W/m²/K
+            alpha_ext = Nu_ext/(math.pi/2*(Diameters[1] +self.insulation_m.val *2) )  * self.air.AS.conductivity() #W/m²/K
             R_sum.append(1/alpha_ext)
             
         elif self.environment_media.val in lambda_ground.keys():
@@ -318,22 +323,4 @@ class Pipeline(SimpleHeatExchanger):
         if o.p.is_var:
             self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
         
-    def ohc_group_func_doc(self, label):
-        r"""
-        Equation for ohc calculation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right) -\dot{Q}'
-        )
-        return generate_latex_eq(self, latex, label)
+    

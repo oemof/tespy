@@ -200,7 +200,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
             except ValueError:
                 pass
         else:
-            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
+            if self.back_end == "REFPROP":
+                self._p_min = 1e1
+            else:
+                self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
             self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
             self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
@@ -260,18 +263,21 @@ class CoolPropWrapper(FluidPropertyWrapper):
         if T > self._T_crit:
             T = self._T_crit * 0.99
 
-        self.AS.update(CP.QT_INPUTS, 0, T)
+        self.AS.update(CP.QT_INPUTS, 0.5, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
-
-        if self.AS.phase() == CP.iphase_twophase:
+        if len(self.fractions) > 1:
             return self.AS.Q()
-        elif self.AS.phase() == CP.iphase_liquid:
+
+        phase = self.AS.phase()
+        if phase == CP.iphase_twophase:
+            return self.AS.Q()
+        elif phase == CP.iphase_liquid:
             return 0
-        elif self.AS.phase() == CP.iphase_gas:
+        elif phase == CP.iphase_gas:
             return 1
         else:  # all other phases - though this should be unreachable as p is sub-critical
             return -1
@@ -279,12 +285,13 @@ class CoolPropWrapper(FluidPropertyWrapper):
     def phase_ph(self, p, h):
         p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
+        phase = self.AS.phase()
 
-        if self.AS.phase() == CP.iphase_twophase:
+        if phase == CP.iphase_twophase:
             return "tp"
-        elif self.AS.phase() == CP.iphase_liquid:
+        elif phase == CP.iphase_liquid:
             return "l"
-        elif self.AS.phase() == CP.iphase_gas:
+        elif phase == CP.iphase_gas:
             return "g"
         else:  # all other phases - though this should be unreachable as p is sub-critical
             return "state not recognised"

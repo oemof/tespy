@@ -403,7 +403,7 @@ class WaterElectrolyzer(Component):
         latex = r'0 = P \cdot \eta - \dot{m}_\mathrm{H_2,out,3} \cdot e_0'
         return generate_latex_eq(self, latex, label)
 
-    def eta_deriv(self, increment_filter, k):
+    def eta_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for efficiency function.
 
@@ -456,7 +456,7 @@ class WaterElectrolyzer(Component):
             r'h_\mathrm{out,1}\right)')
         return generate_latex_eq(self, latex, label)
 
-    def heat_deriv(self, increment_filter, k):
+    def heat_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for heat output function.
 
@@ -509,7 +509,7 @@ class WaterElectrolyzer(Component):
         latex = r'0=P - \dot{m}_\mathrm{H_2,out3} \cdot e'
         return generate_latex_eq(self, latex, label)
 
-    def specific_energy_consumption_deriv(self, increment_filter, k):
+    def specific_energy_consumption_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for specific energy consumption function.
 
@@ -587,7 +587,7 @@ class WaterElectrolyzer(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for reactor energy balance.
 
@@ -698,7 +698,7 @@ class WaterElectrolyzer(Component):
             r'{\eta_\mathrm{design}\cdot f\left(X\right)}')
         return generate_latex_eq(self, latex, label)
 
-    def eta_char_deriv(self, increment_filter, k):
+    def eta_char_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives electrolysis efficiency characteristic.
 
@@ -747,7 +747,7 @@ class WaterElectrolyzer(Component):
         residual += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
         return residual
 
-    def reactor_mass_flow_deriv(self, increment_filter, k):
+    def reactor_mass_flow_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 

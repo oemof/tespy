@@ -227,7 +227,7 @@ class Turbine(Turbomachine):
             r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_deriv(self, increment_filter, k):
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for isentropic efficiency function.
 
@@ -242,18 +242,14 @@ class Turbine(Turbomachine):
         f = self.eta_s_func
         i = self.inl[0]
         o = self.outl[0]
-        for dependent in _get_dependents([i.p, o.p])[0]:
-            self._partial_derivative(
-                dependent, k, f, increment_filter
-            )
 
         if o.h.is_var and not i.h.is_var:
             self.jacobian[k, o.h.J_col] = -1
-        else:
-            for dependent in _get_dependents([i.h, o.h])[0]:
-                self._partial_derivative(
-                    dependent, k, f, increment_filter
-                )
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
+
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
 
     def eta_s_dependents(self):
         return [

@@ -22,6 +22,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -163,8 +164,8 @@ class Compressor(Turbomachine):
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
-                dependents=self.eta_s_dependents,
-                latex=self.eta_s_func_doc
+                deriv=self.eta_s_deriv,
+                dependents=self.eta_s_dependents
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -217,6 +218,30 @@ class Compressor(Turbomachine):
                 ) - self.inl[0].h.val_SI
             )
         )
+
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
+        r"""
+        Partial derivatives for isentropic efficiency.
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        f = self.eta_s_func
+
+        if o.h.is_var and not i.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.eta_s.val
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
+
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
 
     def eta_s_func_doc(self, label):
         r"""

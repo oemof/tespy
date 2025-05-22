@@ -156,29 +156,25 @@ class Separator(NodeBase):
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'constant_deriv': False,
-                'latex': self.mass_flow_func_doc,
-                'num_eq_sets': 1
             }),
             'fluid_constraints': dc_cmc(**{
+                'num_eq_sets': self.num_o,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'constant_deriv': False,
-                'latex': self.fluid_func_doc,
-                'num_eq_sets': self.num_o
+                'dependents': self.fluid_dependents
             }),
             'energy_balance_constraints': dc_cmc(**{
+                'num_eq_sets': self.num_o,
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False,
-                'latex': self.energy_balance_func_doc,
-                'num_eq_sets': self.num_o
+                'dependents': self.energy_balance_dependents
             }),
             'pressure_constraints': dc_cmc(**{
+                'num_eq_sets': self.num_o,
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_o
             })
         }
 
@@ -246,7 +242,7 @@ class Separator(NodeBase):
         )
         return generate_latex_eq(self, latex, label)
 
-    def fluid_deriv(self, increment_filter, k):
+    def fluid_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate partial derivatives of fluid balance.
 
@@ -271,6 +267,11 @@ class Separator(NodeBase):
 
             k += 1
 
+    def fluid_dependents(self):
+        mass_flow_containers = [c.m for c in self.inl + self.outl]
+        # fluid_containers = [c.fluid for c in self.inl + self.outl]
+        return [mass_flow_containers for f in self.variable_fluids]
+
     def energy_balance_func(self):
         r"""
         Calculate energy balance.
@@ -291,27 +292,7 @@ class Separator(NodeBase):
             residual += [T_in - o.calc_T()]
         return residual
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0= T_\mathrm{in} - T_{\mathrm{out,}j}'
-            r'\; \forall j \in \text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate partial derivatives of energy balance.
 
@@ -330,19 +311,18 @@ class Separator(NodeBase):
             dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
         if i.h.is_var:
             dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
-        # dT_dfluid_in = {}
-        # for fluid in i.fluid.is_var:
-        #     dT_dfluid_in[fluid] = dT_mix_ph_dfluid(i)
         for o in self.outl:
-            self._partial_derivative(i.p, k, dT_dp_in)
-            self._partial_derivative(i.h, k, dT_dh_in)
-            # for fluid in i.fluid.is_var:
-            #     self.jacobian[k, i.fluid.J_col[fluid]] = dT_dfluid_in[fluid]
             args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
-            if o.p.is_var:
-                self.jacobian[k, o.p.J_col] = -dT_mix_dph(*args)
+            dT_dp_out = -dT_mix_dph(*args)
+            # this assumes the pressures are coupled and enthalpy is not!
+            self._partial_derivative(i.p, k, dT_dp_in - dT_dp_out)
+
             if o.h.is_var:
                 self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
-            # for fluid in o.fluid.is_var:
-            #     self.jacobian[k, o.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(o)
+            self._partial_derivative(i.h, k, dT_dh_in)
             k += 1
+
+    def energy_balance_dependents(self):
+        return [
+            [self.inl[0].p, self.inl[0].h, o.p, o.h] for o in self.outl
+        ]

@@ -194,26 +194,20 @@ class Merge(NodeBase):
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'constant_deriv': False,
-                'latex': self.mass_flow_func_doc,
-                'num_eq_sets': 1,
             }),
             'fluid_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'constant_deriv': False,
-                'latex': self.fluid_func_doc,
-                'num_eq_sets': 1,
+                'dependents': self.fluid_dependents
             }),
             'energy_balance_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                # 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False,
-                'latex': self.energy_balance_func_doc,
-                'num_eq_sets': 1
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
@@ -256,29 +250,7 @@ class Merge(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\sum_i \dot{m}_{\mathrm{in,}i} \cdot x_{fl\mathrm{,in,}i}'
-            r'- \dot {m}_\mathrm{out} \cdot x_{fl\mathrm{,out}}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall i \in'
-            r'\text{inlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def fluid_deriv(self, increment_filter, k):
+    def fluid_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate partial derivatives of fluid balance.
 
@@ -302,6 +274,12 @@ class Merge(NodeBase):
             if fluid in o.fluid.is_var:
                 self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
             k += 1
+
+    def fluid_dependents(self):
+        # TODO: this is just boiler plate, not correct yet!.m
+        return [
+            [self.inl[0].m] for f in self.all_fluids
+        ]
 
     def energy_balance_func(self):
         r"""
@@ -350,7 +328,7 @@ class Merge(NodeBase):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate partial derivatives of energy balance.
 

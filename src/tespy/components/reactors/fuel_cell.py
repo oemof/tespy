@@ -337,7 +337,7 @@ class FuelCell(Component):
         latex = r'0 = P - \eta \cdot \dot{m}_\mathrm{H_2,in,3} \cdot e_0'
         return generate_latex_eq(self, latex, label)
 
-    def eta_deriv(self, increment_filter, k):
+    def eta_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for efficiency function.
 
@@ -390,7 +390,7 @@ class FuelCell(Component):
             r'h_\mathrm{in,1}\right)')
         return generate_latex_eq(self, latex, label)
 
-    def heat_deriv(self, increment_filter, k):
+    def heat_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for heat output function.
 
@@ -443,7 +443,7 @@ class FuelCell(Component):
         latex = r'0=P - \dot{m}_\mathrm{H_2,in} \cdot e'
         return generate_latex_eq(self, latex, label)
 
-    def specific_energy_deriv(self, increment_filter, k):
+    def specific_energy_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for specific energy function.
 
@@ -521,7 +521,7 @@ class FuelCell(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for reactor energy balance.
 
@@ -604,7 +604,7 @@ class FuelCell(Component):
         residual += [(1 - o2) * self.outl[1].m.val_SI - self.inl[2].m.val_SI]
         return residual
 
-    def reactor_mass_flow_deriv(self, increment_filter, k):
+    def reactor_mass_flow_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 

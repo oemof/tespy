@@ -269,13 +269,14 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'U_twophase_liquid': dc_cp(min_val=0),
             'A': dc_cp(min_val=0),
             'UA': dc_cp(
-                min_val=0, num_eq_sets=1, func=self.UA_func, deriv=self.UA_deriv
+                min_val=0, num_eq_sets=1,
+                func=self.UA_func,
+                dependents=self.UA_dependents
             ),
             'td_pinch': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
-                deriv=self.td_pinch_deriv
             )
         })
         return params
@@ -483,23 +484,17 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         sections = self.calc_sections()
         return self.UA.val - self.calc_UA(sections)
 
-    def UA_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of heat transfer coefficient function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.UA_func
-        for c in self.inl + self.outl:
-            self._partial_derivative(c.m, k, f, increment_filter)
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def UA_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.inl[1].m,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].h
+        ]
 
     def calc_td_pinch(self, sections):
         """Calculate the pinch point temperature difference
@@ -512,18 +507,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         _, T_steps_hot, T_steps_cold, _, _ = sections
 
         return min(T_steps_hot - T_steps_cold)
-
-    def td_pinch_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].h,
-            self.inl[1].m,
-            self.inl[1].p,
-            self.inl[1].h,
-            self.outl[1].h
-        ]
 
     def td_pinch_func(self):
         r"""
@@ -541,23 +524,17 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         sections = self.calc_sections()
         return self.td_pinch.val - self.calc_td_pinch(sections)
 
-    def td_pinch_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of upper terminal temperature function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.td_pinch_func
-        for c in self.inl + self.outl:
-            self._partial_derivative(c.m, k, f, increment_filter)
-            self._partial_derivative(c.p, k, f, increment_filter)
-            self._partial_derivative(c.h, k, f, increment_filter)
+    def td_pinch_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.inl[1].m,
+            self.inl[1].p,
+            self.inl[1].h,
+            self.outl[1].h
+        ]
 
     def calc_parameters(self):
         super().calc_parameters()

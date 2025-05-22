@@ -445,6 +445,39 @@ class Component:
     def _update_num_eq(self):
         pass
 
+    def _check_dependents_implemented(self, deriv, dependents):
+        if deriv is None and len(dependents) > 1:
+            msg = (
+                "Retrieving the derivatives of component parameters "
+                "associated with more than one equation is not yet "
+                "supported. For these equations, you have to implement "
+                "a separate derivate calculation method yourself and "
+                "specify it in the component's parameter dictionaries."
+            )
+            raise NotImplementedError(msg)
+
+    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
+        if data.dependents is None:
+            eq_dict[value]._dependents = [None]
+            return
+        dependents = data.dependents(**data.func_params)
+        if type(dependents) == list:
+            scalar_dependents = _get_dependents(dependents)
+            # vector_dependents = [dict() for _ in scalar_dependents]
+        else:
+            scalar_dependents = _get_dependents(dependents["scalars"])
+            # vector_dependents = _get_vector_dependents(dependents["vector"])
+
+        self._check_dependents_implemented(data.deriv, scalar_dependents)
+
+        eq_dict[value]._dependents = scalar_dependents
+        # eq_dict[value]._vector_dependents = vector_dependents
+
+        for i in range(data.num_eq):
+            self._equation_lookup[eq_counter + i] = (value, i)
+            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
+            # self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
+
     def _prepare_for_solver(self, system_dependencies, eq_counter):
         r"""
         Perform component initialization in network preprocessing.
@@ -459,7 +492,8 @@ class Component:
         self.user_imposed_equations = {}
         self.num_eq = 0
         self._equation_lookup = {}
-        self._equation_dependents_lookup = {}
+        self._equation_scalar_dependents_lookup = {}
+        self._equation_vector_dependents_lookup = {}
 
         self._update_num_eq()
 
@@ -468,34 +502,22 @@ class Component:
                 continue
 
             if value in self.constraints:
-                if value not in self.mandatory_equations:
-                    data = self.constraints[value]
-                    self.mandatory_equations.update({value: data})
-                    dependents = _get_dependents(
-                        data.dependents(**data.func_params)
-                    )
-
-                    for i in range(data.num_eq):
-                        self._equation_lookup[eq_counter] = (value, i)
-                        self._equation_dependents_lookup[eq_counter] = dependents[i]
-                        eq_counter += 1
-
-                    self.num_eq += data.num_eq
-
+                eq_dict = self.mandatory_equations
+                data = self.constraints[value]
             elif value in self.parameters:
-                if value not in self.user_imposed_equations:
-                    data = self.parameters[value]
-                    self.user_imposed_equations.update({value: data})
-                    dependents = _get_dependents(
-                        data.dependents(**data.func_params)
-                    )
+                eq_dict = self.user_imposed_equations
+                data = self.parameters[value]
 
-                    for i in range(data.num_eq):
-                        self._equation_lookup[eq_counter] = (value, i)
-                        self._equation_dependents_lookup[eq_counter] = dependents[i]
-                        eq_counter += 1
+            if data.num_eq == 0:
+                continue
 
-                    self.num_eq += data.num_eq
+            if value not in eq_dict:
+                eq_dict.update({value: data})
+                self._assign_dependents_and_eq_mapping(
+                    value, data, eq_dict, eq_counter
+                )
+                self.num_eq += data.num_eq
+                eq_counter += data.num_eq
 
         self.jacobian = {}
         self.residual = np.zeros(self.num_eq)
@@ -508,7 +530,7 @@ class Component:
                 constraint.deriv(None, sum_eq)
             sum_eq += num_eq
 
-        return eq_counter
+        return self.num_eq
 
     def get_parameters(self):
         return {}
@@ -614,67 +636,6 @@ class Component:
             else:
                 return False
 
-    def get_char_expr_doc(self, param, type='rel', inconn=0, outconn=0):
-        r"""
-        Generic method to access characteristic function parameters.
-
-        Parameters
-        ----------
-        param : str
-            Parameter for characteristic function evaluation.
-
-        type : str
-            Type of expression:
-
-            - :code:`rel`: relative to design value
-            - :code:`abs`: absolute value
-
-        inconn : int
-            Index of inlet connection.
-
-        outconn : int
-            Index of outlet connection.
-
-        Returns
-        -------
-        expr : str
-            LaTeX code for documentation
-        """
-        if type == 'rel':
-            if param == 'm':
-                return (
-                    r'\frac{\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}}'
-                    r'{\dot{m}_\mathrm{in,' + str(inconn + 1) +
-                    r',design}}')
-            elif param == 'm_out':
-                return (
-                    r'\frac{\dot{m}_\mathrm{out,' + str(outconn + 1) +
-                    r'}}{\dot{m}_\mathrm{out,' + str(outconn + 1) +
-                    r',design}}')
-            elif param == 'v':
-                return (
-                    r'\frac{\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}}'
-                    r'{\dot{V}_\mathrm{in,' + str(inconn + 1) +
-                    r',design}}')
-            elif param == 'pr':
-                return (
-                    r'\frac{p_\mathrm{out,' + str(outconn + 1) +
-                    r'}\cdot p_\mathrm{in,' + str(inconn + 1) +
-                    r',design}}{p_\mathrm{out,' + str(outconn + 1) +
-                    r',design}\cdot p_\mathrm{in,' + str(inconn + 1) +
-                    r'}}')
-        else:
-            if param == 'm':
-                return r'\dot{m}_\mathrm{in,' + str(inconn + 1) + r'}'
-            elif param == 'm_out':
-                return r'\dot{m}_\mathrm{out,' + str(outconn + 1) + r'}'
-            elif param == 'v':
-                return r'\dot{V}_\mathrm{in,' + str(inconn + 1) + r'}'
-            elif param == 'pr':
-                return (
-                    r'\frac{p_\mathrm{out,' + str(outconn + 1) +
-                    r'}}{p_\mathrm{in,' + str(inconn + 1) + r'}}')
-
     def solve(self, increment_filter):
         """
         Solve equations and calculate partial derivatives of a component.
@@ -705,10 +666,14 @@ class Component:
 
     def _solve_jacobian(self, data, increment_filter, sum_eq):
         if data.deriv is not None:
-            data.deriv(increment_filter, sum_eq, **data.func_params)
+            data.deriv(
+                increment_filter,
+                sum_eq,
+                dependents=data._dependents[0],
+                **data.func_params
+            )
         else:
-            dependents = _get_dependents(data.dependents(**data.func_params))[0]
-            for dependent in dependents:
+            for dependent in data._dependents[0]:
                 f = data.func
                 self._partial_derivative(
                     dependent, sum_eq, f, increment_filter, **data.func_params

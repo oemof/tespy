@@ -166,7 +166,6 @@ class Pump(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
-                latex=self.eta_s_func_doc,
                 deriv=self.eta_s_deriv
             ),
             'eta_s_char': dc_cc(
@@ -214,9 +213,9 @@ class Pump(Turbomachine):
             )
         )
 
-    def eta_s_deriv(self, increment_filter, k):
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
-        Partial derivatives for isentropic efficiency function.
+        Partial derivatives for isentropic efficiency.
 
         Parameters
         ----------
@@ -226,40 +225,17 @@ class Pump(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        f = self.eta_s_func
         i = self.inl[0]
         o = self.outl[0]
-        for dependent in _get_dependents([i.p, o.p])[0]:
-            self._partial_derivative(
-                dependent, k, f, increment_filter
-            )
+        f = self.eta_s_func
 
         if o.h.is_var and not i.h.is_var:
             self.jacobian[k, o.h.J_col] = self.eta_s.val
-        else:
-            for dependent in _get_dependents([i.h, o.h])[0]:
-                self._partial_derivative(
-                    dependent, k, f, increment_filter
-                )
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
 
-    def eta_s_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
 
     def eta_s_dependents(self):
         return [
@@ -353,8 +329,9 @@ class Pump(Turbomachine):
         p = self.flow_char.param
         expr = self.get_char_expr(p, **self.flow_char.char_params)
         return (
-            self.outl[0].p.val_SI - self.inl[0].p.val_SI -
-            self.flow_char.char_func.evaluate(expr))
+            self.outl[0].p.val_SI - self.inl[0].p.val_SI
+            - self.flow_char.char_func.evaluate(expr)
+        )
 
     def flow_char_func_doc(self, label):
         r"""

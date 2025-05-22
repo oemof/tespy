@@ -258,13 +258,16 @@ class DropletSeparator(NodeBase):
         o = self.outl[outconn]
         return h_mix_pQ(o.p.val_SI, quality, o.fluid_data) - o.h.val_SI
 
-    def saturated_outlet_deriv(self, increment_filter, k, outconn=None, quality=None):
+    def saturated_outlet_deriv(self, increment_filter, k, dependents=None, outconn=None, quality=None):
 
         o = self.outl[outconn]
-        self._partial_derivative(o.p, k, dh_mix_dpQ(o.p.val_SI, quality, o.fluid_data), increment_filter)
+        if o.p.is_var:
+            self._partial_derivative(
+                o.p, k, dh_mix_dpQ(o.p.val_SI, quality, o.fluid_data), increment_filter
+            )
         self._partial_derivative(o.h, k, -1)
 
-    def saturated_outlet_dependents(self, outconn=None):
+    def saturated_outlet_dependents(self, outconn=None, quality=None):
         return [
             self.outl[outconn].p,
             self.outl[outconn].h

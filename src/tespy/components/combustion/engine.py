@@ -26,6 +26,7 @@ from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -498,7 +499,7 @@ class CombustionEngine(CombustionChamber):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of energy balance function.
 
@@ -528,7 +529,7 @@ class CombustionEngine(CombustionChamber):
 
         # mass flow and pressure for combustion reaction
         inl, outl = self._get_combustion_connections()
-        variables = self._get_dependents([var for c in inl + outl for var in (c.m, c.p)])
+        variables = _get_dependents([var for c in inl + outl for var in (c.m, c.p)])[0]
         for variable in variables:
             self._partial_derivative(variable, k, f, increment_filter)
 
@@ -594,7 +595,7 @@ class CombustionEngine(CombustionChamber):
             r'h_\mathrm{in,1} \right) + \dot{Q}_1')
         return generate_latex_eq(self, latex, label)
 
-    def Q1_deriv(self, increment_filter, k):
+    def Q1_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of primary heat loop function.
 
@@ -652,7 +653,7 @@ class CombustionEngine(CombustionChamber):
             r'h_\mathrm{in,2} \right) + \dot{Q}_2')
         return generate_latex_eq(self, latex, label)
 
-    def Q2_deriv(self, increment_filter, k):
+    def Q2_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of secondary heat loop function.
 
@@ -726,7 +727,7 @@ class CombustionEngine(CombustionChamber):
         )
         return generate_latex_eq(self, latex, label)
 
-    def tiP_char_deriv(self, increment_filter, k):
+    def tiP_char_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of power to thermal input characteristic.
 
@@ -741,7 +742,7 @@ class CombustionEngine(CombustionChamber):
         inl, outl = self._get_combustion_connections()
         f = self.tiP_char_func
 
-        variables = self._get_dependents([c.m for c in inl + outl] + [self.P])
+        variables = _get_dependents([c.m for c in inl + outl] + [self.P])[0]
         for variable in variables:
             self._partial_derivative(variable, k, f, increment_filter)
 
@@ -816,7 +817,7 @@ class CombustionEngine(CombustionChamber):
         )
         return generate_latex_eq(self, latex, label)
 
-    def Q1_char_deriv(self, increment_filter, k):
+    def Q1_char_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of primary heat to thermal input char.
 
@@ -830,7 +831,7 @@ class CombustionEngine(CombustionChamber):
         """
         f = self.Q1_char_func
         inl, outl = self._get_combustion_connections()
-        variables = self._get_dependents([c.m for c in inl + outl + [self.inl[0]]] + [self.P] + [self.inl[0].h, self.outl[0].h])
+        variables = _get_dependents([c.m for c in inl + outl + [self.inl[0]]] + [self.P] + [self.inl[0].h, self.outl[0].h])[0]
 
         for variable in variables:
             self._partial_derivative(variable, k, f, increment_filter)
@@ -906,7 +907,7 @@ class CombustionEngine(CombustionChamber):
         )
         return generate_latex_eq(self, latex, label)
 
-    def Q2_char_deriv(self, increment_filter, k):
+    def Q2_char_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of secondary heat to thermal input char.
 
@@ -920,7 +921,7 @@ class CombustionEngine(CombustionChamber):
         """
         f = self.Q2_char_func
         inl, outl = self._get_combustion_connections()
-        variables = self._get_dependents([c.m for c in inl + outl + [self.inl[1]]] + [self.P] + [self.inl[1].h, self.outl[1].h])
+        variables = _get_dependents([c.m for c in inl + outl + [self.inl[1]]] + [self.P] + [self.inl[1].h, self.outl[1].h])[0]
 
         for variable in variables:
             self._partial_derivative(variable, k, f, increment_filter)
@@ -986,7 +987,7 @@ class CombustionEngine(CombustionChamber):
         )
         return generate_latex_eq(self, latex, label)
 
-    def Qloss_char_deriv(self, increment_filter, k):
+    def Qloss_char_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of heat loss to thermal input char.
 
@@ -1001,7 +1002,7 @@ class CombustionEngine(CombustionChamber):
         inl, outl = self._get_combustion_connections()
         f = self.Qloss_char_func
 
-        variables = self._get_dependents([c.m for c in inl + outl] + [self.P, self.Qloss])
+        variables = _get_dependents([c.m for c in inl + outl] + [self.P, self.Qloss])[0]
         for variable in variables:
             self._partial_derivative(variable, k, f, increment_filter)
 

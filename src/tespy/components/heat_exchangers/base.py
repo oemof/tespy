@@ -26,6 +26,7 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -235,14 +236,13 @@ class HeatExchanger(Component):
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
-                dependents=self.energy_balance_hot_dependents,
-                latex=self.energy_balance_hot_func_doc
+                dependents=self.energy_balance_hot_dependents
             ),
             'kA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.kA_func,
                 dependents=self.kA_dependents,
-                latex=self.kA_func_doc,
+                deriv=self.kA_deriv
             ),
             'td_log': dc_cp(min_val=0, is_result=True),
             'ttd_u': dc_cp(
@@ -343,7 +343,6 @@ class HeatExchanger(Component):
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'constant_deriv': False,
-                'latex': self.energy_balance_func_doc,
                 'num_eq_sets': 1,
                 'structure_matrix': None
             })
@@ -412,26 +411,6 @@ class HeatExchanger(Component):
             * (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
         )
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Equation for heat exchanger energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} -'
-            r' h_\mathrm{in,1} \right) +\dot{m}_\mathrm{in,2} \cdot '
-            r'\left(h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
-        return generate_latex_eq(self, latex, label)
-
     def energy_balance_dependents(self):
         return [
             self.inl[0].m,
@@ -459,30 +438,11 @@ class HeatExchanger(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         ) - self.Q.val
 
-    def energy_balance_hot_func_doc(self, label):
-        r"""
-        Equation for hot side heat exchanger energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-'
-            r'h_{in,1}\right)-\dot{Q}')
-        return generate_latex_eq(self, latex, label)
-
     def energy_balance_hot_dependents(self):
         return [
             self.inl[0].m,
             self.inl[0].h,
-            self.outl[0].h,
+            self.outl[0].h
         ]
 
     def calculate_td_log(self):
@@ -539,28 +499,26 @@ class HeatExchanger(Component):
             ) + self.kA.val * self.calculate_td_log()
         )
 
-    def kA_func_doc(self, label):
+    def kA_deriv(self, increment_filter, k, dependents=None):
         r"""
-        Calculate heat transfer from heat transfer coefficient.
+        Partial derivatives of heat transfer coefficient function.
 
         Parameters
         ----------
-        label : str
-            Label for equation.
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
 
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
         """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
-            r'T_\mathrm{in,2} - T_\mathrm{in,1} + T_\mathrm{out,2}}'
-            r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
-            r'{T_\mathrm{in,1} - T_\mathrm{out,2}}}}'
-        )
-        return generate_latex_eq(self, latex, label)
+        f = self.kA_func
+        i = self.inl[0]
+        o = self.outl[0]
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+
+        for var in dependents.difference(_get_dependents([i.m])[0]):
+            self._partial_derivative(var, k, f, increment_filter)
 
     def kA_dependents(self):
         return [

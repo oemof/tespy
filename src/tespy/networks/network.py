@@ -1442,7 +1442,7 @@ class Network:
             self._equation_lookup.update(eq_map)
             dependents_map = {
                 eq_num: [dependent.J_col for dependent in dependents]
-                for eq_num, dependents in cp._equation_dependents_lookup.items()
+                for eq_num, dependents in cp._equation_scalar_dependents_lookup.items()
             }
             self._incidence_matrix.update(dependents_map)
 

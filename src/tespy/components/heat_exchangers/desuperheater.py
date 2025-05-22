@@ -188,11 +188,10 @@ class Desuperheater(HeatExchanger):
         constraints = super().get_mandatory_constraints()
         constraints.update({
             'saturated_gas_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'constant_deriv': False,
-                'latex': self.saturated_gas_func_doc,
-                'num_eq_sets': 1
+                'dependents': self.saturated_gas_dependents
             })
         })
         return constraints
@@ -230,7 +229,7 @@ class Desuperheater(HeatExchanger):
         latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
         return generate_latex_eq(self, latex, label)
 
-    def saturated_gas_deriv(self, increment_filter, k):
+    def saturated_gas_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives of saturated gas at hot side outlet function.
 
@@ -243,7 +242,14 @@ class Desuperheater(HeatExchanger):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         o = self.outl[0]
-        self._partial_derivative(
-            o.p, k, -dh_mix_dpQ(o.p.val_SI, 1, o.fluid_data), increment_filter
-        )
         self._partial_derivative(o.h, k, 1, increment_filter)
+        if o.p.is_var:
+            self._partial_derivative(
+                o.p, k, -dh_mix_dpQ(o.p.val_SI, 1, o.fluid_data), increment_filter
+            )
+
+    def saturated_gas_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]

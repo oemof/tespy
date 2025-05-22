@@ -29,6 +29,7 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -379,7 +380,7 @@ class CombustionChamber(Component):
             r'\dot{m}_\mathrm{out,1}')
         return generate_latex_eq(self, latex, label)
 
-    def mass_flow_deriv(self, increment_filter, k):
+    def mass_flow_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate the partial derivatives for all mass flow balance equations.
 
@@ -718,7 +719,7 @@ class CombustionChamber(Component):
         # remove last newline
         return equations[:-1]
 
-    def stoichiometry_deriv(self, increment_filter, k):
+    def stoichiometry_deriv(self, increment_filter, k, dependents=None):
         r"""
         Calculate partial derivatives of the reaction balance.
 
@@ -831,7 +832,7 @@ class CombustionChamber(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_balance_deriv(self, increment_filter, k):
+    def energy_balance_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of energy balance function.
 
@@ -844,7 +845,9 @@ class CombustionChamber(Component):
             Position of equation in Jacobian matrix.
         """
         f = self.energy_balance_func
-        variables = self._get_dependents([var for c in self.inl + self.outl for var in (c.m, c.p, c.h)])
+        variables = _get_dependents(
+            [var for c in self.inl + self.outl for var in (c.m, c.p, c.h)]
+        )[0]
         for var in variables:
             self._partial_derivative(var, k, f, increment_filter)
 
@@ -896,7 +899,7 @@ class CombustionChamber(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def lambda_deriv(self, increment_filter, k):
+    def lambda_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of lambda function.
 
@@ -1000,7 +1003,7 @@ class CombustionChamber(Component):
         )
         return generate_latex_eq(self, latex, label)
 
-    def ti_deriv(self, increment_filter, k):
+    def ti_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of thermal input function.
 

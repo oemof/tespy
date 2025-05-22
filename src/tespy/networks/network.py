@@ -1201,6 +1201,13 @@ class Network:
                 if conn.get_attr(prop).is_set:
                     conn.get_attr(prop).set_reference_val_SI(conn.get_attr(prop)._val_SI)
 
+        # collect all presolved equations
+        self._presolved_equations = [
+            indices
+            for dependents in self._variable_dependencies
+            for indices in dependents["equation_indices"].values()
+        ]
+
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
         edges_with_factors = []
         rhs_offsets = {}
@@ -1385,12 +1392,10 @@ class Network:
         # handle the fluid vector variables
         self._presolve_fluid_vectors()
         # set up the actual list of equations for connections, components,
-        # buses and user defined equations
-        self._presolved_equations = [
-            indices
-            for dependents in self._variable_dependencies
-            for indices in dependents["equation_indices"].values()
-        ]
+
+        for c in self.conns['object']:
+            if not c.fluid.is_var:
+                self._presolved_equations += c._presolve()
 
         self._presolve_linear_dependents()
 

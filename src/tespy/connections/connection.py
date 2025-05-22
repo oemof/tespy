@@ -630,20 +630,21 @@ class Connection:
     def _presolve(self):
         specifications = []
         for name, container in self.property_data.items():
-            if name in ["m", "p", "h", "T", "x", "Td_bp", "v"]:
+            if name in ["p", "h", "T", "x", "Td_bp"]:
                 if container.is_set:
                     specifications += [name]
 
         num_specs = len(specifications)
 
-        if num_specs > 3:
+        if num_specs > 2:
             msg = (
-                "You have specified more than 3 parameters for the connection "
+                "You have specified more than 2 parameters for the connection "
                 f"{self.label} with a known fluid compoistion: "
                 f"{', '.join(specifications)}. This overdetermines the state "
                 "of the fluid."
             )
             raise TESPyNetworkError(msg)
+
         presolved_equations = []
         if self.h.is_var and not self.p.is_var:
             if self.T.is_set:

@@ -1,6 +1,21 @@
 v0.8.1 - Under development
 ++++++++++++++++++++++++++
 
+New Features
+############
+- The :code:`CoolPropWrapper` API can now handle CoolProp based mixtures
+  and allows the user to specify which type of mixture fractions to use
+  (mass, molar, volume). This is mostly for REFPROP support and will require
+  further adaptions for the :code:`CoolPropWrapper` in the future, because the
+  pure fluid functions may not be applicable in the context of mixtures
+  (`PR #653 <https://github.com/oemof/tespy/pull/653>`__).
+
+  In case you are working with incompressible mixtures, this feature is API
+  breaking. You need to append :code:`|mass`, :code:`|volume` or
+  :code:`|molar` to your fluid name string at the very end to specify, which
+  type of mixture is used. This information can be retrieved from the
+  CoolProp online documentation on the incompressible fluids.
+
 Bug Fixes
 #########
 - In case parts of a :code:`Network` were missing a :code:`CycleCloser` or

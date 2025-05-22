@@ -132,7 +132,7 @@ example:
     >>> myconn.set_attr(fluid={'water': 1})  # HEOS back end
     >>> myconn.set_attr(fluid={'INCOMP::water': 1})  # incompressible fluid
     >>> myconn.set_attr(fluid={'BICUBIC::air': 1})  # bicubic back end
-    >>> myconn.set_attr(fluid={'INCOMP::MPG[0.5]': 1})  # binary incompressible mixture
+    >>> myconn.set_attr(fluid={'INCOMP::MPG[0.5]|mass': 1})  # binary incompressible mixture
 
 .. note::
 

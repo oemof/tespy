@@ -3,7 +3,7 @@ import importlib.resources
 import os
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.8.0.post4 - Newton\'s Nature'
+__version__ = '0.8.1.dev0'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

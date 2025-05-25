@@ -310,6 +310,8 @@ class SolarCollector(SimpleHeatExchanger):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.energy_group.is_set:

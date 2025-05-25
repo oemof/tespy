@@ -188,7 +188,7 @@ class Pipeline(SimpleHeatExchanger):
     def get_parameters(self):
         parameters=super().get_parameters()
         parameters['Q_ohc_group']=dc_gcp(
-            elements=['insulation_m','insulation_tc', 'Tamb', 'material',"pipe_thickness"],
+            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness'],
             num_eq=1,
             func=self.ohc_group_func,
             deriv=self.ohc_group_deriv
@@ -203,13 +203,25 @@ class Pipeline(SimpleHeatExchanger):
         return parameters
 
     def ohc_group_func(self):
-        """Heat transfer calculation based on pipe material, insulation and
+        r"""Heat transfer calculation based on pipe material, insulation and
         surrounding ambient conditions.
 
         Returns
         -------
         float
             Residual value of equation
+
+            .. math::
+
+                0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
+                \Delta T_\text{log} \cdot A \cdot U
+
+                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
+                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+
+                \Delta T_{log} =
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}}
         """
         T_in = self.inl[0].calc_T()
         T_out = self.outl[0].calc_T()
@@ -272,7 +284,8 @@ class Pipeline(SimpleHeatExchanger):
                 self.wind_velocity.val * math.pi / 2
                 * (diameters[1] + self.insulation_m.val * 2)
                 / self.air.viscosity_pT(101300, self.Tamb.val_SI + 273)
-                * self.air.d_pT(101300, self.Tamb.val_SI + 273))
+                * self.air.d_pT(101300, self.Tamb.val_SI + 273)
+            )
             # no update call required here
             Pr = self.air.AS.Prandtl()
             Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)

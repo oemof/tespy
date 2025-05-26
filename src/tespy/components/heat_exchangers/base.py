@@ -295,14 +295,12 @@ class HeatExchanger(Component):
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                latex=self.zeta_func_doc,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta1'}
             ),
             'zeta2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                latex=self.zeta_func_doc,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}

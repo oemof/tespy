@@ -174,21 +174,21 @@ class Merge(NodeBase):
         return {'num_in': dc_simple()}
 
     def _update_num_eq(self):
-        variable_fluids = set(
+        self.variable_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
         )
         set_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_set]
         )
-        self.all_fluids = variable_fluids | set_fluids
-        if len(variable_fluids) == 0 and len(set_fluids) == 0:
+        self.all_fluids = self.variable_fluids | set_fluids
+        if len(self.variable_fluids) == 0 and len(set_fluids) == 0:
             fluid_eq = 0
             self.constraints["mass_flow_constraints"].num_eq = 1
-        elif len(variable_fluids) == 0:
+        elif len(self.variable_fluids) == 0:
             fluid_eq = len(self.all_fluids)
             self.constraints["mass_flow_constraints"].num_eq = 0
         else:
-            fluid_eq = len(variable_fluids)
+            fluid_eq = len(self.variable_fluids)
         self.constraints["fluid_constraints"].num_eq = fluid_eq
 
     def get_mandatory_constraints(self):
@@ -276,10 +276,16 @@ class Merge(NodeBase):
             k += 1
 
     def fluid_dependents(self):
-        # TODO: this is just boiler plate, not correct yet!.m
-        return [
-            [self.inl[0].m] for f in self.all_fluids
-        ]
+        return {
+            "scalars": [
+                [c.m for c in self.inl + self.outl]
+                for f in self.all_fluids
+            ],
+            "vectors": [{
+                c.fluid: f for f in self.all_fluids if f in self.variable_fluids
+                for c in self.inl + self.outl
+            }]
+        }
 
     def energy_balance_func(self):
         r"""

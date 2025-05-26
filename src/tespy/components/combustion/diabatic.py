@@ -223,9 +223,11 @@ class DiabaticCombustionChamber(CombustionChamber):
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
             ),
             'eta': dc_cp(
-                max_val=1, min_val=0, deriv=self.energy_balance_deriv,
+                max_val=1, min_val=0,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc, num_eq_sets=1),
+                dependents=self.energy_balance_dependents,
+                num_eq_sets=1
+            ),
             'Qloss': dc_cp(max_val=0, is_result=True)
         })
         return params

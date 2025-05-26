@@ -35,6 +35,7 @@ from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
 from tespy.tools.helpers import _get_dependents
+from tespy.tools.helpers import _get_vector_dependents
 
 
 def component_registry(type):
@@ -458,25 +459,30 @@ class Component:
 
     def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
         if data.dependents is None:
-            eq_dict[value]._dependents = [None]
-            return
-        dependents = data.dependents(**data.func_params)
-        if type(dependents) == list:
-            scalar_dependents = _get_dependents(dependents)
-            # vector_dependents = [dict() for _ in scalar_dependents]
+            scalar_dependents = [[] for _ in range(data.num_eq)]
+            vector_dependents = [{} for _ in range(data.num_eq)]
         else:
-            scalar_dependents = _get_dependents(dependents["scalars"])
-            # vector_dependents = _get_vector_dependents(dependents["vector"])
+            dependents = data.dependents(**data.func_params)
+            if type(dependents) == list:
+                scalar_dependents = _get_dependents(dependents)
+                vector_dependents = [{} for _ in range(data.num_eq)]
+            else:
+                scalar_dependents = _get_dependents(dependents["scalars"])
+                vector_dependents = _get_vector_dependents(dependents["vectors"])
 
-        self._check_dependents_implemented(data.deriv, scalar_dependents)
+                # this is a temporary fix
+                if len(vector_dependents) < data.num_eq:
+                    vector_dependents = [{} for _ in range(data.num_eq)]
 
-        eq_dict[value]._dependents = scalar_dependents
-        # eq_dict[value]._vector_dependents = vector_dependents
+            self._check_dependents_implemented(data.deriv, scalar_dependents)
+
+        eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._vector_dependents = vector_dependents
 
         for i in range(data.num_eq):
             self._equation_lookup[eq_counter + i] = (value, i)
             self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
-            # self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
+            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
 
     def _prepare_for_solver(self, system_dependencies, eq_counter):
         r"""
@@ -487,10 +493,10 @@ class Component:
         nw : tespy.networks.network.Network
             Network this component is integrated in.
         """
+        self.num_eq = 0
         self.it = 0
         self.mandatory_equations = {}
         self.user_imposed_equations = {}
-        self.num_eq = 0
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}
         self._equation_vector_dependents_lookup = {}
@@ -530,7 +536,7 @@ class Component:
                 constraint.deriv(None, sum_eq)
             sum_eq += num_eq
 
-        return self.num_eq
+        return eq_counter
 
     def get_parameters(self):
         return {}
@@ -669,14 +675,21 @@ class Component:
             data.deriv(
                 increment_filter,
                 sum_eq,
-                dependents=data._dependents[0],
+                dependents=data._scalar_dependents[0],
                 **data.func_params
             )
+
         else:
-            for dependent in data._dependents[0]:
+            for dependent in data._scalar_dependents[0]:
                 f = data.func
                 self._partial_derivative(
                     dependent, sum_eq, f, increment_filter, **data.func_params
+                )
+
+            for dependent, dx in data._vector_dependents[0].items():
+                f = data.func
+                self._partial_derivative_fluid(
+                    dependent, sum_eq, f, dx, increment_filter, **data.func_params
                 )
 
     def bus_func(self, bus):

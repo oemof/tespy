@@ -628,6 +628,27 @@ def extend_basic_path(subfolder):
     return extended_path
 
 
+def _get_vector_dependents(variable_list):
+    if len(variable_list) == 0:
+        return []
+    if isinstance(variable_list, list):
+        variable_list_new = []
+        for _eq_set in variable_list:
+            variable_list_new.append({})
+            for key, value in _eq_set.items():
+                if not value:
+                    continue
+                k = key._reference_container
+                if k not in variable_list_new[-1]:
+                    variable_list_new[-1][k] = set()
+                variable_list_new[-1][k] |= value
+        return variable_list_new
+    else:
+        return [
+            set(var for var in variable_list)
+        ]
+
+
 def _get_dependents(variable_list):
     if isinstance(variable_list[0], list):
         return [set(

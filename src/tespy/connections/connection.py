@@ -46,6 +46,7 @@ from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _get_dependents
+from tespy.tools.helpers import _get_vector_dependents
 
 
 class Connection:
@@ -709,7 +710,8 @@ class Connection:
         self.it = 0
         self.equations = {}
         self._equation_lookup = {}
-        self._equation_dependents_lookup = {}
+        self._equation_scalar_dependents_lookup = {}
+        self._equation_vector_dependents_lookup = {}
 
         for eq_num, value in self._equation_set_lookup.items():
             if eq_num in system_dependencies:
@@ -718,22 +720,41 @@ class Connection:
             if value not in self.equations:
                 data = self.parameters[value]
                 self.equations.update({value: data})
-                if data.dependents is not None:
-                    dependents = _get_dependents(data.dependents())
-                else:
-                    dependents = [[]]
-
-                for i in range(data.num_eq):
-                    self._equation_lookup[eq_counter] = (value, i)
-                    self._equation_dependents_lookup[eq_counter] = dependents[i]
-                    eq_counter += 1
-
+                self._assign_dependents_and_eq_mapping(
+                    value, data, self.equations, eq_counter
+                )
                 self.num_eq += data.num_eq
+                eq_counter += data.num_eq
 
         self.residual = np.zeros(self.num_eq)
         self.jacobian = {}
 
         return eq_counter
+
+    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
+        if data.dependents is None:
+            scalar_dependents = [[] for _ in range(data.num_eq)]
+            vector_dependents = [{} for _ in range(data.num_eq)]
+        else:
+            dependents = data.dependents(**data.func_params)
+            if type(dependents) == list:
+                scalar_dependents = _get_dependents(dependents)
+                vector_dependents = [{} for _ in range(data.num_eq)]
+            else:
+                scalar_dependents = _get_dependents(dependents["scalars"])
+                vector_dependents = _get_vector_dependents(dependents["vectors"])
+
+                # this is a temporary fix
+                if len(vector_dependents) < data.num_eq:
+                    vector_dependents = [{} for _ in range(data.num_eq)]
+
+        eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._vector_dependents = vector_dependents
+
+        for i in range(data.num_eq):
+            self._equation_lookup[eq_counter + i] = (value, i)
+            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
+            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
 
     def reset_fluid_vector(self):
         self.fluid = dc_flu()
@@ -753,7 +774,7 @@ class Connection:
                 func=self.fluid_balance_func, deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1
             ),
-            "T": dc_prop(func=self.T_func, deriv=self.T_deriv, num_eq=1),
+            "T": dc_prop(func=self.T_func, deriv=self.T_deriv, dependents=self.T_dependents, num_eq=1),
             "v": dc_prop(func=self.v_func, deriv=self.v_deriv, num_eq=1),
             "x": dc_prop(func=self.x_func, deriv=self.x_deriv, num_eq=1),
             "Td_bp": dc_prop(
@@ -846,6 +867,12 @@ class Connection:
                 self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
                     self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
                 )
+
+    def T_dependents(self):
+        return {
+            "scalars": [self.p, self.h],
+            "vectors": [{self.fluid: self.fluid.is_var}]
+        }
 
     def T_ref_func(self, **kwargs):
         ref = self.T_ref.ref

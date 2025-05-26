@@ -1440,11 +1440,27 @@ class Network:
                 for eq_num, eq_name in cp._equation_lookup.items()
             }
             self._equation_lookup.update(eq_map)
+
             dependents_map = {
                 eq_num: [dependent.J_col for dependent in dependents]
                 for eq_num, dependents in cp._equation_scalar_dependents_lookup.items()
             }
             self._incidence_matrix.update(dependents_map)
+
+            dependents_map = {
+                eq_num: [
+                    dependent.J_col[key]
+                    for dependent, keys in dependents.items()
+                    for key in keys
+                ]
+                for eq_num, dependents in cp._equation_vector_dependents_lookup.items()
+            }
+            for eq_num, dependents in dependents_map.items():
+                if eq_num in self._incidence_matrix:
+                    self._incidence_matrix[eq_num] += dependents
+
+                else:
+                    self._incidence_matrix[eq_num] = dependents
 
             c = cp.__class__.__name__
             for spec in self.specifications[c].keys():
@@ -1463,12 +1479,27 @@ class Network:
                 for eq_num, eq_name in c._equation_lookup.items()
             }
             self._equation_lookup.update(eq_map)
+
             dependents_map = {
                 eq_num: [dependent.J_col for dependent in dependents]
-                for eq_num, dependents in c._equation_dependents_lookup.items()
+                for eq_num, dependents in c._equation_scalar_dependents_lookup.items()
             }
             self._incidence_matrix.update(dependents_map)
 
+            dependents_map = {
+                eq_num: [
+                    dependent.J_col[key]
+                    for dependent, keys in dependents.items()
+                    for key in keys
+                ]
+                for eq_num, dependents in c._equation_vector_dependents_lookup.items()
+            }
+            for eq_num, dependents in dependents_map.items():
+                if eq_num in self._incidence_matrix:
+                    self._incidence_matrix[eq_num] += dependents
+
+                else:
+                    self._incidence_matrix[eq_num] = dependents
 
         for b in self.busses.values():
             self.busses[b.label] = b
@@ -2711,12 +2742,12 @@ class Network:
         except np.linalg.LinAlgError:
             self.increment = self.residual * 0
 
-        if self.lin_dep:
-            n = self.variable_counter
-            self._incidence_matrix_dense = np.zeros((n, n))
-            for row, cols in self._incidence_matrix.items():
-                self._incidence_matrix_dense[row, cols] = 1
+        n = self.variable_counter
+        self._incidence_matrix_dense = np.zeros((n, n))
+        for row, cols in self._incidence_matrix.items():
+            self._incidence_matrix_dense[row, cols] = 1
 
+        if self.lin_dep:
             _nl = "\n"
             if self.iter == 0 and np.linalg.det(self._incidence_matrix_dense) == 0.0:
                 self.singularity_msg = (

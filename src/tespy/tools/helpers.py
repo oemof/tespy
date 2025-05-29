@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 import CoolProp.CoolProp as CP
+import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
@@ -593,3 +594,51 @@ def extend_basic_path(subfolder):
     if not os.path.isdir(extended_path):
         os.mkdir(extended_path)
     return extended_path
+
+
+def _nested_dict_of_dataframes_to_dict(dictionary):
+    """Transpose a nested dict with dataframes or series in a json style dict
+
+    Parameters
+    ----------
+    dictionary : dict
+        Dictionary of dataframes
+
+    Returns
+    -------
+    dict
+        json style dictionary containing all data from the dataframes
+    """
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            dictionary[key] = _nested_dict_of_dataframes_to_dict(value)
+        else:
+            # Otherwise this is assumed a series, then orient is not available
+            kwargs = {}
+            if isinstance(value, pd.DataFrame):
+                kwargs = {"orient": "index"}
+            dictionary[key] = value.to_dict(**kwargs)
+
+    return dictionary
+
+def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
+    """Dump a nested dict with dataframes into a folder structrue
+
+    The upper level keys with subdictionaries are folder names, the lower
+    level keys (where a dataframe is the value) will be the names of the
+    csv files.
+
+    Parameters
+    ----------
+    dictionary : dict
+        Nested dictionary to write to filesystem.
+    basepath : str
+        path to dump data to
+    """
+    os.makedirs(basepath, exist_ok=True)
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            basepath = os.path.join(basepath, key)
+            _nested_dict_of_dataframes_to_filetree(value, basepath)
+        else:
+            value.to_csv(os.path.join(basepath, f"{key}.csv"))

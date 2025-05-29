@@ -4,7 +4,6 @@ import os
 import sys
 import warnings
 
-
 if sys.version_info[1] < 10:
     msg = (
         "Supprt for python versions below 3.10 will be dropped with the "

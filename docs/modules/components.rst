@@ -36,6 +36,10 @@ well as the equations.
   * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
   * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
   * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
+  * :py:class:`Moving Boundary Heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`
+    (Advanced heat exchanger class, automatically identifying phase change
+    sections in the heat transfer of both sides and assigning individual UA
+    values per section of heat transfer)
 
 - Nodes
 
@@ -48,6 +52,7 @@ well as the equations.
 - Piping
 
   * :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
+  * :py:class:`Pipeline <tespy.components.piping.pipeline.Pipeline>`
   * :py:class:`Valve <tespy.components.piping.valve.Valve>`
 
 - Reactors
@@ -60,12 +65,9 @@ well as the equations.
   * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
   * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
   * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
-
-List of custom components
--------------------------
-Here we list the components integrated in the customs module.
-
-- :py:class:`Evaporator for two-phase geothermal organic rankine cycle <tespy.components.customs.orc_evaporator.ORCEvaporator>`
+  * :py:class:`Steam turbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`
+    (Advanced component for isentropic efficiency correction in wet outlet
+    steam conditions implementing the Baumann correlation)
 
 .. _tespy_modules_components_parametrisation_label:
 

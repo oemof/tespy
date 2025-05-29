@@ -1,5 +1,5 @@
-v0.8.1 - Under development
-++++++++++++++++++++++++++
+v0.8.1 - Newton's Nature (May, 29, 2025)
+++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -12,7 +12,7 @@ New Features
   (mass, molar, volume). This is mostly for REFPROP support and will require
   further adaptions for the :code:`CoolPropWrapper` in the future, because the
   pure fluid functions may not be applicable in the context of mixtures
-  (`PR #653 <https://github.com/oemof/tespy/pull/653>`__).
+  (`PR #655 <https://github.com/oemof/tespy/pull/655>`__).
 
   In case you are working with incompressible mixtures, this feature is API
   breaking. You need to append :code:`|mass`, :code:`|volume` or
@@ -26,6 +26,9 @@ Bug Fixes
   a :code:`Source` and :code:`Sink` combination a misleading error was raised.
   These cases are checked for explicitly now to make debugging easier
   (`PR #653 <https://github.com/oemof/tespy/pull/653>`__).
+- The logging of warnings for :code:`HeatExchanger` based components includes
+  the label of the component, when cold or hot side effectiveness cannot be
+  calculated (`PR #670 <https://github.com/oemof/tespy/pull/670>`__).
 
 Contributors
 ############

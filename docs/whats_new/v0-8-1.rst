@@ -22,6 +22,9 @@ Bug Fixes
   a :code:`Source` and :code:`Sink` combination a misleading error was raised.
   These cases are checked for explicitly now to make debugging easier
   (`PR #653 <https://github.com/oemof/tespy/pull/653>`__).
+- The logging of warnings for :code:`HeatExchanger` based components includes
+  the label of the component, when cold or hot side effectiveness cannot be
+  calculated (`PR #670 <https://github.com/oemof/tespy/pull/670>`__).
 
 Contributors
 ############

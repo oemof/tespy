@@ -435,7 +435,7 @@ class TestNetworkErrors:
         b = Connection(source, 'out1', sink2, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_Connection_error_target(self):
         source1 = Source('source1')
@@ -445,7 +445,7 @@ class TestNetworkErrors:
         b = Connection(source2, 'out1', sink, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_inlets(self):
         merge = Merge('merge')
@@ -453,7 +453,7 @@ class TestNetworkErrors:
         a = Connection(merge, 'out1', sink, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_outlets(self):
         source = Source('source')
@@ -461,7 +461,7 @@ class TestNetworkErrors:
         a = Connection(source, 'out1', splitter, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_component_label_duplicates(self):
         source = Source('label')
@@ -596,6 +596,5 @@ def test_h_mix_pQ_on_mixtures():
     c = Connection(Source("test"), "out1", Sink("test2"), "in1")
     c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
     c._create_fluid_wrapper()
-    c.build_fluid_data()
     with raises(ValueError):
         h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)

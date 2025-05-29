@@ -46,15 +46,14 @@ class TestNetworks:
         with raises(TESPyNetworkError):
             self.nw.solve('offdesign', **kwargs)
 
-    def test_Network_linear_dependency(self):
+    def test_Network_overdetermined_fluid_state(self):
         """Test network linear dependency."""
         a = Connection(
             self.source, 'out1', self.sink, 'in1', p=5, x=1, T=7, fluid={"H2": 1}
         )
         self.nw.add_conns(a)
-        self.nw.solve('design')
-        msg = 'This test must result in a linear dependency of the jacobian matrix.'
-        assert self.nw.lin_dep, msg
+        with raises(TESPyNetworkError):
+            self.nw.solve('design')
 
     def test_Network_no_progress(self):
         """Test no convergence progress."""
@@ -65,8 +64,10 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        msg = ('This test must result in a calculation making no progress, as '
-               'the pipe\'s outlet enthalpy is below fluid property range.')
+        msg = (
+            'This test must result in a calculation making no progress, as '
+            'the pipe\'s outlet enthalpy is below fluid property range.'
+        )
         assert not self.nw.progress, msg
 
     def test_Network_max_iter(self):
@@ -78,21 +79,25 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design', max_iter=2)
-        msg = ('This test must result in the itercount being equal to the max '
-               'iter statement.')
+        msg = (
+            'This test must result in the itercount being equal to the max '
+            'iter statement.'
+        )
         assert self.nw.max_iter == self.nw.iter + 1, msg
 
     def test_Network_delete_conns(self):
         """Test deleting a network's connection."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        self.nw.check_network()
+        self.nw.check_topology()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
         self.nw.del_conns(a)
-        msg = ('A connection has been deleted, the network consistency check '
-               'must be repeated (.checked-property must be False).')
+        msg = (
+            'A connection has been deleted, the network consistency check '
+            'must be repeated (.checked-property must be False).'
+        )
         assert not self.nw.checked, msg
 
     def test_Network_delete_comps(self):
@@ -499,15 +504,15 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design")
         self.nwk._convergence_check()
         variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
-        # no mass flow is variable
+        # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
         # first connection pressure and enthalpy not variable
         assert c1.p not in variables
         assert c1.h not in variables
-        # second connection pressure and enthalpy are variable
-        assert c2.p in variables
-        assert c2.h in variables
+        # second connection pressure and enthalpy not variable
+        assert c2.p not in variables
+        assert c2.h not in variables
 
     @mark.skip("Not implemented")
     def test_splitting_branch_massflow_presolve(self):
@@ -619,7 +624,7 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_network()
+        nw.check_topology()
 
 
 def test_v07_to_v08_export(tmp_path):

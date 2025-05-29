@@ -231,23 +231,26 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
+            'E': dc_cp(min_val=0),
+            'A': dc_cp(min_val=0),
             'eta_opt': dc_cp(min_val=0, max_val=1),
-            'c_1': dc_cp(min_val=0), 'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(), 'iam_2': dc_cp(),
+            'c_1': dc_cp(min_val=0),
+            'c_2': dc_cp(min_val=0),
+            'iam_1': dc_cp(),
+            'iam_2': dc_cp(),
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
             'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
                     'iam_2', 'A', 'Tamb'
                 ],
-                num_eq=1,
+                num_eq_sets=1,
                 latex=self.energy_group_func_doc,
                 func=self.energy_group_func,
-                deriv=self.energy_group_deriv
+                dependents=self.energy_group_dependents
             )
         })
         return data
@@ -324,40 +327,14 @@ class ParabolicTrough(SimpleHeatExchanger):
         )
         return generate_latex_eq(self, latex, label)
 
-    def energy_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy group function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.energy_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        # custom variables for the energy-group
-        for variable_name in self.energy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter == self.Tamb:
-                continue
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+    def energy_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.energy_group.elements]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 import os
 import sys
+import warnings
 from datetime import date
 
 import CoolProp as CP
@@ -46,6 +47,11 @@ def document_model(nw, path='report', filename='report.tex', fmt={}):
         Dictionary for formatting the report, for sample see respective
         section in online documentation.
     """
+    msg = (
+        'The document_model functionality is depricated and will be removed '
+        'in the next major release.'
+    )
+    warnings.warn(msg, FutureWarning)
     # prepare filestructure
     fig_path = os.path.join(path, "figures")
 

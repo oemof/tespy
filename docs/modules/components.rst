@@ -777,12 +777,14 @@ Custom subsystems
 -----------------
 
 Create a :code:`.py` file in your working-directory. This file contains the
-class definition of your subsystem and at minimum two methods:
+class definition of your subsystem and at minimum one method:
 
-- :code:`create_comps`: Method to create the components of your subsystem and
-  save them in the :code:`Subsystem.comps` attribute (dictionary).
-- :code:`create_conns`: Method to create the connections of your subsystem and
-  save them in the :code:`Subsystem.conns` attribute (dictionary).
+- :code:`create_network`: Method to create the network of your subsystem.
+
+On top of that you need to add methods to define the available interfaces of
+your subsystem to the remaining network through specifying the number of inlets
+and outlets in the :code:`__init__` method of your class as seen in the code
+example below.
 
 All other functionalities are inherited by the parent class of the
 :py:class:`subsystem <tespy.components.subsystem.Subsystem>` object.
@@ -826,28 +828,33 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
 
     >>> class WasteHeatSteamGenerator(Subsystem):
     ...     """Class documentation"""
+    ...     def __init__(self, label):
+    ...         self.num_in = 2
+    ...         self.num_out = 2
+    ...         super().__init__(label)
     ...
-    ...     def create_comps(self):
-    ...         """Create the subsystem's components."""
-    ...         self.comps['eco'] = HeatExchanger(f'{self.label}_economizer')
-    ...         self.comps['eva'] = HeatExchanger(f'{self.label}_evaporator')
-    ...         self.comps['sup'] = HeatExchanger(f'{self.label}_superheater')
-    ...         self.comps['drum'] = Drum(f'{self.label}_drum')
-    ...
-    ...     def create_conns(self):
+    ...     def create_network(self):
     ...         """Define the subsystem's connections."""
-    ...         self.conns['eco_dr'] = Connection(
-    ...             self.comps['eco'], 'out2', self.comps['drum'], 'in1')
-    ...         self.conns['dr_eva'] = Connection(
-    ...             self.comps['drum'], 'out1', self.comps['eva'], 'in2')
-    ...         self.conns['eva_dr'] = Connection(
-    ...             self.comps['eva'], 'out2', self.comps['drum'], 'in2')
-    ...         self.conns['dr_sup'] = Connection(
-    ...             self.comps['drum'], 'out2', self.comps['sup'], 'in2')
-    ...         self.conns['sup_eva'] = Connection(
-    ...             self.comps['sup'], 'out1', self.comps['eva'], 'in1')
-    ...         self.conns['eva_eco'] = Connection(
-    ...             self.comps['eva'], 'out1', self.comps['eco'], 'in1')
+    ...         eco = HeatExchanger('economizer')
+    ...         eva = HeatExchanger('evaporator')
+    ...         sup = HeatExchanger('superheater')
+    ...         drum = Drum('drum')
+    ...
+    ...         inlet_eco = Connection(self.inlet, 'out2', eco, 'in2', label='1')
+    ...         eco_dr = Connection(eco, 'out2', drum, 'in1', label='2')
+    ...         dr_eva = Connection(drum, 'out1', eva, 'in2', label='3')
+    ...         eva_dr = Connection(eva, 'out2', drum, 'in2', label='4')
+    ...         dr_sup = Connection(drum, 'out2', sup, 'in2', label='5')
+    ...         sup_outlet = Connection(sup, 'out2', self.outlet, 'in2', label='6')
+    ...
+    ...         self.add_conns(inlet_eco, eco_dr, dr_eva, eva_dr, dr_sup, sup_outlet)
+    ...
+    ...         inlet_sup = Connection(self.inlet, 'out1', sup, 'in1', label='11')
+    ...         sup_eva = Connection(sup, 'out1', eva, 'in1', label='12')
+    ...         eva_eco = Connection(eva, 'out1', eco, 'in1', label='13')
+    ...         eco_outlet = Connection(eco, 'out1', self.outlet, 'in1', label='14')
+    ...
+    ...         self.add_conns(inlet_sup, sup_eva, eva_eco, eco_outlet)
 
 .. note::
 
@@ -881,40 +888,39 @@ different tespy classes required.
     >>> sg = WasteHeatSteamGenerator('waste heat steam generator')
 
     >>> # %% connection definition
-    >>> fw_sg = Connection(feed_water, 'out1', sg.comps['eco'], 'in2')
-    >>> sg_ls = Connection(sg.comps['sup'], 'out2', steam, 'in1')
-    >>> fg_sg = Connection(waste_heat, 'out1', sg.comps['sup'], 'in1')
-    >>> sg_ch = Connection(sg.comps['eco'], 'out1', chimney, 'in1')
+    >>> fw_sg = Connection(feed_water, 'out1', sg, 'in2')
+    >>> sg_ls = Connection(sg, 'out2', steam, 'in1')
+    >>> fg_sg = Connection(waste_heat, 'out1', sg, 'in1')
+    >>> sg_ch = Connection(sg, 'out1', chimney, 'in1')
 
     >>> nw.add_conns(fw_sg, sg_ls, fg_sg, sg_ch)
-    >>> nw.add_subsys(sg)
+    >>> nw.add_subsystems(sg)
 
     >>> # %% connection parameters
     >>> fw_sg.set_attr(fluid={'water': 1}, T=25, m0=15)
     >>> fg_sg.set_attr(fluid={'air': 1}, T=650, m=100)
     >>> sg_ls.set_attr(p=130, T=600, design=['T'])
     >>> sg_ch.set_attr(p=1)
-    >>> sg.conns['eva_eco'].set_attr()
 
-    >>> sg.conns['eva_dr'].set_attr(x=0.6)
+    >>> sg.get_conn('4').set_attr(x=0.6)
 
     >>> # %% component parameters
-    >>> sg.comps['eco'].set_attr(
+    >>> sg.get_comp('economizer').set_attr(
     ...     pr1=0.999,  pr2=0.97, design=['pr1', 'pr2'],
     ...     offdesign=['zeta1', 'zeta2', 'kA_char']
     ... )
 
-    >>> sg.comps['eva'].set_attr(
+    >>> sg.get_comp('evaporator').set_attr(
     ...     pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
     ...     offdesign=['zeta1', 'kA_char']
     ... )
 
-    >>> sg.comps['sup'].set_attr(
+    >>> sg.get_comp('superheater').set_attr(
     ...     pr1=0.999,  pr2=0.99, design=['pr1', 'pr2'],
     ...     offdesign=['zeta1', 'zeta2', 'kA_char']
     ... )
 
-    >>> sg.conns['eco_dr'].set_attr(Td_bp=-5, design=['Td_bp'])
+    >>> sg.get_conn('2').set_attr(Td_bp=-5, design=['Td_bp'])
 
     >>> # %% solve
     >>> # solve design case
@@ -924,6 +930,7 @@ different tespy classes required.
 
     >>> # offdesign test
     >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw._convergence_check()
 
 Add more flexibility
 --------------------

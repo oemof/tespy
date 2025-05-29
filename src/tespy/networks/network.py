@@ -200,6 +200,7 @@ class Network:
         self.user_defined_eq = {}
         # bus dictionary
         self.busses = {}
+        self.subsystems = {}
         # results and specification dictionary
         self.results = {}
         self.specifications = {}
@@ -356,7 +357,7 @@ class Network:
             logger.error(msg)
             raise KeyError(msg)
 
-    def add_subsys(self, *args):
+    def add_subsystems(self, *args):
         r"""
         Add one or more subsystems to the network.
 
@@ -364,11 +365,59 @@ class Network:
         ----------
         c : tespy.components.subsystem.Subsystem
             The subsystem to be added to the network, subsystem objects si
-            :code:`network.add_subsys(s1, s2, s3, ...)`.
+            :code:`network.add_subsystems(s1, s2, s3, ...)`.
         """
-        for subsys in args:
-            for c in subsys.conns.values():
+        for subsystem in args:
+            if subsystem.label in self.subsystems:
+                msg = (
+                    'There is already a subsystem with the label '
+                    f'{subsystem.label}. The labels must be unique!'
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+
+            self.subsystems[subsystem.label] = subsystem
+
+            for c in subsystem.conns.values():
                 self.add_conns(c)
+
+    def del_subsystems(self, *args):
+        r"""
+        Delete one or more subsystems from the network.
+
+        Parameters
+        ----------
+        c : tespy.components.subsystem.Subsystem
+            The subsystem to be deleted from the network, subsystem objects si
+            :code:`network.del_subsystems(s1, s2, s3, ...)`.
+        """
+        for subsystem in args:
+            if subsystem.label in self.subsystems:
+                for c in subsystem.conns.values():
+                    self.del_conns(c)
+
+            del self.subsystems[subsystem.label]
+
+    def get_subsystem(self, label):
+        r"""
+        Get Subsystem via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the Subsystem object.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            Subsystem objectt with specified label, None if no Subsystem of
+            the network has this label.
+        """
+        try:
+            return self.subsystems[label]
+        except KeyError:
+            logger.warning(f"Subsystem with label {label} not found.")
+            return None
 
     def get_conn(self, label):
         r"""
@@ -3153,7 +3202,7 @@ class Network:
 
             b.P.val = float(self.results[b.label]['bus value'].sum())
 
-    def print_results(self, colored=True, colors=None, print_results=True):
+    def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""Print the calculations results to prompt."""
         # Define colors for highlighting values in result table
         if colors is None:
@@ -3175,16 +3224,34 @@ class Network:
             )
             raise hlp.TESPyNetworkError(msg)
 
+        result += self._print_components(colored, coloring, subsystem)
+        result += self._print_connections(colored, coloring, subsystem)
+        result += self._print_buses(colored, coloring, subsystem)
+
+        if len(str(result)) > 0:
+            logger.result(result)
+            if print_results:
+                print(result)
+        return
+
+    def _print_components(self, colored, coloring, subsystem) -> str:
+        result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
-
             # are there any parameters to print?
             if df.size > 0:
+                if subsystem is not None:
+                    component_labels = [
+                        c.label for c in subsystem.comps.values()
+                        if c.label in df.index
+                    ]
+                    df = df.loc[component_labels]
+
                 cols = df.columns
                 if len(cols) > 0:
                     for col in cols:
                         df[col] = df.apply(
-                            self.print_components, axis=1,
+                            self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
 
                     df.dropna(how='all', inplace=True)
@@ -3198,9 +3265,20 @@ class Network:
                                 floatfmt='.2e'
                             )
                         )
+        return result
+
+    def _print_connections(self, colored, coloring, subsystem) -> str:
+        result = ""
 
         # connection properties
-        df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T', 'x', 'phase']].copy()
+        df = self.results['Connection'].loc[
+            :, ['m', 'p', 'h', 'T', 'x', 'phase']
+        ].copy()
+
+        if subsystem is not None:
+            connection_labels = [c.label for c in subsystem.conns.values()]
+            df = df.loc[connection_labels]
+
         df = df.astype(str)
         for c in df.index:
             if not self.get_conn(c).printout:
@@ -3210,44 +3288,46 @@ class Network:
                 conn = self.get_conn(c)
                 for col in df.columns:
                     if conn.get_attr(col).is_set:
+                        value = conn.get_attr(col).val
                         df.loc[c, col] = (
-                            coloring['set'] + str(conn.get_attr(col).val) +
-                            coloring['end'])
+                            f"{coloring['set']}{value}{coloring['end']}"
+                        )
 
         if len(df) > 0:
             result += ('\n##### RESULTS (Connection) #####\n')
             result += (
                 tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
             )
+        return result
 
-        for b in self.busses.values():
-            if b.printout:
-                df = self.results[b.label].loc[
-                    :, ['component value', 'bus value', 'efficiency']
-                ].copy()
-                df.loc['total'] = df.sum()
-                df.loc['total', 'efficiency'] = np.nan
-                if colored:
-                    df["bus value"] = df["bus value"].astype(str)
-                    if b.P.is_set:
-                        df.loc['total', 'bus value'] = (
-                            coloring['set'] + str(df.loc['total', 'bus value']) +
-                            coloring['end']
+    def _print_buses(self, colored, coloring, subsystem) -> str:
+        result = ""
+        # bus printout only if not subsystem is passed
+        if subsystem is None:
+            for b in self.busses.values():
+                if b.printout:
+                    df = self.results[b.label].loc[
+                        :, ['component value', 'bus value', 'efficiency']
+                    ].copy()
+                    df.loc['total'] = df.sum()
+                    df.loc['total', 'efficiency'] = np.nan
+                    if colored:
+                        df["bus value"] = df["bus value"].astype(str)
+                        if b.P.is_set:
+                            value = df.loc['total', 'bus value']
+                            df.loc['total', 'bus value'] = (
+                                f"{coloring['set']}{value}{coloring['end']}"
+                            )
+                    result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
+                    result += (
+                        tabulate(
+                            df, headers='keys', tablefmt='psql',
+                            floatfmt='.3e'
                         )
-                result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
-                result += (
-                    tabulate(
-                        df, headers='keys', tablefmt='psql',
-                        floatfmt='.3e'
                     )
-                )
-        if len(str(result)) > 0:
-            logger.result(result)
-            if print_results:
-                print(result)
-        return
+        return result
 
-    def print_components(self, c, *args):
+    def _color_component_prints(self, c, *args):
         """
         Get the print values for the component data.
 
@@ -3280,11 +3360,11 @@ class Network:
             # else part
             if (val < comp.get_attr(param).min_val - ERR or
                     val > comp.get_attr(param).max_val + ERR ):
-                return f"{coloring['err']} {val} {coloring['end']}"
+                return f"{coloring['err']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_var:
-                return f"{coloring['var']} {val} {coloring['end']}"
+                return f"{coloring['var']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_set:
-                return f"{coloring['set']} {val} {coloring['end']}"
+                return f"{coloring['set']}{val}{coloring['end']}"
             return str(val)
         else:
             return np.nan
@@ -3678,7 +3758,7 @@ class Network:
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()
 
-        dump = self._nested_dict_of_dataframes_to_dict(dump)
+        dump = hlp._nested_dict_of_dataframes_to_dict(dump)
 
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
@@ -3704,54 +3784,7 @@ class Network:
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
         dump["Bus"] = self._save_busses()
-        self._nested_dict_of_dataframes_to_csv(dump, folder_path)
-
-    def _nested_dict_of_dataframes_to_csv(self, dictionary, basepath):
-        """Dump a nested dict with dataframes into a folder structrue
-
-        The upper level keys with subdictionaries are folder names, the lower
-        level keys (where a dataframe is the value) will be the names of the
-        csv files.
-
-        Parameters
-        ----------
-        dictionary : dict
-            Nested dictionary to write to filesystem.
-        basepath : str
-            path to dump data to
-        """
-        os.makedirs(basepath, exist_ok=True)
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                basepath = os.path.join(basepath, key)
-                self._nested_dict_of_dataframes_to_csv(value, basepath)
-            else:
-                value.to_csv(os.path.join(basepath, f"{key}.csv"))
-
-    def _nested_dict_of_dataframes_to_dict(self, dictionary):
-        """Transpose a nested dict with dataframes in a json style dict
-
-        Parameters
-        ----------
-        dictionary : dict
-            Dictionary of dataframes
-
-        Returns
-        -------
-        dict
-            json style dictionary containing all data from the dataframes
-        """
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                dictionary[key] = self._nested_dict_of_dataframes_to_dict(value)
-            else:
-                # Series to csv does not have orient
-                kwargs = {}
-                if isinstance(value, pd.DataFrame):
-                    kwargs = {"orient": "index"}
-                dictionary[key] = value.to_dict(**kwargs)
-
-        return dictionary
+        hlp._nested_dict_of_dataframes_to_filetree(dump, folder_path)
 
     def _save_connections(self):
         """Save the connection properties.

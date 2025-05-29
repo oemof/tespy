@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import Component
+from tespy.components import Subsystem
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
 from tespy.tools.data_containers import FluidComposition as dc_flu
@@ -235,6 +236,7 @@ class Connection:
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
+        source, target = self._remap_if_subsystem(source, target)
         self._check_types(source, target)
         self._check_self_connect(source, target)
         self._check_connector_id(source, outlet_id, source.outlets())
@@ -281,6 +283,17 @@ class Connection:
         logger.debug(msg)
 
         self.set_attr(**kwargs)
+
+    def _remap_if_subsystem(self, source, target):
+        # If the connected source or target is a subsystem we must
+        # remap the source and target to its outlet/inlet
+        if isinstance(source, Subsystem):
+            source = source.outlet
+
+        if isinstance(target, Subsystem):
+            target = target.inlet
+
+        return source, target
 
     def _check_types(self, source, target):
         # check input parameters

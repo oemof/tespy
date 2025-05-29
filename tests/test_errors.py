@@ -135,14 +135,12 @@ def test_get_attr_errors():
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
     mybus = Bus('mybus')
-    sub = Subsystem('MySub')
 
     get_attr_KeyError(comb, 'wow')
     get_attr_KeyError(conn, 'key')
     get_attr_KeyError(mybus, 'components')
     get_attr_KeyError(nw, 'missing')
     get_attr_KeyError(Ref(conn, 1, 0), 'comp')
-    get_attr_KeyError(sub, 'test')
     get_attr_KeyError(CharLine(), 'test')
     get_attr_KeyError(DataContainer(), 'somekey')
     get_attr_KeyError(CharMap(), 'Stuff')
@@ -340,6 +338,11 @@ def test_subsys_label_str():
 def test_subsys_label_forbidden():
     with raises(ValueError):
         Subsystem('label;')
+
+
+def test_subsys_no_create_network():
+    with raises(NotImplementedError):
+        Subsystem("bare subsystem")
 
 ##############################################################################
 # turbine

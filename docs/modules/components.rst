@@ -782,10 +782,9 @@ class definition of your subsystem and at minimum one method:
 - :code:`create_network`: Method to create the network of your subsystem.
 
 On top of that you need to add methods to define the available interfaces of
-your subsystem to the remaining network through the following methods:
-
-- :code:`inlets`: Method to return the list of available inlets.
-- :code:`outlets`: Method to return the list of available outlets.
+your subsystem to the remaining network through specifying the number of inlets
+and outlets in the :code:`__init__` method of your class as seen in the code
+example below.
 
 All other functionalities are inherited by the parent class of the
 :py:class:`subsystem <tespy.components.subsystem.Subsystem>` object.

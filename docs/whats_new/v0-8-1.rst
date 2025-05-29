@@ -3,10 +3,6 @@ v0.8.1 - Newton's Nature (May, 29, 2025)
 
 New Features
 ############
-- A new component :code:`Pipeline` has been added, which can calculate heat
-  losses based on its material, insulation as well as the surrounding
-  conditions, e.g. if it is an above surface pipeline or a subsurface buried
-  pipeline (`PR #661 <https://github.com/oemof/tespy/pull/661>`__).
 - The :code:`CoolPropWrapper` API can now handle CoolProp based mixtures
   and allows the user to specify which type of mixture fractions to use
   (mass, molar, volume). This is mostly for REFPROP support and will require
@@ -33,4 +29,3 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
-- `@HaSchneider <https://github.com/HaSchneider>`__

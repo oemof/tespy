@@ -257,15 +257,16 @@ class CombustionEngine(CombustionChamber):
         params.update({
             'P': dc_cp(_val=-1e6, d=1, max_val=-1),
             'Q1': dc_cp(
-                max_val=-1, deriv=self.Q1_deriv, func=self.Q1_func,
-                num_eq_sets=1, latex=self.Q1_func_doc
+                max_val=-1,
+                num_eq_sets=1,
+                deriv=self.Q1_deriv,
+                func=self.Q1_func
             ),
             'Q2': dc_cp(
                 max_val=-1,
-                deriv=self.Q2_deriv,
-                func=self.Q2_func,
                 num_eq_sets=1,
-                latex=self.Q2_func_doc
+                deriv=self.Q2_deriv,
+                func=self.Q2_func
             ),
             'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1),
             'pr1': dc_cp(
@@ -296,19 +297,19 @@ class CombustionEngine(CombustionChamber):
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                latex=self.zeta_func_doc,
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
                 func_params={'zeta': 'zeta1'}
             ),
             'zeta2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                latex=self.zeta_func_doc,
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}
             ),
-            'tiP_char': dc_cc(), 'Q1_char': dc_cc(), 'Q2_char': dc_cc(),
+            'tiP_char': dc_cc(),
+            'Q1_char': dc_cc(),
+            'Q2_char': dc_cc(),
             'Qloss_char': dc_cc(),
             'eta_mech': dc_simple(_val=0.85),
             'T_v_inner': dc_simple()
@@ -469,37 +470,6 @@ class CombustionEngine(CombustionChamber):
 
         return res
 
-    def energy_balance_func_doc(self, label):
-        """
-        Calculate the energy balance of the combustion engine.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
-            r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
-            r'\dot{m}_\mathrm{out,3}\cdot\left( h_\mathrm{out,3}'
-            r' - h_\mathrm{out,3,ref}\right)\\' + '\n'
-            r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
-            r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,3} '
-            r'\cdot x_{fuel\mathrm{,out,3}} \right)\\' + '\n'
-            r'& + \dot{Q}_1 + \dot{Q}_2+P + \dot{Q}_\mathrm{loss}\\' + '\n'
-            r'& \forall i \in [3,4]\\'
-            r'& T_\mathrm{ref}=\unit[298.15]{K}'
-            r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
-            '\n' + r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         """
         Calculate partial derivatives of energy balance function.
@@ -552,12 +522,24 @@ class CombustionEngine(CombustionChamber):
         for fl in (self.fuel_list & c.fluid.is_var):
             self.jacobian[k, c.fluid.J_col[fl]] = -c.m.val_SI * self.fuels[fl]['LHV']
 
-
         # power and heat loss
         if self.P.is_var:
             self.jacobian[k, self.P.J_col] = 1
         if self.Qloss.is_var:
             self.jacobian[k, self.Qloss.J_col] = 1
+
+    def energy_balance_dependents(self):
+        inl, outl = self._get_combustion_connections()
+        return {
+            "scalars": [
+                var for c in inl + outl for var in [c.m, c.p, c.h]
+            ] + [
+                var for c in self.inl[:2] + self.outl[:2] for var in [c.m, c.h]
+            ] + [self.P, self.Qloss],
+            "vectors": [{
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+            }]
+        }
 
     def Q1_func(self):
         r"""

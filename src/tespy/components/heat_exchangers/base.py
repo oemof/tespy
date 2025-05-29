@@ -1069,7 +1069,7 @@ class HeatExchanger(Component):
         except ValueError:
             self.eff_hot.val = np.nan
             msg = (
-                "Cannot calculate heat exchanger hot side effectiveness "
+                f"Cannot calculate {self.label} hot side effectiveness "
                 "because cold side inlet temperature is out of bounds for hot "
                 "side fluid."
             )
@@ -1082,7 +1082,7 @@ class HeatExchanger(Component):
         except ValueError:
             self.eff_cold.val = np.nan
             msg = (
-                "Cannot calculate heat exchanger cold side effectiveness "
+                f"Cannot calculate {self.label} cold side effectiveness "
                 "because hot side inlet temperature is out of bounds for cold "
                 "side fluid."
             )

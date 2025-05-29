@@ -863,6 +863,22 @@ class Network:
         self.variable_counter = 0
         self.variables_dict = {}
 
+        # in multiprocessing copies are made of all connections
+        # the mass flow branches and fluid branches hold references to
+        # connections from the original run (where network.checked is False)
+        # The assignment of variable spaces etc. is however made on the
+        # copies of the connections which do not correspond to the mass flow
+        # branches and fluid branches anymore. So the topology simplification
+        # does not actually apply to the copied network, therefore the
+        # branches have to be recreated for this case. We can detect that by
+        # checking whether a network holds a massflow branch with some
+        # connections and compare that with the connection object actually
+        # present in the network
+        for k, v in self.fluid_wrapper_branches.items():
+            if self.conns.loc[v["connections"][0].label, "object"] != v["connections"][0]:
+                self._create_fluid_wrapper_branches()
+            continue
+
         self._propagate_fluid_wrappers()
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values

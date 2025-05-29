@@ -317,6 +317,7 @@ class CombustionEngine(CombustionChamber):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
+        constraints["energy_balance_constraints"].deriv = self.energy_balance_deriv
         constraints.update({
             'power_constraints': dc_cmc(**{
                 'func': self.tiP_char_func,
@@ -364,7 +365,7 @@ class CombustionEngine(CombustionChamber):
         return ['out1', 'out2', 'out3']
 
     def propagate_wrapper_to_target(self, branch):
-        inl, outl = self._get_combustion_connections()
+        inl, _ = self._get_combustion_connections()
         inconn = branch["connections"][-1]
         if inconn in inl:
             if self in branch["components"]:

@@ -215,7 +215,6 @@ class Pipeline(SimpleHeatExchanger):
         Diameters= [self.D.val, 
             self.D.val+2*self.pipe_thickness.val, 
             self.D.val+2*self.pipe_thickness.val +2* self.insulation_m.val]
-        air= CoolPropWrapper('air')
 
         A= self.L.val * math.pi *(Diameters[2] ) #outer surface area per definition
 

@@ -222,9 +222,7 @@ class Pipeline(SimpleHeatExchanger):
                 \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
                 {T_{out}-T_{amb}}}}
         
-        Gnielinski, V.: Berechnung mittlerer Wärme- und Stoffübergangskoeffizienten an laminar
-        und turbulent überströmten Einzelkörpern mithilfe einer einheitlichen Gleichung.
-        Forsch. Ing.-Wes. 41(5), 145-153 (1975)
+        Reference: :cite:`gnielinski1975`
         """
         T_in = self.inl[0].calc_T()
         T_out = self.outl[0].calc_T()
@@ -322,10 +320,10 @@ class Pipeline(SimpleHeatExchanger):
                 {T_{out}-T_{amb}}}}
         
                 First order approximation of multipole method for a single pipe in the ground.
-        No surface resistance
-        Source:
-        Wallentén P. Steady-state heat loss from insulated pipes. Licentiate Thesis. Division of Building Physics;1991
         
+        Assume no surface resistance.
+
+        Reference: :cite:`wallenten1991`
         """
         T_in = self.inl[0].calc_T()
         T_out = self.outl[0].calc_T()

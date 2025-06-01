@@ -177,14 +177,20 @@ class Pipeline(SimpleHeatExchanger):
     def get_parameters(self):
         parameters=super().get_parameters()
         # remove unused parameters
-        for k in ["kA_group", "kA_char_group", "kA", "kA_char"]:
+        for k in [ "kA_char_group", "kA_char"]:
             del parameters[k]
 
-        parameters['Q_ohc_group']=dc_gcp(
-            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness'],
+        parameters['Q_ohc_group_surface']=dc_gcp(
+            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','wind_velocity'],
             num_eq=1,
-            func=self.ohc_group_func,
-            deriv=self.ohc_group_deriv
+            func=self.ohc_surface_group_func,
+            deriv=self.ohc_surface_group_deriv
+        )
+        parameters['Q_ohc_group_subsurface']=dc_gcp(
+            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
+            num_eq=1,
+            func=self.ohc_subsurface_group_func,
+            deriv=self.ohc_subsurface_group_deriv
         )
         parameters['insulation_m']=dc_cp(min_val=1e-3, max_val=1e1)
         parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2)
@@ -195,9 +201,9 @@ class Pipeline(SimpleHeatExchanger):
         parameters['pipe_depth']= dc_cp(min_val=1e-2, max_val=1e2)
         return parameters
 
-    def ohc_group_func(self):
+    def ohc_surface_group_func(self):
         r"""Heat transfer calculation based on pipe material, insulation and
-        surrounding ambient conditions.
+        surrounding ambient conditions fur surface pipes.
 
         Returns
         -------
@@ -215,6 +221,10 @@ class Pipeline(SimpleHeatExchanger):
                 \Delta T_{log} =
                 \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
                 {T_{out}-T_{amb}}}}
+        
+        Gnielinski, V.: Berechnung mittlerer Wärme- und Stoffübergangskoeffizienten an laminar
+        und turbulent überströmten Einzelkörpern mithilfe einer einheitlichen Gleichung.
+        Forsch. Ing.-Wes. 41(5), 145-153 (1975)
         """
         T_in = self.inl[0].calc_T()
         T_out = self.outl[0].calc_T()
@@ -227,13 +237,6 @@ class Pipeline(SimpleHeatExchanger):
 
         # outer surface area per definition
         area = self.L.val * math.pi * diameters[2]
-
-        if T_in == T_out:
-            dTm = T_in - self.Tamb.val_SI
-        else:
-            dTm = (T_out - T_in) / math.log(
-                (self.Tamb.val_SI - T_in) / (self.Tamb.val_SI - T_out)
-            )
 
         # heat transfer resistance
         R_sum = []
@@ -267,72 +270,128 @@ class Pipeline(SimpleHeatExchanger):
         lambda_ground ={
             'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
         }
-        if self.environment_media.val == 'air':
-            '''
-            Gnielinski, V.: Berechnung mittlerer Wärme- und Stoffübergangskoeffizienten an laminar
-            und turbulent überströmten Einzelkörpern mithilfe einer einheitlichen Gleichung.
-            Forsch. Ing.-Wes. 41(5), 145-153 (1975)
-            '''
-            Re = (
-                self.wind_velocity.val * math.pi / 2
-                * (diameters[1] + self.insulation_m.val * 2)
-                / self.air.viscosity_pT(101300, self.Tamb.val_SI + 273)
-                * self.air.d_pT(101300, self.Tamb.val_SI + 273)
-            )
+        
+        
+        Re = (
+            self.wind_velocity.val * math.pi / 2
+            * (diameters[1] + self.insulation_m.val * 2)
+            / self.air.viscosity_pT(101300, self.Tamb.val_SI)
+            * self.air.d_pT(101300, self.Tamb.val_SI)
+        )
+        # no update call required here
+        Pr = self.air.AS.Prandtl()
+        Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)
+        Nu_turb = (
+            0.037 * Re ** 0.8 * Pr
+            / (1+ 2.443 * Re** (-0.1) * (Pr ** (2 / 3) - 1))
+        )
+        Nu_ext = 0.3 + (Nu_lam ** 2 + Nu_turb ** 2) ** 0.5
+        alpha_ext = (
+            Nu_ext
+            / (math.pi / 2 * (diameters[1] + self.insulation_m.val *2))
             # no update call required here
-            Pr = self.air.AS.Prandtl()
-            Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)
-            Nu_turb = (
-                0.037 * Re ** 0.8 * Pr
-                / (1+ 2.443 * Re** (-0.1) * (Pr ** (2 / 3) - 1))
-            )
-            Nu_ext = 0.3 + (Nu_lam ** 2 + Nu_turb ** 2) ** 0.5
-            alpha_ext = (
-                Nu_ext
-                / (math.pi / 2 * (diameters[1] + self.insulation_m.val *2))
-                # no update call required here
-                * self.air.AS.conductivity()
-            ) #W/m²/K
-            R_sum.append(1 / alpha_ext)
+            * self.air.AS.conductivity()
+        ) #W/m²/K
+        R_sum.append(1 / alpha_ext)
 
-        elif self.environment_media.val in lambda_ground.keys():
-            '''
-            First order approximation of multipole method for a single pipe in the ground.
-            No surface resistance
-            Source:
-            Wallentén P. Steady-state heat loss from insulated pipes. Licentiate Thesis. Division of Building Physics;1991
-            '''
-            Beta = (
-                lambda_ground[self.environment_media.val]
-                / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
-            )
-            _h = (
-                math.log(2 * self.pipe_depth.val / diameters[0]) + Beta
-                + 1 / (
-                    1 - (2 * self.pipe_depth.val / diameters[0]) ** 2
-                    * (1 + Beta) / (1 - Beta)
-                )
-            )
-            R_soil = (
-                _h / (2 * math.pi * lambda_ground[self.environment_media.val])
-            )
-
-            return (
-                self.inl[0].m.val_SI
-                * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                - dTm  / R_soil
-            )
-
-        else:
-            raise ValueError('No valid environmental media.')
         if len(R_sum) == 0:
             raise ValueError("No heat transfer resistance. Check input values.")
 
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            - dTm * area / sum(R_sum)
+        self.kA.val= area / sum(R_sum)
+        return self.kA_group_func()
+
+    def ohc_subsurface_group_func(self):
+        r"""Heat transfer calculation based on pipe material, insulation and
+        surrounding ambient conditions for subsurface pipes.
+
+        Returns
+        -------
+        float
+            Residual value of equation
+
+            .. math::
+
+                0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
+                \Delta T_\text{log} \cdot A \cdot U
+
+                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
+                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+
+                \Delta T_{log} =
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}}
+        
+                First order approximation of multipole method for a single pipe in the ground.
+        No surface resistance
+        Source:
+        Wallentén P. Steady-state heat loss from insulated pipes. Licentiate Thesis. Division of Building Physics;1991
+        
+        """
+        T_in = self.inl[0].calc_T()
+        T_out = self.outl[0].calc_T()
+
+        diameters= [
+            self.D.val,
+            self.D.val + 2 * self.pipe_thickness.val,
+            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_m.val
+        ]
+
+        # outer surface area per definition
+        area = self.L.val * math.pi * diameters[2]
+
+        # heat transfer resistance
+        R_sum = []
+
+        '''
+        inner heat transfer resistance neglected yet
+        R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
+        R_sum.append(R_int)
+        '''
+
+        # pipe wall heat transfer resistance
+        if diameters[1] > diameters[0]:
+            if isinstance(self.material.val, str):
+                wall_resistance = self._pipe_tc(self.material.val, (T_in - T_out) / 2)
+            else:
+                wall_resistance = self.material.val
+            R_sum.append(
+                diameters[1] / wall_resistance
+                * math.log(diameters[1] / diameters[0]) / 2
+            )
+            #potential bug in DWSIM: factor 2 is missing
+
+        # insulation heat transfer resistance
+        if self.insulation_m.val != 0:
+            R_sum.append(
+                diameters[2] / self.insulation_tc.val
+                * math.log(diameters[2] / diameters[1]) / 2
+            )
+            #potential bug in DWSIM: factor 2 is missing
+        # external heat transfer resistance (to environment)
+        lambda_ground ={
+            'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
+        }
+
+        #elif self.environment_media.val in lambda_ground.keys():
+
+        Beta = (
+            lambda_ground[self.environment_media.val]
+            / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
         )
+        _h = (
+            math.log(2 * self.pipe_depth.val / diameters[0]) + Beta
+            + 1 / (
+                1 - (2 * self.pipe_depth.val / diameters[0]) ** 2
+                * (1 + Beta) / (1 - Beta)
+            )
+        )
+        R_soil = (
+            _h / (2 * math.pi * lambda_ground[self.environment_media.val])
+        )
+
+        self.kA.val= 1 / R_soil
+        return self.kA_group_func()
+
 
     def _pipe_tc(self, material: str, T: float) -> float:
         """Determine heat conduction of pipe material and temperature
@@ -356,7 +415,7 @@ class Pipeline(SimpleHeatExchanger):
 
         return lamda  # W/m.K
 
-    def ohc_group_deriv(self, increment_filter, k):
+    def ohc_subsurface_group_deriv(self, increment_filter, k):
         """Calculate the partial derivatives of the ohc equation
 
         Parameters
@@ -369,7 +428,7 @@ class Pipeline(SimpleHeatExchanger):
         """
         i = self.inl[0]
         o = self.outl[0]
-        func= self.ohc_group_func
+        func= self.ohc_subsurface_group_func
         if i.m.is_var:
             self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
         if i.h.is_var:
@@ -383,6 +442,34 @@ class Pipeline(SimpleHeatExchanger):
         if self.D.is_var:
             self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
 
+    def ohc_surface_group_deriv(self, increment_filter, k):
+        """Calculate the partial derivatives of the ohc equation
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        func= self.ohc_surface_group_func
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        if i.p.is_var:
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if o.p.is_var:
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.D.is_var:
+            self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
+
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]
@@ -390,6 +477,6 @@ class Pipeline(SimpleHeatExchanger):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
+        #self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        #self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)

@@ -255,7 +255,6 @@ class Pipeline(SimpleHeatExchanger):
                 diameters[1] / wall_resistance
                 * math.log(diameters[1] / diameters[0]) / 2
             )
-            #potential bug in DWSIM: factor 2 is missing
 
         # insulation heat transfer resistance
         if self.insulation_m.val != 0:
@@ -263,20 +262,13 @@ class Pipeline(SimpleHeatExchanger):
                 diameters[2] / self.insulation_tc.val
                 * math.log(diameters[2] / diameters[1]) / 2
             )
-            #potential bug in DWSIM: factor 2 is missing
         # external heat transfer resistance (to environment)
-        lambda_ground ={
-            'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
-        }
-        
-        
         Re = (
             self.wind_velocity.val * math.pi / 2
             * (diameters[1] + self.insulation_m.val * 2)
             / self.air.viscosity_pT(101300, self.Tamb.val_SI)
             * self.air.d_pT(101300, self.Tamb.val_SI)
         )
-        # no update call required here
         Pr = self.air.AS.Prandtl()
         Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)
         Nu_turb = (
@@ -287,7 +279,6 @@ class Pipeline(SimpleHeatExchanger):
         alpha_ext = (
             Nu_ext
             / (math.pi / 2 * (diameters[1] + self.insulation_m.val *2))
-            # no update call required here
             * self.air.AS.conductivity()
         ) #W/m²/K
         R_sum.append(1 / alpha_ext)
@@ -325,8 +316,6 @@ class Pipeline(SimpleHeatExchanger):
 
         Reference: :cite:`wallenten1991`
         """
-        T_in = self.inl[0].calc_T()
-        T_out = self.outl[0].calc_T()
 
         diameters= [
             self.D.val,
@@ -334,43 +323,16 @@ class Pipeline(SimpleHeatExchanger):
             self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_m.val
         ]
 
-        # outer surface area per definition
-        area = self.L.val * math.pi * diameters[2]
-
-        # heat transfer resistance
-        R_sum = []
-
         '''
         inner heat transfer resistance neglected yet
         R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
         R_sum.append(R_int)
         '''
 
-        # pipe wall heat transfer resistance
-        if diameters[1] > diameters[0]:
-            if isinstance(self.material.val, str):
-                wall_resistance = self._pipe_tc(self.material.val, (T_in - T_out) / 2)
-            else:
-                wall_resistance = self.material.val
-            R_sum.append(
-                diameters[1] / wall_resistance
-                * math.log(diameters[1] / diameters[0]) / 2
-            )
-            #potential bug in DWSIM: factor 2 is missing
-
-        # insulation heat transfer resistance
-        if self.insulation_m.val != 0:
-            R_sum.append(
-                diameters[2] / self.insulation_tc.val
-                * math.log(diameters[2] / diameters[1]) / 2
-            )
-            #potential bug in DWSIM: factor 2 is missing
         # external heat transfer resistance (to environment)
         lambda_ground ={
             'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
         }
-
-        #elif self.environment_media.val in lambda_ground.keys():
 
         Beta = (
             lambda_ground[self.environment_media.val]
@@ -475,6 +437,6 @@ class Pipeline(SimpleHeatExchanger):
 
         self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         self.pr.val = o.p.val_SI / i.p.val_SI
-        #self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        #self.dp.val = i.p.val - o.p.val
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.dp.val = i.p.val - o.p.val
         self.zeta.val = self.calc_zeta(i, o)

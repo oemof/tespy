@@ -566,22 +566,7 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
-        if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_2
-
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * self._deltaT_log()
 
     def kA_group_func_doc(self, label):
         r"""
@@ -679,25 +664,10 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
-
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-
-        if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_2
-
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
+        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) 
+                + self.kA.design * fkA * self._deltaT_log())
 
     def kA_char_group_func_doc(self, label):
         r"""
@@ -920,20 +890,8 @@ class SimpleHeatExchanger(Component):
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:
-            ttd_1 = i.T.val_SI - self.Tamb.val_SI
-            ttd_2 = o.T.val_SI - self.Tamb.val_SI
-
-            if (ttd_1 / ttd_2) < 0:
-                td_log = np.nan
-            if ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-            elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-            else:
-                # both values are equal
-                td_log = ttd_1
-
-            self.kA.val = abs(self.Q.val / td_log)
+            
+            self.kA.val = abs(self.Q.val / self._deltaT_log())
             self.kA.is_result = True
         else:
             self.kA.is_result = False
@@ -1188,3 +1146,45 @@ class SimpleHeatExchanger(Component):
                 'ending_point_value': self.outl[0].s.val
             }
         }
+
+    def _deltaT_log(self):
+        """
+        Calculation of mean logarithmic temperature difference. 
+
+        For numerical stability: If temperature differences have
+        different sign use mean difference to avoid negative logarithm.
+
+        Returns
+        -------
+        deltaT_log : float
+            Mean logarithmic temperature difference.
+
+            .. math::
+
+                \Delta T_{log} = \begin{cases}
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
+                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
+                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
+                0 & T_{in} = T_{out}
+                \end{cases}
+
+                T_{amb}: \text{ambient temperature}
+        """
+        
+        i = self.inl[0]
+        o = self.outl[0]
+
+        ttd_1 = i.T.val_SI - self.Tamb.val_SI
+        ttd_2 = o.T.val_SI - self.Tamb.val_SI
+
+        if (ttd_1 / ttd_2) < 0:
+            td_log = np.nan
+        if ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+        elif ttd_1 < ttd_2:
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
+        else:
+            # both values are equal
+            td_log = ttd_1
+        return td_log

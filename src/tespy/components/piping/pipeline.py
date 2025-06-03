@@ -284,9 +284,13 @@ class Pipeline(SimpleHeatExchanger):
 
         if len(R_sum) == 0:
             raise ValueError("No heat transfer resistance. Check input values.")
+      
+        i = self.inl[0]
+        o = self.outl[0]
 
-        self.kA.val= area / sum(R_sum)
-        return self.kA_group_func()
+        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) 
+                + area / sum(R_sum) * self._deltaT_log()
+        )
 
     def ohc_subsurface_group_func(self):
         r"""Heat transfer calculation based on pipe material, insulation and
@@ -347,9 +351,13 @@ class Pipeline(SimpleHeatExchanger):
         R_soil = (
             _h / (2 * math.pi * ground_conductivity[self.environment_media.val])
         )
+        i = self.inl[0]
+        o = self.outl[0]
 
-        self.kA.val= 1 / R_soil
-        return self.kA_group_func()
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI) + 
+            1 / R_soil * self._deltaT_log()
+        )
 
     def ohc_subsurface_group_deriv(self, increment_filter, k):
         """Calculate the partial derivatives of the ohc equation
@@ -405,14 +413,3 @@ class Pipeline(SimpleHeatExchanger):
         if self.D.is_var:
             self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
 
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
-        self.zeta.val = self.calc_zeta(i, o)

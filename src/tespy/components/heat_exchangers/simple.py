@@ -1175,8 +1175,14 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        ttd_1 = i.T.val_SI - self.Tamb.val_SI
-        ttd_2 = o.T.val_SI - self.Tamb.val_SI
+        if math.isnan(i.T.val):
+            ttd_1 = i.calc_T() - self.Tamb.val_SI
+        else:
+            ttd_1 = i.T.val_SI - self.Tamb.val_SI
+        if math.isnan(o.T.val):
+            ttd_2 = o.calc_T() - self.Tamb.val_SI
+        else:
+            ttd_2 = o.T.val_SI - self.Tamb.val_SI
 
         if (ttd_1 / ttd_2) < 0:
             td_log = np.nan

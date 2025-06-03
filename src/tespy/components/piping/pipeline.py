@@ -117,7 +117,7 @@ class Pipeline(SimpleHeatExchanger):
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature unit.
 
-    insulation_m: float
+    insulation_thickness: float
         thickness of insulation
 
     insulation_tc: float
@@ -158,7 +158,7 @@ class Pipeline(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'water': 1}, m=100, T=300, p=40)
     >>> pi.set_attr(
     ...     pr=0.95, Tamb=20, L=1000, D='var', ks=4.57e-5,
-    ...     insulation_m=0.1, insulation_tc=0.035, pipe_thickness=0.003,
+    ...     insulation_thickness=0.1, insulation_tc=0.035, pipe_thickness=0.003,
     ...     material='Steel', environment_media='air', wind_velocity=0.1
     ... )
     >>> nw.solve('design')
@@ -181,18 +181,18 @@ class Pipeline(SimpleHeatExchanger):
             del parameters[k]
 
         parameters['Q_ohc_group_surface']=dc_gcp(
-            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','wind_velocity'],
+            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','wind_velocity'],
             num_eq=1,
             func=self.ohc_surface_group_func,
             deriv=self.ohc_surface_group_deriv
         )
         parameters['Q_ohc_group_subsurface']=dc_gcp(
-            elements=['insulation_m', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
+            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
             num_eq=1,
             func=self.ohc_subsurface_group_func,
             deriv=self.ohc_subsurface_group_deriv
         )
-        parameters['insulation_m']=dc_cp(min_val=1e-3, max_val=1e1)
+        parameters['insulation_thickness']=dc_cp(min_val=1e-3, max_val=1e1)
         parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2)
         parameters['material']=dc_simple(val='Steel')
         parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1)
@@ -224,13 +224,11 @@ class Pipeline(SimpleHeatExchanger):
         
         Reference: :cite:`gnielinski1975`
         """
-        T_in = self.inl[0].calc_T()
-        T_out = self.outl[0].calc_T()
 
         diameters= [
             self.D.val,
             self.D.val + 2 * self.pipe_thickness.val,
-            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_m.val
+            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
         ]
 
         # outer surface area per definition
@@ -246,18 +244,19 @@ class Pipeline(SimpleHeatExchanger):
         '''
 
         # pipe wall heat transfer resistance
+        pipe_tc ={'Steel':46.5, 'Carbon Steel':46, 'Cast Iron':48.8, 'Stainless Steel':21, 'PVC':0.23, 'Copper': 380}
         if diameters[1] > diameters[0]:
             if isinstance(self.material.val, str):
-                wall_resistance = self._pipe_tc(self.material.val, (T_in - T_out) / 2)
+                wall_conductivity = pipe_tc[self.material.val]
             else:
-                wall_resistance = self.material.val
+                wall_conductivity = self.material.val
             R_sum.append(
-                diameters[1] / wall_resistance
+                diameters[1] / wall_conductivity
                 * math.log(diameters[1] / diameters[0]) / 2
             )
 
         # insulation heat transfer resistance
-        if self.insulation_m.val != 0:
+        if self.insulation_thickness.val != 0:
             R_sum.append(
                 diameters[2] / self.insulation_tc.val
                 * math.log(diameters[2] / diameters[1]) / 2
@@ -265,7 +264,7 @@ class Pipeline(SimpleHeatExchanger):
         # external heat transfer resistance (to environment)
         Re = (
             self.wind_velocity.val * math.pi / 2
-            * (diameters[1] + self.insulation_m.val * 2)
+            * (diameters[1] + self.insulation_thickness.val * 2)
             / self.air.viscosity_pT(101300, self.Tamb.val_SI)
             * self.air.d_pT(101300, self.Tamb.val_SI)
         )
@@ -278,7 +277,7 @@ class Pipeline(SimpleHeatExchanger):
         Nu_ext = 0.3 + (Nu_lam ** 2 + Nu_turb ** 2) ** 0.5
         alpha_ext = (
             Nu_ext
-            / (math.pi / 2 * (diameters[1] + self.insulation_m.val *2))
+            / (math.pi / 2 * (diameters[1] + self.insulation_thickness.val *2))
             * self.air.AS.conductivity()
         ) #W/m²/K
         R_sum.append(1 / alpha_ext)
@@ -320,7 +319,7 @@ class Pipeline(SimpleHeatExchanger):
         diameters= [
             self.D.val,
             self.D.val + 2 * self.pipe_thickness.val,
-            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_m.val
+            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
         ]
 
         '''
@@ -330,12 +329,12 @@ class Pipeline(SimpleHeatExchanger):
         '''
 
         # external heat transfer resistance (to environment)
-        lambda_ground ={
+        ground_conductivity ={
             'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
         }
 
         Beta = (
-            lambda_ground[self.environment_media.val]
+            ground_conductivity[self.environment_media.val]
             / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
         )
         _h = (
@@ -346,34 +345,11 @@ class Pipeline(SimpleHeatExchanger):
             )
         )
         R_soil = (
-            _h / (2 * math.pi * lambda_ground[self.environment_media.val])
+            _h / (2 * math.pi * ground_conductivity[self.environment_media.val])
         )
 
         self.kA.val= 1 / R_soil
         return self.kA_group_func()
-
-
-    def _pipe_tc(self, material: str, T: float) -> float:
-        """Determine heat conduction of pipe material and temperature
-        Function from DWSIM:
-        https://github.com/DanWBR/dwsim/blob/windows/DWSIM.UnitOperations/UnitOperations/Pipe.vb#L1370-L1405
-
-        """
-        lamda = 0.0
-        if material in ["AoComum", "Steel"]:
-            lamda = (-0.000000004 * T ** 3) - (0.00002 * T ** 2) + (0.021 * T) + 33.743
-        elif material in ["AoCarbono", "CarbonSteel", "Carbon Steel"]:
-            lamda = (0.000000007 * T ** 3) - (0.00002 * T ** 2) - (0.0291 * T) + 70.765
-        elif material in ["FerroBottomido", "CastIron", "Cast Iron"]:
-            lamda = (-0.00000008 * T ** 3) + (0.0002 * T ** 2) - (0.211 * T) + 127.99
-        elif material in ["AoInoxidvel", "StainlessSteel", "Stainless Steel"]:
-            lamda = 14.6 + 0.0127 * (T - 273.15)
-        elif material in ["PVC", "PVC+PFRV"]:
-            lamda = 0.16
-        elif material in ["CommercialCopper", "CommercialCopper"]:
-            lamda = 420.75 - 0.068493 * T
-
-        return lamda  # W/m.K
 
     def ohc_subsurface_group_deriv(self, increment_filter, k):
         """Calculate the partial derivatives of the ohc equation

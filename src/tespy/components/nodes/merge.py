@@ -282,9 +282,8 @@ class Merge(NodeBase):
                 for f in self.all_fluids
             ],
             "vectors": [{
-                c.fluid: f for f in self.all_fluids if f in self.variable_fluids
-                for c in self.inl + self.outl
-            }]
+                c.fluid: c.fluid.is_var for c in self.inl + self.outl
+            } for f in self.all_fluids]
         }
 
     def energy_balance_func(self):

@@ -1307,7 +1307,7 @@ class Network:
                 edges_with_factors.append((col1, col2, factor))
                 rhs_offsets[(col1, col2)] = offset
                 if (col1, col2) in eq_idx:
-                    variables = self._get_variables_by_number([col1, col2])
+                    variables = self.get_variables_by_number([col1, col2])
                     equations = self._get_equation_sets_by_eq_set_number(
                         [eq_idx[(col1, col2)], row_idx]
                     )
@@ -1354,7 +1354,7 @@ class Network:
             if node not in visited:
                 if dfs_cycle(node, None):
                     cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
-                    variable_names = self._get_variables_by_number(visited)
+                    variable_names = self.get_variables_by_number(visited)
                     equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
                     msg = (
                         "A circular dependency between the variables "

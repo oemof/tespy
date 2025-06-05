@@ -334,21 +334,22 @@ class CombustionChamber(Component):
         hf['propane'] = -103.8
         hf['butane'] = -125.7
         hf['nDodecane'] = -289.4
+        hf['CO'] = -110.5
         hf[self.o2] = 0
         hf[self.co2] = -393.51
         # water (gaseous)
         hf[self.h2o] = -241.826
 
         key = set(list(hf.keys())).intersection(
-                set([a.replace(' ', '')
-                     for a in CP.get_aliases(f)]))
+            set([a.replace(' ', '') for a in CP.get_aliases(f)])
+        )
 
         val = (
             -(
                 self.fuels[f]['H'] / 2 * hf[self.h2o]
                 + self.fuels[f]['C'] * hf[self.co2]
                 - (
-                    (self.fuels[f]['C'] + self.fuels[f]['H'] / 4) * hf[self.o2]
+                    (self.fuels[f]['C'] + self.fuels[f]['H'] / 4 - self.fuels[f]['O'] / 2) * hf[self.o2]
                     + hf[list(key)[0]]
                 )
             ) / inl[0].fluid.wrapper[f]._molar_mass * 1000
@@ -601,6 +602,7 @@ class CombustionChamber(Component):
         n_oxy_stoich = {}
         n_h = 0
         n_c = 0
+        n_o = 0
         for f in self.fuel_list:
             n_fuel[f] = 0
             for i in inl:
@@ -608,10 +610,12 @@ class CombustionChamber(Component):
                 n_fuel[f] += n
                 n_h += n * self.fuels[f]['H']
                 n_c += n * self.fuels[f]['C']
+                n_o += n * self.fuels[f]['O']
 
             # stoichiometric oxygen requirement for each fuel
             n_oxy_stoich[f] = n_fuel[f] * (
                 self.fuels[f]['H'] / 4 + self.fuels[f]['C']
+                - self.fuels[f]['O'] / 2
             )
 
         n_oxygen = 0
@@ -622,7 +626,7 @@ class CombustionChamber(Component):
 
         ###################################################################
         # calculate stoichiometric oxygen
-        n_oxygen_stoich = n_h / 4 + n_c
+        n_oxygen_stoich = n_h / 4 + n_c - n_o / 2
 
         ###################################################################
         # calculate lambda if not set
@@ -662,7 +666,7 @@ class CombustionChamber(Component):
             if self.lamb.val < 1:
                 n_fuel_exc = (
                     -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
-                    / (self.fuels[fluid]['H'] / 4 + self.fuels[fluid]['C'])
+                    / (self.fuels[fluid]['H'] / 4 + self.fuels[fluid]['C'] - self.fuels[fluid]['O'] / 2)
                 )
             else:
                 n_fuel_exc = 0
@@ -994,6 +998,7 @@ class CombustionChamber(Component):
 
         n_h = 0
         n_c = 0
+        n_o = 0
         for f in self.fuel_list:
             for i in inl:
                 n_fuel = (
@@ -1002,6 +1007,7 @@ class CombustionChamber(Component):
                 )
                 n_h += n_fuel * self.fuels[f]['H']
                 n_c += n_fuel * self.fuels[f]['C']
+                n_o += n_fuel * self.fuels[f]['O']
 
         n_oxygen = 0
         for i in inl:
@@ -1009,7 +1015,7 @@ class CombustionChamber(Component):
                 i.m.val_SI * i.fluid.val[self.o2]
                 / inl[0].fluid.wrapper[self.o2]._molar_mass
             )
-        n_oxygen_stoich = n_h / 4 + n_c
+        n_oxygen_stoich = n_h / 4 + n_c - n_o / 2
         return n_oxygen / n_oxygen_stoich
 
 

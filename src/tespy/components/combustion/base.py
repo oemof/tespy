@@ -1224,16 +1224,12 @@ class CombustionChamber(Component):
                     outl.fluid.val[f] = 0.05
 
             elif f == self.co2:
-                if outl.fluid.val[f] > 0.1:
-                    outl.fluid.val[f] = 0.075
-                if outl.fluid.val[f] < 0.001:
-                    outl.fluid.val[f] = 0.02
+                if outl.fluid.val[f] > 0.15:
+                    outl.fluid.val[f] = 0.1
 
             elif f == self.h2o:
-                if outl.fluid.val[f] > 0.1:
-                    outl.fluid.val[f] = 0.075
-                if outl.fluid.val[f] < 0.001:
-                    outl.fluid.val[f] = 0.02
+                if outl.fluid.val[f] > 0.15:
+                    outl.fluid.val[f] = 0.1
 
             elif f in self.fuel_list:
                 if outl.fluid.val[f] > 0:

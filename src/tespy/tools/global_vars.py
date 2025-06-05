@@ -101,4 +101,7 @@ fluid_property_data = {
 
 }
 
-combustion_gases = ['methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane']
+combustion_gases = [
+    'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane',
+    'CO'
+]

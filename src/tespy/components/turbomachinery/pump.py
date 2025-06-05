@@ -19,6 +19,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -162,21 +163,24 @@ class Pump(Turbomachine):
         parameters = super().get_parameters()
         parameters.update({
             'eta_s': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
-                deriv=self.eta_s_deriv,
+                min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
-                latex=self.eta_s_func_doc),
+                dependents=self.eta_s_dependents,
+                deriv=self.eta_s_deriv
+            ),
             'eta_s_char': dc_cc(
-                param='v', num_eq=1,
-                deriv=self.eta_s_char_deriv,
+                param='v', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                latex=self.eta_s_char_func_doc),
+                dependents=self.eta_s_char_dependents,
+                latex=self.eta_s_char_func_doc
+            ),
             'flow_char': dc_cc(
-                param='v', num_eq=1,
-                deriv=self.flow_char_deriv,
+                param='v', num_eq_sets=1,
                 func=self.flow_char_func,
+                dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
-                latex=self.flow_char_func_doc)
+                latex=self.flow_char_func_doc
+            )
         })
         return parameters
 
@@ -209,28 +213,9 @@ class Pump(Turbomachine):
             )
         )
 
-    def eta_s_func_doc(self, label):
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
-        Equation for given isentropic efficiency.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency function.
+        Partial derivatives for isentropic efficiency.
 
         Parameters
         ----------
@@ -243,14 +228,22 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
+
+        if o.h.is_var and not i.h.is_var:
             self.jacobian[k, o.h.J_col] = self.eta_s.val
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
+
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
+
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -311,31 +304,14 @@ class Pump(Turbomachine):
             r'\left( h_{out,s} - h_{in} \right)')
         return generate_latex_eq(self, latex, label)
 
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def flow_char_func(self):
         r"""
@@ -353,8 +329,9 @@ class Pump(Turbomachine):
         p = self.flow_char.param
         expr = self.get_char_expr(p, **self.flow_char.char_params)
         return (
-            self.outl[0].p.val_SI - self.inl[0].p.val_SI -
-            self.flow_char.char_func.evaluate(expr))
+            self.outl[0].p.val_SI - self.inl[0].p.val_SI
+            - self.flow_char.char_func.evaluate(expr)
+        )
 
     def flow_char_func_doc(self, label):
         r"""
@@ -374,29 +351,13 @@ class Pump(Turbomachine):
             r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
         return generate_latex_eq(self, latex, label)
 
-    def flow_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for flow characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.flow_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+    def flow_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+        ]
 
     def convergence_check(self):
         r"""

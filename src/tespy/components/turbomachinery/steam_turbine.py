@@ -156,14 +156,14 @@ class SteamTurbine(Turbine):
         params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
         params["eta_s_dry"] = dc_cp(min_val=0.0, max_val=1.0)
         params["eta_s_dry_group"] = dc_gcp(
-            num_eq=1, elements=["alpha", "eta_s_dry"],
+            num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
-            deriv=self.eta_s_wet_deriv
+            dependents=self.eta_s_dependents  # same depedents!
         )
 
         return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, num_nw_vars):
 
         fluid = single_fluid(self.inl[0].fluid_data)
         if fluid is None:
@@ -175,7 +175,7 @@ class SteamTurbine(Turbine):
             msg = "The SteamTurbine is intended to be used with water only."
             logger.warning(msg)
 
-        return super().preprocess(num_nw_vars)
+        return super()._preprocess(num_nw_vars)
 
     def eta_s_wet_func(self):
         r"""
@@ -261,27 +261,3 @@ class SteamTurbine(Turbine):
 
             # return residual: outlet enthalpy = calculated outlet enthalpy
             return outl.h.val_SI - hout
-
-    def eta_s_wet_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for dry isentropic efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_wet_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, "p", i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, "p", o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, "h", i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, "h", o)

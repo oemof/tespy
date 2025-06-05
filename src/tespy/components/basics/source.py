@@ -68,29 +68,6 @@ class Source(Component):
     def outlets():
         return ['out1']
 
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
-
-    @staticmethod
-    def get_bypass_constraints():
-        return {}
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
-
     def start_fluid_wrapper_branch(self):
         outconn = self.outl[0]
         branch = {

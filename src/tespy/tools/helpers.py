@@ -165,7 +165,7 @@ def latex_unit(unit):
 class UserDefinedEquation:
 
     def __init__(self, label, func, deriv, conns, params={},
-                 latex={}):
+                 latex={}, structure_matrix=None):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -278,16 +278,11 @@ class UserDefinedEquation:
         >>> def myjacobian(ude):
         ...     c0 = ude.conns[0]
         ...     c1 = ude.conns[1]
-        ...     if c0.m.is_var:
-        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
-        ...     if c0.p.is_var:
-        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
-        ...     if c0.h.is_var:
-        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
-        ...     if c1.p.is_var:
-        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-        ...     if c1.h.is_var:
-        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
+        ...     ude._partial_derivative(c0.m)
+        ...     ude._partial_derivative(c0.p)
+        ...     ude._partial_derivative(c0.h)
+        ...     ude._partial_derivative(c1.p)
+        ...     ude._partial_derivative(c1.h)
 
         After that, we only need to th specify the characteristic line we want
         out temperature drop to follow as well as create the
@@ -341,12 +336,19 @@ class UserDefinedEquation:
         else:
             msg = (
                 'Parameter conns must be a list of '
-                'tespy.connections.connection.Connection objects.')
+                'tespy.connections.connection.Connection objects.'
+            )
             logger.error(msg)
             raise TypeError(msg)
 
         self.func = func
         self.deriv = deriv
+        if structure_matrix is None:
+            self.structure_matrix = {}
+        else:
+            self.structure_matrix = structure_matrix
+
+        self.right_hand_side = {}
 
         if isinstance(params, dict):
             self.params = params
@@ -370,17 +372,95 @@ class UserDefinedEquation:
     def solve(self):
         self.residual = self.func(self)
         self.deriv(self)
+        logger.error(self.jacobian)
 
-    def numeric_deriv(self, dx, conn):
-        r"""
-        Calculate partial derivative of the user defined function to dx.
+    def get_structure_matrix(self):
+        return
 
-        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
-        """
-        return _numeric_deriv(self, self.func, dx, conn, ude=self)
+    def _partial_derivative(self, var, value=None):
+        if value is None:
+            value = self.func
+        result = _partial_derivative(var, value, None, ude=self)
+        if result is not None:
+            self.jacobian[var.J_col] = result
+
+def _is_variable(var, increment_filter=None):
+    if var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col]:
+            return True
+    return False
 
 
-def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
+def _is_variable_vecvar(var, dx, increment_filter=None):
+    if dx in var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col[dx]]:
+            return True
+    return False
+
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
+
+
+def _partial_derivative(var, value, increment_filter, **kwargs):
+    if _is_variable(var, increment_filter):
+        if callable(value):
+            if type(var) != dc_scavar:
+                var = var._reference_container
+            return _numeric_deriv(var, value, **kwargs)
+        else:
+            return value
+    else:
+        return None
+
+
+def _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs):
+    if _is_variable_vecvar(var, dx, increment_filter):
+        if callable(value):
+            if type(var) != dc_vecvar:
+                var = var._reference_container
+            return _numeric_deriv_vecvar(var, value, dx, **kwargs)
+        else:
+            return value
+    else:
+        return None
+
+
+def _numeric_deriv(variable, func, **kwargs):
+    r"""
+    Calculate partial derivative of the function func to dx.
+
+    Parameters
+    ----------
+    variable : object
+        Variable container.
+
+    func : function
+        Function :math:`f` to calculate the partial derivative for.
+
+    Returns
+    -------
+    deriv : float/list
+        Partial derivative(s) of the function :math:`f` to variable(s)
+        :math:`x`.
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+    """
+    d = variable.d
+    variable.val_SI += d
+    exp = func(**kwargs)
+
+    variable.val_SI -= 2 * d
+    exp -= func(**kwargs)
+    deriv = exp / (2 * d)
+
+    variable.val_SI += d
+
+    return deriv
+
+
+def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -408,66 +488,19 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
 
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
-    if conn is None:
-        d = obj.get_attr(dx).d
-        exp = 0
-        obj.get_attr(dx).val += d
-        exp += func(**kwargs)
+    original_vector = variable.val.copy()
+    # this is specific to fluids right now (upper limit of 1, lower limit of 0)
+    d1 = min(variable.d, 1 - variable.val[dx])
+    variable.val[dx] += d1
+    exp = func(**kwargs)
+    d2 = min(variable.d * 2, variable.val[dx])
+    variable.val[dx] -= d2
+    exp -= func(**kwargs)
 
-        obj.get_attr(dx).val -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        obj.get_attr(dx).val += d
-
-    elif dx in conn.fluid.is_var:
-        d = 1e-5
-
-        val = conn.fluid.val[dx]
-        if conn.fluid.val[dx] + d <= 1:
-            conn.fluid.val[dx] += d
-        else:
-            conn.fluid.val[dx] = 1
-
-        conn.build_fluid_data()
-        exp = func(**kwargs)
-
-        if conn.fluid.val[dx] - 2 * d >= 0:
-            conn.fluid.val[dx] -= 2 * d
-        else:
-            conn.fluid.val[dx] = 0
-
-        conn.build_fluid_data()
-        exp -= func(**kwargs)
-
-        conn.fluid.val[dx] = val
-        conn.build_fluid_data()
-
-        deriv = exp / (2 * d)
-
-    elif dx in ['m', 'p', 'h']:
-
-        if dx == 'm':
-            d = 1e-4
-        else:
-            d = 1e-1
-        conn.get_attr(dx).val_SI += d
-        exp = func(**kwargs)
-
-        conn.get_attr(dx).val_SI -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        conn.get_attr(dx).val_SI += d
-
-    else:
-        msg = (
-            "Your variable specification for the numerical derivative "
-            "calculation seems to be wrong. It has to be a fluid name, m, "
-            "p, h or the name of a component variable."
-        )
-        logger.exception(msg)
-        raise ValueError(msg)
+    variable.val = original_vector
+    # d2 is the complete delta of the central difference no matter how big
+    # d1 is actually
+    deriv = exp / d2
     return deriv
 
 
@@ -596,6 +629,41 @@ def extend_basic_path(subfolder):
     return extended_path
 
 
+def _get_vector_dependents(variable_list):
+    if len(variable_list) == 0:
+        return []
+    if isinstance(variable_list, list):
+        variable_list_new = []
+        for _eq_set in variable_list:
+            variable_list_new.append({})
+            for key, value in _eq_set.items():
+                if not value:
+                    continue
+                k = key._reference_container
+                if k not in variable_list_new[-1]:
+                    variable_list_new[-1][k] = set()
+                variable_list_new[-1][k] |= value
+        return variable_list_new
+    else:
+        return [
+            set(var for var in variable_list)
+        ]
+
+
+def _get_dependents(variable_list):
+    if isinstance(variable_list[0], list):
+        return [set(
+            var._reference_container
+            for var in sublist if var.is_var
+        ) for sublist in variable_list
+    ]
+    else:
+        return [set(
+            var._reference_container
+            for var in variable_list if var.is_var
+        )]
+
+
 def _nested_dict_of_dataframes_to_dict(dictionary):
     """Transpose a nested dict with dataframes or series in a json style dict
 
@@ -620,6 +688,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
             dictionary[key] = value.to_dict(**kwargs)
 
     return dictionary
+
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
     """Dump a nested dict with dataframes into a folder structrue

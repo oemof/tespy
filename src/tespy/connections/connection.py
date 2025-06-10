@@ -11,11 +11,10 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components import Subsystem
+from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
@@ -36,7 +35,6 @@ from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
-from tespy.tools.fluid_properties.functions import dT_mix_ph_dfluid
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids

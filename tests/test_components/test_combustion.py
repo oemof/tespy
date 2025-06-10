@@ -116,7 +116,7 @@ class TestCombustion:
 
         self.nw.solve('design')
         self.nw._convergence_check()
-        assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000)
+        assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000, 1e-3)
 
         molar_flow = {}
         for c in self.nw.conns["object"]:

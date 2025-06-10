@@ -538,6 +538,26 @@ class SimpleHeatExchanger(Component):
                     self.numeric_deriv(func, variable_name, None)
                 )
 
+    def _calculate_td_log(self):
+        i = self.inl[0]
+        o = self.outl[0]
+
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+
+        # For numerical stability: If temperature differences have
+        # different sign use mean difference to avoid negative logarithm.
+        if (ttd_1 / ttd_2) < 0:
+            td_log = (ttd_2 + ttd_1) / 2
+        elif round(ttd_1, 6) == round(ttd_2, 6):
+            td_log = ttd_2
+        elif ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+        else:
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
+
+        return td_log
+
     def kA_group_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient.
@@ -564,22 +584,7 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
-        if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_2
-
+        td_log = self._calculate_td_log()
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
 
     def kA_group_func_doc(self, label):
@@ -673,28 +678,14 @@ class SimpleHeatExchanger(Component):
         For standard function of f\ :subscript:`kA` \ see module
         :py:mod:`tespy.data`.
         """
-        p = self.kA_char.param
-        expr = self.get_char_expr(p, **self.kA_char.char_params)
         i = self.inl[0]
         o = self.outl[0]
+        p = self.kA_char.param
 
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
-
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-
-        if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_2
-
+        expr = self.get_char_expr(p, **self.kA_char.char_params)
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
+
+        td_log = self._calculate_td_log()
 
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
 
@@ -924,13 +915,12 @@ class SimpleHeatExchanger(Component):
 
             if (ttd_1 / ttd_2) < 0:
                 td_log = np.nan
-            if ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-            elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-            else:
-                # both values are equal
+            elif round(ttd_1, 6) == round(ttd_2, 6):
                 td_log = ttd_1
+            elif ttd_1 > ttd_2:
+                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+            else:
+                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
 
             self.kA.val = abs(self.Q.val / td_log)
             self.kA.is_result = True

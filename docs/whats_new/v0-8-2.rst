@@ -27,6 +27,11 @@ Other Changes
   determined by specifying temperature. Removing this saves a lot of
   computational overhead for mixtures
   (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+- The calculation of the logarithmic temperature difference in heat exchanger
+  classes was error-prone due to rounding differences in temperature. The
+  calculation is now consistent through all respective classes and can handle
+  temperature differences to a precision of :code:`1e-6`
+  (`PR #679 <https://github.com/oemof/tespy/pull/679>`__).
 
 Contributors
 ############

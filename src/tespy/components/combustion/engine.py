@@ -63,7 +63,7 @@ class CombustionEngine(CombustionChamber):
 
     Available fuels
 
-    - methane, ethane, propane, butane, hydrogen
+    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
 
     Inlets/Outlets
 

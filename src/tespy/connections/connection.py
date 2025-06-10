@@ -11,11 +11,10 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 
-from tespy.components.component import Component
 from tespy.components import Subsystem
+from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
@@ -36,7 +35,6 @@ from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
-from tespy.tools.fluid_properties.functions import dT_mix_ph_dfluid
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids
@@ -765,10 +763,6 @@ class Connection:
             self.jacobian[k, self.h.J_col] = (
                 dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
-        for fluid in self.fluid.is_var:
-            self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
-            )
 
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.ref
@@ -788,11 +782,6 @@ class Connection:
             self.jacobian[k, ref.obj.h.J_col] = -(
                 dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
-        for fluid in ref.obj.fluid.is_var:
-            if not self._increment_filter[ref.obj.fluid.J_col[fluid]]:
-                self.jacobian[k, ref.obj.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(
-                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule
-                )
 
     def calc_viscosity(self, T0=None):
         try:

@@ -765,10 +765,6 @@ class Connection:
             self.jacobian[k, self.h.J_col] = (
                 dT_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
             )
-        for fluid in self.fluid.is_var:
-            self.jacobian[k, self.fluid.J_col[fluid]] = dT_mix_ph_dfluid(
-                self.p.val_SI, self.h.val_SI, fluid, self.fluid_data, self.mixing_rule
-            )
 
     def T_ref_func(self, k, **kwargs):
         ref = self.T_ref.ref
@@ -788,11 +784,6 @@ class Connection:
             self.jacobian[k, ref.obj.h.J_col] = -(
                 dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
-        for fluid in ref.obj.fluid.is_var:
-            if not self._increment_filter[ref.obj.fluid.J_col[fluid]]:
-                self.jacobian[k, ref.obj.fluid.J_col[fluid]] = -dT_mix_ph_dfluid(
-                    ref.obj.p.val_SI, ref.obj.h.val_SI, fluid, ref.obj.fluid_data, ref.obj.mixing_rule
-                )
 
     def calc_viscosity(self, T0=None):
         try:

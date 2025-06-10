@@ -12,6 +12,22 @@ API changes
   :ref:`in the docs <tespy_subsystems_label>`
   (`PR #652 <https://github.com/oemof/tespy/pull/652>`__).
 
+New Features
+############
+- The combustion based component classes :code:`CombustionChamber`,
+  :code:`DiabaticCombustionChamber` and :code:`CombustionEngine` can now handle
+  carbonmonoxide as fuel
+  (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+
+Other Changes
+#############
+- The partial derivatives for specified temperature are only calculated towards
+  enthalpy and pressure, not towards the fluid compostion. The reason for this
+  is, that it is not intended, that the composition of a fluid can be
+  determined by specifying temperature. Removing this saves a lot of
+  computational overhead for mixtures
+  (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -3016,6 +3016,7 @@ class Network:
         dict
             exerpy compatible input dictionary
         """
+        component_results = self._save_components()
         component_json = {}
         for comp_type in self.comps["comp_type"].unique():
             if comp_type not in exerpy_mappings.keys():
@@ -3027,10 +3028,12 @@ class Network:
             if key not in component_json:
                 component_json[key] = {}
 
+            result = component_results[comp_type].dropna(axis=1)
             for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
                 component_json[key][c.label] = {
                     "name": c.label,
-                    "type": comp_type
+                    "type": comp_type,
+                    "parameters": result.loc[c.label].to_dict()
                 }
 
         connection_json = {}

@@ -32,6 +32,8 @@ Other Changes
   calculation is now consistent through all respective classes and can handle
   temperature differences to a precision of :code:`1e-6`
   (`PR #679 <https://github.com/oemof/tespy/pull/679>`__).
+- The export method :code:`to_exerpy` now includes the results for components
+  (`PR #680 <https://github.com/oemof/tespy/pull/680>`__).
 
 Contributors
 ############

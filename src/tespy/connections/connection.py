@@ -314,8 +314,9 @@ class Connection:
         if connector_id not in connecter_locations:
             msg = (
                 "Error creating connection. Specified connector for "
-                f"{component.label} ({connector_id}) is not available. Choose "
-                f"from " + ", ".join(connecter_locations) + "."
+                f"{component.label} of class {component.__class__.__name__} "
+                f"({connector_id})  is not available. Select one of the "
+                f"following connectors {', '.join(connecter_locations)}."
             )
             logger.error(msg)
             raise ValueError(msg)
@@ -468,7 +469,7 @@ class Connection:
 
             # invalid keyword
             else:
-                msg = 'Connection has no attribute ' + key + '.'
+                msg = f"Connection has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
 

@@ -34,9 +34,9 @@ class TestCombustion:
 
     def setup_CombustionChamber_network(self, instance):
 
-        self.c1 = Connection(self.air, 'out1', instance, 'in1')
-        self.c2 = Connection(self.fuel, 'out1', instance, 'in2')
-        self.c3 = Connection(instance, 'out1', self.fg, 'in1')
+        self.c1 = Connection(self.air, 'out1', instance, 'in1', label="air")
+        self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
+        self.c3 = Connection(instance, 'out1', self.fg, 'in1', label="fluegas")
         self.nw.add_conns(self.c1, self.c2, self.c3)
 
     def setup_CombustionEngine_network(self, instance):
@@ -100,11 +100,41 @@ class TestCombustion:
         instance.set_attr(lamb=1)
         self.nw.solve('design')
         self.nw._convergence_check()
-        msg = (
-            'Value of oxygen in flue gas must be 0.0, is '
-            f'{round(self.c3.fluid.val["O2"], 4)}.'
-        )
-        assert 0.0 == round(self.c3.fluid.val['O2'], 4), msg
+        o2 = round(self.c3.fluid.val['O2'], 4)
+        msg = f'Value of oxygen in flue gas must be 0.0, is {o2}.'
+        assert 0.0 == o2, msg
+
+    def test_CombustionChamberCarbonMonoxide(self):
+        instance = CombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
+
+        # connection parameter specification
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO': 1}
+        self.c1.set_attr(fluid=air, p=1, T=30)
+        self.c2.set_attr(fluid=fuel, T=30, m=1)
+        instance.set_attr(lamb=3)
+
+        self.nw.solve('design')
+        self.nw._convergence_check()
+        assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000, 1e-3)
+
+        molar_flow = {}
+        for c in self.nw.conns["object"]:
+            molar_flow[c.label] = {
+                key: value["mass_fraction"]
+                / value["wrapper"]._molar_mass * c.m.val_SI
+                for key, value in c.fluid_data.items()
+            }
+        o2 = molar_flow["air"]["O2"]
+        co2 = molar_flow["fluegas"]["CO2"]
+        assert o2 == pytest.approx(co2 * 1.5, 1e-3)
+
+        self.c3.set_attr(T=1500)
+        instance.set_attr(lamb=None)
+        self.nw.solve('design')
+        self.nw._convergence_check()
+        assert self.c3.T.val == pytest.approx(1500)
 
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')

@@ -922,7 +922,11 @@ class Network:
 
             mixing_rule = list(set(mixing_rules))
             if len(mixing_rule) > 1:
-                msg = "You have provided more than one mixing rule."
+                msg = (
+                    "You have provided more than one mixing rule in the "
+                    "branches including the following connections: "
+                    f"{', '.join([c.label for c in all_connections])}"
+                )
                 raise hlp.TESPyNetworkError(msg)
             elif len(mixing_rule) == 0:
                 mixing_rule = "ideal-cond"
@@ -1046,8 +1050,10 @@ class Network:
 
             elif len(fluid_specs) != len(set(fluid_specs)):
                 msg = (
-                    "The mass fraction of a single fluid cannot be specified "
-                    "twice within a branch."
+                    "The mass fraction of a single fluid has been been "
+                    "specified more than once in the following linear branch "
+                    "of connections: "
+                    f"{', '.join([c.label for c in all_connections])}."
                 )
                 raise hlp.TESPyNetworkError(msg)
             else:
@@ -1059,7 +1065,11 @@ class Network:
                 }
                 mass_fraction_sum = sum(fixed_fractions.values())
                 if mass_fraction_sum > 1 + ERR:
-                    msg = "Total mass fractions within a branch cannot exceed 1"
+                    msg = (
+                        "The mass fraction of fluids within a linear branch "
+                        "of connections cannot exceed 1: "
+                        f"{', '.join([c.label for c in all_connections])}."
+                    )
                     raise ValueError(msg)
                 elif mass_fraction_sum < 1 - ERR:
                     # set the fluids with specified mass fraction

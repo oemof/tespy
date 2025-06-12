@@ -160,6 +160,9 @@ class Pump(Turbomachine):
 
     def get_parameters(self):
         parameters = super().get_parameters()
+        parameters["P"].min_val = 0
+        parameters["pr"].min_val = 1
+        parameters["dp"].max_val = 0
         parameters.update({
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq=1,

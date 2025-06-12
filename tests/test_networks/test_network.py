@@ -249,6 +249,10 @@ class TestNetworks:
         )
         assert self.nw.get_comp("pipe") == pi, msg
 
+    def test_Network_access_converged_before_solve(self):
+        with raises(AttributeError):
+            self.nw.converged
+
 
 class TestNetworkIndividualOffdesign:
 

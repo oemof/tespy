@@ -12,8 +12,6 @@ API changes
   :ref:`in the docs <tespy_subsystems_label>`
   (`PR #652 <https://github.com/oemof/tespy/pull/652>`__).
 - The attribute :code:`progress` of the class :code:`Network` has been removed.
-  The attribute :code:`converged` is now a method, which can be called after
-  a simulation :code:`Network.converged()`
   (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
 - To raise an :code:`AssertionError` on non-convergence of a simulation you
   must now use :code:`Network.assert_convergence()` instead of

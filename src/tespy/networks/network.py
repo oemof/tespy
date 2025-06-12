@@ -720,7 +720,18 @@ class Network:
     def assert_convergence(self):
         """Check convergence status of a simulation."""
         msg = 'Calculation did not converge!'
-        assert self.status == 0 or self.status == 1, msg
+        assert self.converged, msg
+
+    @property
+    def converged(self):
+        if hasattr(self, "status"):
+            return self.status == 0 or self.status == 1
+        else:
+            msg = (
+                "The converged attribute can only be accessed after the first "
+                "call of the solve method"
+            )
+            raise AttributeError(msg)
 
     def check_busses(self, b):
         r"""
@@ -1933,7 +1944,7 @@ class Network:
         - Postprocessing.
 
         It is possible to check programatically, if a network was solved
-        successfully with the `.converged` property.
+        successfully with the `.converged` attribute.
 
         Parameters
         ----------
@@ -1989,7 +2000,6 @@ class Network:
         else:
             self.new_design = True
 
-        self.converged = False
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter

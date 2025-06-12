@@ -417,7 +417,7 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
     \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
-.. _tespy_modules_convergence_check_label:
+.. _tespy_module_convergence_label:
 
 Convergence stability
 +++++++++++++++++++++
@@ -462,9 +462,25 @@ after the third iteration, further checks are usually not required.
 .. tip::
 
     To check if the solver successfully found a solution for your model you can
-    check the `.converged` attribute of the Network class after calling the
-    `solve` method. It will be `True` in case no linear dependency was and the
-    residual value of all equations is below the minimum threshold.
+    check the `.status` attribute of the Network class after calling the
+    `solve` method. It will be
+
+    - 0 in case a solution was successfully found
+    - 1 in case a solution was found, but some parameters violate physical
+      limits
+    - 2 in case no convergence was achieved after completion of the iterations
+    - 3 in case a linear dependency in the Jacobian matrix is found
+    - 11 in case the number of specified parameters is too small for the given
+      problem
+    - 12 in case the number of specified parameters is too large for the given
+      problem
+    - 99 in case the simulation crashed due to any other reason
+
+    The :code:`solve` does not exit with an exception in case the status is
+    0, 1, 2 or 3. If you want to raise an error in your script, you can call
+    the `Network.assert_convergence()` method. It will raise an
+    :code:`AssertionError` if the simulation did not find a converged solution
+    status 2 or status 3.
 
 Calculation speed improvement
 +++++++++++++++++++++++++++++

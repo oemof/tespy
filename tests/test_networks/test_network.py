@@ -55,6 +55,18 @@ class TestNetworks:
         with raises(TESPyNetworkError):
             self.nw.solve('design')
 
+    def test_Network_linear_dependency(self):
+        pump = Pump("pump")
+        a = Connection(self.source, "out1", pump, "in1")
+        b = Connection(pump, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        a.set_attr(fluid={"water": 1}, p=1, T=25)
+        b.set_attr(p=2, T=27)
+        pump.set_attr(eta_s=0.9)
+
+        self.nw.solve("design")
+        assert self.nw.status == 3
+
     def test_Network_no_progress(self):
         """Test no convergence progress."""
         pi = Pipe('pipe', pr=1, Q=-100e3)
@@ -65,10 +77,10 @@ class TestNetworks:
         self.nw.add_conns(a, b)
         self.nw.solve('design')
         msg = (
-            'This test must result in a calculation making no progress, as '
-            'the pipe\'s outlet enthalpy is below fluid property range.'
+            'Test must result in a calculation making no progress, as the '
+            'pipe\'s outlet enthalpy is below fluid property range.'
         )
-        assert not self.nw.progress, msg
+        assert self.nw.status == 2, msg
 
     def test_Network_max_iter(self):
         """Test reaching maximum iteration count."""
@@ -79,10 +91,8 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design', max_iter=2)
-        msg = (
-            'This test must result in the itercount being equal to the max '
-            'iter statement.'
-        )
+        assert self.nw.status == 2
+        msg = 'Test must result in the itercount being equal to max_iter.'
         assert self.nw.max_iter == self.nw.iter + 1, msg
 
     def test_Network_delete_conns(self):
@@ -121,7 +131,7 @@ class TestNetworks:
         a.set_attr(fluid={"water": 1}, m=1, p=1, T=25)
         b.set_attr(p=1, T=25)
         self.nw.solve("design")
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
 
     def test_Network_missing_connection_in_init_path(self, tmp_path):
         """Test debug message for missing connection in init_path."""
@@ -252,6 +262,10 @@ class TestNetworks:
         )
         assert self.nw.get_comp("pipe") == pi, msg
 
+    def test_Network_access_converged_before_solve(self):
+        with raises(AttributeError):
+            self.nw.converged
+
 
 class TestNetworkIndividualOffdesign:
 
@@ -306,10 +320,10 @@ class TestNetworkIndividualOffdesign:
         tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.save(tmp_path1)
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
@@ -317,7 +331,7 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(T=95, state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.save(tmp_path2)
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
@@ -332,13 +346,13 @@ class TestNetworkIndividualOffdesign:
         self.p2_sc2.set_attr(design_path=tmp_path2)
         self.sc2_v2.set_attr(design_path=tmp_path2)
         self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
 
         self.sc1.set_attr(E=500)
         self.sc2.set_attr(E=950)
 
         self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.sc2_v2.set_attr(design_path=None)
 
         # volumetric flow comparison
@@ -375,10 +389,10 @@ class TestNetworkIndividualOffdesign:
         tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.save(tmp_path1)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -393,7 +407,7 @@ class TestNetworkIndividualOffdesign:
 
         self.sc2_v2.set_attr(T=95, m=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.save(tmp_path2)
 
         # connections and components on side 1 must have switched to offdesign
@@ -419,10 +433,10 @@ class TestNetworkIndividualOffdesign:
         tmp_path = f'{tmp_path}.json'
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.save(tmp_path)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -502,7 +516,7 @@ class TestNetworkPreprocessing:
         c2.set_attr(T=-15)
         b.set_attr(pr=1)
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
         variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
         # no variable at all, everything must have been presolved
         assert c1.m not in variables
@@ -586,7 +600,7 @@ def test_use_cuda_without_it_being_installed():
 
     c1.set_attr(m=1, p=1e5, T=300, fluid={"INCOMP::Water": 1})
     nw.solve("design", use_cuda=True)
-    nw._convergence_check()
+    nw.assert_convergence()
     assert not nw.use_cuda
 
 def test_component_not_found():
@@ -677,7 +691,7 @@ def test_v07_to_v08_complete(tmp_path):
 
     nw = Network.from_json(tmp_path1)
     nw.solve("offdesign", design_path=tmp_path2)
-    nw._convergence_check()
+    nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():
 

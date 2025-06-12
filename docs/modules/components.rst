@@ -925,7 +925,7 @@ different tespy classes required.
     >>> # %% solve
     >>> # solve design case
     >>> nw.solve('design')
-    >>> nw._convergence_check()
+    >>> nw.assert_convergence()
     >>> nw.save('tmp.json')
 
     >>> # offdesign test

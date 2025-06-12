@@ -29,7 +29,7 @@ class TestIAPWS:
         c1, c2 = self.nwk.get_conn(["1", "2"])
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         h_out_ref = round(c2.h.val_SI, 3)
         T_out_ref = round(c2.T.val_SI, 3)
@@ -40,7 +40,7 @@ class TestIAPWS:
         c1.set_attr(fluid={"IF95::H2O": 1}, fluid_engines={"H2O": IAPWSWrapper})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         assert h_out_ref == round(c2.h.val_SI, 3)
         assert T_out_ref == round(c2.T.val_SI, 3)
@@ -51,7 +51,7 @@ class TestIAPWS:
         c1.set_attr(fluid={"IF97::H2O": 1})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         h_out_ref = round(c2.h.val_SI / 1000)
         T_out_ref = round(c2.T.val_SI)
@@ -62,7 +62,7 @@ class TestIAPWS:
         c1.set_attr(fluid={"IF97::H2O": 1}, fluid_engines={"H2O": IAPWSWrapper})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         assert h_out_ref == round(c2.h.val_SI / 1000)
         assert T_out_ref == round(c2.T.val_SI)

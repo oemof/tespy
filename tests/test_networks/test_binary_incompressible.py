@@ -51,4 +51,4 @@ class TestBinaryIncompressibles:
         self.nw.solve("design")
 
     def test_binaries(self):
-        self.nw._convergence_check()
+        self.nw.assert_convergence()

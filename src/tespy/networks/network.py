@@ -3048,10 +3048,9 @@ class Network:
             }
             connection_json[c.label].update({f"mass_composition": c.fluid.val})
             connection_json[c.label].update({"kind": "material"})
-            for param in ["m", "T", "p", "h", "s"]:
+            for param in ["m", "T", "p", "h", "s", "v"]:
                 connection_json[c.label].update({
-                    param: c.get_attr(param).val_SI,
-                    f"{param}_unit": c.get_attr(param).unit
+                    param: c.get_attr(param).val_SI
                 })
             connection_json[c.label].update(
                 {"e_T": c.ex_therm, "e_M": c.ex_mech, "e_PH": c.ex_physical}

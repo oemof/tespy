@@ -719,7 +719,7 @@ class HeatExchanger(Component):
 
     def ttd_l_func(self):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for lower terminal temperature difference.
 
         Returns
         -------
@@ -738,7 +738,7 @@ class HeatExchanger(Component):
 
     def ttd_l_func_doc(self, label):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for lower terminal temperature difference.
 
         Parameters
         ----------
@@ -755,7 +755,7 @@ class HeatExchanger(Component):
 
     def ttd_l_deriv(self, increment_filter, k):
         """
-        Calculate partial derivates of upper terminal temperature function.
+        Calculate partial derivates of lower terminal temperature function.
 
         Parameters
         ----------
@@ -774,7 +774,7 @@ class HeatExchanger(Component):
 
     def ttd_min_func(self):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for minimum terminal temperature difference.
 
         Returns
         -------

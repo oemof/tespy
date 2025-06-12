@@ -181,7 +181,7 @@ for ti in data:
     CH4 += [c5.fluid.val["CH4"] * 100]
     H2 += [c5.fluid.val["H2"] * 100]
 
-nw._convergence_check()
+nw.assert_convergence()
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 

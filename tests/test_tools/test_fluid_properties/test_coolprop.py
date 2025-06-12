@@ -294,7 +294,7 @@ class TestFluidPropertyBackEnds:
 
         for fluid, back_end in fluids_back_ends.items():
             self.setup_pipeline_network(fluid, back_end)
-            self.nw._convergence_check()
+            self.nw.assert_convergence()
 
             value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (

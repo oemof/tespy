@@ -717,10 +717,21 @@ class Network:
 
                 del self.results[b.label]
 
-    def _convergence_check(self):
+    def assert_convergence(self):
         """Check convergence status of a simulation."""
         msg = 'Calculation did not converge!'
-        assert (not self.lin_dep) and self.converged, msg
+        assert self.converged, msg
+
+    @property
+    def converged(self):
+        if hasattr(self, "status"):
+            return self.status == 0 or self.status == 1
+        else:
+            msg = (
+                "The converged attribute can only be accessed after the first "
+                "call of the solve method"
+            )
+            raise AttributeError(msg)
 
     def check_busses(self, b):
         r"""
@@ -1933,7 +1944,7 @@ class Network:
         - Postprocessing.
 
         It is possible to check programatically, if a network was solved
-        successfully with the `.converged` property.
+        successfully with the `.converged` attribute.
 
         Parameters
         ----------
@@ -1973,6 +1984,7 @@ class Network:
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
         ## to own function
+        self.status = 99
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
@@ -1988,7 +2000,6 @@ class Network:
         else:
             self.new_design = True
 
-        self.converged = False
         self.init_path = init_path
         self.design_path = design_path
         self.max_iter = max_iter
@@ -2049,7 +2060,7 @@ class Network:
         if not prepare_fast_lane:
             self.reset_topology_reduction_specifications()
 
-        if self.lin_dep:
+        if self.status == 3:
             msg = (
                 'Singularity in jacobian matrix, calculation aborted! Make '
                 'sure your network does not have any linear dependencies in '
@@ -2065,7 +2076,7 @@ class Network:
             logger.error(msg)
             return
 
-        if not self.progress:
+        if self.status == 2:
             msg = (
                 'The solver does not seem to make any progress, aborting '
                 'calculation. Residual value is '
@@ -2091,7 +2102,6 @@ class Network:
         self.jacobian = np.zeros((self.num_vars, self.num_vars))
 
         self.start_time = time()
-        self.progress = True
 
         if self.iterinfo:
             self.iterinfo_head(print_results)
@@ -2106,22 +2116,25 @@ class Network:
             if self.iterinfo:
                 self.iterinfo_body(print_results)
 
-            if (
-                    (self.iter >= self.min_iter - 1
-                     and (self.residual_history[-2:] < ERR ** 0.5).all())
-                    or self.lin_dep
-                ):
-                self.converged = not self.lin_dep
+            if self.lin_dep:
+                self.status = 3
                 break
 
-            if self.iter > 40:
+            elif self.iter > 40:
                 if (
                     all(
                         self.residual_history[(self.iter - 3):] >= self.residual_history[-3] * 0.95
                     ) and self.residual_history[-1] >= self.residual_history[-2] * 0.95
                 ):
-                    self.progress = False
+                    self.status = 2
                     break
+
+            elif (
+                    self.iter >= self.min_iter - 1
+                    and (self.residual_history[-2:] < ERR ** 0.5).all()
+                ):
+                self.status = 0
+                break
 
         self.end_time = time()
 
@@ -2135,8 +2148,7 @@ class Network:
                 "{:.2e}".format(norm(self.residual))
             )
             logger.warning(msg)
-
-        return
+            self.status = 2
 
     def solve_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -2182,6 +2194,7 @@ class Network:
                 f"required, {n} supplied. Aborting calculation!"
             )
             logger.error(msg)
+            self.status = 12
             raise hlp.TESPyNetworkError(msg)
         elif n < self.num_vars:
             msg = (
@@ -2189,6 +2202,7 @@ class Network:
                 f"required, {n} supplied. Aborting calculation!"
             )
             logger.error(msg)
+            self.status = 11
             raise hlp.TESPyNetworkError(msg)
 
     def iterinfo_head(self, print_results=True):
@@ -2536,18 +2550,22 @@ class Network:
 
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
-        self.process_connections()
-        self.process_components()
+        _converged = self.process_connections()
+        _converged = _converged and self.process_components()
         self.process_busses()
+
+        if self.status == 0 and not _converged:
+            self.status = 1
 
         msg = 'Postprocessing complete.'
         logger.info(msg)
 
     def process_connections(self):
         """Process the Connection results."""
+        _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            c.calc_results()
+            _converged = _converged and c.calc_results()
 
             self.results['Connection'].loc[c.label] = (
                 [
@@ -2559,15 +2577,16 @@ class Network:
                 ] + [
                     c.phase.val
                 ]
-
             )
+        return _converged
 
     def process_components(self):
         """Process the component results."""
         # components
+        _converged = True
         for cp in self.comps['object']:
             cp.calc_parameters()
-            cp.check_parameter_bounds()
+            _converged = _converged and cp.check_parameter_bounds()
 
             key = cp.__class__.__name__
             for param in self.results[key].columns:
@@ -2577,6 +2596,8 @@ class Network:
                     self.results[key].loc[cp.label, param] = p.val
                 else:
                     self.results[key].loc[cp.label, param] = np.nan
+
+        return _converged
 
     def process_busses(self):
         """Process the bus results."""

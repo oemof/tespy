@@ -965,6 +965,8 @@ class Connection:
         self.h.val0 = self.h.val
         self.fluid.val0 = self.fluid.val.copy()
 
+        return _converged
+
     def check_pressure_bounds(self, fluid):
         if self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
             self.p.val_SI = self.fluid.wrapper[fluid]._p_max

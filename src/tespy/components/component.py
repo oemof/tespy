@@ -838,6 +838,7 @@ class Component:
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
+        _no_limit_violated = True
         for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
@@ -848,6 +849,7 @@ class Component:
                         f"{self.label}."
                     )
                     logger.warning(msg)
+                    _no_limit_violated = False
 
                 elif data.val < data.min_val - ERR:
                     msg = (
@@ -856,6 +858,7 @@ class Component:
                         f"{self.label}."
                     )
                     logger.warning(msg)
+                    _no_limit_violated = False
 
             elif isinstance(data, dc_cc) and data.is_set:
                 expr = self.get_char_expr(data.param, **data.char_params)
@@ -867,6 +870,8 @@ class Component:
                     expr = self.get_char_expr(
                         char_data.param, **char_data.char_params)
                     char_data.char_func.get_domain_errors(expr, self.label)
+
+        return _no_limit_violated
 
     def convergence_check(self):
         return

@@ -81,7 +81,7 @@ class TestClausiusRankine:
         self.nw.solve('design')
         for cp in self.nw.comps['object']:
             cp.entropy_balance()
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
 
     def test_entropy_perfect_cycle(self):
         """Test entropy values in the perfect clausius rankine cycle."""

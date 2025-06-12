@@ -278,7 +278,7 @@ class TestHeatPump:
                 else:
                     self.nw.solve('offdesign', design_path=tmp_path)
 
-                self.nw._convergence_check()
+                self.nw.assert_convergence()
                 # relative deviation should not exceed 6.5 %
                 # this should be much less, unfortunately not all ebsilon
                 # characteristics are available, thus it is

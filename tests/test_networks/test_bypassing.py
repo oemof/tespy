@@ -38,7 +38,7 @@ def test_bypass_system():
     heater.set_attr(Q=2e6, pr=0.9)
 
     nw.solve("design")
-    nw._convergence_check()
+    nw.assert_convergence()
 
     msg = "In non-bypass mode, pressure ratio must be the specified value"
     assert round(c2.p.val, 4) == round(c1.p.val * 0.9, 4), msg
@@ -48,7 +48,7 @@ def test_bypass_system():
     heater.set_attr(bypass=True)
 
     nw.solve("design")
-    nw._convergence_check()
+    nw.assert_convergence()
     msg = "With bypass enabled, temperature an pressure should not change."
     assert round(c2.T.val, 4) == round(c1.T.val, 4), msg
 
@@ -103,7 +103,7 @@ def test_bypass_regenerative_preheater():
     preheater.set_attr(dp1=dp1, dp2=dp2)
 
     nw.solve("design")
-    nw._convergence_check()
+    nw.assert_convergence()
 
     assert round(c12.p.val, 2) == round(c11.p.val - dp1, 2)
     assert round(c8.p.val, 2) == round(c7.p.val - dp2, 2)
@@ -114,7 +114,7 @@ def test_bypass_regenerative_preheater():
     c12.set_attr(p=None, x=None)
     c8.set_attr(p=None)
     nw.solve("design")
-    nw._convergence_check()
+    nw.assert_convergence()
     assert round(c12.p.val, 2) == round(c11.p.val, 2)
     assert round(c8.p.val, 2) == round(c7.p.val, 2)
     assert round(c11.h.val, 2) == round(c12.h.val, 2)

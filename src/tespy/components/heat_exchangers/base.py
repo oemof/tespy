@@ -494,7 +494,7 @@ class HeatExchanger(Component):
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2
 
-        if ttd_u == ttd_l:
+        if round(ttd_u, 6) == round(ttd_l, 6):
             td_log = ttd_l
         else:
             td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
@@ -719,7 +719,7 @@ class HeatExchanger(Component):
 
     def ttd_l_func(self):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for lower terminal temperature difference.
 
         Returns
         -------
@@ -738,7 +738,7 @@ class HeatExchanger(Component):
 
     def ttd_l_func_doc(self, label):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for lower terminal temperature difference.
 
         Parameters
         ----------
@@ -755,7 +755,7 @@ class HeatExchanger(Component):
 
     def ttd_l_deriv(self, increment_filter, k):
         """
-        Calculate partial derivates of upper terminal temperature function.
+        Calculate partial derivates of lower terminal temperature function.
 
         Parameters
         ----------
@@ -774,7 +774,7 @@ class HeatExchanger(Component):
 
     def ttd_min_func(self):
         r"""
-        Equation for upper terminal temperature difference.
+        Equation for minimum terminal temperature difference.
 
         Returns
         -------
@@ -1171,7 +1171,7 @@ class HeatExchanger(Component):
         # kA and logarithmic temperature difference
         if self.ttd_u.val < 0 or self.ttd_l.val < 0:
             self.td_log.val = np.nan
-        elif self.ttd_l.val == self.ttd_u.val:
+        elif round(self.ttd_l.val, 6) == round(self.ttd_u.val, 6):
             self.td_log.val = self.ttd_l.val
         else:
             self.td_log.val = (

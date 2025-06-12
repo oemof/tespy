@@ -29,7 +29,7 @@ class TestPyromat:
         c1, c2 = self.nwk.get_conn(["1", "2"])
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         h_out_ref = round(c2.h.val_SI / 1e3)
         T_out_ref = round(c2.T.val_SI)
@@ -40,7 +40,7 @@ class TestPyromat:
         c1.set_attr(fluid={"mp::H2O": 1}, fluid_engines={"H2O": PyromatWrapper})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         assert h_out_ref == round(c2.h.val_SI / 1e3)
         assert T_out_ref == round(c2.T.val_SI)

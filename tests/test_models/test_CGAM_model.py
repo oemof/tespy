@@ -122,7 +122,7 @@ class TestCGAM:
         c4.set_attr(T=1520 - 273.15)
         cb.set_attr(lamb=None)
         self.nwk.solve('design')
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         self.result = self.nwk.results["Connection"].copy()
 

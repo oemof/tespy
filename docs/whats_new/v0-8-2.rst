@@ -11,6 +11,14 @@ API changes
   changes please check the respective section
   :ref:`in the docs <tespy_subsystems_label>`
   (`PR #652 <https://github.com/oemof/tespy/pull/652>`__).
+- The attribute :code:`progress` of the class :code:`Network` has been removed.
+  The attribute :code:`converged` is now a method, which can be called after
+  a simulation :code:`Network.converged()`
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
+- To raise an :code:`AssertionError` on non-convergence of a simulation you
+  must now use :code:`Network.assert_convergence()` instead of
+  :code:`Network._convergence_check()`
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
 
 New Features
 ############
@@ -18,6 +26,10 @@ New Features
   :code:`DiabaticCombustionChamber` and :code:`CombustionEngine` can now handle
   carbonmonoxide as fuel
   (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+- The :code:`Network`'s :code:`solve` method will now assign status values
+  depending of the outcome of the simulation. Check the section on
+  :ref:`convergence <tespy_module_convergence_label>` for more information
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
 
 Other Changes
 #############
@@ -32,6 +44,8 @@ Other Changes
   calculation is now consistent through all respective classes and can handle
   temperature differences to a precision of :code:`1e-6`
   (`PR #679 <https://github.com/oemof/tespy/pull/679>`__).
+- The export method :code:`to_exerpy` now includes the results for components
+  (`PR #680 <https://github.com/oemof/tespy/pull/680>`__).
 
 Contributors
 ############

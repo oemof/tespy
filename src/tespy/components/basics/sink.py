@@ -72,13 +72,6 @@ class Sink(Component):
     def get_mandatory_constraints():
         return {}
 
-    @staticmethod
-    def get_bypass_constraints():
-        return {}
-
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         return

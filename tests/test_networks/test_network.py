@@ -46,15 +46,26 @@ class TestNetworks:
         with raises(TESPyNetworkError):
             self.nw.solve('offdesign', **kwargs)
 
-    def test_Network_linear_dependency(self):
+    def test_Network_overdetermined_fluid_state(self):
         """Test network linear dependency."""
         a = Connection(
             self.source, 'out1', self.sink, 'in1', p=5, x=1, T=7, fluid={"H2": 1}
         )
         self.nw.add_conns(a)
-        self.nw.solve('design')
-        msg = 'Test must result in a linear dependency of the jacobian matrix.'
-        assert self.nw.status == 3, msg
+        with raises(TESPyNetworkError):
+            self.nw.solve('design')
+
+    def test_Network_linear_dependency(self):
+        pump = Pump("pump")
+        a = Connection(self.source, "out1", pump, "in1")
+        b = Connection(pump, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        a.set_attr(fluid={"water": 1}, p=1, T=25)
+        b.set_attr(p=2, T=27)
+        pump.set_attr(eta_s=0.9)
+
+        self.nw.solve("design")
+        assert self.nw.status == 3
 
     def test_Network_no_progress(self):
         """Test no convergence progress."""
@@ -88,13 +99,15 @@ class TestNetworks:
         """Test deleting a network's connection."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        self.nw.check_network()
+        self.nw.check_topology()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
         self.nw.del_conns(a)
-        msg = ('A connection has been deleted, the network consistency check '
-               'must be repeated (.checked-property must be False).')
+        msg = (
+            'A connection has been deleted, the network consistency check '
+            'must be repeated (.checked-property must be False).'
+        )
         assert not self.nw.checked, msg
 
     def test_Network_delete_comps(self):
@@ -505,15 +518,15 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design")
         self.nwk.assert_convergence()
         variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
-        # no mass flow is variable
+        # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
         # first connection pressure and enthalpy not variable
         assert c1.p not in variables
         assert c1.h not in variables
-        # second connection pressure and enthalpy are variable
-        assert c2.p in variables
-        assert c2.h in variables
+        # second connection pressure and enthalpy not variable
+        assert c2.p not in variables
+        assert c2.h not in variables
 
     @mark.skip("Not implemented")
     def test_splitting_branch_massflow_presolve(self):
@@ -625,7 +638,7 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_network()
+        nw.solve("design")
 
 
 def test_v07_to_v08_export(tmp_path):

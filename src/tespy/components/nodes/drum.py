@@ -15,6 +15,7 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.nodes.droplet_separator import DropletSeparator
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 
 
 @component_registry
@@ -98,7 +99,7 @@ class Drum(DropletSeparator):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')
@@ -138,6 +139,7 @@ class Drum(DropletSeparator):
     >>> amb_ev.set_attr(fluid={'air': 1}, T=30)
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
+    >>> nw.assert_convergence()
     >>> nw.save('tmp.json')
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
@@ -155,7 +157,7 @@ class Drum(DropletSeparator):
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     3.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -169,147 +171,6 @@ class Drum(DropletSeparator):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
-
-    def get_mandatory_constraints(self):
-        num_mass_eq = 1
-        if self.inl[1].m == self.outl[0].m:
-            num_mass_eq = 0
-        return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': num_mass_eq},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1},
-            'outlet_constraints': {
-                'func': self.outlet_states_func,
-                'deriv': self.outlet_states_deriv,
-                'constant_deriv': False,
-                'latex': self.outlet_states_func_doc,
-                'num_eq': 2}
-        }
-
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
-
-    def mass_flow_func(self):
-        r"""
-        Calculate the residual value for mass flow balance equation.
-
-        Returns
-        -------
-        res : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \sum \dot{m}_{in,i} - \sum \dot{m}_{out,j} \;
-                \forall i \in inlets, \forall j \in outlets
-        """
-        if self.inl[1].m == self.outl[0].m:
-            return self.inl[0].m.val_SI - self.outl[1].m.val_SI
-        else:
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI
-            for o in self.outl:
-                res -= o.m.val_SI
-
-            return res
-
-    def mass_flow_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives for mass flow equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix with partial derivatives for the fluid equations.
-        """
-        if self.inl[1].m == self.outl[0].m:
-            if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = 1
-            if self.outl[1].m.is_var:
-                self.jacobian[k, self.outl[1].m.J_col] = -1
-
-        else:
-            for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = 1
-            for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -1
-
-    def energy_balance_func(self):
-        r"""
-        Calculate energy balance.
-
-        Returns
-        -------
-        residual : float
-            Residual value of energy balance.
-
-            .. math::
-
-                0 = \sum_i \left(\dot{m}_{in,i} \cdot h_{in,i} \right) -
-                \sum_j \left(\dot{m}_{out,j} \cdot h_{out,j} \right)\\
-                \forall i \in \text{inlets} \; \forall j \in \text{outlets}
-        """
-        if self.inl[1].m == self.outl[0].m:
-            res = (
-                (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
-                * self.outl[0].m.val_SI
-                + (self.inl[0].h.val_SI - self.outl[1].h.val_SI)
-                * self.inl[0].m.val_SI
-            )
-        else:
-            res = 0
-            for i in self.inl:
-                res += i.m.val_SI * i.h.val_SI
-            for o in self.outl:
-                res -= o.m.val_SI * o.h.val_SI
-
-        return res
-
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        # due to topology reduction this is the case quite often
-        if self.inl[1].m == self.outl[0].m:
-            if self.outl[0].m.is_var:
-                self.jacobian[k, self.outl[0].m.J_col] = (self.inl[1].h.val_SI - self.outl[0].h.val_SI)
-            if self.inl[1].h.is_var:
-                self.jacobian[k, self.inl[1].h.J_col] = self.outl[0].m.val_SI
-            if self.outl[0].h.is_var:
-                self.jacobian[k, self.outl[0].h.J_col] = -self.outl[0].m.val_SI
-
-            if self.inl[0].m.is_var:
-                self.jacobian[k, self.inl[0].m.J_col] = self.inl[0].h.val_SI - self.outl[1].h.val_SI
-            if self.inl[0].h.is_var:
-                self.jacobian[k, self.inl[0].h.J_col] = self.inl[0].m.val_SI
-            if self.outl[1].h.is_var:
-                self.jacobian[k, self.outl[1].h.J_col] = -self.outl[1].m.val_SI
-        else:
-            super().energy_balance_deriv(increment_filter, k)
 
     @staticmethod
     def initialise_target(c, key):
@@ -347,37 +208,6 @@ class Drum(DropletSeparator):
 
     def propagate_wrapper_to_target(self, branch):
         return super().propagate_wrapper_to_target(branch)
-
-    def propagate_to_target(self, branch):
-
-        if branch["connections"][-1].target_id == "in2":
-            return
-
-        outconn = self.outl[0]
-        subbranch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(subbranch)
-        branch["subbranches"][outconn.label] = subbranch
-
-        outconn = self.outl[1]
-        if subbranch["components"][-1] == self:
-
-            branch["connections"] += [outconn]
-            branch["components"] += [outconn.target]
-
-            outconn.target.propagate_to_target(branch)
-
-        else:
-            subbranch = {
-                "connections": [outconn],
-                "components": [self, outconn.target],
-                "subbranches": {}
-            }
-            outconn.target.propagate_to_target(subbranch)
-            branch["subbranches"][outconn.label] = subbranch
 
     def exergy_balance(self, T0):
         r"""

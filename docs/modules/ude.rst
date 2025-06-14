@@ -115,10 +115,8 @@ derivatives to mass flow are not zero.
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1
-    ...     if c2.m.is_var:
-    ...         ude.jacobian[c2.m.J_col] = -2 * ude.conns[1].m.val_SI
+    ...     ude._partial_derivative(c1.m, 1)
+    ...     ude._partial_derivative(c2.m, -2 * ude.conns[1].m.val_SI)
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
@@ -134,7 +132,7 @@ the network. The class requires four mandatory arguments to be passed:
 
 .. code-block:: python
 
-    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, conns=[c1, c2])
     >>> nw.add_ude(ude)
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
@@ -186,11 +184,12 @@ respectively to calculate the partial derivatives.
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1 / ude.conns[0].m.val_SI
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = - 2 / ude.conns[0].p.val_SI
+    ...     ude._partial_derivative(c1.m, 1 / ude.conns[0].m.val_SI)
+    ...     ude._partial_derivative(c1.p, - 2 / ude.conns[0].p.val_SI)
     ...     T = c2.calc_T()
+    ...     # this API also works, it is not as convenient, but saves
+    ...     # computational effort because the derivatives are only calculated
+    ...     # on demand
     ...     if c2.p.is_var:
     ...         ude.jacobian[c2.p.J_col] = (
     ...             dT_mix_dph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
@@ -214,16 +213,12 @@ for the above derivatives would therefore look like this:
     >>> def my_ude_deriv(ude):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = ude.numeric_deriv('m', c1)
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-    ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = ude.numeric_deriv('p', c2)
-    ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = ude.numeric_deriv('h', c2)
+    ...     ude._partial_derivative(c1.m)
+    ...     ude._partial_derivative(c1.p)
+    ...     ude._partial_derivative(c2.p)
+    ...     ude._partial_derivative(c2.h)
 
-    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, conns=[c1, c2])
     >>> nw.add_ude(ude)
     >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
     >>> nw.solve('design')
@@ -286,44 +281,10 @@ instance must therefore be changed as below.
     ...         ude.jacobian[c2.p.J_col] = a - 1
 
     >>> ude = UserDefinedEquation(
-    ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}
+    ...     'my ude', my_ude, my_ude_deriv, conns=[c1, c2], params={'a': 0.5, 'b': 1}
     ... )
 
 
-One more example (using a CharLine for data point interpolation) can be found in
-the API documentation of class
+One more example (using a CharLine for data point interpolation) can be found
+in the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
-
-Document your equations
------------------------
-
-For the automatic documentation of your models just pass the :code:`latex`
-keyword on creation of the UserDefinedEquation instance. It should contain the
-latex equation string. For example, the last equation from above:
-
-.. code-block:: python
-
-    latex = (
-       r'0 = a \cdot \left(h_2 - h_1 \right) - '
-       r'\left(h_2 - h\left(p_1, x=b \right)\right)'
-    )
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={'equation': latex}
-    )
-
-The documentation will also create figures of :code:`CharLine` and
-:code:`CharMap` objects provided. To add these, adjust the code like this.
-Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
-
-.. code-block:: python
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={
-           'equation': latex,
-           'lines': [charline1, charline2],
-           'maps': [map1]
-       }
-    )

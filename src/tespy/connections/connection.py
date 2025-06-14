@@ -1029,8 +1029,8 @@ class Connection:
 
     def fluid_balance_dependents(self):
         return {
-            "scalars": [],
-            "vectors": {self.fluid: self.fluid.is_var}
+            "scalars": [[]],
+            "vectors": [{self.fluid: self.fluid.is_var}]
         }
 
     def calc_s(self):

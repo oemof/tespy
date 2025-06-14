@@ -132,7 +132,7 @@ the network. The class requires four mandatory arguments to be passed:
 
 .. code-block:: python
 
-    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, conns=[c1, c2])
     >>> nw.add_ude(ude)
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
@@ -218,7 +218,7 @@ for the above derivatives would therefore look like this:
     ...     ude._partial_derivative(c2.p)
     ...     ude._partial_derivative(c2.h)
 
-    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, conns=[c1, c2])
     >>> nw.add_ude(ude)
     >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
     >>> nw.solve('design')
@@ -281,10 +281,10 @@ instance must therefore be changed as below.
     ...         ude.jacobian[c2.p.J_col] = a - 1
 
     >>> ude = UserDefinedEquation(
-    ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}
+    ...     'my ude', my_ude, my_ude_deriv, conns=[c1, c2], params={'a': 0.5, 'b': 1}
     ... )
 
 
-One more example (using a CharLine for data point interpolation) can be found in
-the API documentation of class
+One more example (using a CharLine for data point interpolation) can be found
+in the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.

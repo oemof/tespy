@@ -140,8 +140,7 @@ def convert_from_SI(property, SI_value, unit):
 
 class UserDefinedEquation:
 
-    def __init__(self, label, func, deriv, conns, params={},
-                 latex={}, structure_matrix=None):
+    def __init__(self, label, func, deriv, conns=[], comps=[], dependents=None, params={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -266,8 +265,9 @@ class UserDefinedEquation:
         ...    y=[17, 12, 9, 6.5, 4.5, 3, 2, 1.5, 1.25, 1.125, 1.1, 1.05],
         ...    extrapolate=True)
         >>> my_ude = UserDefinedEquation(
-        ...    'myudelabel', myfunc, myjacobian, [inflow, outflow],
-        ...    params={'char': char})
+        ...    'myudelabel', myfunc, myjacobian, conns=[inflow, outflow],
+        ...    params={'char': char}
+        ... )
         >>> nw.add_ude(my_ude)
         >>> nw.solve('design')
 
@@ -312,13 +312,20 @@ class UserDefinedEquation:
             logger.error(msg)
             raise TypeError(msg)
 
+        if isinstance(comps, list):
+            self.comps = comps
+        else:
+            msg = (
+                'Parameter comps must be a list of '
+                'tespy.components.component.Component objects.'
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
         self.func = func
         self.deriv = deriv
-        if structure_matrix is None:
-            self.structure_matrix = {}
-        else:
-            self.structure_matrix = structure_matrix
-
+        self.dependents = dependents
+        self.structure_matrix = {}
         self.right_hand_side = {}
 
         if isinstance(params, dict):

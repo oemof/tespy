@@ -2837,7 +2837,6 @@ class Network:
             self._incidence_matrix_dense[row, cols] = 1
 
         if self.lin_dep:
-            _nl = "\n"
             if self.iter == 0 and np.linalg.det(self._incidence_matrix_dense) == 0.0:
                 self.singularity_msg = (
                     "Detected singularity in Jacobian matrix. This singularity "
@@ -2845,33 +2844,9 @@ class Network:
                     "problem and NOT a numerical issue. Double check your "
                     "setup.\n"
                 )
-                matrix = self._incidence_matrix_dense
-                all_zero_cols = self._check_all_zero_columns(matrix)
-                all_zero_rows = self._check_all_zero_rows(matrix)
-                if len(all_zero_cols) + len(all_zero_rows) == 0:
-                    equations = self._cauchy_schwarz_inequality(matrix)
-                    equations = self.get_equations_by_number(equations)
-                    self.singularity_msg += (
-                        "The following equations form a linear dependency in "
-                        "the incidence matrix: "
-                        f"{', '.join([str(e) for e in equations.values()])}{_nl}"
-                    )
-                else:
-                    if len(all_zero_cols) > 0:
-                        variables = self.get_variables_by_number(all_zero_cols)
-                        self.singularity_msg += (
-                            "The following variables of your problem are not "
-                            "in connection with any equation: "
-                            f"{', '.join([str(v) for v in variables])}{_nl}"
-                        )
-                    if len(all_zero_rows) > 0:
-                        equations = self.get_equations_by_number(all_zero_rows)
-                        self.singularity_msg += (
-                            "The following equations of your problem do not "
-                            "depend on any variable: "
-                            f"{', '.join([str(e) for e in equations.values()])}{_nl}"
-                        )
+                self._find_linear_dependencies(self.jacobian)
                 return
+
             # here we can analyse the same things as above but on the
             # Jacobian to give hints what equations/variables are causing
             # the issue.
@@ -2889,18 +2864,48 @@ class Network:
                 variable = self.get_variables_by_number([col])
                 missing_entries += [f"{equation}: {variable}"]
 
+            _nl = "\n"
             self.singularity_msg = (
                 "Found singularity in Jacobian matrix, calculation "
                 "aborted! The setup of you problem seems to be solvable. It "
                 "failed due to partial derivatives in the Jacobian being "
                 "zero, which were expected not to be zero, or the other way "
                 "around. The reason for this usually lies in starting value "
-                "selection or bad convergence. The following equation (key of "
-                "outer dict) may have an unexpected zero/non-zero in the "
+                "selection or bad convergence. The following equations (key "
+                "of outer dict) may have an unexpected zero/non-zero in the "
                 "partial derivative towards the variable (value of outer "
                 f"dict) and be the root of evil: {_nl.join(missing_entries)}"
             )
+            self._find_linear_dependencies(self.jacobian)
             return
+
+    def _find_linear_dependencies(self, matrix):
+        _nl = "\n"
+        all_zero_cols = self._check_all_zero_columns(matrix)
+        all_zero_rows = self._check_all_zero_rows(matrix)
+        if len(all_zero_cols) + len(all_zero_rows) == 0:
+            equations = self._cauchy_schwarz_inequality(matrix)
+            equations = self.get_equations_by_number(equations)
+            self.singularity_msg += (
+                "The following equations form a linear dependency in "
+                "the : "
+                f"{', '.join([str(e) for e in equations.values()])}{_nl}"
+            )
+        else:
+            if len(all_zero_cols) > 0:
+                variables = self.get_variables_by_number(all_zero_cols)
+                self.singularity_msg += (
+                    "The following variables of your problem are not "
+                    "in connection with any equation: "
+                    f"{', '.join([str(v) for v in variables])}{_nl}"
+                )
+            if len(all_zero_rows) > 0:
+                equations = self.get_equations_by_number(all_zero_rows)
+                self.singularity_msg += (
+                    "The following equations of your problem do not "
+                    "depend on any variable: "
+                    f"{', '.join([str(e) for e in equations.values()])}{_nl}"
+                )
 
     def _check_all_zero_columns(self, matrix):
         return np.where((matrix == 0).all(axis=0))[0]

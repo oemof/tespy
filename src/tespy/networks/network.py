@@ -2639,7 +2639,7 @@ class Network:
                     self.status = 2
                     break
 
-            elif (
+            if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
                 ):

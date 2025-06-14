@@ -739,7 +739,7 @@ class Connection:
                 self.num_eq += data.num_eq
                 eq_counter += data.num_eq
 
-        self.residual = np.zeros(self.num_eq)
+        self.residual = {}
         self.jacobian = {}
 
         return eq_counter
@@ -763,6 +763,7 @@ class Connection:
 
         eq_dict[value]._scalar_dependents = scalar_dependents
         eq_dict[value]._vector_dependents = vector_dependents
+        eq_dict[value]._first_eq_index = eq_counter
 
         for i in range(data.num_eq):
             self._equation_lookup[eq_counter + i] = (value, i)
@@ -1044,12 +1045,17 @@ class Connection:
 
     def solve(self, increment_filter):
         self._increment_filter = increment_filter
-        sum_eq = 0
         for label, data in self.equations.items():
-            num_eq = data.num_eq
-            self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
-            data.deriv(sum_eq, **data.func_params)
-            sum_eq += num_eq
+            eq_num = data._first_eq_index
+            result = data.func(**data.func_params)
+            if isinstance(result, list):
+                result = {eq_num + k: value for k, value in enumerate(result)}
+            else:
+                result = {eq_num: result}
+
+            self.residual.update(result)
+
+            data.deriv(eq_num, **data.func_params)
 
     def calc_results(self):
         self.T.val_SI = self.calc_T()

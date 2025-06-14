@@ -477,6 +477,7 @@ class Component:
 
         eq_dict[value]._scalar_dependents = scalar_dependents
         eq_dict[value]._vector_dependents = vector_dependents
+        eq_dict[value]._first_eq_index = eq_counter
 
         for i in range(data.num_eq):
             self._equation_lookup[eq_counter + i] = (value, i)
@@ -525,15 +526,13 @@ class Component:
                 eq_counter += data.num_eq
 
         self.jacobian = {}
-        self.residual = np.zeros(self.num_eq)
+        self.residual = {}
 
         # this could in principle apply for all equations!
-        sum_eq = 0
         for constraint in self.mandatory_equations.values():
-            num_eq = constraint.num_eq
+            eq_num = constraint._first_eq_index
             if constraint.constant_deriv:
-                constraint.deriv(None, sum_eq)
-            sum_eq += num_eq
+                constraint.deriv(None, eq_num)
 
         return eq_counter
 
@@ -650,30 +649,36 @@ class Component:
         increment_filter : ndarray
             Matrix for filtering non-changing variables.
         """
-        sum_eq = 0
         for label, data in self.mandatory_equations.items():
-            num_eq = data.num_eq
+            eq_num = data._first_eq_index
+            result = data.func(**data.func_params)
+            if isinstance(result, list):
+                result = {eq_num + k: value for k, value in enumerate(result)}
+            else:
+                result = {eq_num: result}
 
-            self.residual[sum_eq:sum_eq + num_eq] = data.func(**data.func_params)
+            self.residual.update(result)
 
             if not data.constant_deriv:
-                self._solve_jacobian(data, increment_filter, sum_eq)
-
-            sum_eq += num_eq
+                self._solve_jacobian(data, increment_filter, eq_num)
 
         for label, data in self.user_imposed_equations.items():
-            self.residual[sum_eq:sum_eq + data.num_eq] = data.func(
-                **data.func_params
-            )
-            self._solve_jacobian(data, increment_filter, sum_eq)
+            eq_num = data._first_eq_index
+            result = data.func(**data.func_params)
+            if isinstance(result, list):
+                result = {eq_num + k: value for k, value in enumerate(result)}
+            else:
+                result = {eq_num: result}
 
-            sum_eq += data.num_eq
+            self.residual.update(result)
 
-    def _solve_jacobian(self, data, increment_filter, sum_eq):
+            self._solve_jacobian(data, increment_filter, eq_num)
+
+    def _solve_jacobian(self, data, increment_filter, eq_num):
         if data.deriv is not None:
             data.deriv(
                 increment_filter,
-                sum_eq,
+                eq_num,
                 dependents={
                     "scalars": data._scalar_dependents,
                     "vectors": data._vector_dependents
@@ -682,16 +687,17 @@ class Component:
             )
 
         else:
+            # these can only be parameters with a single equation for now
             for dependent in data._scalar_dependents[0]:
                 f = data.func
                 self._partial_derivative(
-                    dependent, sum_eq, f, increment_filter, **data.func_params
+                    dependent, eq_num, f, increment_filter, **data.func_params
                 )
 
             for dependent, dx in data._vector_dependents[0].items():
                 f = data.func
                 self._partial_derivative_fluid(
-                    dependent, sum_eq, f, dx, increment_filter, **data.func_params
+                    dependent, eq_num, f, dx, increment_filter, **data.func_params
                 )
 
     def bus_func(self, bus):

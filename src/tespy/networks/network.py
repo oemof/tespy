@@ -3093,17 +3093,18 @@ class Network:
         Calculate the residual and derivatives of component equations.
         """
         # fetch component equation residuals and component partial derivatives
-        sum_eq = 0
         for cp in self.comps['object']:
             cp.solve(self.increment_filter)
-            self.residual[sum_eq:sum_eq + cp.num_eq] = cp.residual
 
             if len(cp.jacobian) > 0:
-                rows = [k[0] + sum_eq for k in cp.jacobian]
+                rows = list(cp.residual.keys())
+                data = list(cp.residual.values())
+                self.residual[rows] = data
+
+                rows = [k[0] for k in cp.jacobian]
                 columns = [k[1] for k in cp.jacobian]
                 data = list(cp.jacobian.values())
                 self.jacobian[rows, columns] = data
-                sum_eq += cp.num_eq
 
             cp.it += 1
 
@@ -3111,17 +3112,18 @@ class Network:
         r"""
         Calculate the residual and derivatives of connection equations.
         """
-        sum_eq = self.num_comp_eq
         for c in self.conns['object']:
             c.solve(self.increment_filter)
-            self.residual[sum_eq:sum_eq + c.num_eq] = c.residual
 
             if len(c.jacobian) > 0:
-                rows = [k[0] + sum_eq for k in c.jacobian]
+                rows = list(c.residual.keys())
+                data = list(c.residual.values())
+                self.residual[rows] = data
+
+                rows = [k[0] for k in c.jacobian]
                 columns = [k[1] for k in c.jacobian]
                 data = list(c.jacobian.values())
                 self.jacobian[rows, columns] = data
-                sum_eq += c.num_eq
 
             c.it += 1
 

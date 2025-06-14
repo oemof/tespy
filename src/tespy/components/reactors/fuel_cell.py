@@ -27,8 +27,9 @@ class FuelCell(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.fluid_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.mass_flow_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_func`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_func`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
 

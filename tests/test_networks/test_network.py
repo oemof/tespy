@@ -638,7 +638,7 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_topology()
+        nw.solve("design")
 
 
 def test_v07_to_v08_export(tmp_path):

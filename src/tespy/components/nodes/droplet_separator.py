@@ -84,7 +84,6 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
@@ -147,13 +146,11 @@ class DropletSeparator(NodeBase):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1
             }),
             'pressure_constraints': dc_cmc(**{
@@ -164,7 +161,6 @@ class DropletSeparator(NodeBase):
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 'func_params': {'outconn': 0, 'quality': 0}
             }),
@@ -172,7 +168,6 @@ class DropletSeparator(NodeBase):
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 'func_params': {'outconn': 1, 'quality': 1}
             }),

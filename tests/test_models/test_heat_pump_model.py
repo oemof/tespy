@@ -280,7 +280,7 @@ class TestHeatPump:
         tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
         # the model does not consistently solve!!
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         dr_su = self.nw.get_conn("drum:out2_superheater:in2")
         dr_su.set_attr(T=5, p=None)
         self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
@@ -290,14 +290,14 @@ class TestHeatPump:
         self.nw.print_results()
 
         # input values from ebsilon
-        T = [105, 100, 90, 80]
+        T_range = [105, 100, 90, 80]
         m_source = np.array([
             [23, 22, 20, 18, 16],
             [27, 24, 20, 16, 12],
             [31, 25, 20, 15, 10],
             [33, 26, 20, 15, 10]
         ])
-        COP = np.array([
+        cop_array = np.array([
             [2.436, 2.414, 2.368, 2.338, 2.287],
             [2.591, 2.523, 2.448, 2.355, 2.216],
             [2.777, 2.635, 2.557, 2.442, 2.243],
@@ -305,7 +305,7 @@ class TestHeatPump:
         ])
 
         i = 0
-        for T in T:
+        for T in T_range:
             j = 0
             self.cd_cons.set_attr(T=T)
             for m in m_source[i]:
@@ -324,8 +324,8 @@ class TestHeatPump:
                 # characteristics are available, thus it is
                 # difficult/impossible to match the models perfectly!
                 d_rel_COP = abs(
-                    self.heat.P.val / self.power.P.val - COP[i, j]
-                ) / COP[i, j]
+                    self.heat.P.val / self.power.P.val - cop_array[i, j]
+                ) / cop_array[i, j]
                 msg = (
                     'The deviation in COP should be less than 0.07, is '
                     f'{d_rel_COP} at mass flow {m} and temperature {T}.'

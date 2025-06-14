@@ -154,7 +154,7 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so1 = Source('source 1')
@@ -195,7 +195,7 @@ class SimpleHeatExchanger(Component):
     -47275.8
     >>> round(outg.T.val, 1)
     140.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

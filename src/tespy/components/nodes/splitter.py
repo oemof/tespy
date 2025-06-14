@@ -82,7 +82,6 @@ class Splitter(NodeBase):
     >>> from tespy.components import Sink, Source, Splitter
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> so = Source('source')
     >>> si1 = Sink('sink1')

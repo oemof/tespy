@@ -129,7 +129,7 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.components import Sink, Source, Desuperheater
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(
     ...     T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
     ...     iterinfo=False
@@ -176,7 +176,7 @@ class Desuperheater(HeatExchanger):
     >>> nw.solve('offdesign', init_path='tmp.json', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     0.41
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

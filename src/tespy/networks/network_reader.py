@@ -60,7 +60,7 @@ def load_network(path):
     ... Compressor, Turbine, SimpleHeatExchanger)
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import load_network, Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> air = Source('air')
     >>> f = Source('fuel')
@@ -154,8 +154,8 @@ def load_network(path):
     True
     >>> round(imported_nwk.get_comp('compressor').igva.val, 3) == igva
     True
-    >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
-    >>> shutil.rmtree('./design_state', ignore_errors=True)
+    >>> os.remove('exported_nwk.json')
+    >>> os.remove('design_state.json')
     """
     msg = (
         f'The load_network method is deprecated and will be removed in the '

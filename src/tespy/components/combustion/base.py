@@ -28,7 +28,6 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
-from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -123,7 +122,6 @@ class CombustionChamber(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
@@ -336,8 +334,10 @@ class CombustionChamber(Component):
                 self.fuels[f]['H'] / 2 * hf[self.h2o]
                 + self.fuels[f]['C'] * hf[self.co2]
                 - (
-                    (self.fuels[f]['C'] + self.fuels[f]['H'] / 4 - self.fuels[f]['O'] / 2) * hf[self.o2]
-                    + hf[list(key)[0]]
+                    (
+                        self.fuels[f]['C'] + self.fuels[f]['H'] / 4
+                        - self.fuels[f]['O'] / 2
+                    ) * hf[self.o2] + hf[list(key)[0]]
                 )
             ) / inl[0].fluid.wrapper[f]._molar_mass * 1000
         )

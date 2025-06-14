@@ -116,7 +116,6 @@ class FuelCell(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import shutil
     >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
     >>> fc = FuelCell('fuel cell')
     >>> fc.component()
@@ -163,13 +162,12 @@ class FuelCell(Component):
             'P': dc_cp(max_val=0),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
-                deriv=self.heat_deriv,
-                func=self.heat_func
+                func=self.heat_func,
+                dependents=self.heat_dependents
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
-                deriv=self.pr_deriv,
                 func=self.pr_func,
                 func_params={'pr': 'pr'}
             ),
@@ -189,13 +187,13 @@ class FuelCell(Component):
             ),
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
-                deriv=self.eta_deriv,
-                func=self.eta_func
+                func=self.eta_func,
+                dependents=self.eta_dependents
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
-                deriv=self.specific_energy_deriv,
-                func=self.specific_energy_func
+                func=self.specific_energy_func,
+                dependents=self.specific_energy_dependents
             )
         }
 
@@ -204,6 +202,7 @@ class FuelCell(Component):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
+                'dependents': self.reactor_mass_flow_dependents,
                 'constant_deriv': True,
                 'num_eq_sets': 2
             }),
@@ -220,6 +219,7 @@ class FuelCell(Component):
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
+                'dependents': self.energy_balance_dependents,
                 'constant_deriv': False,
                 'num_eq_sets': 1
             }),
@@ -274,6 +274,13 @@ class FuelCell(Component):
         self.h2 = "H2"
         self.h2o = "H2O"
         self.e0 = self.calc_e0()
+
+        # derivatives determined from calc_P function
+        T_ref = 298.15
+        p_ref = 1e5
+        self.h_refh2o = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        self.h_refo2 = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        self.h_refh2 = h_mix_pT(p_ref, T_ref, self.inl[2].fluid_data, self.inl[2].mixing_rule)
 
         super()._preprocess(num_nw_vars)
 
@@ -399,49 +406,46 @@ class FuelCell(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        # derivatives determined from calc_P function
-        T_ref = 298.15
-        p_ref = 1e5
-        h_refh2o = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
-        h_refo2 = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-        h_refh2 = h_mix_pT(p_ref, T_ref, self.inl[2].fluid_data, self.inl[2].mixing_rule)
-
         # derivatives cooling water inlet
         i = self.inl[0]
         if i.m.is_var:
             self.jacobian[k, i.m.J_col] = self.outl[0].h.val_SI - i.h.val_SI
         if i.h.is_var:
             self.jacobian[k, i.h.J_col] = -i.m.val_SI
-
-        # derivatives water outlet
-        o = self.outl[1]
-        if o.m.is_var:
-            self.jacobian[k, o.m.J_col] = o.h.val_SI - h_refh2o
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = o.m.val_SI
-
         # derivative cooling water outlet
         o = self.outl[0]
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = self.inl[0].m.val_SI
 
+        # derivatives water outlet
+        o = self.outl[1]
+        if o.m.is_var:
+            self.jacobian[k, o.m.J_col] = o.h.val_SI - self.h_refh2o
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = o.m.val_SI
+
         # derivatives oxygen inlet
         i = self.inl[1]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refo2)
+            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - self.h_refo2)
         if i.h.is_var:
             self.jacobian[k, i.h.J_col] = -i.m.val_SI
 
         # derivatives hydrogen inlet
         i = self.inl[2]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - h_refh2 - self.e0)
+            self.jacobian[k, i.m.J_col] = -(i.h.val_SI - self.h_refh2 - self.e0)
         if i.h.is_var:
             self.jacobian[k, i.h.J_col] = -i.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
             self.jacobian[k, self.p.J_col] = 1
+
+    def energy_balance_dependents(self):
+        return [
+            [var for c in self.inl + self.outl for var in [c.m, c.h]] + [self.P]
+        ]
 
     def reactor_mass_flow_func(self):
         r"""
@@ -494,6 +498,12 @@ class FuelCell(Component):
             self.jacobian[k, self.inl[2].m.J_col] = -1
         if self.outl[1].m.is_var:
             self.jacobian[k, self.outl[1].m.J_col] = (1 - o2)
+
+    def reactor_mass_flow_dependents(self):
+        return [
+            [self.inl[1].m, self.outl[1].m],
+            [self.inl[2].m, self.outl[1].m]
+        ]
 
     def cooling_mass_flow_func(self):
         return self.inl[0].m.val_SI - self.outl[0].m.val_SI
@@ -581,19 +591,11 @@ class FuelCell(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 298.15
-        p_ref = 1e5
-
-        # equations to set a reference point for each h2o, h2 and o2        # derivatives determined from calc_P function
-        h_refh2o = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
-        h_refo2 = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-        h_refh2 = h_mix_pT(p_ref, T_ref, self.inl[2].fluid_data, self.inl[2].mixing_rule)
-
         val = (
-            self.inl[2].m.val_SI * (self.inl[2].h.val_SI - h_refh2 - self.e0)
-            + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refo2)
+            self.inl[2].m.val_SI * (self.inl[2].h.val_SI - self.h_refh2 - self.e0)
+            + self.inl[1].m.val_SI * (self.inl[1].h.val_SI - self.h_refo2)
             - self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            - self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refh2o)
+            - self.outl[1].m.val_SI * (self.outl[1].h.val_SI - self.h_refh2o)
         )
         return val
 

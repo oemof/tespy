@@ -133,7 +133,7 @@ class Pipe(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, Pipe
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source 1')
@@ -157,7 +157,7 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(pi.pr.val, 2)
     0.94
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

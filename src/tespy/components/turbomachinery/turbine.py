@@ -113,7 +113,7 @@ class Turbine(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -144,7 +144,7 @@ class Turbine(Turbomachine):
     0.898
     >>> round(inc.p.val, 1)
     88.6
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -220,6 +220,7 @@ class Turbine(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         f = self.eta_s_func
         i = self.inl[0]
         o = self.outl[0]

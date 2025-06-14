@@ -92,7 +92,6 @@ class Separator(NodeBase):
     >>> from tespy.components import Sink, Source, Separator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
@@ -245,9 +244,15 @@ class Separator(NodeBase):
             k += 1
 
     def fluid_dependents(self):
-        mass_flow_containers = [c.m for c in self.inl + self.outl]
-        # fluid_containers = [c.fluid for c in self.inl + self.outl]
-        return [mass_flow_containers for f in self.variable_fluids]
+        return {
+            "scalars": [
+                [c.m for c in self.inl + self.outl]
+                for f in self.variable_fluids
+            ],
+            "vectors": [{
+                c.fluid: set(f) & c.fluid.is_var for c in self.inl + self.outl
+            } for f in self.variable_fluids]
+        }
 
     def energy_balance_func(self):
         r"""
@@ -285,18 +290,30 @@ class Separator(NodeBase):
         dT_dp_in = 0
         dT_dh_in = 0
         if i.p.is_var:
+            # outlet pressure must be variable as well in this case!
             dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
         if i.h.is_var:
             dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
+
         for o in self.outl:
             args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
-            dT_dp_out = -dT_mix_dph(*args)
-            # this assumes the pressures are coupled and enthalpy is not!
+
+            dT_dp_out = 0
+            if o.p.is_var:
+                dT_dp_out = -dT_mix_dph(*args)
+            # pressure is always coupled
             self._partial_derivative(i.p, k, dT_dp_in - dT_dp_out)
 
             if o.h.is_var:
-                self.jacobian[k, o.h.J_col] = -dT_mix_pdh(*args)
-            self._partial_derivative(i.h, k, dT_dh_in)
+                dT_dh_out = -dT_mix_pdh(*args)
+
+            # enthalpy is not necessarily coupled
+            if i.h._reference_container == o.h._reference_container:
+                self._partial_derivative(i.h, k, dT_dh_in - dT_dh_out)
+            else:
+                self._partial_derivative(i.h, k, dT_dh_in)
+                self._partial_derivative(o.h, k, dT_dh_out)
+
             k += 1
 
     def energy_balance_dependents(self):

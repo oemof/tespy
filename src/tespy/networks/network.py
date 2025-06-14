@@ -1816,7 +1816,7 @@ class Network:
                     for var in cp.offdesign:
                         cp.get_attr(var).is_set = False
 
-                cp.set_parameters(self.mode, series)
+                cp._set_design_parameters(self.mode, series)
 
     def _init_offdesign(self):
         r"""
@@ -1983,7 +1983,7 @@ class Network:
             return
         # write component design data
         data = df.loc[c.label]
-        c.set_parameters(self.mode, data)
+        c._set_design_parameters(self.mode, data)
 
     def _init_conn_design_params(self, c, df):
         r"""
@@ -3460,7 +3460,7 @@ class Network:
         ... Compressor, Turbine, SimpleHeatExchanger)
         >>> from tespy.connections import Connection, Ref, Bus
         >>> from tespy.networks import Network
-        >>> import shutil
+        >>> import os
         >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
         >>> air = Source('air')
         >>> f = Source('fuel')
@@ -3554,8 +3554,8 @@ class Network:
         True
         >>> round(imported_nwk.get_comp('compressor').igva.val, 3) == igva
         True
-        >>> shutil.rmtree('./exported_nwk', ignore_errors=True)
-        >>> shutil.rmtree('./design_state', ignore_errors=True)
+        >>> os.remove('exported_nwk.json')
+        >>> os.remove('design_state.json')
         """
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)

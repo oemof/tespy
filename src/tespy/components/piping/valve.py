@@ -99,7 +99,7 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -130,7 +130,7 @@ class Valve(Component):
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

@@ -145,7 +145,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, SolarCollector
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source')
@@ -178,7 +178,7 @@ class SolarCollector(SimpleHeatExchanger):
     6083.8
     >>> round(outg.T.val, 1)
     70.5
-    >>> shutil.rmtree('./tmp.json', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

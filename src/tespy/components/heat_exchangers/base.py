@@ -179,8 +179,7 @@ class HeatExchanger(Component):
     >>> from tespy.components import Sink, Source, HeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> from tespy.tools import document_model
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> exhaust_hot = Source('Exhaust air outlet')
     >>> exhaust_cold = Sink('Exhaust air inlet')
@@ -222,8 +221,7 @@ class HeatExchanger(Component):
     33.9
     >>> round(he_ex.T.val, 1)
     18.8
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
-    >>> shutil.rmtree('./report', ignore_errors=True)
+    >>> os.remove("tmp.json")
     """
 
     @staticmethod
@@ -247,15 +245,13 @@ class HeatExchanger(Component):
             'ttd_u': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_u_func,
-                dependents=self.ttd_u_dependents,
-                latex=self.ttd_u_func_doc
+                dependents=self.ttd_u_dependents
             ),
             'ttd_l': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 func=self.ttd_l_func,
-                dependents=self.ttd_l_dependents,
-                latex=self.ttd_l_func_doc
+                dependents=self.ttd_l_dependents
             ),
             'ttd_min': dc_cp(
                 min_val=0, num_eq_sets=1,
@@ -505,6 +501,7 @@ class HeatExchanger(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         f = self.kA_func
         i = self.inl[0]
         o = self.outl[0]

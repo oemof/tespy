@@ -24,7 +24,6 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import _numeric_deriv_vecvar
 from tespy.tools.helpers import _get_dependents
 
 
@@ -186,7 +185,7 @@ class CombustionEngine(CombustionChamber):
     ... Splitter)
     >>> from tespy.connections import Connection, Ref
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
@@ -244,7 +243,7 @@ class CombustionEngine(CombustionChamber):
     20550000.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.75
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -258,26 +257,24 @@ class CombustionEngine(CombustionChamber):
             'Q1': dc_cp(
                 max_val=-1,
                 num_eq_sets=1,
-                deriv=self.Q1_deriv,
+                dependents=self.Q1_dependents,
                 func=self.Q1_func
             ),
             'Q2': dc_cp(
                 max_val=-1,
                 num_eq_sets=1,
-                deriv=self.Q2_deriv,
+                dependents=self.Q2_dependents,
                 func=self.Q2_func
             ),
             'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'}
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                deriv=self.pr_deriv,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
@@ -321,25 +318,25 @@ class CombustionEngine(CombustionChamber):
         constraints.update({
             'power_constraints': dc_cmc(**{
                 'func': self.tiP_char_func,
-                'deriv': self.tiP_char_deriv,
+                'dependents': self.tiP_char_dependents,
                 'constant_deriv': False,
                 'num_eq_sets': 1,
             }),
             'heat1_constraints': dc_cmc(**{
                 'func': self.Q1_char_func,
-                'deriv': self.Q1_char_deriv,
+                'dependents': self.Q1_char_dependents,
                 'constant_deriv': False,
                 'num_eq_sets': 1,
             }),
             'heat2_constraints': dc_cmc(**{
                 'func': self.Q2_char_func,
-                'deriv': self.Q2_char_deriv,
+                'dependents': self.Q2_char_dependents,
                 'constant_deriv': False,
                 'num_eq_sets': 1,
             }),
             'heatloss_constraints': dc_cmc(**{
                 'func': self.Qloss_char_func,
-                'deriv': self.Qloss_char_deriv,
+                'dependents': self.Qloss_char_dependents,
                 'constant_deriv': False,
                 'num_eq_sets': 1,
             }),

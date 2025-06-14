@@ -132,7 +132,7 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
     >>> fw = Source('feed water')
     >>> oxy = Sink('oxygen sink')
@@ -182,7 +182,7 @@ class WaterElectrolyzer(Component):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(el.eta.val, 2)
     0.84
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -194,13 +194,12 @@ class WaterElectrolyzer(Component):
             'P': dc_cp(min_val=0),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
-                deriv=self.heat_deriv,
-                func=self.heat_func
+                func=self.heat_func,
+                dependents=self.heat_dependents
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
-                deriv=self.pr_deriv,
                 func=self.pr_func,
                 func_params={'pr': 'pr'}
             ),
@@ -220,20 +219,21 @@ class WaterElectrolyzer(Component):
             ),
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
-                deriv=self.eta_deriv,
-                func=self.eta_func
+                func=self.eta_func,
+                dependents=self.eta_dependents
             ),
             'eta_char': dc_cc(
                 deriv=self.eta_char_deriv,
                 func=self.eta_char_func,
+                dependents=self.eta_char_dependents,
                 num_eq_sets=1,
                 param='m_out',
                 char_params={'type': 'rel', 'outconn': 2}
             ),
             'e': dc_cp(
                 min_val=0, num_eq_sets=1,
-                deriv=self.specific_energy_consumption_deriv,
-                func=self.specific_energy_consumption_func
+                func=self.specific_energy_func,
+                dependents=self.specific_energy_dependents
             )
         }
 
@@ -319,6 +319,15 @@ class WaterElectrolyzer(Component):
 
         self.e0 = self.calc_e0()
 
+        T_ref = 298.15
+        p_ref = 1e5
+
+        # equations to set a reference point for each h2o, h2 and o2
+        self.h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+        self.h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
+        self.h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
+
+
         super()._preprocess(num_nw_vars)
 
     def calc_e0(self):
@@ -401,50 +410,14 @@ class WaterElectrolyzer(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{in,1}-h_{out,1}\right)
         """
-        return self.Q.val - self.inl[0].m.val_SI * (
-            self.inl[0].h.val_SI - self.outl[0].h.val_SI)
+        return self.Q.val + self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
 
-    def heat_func_doc(self, label):
-        r"""
-        Equation for heat output.
+    def heat_dependents(self):
+        return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\dot{Q}-\dot{m}_\mathrm{in,1}\cdot\left(h_\mathrm{in,1}-'
-            r'h_\mathrm{out,1}\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def heat_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for heat output function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
-
-    def specific_energy_consumption_func(self):
+    def specific_energy_func(self):
         r"""
         Equation for specific energy consumption.
 
@@ -501,13 +474,6 @@ class WaterElectrolyzer(Component):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        # derivatives determined from calc_P function
-        T_ref = 298.15
-        p_ref = 1e5
-        h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-        h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
-        h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
-
         # derivatives cooling water inlet
         i = self.inl[0]
         if i.m.is_var:
@@ -518,7 +484,7 @@ class WaterElectrolyzer(Component):
         # derivatives feed water inlet
         i = self.inl[1]
         if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = i.h.val_SI - h_refh2o
+            self.jacobian[k, i.m.J_col] = i.h.val_SI - self.h_refh2o
         if i.h.is_var:
             self.jacobian[k, i.h.J_col] = i.m.val_SI
 
@@ -530,20 +496,25 @@ class WaterElectrolyzer(Component):
         # derivatives oxygen outlet
         o = self.outl[1]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refo2)
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - self.h_refo2)
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives hydrogen outlet
         o = self.outl[2]
         if o.m.is_var:
-            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - h_refh2 + self.e0)
+            self.jacobian[k, o.m.J_col] = -(o.h.val_SI - self.h_refh2 + self.e0)
         if o.h.is_var:
             self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
         # derivatives for variable P
         if self.P.is_var:
             self.jacobian[k, self.P.J_col] = 1
+
+    def energy_balance_dependents(self):
+        return [
+            [var for c in self.inl + self.outl for var in [c.m, c.h]] + [self.P]
+        ]
 
     def eta_char_func(self):
         r"""
@@ -588,11 +559,13 @@ class WaterElectrolyzer(Component):
         """
         o = self.outl[2]
         if o.m.is_var:
-            f = self.eta_char_func
-            self.jacobian[k, o.m.J_col] = _numeric_deriv(o.m._reference_container, f)
+            self._partial_derivative(o.m, k, self.eta_char_func, increment_filter)
 
         if self.P.is_var:
             self.jacobian[k, self.P.J_col] = 1
+
+    def eta_char_dependents(self):
+        return [self.outl[2].m, self.P]
 
     def reactor_mass_flow_func(self):
         r"""
@@ -649,6 +622,12 @@ class WaterElectrolyzer(Component):
             self.jacobian[k, self.inl[1].m.J_col] = (1 - o2)
         if self.outl[2].m.is_var:
             self.jacobian[k, self.outl[2].m.J_col] = -1
+
+    def reactor_mass_flow_dependents(self):
+        return [
+            [self.inl[1].m, self.outl[1].m],
+            [self.inl[1].m, self.outl[2].m]
+        ]
 
     def cooling_mass_flow_func(self):
         return self.inl[0].m.val_SI - self.outl[0].m.val_SI
@@ -737,19 +716,11 @@ class WaterElectrolyzer(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        T_ref = 298.15
-        p_ref = 1e5
-
-        # equations to set a reference point for each h2o, h2 and o2
-        h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-        h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
-        h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
-
         val = (
-            -self.inl[1].m.val_SI * (self.inl[1].h.val_SI - h_refh2o)
+            -self.inl[1].m.val_SI * (self.inl[1].h.val_SI - self.h_refh2o)
             + self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            + self.outl[1].m.val_SI * (self.outl[1].h.val_SI - h_refo2)
-            + self.outl[2].m.val_SI * (self.outl[2].h.val_SI - h_refh2 + self.e0)
+            + self.outl[1].m.val_SI * (self.outl[1].h.val_SI - self.h_refo2)
+            + self.outl[2].m.val_SI * (self.outl[2].h.val_SI - self.h_refh2 + self.e0)
         )
         return val
 

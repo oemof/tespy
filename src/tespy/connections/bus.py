@@ -52,7 +52,7 @@ class Bus:
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
@@ -177,7 +177,7 @@ class Bus:
     0.761
     >>> round(pu.calc_bus_efficiency(power_bus), 3)
     0.968
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
     def __init__(self, label, **kwargs):
 

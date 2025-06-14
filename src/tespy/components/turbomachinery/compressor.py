@@ -118,7 +118,7 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
     ... iterinfo=False)
     >>> si = Sink('sink')
@@ -150,7 +150,7 @@ class Compressor(Turbomachine):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
     0.77
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -232,6 +232,7 @@ class Compressor(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
@@ -331,10 +332,10 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        beta = np.sqrt(i.T.design / i.calc_T())
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
 
-        yarr, zarr = self.char_map_pr.char_func.evaluate_x(x)
+        yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
         yarr *= (1 - self.igva.val / 100)
         zarr *= (1 - self.igva.val / 100)

@@ -99,7 +99,7 @@ class Drum(DropletSeparator):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')
@@ -139,7 +139,7 @@ class Drum(DropletSeparator):
     >>> amb_ev.set_attr(fluid={'air': 1}, T=30)
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
-    >>> nw._convergence_check()
+    >>> nw.assert_convergence()
     >>> nw.save('tmp.json')
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
@@ -157,7 +157,7 @@ class Drum(DropletSeparator):
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     3.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

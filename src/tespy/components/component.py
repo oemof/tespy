@@ -674,7 +674,10 @@ class Component:
             data.deriv(
                 increment_filter,
                 sum_eq,
-                dependents=data._scalar_dependents[0],
+                dependents={
+                    "scalars": data._scalar_dependents,
+                    "vectors": data._vector_dependents
+                },
                 **data.func_params
             )
 
@@ -873,7 +876,7 @@ class Component:
         """
         return 0
 
-    def set_parameters(self, mode, data):
+    def _set_design_parameters(self, mode, data):
         r"""
         Set or unset design values of component parameters.
 

@@ -784,36 +784,49 @@ class Connection:
             "s": dc_prop(),
             "fluid": dc_flu(d=1e-5),
             "fluid_balance": dc_simple(
-                func=self.fluid_balance_func, deriv=self.fluid_balance_deriv,
-                _val=False, num_eq_sets=1
+                func=self.fluid_balance_func,
+                deriv=self.fluid_balance_deriv,
+                _val=False, num_eq_sets=1,
+                dependents=self.fluid_balance_dependents
             ),
-            "T": dc_prop(func=self.T_func, deriv=self.T_deriv, dependents=self.T_dependents, num_eq=1),
-            "v": dc_prop(func=self.v_func, deriv=self.v_deriv, num_eq=1),
-            "x": dc_prop(func=self.x_func, deriv=self.x_deriv, num_eq=1),
+            "T": dc_prop(
+                func=self.T_func, deriv=self.T_deriv,
+                dependents=self.T_dependents, num_eq=1
+            ),
+            "v": dc_prop(
+                func=self.v_func, deriv=self.v_deriv,
+                dependents=self.v_dependents, num_eq=1
+            ),
+            "x": dc_prop(
+                func=self.x_func, deriv=self.x_deriv,
+                dependents=self.x_dependents, num_eq=1
+            ),
             "Td_bp": dc_prop(
-                func=self.Td_bp_func, deriv=self.Td_bp_deriv, num_eq=1,
-                dependents=self.Td_bp_dependents
+                func=self.Td_bp_func, deriv=self.Td_bp_deriv,
+                dependents=self.Td_bp_dependents, num_eq=1
             ),
             "m_ref": dc_ref(
-                func=self.primary_ref_func, deriv=self.primary_ref_deriv,
+                func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "m"},
                 structure_matrix=self.primary_ref_structure_matrix
             ),
             "p_ref": dc_ref(
-                func=self.primary_ref_func, deriv=self.primary_ref_deriv,
+                func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "p"},
                 structure_matrix=self.primary_ref_structure_matrix
             ),
             "h_ref": dc_ref(
-                func=self.primary_ref_func, deriv=self.primary_ref_deriv,
+                func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "h"},
                 structure_matrix=self.primary_ref_structure_matrix
             ),
             "T_ref": dc_ref(
-                func=self.T_ref_func, deriv=self.T_ref_deriv, num_eq=1
+                func=self.T_ref_func, deriv=self.T_ref_deriv,
+                dependents=self.T_ref_dependents, num_eq=1
             ),
             "v_ref": dc_ref(
-                func=self.v_ref_func, deriv=self.v_ref_deriv, num_eq=1
+                func=self.v_ref_func, deriv=self.v_ref_deriv,
+                dependents=self.v_ref_dependents, num_eq=1
             ),
 
         }
@@ -836,15 +849,6 @@ class Connection:
             self.get_attr(variable).val_SI
             - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
         )
-
-    def primary_ref_deriv(self, k, **kwargs):
-        variable = kwargs["variable"]
-        ref = self.get_attr(f"{variable}_ref").ref
-        if self.get_attr(variable).is_var:
-            self.jacobian[k, self.get_attr(variable).J_col] = 1
-
-        if ref.obj.get_attr(variable).is_var:
-            self.jacobian[k, ref.obj.get_attr(variable).J_col] = -ref.factor
 
     def primary_ref_structure_matrix(self, k, **kwargs):
         variable = kwargs["variable"]
@@ -877,10 +881,7 @@ class Connection:
             )
 
     def T_dependents(self):
-        return {
-            "scalars": [self.p, self.h],
-            "vectors": [{self.fluid: self.fluid.is_var}]
-        }
+        return [self.p, self.h]
 
     def T_ref_func(self, **kwargs):
         ref = self.T_ref.ref
@@ -898,6 +899,10 @@ class Connection:
             self.jacobian[k, ref.obj.h.J_col] = -(
                 dT_mix_pdh(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
             ) * ref.factor
+
+    def T_ref_dependents(self):
+        ref = self.T_ref.ref
+        return self.T_dependents() + ref.obj.T_dependents()
 
     def calc_viscosity(self, T0=None):
         try:
@@ -930,6 +935,9 @@ class Connection:
                 * self.m.val_SI
             )
 
+    def v_dependents(self):
+        return [self.m, self.p, self.h]
+
     def v_ref_func(self, **kwargs):
         ref = self.v_ref.ref
         return (
@@ -960,6 +968,10 @@ class Connection:
                 * ref.obj.m.val_SI * ref.factor
             )
 
+    def v_ref_dependents(self):
+        ref = self.v_ref.ref
+        return self.v_dependents() + ref.obj.v_dependents()
+
     def calc_x(self):
         try:
             return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
@@ -978,6 +990,9 @@ class Connection:
             self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = 1
+
+    def x_dependents(self):
+        return [self.p, self.h]
 
     def calc_T_sat(self):
         try:
@@ -1011,6 +1026,12 @@ class Connection:
     def fluid_balance_deriv(self, k, **kwargs):
         for f in self.fluid.is_var:
             self.jacobian[k, self.fluid.J_col[f]] = -self.fluid.val[f]
+
+    def fluid_balance_dependents(self):
+        return {
+            "scalars": [],
+            "vectors": {self.fluid: self.fluid.is_var}
+        }
 
     def calc_s(self):
         try:

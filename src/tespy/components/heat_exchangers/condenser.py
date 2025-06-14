@@ -183,7 +183,7 @@ class Condenser(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
     ... m_range=[0.01, 1000], iterinfo=False)
     >>> amb_in = Source('ambient air inlet')
@@ -234,7 +234,7 @@ class Condenser(HeatExchanger):
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod

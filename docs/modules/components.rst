@@ -893,7 +893,7 @@ different tespy classes required.
 
     >>> # offdesign test
     >>> nw.solve('offdesign', design_path='tmp.json')
-    >>> nw._convergence_check()
+    >>> nw.assert_convergence()
 
 Add more flexibility
 --------------------

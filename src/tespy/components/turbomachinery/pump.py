@@ -110,7 +110,7 @@ class Pump(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
     ... iterinfo=False)
     >>> si = Sink('sink')
@@ -151,7 +151,7 @@ class Pump(Turbomachine):
     0.71
     >>> round(inc.v.val, 1)
     0.9
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -225,6 +225,7 @@ class Pump(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func

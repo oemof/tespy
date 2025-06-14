@@ -15,7 +15,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -248,7 +247,6 @@ class ParabolicTrough(SimpleHeatExchanger):
                     'iam_2', 'A', 'Tamb'
                 ],
                 num_eq_sets=1,
-                latex=self.energy_group_func_doc,
                 func=self.energy_group_func,
                 dependents=self.energy_group_dependents
             )
@@ -296,36 +294,6 @@ class ParabolicTrough(SimpleHeatExchanger):
                 - self.c_2.val * (T_m - self.Tamb.val_SI) ** 2
             )
         )
-
-    def energy_group_func_doc(self, label):
-        r"""
-        Equation for solar collector energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)\\' + '\n'
-            r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} \cdot doc^{1.5}'
-            r'\cdot iam \right. \\' + '\n'
-            r'&\left. -c_1\cdot\left(T_\mathrm{m}-T_\mathrm{amb}\right) -'
-            r'c_2 \cdot \left(T_\mathrm{m} - T_\mathrm{amb}\right)^2'
-            r'\vphantom{\eta_\mathrm{opt}\cdot doc^{1.5}}\right]\\' + '\n'
-            r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
-            '\n'
-            r'iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def energy_group_dependents(self):
         return [

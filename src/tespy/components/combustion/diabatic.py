@@ -17,7 +17,6 @@ from tespy.components import CombustionChamber
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import convert_to_SI
 
@@ -288,36 +287,6 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res += self.calc_ti() * self.eta.val
         return res
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate the energy balance of the diabatic combustion chamber.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
-            r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
-            r'\dot{m}_\mathrm{out,1}\cdot\left( h_\mathrm{out,1}'
-            r' - h_\mathrm{out,1,ref}\right)\\' + '\n'
-            r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
-            r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,1} '
-            r'\cdot x_{fuel\mathrm{,out,1}} \right) \cdot \eta\\' + '\n'
-            r'& \forall i \in \text{inlets}\\'
-            r'& T_\mathrm{ref}=\unit[298.15]{K}'
-            r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
-            '\n' + r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

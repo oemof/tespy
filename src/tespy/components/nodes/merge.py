@@ -15,7 +15,6 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 
@@ -311,50 +310,6 @@ class Merge(NodeBase):
         for c in self.inl + self.outl:
             dependents += [c.m, c.h]
         return dependents
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
-            r'\right) - \dot{m}_\mathrm{out} \cdot h_\mathrm{out} '
-            r'\; \forall i \in \text{inlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        for i in self.inl:
-            if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = i.h.val_SI
-            if i.h.is_var:
-                self.jacobian[k, i.h.J_col] = i.m.val_SI
-        o = self.outl[0]
-        if o.m.is_var:
-            self.jacobian[k, o.m.J_col] = -o.h.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:

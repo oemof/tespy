@@ -19,8 +19,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import convert_from_SI
 
@@ -248,7 +246,6 @@ class Condenser(HeatExchanger):
         params.update({
             'subcooling': dc_simple(
                 _val=False, num_eq_sets=1,
-                latex=self.subcooling_func_doc,
                 func=self.subcooling_func,
                 dependents=self.subcooling_dependents,
             )
@@ -280,23 +277,6 @@ class Condenser(HeatExchanger):
         """
         o = self.outl[0]
         return o.h.val_SI - h_mix_pQ(o.p.val_SI, 0, o.fluid_data)
-
-    def subcooling_func_doc(self, label):
-        r"""
-        Equation for hot side outlet state.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
-        return generate_latex_eq(self, latex, label)
 
     def subcooling_dependents(self):
         return [
@@ -334,31 +314,6 @@ class Condenser(HeatExchanger):
 
         return td_log
 
-    def kA_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
-            r'T_\mathrm{in,2} -T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'+ T_\mathrm{out,2}}'
-            r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
-            r'{T_\mathrm{sat}\left( p_\mathrm{in,1}\right) -'
-            r'T_\mathrm{out,2}}}}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def kA_char_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
@@ -386,36 +341,6 @@ class Condenser(HeatExchanger):
         """
         return super().kA_char_func()
 
-    def kA_char_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)\\' + '\n'
-            r'&+kA_\mathrm{design} \cdot '
-            r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
-            r' - T_\mathrm{sat}\left( p_\mathrm{in,1}\right) +'
-            r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
-            r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'- T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
-            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def ttd_u_func(self):
         r"""
         Equation for upper terminal temperature difference.
@@ -439,25 +364,6 @@ class Condenser(HeatExchanger):
         T_i1 = i.calc_T_sat()
         T_o2 = o.calc_T()
         return self.ttd_u.val - T_i1 + T_o2
-
-    def ttd_u_func_doc(self, label):
-        r"""
-        Equation for upper terminal temperature difference.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
-            r' + T_\mathrm{out,2}')
-        return generate_latex_eq(self, latex, label)
 
     def ttd_u_dependents(self):
         return [

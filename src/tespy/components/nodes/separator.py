@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -219,28 +218,6 @@ class Separator(NodeBase):
                 res -= o.fluid.val[fluid] * o.m.val_SI
             residual += [res]
         return residual
-
-    def fluid_func_doc(self, label):
-        r"""
-        Calculate the vector of residual values for fluid balance equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in} \cdot x_{fl\mathrm{,in}} - '
-            r'\dot {m}_{\mathrm{out,}j} \cdot x_{fl\mathrm{,out,}j}'
-            r'\; \forall fl \in \text{network fluids,} \; \forall j \in'
-            r'\text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def fluid_deriv(self, increment_filter, k, dependents=None):
         r"""

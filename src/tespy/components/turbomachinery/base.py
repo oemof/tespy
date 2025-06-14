@@ -15,7 +15,6 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import convert_to_SI
 
@@ -97,14 +96,12 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                latex=self.energy_balance_func_doc
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
-                latex=self.pr_func_doc,
                 structure_matrix=self.pr_structure_matrix
             ),
             'dp': dc_cp(
@@ -161,27 +158,10 @@ class Turbomachine(Component):
 
                 0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance of a turbomachine.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
-            r'\right)-P')
-        return generate_latex_eq(self, latex, label)
+        return (
+            self.inl[0].m.val_SI
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+        )
 
     def energy_balance_dependents(self):
         return [
@@ -214,24 +194,6 @@ class Turbomachine(Component):
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)')
 
     def bus_deriv(self, bus):
         r"""

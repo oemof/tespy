@@ -16,7 +16,6 @@ from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import convert_to_SI
 
@@ -320,40 +319,8 @@ class FuelCell(Component):
         """
         return self.P.val - self.eta.val * self.inl[2].m.val_SI * self.e0
 
-    def eta_func_doc(self, label):
-        r"""
-        Equation for efficiency.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0 = P - \eta \cdot \dot{m}_\mathrm{H_2,in,3} \cdot e_0'
-        return generate_latex_eq(self, latex, label)
-
-    def eta_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        if self.inl[2].m.is_var:
-            self.jacobian[k, self.inl[2].m.J_col] = -self.eta.val * self.e0
-        # derivatives for variable P
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = 1
+    def eta_dependents(self):
+        return [self.inl[2].m, self.P]
 
     def heat_func(self):
         r"""
@@ -369,47 +336,11 @@ class FuelCell(Component):
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
         return self.Q.val + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
 
-    def heat_func_doc(self, label):
-        r"""
-        Equation for heat output.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\dot{Q}+\dot{m}_\mathrm{in,1}\cdot\left(h_\mathrm{out,1}-'
-            r'h_\mathrm{in,1}\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def heat_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for heat output function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+    def heat_dependents(self):
+        return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
 
     def specific_energy_func(self):
         r"""
@@ -426,43 +357,8 @@ class FuelCell(Component):
         """
         return self.P.val - self.inl[2].m.val_SI * self.e.val
 
-    def specific_energy_func_doc(self, label):
-        r"""
-        Equation for specific energy output.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=P - \dot{m}_\mathrm{H_2,in} \cdot e'
-        return generate_latex_eq(self, latex, label)
-
-    def specific_energy_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for specific energy function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        if self.inl[2].m.is_var:
-            self.jacobian[k, self.inl[2].m.J_col] = -self.e.val
-        # derivatives for variable P
-        if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = 1
-        # derivatives for variable e
-        if self.e.is_var:
-            self.jacobian[k, self.e.J_col] = -self.inl[2].m.val_SI
+    def specific_energy_dependents(self):
+        return [self.inl[2].m, self.P, self.e]
 
     def energy_balance_func(self):
         r"""
@@ -490,36 +386,6 @@ class FuelCell(Component):
             - Reference pressure: 1 bar.
         """
         return self.P.val - self.calc_P()
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate the residual in energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&P + \dot{m}_\mathrm{out,2}\cdot\left(h_\mathrm{out,2}-'
-            r'h_\mathrm{out,2,ref}\right)\\' + '\n'
-            r'&+\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -'
-            r'h_\mathrm{in,1} \right)\\' + '\n'
-            r'& - \dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{in,2} -'
-            r'h_\mathrm{in,2,ref} \right)\\' + '\n'
-            r'& - \dot{m}_\mathrm{in,3} \cdot \left( h_\mathrm{in,3} -'
-            r'h_\mathrm{in,3,ref} - e_0\right)\\' + '\n'
-            r'&p_\mathrm{ref}=\unit[1]{bar},'
-            r'\;T_\mathrm{ref}=\unit[25]{^\circ C}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""

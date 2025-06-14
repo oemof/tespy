@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -219,28 +218,6 @@ class DropletSeparator(NodeBase):
         for c in self.inl + self.outl:
             dependents += [c.m, c.h]
         return dependents
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
-            r'\right) - \sum_j \left(\dot{m}_{\mathrm{out,}j} \cdot '
-            r'h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;'
-            r'\forall j \in \text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def saturated_outlet_func(self, outconn=None, quality=None):
         r"""

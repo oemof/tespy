@@ -18,7 +18,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import _get_dependents
 
@@ -162,20 +161,17 @@ class Turbine(Turbomachine):
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
-                latex=self.eta_s_func_doc,
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                latex=self.eta_s_char_func_doc,
                 dependents=self.eta_s_char_dependents
             ),
             'cone': dc_simple(
                 num_eq_sets=1,
                 func=self.cone_func,
-                latex=self.cone_func_doc,
                 dependents=self.cone_dependents
             )
         })
@@ -211,25 +207,6 @@ class Turbine(Turbomachine):
                 - inl.h.val_SI
             ) * self.eta_s.val
         )
-
-    def eta_s_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency of a turbine.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+\left('
-            r'h_\mathrm{out,s}-h_\mathrm{in}\right)\cdot\eta_\mathrm{s}')
-        return generate_latex_eq(self, latex, label)
 
     def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -294,30 +271,6 @@ class Turbine(Turbomachine):
         )
         return residual
 
-    def cone_func_doc(self, label):
-        r"""
-        Equation for stodolas cone law.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \frac{\dot{m}_\mathrm{in,design}\cdot p_\mathrm{in}}'
-            r'{p_\mathrm{in,design}}\cdot\sqrt{\frac{p_\mathrm{in,design}'
-            r'\cdot v_\mathrm{in}}{p_\mathrm{in}\cdot '
-            r'v_\mathrm{in,design}}\cdot\frac{1-\left('
-            r'\frac{p_\mathrm{out}}{p_\mathrm{in}} \right)^{2}}'
-            r'{1-\left(\frac{p_\mathrm{out,design}}{p_\mathrm{in,design}}'
-            r'\right)^{2}}} -\dot{m}_\mathrm{in}')
-        return generate_latex_eq(self, latex, label)
-
     def cone_dependents(self):
         return [
             self.inl[0].m,
@@ -367,26 +320,6 @@ class Turbine(Turbomachine):
                 ) - inl.h.val_SI
             )
         )
-
-    def eta_s_char_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=-\left(h_\mathrm{out}-h_\mathrm{in}\right)+'
-            r'\eta_\mathrm{s,design}\cdot f \left(X\right)'
-            r'\cdot\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
 
     def eta_s_char_dependents(self):
         return [

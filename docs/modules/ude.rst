@@ -288,37 +288,3 @@ instance must therefore be changed as below.
 One more example (using a CharLine for data point interpolation) can be found in
 the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
-
-Document your equations
------------------------
-
-For the automatic documentation of your models just pass the :code:`latex`
-keyword on creation of the UserDefinedEquation instance. It should contain the
-latex equation string. For example, the last equation from above:
-
-.. code-block:: python
-
-    latex = (
-       r'0 = a \cdot \left(h_2 - h_1 \right) - '
-       r'\left(h_2 - h\left(p_1, x=b \right)\right)'
-    )
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={'equation': latex}
-    )
-
-The documentation will also create figures of :code:`CharLine` and
-:code:`CharMap` objects provided. To add these, adjust the code like this.
-Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
-
-.. code-block:: python
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={
-           'equation': latex,
-           'lines': [charline1, charline2],
-           'maps': [map1]
-       }
-    )

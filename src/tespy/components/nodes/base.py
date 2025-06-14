@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -44,25 +43,6 @@ class NodeBase(Component):
             res -= o.m.val_SI
         return res
 
-    def mass_flow_func_doc(self, label):
-        r"""
-        Calculate the residual value for mass flow balance equation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =\sum\dot{m}_{\mathrm{in},i}-\sum\dot{m}_{\mathrm{out},j}'
-            r'\;\forall i \in \text{inlets}, \forall j \in \text{outlets}')
-        return generate_latex_eq(self, latex, label)
-
     def mass_flow_dependents(self):
         return [c.m for c in self.inl + self.outl]
 
@@ -87,31 +67,6 @@ class NodeBase(Component):
         for c in inl + self.outl:
             residual += [self.inl[0].p.val_SI - c.p.val_SI]
         return residual
-
-    def pressure_equality_func_doc(self, label):
-        r"""
-        Calculate the residual values of pressure equality equations.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = p_\mathrm{in,1} - p_{\mathrm{in,}i} '
-            r'& \; \forall i \in \text{inlets} \setminus '
-            r'\left\lbrace 1\right\rbrace\\' + '\n'
-            r'0 = p_\mathrm{in,1} - p_{\mathrm{out,}j} '
-            r'& \; \forall j \in \text{outlets}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def pressure_structure_matrix(self, k):
         r"""

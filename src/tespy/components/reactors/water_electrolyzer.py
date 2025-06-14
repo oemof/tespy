@@ -17,7 +17,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
@@ -386,40 +385,8 @@ class WaterElectrolyzer(Component):
         """
         return self.P.val * self.eta.val - self.outl[2].m.val_SI * self.e0
 
-    def eta_func_doc(self, label):
-        r"""
-        Equation for electrolysis efficiency.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0 = P \cdot \eta - \dot{m}_\mathrm{H_2,out,3} \cdot e_0'
-        return generate_latex_eq(self, latex, label)
-
-    def eta_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for efficiency function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        if self.outl[2].m.is_var:
-            self.jacobian[k, self.outl[2].m.J_col] = -self.e0
-        # derivatives for variable P
-        if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = self.eta.val
+    def eta_dependents(self):
+        return [self.outl[2].m, self.P]
 
     def heat_func(self):
         r"""
@@ -492,43 +459,8 @@ class WaterElectrolyzer(Component):
         """
         return self.P.val - self.outl[2].m.val_SI * self.e.val
 
-    def specific_energy_consumption_func_doc(self, label):
-        r"""
-        Equation for specific energy consumption.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=P - \dot{m}_\mathrm{H_2,out3} \cdot e'
-        return generate_latex_eq(self, latex, label)
-
-    def specific_energy_consumption_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for specific energy consumption function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        if self.outl[2].m.is_var:
-            self.jacobian[k, self.outl[2].m.J_col] = -self.e.val
-        # derivatives for variable P
-        if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = 1
-        # derivatives for variable e
-        if self.e.is_var:
-            self.jacobian[k, self.e.J_col] = -self.outl[2].m.val_SI
+    def specific_energy_dependents(self):
+        return [self.outl[2].m, self.P, self.e]
 
     def energy_balance_func(self):
         r"""
@@ -556,36 +488,6 @@ class WaterElectrolyzer(Component):
             - Reference pressure: 1 bar.
         """
         return self.P.val - self.calc_P()
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate the residual in energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-'
-            r'h_\mathrm{in,2,ref}\right)\\' + '\n'
-            r'&-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -'
-            r'h_\mathrm{in,1} \right)\\' + '\n'
-            r'& - \dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -'
-            r'h_\mathrm{out,2,ref} \right)\\' + '\n'
-            r'& + \dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -'
-            r'h_\mathrm{out,3,ref} + e_0\right)\\' + '\n'
-            r'&p_\mathrm{ref}=\unit[1]{bar},'
-            r'\;T_\mathrm{ref}=\unit[25]{^\circ C}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -669,34 +571,8 @@ class WaterElectrolyzer(Component):
 
         return (
             self.P.val - self.outl[2].m.val_SI * self.e0 /
-            (self.eta.design * self.eta_char.char_func.evaluate(expr)))
-
-    def eta_char_func_doc(self, label):
-        r"""
-        Equation for given efficiency characteristic of a water electrolyzer.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        p = self.eta_char.param
-        expr = self.get_char_expr_doc(p, **self.eta_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'efficiency to at component ' + self.label + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        latex = (
-            r'0=P-\dot{m}_\mathrm{H_2,out,3}\cdot\frac{e_0}'
-            r'{\eta_\mathrm{design}\cdot f\left(X\right)}')
-        return generate_latex_eq(self, latex, label)
+            (self.eta.design * self.eta_char.char_func.evaluate(expr))
+        )
 
     def eta_char_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -927,27 +803,6 @@ class WaterElectrolyzer(Component):
             raise ValueError(msg)
 
         return val
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        if bus['param'] == 'P':
-            return r'P_\mathrm{el}'
-        elif bus['param'] == 'Q':
-            return (
-                r'-\dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - '
-                r'h_\mathrm{in,1} \right)')
 
     def bus_deriv(self, bus):
         r"""

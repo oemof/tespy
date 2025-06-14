@@ -20,7 +20,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import convert_to_SI
@@ -559,45 +558,8 @@ class CombustionEngine(CombustionChamber):
         o = self.outl[0]
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val
 
-    def Q1_func_doc(self, label):
-        r"""
-        Calculate residual value of primary heat loop function.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} +'
-            r'h_\mathrm{in,1} \right) + \dot{Q}_1')
-        return generate_latex_eq(self, latex, label)
-
-    def Q1_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of primary heat loop function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+    def Q1_dependents(self):
+        return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
 
     def Q2_func(self):
         r"""
@@ -617,45 +579,8 @@ class CombustionEngine(CombustionChamber):
         o = self.outl[1]
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val
 
-    def Q2_func_doc(self, label):
-        r"""
-        Calculate residual value of secondary heat loop function.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,2} \cdot \left(h_\mathrm{out,2} +'
-            r'h_\mathrm{in,2} \right) + \dot{Q}_2')
-        return generate_latex_eq(self, latex, label)
-
-    def Q2_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of secondary heat loop function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        i = self.inl[1]
-        o = self.outl[1]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
+    def Q2_dependents(self):
+        return [self.inl[1].m, self.inl[1].h, self.outl[1].h]
 
     def tiP_char_func(self):
         r"""
@@ -683,57 +608,14 @@ class CombustionEngine(CombustionChamber):
             + self.tiP_char.char_func.evaluate(expr) * self.P.val
         )
 
-    def tiP_char_func_doc(self, label):
-        r"""
-        Calculate the relation of output power and thermal input.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&P\cdot f_\mathrm{TI}\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\ ' + '\n'
-            r'&+ LHV_{fuel} \cdot \left[\sum_i \left('
-            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-            r'\right]\\' + '\n'
-            r'&\forall i \in [3,4]\\ ' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def tiP_char_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of power to thermal input characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
+    def tiP_char_dependents(self):
         inl, outl = self._get_combustion_connections()
-        f = self.tiP_char_func
-
-        variables = _get_dependents([c.m for c in inl + outl] + [self.P])[0]
-        for variable in variables:
-            self._partial_derivative(variable, k, f, increment_filter)
-
-        for c in inl + outl:
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self._partial_derivative_fluid(
-                    c.fluid, k, f, fl, increment_filter
-                )
+        return {
+            "scalars": [c.m for c in inl + outl] + [self.P],
+            "vectors": [{
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+            }]
+        }
 
     def Q1_char_func(self):
         r"""
@@ -770,60 +652,16 @@ class CombustionEngine(CombustionChamber):
             * (o.h.val_SI - i.h.val_SI)
         )
 
-    def Q1_char_func_doc(self, label):
-        r"""
-        Calculate the relation of heat output 1 and thermal input.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-            r'\right] \cdot f_\mathrm{Q1}\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\' + '\n'
-            r'&-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right) \cdot f_\mathrm{TI}'
-            r'\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\ ' + '\n'
-            r'&\forall i \in [3,4]\\ ' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def Q1_char_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of primary heat to thermal input char.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        f = self.Q1_char_func
+    def Q1_char_dependents(self):
         inl, outl = self._get_combustion_connections()
-        variables = _get_dependents([c.m for c in inl + outl + [self.inl[0]]] + [self.P] + [self.inl[0].h, self.outl[0].h])[0]
-
-        for variable in variables:
-            self._partial_derivative(variable, k, f, increment_filter)
-
-        for c in inl + outl:
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self._partial_derivative_fluid(
-                    c.fluid, k, f, fl, increment_filter
-                )
+        return {
+            "scalars": [
+                c.m for c in inl + outl + [self.inl[0]]
+            ] + [c.h for c in [self.inl[0], self.outl[0]]] + [self.P],
+            "vectors": [{
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+            }]
+        }
 
     def Q2_char_func(self):
         r"""
@@ -860,60 +698,16 @@ class CombustionEngine(CombustionChamber):
             * (o.h.val_SI - i.h.val_SI)
         )
 
-    def Q2_char_func_doc(self, label):
-        r"""
-        Calculate the relation of heat output 2 and thermal input.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}'
-            r'\right] \cdot f_\mathrm{Q2}\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\' + '\n'
-            r'&-\dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{out,2} - '
-            r'h_\mathrm{in,2}\right) \cdot f_\mathrm{TI}'
-            r'\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\ ' + '\n'
-            r'&\forall i \in [3,4]\\ ' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def Q2_char_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of secondary heat to thermal input char.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        f = self.Q2_char_func
+    def Q2_char_dependents(self):
         inl, outl = self._get_combustion_connections()
-        variables = _get_dependents([c.m for c in inl + outl + [self.inl[1]]] + [self.P] + [self.inl[1].h, self.outl[1].h])[0]
-
-        for variable in variables:
-            self._partial_derivative(variable, k, f, increment_filter)
-
-        for c in inl + outl:
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self._partial_derivative_fluid(
-                    c.fluid, k, f, fl, increment_filter
-                )
+        return {
+            "scalars": [
+                c.m for c in inl + outl + [self.inl[1]]
+            ] + [c.h for c in [self.inl[1], self.outl[1]]] + [self.P],
+            "vectors": [{
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+            }]
+        }
 
     def Qloss_char_func(self):
         r"""
@@ -946,54 +740,14 @@ class CombustionEngine(CombustionChamber):
             + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val
         )
 
-    def Qloss_char_func_doc(self, label):
-        r"""
-        Calculate the relation of heat loss and thermal input.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&LHV_{fuel} \cdot \left[\sum_i \left('
-            r'\dot{m}_{\mathrm{in,}i} \cdot x_{fuel\mathrm{,in,}i}\right)'
-            r'-\dot{m}_\mathrm{out,3}\cdot x_{fuel\mathrm{,out,}3}\right]'
-            r' \cdot f_\mathrm{QLOSS}\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\' + '\n'
-            r'&+\dot{Q}_\mathrm{loss} \cdot f_\mathrm{TI}'
-            r'\left(\frac{P}{P_\mathrm{design}}'
-            r'\right)\\ ' + '\n'
-            r'&\forall i \in [3,4]\\ ' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def Qloss_char_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of heat loss to thermal input char.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
+    def Qloss_char_dependents(self):
         inl, outl = self._get_combustion_connections()
-        f = self.Qloss_char_func
-
-        variables = _get_dependents([c.m for c in inl + outl] + [self.P, self.Qloss])[0]
-        for variable in variables:
-            self._partial_derivative(variable, k, f, increment_filter)
-
-        for c in inl + outl:
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self._partial_derivative_fluid(
-                    c.fluid, k, f, fl, increment_filter
-                )
+        return {
+            "scalars": [c.m for c in inl + outl] + [self.P, self.Qloss],
+            "vectors": [{
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+            }]
+        }
 
     def calc_P(self):
         r"""
@@ -1121,57 +875,6 @@ class CombustionEngine(CombustionChamber):
             raise ValueError(msg)
 
         return val
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        ######################################################################
-        # value for bus parameter of thermal input (TI)
-        if bus['param'] == 'TI':
-            return CombustionChamber.bus_func_doc(self, bus)
-
-        ######################################################################
-        # value for bus parameter of power output (P)
-        elif bus['param'] == 'P':
-            return 'P'
-
-        ######################################################################
-        # value for bus parameter of total heat production (Q)
-        elif bus['param'] == 'Q':
-            return (
-                r'-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} -'
-                r'h_\mathrm{in,1} \right) - \dot{m}_\mathrm{in,2} \cdot '
-                r'\left( h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
-
-        ######################################################################
-        # value for bus parameter of heat production 1 (Q1)
-        elif bus['param'] == 'Q1':
-            return (
-                r'-\dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} -'
-                r'h_\mathrm{in,1} \right)')
-
-        ######################################################################
-        # value for bus parameter of heat production 2 (Q2)
-        elif bus['param'] == 'Q2':
-            return (
-                r'- \dot{m}_\mathrm{in,2} \cdot '
-                r'\left( h_\mathrm{out,2} - h_\mathrm{in,2} \right)')
-
-        ######################################################################
-        # value for bus parameter of heat loss (Qloss)
-        elif bus['param'] == 'Qloss':
-            return r'\dot{Q}_\mathrm{loss}'
 
     def bus_deriv(self, bus):
         r"""

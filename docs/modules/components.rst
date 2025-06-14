@@ -464,8 +464,6 @@ this, you need to implement four changes to the desired component class:
 - add a method, that returns the result of your equation.
 - add a method, that places the partial derivatives in the Jacobian matrix of
   your component.
-- add a method, that returns the LaTeX code of your equation for the automatic
-  documentation feature.
 
 In the :code:`get_parameters(self)` method, add an entry for your new equation.
 If the equation uses a single parameter, use the :code:`ComponentProperties`
@@ -486,14 +484,15 @@ class shown below.
     'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
     'hydro_group': dc_gcp(
         elements=['L', 'ks', 'D'], num_eq=1,
-        latex=self.hydro_group_func_doc,
-        func=self.hydro_group_func, deriv=self.hydro_group_deriv),
+        func=self.hydro_group_func,
+        deriv=self.hydro_group_deriv
+    ),
     # [...]
 
-:code:`latex`, :code:`func` and :code:`deriv` are pointing to the method that
-should be applied for the corresponding purpose. For more information on
-defining the equations, derivatives and the LaTeX equation you will find the
-information in the next section on custom components.
+:code:`func` and :code:`deriv` are pointing to the method that should be
+applied for the corresponding purpose. For more information on defining the
+equations and derivatives you will find the information in the next section on
+custom components.
 
 Custom components
 -----------------
@@ -546,7 +545,6 @@ equations. It holds another dictionary with information on
 - the number of equations for this constraint,
 - the derivatives,
 - whether the derivatives are constant values or not (:code:`True/False`) and
-- the LaTeX code for the model documentation.
 
 For example, the mandatory equations of a valve look are the following:
 
@@ -554,9 +552,8 @@ For example, the mandatory equations of a valve look are the following:
 
     0=h_{\mathrm{in,1}}-h_{\mathrm{out,1}}
 
-The corresponding method looks like this. The equations, derivatives and
-LaTeX string generation are individual methods you need to define
-(see next sections).
+The corresponding method looks like this. The equations and derivatives are
+individual methods you need to define (see next sections).
 
 .. code-block:: python
 
@@ -566,13 +563,12 @@ LaTeX string generation are individual methods you need to define
                 'func': self.enthalpy_equality_func,
                 'deriv': self.enthalpy_equality_deriv,
                 'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+                'num_eq': 1
+            }
         }
 
 - :code:`func`: Method to be applied (returns residual value of equation).
 - :code:`deriv`: Partial derivatives of equation to primary variables.
-- :code:`latex`: Method returning the LaTeX string of the equation.
 
 Attributes
 ^^^^^^^^^^
@@ -597,15 +593,18 @@ DataContainers instead of dictionaries, e.g. for the Valve:
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq=1,
                 deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+                func_params={'pr': 'pr'}
+            ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq=1,
                 deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+                func_params={'zeta': 'zeta'}
+            ),
             'dp_char': dc_cc(
                 param='m', num_eq=1,
                 deriv=self.dp_char_deriv, func=self.dp_char_func,
-                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+                char_params={'type': 'abs'}
+            )
         }
 
 
@@ -640,8 +639,8 @@ Defining equations and derivatives
 
 Every equation required by the mandatory constraints and in the variables of
 the component must be individual methods returning the residual value of the
-equation applied. This logic accounts for the derivatives and the LaTeX
-equation, too. The Valve's dp_char parameter methods are the following.
+equation applied. This logic accounts for the derivatives, too. The Valve's
+dp_char parameter methods are the following.
 
 .. code:: python
 
@@ -669,33 +668,6 @@ equation, too. The Valve's dp_char parameter methods are the following.
         return (
             self.inl[0].p.val_SI - self.outl[0].p.val_SI -
             self.dp_char.char_func.evaluate(expr))
-
-    def dp_char_func_doc(self, label):
-        r"""
-        Equation for characteristic line of difference pressure to mass flow.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        p = self.dp_char.param
-        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
-            logging.error(msg)
-            raise ValueError(msg)
-
-        latex = (
-            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-            r'\right)')
-        return generate_latex_eq(self, latex, label)
 
     def dp_char_deriv(self, increment_filter, k):
         r"""
@@ -747,15 +719,6 @@ numerically by using the inbuilt method
 - :code:`dx` is the variable you want to calculate the derivative to.
 - :code:`conn` is the connection you want to calculate the derivative for.
 - :code:`kwargs` are additional keyword arguments required for the function.
-
-LaTeX documentation
-^^^^^^^^^^^^^^^^^^^
-Finally, add a method that returns the equation as LaTeX string for the
-automatic model documentation feature. Simple write the equation and return
-it with the :py:meth:`tespy.tools.document_models.generate_latex_eq` method,
-which automatically generates a LaTeX equation environment and labels the
-equation, so you can reference it later. Therefore, the latex generation
-methods needs the label as parameter.
 
 Need assistance?
 ^^^^^^^^^^^^^^^^

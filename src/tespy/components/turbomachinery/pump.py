@@ -17,7 +17,6 @@ from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import _get_dependents
 
@@ -174,15 +173,13 @@ class Pump(Turbomachine):
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                dependents=self.eta_s_char_dependents,
-                latex=self.eta_s_char_func_doc
+                dependents=self.eta_s_char_dependents
             ),
             'flow_char': dc_cc(
                 param='v', num_eq_sets=1,
                 func=self.flow_char_func,
                 dependents=self.flow_char_dependents,
-                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
-                latex=self.flow_char_func_doc
+                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0}
             )
         })
         return parameters
@@ -287,26 +284,6 @@ class Pump(Turbomachine):
             )
         )
 
-    def eta_s_char_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left( X \right)-'
-            r'\left( h_{out,s} - h_{in} \right)')
-        return generate_latex_eq(self, latex, label)
-
     def eta_s_char_dependents(self):
         return [
             self.inl[0].m,
@@ -335,24 +312,6 @@ class Pump(Turbomachine):
             self.outl[0].p.val_SI - self.inl[0].p.val_SI
             - self.flow_char.char_func.evaluate(expr)
         )
-
-    def flow_char_func_doc(self, label):
-        r"""
-        Equation for given flow characteristic of a pump.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
-        return generate_latex_eq(self, latex, label)
 
     def flow_char_dependents(self):
         return [

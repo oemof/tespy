@@ -20,7 +20,6 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import _get_dependents
 
@@ -180,8 +179,7 @@ class Compressor(Turbomachine):
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents,
-                latex=self.char_map_eta_s_func_doc,
+                dependents=self.char_map_dependents
             ),
             'char_map_pr': dc_cm(),
             'char_map_pr_group': dc_gcp(
@@ -246,25 +244,6 @@ class Compressor(Turbomachine):
         for dependent in dependents:
             self._partial_derivative(dependent, k, f, increment_filter)
 
-    def eta_s_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency of a compressor.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
-
     def eta_s_dependents(self):
         return [
             self.inl[0].p,
@@ -311,26 +290,6 @@ class Compressor(Turbomachine):
                 ) - i.h.val_SI
             )
         )
-
-    def eta_s_char_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left(X\right)-'
-            r'\left( h_{out,s} - h_{in} \right)')
-        return generate_latex_eq(self, latex, label)
 
     def eta_s_char_dependents(self):
         return [
@@ -383,38 +342,6 @@ class Compressor(Turbomachine):
 
         return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
 
-    def char_map_pr_func_doc(self, label):
-        r"""
-        Get LaTeX equation for pressure ratio from characteristic map.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-            '\n'
-            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-            '\n'
-            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
-            r'\\' + '\n'
-            r'\vec{Z} = &'
-            r'f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\' + '\n'
-            r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
-            r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
-            r'f\left(Y,\vec{Y},\vec{Z}\right)\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def char_map_eta_s_func(self):
         r"""
         Calculate isentropic efficiency from characteristic map.
@@ -465,38 +392,6 @@ class Compressor(Turbomachine):
             ) - i.h.val_SI)
             / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
         )
-
-    def char_map_eta_s_func_doc(self, label):
-        r"""
-        Get LaTeX equation for isentropic efficiency from characteristic map.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}'
-            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-            '\n'
-            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-            '\n'
-            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
-            r'\\' + '\n'
-            r'\vec{Z} = &'
-            r'f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\'
-            '\n'
-            r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
-            r'f\left(Y,\vec{Y},\vec{Z}\right)' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def char_map_dependents(self):
         return [

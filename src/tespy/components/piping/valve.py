@@ -18,7 +18,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.helpers import convert_to_SI
 
 
@@ -148,7 +147,6 @@ class Valve(Component):
         return {
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                latex=self.pr_func_doc,
                 structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
@@ -166,15 +164,13 @@ class Valve(Component):
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'},
-                latex=self.zeta_func_doc
+                func_params={'zeta': 'zeta'}
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
                 dependents=self.dp_char_dependents,
                 func=self.dp_char_func,
-                char_params={'type': 'abs'},
-                latex=self.dp_char_func_doc
+                char_params={'type': 'abs'}
             )
         }
 
@@ -243,35 +239,9 @@ class Valve(Component):
             raise ValueError(msg)
 
         return (
-            self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-            self.dp_char.char_func.evaluate(expr))
-
-    def dp_char_func_doc(self, label):
-        r"""
-        Equation for characteristic line of difference pressure to mass flow.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        p = self.dp_char.param
-        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        latex = (
-            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-            r'\right)')
-        return generate_latex_eq(self, latex, label)
+            self.inl[0].p.val_SI - self.outl[0].p.val_SI
+            - self.dp_char.char_func.evaluate(expr)
+        )
 
     def dp_char_dependents(self):
         dependents = [

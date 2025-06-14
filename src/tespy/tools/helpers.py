@@ -187,11 +187,6 @@ class UserDefinedEquation:
             Dictionary containing keyword arguments required by the function
             and/or derivative.
 
-        latex : dict
-            Dictionary holding LaTeX string of the equation as well as
-            CharLine and CharMap instances applied in the equation for the
-            automatic model documentation module.
-
         Example
         -------
         Consider a pipeline transporting hot water with measurement data on
@@ -357,22 +352,9 @@ class UserDefinedEquation:
             logger.error(msg)
             raise TypeError(msg)
 
-        self.latex = {
-            'equation': r'\text{equation string not available}',
-            'lines': [],
-            'maps': []
-        }
-        if isinstance(latex, dict):
-            self.latex.update(latex)
-        else:
-            msg = 'The parameter latex must be passed as dictionary.'
-            logger.error(msg)
-            raise TypeError(msg)
-
     def solve(self):
         self.residual = self.func(self)
         self.deriv(self)
-        logger.error(self.jacobian)
 
     def get_structure_matrix(self):
         return
@@ -383,6 +365,7 @@ class UserDefinedEquation:
         result = _partial_derivative(var, value, None, ude=self)
         if result is not None:
             self.jacobian[var.J_col] = result
+
 
 def _is_variable(var, increment_filter=None):
     if var.is_var:

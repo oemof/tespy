@@ -27,7 +27,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
@@ -1004,33 +1003,6 @@ class Component:
         pr = self.get_attr(pr)
         return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
 
-    def pr_func_doc(self, label, pr=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure ratio function.
-
-        Parameters
-        ----------
-        pr : str
-            Component parameter to evaluate the pr_func on, e.g.
-            :code:`pr1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-        """
-        latex = (
-            r'0=p_\mathrm{in,' + str(inconn + 1) + r'}\cdot ' + pr +
-            r' - p_\mathrm{out,' + str(outconn + 1) + r'}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def pr_deriv(self, increment_filter, k, pr=None, inconn=0, outconn=0):
         r"""
         Calculate residual value of pressure ratio function.
@@ -1149,41 +1121,6 @@ class Component:
                 data.val - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
-
-    def zeta_func_doc(self, label, zeta=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of :math:`\zeta`-function.
-
-        Parameters
-        ----------
-        zeta : str
-            Component parameter to evaluate the zeta_func on, e.g.
-            :code:`zeta1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-        """
-        inl = r'_\mathrm{in,' + str(inconn + 1) + r'}'
-        outl = r'_\mathrm{out,' + str(outconn + 1) + r'}'
-        latex = (
-            r'0 = \begin{cases}' + '\n' +
-            r'p' + inl + r'- p' + outl + r' & |\dot{m}' + inl +
-            r'| < \unitfrac[0.0001]{kg}{s} \\' + '\n' +
-            r'\frac{\zeta}{D^4}-\frac{(p' + inl + r'-p' + outl + r')'
-            r'\cdot\pi^2}{8\cdot\dot{m}' + inl + r'\cdot|\dot{m}' + inl +
-            r'|\cdot\frac{v' + inl + r' + v' + outl + r'}{2}}' +
-            r'& |\dot{m}' + inl + r'| \geq \unitfrac[0.0001]{kg}{s}' + '\n'
-            r'\end{cases}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
         return [

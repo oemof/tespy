@@ -23,7 +23,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import convert_to_SI
@@ -209,14 +208,12 @@ class SimpleHeatExchanger(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                latex=self.energy_balance_func_doc,
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 dependents=self.pr_dependents,
-                latex=self.pr_func_doc,
                 func_params={'pr': 'pr'},
             ),
             'dp': dc_cp(
@@ -228,7 +225,6 @@ class SimpleHeatExchanger(Component):
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                latex=self.zeta_func_doc,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'}
@@ -242,25 +238,21 @@ class SimpleHeatExchanger(Component):
             'dissipative': dc_simple(_val=None),
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
-                latex=self.darcy_func_doc,
                 func=self.darcy_func,
                 dependents=self.darcy_dependents
             ),
             'hw_group': dc_gcp(
                 elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
-                latex=self.hazen_williams_func_doc,
                 func=self.hazen_williams_func,
                 dependents=self.hazen_williams_dependents
             ),
             'kA_group': dc_gcp(
                 elements=['kA', 'Tamb'], num_eq_sets=1,
-                latex=self.kA_group_func_doc,
                 func=self.kA_group_func,
                 dependents=self.kA_group_dependents
             ),
             'kA_char_group': dc_gcp(
                 elements=['kA_char', 'Tamb'], num_eq_sets=1,
-                latex=self.kA_char_group_func_doc,
                 func=self.kA_char_group_func,
                 dependents=self.kA_char_group_dependents
             )
@@ -323,26 +315,6 @@ class SimpleHeatExchanger(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         ) - self.Q.val
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right) -\dot{Q}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def energy_balance_dependents(self):
         return [
             self.inl[0].m,
@@ -390,32 +362,6 @@ class SimpleHeatExchanger(Component):
             / 2 * self.L.val * dff(Re, self.ks.val, self.D.val)
             / (math.pi ** 2 * self.D.val ** 5)
         )
-
-    def darcy_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from darcy friction factor.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &p_\mathrm{in}-p_\mathrm{out}-'
-            r'\frac{8\cdot|\dot{m}_\mathrm{in}| \cdot\dot{m}_\mathrm{in}'
-            r'\cdot \frac{v_\mathrm{in}+v_\mathrm{out}}{2} \cdot L \cdot'
-            r'\lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\' + '\n'
-            r'Re =&\frac{4 \cdot |\dot{m}_\mathrm{in}|}{\pi \cdot D \cdot'
-            r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def darcy_dependents(self):
         return [
@@ -467,28 +413,6 @@ class SimpleHeatExchanger(Component):
                 (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)
             ) * (9.81 * ((v_i + v_o) / 2) ** 0.852)
         )
-
-    def hazen_williams_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from Hazen-Williams equation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
-            r'\frac{10.67 \cdot |\dot{m}_\mathrm{in}| ^ {1.852}'
-            r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
-            r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def hazen_williams_dependents(self):
         return [
@@ -548,38 +472,6 @@ class SimpleHeatExchanger(Component):
         td_log = self._calculate_td_log()
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
 
-    def kA_group_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def kA_group_dependents(self):
         return [
             self.inl[0].m,
@@ -632,40 +524,6 @@ class SimpleHeatExchanger(Component):
 
         return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
 
-    def kA_char_group_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA_\mathrm{design} \cdot f_\mathrm{kA}'
-            r' \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'f_{kA}=&\frac{2}{1 + \frac{1}{f\left(X\right)}}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def kA_char_group_dependents(self):
         return [
             self.inl[0].m,
@@ -698,24 +556,6 @@ class SimpleHeatExchanger(Component):
         """
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)')
 
     def bus_deriv(self, bus):
         r"""

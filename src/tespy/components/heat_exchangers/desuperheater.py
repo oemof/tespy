@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 
@@ -211,23 +210,6 @@ class Desuperheater(HeatExchanger):
         """
         o = self.outl[0]
         return o.h.val_SI - h_mix_pQ(o.p.val_SI, 1, o.fluid_data)
-
-    def saturated_gas_func_doc(self, label):
-        r"""
-        Calculate hot side outlet state.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
-        return generate_latex_eq(self, latex, label)
 
     def saturated_gas_deriv(self, increment_filter, k, dependents=None):
         r"""

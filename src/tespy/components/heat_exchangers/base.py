@@ -21,7 +21,6 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.helpers import convert_to_SI
@@ -268,12 +267,10 @@ class HeatExchanger(Component):
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
-                latex=self.pr_func_doc,
                 func_params={'pr': 'pr1'}
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                latex=self.pr_func_doc,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
@@ -308,7 +305,6 @@ class HeatExchanger(Component):
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
                 num_eq_sets=1,
-                latex=self.kA_char_func_doc,
                 func=self.kA_char_func,
                 dependents=self.kA_char_dependents
             ),
@@ -572,35 +568,6 @@ class HeatExchanger(Component):
             ) + self.kA.design * fkA * td_log
         )
 
-    def kA_char_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)\\' + '\n'
-            r'&+kA_\mathrm{design} \cdot '
-            r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
-            r' - T_\mathrm{in,1} + T_\mathrm{out,2}}{\ln{'
-            r'\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}{T_\mathrm{in,1} -'
-            r' T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
-            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def kA_char_dependents(self):
         return [
             self.inl[0].m,
@@ -634,23 +601,6 @@ class HeatExchanger(Component):
         T_o2 = o.calc_T()
         return self.ttd_u.val - T_i1 + T_o2
 
-    def ttd_u_func_doc(self, label):
-        r"""
-        Equation for upper terminal temperature difference.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0 = ttd_\mathrm{u} - T_\mathrm{in,1} + T_\mathrm{out,2}'
-        return generate_latex_eq(self, latex, label)
-
     def ttd_u_dependents(self):
         return [
             self.inl[0].p,
@@ -677,23 +627,6 @@ class HeatExchanger(Component):
         T_i2 = i.calc_T()
         T_o1 = o.calc_T()
         return self.ttd_l.val - T_o1 + T_i2
-
-    def ttd_l_func_doc(self, label):
-        r"""
-        Equation for lower terminal temperature difference.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0 = ttd_\mathrm{l} - T_\mathrm{out,1} + T_\mathrm{in,2}'
-        return generate_latex_eq(self, latex, label)
 
     def ttd_l_dependents(self):
         return [
@@ -907,24 +840,6 @@ class HeatExchanger(Component):
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in,1} \cdot \left(h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1} \right)')
 
     def bus_deriv(self, bus):
         r"""

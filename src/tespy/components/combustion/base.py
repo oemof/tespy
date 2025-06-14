@@ -20,7 +20,6 @@ from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
@@ -936,28 +935,6 @@ class CombustionChamber(Component):
                 \dot{E} = LHV \cdot \dot{m}_{f}
         """
         return self.calc_ti()
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        idx = str(self.outl.index(self.outl[-1]) + 1)
-        return (
-            r'LHV_\mathrm{fuel} \cdot \left[\sum_i \left('
-            r'\dot{m}_{\mathrm{in,}i}\cdot x_{\mathrm{fuel,in,}i}\right)-'
-            r' \dot{m}_\mathrm{out,' + idx + r'}\cdot '
-            r'x_{\mathrm{fuel,out,}' + idx + r'} \right]'
-        )
 
     def bus_deriv(self, bus):
         r"""

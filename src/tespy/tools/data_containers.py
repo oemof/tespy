@@ -194,7 +194,7 @@ class ComponentCharacteristics(DataContainer):
         """
         return {
             'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None, 'latex': None,
+            'func_params': {}, 'func': None, 'deriv': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
             'num_eq_sets': 0, '_num_eq': None, 'structure_matrix': None,
             'dependents': None
@@ -251,7 +251,7 @@ class ComponentCharacteristicMaps(DataContainer):
             values.
         """
         return {
-            'char_func': None, 'is_set': False, 'param': None, 'latex': None,
+            'char_func': None, 'is_set': False, 'param': None,
             'func_params': {}, 'func': None, 'deriv': None,
             'num_eq_sets': 0, 'structure_matrix': None,
             'dependents': None
@@ -300,7 +300,6 @@ class ComponentMandatoryConstraints(DataContainer):
             'func_params': {},
             'func': None,
             'deriv': None,
-            'latex': None,
             'constant_deriv': False,
             'structure_matrix': None,
             'dependents': None
@@ -386,7 +385,6 @@ class ComponentProperties(DataContainer):
             'func_params': {},
             'func': None,
             'deriv': None,
-            'latex': None,
             'structure_matrix': None,
             '_reference_container': None,
             '_factor': None,
@@ -507,7 +505,6 @@ class GroupedComponentProperties(DataContainer):
             'func': None,
             'deriv': None,
             'num_eq_sets': 0,
-            'latex': None,
             'func_params': {},
             'structure_matrix': None,
             'dependents': None
@@ -595,7 +592,6 @@ class FluidProperties(DataContainer):
             "constant_deriv": False,
             "num_eq": 0,
             "func_params": {},
-            "latex": None,
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
@@ -962,7 +958,6 @@ class SimpleDataContainer(DataContainer):
             "func_params": {},
             "func": None,
             "deriv": None,
-            "latex": None,
             "num_eq_sets": 0,
             "_num_eq": None,
             "structure_matrix": None,

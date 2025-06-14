@@ -14,7 +14,6 @@ from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -129,8 +128,6 @@ class Splitter(NodeBase):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'constant_deriv': False,
-                'latex': self.mass_flow_func_doc,
                 'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
@@ -182,18 +179,6 @@ class Splitter(NodeBase):
         for o in self.outl:
             residual += [self.inl[0].h.val_SI - o.h.val_SI]
         return residual
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-        """
-        latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
-        return generate_latex_eq(self, latex, label)
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""

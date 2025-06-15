@@ -249,8 +249,6 @@ class TestCombustion:
         TI.set_attr(P=ti)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        from tespy.tools import logger
-        logger.warning(tmp_path)
         self.nw.save(tmp_path)
         # calculate in offdesign mode
         self.nw.solve('offdesign', design_path=tmp_path)

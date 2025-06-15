@@ -268,8 +268,8 @@ optimize = OptimizationProblem(
     plant, variables, constraints, objective=["efficiency"]
 )
 # %%[sec_4]
-num_ind = 10
-num_gen = 2
+num_ind = 40
+num_gen = 15
 
 # for algorithm selection and parametrization please consider the pygmo
 # documentation! The number of generations indicated in the algorithm is

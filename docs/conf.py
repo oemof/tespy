@@ -143,11 +143,8 @@ htmlhelp_basename = 'tespy_doc'
 
 # -- Options for linkcheck ----------------------------------------------
 
-linkcheck_ignore = [
-  r'https://doi.org/10.2172/95571',  # resolves, but has issues with check
-  r'https://doi.org/20.500.12738/6561',  # 08.01.2023: does not resolve anymore
-  r'https://doi.org/10.1021/ie4033999',  # 28.02.2023: does not resolve anymore for some reason
-  r'https://doi.org/10.1002/bbpc.19900940121',  # 13.03.2023 ...?
-  r'http://www\.coolprop\.org/.*',  # 02.12.2023 ...?
-  r'https://github\.com/oemof/tespy/.*',  # 08.01.2024 ...?
+linkcheck_ignore = [    # DOIs always redirect, we believe they will always work.
+  r"https://doi.org/*",
+  r'https://github\.com/oemof/tespy/.*',
+  r'https://coolprop\.org/*'
 ]

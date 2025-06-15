@@ -77,7 +77,7 @@ dev = [
     "sphinxcontrib.bibtex",
     "tox",
 ]
-dev+pygmo = [
+dev_pygmo = [
     "build",
     "flit",
     "fluprodia",

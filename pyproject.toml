@@ -77,21 +77,6 @@ dev = [
     "sphinxcontrib.bibtex",
     "tox",
 ]
-dev_pygmo = [
-    "build",
-    "flit",
-    "fluprodia",
-    "furo",
-    "iapws",
-    "pygmo",
-    "pyromat",
-    "pytest",
-    "sphinx>=7.2.2",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinxcontrib.bibtex",
-    "tox",
-]
 
 [tool.pytest.ini_options]
 python_files = [

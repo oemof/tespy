@@ -335,25 +335,25 @@ class Pump(Turbomachine):
         o = self.outl[0]
 
         if o.p.is_var and o.p.val_SI < i.p.val_SI:
-            o.p.val_SI = o.p.val_SI * 2
-        if i.p.is_var and o.p.val_SI < i.p.val_SI:
-            i.p.val_SI = o.p.val_SI * 0.5
+            o.p.set_reference_val_SI(i.p.val_SI * 1.5)
 
         if o.h.is_var and o.h.val_SI < i.h.val_SI:
-            o.h.val_SI = o.h.val_SI * 1.1
-        if i.h.is_var and o.h.val_SI < i.h.val_SI:
-            i.h.val_SI = o.h.val_SI * 0.9
+            o.h.set_reference_val_SI(i.h.val_SI + 10e3)
 
-        if self.flow_char.is_set:
+        if i.p.is_var and o.p.val_SI < i.p.val_SI:
+            i.p.set_reference_val_SI(o.p.val_SI * 2 / 3)
+            i.p.val_SI = o.p.val_SI * 0.9
+
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
+            i.h.set_reference_val_SI(o.h.val_SI - 10e3)
+
+        if i.m.is_var and self.flow_char.is_set:
             vol = i.calc_vol(T0=i.T.val_SI)
             expr = i.m.val_SI * vol
-
-            if expr > self.flow_char.char_func.x[-1] and i.m.is_var:
-                i.m.val_SI = self.flow_char.char_func.x[-1] / vol
-            elif expr < self.flow_char.char_func.x[1] and i.m.is_var:
-                i.m.val_SI = self.flow_char.char_func.x[0] / vol
-            else:
-                pass
+            if expr > self.flow_char.char_func.x[-1]:
+                i.m.set_reference_val_SI(self.flow_char.char_func.x[-1] / vol)
+            elif expr < self.flow_char.char_func.x[1]:
+                i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
 
     @staticmethod
     def initialise_Source(c, key):

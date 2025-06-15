@@ -413,19 +413,20 @@ class Compressor(Turbomachine):
         Manipulate enthalpies/pressure at inlet and outlet if not specified by
         user to match physically feasible constraints.
         """
-        i, o = self.inl, self.outl
+        i, o = self.inl[0], self.outl[0]
 
-        if o[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
-            o[0].p.val_SI = i[0].p.val_SI * 1.1
+        if o.p.is_var and o.p.val_SI < i.p.val_SI:
+            o.p.set_reference_val_SI(i.p.val_SI * 1.5)
 
-        if o[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
-            o[0].h.val_SI = i[0].h.val_SI * 1.1
+        if o.h.is_var and o.h.val_SI < i.h.val_SI:
+            o.h.set_reference_val_SI(i.h.val_SI + 100e3)
 
-        if i[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
-            i[0].p.val_SI = o[0].p.val_SI * 0.9
+        if i.p.is_var and o.p.val_SI < i.p.val_SI:
+            i.p.set_reference_val_SI(o.p.val_SI * 2 / 3)
+            i.p.val_SI = o.p.val_SI * 0.9
 
-        if i[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
-            i[0].h.val_SI = o[0].h.val_SI * 0.9
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
+            i.h.set_reference_val_SI(o.h.val_SI - 100e3)
 
     @staticmethod
     def initialise_Source(c, key):

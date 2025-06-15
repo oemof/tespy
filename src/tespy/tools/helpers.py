@@ -141,7 +141,7 @@ def convert_from_SI(property, SI_value, unit):
 
 class UserDefinedEquation:
 
-    def __init__(self, label, func, deriv=None, conns=[], comps=[], dependents=None, params={}):
+    def __init__(self, label, func, dependents, deriv=None, conns=[], comps=[], params={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -153,6 +153,9 @@ class UserDefinedEquation:
         func : function
             Method returning residual value of equation to evaluate
 
+        dependents : function
+            Function, that returns the variables the equation depends on
+
         deriv : function, optional
             Method calculating partial derivatives of the equation, be default
             None
@@ -163,26 +166,18 @@ class UserDefinedEquation:
         comps : list
             List of components used
 
-        dependents : list, dict, optional
-            Variables the equation depends on, by default None
-
         params : dict
             Dictionary containing keyword arguments required by the function
             and/or derivative.
 
         Note
         ----
-        Either the derivative or the dependents are a required specification.
+        The derivative function specification is optional.
 
         - In case you provide the dependents and no derivative, the equation
           will numerically derived to all of the specified dependents.
         - In case you provide the dependents and the derivative, the derivative
-          method will be used to calculate the partial derivatives. On top, you
-          have the ability debug your equation in context for the linear
-          dependency analysis of the solver.
-        - In case you provide only the derivative and no depdentends, the
-          debugging capabilities mentioned in the bullet above are not
-          available.
+          method will be used to calculate the partial derivatives.
 
         Example
         -------
@@ -302,33 +297,29 @@ class UserDefinedEquation:
         >>> round(inflow.v.val, 3)
         0.067
 
-        You have to define a function placing the derivatives in the
-        Jacobian matrix. The Jacobian is a dictionary containing tuples as keys
-        with the derivative as their value. The tuples indicate the equation
-        number (always 0 for user defined equations, since there is only a
-        single equation) and the position of the variable in the system matrix.
-        The position of the variables is stored in the :code:`J_col` attribute.
-        Before calculating and placing a result in the Jacobian, you have to
-        make sure, that the variable you want to calculate the partial
-        derivative for is actually a variable. For example, in case you
-        specified a value for the mass flow, it will not be part of the
-        variables' space, since it has a constant value, and thus, no derivate
-        needs to be calculated. You can use the :code:`is_var` keyword to check,
-        whether a mass flow, pressure or enthalpy is actually variable.
+        To make the example complete, we will quickly have a look at, how you
+        can specify the derivative method. In this case, you have to define a
+        function placing the derivatives in the correct locations of the
+        Jacobian matrix. The highlevel method :code:`partial_derivative` of the
+        class can handle this for your. You have to pass the variable to this
+        method, for which you want to calculate the partial derivative. In case
+        the value can be determined analytically, you can additionally pass the
+        value as second argument to the function. If you do not pass a second
+        argument to the function as in the example below, a numerical
+        derivative will be calculated.
 
-        We can calculate the derivatives numerically, if an easy analytical
-        solution is not available. Simply use the :code:`numeric_deriv` method
-        passing the variable ('m', 'p', 'h', 'fluid') as well as the
-        connection.
-
-        >>> def myjacobian(ude):
+        >>> def myjacobian(increment_filter, k, dependents=None, ude=None):
         ...     c0 = ude.conns[0]
         ...     c1 = ude.conns[1]
-        ...     ude._partial_derivative(c0.m)
-        ...     ude._partial_derivative(c0.p)
-        ...     ude._partial_derivative(c0.h)
-        ...     ude._partial_derivative(c1.p)
-        ...     ude._partial_derivative(c1.h)
+        ...     ude.partial_derivative(c0.m)
+        ...     ude.partial_derivative(c0.p)
+        ...     ude.partial_derivative(c0.h)
+        ...     ude.partial_derivative(c1.p)
+        ...     ude.partial_derivative(c1.h)
+
+        >>> my_ude.deriv = myjacobian
+        >>> nw.solve('design')
+
         """
         if isinstance(label, str):
             self.label = label
@@ -443,6 +434,12 @@ class UserDefinedEquation:
 
     def get_structure_matrix(self):
         return
+
+    def partial_derivative(self, var, value=None):
+        eq_num = self.equations["equation"]._first_eq_index
+        if value is None:
+            value = self.func
+        self._partial_derivative(var, eq_num, value, **{"ude": self})
 
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)

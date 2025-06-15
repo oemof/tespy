@@ -2,13 +2,13 @@
 
 Fluid properties
 ================
-The default fluid property engine `CoolProp <http://coolprop.org/>`_. All
+The default fluid property engine `CoolProp <https://coolprop.org/>`_. All
 available fluids can be found on their homepage. Also see :cite:`Bell2014`.
 Since version 0.7 of TESPy it is possible to use other engines. TESPy comes with
 two additional predefined engines, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
-- the `pyromat <http://pyromat.org>`_ library.
+- the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.
 
 For each fluid you can specify, which library should be used, and you can easily
 implement your own engine, for example, if your fluid is not available through

@@ -14,8 +14,8 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.droplet_separator import DropletSeparator
-from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.fluid_properties import h_mix_pQ
 
 
 @component_registry

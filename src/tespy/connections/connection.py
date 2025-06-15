@@ -42,12 +42,12 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
-from tespy.tools.helpers import convert_from_SI
-from tespy.tools.helpers import _partial_derivative
-from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_variable
+from tespy.tools.helpers import _partial_derivative
+from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import convert_from_SI
 
 
 class Connection:

@@ -23,9 +23,9 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
-from tespy.tools.helpers import convert_to_SI
-from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _get_dependents
+from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry

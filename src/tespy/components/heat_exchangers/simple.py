@@ -19,14 +19,14 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
-from tespy.tools.helpers import convert_to_SI
 from tespy.tools.helpers import _numeric_deriv
+from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry

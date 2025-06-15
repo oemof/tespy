@@ -12,8 +12,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry

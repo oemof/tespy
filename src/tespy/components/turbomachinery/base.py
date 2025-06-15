@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import convert_to_SI
 

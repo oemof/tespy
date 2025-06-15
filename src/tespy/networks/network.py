@@ -37,10 +37,10 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import VectorVariable as dc_vecvar
-from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd

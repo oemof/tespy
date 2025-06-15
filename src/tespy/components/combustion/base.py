@@ -25,9 +25,9 @@ from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
+from tespy.tools.helpers import fluidalias_in_list
 
 
 @component_registry

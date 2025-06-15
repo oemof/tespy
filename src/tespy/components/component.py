@@ -495,8 +495,7 @@ class Component:
         """
         self.num_eq = 0
         self.it = 0
-        self.mandatory_equations = {}
-        self.user_imposed_equations = {}
+        self.equations = {}
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}
         self._equation_vector_dependents_lookup = {}
@@ -507,11 +506,10 @@ class Component:
             if eq_num in system_dependencies:
                 continue
 
+            eq_dict = self.equations
             if value in self.constraints:
-                eq_dict = self.mandatory_equations
                 data = self.constraints[value]
             elif value in self.parameters:
-                eq_dict = self.user_imposed_equations
                 data = self.parameters[value]
 
             if data.num_eq == 0:
@@ -529,7 +527,7 @@ class Component:
         self.residual = {}
 
         # this could in principle apply for all equations!
-        for constraint in self.mandatory_equations.values():
+        for constraint in self.equations.values():
             eq_num = constraint._first_eq_index
             if constraint.constant_deriv:
                 constraint.deriv(None, eq_num)
@@ -639,66 +637,6 @@ class Component:
                 return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
-
-    def solve(self, increment_filter):
-        """
-        Solve equations and calculate partial derivatives of a component.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-        """
-        for label, data in self.mandatory_equations.items():
-            eq_num = data._first_eq_index
-            result = data.func(**data.func_params)
-            if isinstance(result, list):
-                result = {eq_num + k: value for k, value in enumerate(result)}
-            else:
-                result = {eq_num: result}
-
-            self.residual.update(result)
-
-            if not data.constant_deriv:
-                self._solve_jacobian(data, increment_filter, eq_num)
-
-        for label, data in self.user_imposed_equations.items():
-            eq_num = data._first_eq_index
-            result = data.func(**data.func_params)
-            if isinstance(result, list):
-                result = {eq_num + k: value for k, value in enumerate(result)}
-            else:
-                result = {eq_num: result}
-
-            self.residual.update(result)
-
-            self._solve_jacobian(data, increment_filter, eq_num)
-
-    def _solve_jacobian(self, data, increment_filter, eq_num):
-        if data.deriv is not None:
-            data.deriv(
-                increment_filter,
-                eq_num,
-                dependents={
-                    "scalars": data._scalar_dependents,
-                    "vectors": data._vector_dependents
-                },
-                **data.func_params
-            )
-
-        else:
-            # these can only be parameters with a single equation for now
-            for dependent in data._scalar_dependents[0]:
-                f = data.func
-                self._partial_derivative(
-                    dependent, eq_num, f, increment_filter, **data.func_params
-                )
-
-            for dependent, dx in data._vector_dependents[0].items():
-                f = data.func
-                self._partial_derivative_fluid(
-                    dependent, eq_num, f, dx, increment_filter, **data.func_params
-                )
 
     def bus_func(self, bus):
         r"""

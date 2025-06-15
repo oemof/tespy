@@ -1,7 +1,7 @@
 {
     "total power output": {
         "P": {
-            "val": -1000000.0000000005,
+            "_val": -1000000.0000000005,
             "is_set": true
         },
         "compressor": {

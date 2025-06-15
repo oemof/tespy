@@ -44,6 +44,7 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import _partial_derivative
+from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
@@ -770,6 +771,17 @@ class Connection:
             self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
             self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
 
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
+    def _partial_derivative_fluid(self, var, eq_num, value, dx, increment_filter=None, **kwargs):
+        result = _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col[dx]] = result
+
+
     def reset_fluid_vector(self):
         self.fluid = dc_flu()
 
@@ -858,11 +870,6 @@ class Connection:
         self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
         self._rhs[k] = ref.delta_SI
 
-    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
-        result = _partial_derivative(var, value, increment_filter, **kwargs)
-        if result is not None:
-            self.jacobian[eq_num, var.J_col] = result
-
     def calc_T(self, T0=None):
         if T0 is None:
             T0 = self.T.val_SI
@@ -871,7 +878,7 @@ class Connection:
     def T_func(self, **kwargs):
         return self.calc_T() - self.T.val_SI
 
-    def T_deriv(self, k, **kwargs):
+    def T_deriv(self, increment_filter, k, **kwargs):
         if _is_variable(self.p):
             self.jacobian[k, self.p.J_col] = (
                 dT_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, self.T.val_SI)
@@ -888,9 +895,9 @@ class Connection:
         ref = self.T_ref.ref
         return self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
 
-    def T_ref_deriv(self, k, **kwargs):
+    def T_ref_deriv(self, increment_filter, k, **kwargs):
         # first part of sum is identical to direct temperature specification
-        self.T_deriv(k, **kwargs)
+        self.T_deriv(increment_filter, k, **kwargs)
         ref = self.T_ref.ref
         if _is_variable(ref.obj.p):
             self.jacobian[k, ref.obj.p.J_col] = -(
@@ -920,7 +927,7 @@ class Connection:
     def v_func(self, **kwargs):
         return self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
 
-    def v_deriv(self, k, **kwargs):
+    def v_deriv(self, increment_filter, k, **kwargs):
         if _is_variable(self.m):
             self._partial_derivative(self.m, k, self.calc_vol(T0=self.T.val_SI))
         if _is_variable(self.p):
@@ -949,9 +956,9 @@ class Connection:
             )
         )
 
-    def v_ref_deriv(self, k, **kwargs):
+    def v_ref_deriv(self, increment_filter, k, **kwargs):
         # first part of sum is identical to direct volumetric flow specification
-        self.v_deriv(k, **kwargs)
+        self.v_deriv(increment_filter, k, **kwargs)
 
         ref = self.v_ref.ref
         if ref.obj.m.is_var:
@@ -986,7 +993,7 @@ class Connection:
             - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         )
 
-    def x_deriv(self, k, **kwargs):
+    def x_deriv(self, increment_filter, k, **kwargs):
         if self.p.is_var:
             self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
         if self.h.is_var:
@@ -1011,7 +1018,7 @@ class Connection:
         # temperature difference to boiling point
         return self.calc_Td_bp() - self.Td_bp.val_SI
 
-    def Td_bp_deriv(self, k, **kwargs):
+    def Td_bp_deriv(self, increment_filter, k, **kwargs):
         f = self.Td_bp_func
         self._partial_derivative(self.p, k, f)
         self._partial_derivative(self.h, k, f)
@@ -1024,7 +1031,7 @@ class Connection:
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
         return residual
 
-    def fluid_balance_deriv(self, k, **kwargs):
+    def fluid_balance_deriv(self, increment_filter, k, **kwargs):
         for f in self.fluid.is_var:
             self.jacobian[k, self.fluid.J_col[f]] = -self.fluid.val[f]
 
@@ -1042,20 +1049,6 @@ class Connection:
 
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-
-    def solve(self, increment_filter):
-        self._increment_filter = increment_filter
-        for label, data in self.equations.items():
-            eq_num = data._first_eq_index
-            result = data.func(**data.func_params)
-            if isinstance(result, list):
-                result = {eq_num + k: value for k, value in enumerate(result)}
-            else:
-                result = {eq_num: result}
-
-            self.residual.update(result)
-
-            data.deriv(eq_num, **data.func_params)
 
     def calc_results(self):
         self.T.val_SI = self.calc_T()

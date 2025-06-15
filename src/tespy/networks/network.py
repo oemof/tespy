@@ -36,7 +36,6 @@ from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainer as dc
-from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
@@ -1200,7 +1199,6 @@ class Network:
 
         for cp in self.comps["object"]:
             cp._preprocess(sum_eq)
-
             self._structure_matrix.update(cp._structure_matrix)
             self._rhs.update(cp._rhs)
             eq_map = {
@@ -1209,6 +1207,17 @@ class Network:
             }
             self._equation_set_lookup.update(eq_map)
             sum_eq += cp.num_eq
+
+        for ude in self.user_defined_eq.values():
+            ude._preprocess(sum_eq)
+            self._structure_matrix.update(ude._structure_matrix)
+            self._rhs.update(ude._rhs)
+            eq_map = {
+                eq_num: (ude.label, eq_name)
+                for eq_num, eq_name in ude._equation_set_lookup.items()
+            }
+            self._equation_set_lookup.update(eq_map)
+            sum_eq += ude.num_eq
 
         _linear_dependencies = self._find_linear_dependent_variables(
             self._structure_matrix, self._rhs
@@ -1579,6 +1588,37 @@ class Network:
                     for key in keys
                 ]
                 for eq_num, dependents in c._equation_vector_dependents_lookup.items()
+            }
+            for eq_num, dependents in dependents_map.items():
+                if eq_num in self._incidence_matrix:
+                    self._incidence_matrix[eq_num] += dependents
+
+                else:
+                    self._incidence_matrix[eq_num] = dependents
+
+        for ude in self.user_defined_eq.values():
+            eq_counter = ude._prepare_for_solver(
+                self._presolved_equations, eq_counter
+            )
+            eq_map = {
+                eq_num: (ude.label, eq_name)
+                for eq_num, eq_name in ude._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
+
+            dependents_map = {
+                eq_num: [dependent.J_col for dependent in dependents]
+                for eq_num, dependents in ude._equation_scalar_dependents_lookup.items()
+            }
+            self._incidence_matrix.update(dependents_map)
+
+            dependents_map = {
+                eq_num: [
+                    dependent.J_col[key]
+                    for dependent, keys in dependents.items()
+                    for key in keys
+                ]
+                for eq_num, dependents in ude._equation_vector_dependents_lookup.items()
             }
             for eq_num, dependents in dependents_map.items():
                 if eq_num in self._incidence_matrix:
@@ -3015,10 +3055,11 @@ class Network:
         - Restrict fluid properties to value ranges
         - Check component parameters for consistency
         """
-        self.solve_components()
+        # self.solve_components()
+        # self.solve_connections()
+        # self.solve_user_defined_eq()
+        self.solve_equations()
         self.solve_busses()
-        self.solve_connections()
-        self.solve_user_defined_eq()
         self._invert_jacobian()
 
         # check for linear dependency
@@ -3088,25 +3129,28 @@ class Network:
             c.m.set_reference_val_SI(self.m_range_SI[1])
             logger.debug(c._property_range_message('m'))
 
-    def solve_components(self):
+    def solve_equations(self):
         r"""
-        Calculate the residual and derivatives of component equations.
+        Calculate the residual and derivatives of all equations.
         """
-        # fetch component equation residuals and component partial derivatives
-        for cp in self.comps['object']:
-            cp.solve(self.increment_filter)
-
-            if len(cp.jacobian) > 0:
-                rows = list(cp.residual.keys())
-                data = list(cp.residual.values())
+        to_solve = (
+            self.comps["object"].tolist()
+            + self.conns["object"].tolist()
+            + list(self.user_defined_eq.values())
+        )
+        for obj in to_solve:
+            hlp.solve(obj, self.increment_filter)
+            if len(obj.jacobian) > 0:
+                rows = list(obj.residual.keys())
+                data = list(obj.residual.values())
                 self.residual[rows] = data
 
-                rows = [k[0] for k in cp.jacobian]
-                columns = [k[1] for k in cp.jacobian]
-                data = list(cp.jacobian.values())
+                rows = [k[0] for k in obj.jacobian]
+                columns = [k[1] for k in obj.jacobian]
+                data = list(obj.jacobian.values())
                 self.jacobian[rows, columns] = data
 
-            cp.it += 1
+            obj.it += 1
 
     def solve_connections(self):
         r"""
@@ -3131,16 +3175,18 @@ class Network:
         """
         Calculate the residual and jacobian of user defined equations.
         """
-        sum_eq = self.num_comp_eq + self.num_conn_eq + self.num_bus_eq
         for ude in self.user_defined_eq.values():
-            ude.solve()
-            self.residual[sum_eq] = ude.residual
+            ude.solve(self.increment_filter)
 
             if len(ude.jacobian) > 0:
-                columns = [k for k in ude.jacobian]
+                rows = list(ude.residual.keys())
+                data = list(ude.residual.values())
+                self.residual[rows] = data
+
+                rows = [k[0] for k in ude.jacobian]
+                columns = [k[1] for k in ude.jacobian]
                 data = list(ude.jacobian.values())
-                self.jacobian[sum_eq, columns] = data
-                sum_eq += 1
+                self.jacobian[rows, columns] = data
 
     def solve_busses(self):
         r"""

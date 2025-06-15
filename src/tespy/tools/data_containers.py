@@ -193,11 +193,18 @@ class ComponentCharacteristics(DataContainer):
             values.
         """
         return {
-            'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None,
+            'char_func': None,
+            'is_set': False,
+            'param': None,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
             'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq_sets': 0, '_num_eq': None, 'structure_matrix': None,
-            'dependents': None
+            'num_eq_sets': 0,
+            '_num_eq': None,
+            'structure_matrix': None,
+            'dependents': None,
+            'constant_deriv': False
         }
 
     def _serialize(self):
@@ -251,9 +258,15 @@ class ComponentCharacteristicMaps(DataContainer):
             values.
         """
         return {
-            'char_func': None, 'is_set': False, 'param': None,
-            'func_params': {}, 'func': None, 'deriv': None,
-            'num_eq_sets': 0, 'structure_matrix': None,
+            'char_func': None,
+            'is_set': False,
+            'param': None,
+            'func_params': {},
+            'func': None,
+            'deriv': None,
+            'num_eq_sets': 0,
+            'structure_matrix': None,
+            'constant_deriv': False,
             'dependents': None
         }
 
@@ -386,6 +399,7 @@ class ComponentProperties(DataContainer):
             'func': None,
             'deriv': None,
             'structure_matrix': None,
+            'constant_deriv': False,
             '_reference_container': None,
             '_factor': None,
             '_offset': None,
@@ -507,6 +521,7 @@ class GroupedComponentProperties(DataContainer):
             'num_eq_sets': 0,
             'func_params': {},
             'structure_matrix': None,
+            'constant_deriv': False,
             'dependents': None
         }
 
@@ -910,6 +925,7 @@ class ReferencedFluidProperties(DataContainer):
             "func": None,
             "deriv": None,
             "structure_matrix": None,
+            'constant_deriv': False,
             "num_eq": 0,
             "func_params": {},
             "_solved": False,
@@ -959,6 +975,7 @@ class SimpleDataContainer(DataContainer):
             "func": None,
             "deriv": None,
             "num_eq_sets": 0,
+            'constant_deriv': False,
             "_num_eq": None,
             "structure_matrix": None,
             "_solved": False,

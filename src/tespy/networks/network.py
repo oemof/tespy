@@ -2560,13 +2560,13 @@ class Network:
 
         self._prepare_problem()
 
+        if init_only:
+            return
+
         msg = 'Starting solver.'
         logger.info(msg)
 
         self.solve_determination()
-
-        if init_only:
-            return
 
         self.solve_loop(print_results=print_results)
         self.unload_variables()

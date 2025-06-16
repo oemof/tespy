@@ -3423,10 +3423,10 @@ class Network:
 
         Note
         ----
-        If you export the network structure of an existing TESPy network, it will be
-        saved to the path you specified. The structure of the saved data in that
-        path is the structure you need to provide in the path for loading the
-        network.
+        If you export the network structure of an existing TESPy network, it
+        will be saved to the path you specified. The structure of the saved
+        data in that path is the structure you need to provide in the path for
+        loading the network.
 
         The structure of the path must be as follows:
 
@@ -3439,15 +3439,17 @@ class Network:
         Example
         -------
         Create a network and export it. This is followed by loading the network
-        with the network_reader module. All network information stored will be
+        from the exported json file. All network information stored will be
         passed to a new network object. Components, connections and busses will
-        be accessible by label. The following example setup is simple gas turbine
-        setup with compressor, combustion chamber and turbine. The fuel is fed
-        from a pipeline and throttled to the required pressure while keeping the
-        temperature at a constant value.
+        be accessible by label. The following example setup is simple gas
+        turbine setup with compressor, combustion chamber and turbine. The fuel
+        is fed from a pipeline and throttled to the required pressure while
+        keeping the temperature at a constant value.
 
-        >>> from tespy.components import (Sink, Source, CombustionChamber,
-        ... Compressor, Turbine, SimpleHeatExchanger)
+        >>> from tespy.components import (
+        ... Sink, Source, CombustionChamber, Compressor, Turbine,
+        ... SimpleHeatExchanger
+        ... )
         >>> from tespy.connections import Connection, Ref, Bus
         >>> from tespy.networks import Network
         >>> import os
@@ -3468,10 +3470,10 @@ class Network:
         >>> nw.add_conns(inc, cc, fp, pc, ct, outg)
 
         Specify component and connection properties. The intlet pressure at the
-        compressor and the outlet pressure after the turbine are identical. For the
-        compressor, the pressure ratio and isentropic efficiency are design
-        parameters. A compressor map (efficiency vs. mass flow and pressure rise
-        vs. mass flow) is selected for the compressor. Fuel is Methane.
+        compressor and the outlet pressure after the turbine are identical. For
+        the compressor, the pressure ratio and isentropic efficiency are design
+        parameters. A compressor map (efficiency vs. mass flow and pressure
+        rise vs. mass flow) is selected for the compressor. Fuel is Methane.
 
         >>> c.set_attr(pr=10, eta_s=0.88, design=['eta_s', 'pr'],
         ... offdesign=['char_map_eta_s', 'char_map_pr'])
@@ -3490,6 +3492,7 @@ class Network:
 
         >>> inc.set_attr(m=3)
         >>> nw.solve('design')
+        >>> nw.assert_convergence()
 
         The total power output is set to 1 MW, electrical or mechanical
         efficiencies are not considered in this example. The documentation
@@ -3521,9 +3524,9 @@ class Network:
         >>> igva
         20.138
 
-        The designed network is exported to the path 'exported_nwk'. Now import the
-        network and recalculate. Check if the results match with the previous
-        calculation in design and offdesign case.
+        The designed network is exported to the path 'exported_nwk'. Now import
+        the network and recalculate. Check if the results match with the
+        previous calculation in design and offdesign case.
 
         >>> imported_nwk = Network.from_json('exported_nwk.json')
         >>> imported_nwk.set_attr(iterinfo=False)

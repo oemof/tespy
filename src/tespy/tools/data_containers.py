@@ -113,7 +113,8 @@ class DataContainer:
         for key in kwargs:
             if key in var:
                 self.__dict__.update({key: kwargs[key]})
-
+            elif f"_{key}" in var:
+                self.__dict__.update({f"_{key}": kwargs[key]})
             else:
                 msg = (
                     f"Datacontainer of type {self.__class__.__name__} has no "
@@ -408,12 +409,12 @@ class ComponentProperties(DataContainer):
 
     def _serialize(self):
         keys = self._serializable_keys()
-        return {k: self.get_attr(k) for k in keys}
+        return {k: getattr(self, k) for k in keys}
 
     @staticmethod
     def _serializable_keys():
         return [
-            "_val", "val_SI", "is_set", "d", "min_val", "max_val", "_is_var",
+            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
         ]
 
     def get_num_eq(self):
@@ -614,8 +615,8 @@ class FluidProperties(DataContainer):
         }
 
     def _serialize(self):
-        keys = ["val", "val0", "_val_SI", "is_set", "unit"]
-        return {k: self.get_attr(k) for k in keys}
+        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        return {k: getattr(self, k) for k in keys}
 
     def get_reference_val_SI(self):
         """Get value of the reference corresponding to own value
@@ -776,8 +777,8 @@ class FluidComposition(DataContainer):
         }
 
     def _serialize(self):
-        export = {"_val": self.val}
-        export["_is_set"] = list(self.is_set)
+        export = {"val": self.val}
+        export["is_set"] = list(self.is_set)
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
         export["back_end"] = {k: b for k, b in self.back_end.items()}
         return export
@@ -983,7 +984,7 @@ class SimpleDataContainer(DataContainer):
         }
 
     def _serialize(self):
-        return {"_val": self.val, "is_set": self.is_set}
+        return {"val": self.val, "is_set": self.is_set}
 
     def get_num_eq(self):
         if self._num_eq is None:

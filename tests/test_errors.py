@@ -244,10 +244,6 @@ def udf_dummy():
 def test_UserDefinedEquation_errors():
     with raises(TypeError):
         UserDefinedEquation(7, udf_dummy, udf_dummy, [])
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, 'connections')
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, [], params=[])
 
 ##############################################################################
 # test errors of component classes

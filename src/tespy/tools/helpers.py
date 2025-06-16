@@ -141,7 +141,7 @@ def convert_from_SI(property, SI_value, unit):
 
 class UserDefinedEquation:
 
-    def __init__(self, label, func, dependents, deriv=None, conns=[], comps=[], params={}):
+    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=[], comps:list=[], params:dict={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -328,41 +328,12 @@ class UserDefinedEquation:
             logger.exception(msg)
             raise TypeError(msg)
 
-        if isinstance(conns, list):
-            self.conns = conns
-        else:
-            msg = (
-                'Parameter conns must be a list of '
-                'tespy.connections.connection.Connection objects.'
-            )
-            logger.exception(msg)
-            raise TypeError(msg)
-
-        if isinstance(comps, list):
-            self.comps = comps
-        else:
-            msg = (
-                'Parameter comps must be a list of '
-                'tespy.components.component.Component objects.'
-            )
-            logger.exception(msg)
-            raise TypeError(msg)
-
-        if deriv is None and dependents is None:
-            msg = "You must specify the deriv or the dependents at minimum."
-            logger.exception(msg)
-            raise ValueError(msg)
-
         self.func = func
         self.deriv = deriv
         self.dependents = dependents
-
-        if isinstance(params, dict):
-            self.params = params
-        else:
-            msg = 'The parameter params must be passed as dictionary.'
-            logger.error(msg)
-            raise TypeError(msg)
+        self.conns = conns
+        self.comps = comps
+        self.params = params
 
     def _preprocess(self, row_idx):
         self.num_eq = 0

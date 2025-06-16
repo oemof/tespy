@@ -231,7 +231,7 @@ class Pump(Turbomachine):
         f = self.eta_s_func
 
         if o.h.is_var and not i.h.is_var:
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+            self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
 

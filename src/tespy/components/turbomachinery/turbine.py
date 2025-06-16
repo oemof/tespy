@@ -226,7 +226,7 @@ class Turbine(Turbomachine):
         o = self.outl[0]
 
         if o.h.is_var and not i.h.is_var:
-            self.jacobian[k, o.h.J_col] = -1
+            self._partial_derivative(o.h, k, -1, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
 

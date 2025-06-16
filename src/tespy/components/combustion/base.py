@@ -755,35 +755,13 @@ class CombustionChamber(Component):
         """
         return self.calc_lambda() - self.lamb.val
 
-    def lambda_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of lambda function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        # required to work with combustion chamber and engine
-        inl, _ = self._get_combustion_connections()
-        f = self.lambda_func
-        for conn in inl:
-            self._partial_derivative(conn.m, k, f, increment_filter)
-            for fluid in (self.fuel_list | {self.o2}) & conn.fluid.is_var:
-                self._partial_derivative_fluid(
-                    conn.fluid, k, f, fluid, increment_filter
-                )
-
     def lambda_dependents(self):
         inl, _ = self._get_combustion_connections()
         return {
             "scalars": [c.m for c in inl],
             "vectors": [{
                 c.fluid: (self.fuel_list | {self.o2}) & c.fluid.is_var
-                for c in self.inl + self.outl
+                for c in inl
             }]
         }
 

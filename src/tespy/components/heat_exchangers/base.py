@@ -332,9 +332,7 @@ class HeatExchanger(Component):
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
-                'structure_matrix': None
             })
         })
         return constraints

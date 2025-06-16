@@ -31,6 +31,8 @@ high-level API changes
   changed and should now be made through the :code:`partial_derivative` method
   of the :code:`UserDefinedEquation` instance.
 
+  See the :ref:`docs <tespy_ude_label>` for the specific implementations.
+
 Back-end API changes
 ####################
 - The mandatory constraints of components are also stored in

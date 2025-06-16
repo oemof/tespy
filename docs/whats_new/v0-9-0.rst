@@ -1,0 +1,78 @@
+v0.9.0 - release candiate 1 (June, 17, 2025)
+++++++++++++++++++++++++++++++++++++++++++++
+
+This version of tespy comes with a refactoring of the complete presolver and
+solver back-end. This comes with many changes in the back-end APIs and
+potentially with unintended consequences for models, which were recently
+working and stopped working with this version. All tests in tespy including
+the different models have been carried out successfully in context of the
+refactoring, but it cannot be guaranteed, that this is the case for all models.
+For that reason: **We are looking forward for your feedback to the new**
+**version**. You can submit your feedback on this
+`GitHub discussion <https://github.com/oemof/tespy/discussions/>`__.
+
+On the high-level API few changes have been made, they are listed below. Please
+expect more changes to come in context of the :code:`Bus` class utilization in
+a future version. In constrast, the back-end has changed quite a bit. The
+most relevant changes in your custom component implementations are listed in
+that sections.
+
+high-level API changes
+######################
+- The :code:`UserDefinedEquation` now needs additional specifications. You
+  have to provide the :code:`dependents` and the :code:`deriv` has become
+  optional. The :code:`dependents` keyword takes a function, which returns a
+  list of variables the equation depends on and then automatically performs the
+  calculation of all partial derivatives. The :code:`deriv` method may still be
+  passed, in this case, it will be used instead of automatically determining
+  the derivatives.
+
+  In the :code:`deriv` method, the placement of values in the Jacobian has
+  changed and should now be made through the :code:`partial_derivative` method
+  of the :code:`UserDefinedEquation` instance.
+
+Back-end API changes
+####################
+- The mandatory constraints of components are also stored in
+  :code:`DataContainer` instances, instead of plain dictionaries.
+- Every mandatory constraint or component parameter associated with an
+  equation now requires the specification of the :code:`dependents` keyword,
+  which is a method, that returns the variables, the equation depends on,
+  similar to the :code:`UserDefinedEquation`. This allos the solver to
+  automatically determine the partial derivatives of the corresponding
+  equation.
+- The specification of the :code:`deriv` method is now optional for
+  **parameters, that are associated with a single equation**. It overrides the
+  automatic derivative calculation using the :code:`dependents` and may be
+  useful in context of analytical derivative formulations. For multi-equation
+  parameters, the :code:`deriv` method formulation is still mandatory.
+- Instead of providing a :code:`func` and :code:`depdenents` for equations,
+  that connect pairs of two variables in a linear way, e.g. pressure ratio or
+  delta pressure specification, enthalpy or mass flow equality, etc., it is now
+  possible to provide a :code:`structure_matrix` method. This method will be
+  used be the presolving steps to reduce the variable space by creating
+  mappings between the physical variables on the different connections to
+  variables, that can represent multiple other variables at the same time. This
+  reduces the size of the problem and can improve calculation speed. In the
+  future, this will also simplify the activating or deactivating of specific
+  variables for the solver or removing parts of the network.
+- For a couple of examples please refer to the updated documentation section
+  on :ref:`custom components <tespy_components_custom_components_label>`.
+
+New Features
+############
+- The new version of tespy comes with great debugging capabilities, which allow
+  you to explore, which variables have been solved in presolving with the help
+  of which equations. Also, the variables left for the solver to solve for and
+  the corresponding equations can be outputted after the presolving. Read
+  more information in the new section on
+  :ref:`debugging <tespy_networks_debugging_label>`.
+
+Other Changes
+#############
+- Depricated python 3.9 support.
+- Depricated :code:`load_network` and :code:`document_models` modules.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

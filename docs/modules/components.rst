@@ -496,6 +496,8 @@ partial derivatives are calculated automatically. If you want to insert the
 partial derivatives manually, you can define another function and pass with
 the :code:`deriv` keyword.
 
+.. _tespy_components_custom_components_label:
+
 Custom components
 -----------------
 

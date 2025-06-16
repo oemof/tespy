@@ -275,7 +275,7 @@ num_gen = 15
 # documentation! The number of generations indicated in the algorithm is
 # the number of evolutions we undertake within each generation defined in
 # num_gen
-algo = pg.algorithm(pg.ihs(gen=3, seed=42))
+algo = pg.algorithm(pg.ihs(gen=num_gen, seed=42))
 # create starting population
 pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
 

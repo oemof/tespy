@@ -1527,109 +1527,53 @@ class Network:
 
         eq_counter = 0
 
-        for cp in self.comps['object']:
-            # component initialisation
-            eq_counter = cp._prepare_for_solver(self._presolved_equations, eq_counter)
-            eq_map = {
-                eq_num: (cp.label, eq_name)
-                for eq_num, eq_name in cp._equation_lookup.items()
-            }
-            self._equation_lookup.update(eq_map)
+        _eq_counter = self._prepare_network_parts(self.comps["object"], eq_counter)
+        self.num_comp_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
 
-            dependents_map = {
-                eq_num: [dependent.J_col for dependent in dependents]
-                for eq_num, dependents in cp._equation_scalar_dependents_lookup.items()
-            }
-            self._incidence_matrix.update(dependents_map)
+        _eq_counter = self._prepare_network_parts(self.conns["object"], eq_counter)
+        self.num_conn_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
 
-            dependents_map = {
-                eq_num: [
-                    dependent.J_col[key]
-                    for dependent, keys in dependents.items()
-                    for key in keys
-                ]
-                for eq_num, dependents in cp._equation_vector_dependents_lookup.items()
-            }
-            for eq_num, dependents in dependents_map.items():
-                if eq_num in self._incidence_matrix:
-                    self._incidence_matrix[eq_num] += dependents
-
-                else:
-                    self._incidence_matrix[eq_num] = dependents
-
-            c = cp.__class__.__name__
-            for spec in self.specifications[c].keys():
-                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
-                    self.specifications[c][spec].loc[cp.label] = (
-                        cp.get_attr(self.specifications['lookup'][spec])
-                    )
-
-            # count number of component equations and variables
-            self.num_comp_eq += cp.num_eq
-
-        for c in self.conns['object']:
-            eq_counter = c._prepare_for_solver(self._presolved_equations, eq_counter)
-            eq_map = {
-                eq_num: (c.label, eq_name)
-                for eq_num, eq_name in c._equation_lookup.items()
-            }
-            self._equation_lookup.update(eq_map)
-
-            dependents_map = {
-                eq_num: [dependent.J_col for dependent in dependents]
-                for eq_num, dependents in c._equation_scalar_dependents_lookup.items()
-            }
-            self._incidence_matrix.update(dependents_map)
-
-            dependents_map = {
-                eq_num: [
-                    dependent.J_col[key]
-                    for dependent, keys in dependents.items()
-                    for key in keys
-                ]
-                for eq_num, dependents in c._equation_vector_dependents_lookup.items()
-            }
-            for eq_num, dependents in dependents_map.items():
-                if eq_num in self._incidence_matrix:
-                    self._incidence_matrix[eq_num] += dependents
-
-                else:
-                    self._incidence_matrix[eq_num] = dependents
-
-        for ude in self.user_defined_eq.values():
-            eq_counter = ude._prepare_for_solver(
-                self._presolved_equations, eq_counter
-            )
-            eq_map = {
-                eq_num: (ude.label, eq_name)
-                for eq_num, eq_name in ude._equation_lookup.items()
-            }
-            self._equation_lookup.update(eq_map)
-
-            dependents_map = {
-                eq_num: [dependent.J_col for dependent in dependents]
-                for eq_num, dependents in ude._equation_scalar_dependents_lookup.items()
-            }
-            self._incidence_matrix.update(dependents_map)
-
-            dependents_map = {
-                eq_num: [
-                    dependent.J_col[key]
-                    for dependent, keys in dependents.items()
-                    for key in keys
-                ]
-                for eq_num, dependents in ude._equation_vector_dependents_lookup.items()
-            }
-            for eq_num, dependents in dependents_map.items():
-                if eq_num in self._incidence_matrix:
-                    self._incidence_matrix[eq_num] += dependents
-
-                else:
-                    self._incidence_matrix[eq_num] = dependents
+        _eq_counter = self._prepare_network_parts(self.user_defined_eq.values(), eq_counter)
+        self.num_ude_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
 
         for b in self.busses.values():
             self.busses[b.label] = b
             self.num_bus_eq += b.P.is_set * 1
+
+    def _prepare_network_parts(self, parts, eq_counter):
+        for obj in parts:
+            eq_counter = obj._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_map = {
+                eq_num: (obj.label, eq_name)
+                for eq_num, eq_name in obj._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
+
+            dependents_map = {
+                eq_num: [dependent.J_col for dependent in dependents]
+                for eq_num, dependents in obj._equation_scalar_dependents_lookup.items()
+            }
+            self._incidence_matrix.update(dependents_map)
+
+            dependents_map = {
+                eq_num: [
+                    dependent.J_col[key]
+                    for dependent, keys in dependents.items()
+                    for key in keys
+                ]
+                for eq_num, dependents in obj._equation_vector_dependents_lookup.items()
+            }
+            for eq_num, dependents in dependents_map.items():
+                if eq_num in self._incidence_matrix:
+                    self._incidence_matrix[eq_num] += dependents
+
+                else:
+                    self._incidence_matrix[eq_num] = dependents
+
+        return eq_counter
 
     def _presolve_linear_dependents(self):
         for linear_dependents in self._variable_dependencies:
@@ -2139,6 +2083,13 @@ class Network:
             self.init_count_connections_parameters(c)
 
         for cp in self.comps["object"]:
+            c = cp.__class__.__name__
+            for spec in self.specifications[c].keys():
+                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
+                    self.specifications[c][spec].loc[cp.label] = (
+                        cp.get_attr(self.specifications['lookup'][spec])
+                    )
+
             for key, variable in cp.get_variables().items():
                 if variable.is_var:
                     variable._reference_container.val_SI = variable.get_reference_val_SI()
@@ -2198,9 +2149,6 @@ class Network:
         # last one: fluid balance specification
         self.specifications['Connection'].loc[
             c.label, 'balance'] = c.fluid_balance.is_set
-
-        # get number of equations
-        self.num_conn_eq += c.num_eq
 
     def init_precalc_properties(self, c):
         """
@@ -2612,13 +2560,13 @@ class Network:
 
         self._prepare_problem()
 
-        if init_only:
-            return
-
         msg = 'Starting solver.'
         logger.info(msg)
 
         self.solve_determination()
+
+        if init_only:
+            return
 
         self.solve_loop(print_results=print_results)
         self.unload_variables()
@@ -2702,17 +2650,6 @@ class Network:
 
     def solve_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
-        # number of user defined functions
-        self.num_ude_eq = len(self.user_defined_eq)
-
-        for func in self.user_defined_eq.values():
-            # remap connection objects
-            func.conns = [
-                self.conns.loc[c.label, 'object'] for c in func.conns
-            ]
-            # remap jacobian
-            func.jacobian = {}
-
         msg = f'Number of connection equations: {self.num_conn_eq}.'
         logger.debug(msg)
         msg = f'Number of bus equations: {self.num_bus_eq}.'

@@ -9,22 +9,22 @@
         "fkt_group": "combustion",
         "char_warnings": true,
         "lamb": {
-            "val": 3.0569404567072036,
+            "_val": 3.0569404567072036,
             "val_SI": 0,
             "is_set": false,
             "d": 0.0001,
             "min_val": 1,
             "max_val": 1000000000000.0,
-            "is_var": false
+            "_is_var": false
         },
         "ti": {
-            "val": 2830665.221469252,
+            "_val": 2830665.221469252,
             "val_SI": 0,
             "is_set": false,
             "d": 0.0001,
             "min_val": 0,
             "max_val": 1000000000000.0,
-            "is_var": false
+            "_is_var": false
         }
     }
 }

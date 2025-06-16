@@ -17,7 +17,7 @@
     basics
     tutorials
     examples
-    regular_meeting
+    support
 
 ..  toctree::
     :maxdepth: 2

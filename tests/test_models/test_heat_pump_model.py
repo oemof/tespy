@@ -113,39 +113,47 @@ class TestHeatPump:
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
         # condenser system
-        x = np.array(
-            [0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
-             0.5625, 0.6375, 0.7125, 0.7875, 0.9, 0.9875, 1, 1.0625, 1.125,
-             1.175, 1.2125, 1.2375, 1.25])
-        y = np.array(
-            [0.0076, 0.1390, 0.2731, 0.4003, 0.5185, 0.6263, 0.7224, 0.8056,
-             0.8754, 0.9312, 0.9729, 1.0006, 1.0203, 1.0158, 1.0051, 1.0000,
-             0.9746, 0.9289, 0.8832, 0.8376, 0.7843, 0.7614])
-        rp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
-                    eta_s_char={'char_func': CharLine(x, y), 'param': 'm'})
-        cons.set_attr(pr=1, design=['pr'], offdesign=['zeta'])
+        x = np.array([
+            0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
+            0.5625, 0.6375, 0.7125, 0.7875, 0.9, 0.9875, 1, 1.0625, 1.125,
+            1.175, 1.2125, 1.2375, 1.25
+        ])
+        y = np.array([
+            0.0076, 0.1390, 0.2731, 0.4003, 0.5185, 0.6263, 0.7224, 0.8056,
+            0.8754, 0.9312, 0.9729, 1.0006, 1.0203, 1.0158, 1.0051, 1.0000,
+            0.9746, 0.9289, 0.8832, 0.8376, 0.7843, 0.7614
+        ])
+        rp.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
+            eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
+        )
+        cons.set_attr(pr=1)
 
         # evaporator system
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
-             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
-             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        y = np.array([
+            0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
+            0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
+            1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
+        ])
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
-        x = np.array(
-            [0.0100, 0.0400, 0.0700, 0.1100, 0.1500, 0.2000, 0.2500, 0.3000,
-             0.3500, 0.4000, 0.4500, 0.5000, 0.5500, 0.6000, 0.6500, 0.7000,
-             0.7500, 0.8000, 0.8500, 0.9000, 0.9500, 1.0000, 1.5000, 2.0000])
+        x = np.array([
+            0.0100, 0.0400, 0.0700, 0.1100, 0.1500, 0.2000, 0.2500, 0.3000,
+            0.3500, 0.4000, 0.4500, 0.5000, 0.5500, 0.6000, 0.6500, 0.7000,
+            0.7500, 0.8000, 0.8500, 0.9000, 0.9500, 1.0000, 1.5000, 2.0000
+        ])
 
-        y = np.array(
-            [0.0185, 0.0751, 0.1336, 0.2147, 0.2997, 0.4118, 0.5310, 0.6582,
-             0.7942, 0.9400, 0.9883, 0.9913, 0.9936, 0.9953, 0.9966, 0.9975,
-             0.9983, 0.9988, 0.9992, 0.9996, 0.9998, 1.0000, 1.0008, 1.0014])
+        y = np.array([
+            0.0185, 0.0751, 0.1336, 0.2147, 0.2997, 0.4118, 0.5310, 0.6582,
+            0.7942, 0.9400, 0.9883, 0.9913, 0.9936, 0.9953, 0.9966, 0.9975,
+            0.9983, 0.9988, 0.9992, 0.9996, 0.9998, 1.0000, 1.0008, 1.0014
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
-            kA_char1=kA_char1, kA_char2=kA_char2)
+            pr1=1, pr2=.999, design=['ttd_l'], offdesign=['kA_char'],
+            kA_char1=kA_char1, kA_char2=kA_char2
+        )
 
         # no kA modification for hot side!
         x = np.array([0, 1])
@@ -153,87 +161,108 @@ class TestHeatPump:
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         # characteristic line for superheater kA
-        x = np.array(
-            [0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2])
-        y = np.array(
-            [0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07])
+        x = np.array([
+            0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2
+        ])
+        y = np.array([
+            0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
-        su.set_attr(kA_char1=kA_char1, kA_char2=kA_char2,
-                    offdesign=['zeta1', 'zeta2', 'kA_char'])
+        su.set_attr(
+            kA_char1=kA_char1, kA_char2=kA_char2,
+            offdesign=['zeta1', 'zeta2', 'kA_char']
+        )
 
-        x = np.array(
-            [0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
-             0.5625, 0.6375, 0.7125, 0.7875, 0.9, 0.9875, 1, 1.0625, 1.125,
-             1.175, 1.2125, 1.2375, 1.25])
-        y = np.array(
-            [0.0076, 0.1390, 0.2731, 0.4003, 0.5185, 0.6263, 0.7224, 0.8056,
-             0.8754, 0.9312, 0.9729, 1.0006, 1.0203, 1.0158, 1.0051, 1.0000,
-             0.9746, 0.9289, 0.8832, 0.8376, 0.7843, 0.7614])
-        pu.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
-                    eta_s_char={'char_func': CharLine(x, y), 'param': 'm'})
+        x = np.array([
+            0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
+            0.5625, 0.6375, 0.7125, 0.7875, 0.9, 0.9875, 1, 1.0625, 1.125,
+            1.175, 1.2125, 1.2375, 1.25
+        ])
+        y = np.array([
+            0.0076, 0.1390, 0.2731, 0.4003, 0.5185, 0.6263, 0.7224, 0.8056,
+            0.8754, 0.9312, 0.9729, 1.0006, 1.0203, 1.0158, 1.0051, 1.0000,
+            0.9746, 0.9289, 0.8832, 0.8376, 0.7843, 0.7614
+        ])
+        pu.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
+            eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
+        )
 
         # compressor system
         x = np.array([0, 0.4, 1, 1.2])
         y = np.array([0.5, 0.9, 1, 1.1])
 
-        cp1.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
-                     eta_s_char={'char_func': CharLine(x, y), 'param': 'm'})
-        cp2.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
-                     eta_s_char={'char_func': CharLine(x, y), 'param': 'm'})
+        cp1.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
+            eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
+        )
+        cp2.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'],
+            eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
+        )
 
         # characteristic line for intercooler kA
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
-             0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
-             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
-             1.7058, 1.7488])
+        y = np.array([
+            0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
+            0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
+            1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
+            1.7058, 1.7488
+        ])
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
-             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
-             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        y = np.array([
+            0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
+            0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
+            1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
-        he.set_attr(kA_char1=kA_char1, kA_char2=kA_char2,
-                    offdesign=['zeta1', 'zeta2', 'kA_char'])
+        he.set_attr(
+            kA_char1=kA_char1, kA_char2=kA_char2,
+            offdesign=['zeta1', 'zeta2', 'kA_char']
+        )
 
         # characteristic line for condenser kA
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
-             0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
-             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
-             1.7058, 1.7488])
+        y = np.array([
+            0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
+            0.8727, 0.9378, 1.0000, 1.0599, 1.1176, 1.1736, 1.2278, 1.2806,
+            1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
+            1.7058, 1.7488
+        ])
         kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
-        y = np.array(
-            [0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
-             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
-             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051])
+        y = np.array([
+            0.000, 0.164, 0.283, 0.389, 0.488, 0.581, 0.670, 0.756, 0.840,
+            0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
+            1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
+        ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
-        cd.set_attr(kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
-                    design=['pr2'], offdesign=['zeta2', 'kA_char'])
+        cd.set_attr(
+            kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
+            design=['pr2'], offdesign=['zeta2', 'kA_char']
+        )
 
         # condenser system
-        c_in_cd.set_attr(fluid={'NH3': 1}, p=60)
         rp_cd.set_attr(T=60, fluid={'water': 1}, p=10)
         self.cd_cons.set_attr(T=105)
+
+        c_in_cd.set_attr(fluid={'NH3': 1}, p=60)
         cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), Td_bp=-5, design=['Td_bp'])
 
         # evaporator system cold side
-        pu_ev.set_attr(m=Ref(va_dr, 10, 0), p0=5)
-        dr_su.set_attr(p0=5, T=5)
+        pu_ev.set_attr(m=Ref(dr_su, 10, 0))
+        dr_su.set_attr(p=5)
         su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
 
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})
         su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
-        ev_amb_out.set_attr()
+        ev_amb_out.set_attr(T=7)
 
         # compressor-system
         cp1_he.set_attr(p=15)
@@ -250,22 +279,33 @@ class TestHeatPump:
         """
         tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
+        # the model does not consistently solve!!
+        self.nw.assert_convergence()
+        dr_su = self.nw.get_conn("drum:out2_superheater:in2")
+        dr_su.set_attr(T=5, p=None)
+        self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
+        self.nw.get_comp("evaporator").set_attr(ttd_l=5)
+        self.nw.solve('design')
         self.nw.save(tmp_path)
         self.nw.print_results()
 
         # input values from ebsilon
-        T = [105, 100, 90, 80]
-        m_source = np.array([[23, 22, 20, 18, 16],
-                             [27, 24, 20, 16, 12],
-                             [31, 25, 20, 15, 10],
-                             [33, 26, 20, 15, 10]])
-        COP = np.array([[2.436, 2.414, 2.368, 2.338, 2.287],
-                        [2.591, 2.523, 2.448, 2.355, 2.216],
-                        [2.777, 2.635, 2.557, 2.442, 2.243],
-                        [2.866, 2.711, 2.629, 2.528, 2.351]])
+        T_range = [105, 100, 90, 80]
+        m_source = np.array([
+            [23, 22, 20, 18, 16],
+            [27, 24, 20, 16, 12],
+            [31, 25, 20, 15, 10],
+            [33, 26, 20, 15, 10]
+        ])
+        cop_array = np.array([
+            [2.436, 2.414, 2.368, 2.338, 2.287],
+            [2.591, 2.523, 2.448, 2.355, 2.216],
+            [2.777, 2.635, 2.557, 2.442, 2.243],
+            [2.866, 2.711, 2.629, 2.528, 2.351]
+        ])
 
         i = 0
-        for T in T:
+        for T in T_range:
             j = 0
             self.cd_cons.set_attr(T=T)
             for m in m_source[i]:
@@ -284,10 +324,12 @@ class TestHeatPump:
                 # characteristics are available, thus it is
                 # difficult/impossible to match the models perfectly!
                 d_rel_COP = abs(
-                    self.heat.P.val / self.power.P.val - COP[i, j]) / COP[i, j]
-                msg = ('The deviation in COP should be less than 0.07, is ' +
-                       str(d_rel_COP) + ' at mass flow ' + str(m) +
-                       ' and temperature ' + str(T) + '.')
+                    self.heat.P.val / self.power.P.val - cop_array[i, j]
+                ) / cop_array[i, j]
+                msg = (
+                    'The deviation in COP should be less than 0.07, is '
+                    f'{d_rel_COP} at mass flow {m} and temperature {T}.'
+                )
                 assert d_rel_COP < 0.07, msg
                 j += 1
             i += 1

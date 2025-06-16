@@ -29,7 +29,6 @@ from .components import subsystem  # noqa: F401
 from .components import turbomachinery  # noqa: F401
 # tespy networks imports
 from .networks import network  # noqa: F401
-from .networks import network_reader  # noqa: F401
 # tespy tools imports
 from .tools import characteristics  # noqa: F401
 from .tools import data_containers  # noqa: F401

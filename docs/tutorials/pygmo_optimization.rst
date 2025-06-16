@@ -190,8 +190,8 @@ In our run, we got:
 .. code:: bash
 
     Efficiency: 44.82 %
-    Extraction 1: 25.4756 bar
-    Extraction 2: 2.5428 bar
+    Extraction 1: 26.429 bar
+    Extraction 2: 2.823 bar
 
 .. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
     :align: center

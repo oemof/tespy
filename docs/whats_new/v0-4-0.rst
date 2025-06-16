@@ -96,7 +96,7 @@ New Features
   requirements. If you have any feedback or suggestions or want to add new data
   you are very welcome to submit an issue in the GitHub repository or even open
   a pull request. The documentation code is located in the
-  :py:mod:`tespy.tools.document_models` module.
+  :code:`tespy.tools.document_models` module.
 
   .. code-block:: python
 

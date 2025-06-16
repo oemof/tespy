@@ -299,7 +299,7 @@ class TestHeatExchangers:
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
-        instance.set_attr(D='var', L=100, ks_HW=100, pr=0.99, Tamb=20)
+        instance.set_attr(D='var')
         b = Bus('heat', P=-1e5)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
@@ -312,14 +312,16 @@ class TestHeatExchangers:
         # make zeta system variable and use previously calculated diameter
         # to calculate zeta. The value for zeta must not change
         zeta = round(instance.zeta.val, 0)
-        instance.set_attr(D=instance.D.val, zeta='var', pr=None)
-        instance.D.is_var = False
+        diameter = instance.D.val
+        instance.set_attr(D=None, zeta='var', pr=None)
+        instance.set_attr(D=diameter)
         self.nw.solve('design')
         self.nw.assert_convergence()
         msg = f"Value of pressure ratio must be {zeta}, is {instance.zeta.val}."
         assert zeta == round(instance.zeta.val, 0), msg
+        assert round(diameter, 3) == round(instance.D.val, 3)
 
-        # same test with pressure ratio as sytem variable
+        # same test with pressure ratio as system variable
         pr = round(instance.pr.val, 3)
         instance.set_attr(zeta=None, pr='var')
         self.nw.solve('design')
@@ -585,8 +587,9 @@ class TestHeatExchangers:
         # test heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         msg = (
-            'Value of heat flow must be ' + str(round(Q_design * 2 / 3, 0)) +
-            ', is ' + str(round(Q, 0)) + '.')
+            f'Value of heat flow must be {round(Q_design * 2 / 3, 0)}, is '
+            f'{round(Q, 0)}.'
+        )
         assert round(Q, 1) == round(Q_design * 2 / 3, 1), msg
 
         # back to design case
@@ -612,9 +615,11 @@ class TestHeatExchangers:
         assert round(Q, 0) == round(instance.Q.val, 0), msg
 
         # check upper terminal temperature difference
-        msg = ('Value of terminal temperature difference must be ' +
-               str(round(instance.ttd_u.val, 1)) + ', is ' +
-               str(round(self.c1.T.val - self.c4.T.val, 1)) + '.')
+        msg = (
+            'Value of terminal temperature difference must be '
+            f'{round(instance.ttd_u.val, 1)}, is '
+            f'{round(self.c1.T.val - self.c4.T.val, 1)}.'
+        )
         ttd_u_calc = round(self.c1.T.val - self.c4.T.val, 1)
         ttd_u = round(instance.ttd_u.val, 1)
         assert ttd_u_calc == ttd_u, msg
@@ -624,9 +629,10 @@ class TestHeatExchangers:
         instance.set_attr(ttd_l=20)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of terminal temperature difference must be ' +
-               str(instance.ttd_l.val) + ', is ' +
-               str(self.c2.T.val - self.c3.T.val) + '.')
+        msg = (
+            'Value of terminal temperature difference must be '
+            f'{instance.ttd_l.val}, is {self.c2.T.val - self.c3.T.val}.'
+        )
         ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
         ttd_l = round(instance.ttd_l.val, 1)
         assert ttd_l_calc == ttd_l, msg
@@ -637,11 +643,12 @@ class TestHeatExchangers:
         instance.set_attr(ttd_l=None)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of heat flow must be ' + str(instance.Q.val) + ', is ' +
-               str(round(Q, 0)) + '.')
+        msg = f'Value of heat flow must be {instance.Q.val}, is {round(Q, 0)}.'
         assert round(Q, 0) == round(instance.Q.val, 0), msg
-        msg = ('Value of heat transfer coefficient must be ' + str(kA) +
-               ', is ' + str(round(instance.kA.val, 0)) + '.')
+        msg = (
+            f'Value of heat transfer coefficient must be {kA}, is '
+            f'{round(instance.kA.val, 0)}.'
+        )
         assert kA == round(instance.kA.val, 0), msg
 
         # trigger negative lower terminal temperature difference as result
@@ -649,9 +656,10 @@ class TestHeatExchangers:
         self.c2.set_attr(T=30)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of upper terminal temperature differences must be '
-               'smaller than zero, is ' + str(round(instance.ttd_l.val, 1)) +
-               '.')
+        msg = (
+            'Value of upper terminal temperature differences must be '
+            f'smaller than zero, is {round(instance.ttd_l.val, 1)}.'
+        )
         assert instance.ttd_l.val < 0, msg
 
         # trigger negative upper terminal temperature difference as result
@@ -748,6 +756,7 @@ class TestHeatExchangers:
             pr1=0.98, pr2=0.98, ttd_u=5, offdesign=['zeta2', 'kA_char']
         )
         self.c1.set_attr(T=100, p0=0.5, fluid={'H2O': 1})
+        self.c2.set_attr(p0=0.5)
         self.c3.set_attr(T=30, p=5, fluid={'H2O': 1})
         self.c4.set_attr(T=40)
         instance.set_attr(Q=-80e3)

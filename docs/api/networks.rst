@@ -13,11 +13,3 @@ tespy.networks.network module
     :members:
     :undoc-members:
     :show-inheritance:
-
-tespy.networks.network_reader module
-------------------------------------
-
-.. automodule:: tespy.networks.network_reader
-    :members:
-    :undoc-members:
-    :show-inheritance:

@@ -200,6 +200,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
             except ValueError:
                 pass
         else:
+            if self.back_end == "HEOS":
+                # see https://github.com/CoolProp/CoolProp/discussions/2443
+                self._T_max *= 1.45
+            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             if self.back_end == "REFPROP":
                 self._p_min = 1e1
             else:

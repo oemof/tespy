@@ -242,12 +242,15 @@ variables based on your model structure and your specifications.
 * check network consistency and initialise components (if network topology is
   changed to a prior calculation only).
 * create a topology representation of the components and the connections.
-* simplify the variable space based on the plant's topology.
+* simplify the variable space based on the plant's topology and your
+  specifications.
 * perform design/offdesign switch (for offdesign calculations only).
 * preprocessing of offdesign case using the information from the
   :code:`design_path` argument.
+* precalculate variables in case they can directly be determined from the
+  combination of your specifications.
 
-The network check is used to find errors in the network topology, the
+The topology check is used to find errors in the network topology, the
 calculation can not start without a successful check. The design/offdesign
 switch is described in the network setup section. For offdesign calculation the
 :code:`design_path` argument is required. The design point information is
@@ -266,32 +269,48 @@ variables (mass flow, pressure, enthalpy and fluid mass fractions), if a value
 is directly specified by the user, the respective variable is removed from the
 variable space, because it does not need to be solved.
 
-Furthermore, there are three steps to simplify the variable space, i.e.
-regarding mass flow, regarding the fluid composition and regarding pressure and
-enthalpy.
+Furthermore, three steps to simplify the variable space are performed, i.e.
 
-First, based on the topology of the network, different branches are created.
-These are:
+- searching for linear dependencies between pairs of variables in the system,
+- simplifying the fluid vectors and
+- presolving pressure and enthalpy.
 
-- branches, in which the mass flow is equal in every of its connections and
-- branches, in which the fluid composition is equal in every of its connections.
+First, some of the components' equations return information in pairwise linear
+dependency between variables. These are, for example,
 
-For every mass flow branch, the variable space is reduced to a single mass flow.
+- equality of mass flow or fluid composition at inlet and outlet
+- equality of pressure at inlet and each of the outlets as in a spliiter
+  component
+- constant ratio of inlet and outlet pressure through a specified pressure
+  ratio value
+- linear dependency between two variables imposed be the :code:`Ref`
+  specification
+- and many more
+
+These linear dependencies are used to build a graph, which then determines a
+mapping from the phyiscal problem to the mathematical problem indicating which
+variables are represented by a single one. I.e.
+
+- which mass flows are the same or directly linear dependent
+- which pressures are the same or directly linear dependent,
+- which enthalpies are the same or directly linear dependen and
+- which fluid compositions are identical.
+
 For example, in a simple Clausius Rankine cycle there will only be a single
-mass flow in the variable space. Analogously in every fluid composition branch,
-the variable space is reduced to a single vector containing the variable fluids
-of that branch. For example, if a mass flow is split in two streams using a
-splitter, the fluid composition remains constant downstream of the splitter.
-Therefore, all connections downstream of the splitter share the same fluid
-composition as upstream of the splitter.
+mass flow in the variable space. The process is applied analogously for all
+other variables, and may depend on the individual components implemented in the
+respective model. For example, if a mass flow is split in two streams using a
+splitter, the fluid composition remains constant downstream of the splitter,
+while mass flow will not. Therefore, all connections downstream of the splitter
+share the same fluid composition as upstream of the splitter.
 
-The next step is a reduction of the fluid vector specifications: Consider a case
-with a couple of potential fluids on a fluid branch, e.g. oxygen, nitrogen,
-argon, carbon dioxide and water at the outlet of a combustion chamber. All fluid
-mass fractions specified by the user will be fixed and removed from the variable
-space. If then, only a single fluid remains with "unknown" mass fraction, we can
-assign a mass fraction to that fluid, which is equal to 1 minus the sum of all
-other fluids' mass fractions.
+The next step is a reduction of the fluid vector specifications: Consider a
+case with a couple of potential fluids on a fluid branch, e.g. oxygen,
+nitrogen, argon, carbon dioxide and water at the outlet of a combustion
+chamber. All fluid mass fractions specified by the user will be fixed and
+removed from the variable space. If then, only a single fluid remains with
+"unknown" mass fraction, we can assign a mass fraction to that fluid, which is
+equal to 1 minus the sum of all other fluids' mass fractions.
 
 Finally, presolving is applied to pressure and enthalpy, whenever the fluid
 composition is fixed. If either pressure or enthalpy is specified by the user
@@ -493,18 +512,59 @@ primary variables whenever possible/reasonable. This will not only reduce the
 variable space but also remove the necessity to calculate partial derivatives
 towards them.
 
-Troubleshooting
-+++++++++++++++
-In this section we show you how you can troubleshoot your calculation and list
-up common mistakes. If you want to debug your code, make sure to enable the
-logger and have a look at the log-file at :code:`~/.tespy/` (or at your
-specified location).
+.. _tespy_networks_debugging_label:
+
+Debugging
++++++++++
+In this section we show you how you can debug your models and list common
+mistakes.
+
+**Topology**
 
 First, make sure your network topology is set up correctly, TESPy will prompt
-an Error, if not. TESPy will prompt an error, too, if you did not provide
-enough or if you provide too many parameters for your calculation, but you will
-not be given an information which specific parameters are under- or
-over-determined.
+an error, if it is not, and provide you with information, which components are
+missing connections. Usually, this is the case, when you forgot to add the
+connections to the network.
+
+**Presolving**
+
+In the first part of the presovling phase, the variable space reduction is
+performed. TESPy will prompt errors, in case the parameter specifications in
+context of the topology lead to an infeasibility in any of the variables. This
+can be, for example
+
+- a circular linear dependency between a set of variables. Typically, the mass
+  flow can be over-determined by not including a :code:`CycleCloser` component
+  in a ciruclar network. For example, ff you are modeling a cycle, e.g. the
+  Clausius Rankine cylce, you need to make a cut in the cycle using the
+  :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
+  over-determine the system. Have a look in the
+  :ref:`tutorial section <tespy_basics_label>` to understand why this is
+  important and how it can be implemented.
+- two parallel flows starting and ending in a common point (e.g. from a
+  :code:`Splitter` to a :code:`Merge`) and both having linear specifications
+  for the change of pressure from the start to the end. Then the comming inflow
+  and the common outflow pressure would be connected linearly through two
+  different ways, which cannot be solved. One of both must be a result. Note:
+  the same is of course true for a nonlinear dependency of pressure change, but
+  this cannot be detected by the presolving.
+- the values of two variables (or more) are directly specified in a set of
+  linearly dependent variables. This does not need to be direct specification,
+  it can also be indirect, through specifying temperature and vapor mass
+  fraction in one location and specifying pressure in a different location
+  while the specified pressure is linearly dependent to the pressure at the
+  location with specified temperature and vapor mass fraction. In this case,
+  the combination of temperature and vapor mass fraction determines the
+  saturation pressure and therefore we end up with two pressure values fixed.
+
+**Solving**
+
+After the presolving is complete, a check will be carried out, if you specified
+a sufficient number of parameters, meaning the exact number matching the
+number of equations imposed to the problem. TESPy will prompt an error, if you
+did not provide enough or if you provide too many parameters for your
+calculation, but cannot provide information which specific variables are under-
+or over-determined.
 
 .. note::
 
@@ -514,15 +574,49 @@ over-determined.
     by adding a component without any parametrisation. This way, you can easily
     determine, which parameters are still to be specified.
 
-If you are modeling a cycle, e.g. the Clausius Rankine cylce, you need to make
-a cut in the cycle using the :code:`CycleCloser` or a :code:`Sink` and a
-:code:`Source` not to over-determine the system. Have a look in the
-:ref:`tutorial section <tespy_basics_label>` to understand why this is
-important and how it can be implemented.
+To help you with debugging, you can use a couple of methods to inspect the
+mathematical problem. To do this, you have to start the simulation with
+:code:`init_only=True`. Then you can use the following methods to obtain
+information on your problem:
 
-If you have provided the correct number of parameters in your system and the
-calculations stops after or even before the first iteration, there might be a
-couple of reasons for that:
+.. code-block:: python
+
+    nw.solve("design", init_only=True)
+    print(nw.get_presolved_variables())
+    print(nw.get_presolved_equations())
+    print(nw.get_variables())
+    print(nw.get_equations())
+
+- :code:`get_presolved_variables`: A list of all variables of the system, that
+  have already been solved in the preprocessing. The list contains tuples of
+  labels and attributes, e.g. :code:`("1", "p")` for the pressure of the
+  connection with label "1".
+- :code:`get_presolved_equations`: A list of equations of the system, that were
+  applied to presolved the aforementioned variables. These come in a similar
+  form as tuples, e.g. :code:`("3", "T")` for the temperature equation of the
+  connection with label "3".
+- :code:`get_variables`: A dictionary of the actual variables remaining for the
+  sovler to solve for. The keys of the dictionary are again tuples, with an
+  index number and the variable type, e.g. :code:`(0, "h")` for a variable
+  representing enthalpy. The values corresponding to each key are again a list,
+  which show all of the variables the are representing, e.g.
+  :code:`[("2", "h"), ("7", "h")]` in case the variable represents the enthalpy
+  of the connections with the labels "2" and "7".
+- :code:`get_equations`: A dictionary with the actual equations remaining for
+  the solver to be solved after the presolving. The key is an integer index and
+  the value is a tuple containing the label of the component or connection,
+  from which the equation originates and a second tuple with the name of the
+  constraint as well as an index (which is used, when one constraint comes
+  with more than a single equation), e.g. :code:`("compressor", ("eta_s", 0))`
+  for the first equation coming of the constraint "eta_s" of a component named
+  "compressor".
+
+These methods will help you in finding which of your specifications might be
+the reason for over- order under-determination of the problem.
+
+If you have the correct number of specifications and run the simulation, it
+can still happen that the calculation crashes after or even before the first
+iteration. There might be a couple of reasons for that:
 
 - Sometimes, the fluid property database does not find a specific fluid
   property in the initialisation process, have you specified the values in the
@@ -535,15 +629,23 @@ couple of reasons for that:
 
 The first reason can be eliminated by carefully choosing the parametrisation.
 **A linear dependency due to bad starting values is often more difficult to**
-**resolve, and it may require some experience.** In many cases, the linear
-dependency is caused by equations, that require the **calculation of a**
-**temperature**, e.g. specifying a temperature at some point of the network,
-terminal temperature differences at heat exchangers, etc.. In this case,
-**the starting enthalpy and pressure should be adjusted in a way, that the**
-**fluid state is not within the two-phase region:** The specification of
-temperature and pressure in a two-phase region does not yield a distinct value
-for the enthalpy. Even if this specific case appears after some iterations,
-better starting values often do the trick.
+**resolve, and it may require some experience.** Apart from over-determining
+one variable while under-determinig another, typical reasons for a linear
+dependency are mostly bad starting values in combination with equations that
+require the **calculation of a temperature**, e.g. specifying a temperature at
+some point of the network with unkown pressure, or terminal temperature
+differences at heat exchangers, etc.. In this case, **the starting enthalpy **
+**and pressure should be adjusted in a way, that the fluid's state is**
+**within the expected region (liquid, two-phase or vapor).** Especially, in
+case the linear dependency appears after some iterations, better starting
+values often do the trick.
+
+.. caution::
+
+  When identifying a linear dependency, TESPy will prompt the equations that
+  might be the reason for the linear dependency. This is still an experimental
+  feature, so it might not always be correct. We would appreciate feedback,
+  e.g. through the online user meetings or the github discussions page.
 
 Another frequent error is that fluid properties move out of the bounds given by
 the fluid property database. The calculation will stop immediately.
@@ -558,15 +660,6 @@ in this case.
     residuals of your systems' equations and on the increments of the systems'
     variables. Maybe it is only one variable causing the instability, its
     increment is much larger than the increment of the other variables?
-
-If you run multiple simulations and a simulation crashed due to an internal
-error (e.g. fluid property related), and you still want the next simulations to
-perform correctly, you have to call the
-:py:meth:`tespy.networks.network.Network.reset_topology_reduction_specifications`
-method after the failed simulation and before you run the next simulation.
-Usually, this happens automatically as part of the post-processing, but in case
-the simulation crashed before that, this step cannot be executed. Then,
-restarting the simulation is not possible.
 
 Did you experience other errors frequently and have a workaround/tips for
 resolving them? You are very welcome to contact us and share your experience
@@ -683,7 +776,7 @@ save the network first.
 
 .. code:: python
 
-    my_plant.export('mynetwork')
+    my_plant.export('mynetwork.json')
 
 This generates a folder structure containing all relevant files defining your
 network (general network information, components, connections, busses,
@@ -696,8 +789,8 @@ created network.
 
 .. code:: python
 
-    from tespy.networks import load_network
-    imported_plant = load_network('path/to/mynetwork')
+    from tespy.networks import Network
+    imported_plant = Network.from_json('path/to/mynetwork.json')
     imported_plant.solve('design')
 
 .. note::

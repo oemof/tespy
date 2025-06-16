@@ -958,7 +958,7 @@ class CombustionChamber(Component):
         m = 0
         for i in inl:
             if i.m.val_SI < 0 and i.m.is_var:
-                i.m.val_SI = 0.01
+                i.m.set_reference_val_SI(0.01)
             m += i.m.val_SI
 
         ######################################################################
@@ -996,11 +996,11 @@ class CombustionChamber(Component):
             outl.fluid._reference_container.val[fluid] /= total_mass_fractions
 
         if outl.m.val_SI < 0 and outl.m.is_var:
-            outl.m._reference_container.val_SI = 10
+            outl.m.set_reference_val_SI(10)
 
         if not outl.good_starting_values:
             if outl.h.val_SI < 7.5e5 and outl.h.is_var:
-                outl.h._reference_container.val_SI = 1e6
+                outl.h.set_reference_val_SI(1e6)
 
         ######################################################################
         # additional checks for performance improvement
@@ -1022,7 +1022,7 @@ class CombustionChamber(Component):
                         air_tmp = i.m.val_SI
 
             if fuel_found:
-                fuel_inlet.m._reference_container.val_SI = air_tmp / 25
+                fuel_inlet.m.set_reference_val_SI(air_tmp / 25)
 
     @staticmethod
     def initialise_source(c, key):

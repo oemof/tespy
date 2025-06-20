@@ -3063,7 +3063,12 @@ class Network:
                 component_json[key][c.label] = {
                     "name": c.label,
                     "type": comp_type,
-                    "parameters": result.loc[c.label].to_dict()
+                    **(
+                        {"parameters": result.loc[c.label].dropna().to_dict()}
+                        if c.label in result.index
+                        and not result.loc[c.label].dropna().empty
+                        else {}
+                    )
                 }
 
         connection_json = {}

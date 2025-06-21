@@ -1,0 +1,12 @@
+v0.8.3 - Newton's Nature (June, 21, 2025)
++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The export method :code:`to_exerpy` now includes the results for components
+  (`PR #688 <https://github.com/oemof/tespy/pull/688>`__).
+
+Contributors
+############
+- `@sertomas <https://github.com/sertomas>`__
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -2992,9 +2992,6 @@ class Network:
         - Restrict fluid properties to value ranges
         - Check component parameters for consistency
         """
-        # self.solve_components()
-        # self.solve_connections()
-        # self.solve_user_defined_eq()
         self.solve_equations()
         self.solve_busses()
         self._invert_jacobian()
@@ -3088,42 +3085,6 @@ class Network:
                 self.jacobian[rows, columns] = data
 
             obj.it += 1
-
-    def solve_connections(self):
-        r"""
-        Calculate the residual and derivatives of connection equations.
-        """
-        for c in self.conns['object']:
-            c.solve(self.increment_filter)
-
-            if len(c.jacobian) > 0:
-                rows = list(c.residual.keys())
-                data = list(c.residual.values())
-                self.residual[rows] = data
-
-                rows = [k[0] for k in c.jacobian]
-                columns = [k[1] for k in c.jacobian]
-                data = list(c.jacobian.values())
-                self.jacobian[rows, columns] = data
-
-            c.it += 1
-
-    def solve_user_defined_eq(self):
-        """
-        Calculate the residual and jacobian of user defined equations.
-        """
-        for ude in self.user_defined_eq.values():
-            ude.solve(self.increment_filter)
-
-            if len(ude.jacobian) > 0:
-                rows = list(ude.residual.keys())
-                data = list(ude.residual.values())
-                self.residual[rows] = data
-
-                rows = [k[0] for k in ude.jacobian]
-                columns = [k[1] for k in ude.jacobian]
-                data = list(ude.jacobian.values())
-                self.jacobian[rows, columns] = data
 
     def solve_busses(self):
         r"""

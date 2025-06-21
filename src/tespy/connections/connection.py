@@ -781,7 +781,6 @@ class Connection:
         if result is not None:
             self.jacobian[eq_num, var.J_col[dx]] = result
 
-
     def reset_fluid_vector(self):
         self.fluid = dc_flu()
 

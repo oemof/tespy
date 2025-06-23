@@ -158,6 +158,10 @@ class Pump(Turbomachine):
     def component():
         return 'pump'
 
+    @staticmethod
+    def powerinlets():
+        return ["power"]
+
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters["P"].min_val = 0

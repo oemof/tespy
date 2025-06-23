@@ -151,6 +151,30 @@ class Turbine(Turbomachine):
     def component():
         return 'turbine'
 
+    @staticmethod
+    def poweroutlets():
+        return ["power"]
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_outl) > 0:
+            from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
+
+    def energy_connector_balance_func(self):
+        return self.power_outl[0].e.val_SI + self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
+    def energy_connector_dependents(self):
+        return [self.power_outl[0].e, self.inl[0].m, self.outl[0].h, self.inl[0].h]
+
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters["P"].max_val = 0

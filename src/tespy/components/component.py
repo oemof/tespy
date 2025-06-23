@@ -567,6 +567,14 @@ class Component:
     def outlets():
         return []
 
+    @staticmethod
+    def powerinlets():
+        return []
+
+    @staticmethod
+    def poweroutlets():
+        return []
+
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)
         if result is not None:

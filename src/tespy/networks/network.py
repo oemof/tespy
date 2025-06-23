@@ -204,14 +204,6 @@ class Network:
         self.subsystems = {}
         # results and specification dictionary
         self.results = {}
-        self.specifications = {}
-
-        self.specifications['lookup'] = {
-            'properties': 'prop_specifications',
-            'chars': 'char_specifications',
-            'variables': 'var_specifications',
-            'groups': 'group_specifications'
-        }
 
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
@@ -798,16 +790,33 @@ class Network:
         r"""Set up necessary component information."""
         for comp in self.comps["object"]:
             # get incoming and outgoing connections of a component
-            sources = self.conns[self.conns['source'] == comp]
-            sources = sources['source_id'].sort_values().index.tolist()
-            targets = self.conns[self.conns['target'] == comp]
-            targets = targets['target_id'].sort_values().index.tolist()
+            source_mask = self.conns["source"] == comp
+            required_connectors_mask = self.conns["source_id"].isin(comp.outlets())
+            sources = self.conns[source_mask & required_connectors_mask]
+            sources = sources["source_id"].sort_values().index.tolist()
+            target_mask = self.conns["target"] == comp
+            required_connectors_mask = self.conns["target_id"].isin(comp.inlets())
+            targets = self.conns[target_mask & required_connectors_mask]
+            targets = targets["target_id"].sort_values().index.tolist()
             # save the incoming and outgoing as well as the number of
             # connections as component attribute
-            comp.inl = self.conns.loc[targets, 'object'].tolist()
-            comp.outl = self.conns.loc[sources, 'object'].tolist()
+            comp.inl = self.conns.loc[targets, "object"].tolist()
+            comp.outl = self.conns.loc[sources, "object"].tolist()
             comp.num_i = len(comp.inlets())
             comp.num_o = len(comp.outlets())
+
+            required_connectors_mask = self.conns["source_id"].isin(comp.poweroutlets())
+            sources = self.conns[source_mask & required_connectors_mask]
+            sources = sources["source_id"].sort_values().index.tolist()
+
+            required_connectors_mask = self.conns["target_id"].isin(comp.powerinlets())
+            targets = self.conns[target_mask & required_connectors_mask]
+            targets = targets["target_id"].sort_values().index.tolist()
+
+            comp.power_inl = self.conns.loc[targets, "object"].tolist()
+            comp.power_outl = self.conns.loc[sources, "object"].tolist()
+            comp.num_power_i = len(comp.powerinlets())
+            comp.num_power_o = len(comp.poweroutlets())
 
             # set up restults and specification dataframes
             comp_type = comp.__class__.__name__
@@ -819,49 +828,56 @@ class Network:
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
                 )
-            if comp_type not in self.specifications:
-
-                cols, groups, chars = [], [], []
-                for col, data in comp.parameters.items():
-                    if isinstance(data, dc_cp):
-                        cols += [col]
-                    elif isinstance(data, dc_gcp) or isinstance(data, dc_gcc):
-                        groups += [col]
-                    elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
-                        chars += [col]
-                self.specifications[comp_type] = {
-                    'groups': pd.DataFrame(columns=groups, dtype='bool'),
-                    'chars': pd.DataFrame(columns=chars, dtype='object'),
-                    'variables': pd.DataFrame(columns=cols, dtype='bool'),
-                    'properties': pd.DataFrame(columns=cols, dtype='bool')
-                }
 
     def _check_components(self):
         # count number of incoming and outgoing connections and compare to
         # expected values
         for comp in self.comps['object']:
-            counts = (self.conns[['source', 'target']] == comp).sum()
-
-            if counts["source"] != comp.num_o:
+            if len(comp.outl) != comp.num_o:
                 msg = (
                     f"The component {comp.label} is missing "
-                    f"{comp.num_o - counts['source']} outgoing connections. "
+                    f"{comp.num_o - len(comp.outl)} outgoing connections. "
                     "Make sure all outlets are connected and all connections "
                     "have been added to the network."
                 )
                 logger.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
-            elif counts["target"] != comp.num_i:
+            elif len(comp.inl) != comp.num_i:
                 msg = (
                     f"The component {comp.label} is missing "
-                    f"{comp.num_i - counts['target']} incoming connections. "
+                    f"{comp.num_i - len(comp.inl)} incoming connections. "
                     "Make sure all inlets are connected and all connections "
                     "have been added to the network."
                 )
                 logger.error(msg)
                 # raise an error in case network check is unsuccesful
                 raise hlp.TESPyNetworkError(msg)
+
+            # this rule only applies, in case there are any power connections
+            if len(comp.power_inl) + len(comp.power_outl) > 0:
+                if len(comp.power_outl) != comp.num_power_o:
+                    msg = (
+                        f"The component {comp.label} is missing "
+                        f"{comp.num_power_o - len(comp.power_outl)} outgoing "
+                        "power connections. Make sure all outlets are "
+                        "connected and all connections have been added to the "
+                        "network."
+                    )
+                    logger.error(msg)
+                    # raise an error in case network check is unsuccesful
+                    raise hlp.TESPyNetworkError(msg)
+                elif len(comp.power_inl) != comp.num_power_i:
+                    msg = (
+                        f"The component {comp.label} is missing "
+                        f"{comp.num_power_i - len(comp.power_inl)} outgoing "
+                        "power connections. Make sure all outlets are "
+                        "connected and all connections have been added to the "
+                        "network."
+                    )
+                    logger.error(msg)
+                    # raise an error in case network check is unsuccesful
+                    raise hlp.TESPyNetworkError(msg)
 
     def _prepare_problem(self):
         r"""
@@ -1647,6 +1663,8 @@ class Network:
                 prop = key.split("_ref")[0]
                 if "fluid" in key:
                     continue
+                elif key == "e":
+                    pass
                 elif key == 'Td_bp':
                     c.get_attr(key).unit = self.get_attr('T_unit')
                 else:
@@ -1666,6 +1684,8 @@ class Network:
                                 prop, c.get_attr(key).ref.delta,
                                 c.get_attr(prop).unit
                             )
+                    elif key == "e":
+                        c.e.val_SI = c.e.val
                     else:
                         c.get_attr(key).val_SI = hlp.convert_to_SI(
                             key, c.get_attr(key).val, c.get_attr(key).unit
@@ -2040,6 +2060,8 @@ class Network:
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
         for c in self.conns['object']:
+            if type(c) != Connection:
+                continue
             if self.init_path is not None:
                 self._init_conn_params_from_path(c, df)
 
@@ -2819,7 +2841,7 @@ class Network:
                 relax = 0.75
 
         for _, data in self.variables_dict.items():
-            if data["variable"] in ["m", "h"]:
+            if data["variable"] in ["m", "h", "e"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":

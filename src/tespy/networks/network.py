@@ -24,11 +24,11 @@ from numpy.linalg import norm
 from tabulate import tabulate
 
 from tespy.components.component import component_registry
-from tespy.connections.connection import connection_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.connections.connection import _ConnectionBase
 from tespy.connections import Ref
+from tespy.connections.connection import _ConnectionBase
+from tespy.connections.connection import connection_registry
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 from tespy.tools import logger

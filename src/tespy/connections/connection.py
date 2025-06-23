@@ -207,6 +207,63 @@ class _ConnectionBase:
 
                 self.num_eq += num_eq
 
+    def _prepare_for_solver(self, system_dependencies, eq_counter):
+        self.num_eq = 0
+        self.it = 0
+        self.equations = {}
+        self._equation_lookup = {}
+        self._equation_scalar_dependents_lookup = {}
+        self._equation_vector_dependents_lookup = {}
+
+        for eq_num, value in self._equation_set_lookup.items():
+            if eq_num in system_dependencies:
+                continue
+
+            if value not in self.equations:
+                data = self.parameters[value]
+                self.equations.update({value: data})
+                self._assign_dependents_and_eq_mapping(
+                    value, data, self.equations, eq_counter
+                )
+                self.num_eq += data.num_eq
+                eq_counter += data.num_eq
+
+        self.residual = {}
+        self.jacobian = {}
+
+        return eq_counter
+
+    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
+        if data.dependents is None:
+            scalar_dependents = [[] for _ in range(data.num_eq)]
+            vector_dependents = [{} for _ in range(data.num_eq)]
+        else:
+            dependents = data.dependents(**data.func_params)
+            if type(dependents) == list:
+                scalar_dependents = _get_dependents(dependents)
+                vector_dependents = [{} for _ in range(data.num_eq)]
+            else:
+                scalar_dependents = _get_dependents(dependents["scalars"])
+                vector_dependents = _get_vector_dependents(dependents["vectors"])
+
+                # this is a temporary fix
+                if len(vector_dependents) < data.num_eq:
+                    vector_dependents = [{} for _ in range(data.num_eq)]
+
+        eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._vector_dependents = vector_dependents
+        eq_dict[value]._first_eq_index = eq_counter
+
+        for i in range(data.num_eq):
+            self._equation_lookup[eq_counter + i] = (value, i)
+            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
+            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
+
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
     def _adjust_to_property_limits(self, nw):
         pass
 
@@ -837,63 +894,6 @@ class Connection(_ConnectionBase):
             if value == parameter
         ]
         return presolved_equations
-
-    def _prepare_for_solver(self, system_dependencies, eq_counter):
-        self.num_eq = 0
-        self.it = 0
-        self.equations = {}
-        self._equation_lookup = {}
-        self._equation_scalar_dependents_lookup = {}
-        self._equation_vector_dependents_lookup = {}
-
-        for eq_num, value in self._equation_set_lookup.items():
-            if eq_num in system_dependencies:
-                continue
-
-            if value not in self.equations:
-                data = self.parameters[value]
-                self.equations.update({value: data})
-                self._assign_dependents_and_eq_mapping(
-                    value, data, self.equations, eq_counter
-                )
-                self.num_eq += data.num_eq
-                eq_counter += data.num_eq
-
-        self.residual = {}
-        self.jacobian = {}
-
-        return eq_counter
-
-    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
-        if data.dependents is None:
-            scalar_dependents = [[] for _ in range(data.num_eq)]
-            vector_dependents = [{} for _ in range(data.num_eq)]
-        else:
-            dependents = data.dependents(**data.func_params)
-            if type(dependents) == list:
-                scalar_dependents = _get_dependents(dependents)
-                vector_dependents = [{} for _ in range(data.num_eq)]
-            else:
-                scalar_dependents = _get_dependents(dependents["scalars"])
-                vector_dependents = _get_vector_dependents(dependents["vectors"])
-
-                # this is a temporary fix
-                if len(vector_dependents) < data.num_eq:
-                    vector_dependents = [{} for _ in range(data.num_eq)]
-
-        eq_dict[value]._scalar_dependents = scalar_dependents
-        eq_dict[value]._vector_dependents = vector_dependents
-        eq_dict[value]._first_eq_index = eq_counter
-
-        for i in range(data.num_eq):
-            self._equation_lookup[eq_counter + i] = (value, i)
-            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
-            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
-
-    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
-        result = _partial_derivative(var, value, increment_filter, **kwargs)
-        if result is not None:
-            self.jacobian[eq_num, var.J_col] = result
 
     def _partial_derivative_fluid(self, var, eq_num, value, dx, increment_filter=None, **kwargs):
         result = _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs)

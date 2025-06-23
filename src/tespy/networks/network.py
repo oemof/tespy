@@ -24,8 +24,10 @@ from numpy.linalg import norm
 from tabulate import tabulate
 
 from tespy.components.component import component_registry
+from tespy.connections.connection import connection_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections.connection import _ConnectionBase
 from tespy.connections import Ref
 from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
@@ -471,7 +473,7 @@ class Network:
             :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            if not isinstance(c, Connection):
+            if not isinstance(c, _ConnectionBase):
                 msg = (
                     'Must provide tespy.connections.connection.Connection '
                     'objects as parameters.'
@@ -515,8 +517,8 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
-            if "Connection" in self.results:
-                self.results["Connection"].drop(
+            if c.__class__.__name__ in self.results:
+                self.results[c.__class__.__name__].drop(
                     c.label, inplace=True, errors="ignore"
                 )
             msg = f'Deleted connection {c.label} from network.'
@@ -730,7 +732,7 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        self._check_conns()
+        self._check_connections()
         self._init_components()
         self._check_components()
         self._create_fluid_wrapper_branches()
@@ -740,7 +742,7 @@ class Network:
         msg = 'Networkcheck successful.'
         logger.info(msg)
 
-    def _check_conns(self):
+    def _check_connections(self):
         r"""Check connections for multiple usage of inlets or outlets."""
         dub = self.conns.loc[self.conns.duplicated(["source", "source_id"])]
         for c in dub['object']:
@@ -780,6 +782,17 @@ class Network:
             )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
+
+    def _init_connection_result_datastructure(self):
+
+        for conn in self.conns["object"]:
+            conn_type = conn.__class__.__name__
+            # this will move somewhere else!
+            # set up results dataframe for connections
+            # this should be done based on the connections
+            if conn_type not in self.results:
+                cols = conn._get_result_cols(set(self.all_fluids))
+                self.results[conn_type] = pd.DataFrame(columns=cols, dtype='float64')
 
     def _init_components(self):
         r"""Set up necessary component information."""
@@ -890,6 +903,7 @@ class Network:
             continue
 
         self._propagate_fluid_wrappers()
+        self._init_connection_result_datastructure()
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
@@ -985,7 +999,7 @@ class Network:
             connections_in_wrapper_branches += all_connections
 
         missing_wrappers = (
-            set(self.conns["object"].tolist())
+            set(self.conns.loc[self.conns["object"].apply(lambda x: x.__class__.__name__) == "Connection", "object"].tolist())
             - set(connections_in_wrapper_branches)
         )
         if len(missing_wrappers) > 0:
@@ -1158,18 +1172,19 @@ class Network:
                     {prop: container.sm_col}
                 )
 
-            # fluid is handled separately
-            container = conn.fluid
-            container.sm_col = num_vars
-            num_vars += 1
-            self._variable_lookup[container.sm_col] = {
-                "object": conn, "property": "fluid"
-            }
-            if conn not in self._object_to_variable_lookup:
-                self._object_to_variable_lookup[conn] = {}
-            self._object_to_variable_lookup[conn].update(
-                {"fluid": container.sm_col}
-            )
+            if hasattr(conn, "fluid"):
+                # fluid is handled separately
+                container = conn.fluid
+                container.sm_col = num_vars
+                num_vars += 1
+                self._variable_lookup[container.sm_col] = {
+                    "object": conn, "property": "fluid"
+                }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {"fluid": container.sm_col}
+                )
 
         for comp in self.comps["object"]:
             for prop, container in comp.get_variables().items():
@@ -1489,8 +1504,7 @@ class Network:
         # set up the actual list of equations for connections, components,
 
         for c in self.conns['object']:
-            if not c.fluid.is_var:
-                self._presolved_equations += c._presolve()
+            self._presolved_equations += c._presolve()
 
         self._presolve_linear_dependents()
 
@@ -1504,8 +1518,7 @@ class Network:
         ])
         while True:
             for c in self.conns['object']:
-                if not c.fluid.is_var:
-                    self._presolved_equations += c._presolve()
+                self._presolved_equations += c._presolve()
             self._presolve_linear_dependents()
             reduced_variables = [
                 variable.is_var
@@ -1657,23 +1670,6 @@ class Network:
                         c.get_attr(key).val_SI = hlp.convert_to_SI(
                             key, c.get_attr(key).val, c.get_attr(key).unit
                         )
-        # this will move somewhere else!
-        # set up results dataframe for connections
-        # this should be done based on the connections
-        properties = list(fpd.keys())
-        self.all_fluids = set(self.all_fluids)
-        cols = (
-            [col for prop in properties for col in [prop, f"{prop}_unit"]]
-            + list(self.all_fluids) + ['phase']
-        )
-        self.results['Connection'] = pd.DataFrame(columns=cols, dtype='float64')
-        # include column for fluid balance in specs dataframe
-        self.specifications['Connection'] = pd.DataFrame(
-            columns=cols + ['balance'], dtype='bool'
-        )
-        cols = ["m_ref", "p_ref", "h_ref", "T_ref", "v_ref"]
-        self.specifications['Ref'] = pd.DataFrame(columns=cols, dtype='bool')
-
         msg = (
             "Updated fluid property SI values and fluid mass fraction for user "
             "specified connection parameters."
@@ -1722,22 +1718,8 @@ class Network:
                 self._init_conn_design_params(c, df)
 
             else:
+                c._reset_design(self.redesign)
                 # unset all design values
-                c.m.design = np.nan
-                c.p.design = np.nan
-                c.h.design = np.nan
-                c.fluid.design = {}
-
-                c.new_design = True
-
-                # switch connections to design mode
-                if self.redesign:
-                    for var in c.design:
-                        c.get_attr(var).is_set = True
-
-                    for var in c.offdesign:
-                        c.get_attr(var).is_set = False
-
         # unset design values for busses, count bus equations and
         # reindex bus dictionary
         for b in self.busses.values():
@@ -2080,105 +2062,16 @@ class Network:
                     )
                     variable._reference_container.val_SI = variable.get_reference_val_SI()
 
-            self.init_count_connections_parameters(c)
-
         for cp in self.comps["object"]:
-            c = cp.__class__.__name__
-            for spec in self.specifications[c].keys():
-                if len(cp.get_attr(self.specifications['lookup'][spec])) > 0:
-                    self.specifications[c][spec].loc[cp.label] = (
-                        cp.get_attr(self.specifications['lookup'][spec])
-                    )
-
             for key, variable in cp.get_variables().items():
                 if variable.is_var:
                     variable._reference_container.val_SI = variable.get_reference_val_SI()
 
         for c in self.conns['object']:
-            if not c.good_starting_values:
-                self.init_precalc_properties(c)
-
-            # starting values for specified subcooling/overheating
-            # and state specification. These should be recalculated even with
-            # good starting values, for example, when one exchanges enthalpy
-            # with boiling point temperature difference.
-            if (c.Td_bp.is_set or c.state.is_set) and c.h.is_var:
-                if (
-                        (c.Td_bp.val_SI > 0 and c.Td_bp.is_set)
-                        or (c.state.val == 'g' and c.state.is_set)
-                    ):
-                    h = fp.h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
-                    if c.h.val_SI < h:
-                        c.h.set_reference_val_SI(h * 1.001)
-
-                elif (
-                        (c.Td_bp.val_SI < 0 and c.Td_bp.is_set)
-                        or (c.state.val == 'l' and c.state.is_set)
-                    ):
-                    h = fp.h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
-                    if c.h.val_SI > h:
-                        c.h.set_reference_val_SI(h * 0.999)
+            c._precalc_guess_values()
 
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
-
-    def init_count_connections_parameters(self, c):
-        """
-        Count the number of parameters set on a connection.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection count parameters of.
-        """
-        # variables 0 to 9: fluid properties
-        local_vars = list(fpd.keys())
-        row = [c.get_attr(var).is_set for var in local_vars]
-        # write information to specifaction dataframe
-        self.specifications['Connection'].loc[c.label, local_vars] = row
-
-        row = [c.get_attr(var).is_set for var in self.specifications['Ref'].columns]
-        # write refrenced value information to specifaction dataframe
-        self.specifications['Ref'].loc[c.label] = row
-
-        # variables 9 to last but one: fluid mass fractions
-        fluids = list(self.all_fluids)
-        row = [True if f in c.fluid.is_set else False for f in fluids]
-        self.specifications['Connection'].loc[c.label, fluids] = row
-
-        # last one: fluid balance specification
-        self.specifications['Connection'].loc[
-            c.label, 'balance'] = c.fluid_balance.is_set
-
-    def init_precalc_properties(self, c):
-        """
-        Precalculate enthalpy values for connections.
-
-        Precalculation is performed only if temperature, vapor mass fraction,
-        temperature difference to boiling point or phase is specified.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to precalculate values for.
-        """
-        # starting values for specified vapour content or temperature
-        if c.h.is_var:
-            if c.x.is_set:
-                try:
-                    c.h.set_reference_val_SI(
-                        fp.h_mix_pQ(c.p.val_SI, c.x.val_SI, c.fluid_data, c.mixing_rule)
-                    )
-                except ValueError:
-                    pass
-
-            if c.T.is_set:
-                try:
-                    c.h.set_reference_val_SI(
-                        fp.h_mix_pT(c.p.val_SI, c.T.val_SI, c.fluid_data, c.mixing_rule)
-                    )
-                except ValueError:
-                    pass
 
     def init_val0(self, c, key):
         r"""
@@ -2957,15 +2850,18 @@ class Network:
 
     def check_variable_bounds(self):
 
+        # this could be in a different place, its kind of in between
+        # network and connection
         for idx, data in self.variables_dict.items():
             if type(data["obj"]) == dc_vecvar:
                 total_mass_fractions = sum(data["obj"].val.values())
                 for fluid in data["obj"].is_var:
                     data["obj"]._val[fluid] /= total_mass_fractions
 
+
         for c in self.conns['object']:
             # check the fluid properties for physical ranges
-            self.check_connection_properties(c)
+            c._adjust_to_property_limits(self)
 
         # second check based on component heuristics
         # - for first three iterations
@@ -2980,7 +2876,7 @@ class Network:
                 cp.convergence_check()
 
             for c in self.conns['object']:
-                self.check_connection_properties(c)
+                c._adjust_to_property_limits(self)
 
     def solve_control(self):
         r"""
@@ -3002,66 +2898,6 @@ class Network:
 
         self._update_variables()
         self.check_variable_bounds()
-
-    def check_connection_properties(self, c):
-        r"""
-        Check for invalid fluid property values.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to check fluid properties.
-        """
-        fl = fp.single_fluid(c.fluid_data)
-
-        # pure fluid
-        if fl is not None:
-            # pressure
-            if c.p.is_var:
-                c.check_pressure_bounds(fl)
-
-            # enthalpy
-            if c.h.is_var:
-                c.check_enthalpy_bounds(fl)
-
-                # two-phase related
-                if (c.Td_bp.is_set or c.state.is_set or c.x.is_set) and self.iter < 3:
-                    c.check_two_phase_bounds(fl)
-
-        # mixture
-        elif self.iter < 4 and not c.good_starting_values:
-            # pressure
-            if c.p.is_var:
-                if c.p.val_SI <= self.p_range_SI[0]:
-                    c.p.set_reference_val_SI(self.p_range_SI[0])
-                    logger.debug(c._property_range_message('p'))
-
-                elif c.p.val_SI >= self.p_range_SI[1]:
-                    c.p.set_reference_val_SI(self.p_range_SI[1])
-                    logger.debug(c._property_range_message('p'))
-
-            # enthalpy
-            if c.h.is_var:
-                if c.h.val_SI < self.h_range_SI[0]:
-                    c.h.set_reference_val_SI(self.h_range_SI[0])
-                    logger.debug(c._property_range_message('h'))
-
-                elif c.h.val_SI > self.h_range_SI[1]:
-                    c.h.set_reference_val_SI(self.h_range_SI[1])
-                    logger.debug(c._property_range_message('h'))
-
-                # temperature
-                if c.T.is_set:
-                    c.check_temperature_bounds()
-
-        # mass flow
-        if c.m.val_SI <= self.m_range_SI[0] and c.m.is_var:
-            c.m.set_reference_val_SI(self.m_range_SI[0])
-            logger.debug(c._property_range_message('m'))
-
-        elif c.m.val_SI >= self.m_range_SI[1] and c.m.is_var:
-            c.m.set_reference_val_SI(self.m_range_SI[1])
-            logger.debug(c._property_range_message('m'))
 
     def solve_equations(self):
         r"""
@@ -3137,18 +2973,7 @@ class Network:
         for c in self.conns['object']:
             c.good_starting_values = True
             _converged = _converged and c.calc_results()
-
-            self.results['Connection'].loc[c.label] = (
-                [
-                    _ for key in fpd.keys()
-                    for _ in [c.get_attr(key).val, c.get_attr(key).unit]
-                ] + [
-                    c.fluid.val[fluid] if fluid in c.fluid.val else np.nan
-                    for fluid in self.all_fluids
-                ] + [
-                    c.phase.val
-                ]
-            )
+            self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
     def process_components(self):
@@ -3269,33 +3094,33 @@ class Network:
         result = ""
 
         # connection properties
-        df = self.results['Connection'].loc[
-            :, ['m', 'p', 'h', 'T', 'x', 'phase']
-        ].copy()
+        for c_type in self.conns["object"].apply(lambda x: x.__class__.__name__).unique():
+            cols = connection_registry.items[c_type]._print_attributes()
+            df = self.results[c_type].copy().loc[:, cols]
 
-        if subsystem is not None:
-            connection_labels = [c.label for c in subsystem.conns.values()]
-            df = df.loc[connection_labels]
+            if subsystem is not None:
+                connection_labels = [c.label for c in subsystem.conns.values()]
+                df = df.loc[connection_labels]
 
-        df = df.astype(str)
-        for c in df.index:
-            if not self.get_conn(c).printout:
-                df.drop([c], axis=0, inplace=True)
+            df = df.astype(str)
+            for c in df.index:
+                if not self.get_conn(c).printout:
+                    df.drop([c], axis=0, inplace=True)
 
-            elif colored:
-                conn = self.get_conn(c)
-                for col in df.columns:
-                    if conn.get_attr(col).is_set:
-                        value = conn.get_attr(col).val
-                        df.loc[c, col] = (
-                            f"{coloring['set']}{value}{coloring['end']}"
-                        )
+                elif colored:
+                    conn = self.get_conn(c)
+                    for col in df.columns:
+                        if conn.get_attr(col).is_set:
+                            value = conn.get_attr(col).val
+                            df.loc[c, col] = (
+                                f"{coloring['set']}{value}{coloring['end']}"
+                            )
 
-        if len(df) > 0:
-            result += ('\n##### RESULTS (Connection) #####\n')
-            result += (
-                tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
-            )
+            if len(df) > 0:
+                result += (f'\n##### RESULTS ({c_type}) #####\n')
+                result += (
+                    tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
+                )
         return result
 
     def _print_buses(self, colored, coloring, subsystem) -> str:

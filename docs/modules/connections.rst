@@ -458,14 +458,68 @@ indermediate pressure is variable.
     >>> nw.add_ude(ude)
     >>> nw.solve("design")
     >>> nw.assert_convergence()
-    >>> round(e1.e.val / 1e3) == round(e2.e.val / 1e3)
+    >>> round(e1.E.val / 1e3) == round(e2.E.val / 1e3)
     True
-    >>> round(e1.e.val / 1e3)
+    >>> round(e1.E.val / 1e3)
     105
 
 Example: Including part load model for motor efficiency
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As mentioned in the component section: It is also possible to import your
-custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
-about this :ref:`here <tespy_modules_characteristics_label>`.
+This example how a partload efficiency curve can be applied to a motor. For
+this, let's assume the motor powers a refrigeration compressor. We can set up
+the model by connecting the compressor to the refrigerant flows as usual and
+add the :code:`PowerConnection` to the electricity grid via a :code:`Motor`
+instance.
+
+.. code-block:: python
+
+    >>> from tespy.components import Source, Sink, Compressor, PowerSource, Motor
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools import CharLine
+
+    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> so = Source("evaporated refrigerant")
+    >>> compressor = Compressor("compressor")
+    >>> si = Sink("compressed refrigerant")
+    >>> grid = PowerSource("grid")
+    >>> motor = Motor("motor")
+    >>> c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    >>> c2 = Connection(compressor, "out1", si, "in1", label="c2")
+    >>> e1 = PowerConnection(grid, "power", motor, "power_in", label="e1")
+    >>> e2 = PowerConnection(motor, "power_out", compressor, "power", label="e2")
+    >>> nw.add_conns(c1, c2, e1, e2)
+
+The design efficiency is 0.98, the compressor's design efficiency is 0.85. On
+top we fix the inlet state and mass flow as well as the compressor's pressure
+ratio. For the characteristics of the motor's efficiency we can pass data to a
+:code:`CharLine` instance, which is set to be used for the :code:`eta_char`
+method in the model of the motor.
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={"R290": 1}, m=1, Td_bp=10, T=10)
+    >>> compressor.set_attr(pr=3, eta_s=0.85, design=["eta_s"], offdesign=["eta_s_char"])
+    >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
+    >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])
+    >>> nw.solve("design")
+    >>> nw.save("design.json")
+    >>> nw.assert_convergence()
+
+After performing the design simulation we can change the fluid mass flow and
+observe the change in efficiency of the motor:
+
+.. code-block:: python
+
+    >>> c1.set_attr(m=0.8)
+    >>> nw.solve("offdesign", design_path="design.json", init_path="design.json")
+    >>> nw.assert_convergence()
+    >>> round(motor.eta.val, 3)
+    0.966
+
+.. note::
+
+    As mentioned in the component section: It is also possible to import your
+    custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
+    about this :ref:`here <tespy_modules_characteristics_label>`.

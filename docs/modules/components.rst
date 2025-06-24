@@ -61,11 +61,13 @@ well as the equations.
   * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
   * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
 
-List of custom components
--------------------------
-Here we list the components integrated in the customs module.
+- Power components
 
-- :py:class:`Evaporator for two-phase geothermal organic rankine cycle <tespy.components.customs.orc_evaporator.ORCEvaporator>`
+  * :py:class:`Generator <tespy.components.power.generator.Generator>`
+  * :py:class:`Motor <tespy.components.power.motor.Motor>`
+  * :py:class:`PowerBus <tespy.components.power.bus.PowerBus>`
+  * :py:class:`PowerSink <tespy.components.power.sink.PowerSink>`
+  * :py:class:`PowerSource <tespy.components.power.source.PowerSource>`
 
 .. _tespy_modules_components_parametrisation_label:
 
@@ -156,19 +158,22 @@ There are several components using parameter groups:
 
 - heat_exchanger_simple and pipe
 
-  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
   * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
   * :code:`kA_char_group` (:code:`kA_char`, :code:`Tamb`)
 
 - solar_collector
 
-  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
   * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
     :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
 
 - parabolic_trough
 
-  * :code:`hydro_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
+  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
   * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`aoi`,
     :code:`doc`, :code:`c_1`, :code:`c_2`, :code:`iam_1`, :code:`iam_2`,
     :code:`A`, :code:`Tamb`)
@@ -515,6 +520,19 @@ following methods.
 - :code:`outlets(self)` and
 - :code:`calc_parameters(self)`.
 
+Optionally, you can add
+
+- :code:`powerinlets(self)` and
+- :code:`poweroutlets(self)`
+
+in case your component should have methods to connect the material flows with
+non-material flows associated with a :code:`PowerConnection`.
+
+.. note::
+
+  For more information on the :code:`PowerConnection` please check the
+  respective :ref:`section in the docs <tespy_powerconnections_label>`.
+
 The starting lines of your file should look like this:
 
 .. code-block:: python
@@ -616,6 +634,15 @@ expensive. Instead you can additionally provide the following keyword:
 
 You will find more information and examples on this in the next sections.
 
+You can also define mandatory constraints that are conditional, e.g. in context
+of :code:`PowerConnections`. For example, the connection between the material
+flow variables of the inlet and the outlet of the turbine to the non-material
+energy output variable of the turbine should only be made, in case the turbine
+is actually connected with a :code:`PowerConnection`:
+
+.. literalinclude:: /../src/tespy/components/turbomachinery/turbine.py
+    :pyobject: Turbine.get_mandatory_constraints
+
 Attributes
 ^^^^^^^^^^
 
@@ -654,6 +681,29 @@ an attribute :code:`'num_in'` your code could look like this (as in class
 
 .. literalinclude:: /../src/tespy/components/nodes/merge.py
     :pyobject: Merge.inlets
+
+Inlets and outlets for PowerConnections
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your component should incorporate :code:`PowerConnections` you can define
+connctor ids in a similar way, for example power inlet for compressors or
+power outlet for turbines. Here the methods are :code:`powerinlets` and
+:code:`poweroutlets`.
+
+.. literalinclude:: /../src/tespy/components/turbomachinery/compressor.py
+    :pyobject: Compressor.powerinlets
+
+.. literalinclude:: /../src/tespy/components/turbomachinery/turbine.py
+    :pyobject: Turbine.powerinlets
+
+In a similar way, you can add flexibility with a dynamic number of inlets and
+outlets:
+
+.. literalinclude:: /../src/tespy/components/power/bus.py
+    :pyobject: PowerBus.powerinlets
+
+.. literalinclude:: /../src/tespy/components/power/bus.py
+    :pyobject: PowerBus.powerinlets
 
 Define the required methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

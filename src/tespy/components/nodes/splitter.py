@@ -143,7 +143,7 @@ class Splitter(NodeBase):
 
     def outlets(self):
         if self.num_out.is_set:
-            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+            return [f'out{i + 1}' for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
             return self.outlets()

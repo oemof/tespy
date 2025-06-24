@@ -7,7 +7,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 @component_registry
 class Generator(Component):
     """
-    A generator converts mechanical energy into electrical power.
+    A generator converts mechanical energy into electrical energy.
 
     **Mandatory Equations**
 
@@ -16,12 +16,12 @@ class Generator(Component):
     **Optional Equations**
 
     - :py:meth:`tespy.components.power.generator.Generator.eta_func`
+    - :py:meth:`tespy.components.power.generator.Generator.delta_power_func`
     - :py:meth:`tespy.components.power.generator.Generator.eta_char_func`
 
     Inlets/Outlets
 
-    - in1
-    - out1
+    - None
 
     Optional inlets/outlets
 

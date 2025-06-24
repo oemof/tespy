@@ -209,7 +209,7 @@ class Merge(NodeBase):
 
     def inlets(self):
         if self.num_in.is_set:
-            return ['in' + str(i + 1) for i in range(self.num_in.val)]
+            return [f'in{i + 1}' for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()

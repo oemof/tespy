@@ -1237,7 +1237,7 @@ class Connection(_ConnectionBase):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "p", "h", "T", "v", "s", "vol", "x"]
+        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp"]
 
     @classmethod
     def _get_result_cols(cls, all_fluids):

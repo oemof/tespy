@@ -39,19 +39,13 @@ class PowerSource(Component):
 
     >>> from tespy.components import PowerSource
     >>> so = PowerSource('a labeled source')
-    >>> so.component()
-    'power source'
     >>> so.label
     'a labeled source'
     """
 
     @staticmethod
-    def component():
-        return 'power source'
-
-    @staticmethod
     def poweroutlets():
-        return ["power_out"]
+        return ["power"]
 
     @staticmethod
     def get_mandatory_constraints():

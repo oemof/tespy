@@ -124,8 +124,6 @@ class Compressor(Turbomachine):
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> comp = Compressor('compressor')
-    >>> comp.component()
-    'compressor'
     >>> inc = Connection(so, 'out1', comp, 'in1')
     >>> outg = Connection(comp, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -152,10 +150,6 @@ class Compressor(Turbomachine):
     0.77
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'compressor'
 
     @staticmethod
     def powerinlets():

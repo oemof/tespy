@@ -127,8 +127,6 @@ class CombustionChamber(Component):
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
     >>> comb = CombustionChamber('combustion chamber')
-    >>> comb.component()
-    'combustion chamber'
     >>> amb_comb = Connection(amb, 'out1', comb, 'in1')
     >>> sf_comb = Connection(sf, 'out1', comb, 'in2')
     >>> comb_fg = Connection(comb, 'out1', fg, 'in1')
@@ -153,10 +151,6 @@ class CombustionChamber(Component):
     >>> round(comb_fg.T.val, 1)
     1206.6
     """
-
-    @staticmethod
-    def component():
-        return 'combustion chamber'
 
     def get_parameters(self):
         return {
@@ -247,8 +241,8 @@ class CombustionChamber(Component):
             msg = (
                 "Your network's fluids do not contain any fuels, that are "
                 f"available for the component {self.label} of type "
-                f"{self.component()}. Available fuels are: " +
-                ", ".join(combustion_gases) + "."
+                f"{self.__class__.__name__}. Available fuels are: "
+                f"{', '.join(combustion_gases)}."
             )
             logger.error(msg)
             raise TESPyComponentError(msg)
@@ -256,7 +250,7 @@ class CombustionChamber(Component):
         else:
             msg = (
                 f"The fuels for component {self.label} of type "
-                f"{self.component()} are: " + ", ".join(self.fuel_list) + "."
+                f"{self.__class__.__name__} are: {', '.join(self.fuel_list)}."
             )
             logger.debug(msg)
 

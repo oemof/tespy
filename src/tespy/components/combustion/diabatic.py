@@ -128,8 +128,6 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
     >>> comb = DiabaticCombustionChamber('combustion chamber')
-    >>> comb.component()
-    'diabatic combustion chamber'
     >>> amb_comb = Connection(amb, 'out1', comb, 'in1')
     >>> sf_comb = Connection(sf, 'out1', comb, 'in2')
     >>> comb_fg = Connection(comb, 'out1', fg, 'in1')
@@ -192,10 +190,6 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> round(comb.ti.val * comb.eta.val, 0)
     450000.0
     """
-
-    @staticmethod
-    def component():
-        return 'diabatic combustion chamber'
 
     def _preprocess(self, num_nw_vars):
         if self.dp.is_set:

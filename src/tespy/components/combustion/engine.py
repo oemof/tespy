@@ -195,8 +195,6 @@ class CombustionEngine(CombustionChamber):
     >>> me = Merge('cooling water merge', num_in=2)
     >>> cw_out = Sink('cooling water outlet')
     >>> chp = CombustionEngine(label='internal combustion engine')
-    >>> chp.component()
-    'combustion engine'
     >>> amb_comb = Connection(amb, 'out1', chp, 'in3')
     >>> sf_comb = Connection(sf, 'out1', chp, 'in4')
     >>> comb_fg = Connection(chp, 'out3', fg, 'in1')
@@ -245,10 +243,6 @@ class CombustionEngine(CombustionChamber):
     0.75
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'combustion engine'
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -866,8 +860,10 @@ class CombustionEngine(CombustionChamber):
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = ('The parameter ' + str(bus['param']) +
-                   ' is not a valid parameter for a ' + self.component() + '.')
+            msg = (
+                f'The parameter {bus["param"]} is not a valid parameter for a '
+                f'component of type {self.__class__.__name__}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -945,16 +941,6 @@ class CombustionEngine(CombustionChamber):
                 if o.h.J_col not in bus.jacobian:
                     bus.jacobian[o.h.J_col] = 0
                 bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
-
-        ######################################################################
-        # missing/invalid bus parameter
-        else:
-            msg = (
-                f'The parameter {b["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
 
     @staticmethod
     def initialise_source(c, key):

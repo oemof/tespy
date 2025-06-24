@@ -88,8 +88,6 @@ class Splitter(NodeBase):
     >>> si2 = Sink('sink2')
     >>> si3 = Sink('sink3')
     >>> s = Splitter('splitter', num_out=3)
-    >>> s.component()
-    'splitter'
     >>> inc = Connection(so, 'out1', s, 'in1')
     >>> outg1 = Connection(s, 'out1', si1, 'in1')
     >>> outg2 = Connection(s, 'out2', si2, 'in1')
@@ -113,10 +111,6 @@ class Splitter(NodeBase):
     >>> round(outg3.T.val, 1)
     20.0
     """
-
-    @staticmethod
-    def component():
-        return 'splitter'
 
     @staticmethod
     def get_parameters():

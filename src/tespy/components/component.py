@@ -112,8 +112,8 @@ class Component:
 
         elif any([True for x in _forbidden if x in label]):
             msg = (
-                f"You cannot use any of " + ", ".join(_forbidden) + " in a "
-                f"component label ({self.component()}"
+                f"You cannot use any of {', '.join(_forbidden)} in a "
+                f"component label ({self.__class__.__name__})"
             )
             logger.error(msg)
             raise ValueError(msg)
@@ -389,7 +389,8 @@ class Component:
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharLine)
+                            self.__class__.__name__, key, 'DEFAULT', CharLine
+                        )
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
@@ -400,7 +401,8 @@ class Component:
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharMap)
+                            self.__class__.__name__, key, 'DEFAULT', CharMap
+                        )
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 

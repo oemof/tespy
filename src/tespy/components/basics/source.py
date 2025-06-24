@@ -54,15 +54,9 @@ class Source(Component):
 
     >>> from tespy.components import Source
     >>> so = Source('a labeled source')
-    >>> so.component()
-    'source'
     >>> so.label
     'a labeled source'
     """
-
-    @staticmethod
-    def component():
-        return 'source'
 
     @staticmethod
     def outlets():

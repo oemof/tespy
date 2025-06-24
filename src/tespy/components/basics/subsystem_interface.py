@@ -100,8 +100,6 @@ class SubsystemInterface(Component):
     >>> so2 = Source('source 2')
     >>> si2 = Sink('sink 2')
     >>> IF = SubsystemInterface('subsystem interface', num_inter=2)
-    >>> IF.component()
-    'subsystem interface'
     >>> len(IF.inlets())
     2
 
@@ -125,10 +123,6 @@ class SubsystemInterface(Component):
     >>> inc2.h.val_SI == outg2.h.val_SI
     True
     """
-
-    @staticmethod
-    def component():
-        return 'subsystem interface'
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()

@@ -92,8 +92,6 @@ class Merge(NodeBase):
     >>> so3 = Source('source3')
     >>> si1 = Sink('sink')
     >>> m = Merge('merge', num_in=3)
-    >>> m.component()
-    'merge'
     >>> inc1 = Connection(so1, 'out1', m, 'in1')
     >>> inc2 = Connection(so2, 'out1', m, 'in2')
     >>> inc3 = Connection(so3, 'out1', m, 'in3')
@@ -162,10 +160,6 @@ class Merge(NodeBase):
     >>> abs((outg.T.val_SI - T) / T) < 0.01
     True
     """
-
-    @staticmethod
-    def component():
-        return 'merge'
 
     @staticmethod
     def get_parameters():

@@ -97,8 +97,6 @@ class Separator(NodeBase):
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')
     >>> s = Separator('separator', num_out=2)
-    >>> s.component()
-    'separator'
     >>> inc = Connection(so, 'out1', s, 'in1')
     >>> outg1 = Connection(s, 'out1', si1, 'in1')
     >>> outg2 = Connection(s, 'out2', si2, 'in1')
@@ -131,10 +129,6 @@ class Separator(NodeBase):
     >>> round(outg2.m.val_SI / inc.m.val_SI, 2)
     0.65
     """
-
-    @staticmethod
-    def component():
-        return 'separator'
 
     @staticmethod
     def get_parameters():

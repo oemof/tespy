@@ -139,8 +139,6 @@ class Desuperheater(HeatExchanger):
     >>> cw_in = Source('cooling water inlet')
     >>> cw_out = Sink('cooling water outlet')
     >>> desu = Desuperheater('desuperheater')
-    >>> desu.component()
-    'desuperheater'
     >>> et_de = Connection(et_in, 'out1', desu, 'in1')
     >>> de_et = Connection(desu, 'out1', et_out, 'in1')
     >>> cw_de = Connection(cw_in, 'out1', desu, 'in2')
@@ -178,10 +176,6 @@ class Desuperheater(HeatExchanger):
     0.41
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'desuperheater'
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()

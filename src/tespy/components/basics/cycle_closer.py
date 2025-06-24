@@ -79,8 +79,6 @@ class CycleCloser(Component):
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
-    >>> cc.component()
-    'cycle closer'
     >>> pu_pi = Connection(pu, 'out1', pi, 'in1')
     >>> pi_cc = Connection(pi, 'out1', cc, 'in1')
     >>> cc_pu = Connection(cc, 'out1', pu, 'in1')
@@ -92,10 +90,6 @@ class CycleCloser(Component):
     >>> round(pi.Q.val, 1) == -round(pu.P.val, 1)
     True
     """
-
-    @staticmethod
-    def component():
-        return 'cycle closer'
 
     @staticmethod
     def get_parameters():

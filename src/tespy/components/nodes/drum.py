@@ -106,8 +106,6 @@ class Drum(DropletSeparator):
     >>> amb_out = Sink('air outlet')
     >>> s = Sink('steam')
     >>> dr = Drum('drum')
-    >>> dr.component()
-    'drum'
     >>> ev = HeatExchanger('evaporator')
     >>> erp = Pump('evaporator reciculation pump')
     >>> f_dr = Connection(fa, 'out1', dr, 'in1')
@@ -159,10 +157,6 @@ class Drum(DropletSeparator):
     3.0
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'drum'
 
     @staticmethod
     def inlets():

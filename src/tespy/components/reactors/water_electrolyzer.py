@@ -141,8 +141,6 @@ class WaterElectrolyzer(Component):
     >>> cw_hot = Sink('cooling water sink')
     >>> comp = Compressor('compressor', eta_s=0.9)
     >>> el = WaterElectrolyzer('electrolyzer')
-    >>> el.component()
-    'water electrolyzer'
 
     The electrolyzer should produce 100 l/s of hydrogen at an operating
     pressure of 10 bars and an outlet temperature of 50 °C. The fluid
@@ -184,10 +182,6 @@ class WaterElectrolyzer(Component):
     0.84
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'water electrolyzer'
 
     def get_parameters(self):
         return {
@@ -766,10 +760,11 @@ class WaterElectrolyzer(Component):
         # missing/invalid bus parameter
 
         else:
-            msg = ('The parameter ' + str(bus['param']) + ' is not a valid '
-                   'parameter for a component of type ' + self.component() +
-                   '. Please specify a bus parameter (P/Q) for component ' +
-                   self.label + '.')
+            msg = (
+                f'The parameter {bus["param"]} is not a valid parameter for a '
+                f'component of type {self.__class__.__name__}. Please specify '
+                f'a bus parameter (P/Q) for component {self.label}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -832,18 +827,6 @@ class WaterElectrolyzer(Component):
                 if o.h.J_col not in bus.jacobian:
                     bus.jacobian[o.h.J_col] = 0
                 bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
-
-        ######################################################################
-        # missing/invalid bus parameter
-
-        else:
-            msg = (
-                f'The parameter {b["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}. Please specify '
-                f'a bus parameter (P/Q) for component {self.label}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
 
     def start_fluid_wrapper_branch(self):
         branches = {}

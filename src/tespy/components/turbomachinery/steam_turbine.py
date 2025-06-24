@@ -119,8 +119,6 @@ class SteamTurbine(Turbine):
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> st = SteamTurbine('steam turbine')
-    >>> st.component()
-    'steam turbine'
     >>> inc = Connection(so, 'out1', st, 'in1')
     >>> outg = Connection(st, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -145,10 +143,6 @@ class SteamTurbine(Turbine):
     >>> round(outg.x.val, 3)
     0.84
     """
-
-    @staticmethod
-    def component():
-        return 'steam turbine'
 
     def get_parameters(self):
 

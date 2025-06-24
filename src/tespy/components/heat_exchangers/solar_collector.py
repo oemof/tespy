@@ -151,8 +151,6 @@ class SolarCollector(SimpleHeatExchanger):
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> sc = SolarCollector('solar collector')
-    >>> sc.component()
-    'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
     ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = Connection(so, 'out1', sc, 'in1')
@@ -180,10 +178,6 @@ class SolarCollector(SimpleHeatExchanger):
     70.5
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'solar collector'
 
     def get_parameters(self):
         data = super().get_parameters()

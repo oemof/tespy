@@ -191,8 +191,6 @@ class Condenser(HeatExchanger):
     >>> waste_steam = Source('waste steam')
     >>> c = Sink('condensate sink')
     >>> cond = Condenser('condenser')
-    >>> cond.component()
-    'condenser'
     >>> amb_he = Connection(amb_in, 'out1', cond, 'in2')
     >>> he_amb = Connection(cond, 'out2', amb_out, 'in1')
     >>> ws_he = Connection(waste_steam, 'out1', cond, 'in1')
@@ -236,10 +234,6 @@ class Condenser(HeatExchanger):
     13.4
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'condenser'
 
     def get_parameters(self):
         params = super().get_parameters()

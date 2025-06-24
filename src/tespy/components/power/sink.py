@@ -39,19 +39,13 @@ class PowerSink(Component):
 
     >>> from tespy.components import PowerSink
     >>> si = PowerSink('a labeled sink')
-    >>> si.component()
-    'power sink'
     >>> si.label
     'a labeled sink'
     """
 
     @staticmethod
-    def component():
-        return 'power sink'
-
-    @staticmethod
     def powerinlets():
-        return ["power_in"]
+        return ["power"]
 
     @staticmethod
     def get_mandatory_constraints():

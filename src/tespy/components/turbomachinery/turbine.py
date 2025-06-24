@@ -118,8 +118,6 @@ class Turbine(Turbomachine):
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> t = Turbine('turbine')
-    >>> t.component()
-    'turbine'
     >>> inc = Connection(so, 'out1', t, 'in1')
     >>> outg = Connection(t, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -146,10 +144,6 @@ class Turbine(Turbomachine):
     88.6
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'turbine'
 
     @staticmethod
     def poweroutlets():

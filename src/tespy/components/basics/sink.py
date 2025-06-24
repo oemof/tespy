@@ -53,15 +53,9 @@ class Sink(Component):
 
     >>> from tespy.components import Sink
     >>> si = Sink('a labeled sink')
-    >>> si.component()
-    'sink'
     >>> si.label
     'a labeled sink'
     """
-
-    @staticmethod
-    def component():
-        return 'sink'
 
     @staticmethod
     def inlets():

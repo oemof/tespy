@@ -160,8 +160,6 @@ class SimpleHeatExchanger(Component):
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
-    >>> heat_sink.component()
-    'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
     ... offdesign=['zeta', 'kA_char'])
     >>> inc = Connection(so1, 'out1', heat_sink, 'in1')
@@ -197,10 +195,6 @@ class SimpleHeatExchanger(Component):
     140.0
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'heat exchanger simple'
 
     def get_parameters(self):
         return {

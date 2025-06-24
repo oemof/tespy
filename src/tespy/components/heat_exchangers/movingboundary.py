@@ -251,10 +251,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     273449
     """
 
-    @staticmethod
-    def component():
-        return 'moving boundary heat exchanger'
-
     def get_parameters(self):
         params = super().get_parameters()
         params.update({

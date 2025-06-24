@@ -116,8 +116,6 @@ class Pump(Turbomachine):
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')
-    >>> pu.component()
-    'pump'
     >>> inc = Connection(so, 'out1', pu, 'in1')
     >>> outg = Connection(pu, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -153,10 +151,6 @@ class Pump(Turbomachine):
     0.9
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'pump'
 
     @staticmethod
     def powerinlets():

@@ -119,8 +119,6 @@ class FuelCell(Component):
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
     >>> fc = FuelCell('fuel cell')
-    >>> fc.component()
-    'fuel cell'
     >>> oxygen_source = Source('oxygen_source')
     >>> hydrogen_source = Source('hydrogen_source')
     >>> cw_source = Source('cw_source')
@@ -154,9 +152,6 @@ class FuelCell(Component):
     >>> round(fc.eta.val, 2)
     0.45
     """
-    @staticmethod
-    def component():
-        return 'fuel cell'
 
     def get_parameters(self):
         return {

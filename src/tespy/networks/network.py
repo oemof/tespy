@@ -1663,8 +1663,8 @@ class Network:
                 prop = key.split("_ref")[0]
                 if "fluid" in key:
                     continue
-                elif key == "e":
-                    pass
+                elif key == "E":
+                    c.get_attr(key).unit = "W"
                 elif key == 'Td_bp':
                     c.get_attr(key).unit = self.get_attr('T_unit')
                 else:
@@ -1684,8 +1684,8 @@ class Network:
                                 prop, c.get_attr(key).ref.delta,
                                 c.get_attr(prop).unit
                             )
-                    elif key == "e":
-                        c.e.val_SI = c.e.val
+                    elif key == "E":
+                        c.E.val_SI = c.E.val
                     else:
                         c.get_attr(key).val_SI = hlp.convert_to_SI(
                             key, c.get_attr(key).val, c.get_attr(key).unit
@@ -2841,7 +2841,7 @@ class Network:
                 relax = 0.75
 
         for _, data in self.variables_dict.items():
-            if data["variable"] in ["m", "h", "e"]:
+            if data["variable"] in ["m", "h", "E"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":

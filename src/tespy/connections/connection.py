@@ -26,7 +26,6 @@ from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
-from tespy.tools.fluid_properties import dT_sat_dp
 from tespy.tools.fluid_properties import dv_mix_dph
 from tespy.tools.fluid_properties import dv_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -48,6 +47,7 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import convert_from_SI
+from tespy.tools.helpers import convert_to_SI
 
 
 def connection_registry(type):

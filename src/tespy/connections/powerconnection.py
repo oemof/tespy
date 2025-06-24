@@ -156,26 +156,36 @@ class PowerConnection(_ConnectionBase):
                 self.get_attr(var).is_set = False
 
     def get_variables(self):
-        return {"e": self.e}
+        return {"E": self.E}
 
     def get_parameters(self):
-        return {"e": dc_prop(d=1e-4)}
+        return {"E": dc_prop(d=1e-4)}
 
     def calc_results(self):
-        self.e.val = self.e.val_SI
+        self.E.val = self.E.val_SI
         return True
+
+    def _set_design_params(self, data):
+        for var in self._result_attributes():
+            self.get_attr(var).design = float(data[var])
+
+    def _set_starting_values(self, data):
+        for prop in self.get_variables():
+            var = self.get_attr(prop)
+            var.val0 = float(data[prop])
+            var.unit = data[prop + '_unit']
 
     @classmethod
     def _print_attributes(cls):
-        return ["e"]
+        return ["E"]
 
     @classmethod
     def _result_attributes(cls):
-        return ["e"]
+        return ["E"]
 
     @classmethod
     def _get_result_cols(cls, all_fluids):
-        return ["e"]
+        return ["E", "E_unit"]
 
     def collect_results(self, all_fluids):
-        return [self.e.val]
+        return [self.E.val, self.E.unit]

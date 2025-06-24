@@ -98,12 +98,12 @@ class PowerBus(Component):
     in our system. That means, we have to fix three values of the variables,
     e.g. we can fix the three demand values:
 
-    >>> e2.set_attr(e=10e3)
-    >>> e3.set_attr(e=20e3)
-    >>> e4.set_attr(e=30e3)
+    >>> e2.set_attr(E=10e3)
+    >>> e3.set_attr(E=20e3)
+    >>> e4.set_attr(E=30e3)
     >>> nw.solve('design')
     >>> nw.assert_convergence()
-    >>> round(e1.e.val_SI) == 60000
+    >>> round(e1.E.val_SI) == 60000
     True
     """
 
@@ -131,10 +131,10 @@ class PowerBus(Component):
     def energy_balance_func(self):
         residual = 0
         for i in self.power_inl:
-            residual += i.e.val_SI
+            residual += i.E.val_SI
         for o in self.power_outl:
-            residual -= o.e.val_SI
+            residual -= o.E.val_SI
         return residual
 
     def energy_balance_dependents(self):
-        return [c.e for c in self.power_inl + self.power_outl]
+        return [c.E for c in self.power_inl + self.power_outl]

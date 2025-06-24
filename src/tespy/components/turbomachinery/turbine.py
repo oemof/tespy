@@ -162,12 +162,12 @@ class Turbine(Turbomachine):
         return constraints
 
     def energy_connector_balance_func(self):
-        return self.power_outl[0].e.val_SI + self.inl[0].m.val_SI * (
+        return self.power_outl[0].E.val_SI + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
 
     def energy_connector_dependents(self):
-        return [self.power_outl[0].e, self.inl[0].m, self.outl[0].h, self.inl[0].h]
+        return [self.power_outl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def get_parameters(self):
         parameters = super().get_parameters()

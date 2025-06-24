@@ -263,7 +263,7 @@ connection, there is nothing to change to make the model solve.
     >>> e1 = PowerConnection(turbine, "power", grid, "power", label="e1")
     >>> nw.add_conns(e1)
     >>> nw.solve("design")
-    >>> round(e1.e.val / 1e3)
+    >>> round(e1.E.val / 1e3)
     577
 
 .. note::
@@ -356,7 +356,7 @@ through the generator.
 
     >>> generator.set_attr(eta=0.95)
     >>> nw.solve("design")
-    >>> round(e4.e.val_SI / 1e3, 1)
+    >>> round(e4.E.val_SI / 1e3, 1)
     246.9
 
 Alternatively, we could also fix the electricity output to a specific
@@ -365,7 +365,7 @@ air mass flow to generate the desired amount of electricity.
 
 .. code-block:: python
 
-    >>> e4.set_attr(e=3e5)
+    >>> e4.set_attr(E=3e5)
     >>> c1.set_attr(m=None)
     >>> nw.solve("design")
     >>> round(c1.m.val, 3)
@@ -412,7 +412,7 @@ power flow by accessing the respective attribute of the power connection.
     >>> turbine_fwp.set_attr(eta_s=0.9)
     >>> nw.solve("design")
     >>> nw.assert_convergence()
-    >>> round(e1.e.val_SI / 1e3)
+    >>> round(e1.E.val_SI / 1e3)
     68
 
 Example: Logic to force same power of two compressors
@@ -445,10 +445,10 @@ indermediate pressure is variable.
     >>> compressor2.set_attr(eta_s=0.85)
     >>> def same_power_ude(ude):
     ...     e1, e2 = ude.conns
-    ...     return e1.e.val_SI - e2.e.val_SI
+    ...     return e1.E.val_SI - e2.E.val_SI
     >>> def same_power_dependents(ude):
     ...     e1, e2 = ude.conns
-    ...     return [c.e for c in ude.conns]
+    ...     return [c.E for c in ude.conns]
     >>> ude = UserDefinedEquation(
     ...     "power equality ude",
     ...     func=same_power_ude,

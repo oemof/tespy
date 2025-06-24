@@ -118,15 +118,15 @@ class Generator(Component):
     >>> generator.set_attr(eta=.98)
     >>> nw.solve('design')
     >>> nw.assert_convergence()
-    >>> round(e1.e.val_SI) == -round(turbine.P.val)
+    >>> round(e1.E.val_SI) == -round(turbine.P.val)
     True
-    >>> round(e2.e.val_SI) == -round(turbine.P.val * 0.98)
+    >>> round(e2.E.val_SI) == -round(turbine.P.val * 0.98)
     True
 
     We could also specify the electrical energy instead of fixing the steam
     mass flow to calculate the resulting steam mass flow:
 
-    >>> e2.set_attr(e=1e6)
+    >>> e2.set_attr(E=1e6)
     >>> c1.set_attr(m=None)
     >>> nw.solve('design')
     >>> round(c1.m.val, 3)
@@ -135,13 +135,13 @@ class Generator(Component):
     Or, fix both (electrical and mechanical power flows) and leave open the
     generator efficiency:
 
-    >>> e1.set_attr(e=1.1e6)
+    >>> e1.set_attr(E=1.1e6)
     >>> generator.set_attr(eta=None)
     >>> nw.solve('design')
     >>> round(generator.eta.val, 2)
     0.91
 
-    >>> e1.set_attr(e=None)
+    >>> e1.set_attr(E=None)
     >>> generator.set_attr(delta_power=50e3)
     >>> nw.solve('design')
     >>> round(generator.eta.val, 3)
@@ -180,44 +180,44 @@ class Generator(Component):
 
     def eta_func(self):
         return (
-            self.power_inl[0].e.val_SI * self.eta.val
-            - self.power_outl[0].e.val_SI
+            self.power_inl[0].E.val_SI * self.eta.val
+            - self.power_outl[0].E.val_SI
         )
 
     def eta_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].e.sm_col] = self.eta.val
-        self._structure_matrix[k, self.power_outl[0].e.sm_col] = -1
+        self._structure_matrix[k, self.power_inl[0].E.sm_col] = self.eta.val
+        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
 
     def eta_dependents(self):
-        return [self.power_inl[0].e, self.power_outl[0].e]
+        return [self.power_inl[0].E, self.power_outl[0].E]
 
     def delta_power_func(self):
         return (
-            self.power_inl[0].e.val_SI - self.power_outl[0].e.val_SI
+            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
             - self.delta_power.val
         )
 
     def delta_power_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].e.sm_col] = 1
-        self._structure_matrix[k, self.power_outl[0].e.sm_col] = -1
+        self._structure_matrix[k, self.power_inl[0].E.sm_col] = 1
+        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
         self._rhs[k] = self.delta_power.val
 
     def delta_power_dependents(self):
-        return [self.power_inl[0].e, self.power_outl[0].e]
+        return [self.power_inl[0].E, self.power_outl[0].E]
 
     def eta_char_func(self):
-        expr = self.power_outl[0].e.val_SI / self.power_outl[0].e.design
+        expr = self.power_outl[0].E.val_SI / self.power_outl[0].E.design
         f = self.eta_char.char_func.evaluate(expr)
         return (
-            self.power_inl[0].e.val_SI * self.eta.design * f
-            - self.power_outl[0].e.val_SI
+            self.power_inl[0].E.val_SI * self.eta.design * f
+            - self.power_outl[0].E.val_SI
         )
 
     def eta_char_dependents(self):
-        return [self.power_inl[0].e, self.power_outl[0].e]
+        return [self.power_inl[0].E, self.power_outl[0].E]
 
     def calc_parameters(self):
-        self.eta.val = self.power_outl[0].e.val_SI / self.power_inl[0].e.val_SI
+        self.eta.val = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
         self.delta_power.val = (
-            self.power_inl[0].e.val_SI - self.power_outl[0].e.val_SI
+            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
         )

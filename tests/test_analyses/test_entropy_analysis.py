@@ -93,14 +93,15 @@ class TestClausiusRankine:
             cp = self.nw.get_comp(label)
             msg = (
                 'Entropy production due to irreversibility must be 0 for all '
-                'components in this test but is ' + str(round(cp.S_irr, 4)) +
-                ' at component ' + label + ' of type ' + cp.component() + '.')
+                f'components in this test but is {round(cp.S_irr, 4)} at '
+                f'component {label} of type {cp.__class__.__name__}.'
+            )
             assert round(cp.S_irr, 4) == 0, msg
         sg = self.nw.get_comp('steam generator')
         cd = self.nw.get_comp('condenser')
         msg = (
             'Value of entropy production due to heat input at steam generator '
-            '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
-            'value of entropy reduction in condenser (S_Q=' +
-            str(round(cd.S_Q, 4)) + ').')
+            f'(S_Q={round(sg.S_Q, 4)}) must equal the negative value of '
+            f'entropy reduction in condenser (S_Q={round(cd.S_Q, 4)}).'
+        )
         assert round(sg.S_Q, 4) == -round(cd.S_Q, 4), msg

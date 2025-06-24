@@ -305,8 +305,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> # use a characteristic line from the defaults: specify the component, the
     >>> # parameter and the name of the characteristic function. Also, specify,
     >>> # what type of characteristic function you want to use.
-    >>> kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
-    >>> kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
+    >>> kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
     >>> he.set_attr(kA_char2=kA_char2)
     >>> nw.solve("offdesign", design_path="design_case.json")
     >>> round(he.kA.val)

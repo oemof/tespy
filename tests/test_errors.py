@@ -292,16 +292,6 @@ class TestCombustionEngineBusErrors:
         with raises(ValueError):
             self.instance.bus_func(self.bus.comps.loc[self.instance])
 
-    def test_missing_Bus_param_deriv(self):
-        """Test wrong/missing bus parameter in bus derivatives."""
-        # both values do not matter, but are required for the test
-        self.instance.num_nw_vars = 1
-        self.instance.num_vars = 1
-        self.instance.inl = ["foo", "bar", "baz", "foo"]
-        self.instance.outl = ["bar", "baz", "foo"]
-        with raises(ValueError):
-            self.instance.bus_deriv(self.bus)
-
 ##############################################################################
 # compressor
 
@@ -371,22 +361,6 @@ def test_wrong_Bus_param_func():
     some_bus.add_comps({'comp': instance, 'param': param})
     with raises(ValueError):
         instance.bus_func(some_bus.comps.loc[instance])
-
-
-def test_wrong_Bus_param_deriv():
-    """Test missing/wrong bus parameter specification in derivatives."""
-    # this test does not need setup, since the function is called without
-    # network initialisation
-    instance = WaterElectrolyzer('electrolyzer')
-    # required for calling bus_deriv method without network initialisation
-    instance.num_vars = 1
-    instance.num_nw_fluids = 1
-    instance.num_nw_vars = 1
-    some_bus = Bus('some_bus')
-    param = 'G'
-    some_bus.add_comps({'comp': instance, 'param': param})
-    with raises(ValueError):
-        instance.bus_deriv(some_bus)
 
 
 ##############################################################################

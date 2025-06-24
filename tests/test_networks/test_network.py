@@ -640,7 +640,6 @@ def test_missing_source_sink_cycle_closer():
     with raises(TESPyNetworkError):
         nw.solve("design")
 
-@mark.skip()
 def test_v07_to_v08_export(tmp_path):
     tmp_path = f"{tmp_path}.json"
     path = os.path.join(
@@ -669,7 +668,6 @@ def test_v07_to_v08_save(tmp_path):
     assert "Connection" in data, "Connection entry expected but not found"
 
 
-@mark.skip()
 def test_v07_to_v08_complete(tmp_path):
     tmp_path1 = f"{tmp_path}1.json"
     tmp_path2 = f"{tmp_path}2.json"

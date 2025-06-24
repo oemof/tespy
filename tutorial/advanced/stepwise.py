@@ -184,8 +184,8 @@ cd.set_attr(
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 
-kA_char1 = ldc("heat exchanger", "kA_char1", "DEFAULT", CharLine)
-kA_char2 = ldc("heat exchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
+kA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
+kA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
 ev.set_attr(
     kA_char1=kA_char1, kA_char2=kA_char2,
     design=["pr1", "ttd_l"], offdesign=["zeta1", "kA_char"]

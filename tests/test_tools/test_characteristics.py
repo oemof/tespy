@@ -38,12 +38,12 @@ def test_custom_CharLine_import():
     with open(data_path) as f:
         raw_data = json.load(f)
 
-    data = raw_data['heat exchanger']['kA_char2']
+    data = raw_data['HeatExchanger']['kA_char2']
     with open(os.path.join(path, 'char_lines.json'), 'w') as outfile:
         json.dump(data, outfile)
 
     char_original = load_default_char(
-        'heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine
+        'HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine
     )
     char_custom = load_custom_char('EVAPORATING FLUID', CharLine)
 
@@ -88,12 +88,12 @@ def test_custom_CharMap_import():
     with open(data_path) as f:
         raw_data = json.load(f)
 
-    data = raw_data['compressor']['char_map_pr']
+    data = raw_data['Compressor']['char_map_pr']
     with open(os.path.join(path, 'char_maps.json'), 'w') as outfile:
         json.dump(data, outfile)
 
     char_original = load_default_char(
-        'compressor', 'char_map_pr', 'DEFAULT', CharMap)
+        'Compressor', 'char_map_pr', 'DEFAULT', CharMap)
     char_custom = load_custom_char('DEFAULT', CharMap)
 
     x_cond = np.array_equal(char_original.x, char_custom.x)

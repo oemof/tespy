@@ -6,6 +6,121 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 @component_registry
 class Generator(Component):
+    """
+    A generator converts mechanical energy into electrical power.
+
+    **Mandatory Equations**
+
+    - None
+
+    **Optional Equations**
+
+    - :py:meth:`tespy.components.power.generator.Generator.eta_func`
+    - :py:meth:`tespy.components.power.generator.Generator.eta_char_func`
+
+    Inlets/Outlets
+
+    - in1
+    - out1
+
+    Optional inlets/outlets
+
+    - power_in
+    - power_out
+
+    Image
+
+    .. image:: /api/_images/Generator.svg
+       :alt: flowsheet of the generator
+       :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Generator_darkmode.svg
+       :alt: flowsheet of the generator
+       :align: center
+       :class: only-dark
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings : boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout : boolean
+        Include this component in the network's results printout.
+
+    eta : float, dict
+        Outlet to inlet efficiency, :math:`\eta/1`
+
+    delta_power : float, dict
+        Fixed power offset, :math:`\text{delta_power}/\text{W}`
+
+    eta_char : tespy.tools.characteristics.CharLine, dict
+        Characteristic line for efficiency to power as function of design
+        efficiency.
+
+    Example
+    -------
+    A turbine generates mechanical power which is used to generate electrical
+    power by the generator.
+
+    >>> from tespy.components import Sink, Source, Turbine, Generator, PowerSink
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.networks import Network
+    >>> import os
+    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> turbine = Turbine('turbine')
+
+    Steam flows through the turbine and we can set it up as we are used to for
+    systems without power components.
+
+    >>> c1 = Connection(so, 'out1', turbine, 'in1')
+    >>> c2 = Connection(turbine, 'out1', si, 'in1')
+    >>> nw.add_conns(c1, c2)
+    >>> c1.set_attr(fluid={'water': 1}, T=500, p=50, m=1)
+    >>> c2.set_attr(p=5)
+    >>> turbine.set_attr(eta_s=0.9)
+    >>> nw.solve('design')
+
+    We can add the Generator and a PowerSink and then connect these parts to
+    the turbine.
+
+    >>> generator = Generator('generator')
+    >>> power_sink = PowerSink('power sink')
+    >>> e1 = PowerConnection(turbine, 'power', generator, 'power_in')
+    >>> e2 = PowerConnection(generator, 'power_out', power_sink, 'power')
+    >>> nw.add_conns(e1, e2)
+
+    Now we have added two variables to our problem (the power flows of e1 and
+    e2), but only one equation (the power balance for the turbine). The
+    connection between the two power flows can be made through specifying the
+    efficiency of the generator:
+
+    >>> generator.set_attr(eta=.98)
+    >>> nw.solve('design')
+    >>> round(e1.e.val_SI) == round(turbine.P.val)
+    >>> round(e2.e.val_SI) / 0.98 == round(turbine.P.val)
+
+    """
 
     def powerinlets(self):
         return ["power_in"]

@@ -1235,6 +1235,24 @@ class Connection(_ConnectionBase):
 
         return _converged
 
+    def _set_design_params(self, data):
+        for var in self._result_attributes():
+            self.get_attr(var).design = convert_to_SI(
+                var, float(data[var]), data[f"{var}_unit"]
+            )
+        for fluid in self.fluid.val:
+            self.fluid.design[fluid] = float(data[fluid])
+
+    def _set_starting_values(self, data):
+        for prop in self.get_variables():
+            var = self.get_attr(prop)
+            var.val0 = float(data[prop])
+            var.unit = data[prop + '_unit']
+
+        for fluid in self.fluid.is_var:
+            self.fluid.val[fluid] = float(data[fluid])
+            self.fluid.val0[fluid] = float(self.fluid.val[fluid])
+
     @classmethod
     def _result_attributes(cls):
         return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp"]

@@ -1927,11 +1927,9 @@ class Network:
                 if len(bus.comps) > 0:
                     bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
 
-        # read connection design point information
-        df = dfs["Connection"]
-
         # iter through connections
         for c in self.conns['object']:
+            df = dfs[c.__class__.__name__]
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
@@ -1995,18 +1993,8 @@ class Network:
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        conn = df.loc[c.label]
-        for var in fpd.keys():
-
-            c.get_attr(var).design = hlp.convert_to_SI(
-                var, float(conn[var]), conn[f"{var}_unit"]
-            )
-        if c.m.design != 0.0:
-            c.vol.design = c.v.design / c.m.design
-        else:
-            c.vol.design = math.inf
-        for fluid in c.fluid.val:
-            c.fluid.design[fluid] = float(conn[fluid])
+        data = df.loc[c.label]
+        c._set_design_params(data)
 
     def _init_conn_params_from_path(self, c, df):
         r"""
@@ -2020,26 +2008,14 @@ class Network:
         df : pandas.core.frame.DataFrame
             Dataframe containing init path information.
         """
-        # match connection (source, source_id, target, target_id) on
-        # connection objects of design file
-        df.index = df.index.astype(str)
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = f"Could not find connection {c.label} in init path file."
             logger.debug(msg)
             return
 
-        conn = df.loc[c.label]
-
-        for prop in ['m', 'p', 'h']:
-            data = c.get_attr(prop)
-            data.val0 = float(conn[prop])
-            data.unit = conn[prop + '_unit']
-
-        for fluid in c.fluid.is_var:
-            c.fluid.val[fluid] = float(conn[fluid])
-            c.fluid.val0[fluid] = float(c.fluid.val[fluid])
-
+        data = df.loc[c.label]
+        c._set_starting_values(data)
         c.good_starting_values = True
 
     def _init_properties(self):
@@ -2055,16 +2031,18 @@ class Network:
         """
         if self.init_path is not None:
             dfs = self._load_network_state(self.init_path)
-            df = dfs["Connection"]
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
         for c in self.conns['object']:
-            if type(c) != Connection:
-                continue
             if self.init_path is not None:
+                df = dfs[c.__class__.__name__]
                 self._init_conn_params_from_path(c, df)
 
+            if type(c) != Connection:
+                continue
+
+            # the below part does not work for PowerConnection right now
             if sum(c.fluid.val.values()) == 0:
                 msg = (
                     'The starting value for the fluid composition of the '
@@ -2151,9 +2129,10 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        with pd.option_context("future.no_silent_downcasting", True):
-            dfs["Connection"] = pd.DataFrame.from_dict(data["Connection"], orient="index").fillna(np.nan)
-        dfs["Connection"].index = dfs["Connection"].index.astype(str)
+        for key, value in data["Connection"].items():
+            with pd.option_context("future.no_silent_downcasting", True):
+                dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+            dfs[key].index = dfs[key].index.astype(str)
         for key, value in data["Component"].items():
             with pd.option_context("future.no_silent_downcasting", True):
                 dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
@@ -3648,7 +3627,10 @@ class Network:
         pandas.DataFrame
             pandas.Dataframe of the connection results
         """
-        return self.results["Connection"].replace(np.nan, None)
+        dump = {}
+        for c in self.conns["object"].apply(lambda x: x.__class__.__name__).unique():
+            dump[c] = self.results[c].replace(np.nan, None)
+        return dump
 
     def _save_components(self):
         r"""

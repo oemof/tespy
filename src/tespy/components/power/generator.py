@@ -117,8 +117,11 @@ class Generator(Component):
 
     >>> generator.set_attr(eta=.98)
     >>> nw.solve('design')
-    >>> round(e1.e.val_SI) == round(turbine.P.val)
-    >>> round(e2.e.val_SI) / 0.98 == round(turbine.P.val)
+    >>> nw.assert_convergence()
+    >>> round(e1.e.val_SI) == -round(turbine.P.val)
+    True
+    >>> round(e2.e.val_SI) == -round(turbine.P.val * 0.98)
+    True
 
     """
 

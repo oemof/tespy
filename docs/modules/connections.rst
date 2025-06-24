@@ -415,9 +415,53 @@ power flow by accessing the respective attribute of the power connection.
     >>> round(e1.e.val_SI / 1e3)
     68
 
-Example: Logic to force same power of two turbines
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example: Logic to force same power of two compressors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+In this example we combine the PowerConnection with a UserDefinedEquation.
+Two air compressors should run in series and at identical power. For this the
+indermediate pressure is variable.
+
+    >>> from tespy.components import Source, Sink, Compressor, PowerSource
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools import UserDefinedEquation
+    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> so = Source("air source")
+    >>> compressor1 = Compressor("compressor 1")
+    >>> compressor2 = Compressor("compressor 2")
+    >>> si = Sink("compressed air")
+    >>> grid1 = PowerSource("grid compressor 1")
+    >>> grid2 = PowerSource("grid compressor 2")
+    >>> c1 = Connection(so, "out1", compressor1, "in1", label="c1")
+    >>> c2 = Connection(compressor1, "out1", compressor2, "in1", label="c2")
+    >>> c3 = Connection(compressor2, "out1", si, "in1", label="c3")
+    >>> e1 = PowerConnection(grid1, "power", compressor1, "power")
+    >>> e2 = PowerConnection(grid2, "power", compressor2, "power")
+    >>> nw.add_conns(c1, c2, c3, e1, e2)
+    >>> c1.set_attr(fluid={"air": 1}, m=1, p=1, T=25)
+    >>> c3.set_attr(p=5)
+    >>> compressor1.set_attr(eta_s=0.85)
+    >>> compressor2.set_attr(eta_s=0.85)
+    >>> def same_power_ude(ude):
+    ...     e1, e2 = ude.conns
+    ...     return e1.e.val_SI - e2.e.val_SI
+    >>> def same_power_dependents(ude):
+    ...     e1, e2 = ude.conns
+    ...     return [c.e for c in ude.conns]
+    >>> ude = UserDefinedEquation(
+    ...     "power equality ude",
+    ...     func=same_power_ude,
+    ...     dependents=same_power_dependents,
+    ...     conns=[e1, e2]
+    ... )
+    >>> nw.add_ude(ude)
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
+    >>> round(e1.e.val / 1e3) == round(e2.e.val / 1e3)
+    True
+    >>> round(e1.e.val / 1e3)
+    105
 
 Example: Including part load model for motor efficiency
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

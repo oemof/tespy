@@ -640,6 +640,53 @@ def test_missing_source_sink_cycle_closer():
     with raises(TESPyNetworkError):
         nw.solve("design")
 
+def  test_dublicated_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+def  test_cyclic_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c2, 1, 0))
+    c2.set_attr(p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
 def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),

@@ -1360,7 +1360,7 @@ class Network:
                 edges_with_factors.append((col1, col2, factor))
                 rhs_offsets[(col1, col2)] = offset
                 if (col1, col2) in eq_idx:
-                    variables = self.get_variables_by_number([col1, col2])
+                    variables = self._get_variables_before_presolve_by_number([col1, col2])
                     equations = self._get_equation_sets_by_eq_set_number(
                         [eq_idx[(col1, col2)], row_idx]
                     )
@@ -1407,7 +1407,7 @@ class Network:
             if node not in visited:
                 if dfs_cycle(node, None):
                     cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
-                    variable_names = self.get_variables_by_number(visited)
+                    variable_names = self._get_variables_before_presolve_by_number(visited)
                     equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
                     msg = (
                         "A circular dependency between the variables "
@@ -1423,7 +1423,8 @@ class Network:
         variables_factors_offsets = []
 
         def dfs_component(node, current_factor, current_offset):
-            """DFS to calculate factors and offsets relative to the reference variable."""
+            """DFS to calculate factors and offsets relative to the reference
+            variable."""
             stack = [(node, current_factor, current_offset)]
             factors = {node: current_factor}
             offsets = {node: current_offset}
@@ -2249,7 +2250,7 @@ class Network:
             for key, data in self.variables_dict.items()
         }
 
-    def get_variables_by_number(self, number_list) -> dict:
+    def _get_variables_by_number(self, number_list) -> dict:
         """Get all variables of the presolved problem by variable numbers.
 
         Returns
@@ -2281,7 +2282,26 @@ class Network:
         """
         return self._equation_lookup
 
-    def get_equations_by_number(self, number_list) -> dict:
+    def get_equations_with_dependents(self) -> dict:
+        """Get the equations together with the variables they depend on.
+
+        Returns
+        -------
+        dict
+            Lookup with equation (component, (parameter_label, number)) and
+            the variables it depends on as a list
+            (variable number, variable type)
+        """
+        dependencies = {}
+        for eq_idx, dependents in self._incidence_matrix.items():
+            dependencies.update({
+                self._equation_lookup[eq_idx]:
+                list(self._get_variables_by_number(dependents).keys())
+            })
+        return dependencies
+
+
+    def _get_equations_by_number(self, number_list) -> dict:
         """Get the actual equations after presolving the problem by equation
         number
 
@@ -2296,7 +2316,7 @@ class Network:
             k: v for k, v in self._equation_lookup.items() if k in number_list
         }
 
-    def get_dependents_by_object(self, obj, prop) -> list:
+    def get_linear_dependents_by_object(self, obj, prop) -> list:
         """Get the list of linear dependent variables for a specified variable
 
         Parameters
@@ -2327,9 +2347,9 @@ class Network:
             raise KeyError(msg)
 
         variable_idx = self._object_to_variable_lookup[obj][prop]
-        return self._get_dependents_by_variable_index(variable_idx)
+        return self._get_linear_dependents_by_variable_index(variable_idx)
 
-    def _get_dependents_by_variable_index(self, idx) -> list:
+    def _get_linear_dependents_by_variable_index(self, idx) -> list:
         """Get the list of linear dependent variables for a specified variable
 
         Parameters
@@ -2749,8 +2769,8 @@ class Network:
 
             missing_entries = []
             for row, col in zip(rows, cols):
-                equation = self.get_equations_by_number([row])
-                variable = self.get_variables_by_number([col])
+                equation = self._get_equations_by_number([row])
+                variable = self._get_variables_by_number([col])
                 missing_entries += [f"{equation}: {variable}"]
 
             _nl = "\n"
@@ -2774,7 +2794,7 @@ class Network:
         all_zero_rows = self._check_all_zero_rows(matrix)
         if len(all_zero_cols) + len(all_zero_rows) == 0:
             equations = self._cauchy_schwarz_inequality(matrix)
-            equations = self.get_equations_by_number(equations)
+            equations = self._get_equations_by_number(equations)
             self.singularity_msg += (
                 "The following equations form a linear dependency in "
                 "the : "
@@ -2782,14 +2802,14 @@ class Network:
             )
         else:
             if len(all_zero_cols) > 0:
-                variables = self.get_variables_by_number(all_zero_cols)
+                variables = self._get_variables_by_number(all_zero_cols)
                 self.singularity_msg += (
                     "The following variables of your problem are not "
                     "in connection with any equation: "
                     f"{', '.join([str(v) for v in variables])}{_nl}"
                 )
             if len(all_zero_rows) > 0:
-                equations = self.get_equations_by_number(all_zero_rows)
+                equations = self._get_equations_by_number(all_zero_rows)
                 self.singularity_msg += (
                     "The following equations of your problem do not "
                     "depend on any variable: "

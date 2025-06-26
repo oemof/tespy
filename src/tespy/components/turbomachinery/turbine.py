@@ -16,6 +16,7 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import isentropic
@@ -152,7 +153,6 @@ class Turbine(Turbomachine):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if len(self.power_outl) > 0:
-            from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
@@ -162,6 +162,19 @@ class Turbine(Turbomachine):
         return constraints
 
     def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E + \dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)
+        """
         return self.power_outl[0].E.val_SI + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )

@@ -1,3 +1,15 @@
+# -*- coding: utf-8
+
+"""Module of class Motor.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/power/motor.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
@@ -179,6 +191,18 @@ class Motor(Component):
         }
 
     def eta_func(self):
+        r"""
+        Equation for efficiency of the component
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E_\text{in} \cdot \eta - \dot E_\text{out}
+        """
         return (
             self.power_inl[0].E.val_SI * self.eta.val
             - self.power_outl[0].E.val_SI
@@ -192,6 +216,18 @@ class Motor(Component):
         return [self.power_inl[0].E, self.power_outl[0].E]
 
     def delta_power_func(self):
+        r"""
+        Equation for power delta of the component
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E_\text{in} - \dot E_\text{out} - \Delta \dot E
+        """
         return (
             self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
             - self.delta_power.val
@@ -206,6 +242,20 @@ class Motor(Component):
         return [self.power_inl[0].E, self.power_outl[0].E]
 
     def eta_char_func(self):
+        r"""
+        Equation for efficiency characteristics of the component
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E_\text{in} \cdot \eta_\text{design} \cdot
+                f\left(\frac{\dot E_\text{in}}{\dot E_\text{in,design}}\right)
+                - \dot E_\text{out}
+        """
         expr = self.power_inl[0].E.val_SI / self.power_inl[0].E.design
         f = self.eta_char.char_func.evaluate(expr)
         return (

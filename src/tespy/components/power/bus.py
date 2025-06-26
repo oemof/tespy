@@ -1,3 +1,15 @@
+# -*- coding: utf-8
+
+"""Module of class PowerBus.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/power/bus.py
+
+SPDX-License-Identifier: MIT
+"""
+
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -115,8 +127,8 @@ class PowerBus(Component):
 
     def get_parameters(self):
         return {
-            "num_in": dc_simple(),
-            "num_out": dc_simple()
+            "num_in": dc_simple(val=0),
+            "num_out": dc_simple(val=0)
         }
 
     def get_mandatory_constraints(self):
@@ -129,6 +141,19 @@ class PowerBus(Component):
         }
 
     def energy_balance_func(self):
+        r"""
+        Equation for energy balance of the component
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\sum_{i} \dot E_\text{i} - \sum_{o} \dot E_\text{o}\\
+                \forall i \in \text{inlets}, o \in \text{outlets}
+        """
         residual = 0
         for i in self.power_inl:
             residual += i.E.val_SI

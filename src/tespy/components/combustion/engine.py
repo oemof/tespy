@@ -73,6 +73,10 @@ class CombustionEngine(CombustionChamber):
     - in1, in2 (cooling water), in3, in4 (air and fuel)
     - out1, out2 (cooling water), out3 (flue gas)
 
+    Power outlets
+
+    - power
+
     Image
 
     .. image:: /api/_images/CombustionEngine.svg

@@ -640,58 +640,79 @@ def test_missing_source_sink_cycle_closer():
     with raises(TESPyNetworkError):
         nw.solve("design")
 
-@mark.skip()
-def test_v07_to_v08_export(tmp_path):
-    tmp_path = f"{tmp_path}.json"
+def  test_dublicated_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+def  test_cyclic_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c2, 1, 0))
+    c2.set_attr(p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "../../_exported_nwk.json"
     )
 
-    with open(tmp_path, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    nw = Network.from_json(tmp_path)
+    nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
 
-
-def test_v07_to_v08_save(tmp_path):
-    tmp_path = f"{tmp_path}.json"
-
-    path = os.path.join(
+def test_v08_to_v09_complete():
+    network_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
+        "_exported_nwk.json"
     )
 
-    data = v07_to_v08_save(path)
-    assert "Bus" in data, "Bus entry expected but not found"
-    assert "CombustionChamber" in data["Component"], "CombustionChamber expected but not found"
-    assert "Connection" in data, "Connection entry expected but not found"
+    nw = Network.from_json(network_path)
 
-
-@mark.skip()
-def test_v07_to_v08_complete(tmp_path):
-    tmp_path1 = f"{tmp_path}1.json"
-    tmp_path2 = f"{tmp_path}2.json"
-
-    path = os.path.join(
+    design_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "_design_state.json"
     )
 
-    with open(tmp_path1, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
-    )
-
-    with open(tmp_path2, "w") as f:
-        json.dump(v07_to_v08_save(path), f)
-
-    nw = Network.from_json(tmp_path1)
-    nw.solve("offdesign", design_path=tmp_path2)
+    nw = Network.from_json(network_path)
+    nw.solve("design")
+    nw.get_comp('compressor').set_attr(igva='var')
+    nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():

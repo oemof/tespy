@@ -1,5 +1,5 @@
 {
-    "compressor": {
+    "Compressor": {
         "char_map_pr": {
             "DEFAULT": {
                 "x": [0.810, 0.870, 0.946, 0.971, 1, 1.029, 1.062],

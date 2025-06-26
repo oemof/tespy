@@ -104,8 +104,6 @@ class Valve(Component):
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> v = Valve('valve')
-    >>> v.component()
-    'valve'
     >>> so_v = Connection(so, 'out1', v, 'in1')
     >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
@@ -132,10 +130,6 @@ class Valve(Component):
     30.0
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'valve'
 
     def _preprocess(self, num_nw_vars):
         if self.dp.is_set:

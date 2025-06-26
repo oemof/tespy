@@ -14,6 +14,8 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -302,6 +304,16 @@ class ExergyAnalysis:
 
         >>> links, nodes = ean.generate_plotly_sankey_input()
         """
+        msg = (
+            "The ExergyAnalysis class of tespy is deprecated and will be "
+            "removed in the next major release of tespy. The functionalities "
+            "and further extensions have been ported to a new external "
+            "library. Please refer to the examples integrating tespy models "
+            "with exerpy in the exerpy github repository and documentation: "
+            "https://github.com/oemof/exerpy"
+        )
+        warnings.warn(msg, FutureWarning)
+
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
             logger.error(msg)

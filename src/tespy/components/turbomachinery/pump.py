@@ -16,6 +16,7 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import _get_dependents
@@ -116,8 +117,6 @@ class Pump(Turbomachine):
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')
-    >>> pu.component()
-    'pump'
     >>> inc = Connection(so, 'out1', pu, 'in1')
     >>> outg = Connection(pu, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -155,8 +154,19 @@ class Pump(Turbomachine):
     """
 
     @staticmethod
-    def component():
-        return 'pump'
+    def powerinlets():
+        return ["power"]
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_inl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     def get_parameters(self):
         parameters = super().get_parameters()
@@ -183,6 +193,27 @@ class Pump(Turbomachine):
             )
         })
         return parameters
+
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E - \dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)
+        """
+        return self.power_inl[0].E.val_SI - self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
+    def energy_connector_dependents(self):
+        return [self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def eta_s_func(self):
         r"""

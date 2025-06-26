@@ -1,18 +1,9 @@
 # -*- coding: utf-8
 import importlib.resources
 import os
-import sys
-import warnings
-
-if sys.version_info[1] < 10:
-    msg = (
-        "Supprt for python versions below 3.10 will be dropped with the "
-        "next major release"
-    )
-    warnings.warn(FutureWarning(msg))
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.8.2 - Newton\'s Nature'
+__version__ = '0.9.0rc1'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

@@ -160,8 +160,6 @@ class SimpleHeatExchanger(Component):
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
-    >>> heat_sink.component()
-    'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
     ... offdesign=['zeta', 'kA_char'])
     >>> inc = Connection(so1, 'out1', heat_sink, 'in1')
@@ -198,12 +196,20 @@ class SimpleHeatExchanger(Component):
     >>> os.remove('tmp.json')
     """
 
-    @staticmethod
-    def component():
-        return 'heat exchanger simple'
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_inl + self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     def get_parameters(self):
         return {
+            'power_connector_location': dc_simple(),
             'Q': dc_cp(
                 num_eq_sets=1,
                 func=self.energy_balance_func,
@@ -290,6 +296,18 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
+    def powerinlets(self):
+        if self.power_connector_location.val == "inlet":
+            return ['heat']
+        else:
+            return []
+
+    def poweroutlets(self):
+        if self.power_connector_location.val == "outlet":
+            return ['heat']
+        else:
+            return []
+
     def _preprocess(self, row_idx):
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
@@ -297,6 +315,27 @@ class SimpleHeatExchanger(Component):
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
 
         super()._preprocess(row_idx)
+
+    def _get_power_connector_location(self):
+        if self.power_connector_location.val == "inlet":
+            return self.power_inl[0]
+        else:
+            return self.power_outl[0]
+
+    def energy_connector_balance_func(self):
+        connector = self._get_power_connector_location()
+        if self.power_connector_location.val == "inlet":
+            energy_flow = -self.power_inl[0].E.val_SI
+        else:
+            energy_flow = self.power_outl[0].E.val_SI
+
+        return energy_flow + self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            )
+
+    def energy_connector_dependents(self):
+        connector = self._get_power_connector_location()
+        return [connector.E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def energy_balance_func(self):
         r"""

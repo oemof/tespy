@@ -10,6 +10,8 @@ available from its original location tespy/connections/bus.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -180,6 +182,14 @@ class Bus:
     >>> os.remove('tmp.json')
     """
     def __init__(self, label, **kwargs):
+
+        msg = (
+            "The Bus class is deprecated and will be removed from tespy in "
+            "the next major release. Please use the power components instead "
+            "for modeling non-material related heat or power flows. For an "
+            "example check the changelog on the online documentation."
+        )
+        warnings.warn(msg, FutureWarning)
 
         dtypes = {
             "param": str,

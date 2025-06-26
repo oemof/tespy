@@ -31,6 +31,11 @@ high-level API changes
   changed and should now be made through the :code:`partial_derivative` method
   of the :code:`UserDefinedEquation` instance.
 
+  See the :ref:`docs <tespy_ude_label>` for the specific implementations.
+
+- The :code:`reset_topology_reduction_specifications` method of the
+  :code:`Network` has been depricated and is not required anymore.
+
 Back-end API changes
 ####################
 - The mandatory constraints of components are also stored in
@@ -61,17 +66,53 @@ Back-end API changes
 
 New Features
 ############
+- The :code:`Bus` class will be deprecated in favor of :code:`PowerConnections`
+  with respective components :code:`PowerSource`, :code:`Motor`,
+  :code:`Generator`, :code:`PowerSink` and :code:`PowerBus`. These are optional
+  connections and components, that can connect to components like
+  :code:`Turbine`, :code:`Compressor`, :code:`Pump` or
+  :code:`SimpleHeatExchanger`. It streamlines the API between connections
+  transporting material flows and connections with non-material flows. For more
+  information please check
+  :ref:`this section in the docs <tespy_powerconnections_label>`.
 - The new version of tespy comes with great debugging capabilities, which allow
   you to explore, which variables have been solved in presolving with the help
   of which equations. Also, the variables left for the solver to solve for and
   the corresponding equations can be outputted after the presolving. Read
   more information in the new section on
   :ref:`debugging <tespy_networks_debugging_label>`.
+- With the refactored preprocessing, it linear relationships between pairs of
+  variables (e.g. inlet to outlet pressure with specified pressure ratio) will
+  be presolved in a way, that fixing any of the pressure values in a branch of
+  connected pressure values will determine the value of all of them. This will
+  help you with the initial set up of your model: At the example of the
+  pressure, there is no difference anymore between fixing one pressure value
+  with a number of pressure ratios or pressure differences between connections
+  in a connected branch and fiing individual pressure values for all of
+  those connections (as it was recommended to generate stable starting values
+  before version 0.9).
+
+Known Issues
+############
+- The setting of starting values is still done connection by connection, even
+  if the variable of one connection is linearly dependent to a variable of a
+  different connection and both are mapped to a common variable for the final
+  problem formulation. The starting value for the common variable will be taken
+  from one of the both original variables. The procedure will be updated in a
+  future release.
+- The `Bus` preprocessing and solving process has not been apdated to the same
+  back-end API as it has been done for the components, connections and user
+  defined equations as the system/API will be changed based on the refactoring
+  soon.
 
 Other Changes
 #############
 - Depricated python 3.9 support.
 - Depricated :code:`load_network` and :code:`document_models` modules.
+- The :ref:`starting value tutorial <tespy_tutorial_starting_values_label>`
+  does not require the two-step solving approach anymore. The refactoring of
+  the presolver "fixed" this issue. The tutorial will still be kept, since it
+  still demonstrates a good practice in principle.
 
 Contributors
 ############

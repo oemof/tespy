@@ -73,6 +73,10 @@ class CombustionEngine(CombustionChamber):
     - in1, in2 (cooling water), in3, in4 (air and fuel)
     - out1, out2 (cooling water), out3 (flue gas)
 
+    Power outlets
+
+    - power
+
     Image
 
     .. image:: /api/_images/CombustionEngine.svg
@@ -195,8 +199,6 @@ class CombustionEngine(CombustionChamber):
     >>> me = Merge('cooling water merge', num_in=2)
     >>> cw_out = Sink('cooling water outlet')
     >>> chp = CombustionEngine(label='internal combustion engine')
-    >>> chp.component()
-    'combustion engine'
     >>> amb_comb = Connection(amb, 'out1', chp, 'in3')
     >>> sf_comb = Connection(sf, 'out1', chp, 'in4')
     >>> comb_fg = Connection(chp, 'out3', fg, 'in1')
@@ -245,10 +247,6 @@ class CombustionEngine(CombustionChamber):
     0.75
     >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'combustion engine'
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -351,6 +349,12 @@ class CombustionEngine(CombustionChamber):
                 'func_params': {'variable': 'fluid'}
             })
         })
+        if len(self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
         return constraints
 
     @staticmethod
@@ -360,6 +364,10 @@ class CombustionEngine(CombustionChamber):
     @staticmethod
     def outlets():
         return ['out1', 'out2', 'out3']
+
+    @staticmethod
+    def poweroutlets():
+        return ["power"]
 
     def propagate_wrapper_to_target(self, branch):
         inl, _ = self._get_combustion_connections()
@@ -419,6 +427,13 @@ class CombustionEngine(CombustionChamber):
         for count, (i, o) in enumerate(zip(self.inl[:2], self.outl[:2])):
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
+
+    def energy_connector_balance_func(self):
+        return self.power_outl[0].E.val_SI + self.P.val
+
+    def energy_connector_dependents(self):
+        return [self.power_outl[0].E, self.P]
+
 
     def energy_balance_func(self):
         r"""
@@ -866,8 +881,10 @@ class CombustionEngine(CombustionChamber):
         ######################################################################
         # missing/invalid bus parameter
         else:
-            msg = ('The parameter ' + str(bus['param']) +
-                   ' is not a valid parameter for a ' + self.component() + '.')
+            msg = (
+                f'The parameter {bus["param"]} is not a valid parameter for a '
+                f'component of type {self.__class__.__name__}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -945,16 +962,6 @@ class CombustionEngine(CombustionChamber):
                 if o.h.J_col not in bus.jacobian:
                     bus.jacobian[o.h.J_col] = 0
                 bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
-
-        ######################################################################
-        # missing/invalid bus parameter
-        else:
-            msg = (
-                f'The parameter {b["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
 
     @staticmethod
     def initialise_source(c, key):

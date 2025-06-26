@@ -80,10 +80,6 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
     """
 
-    @staticmethod
-    def component():
-        return 'turbomachine'
-
     def _preprocess(self, num_nw_vars):
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)

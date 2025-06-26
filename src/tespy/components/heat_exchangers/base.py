@@ -186,8 +186,6 @@ class HeatExchanger(Component):
     >>> cw_cold = Source('cooling water inlet')
     >>> cw_hot = Sink('cooling water outlet')
     >>> he = HeatExchanger('waste heat exchanger')
-    >>> he.component()
-    'heat exchanger'
     >>> ex_he = Connection(exhaust_hot, 'out1', he, 'in1')
     >>> he_ex = Connection(he, 'out1', exhaust_cold, 'in1')
     >>> cw_he = Connection(cw_cold, 'out1', he, 'in2')
@@ -223,10 +221,6 @@ class HeatExchanger(Component):
     18.8
     >>> os.remove("tmp.json")
     """
-
-    @staticmethod
-    def component():
-        return 'heat exchanger'
 
     def get_parameters(self):
         return {

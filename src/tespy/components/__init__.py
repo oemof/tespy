@@ -21,6 +21,11 @@ from .nodes.separator import Separator  # noqa: F401
 from .nodes.splitter import Splitter  # noqa: F401
 from .piping.pipe import Pipe  # noqa: F401
 from .piping.valve import Valve  # noqa: F401
+from .power.bus import PowerBus  # noqa: F401
+from .power.generator import Generator  # noqa: F401
+from .power.motor import Motor  # noqa: F401
+from .power.sink import PowerSink  # noqa: F401
+from .power.source import PowerSource  # noqa: F401
 from .reactors.fuel_cell import FuelCell  # noqa: F401
 from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401

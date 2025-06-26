@@ -26,7 +26,6 @@ from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
-from tespy.tools.fluid_properties import dT_sat_dp
 from tespy.tools.fluid_properties import dv_mix_dph
 from tespy.tools.fluid_properties import dv_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -48,9 +47,252 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import convert_from_SI
+from tespy.tools.helpers import convert_to_SI
+from tespy.tools.fluid_properties.wrappers import wrapper_registry
+from tespy.tools.data_containers import DataContainer as dc
 
 
-class Connection:
+def connection_registry(type):
+    connection_registry.items[type.__name__] = type
+    return type
+
+
+connection_registry.items = {}
+
+
+class _ConnectionBase:
+
+    def __init__(self):
+        pass
+
+    def _remap_if_subsystem(self, source, target):
+        # If the connected source or target is a subsystem we must
+        # remap the source and target to its outlet/inlet
+        if isinstance(source, Subsystem):
+            source = source.outlet
+
+        if isinstance(target, Subsystem):
+            target = target.inlet
+
+        return source, target
+
+    def _check_types(self, source, target):
+        # check input parameters
+        if not (isinstance(source, Component) and
+                isinstance(target, Component)):
+            msg = (
+                "Error creating connection. Check if source and target are "
+                "tespy.components."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
+    def _check_self_connect(self, source, target):
+        if source == target:
+            msg = (
+                "Error creating connection. Cannot connect component "
+                f"{source.label} to itself."
+            )
+            logger.error(msg)
+            raise TESPyConnectionError(msg)
+
+    def _check_connector_id(self, component, connector_id, connecter_locations):
+        if connector_id not in connecter_locations:
+            msg = (
+                "Error creating connection. Specified connector for "
+                f"{component.label} of class {component.__class__.__name__} "
+                f"({connector_id})  is not available. Select one of the "
+                f"following connectors {', '.join(connecter_locations)}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
+    def _parameter_specification(self, key, value):
+        try:
+            float(value)
+            is_numeric = True
+        except (TypeError, ValueError):
+            is_numeric = False
+
+        if value is None:
+            self.get_attr(key).set_attr(is_set=False)
+
+            if f"{key}_ref" in self.property_data:
+                self.get_attr(f"{key}_ref").set_attr(is_set=False)
+
+        elif is_numeric:
+            # value specification
+            if key in self.property_data:
+                self.get_attr(key).set_attr(is_set=True, val=value)
+            else:
+                self.get_attr(key.replace('0', '')).set_attr(val0=value)
+
+        # reference object
+        elif isinstance(value, Ref):
+            if f"{key}_ref" not in self.property_data:
+                msg = f"Referencing {key} is not implemented."
+                logger.error(msg)
+                raise NotImplementedError(msg)
+            else:
+                self.get_attr(f"{key}_ref").set_attr(ref=value)
+                self.get_attr(f"{key}_ref").set_attr(is_set=True)
+
+        # invalid datatype for keyword
+        else:
+            msg = f"Wrong datatype for keyword argument {key}."
+            logger.error(msg)
+            raise TypeError(msg)
+
+    def get_attr(self, key):
+        r"""
+        Get the value of a connection's attribute.
+
+        Parameters
+        ----------
+        key : str
+            The attribute you want to retrieve.
+
+        Returns
+        -------
+        out :
+            Specified attribute.
+        """
+        if key in self.__dict__:
+            return self.__dict__[key]
+        else:
+            msg = 'Connection has no attribute \"' + key + '\".'
+            logger.error(msg)
+            raise KeyError(msg)
+
+    def _serialize(self):
+        export = {}
+        export.update({"source": self.source.label})
+        export.update({"target": self.target.label})
+        for k in self._serializable():
+            export.update({k: self.get_attr(k)})
+        for k in self.property_data:
+            data = self.get_attr(k)
+            export.update({k: data._serialize()})
+
+        return {self.label: export}
+
+    @staticmethod
+    def _serializable():
+        return [
+            "source_id", "target_id",
+            "design_path", "design", "offdesign",
+            "local_design", "local_design",
+            "printout"
+        ]
+
+    def get_variables(self):
+        return {}
+
+    def _preprocess(self, row_idx):
+        self.num_eq = 0
+
+        self._structure_matrix = {}
+        self._rhs = {}
+        self._equation_set_lookup = {}
+
+        for parameter in self.parameters:
+            container = self.get_attr(parameter)
+            if container.is_set and container.func is not None:
+                num_eq = self.parameters[parameter].num_eq
+                # the row index matches the location in the network's rhs
+                # and matrix
+                for i in range(self.num_eq, self.num_eq + num_eq):
+                    self._equation_set_lookup[i + row_idx] = parameter
+                    self._rhs[i + row_idx] = 0
+                # the structure matrix function also computes the rhs
+                if container.structure_matrix is not None:
+                    container.structure_matrix(
+                        row_idx + self.num_eq, **container.func_params
+                    )
+
+                self.num_eq += num_eq
+
+    def _prepare_for_solver(self, system_dependencies, eq_counter):
+        self.num_eq = 0
+        self.it = 0
+        self.equations = {}
+        self._equation_lookup = {}
+        self._equation_scalar_dependents_lookup = {}
+        self._equation_vector_dependents_lookup = {}
+
+        for eq_num, value in self._equation_set_lookup.items():
+            if eq_num in system_dependencies:
+                continue
+
+            if value not in self.equations:
+                data = self.parameters[value]
+                self.equations.update({value: data})
+                self._assign_dependents_and_eq_mapping(
+                    value, data, self.equations, eq_counter
+                )
+                self.num_eq += data.num_eq
+                eq_counter += data.num_eq
+
+        self.residual = {}
+        self.jacobian = {}
+
+        return eq_counter
+
+    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
+        if data.dependents is None:
+            scalar_dependents = [[] for _ in range(data.num_eq)]
+            vector_dependents = [{} for _ in range(data.num_eq)]
+        else:
+            dependents = data.dependents(**data.func_params)
+            if type(dependents) == list:
+                scalar_dependents = _get_dependents(dependents)
+                vector_dependents = [{} for _ in range(data.num_eq)]
+            else:
+                scalar_dependents = _get_dependents(dependents["scalars"])
+                vector_dependents = _get_vector_dependents(dependents["vectors"])
+
+                # this is a temporary fix
+                if len(vector_dependents) < data.num_eq:
+                    vector_dependents = [{} for _ in range(data.num_eq)]
+
+        eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._vector_dependents = vector_dependents
+        eq_dict[value]._first_eq_index = eq_counter
+
+        for i in range(data.num_eq):
+            self._equation_lookup[eq_counter + i] = (value, i)
+            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
+            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
+
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
+    def _adjust_to_property_limits(self, nw):
+        pass
+
+    @classmethod
+    def _print_attributes(cls):
+        return []
+
+    @classmethod
+    def _result_attributes(cls):
+        return []
+
+    @classmethod
+    def _get_result_cols(cls, all_fluids):
+        return []
+
+    def calc_results(self):
+        return True
+
+    def collect_results(self, all_fluids):
+        return None
+
+
+@connection_registry
+class Connection(_ConnectionBase):
     r"""
     Class connection is the container for fluid properties between components.
 
@@ -284,48 +526,21 @@ class Connection:
 
         self.set_attr(**kwargs)
 
-    def _remap_if_subsystem(self, source, target):
-        # If the connected source or target is a subsystem we must
-        # remap the source and target to its outlet/inlet
-        if isinstance(source, Subsystem):
-            source = source.outlet
+    def _reset_design(self, redesign):
+        for value in self.get_variables().values():
+            value.design = np.nan
 
-        if isinstance(target, Subsystem):
-            target = target.inlet
+        self.fluid.design = {}
 
-        return source, target
+        self.new_design = True
 
-    def _check_types(self, source, target):
-        # check input parameters
-        if not (isinstance(source, Component) and
-                isinstance(target, Component)):
-            msg = (
-                "Error creating connection. Check if source and target are "
-                "tespy.components."
-            )
-            logger.error(msg)
-            raise TypeError(msg)
+        # switch connections to design mode
+        if redesign:
+            for var in self.design:
+                self.get_attr(var).is_set = True
 
-    def _check_self_connect(self, source, target):
-        if source == target:
-            msg = (
-                "Error creating connection. Cannot connect component "
-                f"{source.label} to itself."
-            )
-            logger.error(msg)
-            raise TESPyConnectionError(msg)
-
-    def _check_connector_id(self, component, connector_id, connecter_locations):
-        if connector_id not in connecter_locations:
-            msg = (
-                "Error creating connection. Specified connector for "
-                f"{component.label} of class {component.__class__.__name__} "
-                f"({connector_id})  is not available. Select one of the "
-                f"following connectors {', '.join(connecter_locations)}."
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-
+            for var in self.offdesign:
+                self.get_attr(var).is_set = False
 
     def set_attr(self, **kwargs):
         r"""
@@ -524,84 +739,45 @@ class Connection:
                 logger.error(msg)
                 raise TypeError(msg)
 
-    def _parameter_specification(self, key, value):
-        try:
-            float(value)
-            is_numeric = True
-        except (TypeError, ValueError):
-            is_numeric = False
-
-        if value is None:
-            self.get_attr(key).set_attr(is_set=False)
-
-            if f"{key}_ref" in self.property_data:
-                self.get_attr(f"{key}_ref").set_attr(is_set=False)
-
-        elif is_numeric:
-            # value specification
-            if key in self.property_data:
-                self.get_attr(key).set_attr(is_set=True, val=value)
-            else:
-                self.get_attr(key.replace('0', '')).set_attr(val0=value)
-
-        # reference object
-        elif isinstance(value, Ref):
-            if f"{key}_ref" not in self.property_data:
-                msg = f"Referencing {key} is not implemented."
-                logger.error(msg)
-                raise NotImplementedError(msg)
-            else:
-                self.get_attr(f"{key}_ref").set_attr(ref=value)
-                self.get_attr(f"{key}_ref").set_attr(is_set=True)
-
-        # invalid datatype for keyword
-        else:
-            msg = f"Wrong datatype for keyword argument {key}."
-            logger.error(msg)
-            raise TypeError(msg)
-
-    def get_attr(self, key):
-        r"""
-        Get the value of a connection's attribute.
-
-        Parameters
-        ----------
-        key : str
-            The attribute you want to retrieve.
-
-        Returns
-        -------
-        out :
-            Specified attribute.
-        """
-        if key in self.__dict__:
-            return self.__dict__[key]
-        else:
-            msg = 'Connection has no attribute \"' + key + '\".'
-            logger.error(msg)
-            raise KeyError(msg)
-
     def _serialize(self):
-        export = {}
-        export.update({"source": self.source.label})
-        export.update({"target": self.target.label})
-        for k in self._serializable():
-            export.update({k: self.get_attr(k)})
-        for k in self.property_data:
-            data = self.get_attr(k)
-            export.update({k: data._serialize()})
+        export = super()._serialize()
+        export[self.label].update({"state": self.state._serialize()})
+        return export
 
-        export.update({"state": self.state._serialize()})
-
-        return {self.label: export}
-
-    @staticmethod
-    def _serializable():
-        return [
-            "source_id", "target_id",
-            "design_path", "design", "offdesign", "local_design", "local_design",
-            "printout", "mixing_rule"
+    def _deserialize(self, data, all_connections):
+        arglist = [
+            _ for _ in data
+            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
+            and "ref" not in _
         ]
+
+        for arg in arglist:
+            container = self.get_attr(arg)
+            if isinstance(container, dc):
+                container.set_attr(**data[arg])
+            else:
+                self.set_attr(**{arg: data[arg]})
+
+        for f, engine in data["fluid"]["engine"].items():
+            data["fluid"]["engine"][f] = wrapper_registry.items[engine]
+
+        self.fluid.set_attr(**data["fluid"])
+        self._create_fluid_wrapper()
+
+        arglist_ref = [_ for _ in data if "ref" in _]
+
+        for arg in arglist_ref:
+            if len(data[arg]) > 0:
+                param = arg.replace("_ref", "")
+                ref = Ref(
+                    all_connections[data[arg]["conn"]],
+                    data[arg]["factor"],
+                    data[arg]["delta"]
+                )
+                self.set_attr(**{param: ref})
+
+    def _serializable(self):
+        return super()._serializable() + ["mixing_rule"]
 
     def _create_fluid_wrapper(self):
         for fluid in self.fluid.val:
@@ -618,31 +794,68 @@ class Connection:
 
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
 
-    def _preprocess(self, row_idx):
-        self.num_eq = 0
+    def _precalc_guess_values(self):
+        """
+        Precalculate enthalpy values for connections.
 
-        self._structure_matrix = {}
-        self._rhs = {}
-        self._equation_set_lookup = {}
+        Precalculation is performed only if temperature, vapor mass fraction,
+        temperature difference to boiling point or phase is specified.
 
-        for parameter in self.parameters:
-            container = self.get_attr(parameter)
-            if container.is_set and container.func is not None:
-                num_eq = self.parameters[parameter].num_eq
-                # the row index matches the location in the network's rhs
-                # and matrix
-                for i in range(self.num_eq, self.num_eq + num_eq):
-                    self._equation_set_lookup[i + row_idx] = parameter
-                    self._rhs[i + row_idx] = 0
-                # the structure matrix function also computes the rhs
-                if container.structure_matrix is not None:
-                    container.structure_matrix(
-                        row_idx + self.num_eq, **container.func_params
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to precalculate values for.
+        """
+        # starting values for specified vapour content or temperature
+        if self.h.is_var:
+            if not self.good_starting_values:
+                if self.x.is_set:
+                    fluid = fp.single_fluid(self.fluid_data)
+                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+                    self.h.set_reference_val_SI(
+                        fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
                     )
 
-                self.num_eq += num_eq
+                if self.T.is_set:
+                    try:
+                        self.h.set_reference_val_SI(
+                            fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
+                        )
+                    except ValueError:
+                        pass
+
+            # starting values for specified subcooling/overheating
+            # and state specification. These should be recalculated even with
+            # good starting values, for example, when one exchanges enthalpy
+            # with boiling point temperature difference.
+            if (self.Td_bp.is_set or self.state.is_set):
+                if (
+                        (self.Td_bp.val_SI > 0 and self.Td_bp.is_set)
+                        or (self.state.val == 'g' and self.state.is_set)
+                    ):
+                    fluid = fp.single_fluid(self.fluid_data)
+                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+                    h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
+                    if self.h.val_SI < h:
+                        self.h.set_reference_val_SI(h * 1.001)
+
+                elif (
+                        (self.Td_bp.val_SI < 0 and self.Td_bp.is_set)
+                        or (self.state.val == 'l' and self.state.is_set)
+                    ):
+                    fluid = fp.single_fluid(self.fluid_data)
+                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+                    h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
+                    if self.h.val_SI > h:
+                        self.h.set_reference_val_SI(h * 0.999)
 
     def _presolve(self):
+        if len(self.fluid.is_var) > 0:
+            return []
+
         specifications = []
         for name, container in self.property_data.items():
             if name in ["p", "h", "T", "x", "Td_bp"]:
@@ -719,68 +932,10 @@ class Connection:
         ]
         return presolved_equations
 
-    def _prepare_for_solver(self, system_dependencies, eq_counter):
-        self.num_eq = 0
-        self.it = 0
-        self.equations = {}
-        self._equation_lookup = {}
-        self._equation_scalar_dependents_lookup = {}
-        self._equation_vector_dependents_lookup = {}
-
-        for eq_num, value in self._equation_set_lookup.items():
-            if eq_num in system_dependencies:
-                continue
-
-            if value not in self.equations:
-                data = self.parameters[value]
-                self.equations.update({value: data})
-                self._assign_dependents_and_eq_mapping(
-                    value, data, self.equations, eq_counter
-                )
-                self.num_eq += data.num_eq
-                eq_counter += data.num_eq
-
-        self.residual = {}
-        self.jacobian = {}
-
-        return eq_counter
-
-    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
-        if data.dependents is None:
-            scalar_dependents = [[] for _ in range(data.num_eq)]
-            vector_dependents = [{} for _ in range(data.num_eq)]
-        else:
-            dependents = data.dependents(**data.func_params)
-            if type(dependents) == list:
-                scalar_dependents = _get_dependents(dependents)
-                vector_dependents = [{} for _ in range(data.num_eq)]
-            else:
-                scalar_dependents = _get_dependents(dependents["scalars"])
-                vector_dependents = _get_vector_dependents(dependents["vectors"])
-
-                # this is a temporary fix
-                if len(vector_dependents) < data.num_eq:
-                    vector_dependents = [{} for _ in range(data.num_eq)]
-
-        eq_dict[value]._scalar_dependents = scalar_dependents
-        eq_dict[value]._vector_dependents = vector_dependents
-        eq_dict[value]._first_eq_index = eq_counter
-
-        for i in range(data.num_eq):
-            self._equation_lookup[eq_counter + i] = (value, i)
-            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
-            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
-
-    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
-        result = _partial_derivative(var, value, increment_filter, **kwargs)
-        if result is not None:
-            self.jacobian[eq_num, var.J_col] = result
-
     def _partial_derivative_fluid(self, var, eq_num, value, dx, increment_filter=None, **kwargs):
         result = _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs)
         if result is not None:
             self.jacobian[eq_num, var.J_col[dx]] = result
-
 
     def reset_fluid_vector(self):
         self.fluid = dc_flu()
@@ -1050,6 +1205,13 @@ class Connection:
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
 
+    def calc_phase(self):
+        try:
+            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+
     def calc_results(self):
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
@@ -1105,7 +1267,7 @@ class Connection:
             self.v.val_SI = self.vol.val_SI * self.m.val_SI
             self.s.val_SI = self.calc_s()
 
-        for prop in fpd.keys():
+        for prop in self._result_attributes():
             self.get_attr(prop).val = convert_from_SI(
                 prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
             )
@@ -1117,7 +1279,110 @@ class Connection:
 
         return _converged
 
-    def check_pressure_bounds(self, fluid):
+    def _set_design_params(self, data):
+        for var in self._result_attributes():
+            self.get_attr(var).design = convert_to_SI(
+                var, float(data[var]), data[f"{var}_unit"]
+            )
+        for fluid in self.fluid.val:
+            self.fluid.design[fluid] = float(data[fluid])
+
+    def _set_starting_values(self, data):
+        for prop in self.get_variables():
+            var = self.get_attr(prop)
+            var.val0 = float(data[prop])
+            var.unit = data[prop + '_unit']
+
+        for fluid in self.fluid.is_var:
+            self.fluid.val[fluid] = float(data[fluid])
+            self.fluid.val0[fluid] = float(self.fluid.val[fluid])
+
+    @classmethod
+    def _result_attributes(cls):
+        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp"]
+
+    @classmethod
+    def _get_result_cols(cls, all_fluids):
+        return [
+            col for prop in cls._result_attributes()
+            for col in [prop, f"{prop}_unit"]
+        ] + list(all_fluids) + ['phase']
+
+    @classmethod
+    def _print_attributes(cls):
+        return ["m", "p", "h", "T", "x", "phase"]
+
+    def collect_results(self, all_fluids):
+        return [
+            _ for key in self._result_attributes()
+            for _ in [self.get_attr(key).val, self.get_attr(key).unit]
+        ] + [
+            self.fluid.val[fluid] if fluid in self.fluid.val else np.nan
+            for fluid in all_fluids
+        ] + [
+            self.phase.val
+        ]
+
+    def _adjust_to_property_limits(self, nw):
+        r"""
+        Check for invalid fluid property values.
+        TODO: The network passed to this method should be putting the value
+        limits to the connections in the preprocessing, then it can be
+        omitted here.
+        """
+        fl = fp.single_fluid(self.fluid_data)
+
+        # pure fluid
+        if fl is not None:
+            # pressure
+            if self.p.is_var:
+                self._adjust_pressure(fl)
+
+            # enthalpy
+            if self.h.is_var:
+                self._adjust_enthalpy(fl)
+
+                # two-phase related
+                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set) and self.it < 10:
+                    self._adjust_to_two_phase(fl)
+
+        # mixture
+        elif self.it < 5 and not self.good_starting_values:
+            # pressure
+            if self.p.is_var:
+                if self.p.val_SI <= nw.p_range_SI[0]:
+                    self.p.set_reference_val_SI(nw.p_range_SI[0])
+                    logger.debug(self._property_range_message('p'))
+
+                elif self.p.val_SI >= nw.p_range_SI[1]:
+                    self.p.set_reference_val_SI(nw.p_range_SI[1])
+                    logger.debug(self._property_range_message('p'))
+
+            # enthalpy
+            if self.h.is_var:
+                if self.h.val_SI < nw.h_range_SI[0]:
+                    self.h.set_reference_val_SI(nw.h_range_SI[0])
+                    logger.debug(self._property_range_message('h'))
+
+                elif self.h.val_SI > nw.h_range_SI[1]:
+                    self.h.set_reference_val_SI(nw.h_range_SI[1])
+                    logger.debug(self._property_range_message('h'))
+
+                # temperature
+                if self.T.is_set:
+                    self._adjust_to_temperature_limits()
+
+        # mass flow
+        if self.m.is_var:
+            if self.m.val_SI <= nw.m_range_SI[0]:
+                self.m.set_reference_val_SI(nw.m_range_SI[0])
+                logger.debug(self._property_range_message('m'))
+
+            elif self.m.val_SI >= nw.m_range_SI[1]:
+                self.m.set_reference_val_SI(nw.m_range_SI[1])
+                logger.debug(self._property_range_message('m'))
+
+    def _adjust_pressure(self, fluid):
         if self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_max)
             logger.debug(self._property_range_message('p'))
@@ -1132,7 +1397,7 @@ class Connection:
                 self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_min + 1e1)
                 logger.debug(self._property_range_message('p'))
 
-    def check_enthalpy_bounds(self, fluid):
+    def _adjust_enthalpy(self, fluid):
         # enthalpy
         try:
             hmin = self.fluid.wrapper[fluid].h_pT(
@@ -1166,7 +1431,7 @@ class Connection:
                 self.h.set_reference_val_SI(hmax * 0.9999)
                 logger.debug(self._property_range_message('h'))
 
-    def check_two_phase_bounds(self, fluid):
+    def _adjust_to_two_phase(self, fluid):
 
         if self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
@@ -1185,7 +1450,7 @@ class Connection:
             self.h.set_reference_val_SI(h)
 
 
-    def check_temperature_bounds(self):
+    def _adjust_to_temperature_limits(self):
         r"""
         Check if temperature is within user specified limits.
 
@@ -1235,7 +1500,30 @@ class Connection:
         )
         return msg
 
-    def get_physical_exergy(self, pamb, Tamb):
+    def _to_exerpy(self, pamb, Tamb):
+        connection_json = {}
+
+        self._get_physical_exergy(pamb, Tamb)
+
+        connection_json[self.label] = {
+            "source_component": self.source.label,
+            "source_connector": int(self.source_id.removeprefix("out")) - 1,
+            "target_component": self.target.label,
+            "target_connector": int(self.target_id.removeprefix("in")) - 1
+        }
+        connection_json[self.label].update({f"mass_composition": self.fluid.val})
+        connection_json[self.label].update({"kind": "material"})
+        for param in ["m", "T", "p", "h", "s", "v"]:
+            connection_json[self.label].update({
+                param: self.get_attr(param).val_SI
+            })
+        connection_json[self.label].update(
+            {"e_T": self.ex_therm, "e_M": self.ex_mech, "e_PH": self.ex_physical}
+        )
+
+        return connection_json
+
+    def _get_physical_exergy(self, pamb, Tamb):
         r"""
         Get the value of a connection's specific physical exergy.
 
@@ -1266,7 +1554,7 @@ class Connection:
         self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
 
-    def get_chemical_exergy(self, pamb, Tamb, Chem_Ex):
+    def _get_chemical_exergy(self, pamb, Tamb, Chem_Ex):
         r"""
         Get the value of a connection's specific chemical exergy.
 
@@ -1296,12 +1584,6 @@ class Connection:
             )
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
-
-    def calc_phase(self):
-        try:
-            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-        except NotImplementedError:
-            return np.nan
 
 
 class Ref:

@@ -89,8 +89,6 @@ class DropletSeparator(NodeBase):
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')
     >>> ds = DropletSeparator('droplet separator')
-    >>> ds.component()
-    'droplet separator'
     >>> so_ds = Connection(so, 'out1', ds, 'in1')
     >>> ds_sig = Connection(ds, 'out2', sig, 'in1')
     >>> ds_sil = Connection(ds, 'out1', sil, 'in1')
@@ -136,10 +134,6 @@ class DropletSeparator(NodeBase):
     >>> round(T_boil, 6) == round(so_ds.T.val_SI, 6)
     True
     """
-
-    @staticmethod
-    def component():
-        return 'droplet separator'
 
     def get_mandatory_constraints(self):
         return {

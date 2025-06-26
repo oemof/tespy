@@ -92,8 +92,6 @@ class Merge(NodeBase):
     >>> so3 = Source('source3')
     >>> si1 = Sink('sink')
     >>> m = Merge('merge', num_in=3)
-    >>> m.component()
-    'merge'
     >>> inc1 = Connection(so1, 'out1', m, 'in1')
     >>> inc2 = Connection(so2, 'out1', m, 'in2')
     >>> inc3 = Connection(so3, 'out1', m, 'in3')
@@ -164,10 +162,6 @@ class Merge(NodeBase):
     """
 
     @staticmethod
-    def component():
-        return 'merge'
-
-    @staticmethod
     def get_parameters():
         return {'num_in': dc_simple()}
 
@@ -215,7 +209,7 @@ class Merge(NodeBase):
 
     def inlets(self):
         if self.num_in.is_set:
-            return ['in' + str(i + 1) for i in range(self.num_in.val)]
+            return [f'in{i + 1}' for i in range(self.num_in.val)]
         else:
             self.set_attr(num_in=2)
             return self.inlets()

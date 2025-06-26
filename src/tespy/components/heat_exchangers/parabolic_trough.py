@@ -168,8 +168,6 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> pt = ParabolicTrough('parabolic trough collector')
-    >>> pt.component()
-    'parabolic trough'
     >>> inc = Connection(so, 'out1', pt, 'in1')
     >>> outg = Connection(pt, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -218,10 +216,6 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> round(pt.Q.val, 0)
     3602817.0
     """
-
-    @staticmethod
-    def component():
-        return 'parabolic trough'
 
     def get_parameters(self):
         data = super().get_parameters()

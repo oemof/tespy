@@ -112,8 +112,8 @@ class Component:
 
         elif any([True for x in _forbidden if x in label]):
             msg = (
-                f"You cannot use any of " + ", ".join(_forbidden) + " in a "
-                f"component label ({self.component()}"
+                f"You cannot use any of {', '.join(_forbidden)} in a "
+                f"component label ({self.__class__.__name__})"
             )
             logger.error(msg)
             raise ValueError(msg)
@@ -171,7 +171,6 @@ class Component:
                     data.set_attr(is_set=False)
                     try:
                         data.set_attr(_is_var=False)
-                        data._potential_var = False
                     except KeyError:
                         pass
                     continue
@@ -193,11 +192,9 @@ class Component:
                         data.set_attr(_val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
                             data.set_attr(_is_var=False)
-                            data._potential_var = False
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, _is_var=True)
-                        data._potential_var = True
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
@@ -378,7 +375,9 @@ class Component:
             if isinstance(data, dc_cp):
                 if data.is_var:
                     self.num_vars += 1
-
+                    data._potential_var = True
+                else:
+                    data._potential_var = False
                 self.prop_specifications[key] = data.is_set
                 self.var_specifications[key] = data.is_var
 
@@ -389,7 +388,8 @@ class Component:
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharLine)
+                            self.__class__.__name__, key, 'DEFAULT', CharLine
+                        )
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
@@ -400,7 +400,8 @@ class Component:
                 if data.char_func is None:
                     try:
                         data.char_func = ldc(
-                            self.component(), key, 'DEFAULT', CharMap)
+                            self.__class__.__name__, key, 'DEFAULT', CharMap
+                        )
                     except KeyError:
                         data.char_func = CharLine(x=[0, 1], y=[1, 1])
 
@@ -565,6 +566,14 @@ class Component:
 
     @staticmethod
     def outlets():
+        return []
+
+    @staticmethod
+    def powerinlets():
+        return []
+
+    @staticmethod
+    def poweroutlets():
         return []
 
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):

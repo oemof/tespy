@@ -66,6 +66,15 @@ Back-end API changes
 
 New Features
 ############
+- The :code:`Bus` class will be deprecated in favor of :code:`PowerConnections`
+  with respective components :code:`PowerSource`, :code:`Motor`,
+  :code:`Generator`, :code:`PowerSink` and :code:`PowerBus`. These are optional
+  connections and components, that can connect to components like
+  :code:`Turbine`, :code:`Compressor`, :code:`Pump` or
+  :code:`SimpleHeatExchanger`. It streamlines the API between connections
+  transporting material flows and connections with non-material flows. For more
+  information please check
+  :ref:`this section in the docs <tespy_powerconnections_label>`.
 - The new version of tespy comes with great debugging capabilities, which allow
   you to explore, which variables have been solved in presolving with the help
   of which equations. Also, the variables left for the solver to solve for and

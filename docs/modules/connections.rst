@@ -91,7 +91,7 @@ In order to create the connections we create the components to connect first.
     False
 
 Fluid specification
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 If you want to specify the fluid vector you can do it in the following way.
 
@@ -156,7 +156,7 @@ do this.
     >>> myconn.set_attr(fluid={'H2O': 1}, fluid_engines={"H2O": IAPWSWrapper})
 
 Access from the :code:`Network` object
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------
 
 You may want to access the network's connections other than using the variable
 names, for example in an imported network or connections from a subsystem. It
@@ -216,7 +216,7 @@ For more details on the components please go to the respective section of the
 documentation linked in the list above.
 
 Parameters
-^^^^^^^^^^
+----------
 
 The :code:`PowerConnection` only holds a single parameter, namely the power
 flow :code:`E` (:math:`\dot E`), which is measured in Watts. You can create a
@@ -276,8 +276,11 @@ To learn what power connections are available in each of the component classes
 see the respective API documentation. Below you will find more examples
 utilizing the :code:`PowerConnection`.
 
-Example: Single shaft gas turbine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Examples
+--------
+
+Single shaft gas turbine
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 To make a more elaborate example, we will implement an open gas turbine
 system using air as working fluid and a heater. You can also model gas
@@ -371,8 +374,8 @@ air mass flow to generate the desired amount of electricity.
     >>> round(c1.m.val, 3)
     1.215
 
-Example: Single shaft feed water pump powered by a turbine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Single shaft feed water pump powered by a turbine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create a pump that is powered by a turbine. The turbine's :code:`turbine_fwp`
 power output must therefore be equal to the pump's :code:`fwp` power
@@ -415,8 +418,8 @@ power flow by accessing the respective attribute of the power connection.
     >>> round(e1.E.val_SI / 1e3)
     68
 
-Example: Logic to force same power of two compressors
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Logic to force same power of two compressors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this example we combine the PowerConnection with a UserDefinedEquation.
 Two air compressors should run in series and at identical power. For this the
@@ -463,8 +466,8 @@ indermediate pressure is variable.
     >>> round(e1.E.val / 1e3)
     105
 
-Example: Including part load model for motor efficiency
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Including part load model for motor efficiency
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This example how a partload efficiency curve can be applied to a motor. For
 this, let's assume the motor powers a refrigeration compressor. We can set up

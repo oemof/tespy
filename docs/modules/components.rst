@@ -694,7 +694,7 @@ power outlet for turbines. Here the methods are :code:`powerinlets` and
     :pyobject: Compressor.powerinlets
 
 .. literalinclude:: /../src/tespy/components/turbomachinery/turbine.py
-    :pyobject: Turbine.powerinlets
+    :pyobject: Turbine.poweroutlets
 
 In a similar way, you can add flexibility with a dynamic number of inlets and
 outlets:
@@ -703,7 +703,7 @@ outlets:
     :pyobject: PowerBus.powerinlets
 
 .. literalinclude:: /../src/tespy/components/power/bus.py
-    :pyobject: PowerBus.powerinlets
+    :pyobject: PowerBus.poweroutlets
 
 Define the required methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -834,11 +834,13 @@ method and pass
 - the variable
 - the equation number (passed to your method through the argument k)
 - the value of the partial derivative (a number or a callable)
+
   - in case you pass a number, it will put the value directly into the
     Jacobian
   - in case you pass a callable, the derivative will be determined numerically
     for the specified callable and the result will then be passed to the
     Jacobian
+
 - the :code:`increment_filter`, which is a lookup for variables, that do not
   change anymore from one iteration to the next. In this case, the calculation
   of the derivative will be skipped.

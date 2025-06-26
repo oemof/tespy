@@ -61,7 +61,7 @@ lines:
     >>> import logging
     >>> ();logger.define_logging(
     ...     logpath="myloggings", log_the_path=True, log_the_version=True,
-    ...     screen_level=logging.INFO, file_level=logging.DEBUG
+    ...     screen_level=logging.ERROR, file_level=logging.DEBUG
     ... );()  # +doctest: ELIPSIS
     (...)
 
@@ -103,19 +103,8 @@ or via subsystems using the corresponding methods:
     via the added connections. After having set up your network and added all
     required elements, you can start the calculation.
 
-Busses: Energy Connectors
-+++++++++++++++++++++++++
-Another type of connection is the bus: Busses are connections for massless
-transfer of energy e.g. in turbomachinery or heat exchangers. They can be used
-to model motors or generators, too. Add them to your network with the following
-method:
-
-.. code-block:: python
-
-    >>> my_plant.add_busses()
-
-You will learn more about busses and how they work in
-:ref:`this part <tespy_busses_label>`.
+There are two types of connections, you can learn about them more in
+:ref:`these sections <tespy_modules_connections_label>`.
 
 Start calculation
 ^^^^^^^^^^^^^^^^^
@@ -576,8 +565,9 @@ or over-determined.
 
 To help you with debugging, you can use a couple of methods to inspect the
 mathematical problem. To do this, you have to start the simulation with
-:code:`init_only=True`. Then you can use the following methods to obtain
-information on your problem:
+:code:`init_only=True`. This can also be applied in case the number of
+parameters passed to your problem is incorrect and you might be unsure why.
+Then you can use the following methods to obtain information on your problem:
 
 .. code-block:: python
 

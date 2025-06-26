@@ -349,6 +349,12 @@ class CombustionEngine(CombustionChamber):
                 'func_params': {'variable': 'fluid'}
             })
         })
+        if len(self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
         return constraints
 
     @staticmethod
@@ -358,6 +364,10 @@ class CombustionEngine(CombustionChamber):
     @staticmethod
     def outlets():
         return ['out1', 'out2', 'out3']
+
+    @staticmethod
+    def poweroutlets():
+        return ["power"]
 
     def propagate_wrapper_to_target(self, branch):
         inl, _ = self._get_combustion_connections()
@@ -417,6 +427,13 @@ class CombustionEngine(CombustionChamber):
         for count, (i, o) in enumerate(zip(self.inl[:2], self.outl[:2])):
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
+
+    def energy_connector_balance_func(self):
+        return self.power_outl[0].E.val_SI + self.P.val
+
+    def energy_connector_dependents(self):
+        return [self.power_outl[0].E, self.P]
+
 
     def energy_balance_func(self):
         r"""

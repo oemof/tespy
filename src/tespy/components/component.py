@@ -171,7 +171,6 @@ class Component:
                     data.set_attr(is_set=False)
                     try:
                         data.set_attr(_is_var=False)
-                        data._potential_var = False
                     except KeyError:
                         pass
                     continue
@@ -193,11 +192,9 @@ class Component:
                         data.set_attr(_val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
                             data.set_attr(_is_var=False)
-                            data._potential_var = False
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, _is_var=True)
-                        data._potential_var = True
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
@@ -378,7 +375,9 @@ class Component:
             if isinstance(data, dc_cp):
                 if data.is_var:
                     self.num_vars += 1
-
+                    data._potential_var = True
+                else:
+                    data._potential_var = False
                 self.prop_specifications[key] = data.is_set
                 self.var_specifications[key] = data.is_var
 

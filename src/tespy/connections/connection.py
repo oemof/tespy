@@ -48,6 +48,8 @@ from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import convert_to_SI
+from tespy.tools.fluid_properties.wrappers import wrapper_registry
+from tespy.tools.data_containers import DataContainer as dc
 
 
 def connection_registry(type):
@@ -182,6 +184,9 @@ class _ConnectionBase:
             "local_design", "local_design",
             "printout"
         ]
+
+    def get_variables(self):
+        return {}
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -739,6 +744,38 @@ class Connection(_ConnectionBase):
         export[self.label].update({"state": self.state._serialize()})
         return export
 
+    def _deserialize(self, data, all_connections):
+        arglist = [
+            _ for _ in data
+            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
+            and "ref" not in _
+        ]
+
+        for arg in arglist:
+            container = self.get_attr(arg)
+            if isinstance(container, dc):
+                container.set_attr(**data[arg])
+            else:
+                self.set_attr(**{arg: data[arg]})
+
+        for f, engine in data["fluid"]["engine"].items():
+            data["fluid"]["engine"][f] = wrapper_registry.items[engine]
+
+        self.fluid.set_attr(**data["fluid"])
+        self._create_fluid_wrapper()
+
+        arglist_ref = [_ for _ in data if "ref" in _]
+
+        for arg in arglist_ref:
+            if len(data[arg]) > 0:
+                param = arg.replace("_ref", "")
+                ref = Ref(
+                    all_connections[data[arg]["conn"]],
+                    data[arg]["factor"],
+                    data[arg]["delta"]
+                )
+                self.set_attr(**{param: ref})
+
     def _serializable(self):
         return super()._serializable() + ["mixing_rule"]
 
@@ -1223,7 +1260,7 @@ class Connection(_ConnectionBase):
             self.v.val_SI = self.vol.val_SI * self.m.val_SI
             self.s.val_SI = self.calc_s()
 
-        for prop in fpd.keys():
+        for prop in self._result_attributes():
             self.get_attr(prop).val = convert_from_SI(
                 prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
             )

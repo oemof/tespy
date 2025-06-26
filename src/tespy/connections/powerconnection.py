@@ -1,17 +1,11 @@
 import numpy as np
 
-from tespy.components.component import Component
-from tespy.components.component import component_registry
-from tespy.connections import Connection
 from tespy.connections.connection import _ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
-from tespy.tools.helpers import _get_dependents
-from tespy.tools.helpers import _get_vector_dependents
-from tespy.tools.helpers import _partial_derivative
-from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.logger import logger
+from tespy.tools.data_containers import DataContainer as dc
 
 
 @connection_registry
@@ -48,6 +42,7 @@ class PowerConnection(_ConnectionBase):
 
         # set default values for kwargs
         self.property_data = self.get_parameters()
+        self.property_data0 = [x + '0' for x in self.property_data.keys()]
         self.parameters = {
             k: v for k, v in self.get_parameters().items()
             if hasattr(v, "func") and v.func is not None
@@ -140,7 +135,6 @@ class PowerConnection(_ConnectionBase):
     def _presolve(self):
         return []
 
-
     def _reset_design(self, redesign):
         for value in self.get_variables().values():
             value.design = np.nan
@@ -189,3 +183,17 @@ class PowerConnection(_ConnectionBase):
 
     def collect_results(self, all_fluids):
         return [self.E.val, self.E.unit]
+
+    def _deserialize(self, data, all_connections):
+        arglist = [
+            _ for _ in data
+            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
+            and "ref" not in _
+        ]
+
+        for arg in arglist:
+            container = self.get_attr(arg)
+            if isinstance(container, dc):
+                container.set_attr(**data[arg])
+            else:
+                self.set_attr(**{arg: data[arg]})

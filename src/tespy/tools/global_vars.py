@@ -76,6 +76,11 @@ fluid_property_data = {
         'SI_unit': 'J / kgK',
         'units': {'J / kgK': 1, 'kJ / kgK': 1e3, 'MJ / kgK': 1e6}
     },
+    'E': {
+        'text': 'energy',
+        'SI_unit': 'W',
+        'units': {'W': 1, 'kW': 1e3, 'MW': 1e6}
+    }
 
 }
 

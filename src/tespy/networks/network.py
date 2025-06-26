@@ -183,20 +183,17 @@ class Network:
             "source": object,
             "source_id": str,
             "target": object,
-            "target_id": str
+            "target_id": str,
+            "conn_type": str
         }
-        self.conns = pd.DataFrame(
-            columns=list(dtypes.keys())
-        ).astype(dtypes)
+        self.conns = pd.DataFrame(columns=list(dtypes.keys())).astype(dtypes)
         self.all_fluids = set()
         # component dataframe
         dtypes = {
             "comp_type": str,
             "object": object,
         }
-        self.comps = pd.DataFrame(
-            columns=list(dtypes.keys())
-        ).astype(dtypes)
+        self.comps = pd.DataFrame(columns=list(dtypes.keys())).astype(dtypes)
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
         # bus dictionary
@@ -389,7 +386,7 @@ class Network:
                 for c in subsystem.conns.values():
                     self.del_conns(c)
 
-            del self.subsystems[subsystem.label]
+            del self.subsystems[subsystem.label: str]
 
     def get_subsystem(self, label):
         r"""
@@ -483,8 +480,9 @@ class Network:
 
             c.good_starting_values = False
 
+            conn_type = c.__class__.__name__
             self.conns.loc[c.label] = [
-                c, c.source, c.source_id, c.target, c.target_id
+                c, c.source, c.source_id, c.target, c.target_id, conn_type
             ]
 
             msg = f'Added connection {c.label} to network.'
@@ -777,6 +775,10 @@ class Network:
 
     def _init_connection_result_datastructure(self):
 
+        for conn_type in self.conns["conn_type"].unique():
+            if conn_type in self.results:
+                del self.results[conn_type]
+
         for conn in self.conns["object"]:
             conn_type = conn.__class__.__name__
             # this will move somewhere else!
@@ -870,7 +872,7 @@ class Network:
                 elif len(comp.power_inl) != comp.num_power_i:
                     msg = (
                         f"The component {comp.label} is missing "
-                        f"{comp.num_power_i - len(comp.power_inl)} outgoing "
+                        f"{comp.num_power_i - len(comp.power_inl)} incoming "
                         "power connections. Make sure all outlets are "
                         "connected and all connections have been added to the "
                         "network."
@@ -1014,8 +1016,9 @@ class Network:
 
             connections_in_wrapper_branches += all_connections
 
+        mask = self.conns["conn_type"] == "Connection"
         missing_wrappers = (
-            set(self.conns.loc[self.conns["object"].apply(lambda x: x.__class__.__name__) == "Connection", "object"].tolist())
+            set(self.conns.loc[mask, "object"].tolist())
             - set(connections_in_wrapper_branches)
         )
         if len(missing_wrappers) > 0:
@@ -1733,7 +1736,7 @@ class Network:
                 if path not in _local_designs:
                     _local_designs[path] = self._load_network_state(path)
 
-                df = _local_designs[c.design_path]["Connection"]
+                df = _local_designs[c.design_path][c.__class__.__name__]
                 # write data to connections
                 self._init_conn_design_params(c, df)
 
@@ -1929,13 +1932,14 @@ class Network:
 
         # iter through connections
         for c in self.conns['object']:
-            df = dfs[c.__class__.__name__]
+            conn_type = c.__class__.__name__
+            df = dfs[conn_type]
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
                 if path not in ind_designs:
                     ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path]["Connection"]
+                data = ind_designs[path][conn_type]
             else:
                 data = df
 
@@ -2039,24 +2043,23 @@ class Network:
                 df = dfs[c.__class__.__name__]
                 self._init_conn_params_from_path(c, df)
 
-            if type(c) != Connection:
-                continue
-
-            # the below part does not work for PowerConnection right now
-            if sum(c.fluid.val.values()) == 0:
-                msg = (
-                    'The starting value for the fluid composition of the '
-                    f'connection {c.label} is empty. This might lead to issues '
-                    'in the initialisation and solving process as fluid '
-                    'property functions can not be called. Make sure you '
-                    'specified a fluid composition in all parts of the network.'
-                )
-                logger.warning(msg)
+            if type(c) == Connection:
+                # the below part does not work for PowerConnection right now
+                if sum(c.fluid.val.values()) == 0:
+                    msg = (
+                        'The starting value for the fluid composition of the '
+                        f'connection {c.label} is empty. This might lead to issues '
+                        'in the initialisation and solving process as fluid '
+                        'property functions can not be called. Make sure you '
+                        'specified a fluid composition in all parts of the network.'
+                    )
+                    logger.warning(msg)
 
             for key, variable in c.get_variables().items():
                 if variable.is_var:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
+
                     variable.val_SI = hlp.convert_to_SI(
                         key, variable.val0, variable.unit
                     )
@@ -2092,7 +2095,7 @@ class Network:
                 c.get_attr(key).val0 = float(np.random.random() + 1)
 
             # generic starting values for pressure and enthalpy
-            else:
+            elif key in ['p', 'h']:
                 # retrieve starting values from component information
                 val_s = c.source.initialise_source(c, key)
                 val_t = c.target.initialise_target(c, key)
@@ -2114,6 +2117,8 @@ class Network:
                 c.get_attr(key).val0 = hlp.convert_from_SI(
                     key, c.get_attr(key).val0, self.get_attr(key + '_unit')
                 )
+            elif key == 'E':
+                c.get_attr(key).val0 = 0.0
 
     @staticmethod
     def _load_network_state(json_path):
@@ -2129,10 +2134,19 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        for key, value in data["Connection"].items():
+        if "Connection" in data["Connection"]:
+            for key, value in data["Connection"].items():
+                with pd.option_context("future.no_silent_downcasting", True):
+                    dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
+                dfs[key].index = dfs[key].index.astype(str)
+        # this is for compatibility of older savestates
+        else:
+            key = "Connection"
+            value = data["Connection"]
             with pd.option_context("future.no_silent_downcasting", True):
                 dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
+
         for key, value in data["Component"].items():
             with pd.option_context("future.no_silent_downcasting", True):
                 dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
@@ -3095,7 +3109,7 @@ class Network:
         result = ""
 
         # connection properties
-        for c_type in self.conns["object"].apply(lambda x: x.__class__.__name__).unique():
+        for c_type in self.conns["conn_type"].unique():
             cols = connection_registry.items[c_type]._print_attributes()
             df = self.results[c_type].copy().loc[:, cols]
 
@@ -3234,27 +3248,35 @@ class Network:
         keeping the temperature at a constant value.
 
         >>> from tespy.components import (
-        ... Sink, Source, CombustionChamber, Compressor, Turbine,
-        ... SimpleHeatExchanger
+        ...     Sink, Source, CombustionChamber, Compressor, Turbine,
+        ...     SimpleHeatExchanger, PowerBus, PowerSink, Generator
         ... )
-        >>> from tespy.connections import Connection, Ref, Bus
+        >>> from tespy.connections import Connection, Ref, PowerConnection
         >>> from tespy.networks import Network
         >>> import os
         >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
         >>> air = Source('air')
         >>> f = Source('fuel')
-        >>> c = Compressor('compressor')
-        >>> comb = CombustionChamber('combustion')
-        >>> t = Turbine('turbine')
-        >>> p = SimpleHeatExchanger('fuel preheater')
+        >>> compressor = Compressor('compressor')
+        >>> combustion = CombustionChamber('combustion')
+        >>> turbine = Turbine('turbine')
+        >>> preheater = SimpleHeatExchanger('fuel preheater')
         >>> si = Sink('sink')
-        >>> inc = Connection(air, 'out1', c, 'in1', label='ambient air')
-        >>> cc = Connection(c, 'out1', comb, 'in1')
-        >>> fp = Connection(f, 'out1', p, 'in1')
-        >>> pc = Connection(p, 'out1', comb, 'in2')
-        >>> ct = Connection(comb, 'out1', t, 'in1')
-        >>> outg = Connection(t, 'out1', si, 'in1')
-        >>> nw.add_conns(inc, cc, fp, pc, ct, outg)
+        >>> shaft = PowerBus('shaft', num_in=1, num_out=2)
+        >>> generator = Generator('generator')
+        >>> grid = PowerSink('grid')
+        >>> c1 = Connection(air, 'out1', compressor, 'in1', label='c01')
+        >>> c2 = Connection(compressor, 'out1', combustion, 'in1', label='c02')
+        >>> c11 = Connection(f, 'out1', preheater, 'in1', label='c11')
+        >>> c12 = Connection(preheater, 'out1', combustion, 'in2', label='c12')
+        >>> c3 = Connection(combustion, 'out1', turbine, 'in1', label='c03')
+        >>> c4 = Connection(turbine, 'out1', si, 'in1', label='c04')
+        >>> nw.add_conns(c1, c2, c11, c12, c3, c4)
+        >>> e1 = PowerConnection(turbine, 'power', shaft, 'power_in1', label='e1')
+        >>> e2 = PowerConnection(shaft, 'power_out1', compressor, 'power', label='e2')
+        >>> e3 = PowerConnection(shaft, 'power_out2', generator, 'power_in', label='e3')
+        >>> e4 = PowerConnection(generator, 'power_out', grid, 'power', label='e4')
+        >>> nw.add_conns(e1, e2, e3, e4)
 
         Specify component and connection properties. The intlet pressure at the
         compressor and the outlet pressure after the turbine are identical. For
@@ -3262,22 +3284,26 @@ class Network:
         parameters. A compressor map (efficiency vs. mass flow and pressure
         rise vs. mass flow) is selected for the compressor. Fuel is Methane.
 
-        >>> c.set_attr(pr=10, eta_s=0.88, design=['eta_s', 'pr'],
-        ... offdesign=['char_map_eta_s', 'char_map_pr'])
-        >>> t.set_attr(eta_s=0.9, design=['eta_s'],
-        ... offdesign=['eta_s_char', 'cone'])
-        >>> comb.set_attr(lamb=2)
-        >>> inc.set_attr(fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}, T=25, p=1)
-        >>> fp.set_attr(fluid={'CH4': 0.96, 'CO2': 0.04}, T=25, p=40)
-        >>> pc.set_attr(T=25)
-        >>> outg.set_attr(p=Ref(inc, 1, 0))
-        >>> power = Bus('total power output')
-        >>> power.add_comps({"comp": c, "base": "bus"}, {"comp": t})
-        >>> nw.add_busses(power)
+        >>> compressor.set_attr(
+        ...     pr=10, eta_s=0.88, design=['eta_s', 'pr'],
+        ...     offdesign=['char_map_eta_s', 'char_map_pr']
+        ... )
+        >>> turbine.set_attr(
+        ...     eta_s=0.9, design=['eta_s'],
+        ...     offdesign=['eta_s_char', 'cone']
+        ... )
+        >>> combustion.set_attr(lamb=2)
+        >>> c1.set_attr(
+        ...     fluid={'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}, T=25, p=1
+        ... )
+        >>> c11.set_attr(fluid={'CH4': 0.96, 'CO2': 0.04}, T=25, p=40)
+        >>> c12.set_attr(T=25)
+        >>> c4.set_attr(p=Ref(c1, 1, 0))
+        >>> generator.set_attr(eta=1)
 
         For a stable start, we specify the fresh air mass flow.
 
-        >>> inc.set_attr(m=3)
+        >>> c1.set_attr(m=3)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
 
@@ -3286,26 +3312,24 @@ class Network:
         example in class :py:class:`tespy.connections.bus.Bus` provides more
         information on efficiencies of generators, for instance.
 
-        >>> comb.set_attr(lamb=None)
-        >>> ct.set_attr(T=1100)
-        >>> inc.set_attr(m=None)
-        >>> power.set_attr(P=-1e6)
+        >>> combustion.set_attr(lamb=None)
+        >>> c3.set_attr(T=1100)
+        >>> c1.set_attr(m=None)
+        >>> e4.set_attr(E=1e6)
         >>> nw.solve('design')
-        >>> nw.lin_dep
-        False
+        >>> nw.assert_convergence()
         >>> nw.save('design_state.json')
         >>> _ = nw.export('exported_nwk.json')
-        >>> mass_flow = round(nw.get_conn('ambient air').m.val_SI, 1)
-        >>> c.set_attr(igva='var')
+        >>> mass_flow = round(nw.get_conn('c01').m.val_SI, 1)
+        >>> compressor.set_attr(igva='var')
         >>> nw.solve('offdesign', design_path='design_state.json')
-        >>> round(t.eta_s.val, 1)
+        >>> round(turbine.eta_s.val, 1)
         0.9
-        >>> power.set_attr(P=-0.75e6)
+        >>> e4.set_attr(E=0.75e6)
         >>> nw.solve('offdesign', design_path='design_state.json')
-        >>> nw.lin_dep
-        False
-        >>> eta_s_t = round(t.eta_s.val, 3)
-        >>> igva = round(c.igva.val, 3)
+        >>> nw.assert_convergence()
+        >>> eta_s_t = round(turbine.eta_s.val, 3)
+        >>> igva = round(compressor.igva.val, 3)
         >>> eta_s_t
         0.898
         >>> igva
@@ -3320,7 +3344,7 @@ class Network:
         >>> imported_nwk.solve('design')
         >>> imported_nwk.lin_dep
         False
-        >>> round(imported_nwk.get_conn('ambient air').m.val_SI, 1) == mass_flow
+        >>> round(imported_nwk.get_conn('c01').m.val_SI, 1) == mass_flow
         True
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
@@ -3328,7 +3352,7 @@ class Network:
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
-        >>> imported_nwk.busses['total power output'].set_attr(P=-0.75e6)
+        >>> imported_nwk.get_conn('e4').set_attr(E=0.75e6)
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
@@ -3369,8 +3393,28 @@ class Network:
         # create network
         nw = cls(**network_data["Network"])
 
+        conns = {}
         # load connections
-        conns = _construct_connections(network_data["Connection"], comps)
+        if "Connection" not in network_data["Connection"]:
+            # v0.8 compatibility
+            target_class = connection_registry.items["Connection"]
+            conns.update(_construct_connections(
+                target_class, network_data["Connection"], comps)
+            )
+        else:
+            for connection, data in network_data["Connection"].items():
+                if connection not in connection_registry.items:
+                    msg = (
+                        f"A class {connection} is not available through the "
+                        "tespy.connections.connection.connection_registry "
+                        "decorator. If you are using a custom connection make "
+                        "sure to decorate the class."
+                    )
+                    logger.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                target_class = connection_registry.items[connection]
+                conns.update(_construct_connections(target_class, data, comps))
 
         # add connections to network
         for c in conns.values():
@@ -3380,7 +3424,7 @@ class Network:
         logger.info(msg)
 
         # load busses
-        data = network_data["Bus"]
+        data = network_data.get("Bus", {})
         if len(data) > 0:
             busses = _construct_busses(data, comps)
             # add busses to network
@@ -3628,7 +3672,7 @@ class Network:
             pandas.Dataframe of the connection results
         """
         dump = {}
-        for c in self.conns["object"].apply(lambda x: x.__class__.__name__).unique():
+        for c in self.conns["conn_type"].unique():
             dump[c] = self.results[c].replace(np.nan, None)
         return dump
 
@@ -3680,7 +3724,10 @@ class Network:
         """
         connections = {}
         for c in self.conns["object"]:
-            connections.update(c._serialize())
+            conn_type = c.__class__.__name__
+            if conn_type not in connections:
+                connections[conn_type] = {}
+            connections[conn_type].update(c._serialize())
         return connections
 
     def _export_components(self):
@@ -3819,7 +3866,7 @@ def _construct_components(target_class, data):
     return instances
 
 
-def _construct_connections(data, comps):
+def _construct_connections(target_class, data, comps):
     r"""
     Create TESPy connection from data in the .json-file and its parameters.
 
@@ -3838,45 +3885,18 @@ def _construct_connections(data, comps):
     """
     conns = {}
 
-    arglist = [
-        _ for _ in data[list(data.keys())[0]]
-        if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
-        and "ref" not in _
-    ]
-    arglist_ref = [_ for _ in data[list(data.keys())[0]] if "ref" in _]
-
     module_name = "tespy.tools.fluid_properties.wrappers"
     _ = importlib.import_module(module_name)
 
-    for label, conn in data.items():
-        conns[label] = Connection(
-            comps[conn["source"]], conn["source_id"],
-            comps[conn["target"]], conn["target_id"],
+    for label, conn_data in data.items():
+        conns[label] = target_class(
+            comps[conn_data["source"]], conn_data["source_id"],
+            comps[conn_data["target"]], conn_data["target_id"],
             label=label
         )
-        for arg in arglist:
-            container = conns[label].get_attr(arg)
-            if isinstance(container, dc):
-                container.set_attr(**conn[arg])
-            else:
-                conns[label].set_attr(**{arg: conn[arg]})
 
-        for f, engine in conn["fluid"]["engine"].items():
-            conn["fluid"]["engine"][f] = wrapper_registry.items[engine]
-
-        conns[label].fluid.set_attr(**conn["fluid"])
-        conns[label]._create_fluid_wrapper()
-
-    for label, conn in data.items():
-        for arg in arglist_ref:
-            if len(conn[arg]) > 0:
-                param = arg.replace("_ref", "")
-                ref = Ref(
-                    conns[conn[arg]["conn"]],
-                    conn[arg]["factor"],
-                    conn[arg]["delta"]
-                )
-                conns[label].set_attr(**{param: ref})
+    for label, conn_data in data.items():
+        conns[label]._deserialize(conn_data, conns)
 
     return conns
 

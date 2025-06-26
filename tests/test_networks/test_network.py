@@ -640,56 +640,32 @@ def test_missing_source_sink_cycle_closer():
     with raises(TESPyNetworkError):
         nw.solve("design")
 
-def test_v07_to_v08_export(tmp_path):
-    tmp_path = f"{tmp_path}.json"
+def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "../../_exported_nwk.json"
     )
 
-    with open(tmp_path, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    nw = Network.from_json(tmp_path)
+    nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
 
-
-def test_v07_to_v08_save(tmp_path):
-    tmp_path = f"{tmp_path}.json"
-
-    path = os.path.join(
+def test_v08_to_v09_complete():
+    network_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
+        "_exported_nwk.json"
     )
 
-    data = v07_to_v08_save(path)
-    assert "Bus" in data, "Bus entry expected but not found"
-    assert "CombustionChamber" in data["Component"], "CombustionChamber expected but not found"
-    assert "Connection" in data, "Connection entry expected but not found"
+    nw = Network.from_json(network_path)
 
-
-def test_v07_to_v08_complete(tmp_path):
-    tmp_path1 = f"{tmp_path}1.json"
-    tmp_path2 = f"{tmp_path}2.json"
-
-    path = os.path.join(
+    design_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "_design_state.json"
     )
 
-    with open(tmp_path1, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
-    )
-
-    with open(tmp_path2, "w") as f:
-        json.dump(v07_to_v08_save(path), f)
-
-    nw = Network.from_json(tmp_path1)
-    nw.solve("offdesign", design_path=tmp_path2)
+    nw = Network.from_json(network_path)
+    nw.solve("design")
+    nw.get_comp('compressor').set_attr(igva='var')
+    nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():

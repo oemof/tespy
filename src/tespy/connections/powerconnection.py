@@ -197,3 +197,34 @@ class PowerConnection(_ConnectionBase):
                 container.set_attr(**data[arg])
             else:
                 self.set_attr(**{arg: data[arg]})
+
+    def _to_exerpy(self, pamb, Tamb):
+        connection_json = {}
+
+        if self.source.__class__.__name__ in ["Motor", "Generator"]:
+            source_connector = 0
+        else:
+            source_connector = 999
+
+        if self.target.__class__.__name__ in ["Motor", "Generator"]:
+            target_connector = 0
+        else:
+            target_connector = 999
+
+        connection_json[self.label] = {
+            "source_component": self.source.label,
+            "source_connector": source_connector,
+            "target_component": self.target.label,
+            "target_connector": target_connector
+        }
+        if self.source_id == "heat" or self.target_id == "heat":
+            kind = "heat"
+        else:
+            kind = "power"
+
+        connection_json[self.label].update({
+            "kind": kind,
+            "energy_flow": self.E.val_SI
+        })
+
+        return connection_json

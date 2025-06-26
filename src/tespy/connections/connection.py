@@ -1205,6 +1205,13 @@ class Connection(_ConnectionBase):
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
 
+    def calc_phase(self):
+        try:
+            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+
     def calc_results(self):
         self.T.val_SI = self.calc_T()
         number_fluids = get_number_of_fluids(self.fluid_data)
@@ -1577,12 +1584,6 @@ class Connection(_ConnectionBase):
             )
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
-
-    def calc_phase(self):
-        try:
-            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
-        except NotImplementedError:
-            return np.nan
 
 
 class Ref:

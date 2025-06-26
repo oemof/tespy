@@ -1173,84 +1173,12 @@ class Network:
         self._equation_lookup = {}
         self._incidence_matrix = {}
 
-        num_vars = 0
-        for conn in self.conns["object"]:
-            for prop, container in conn.get_variables().items():
-                # flag potential variables
-                container._potential_var = not container.is_set
-                container.sm_col = num_vars
-                num_vars += 1
-
-                self._variable_lookup[container.sm_col] = {
-                    "object": conn, "property": prop
-                }
-                if conn not in self._object_to_variable_lookup:
-                    self._object_to_variable_lookup[conn] = {}
-                self._object_to_variable_lookup[conn].update(
-                    {prop: container.sm_col}
-                )
-
-            if hasattr(conn, "fluid"):
-                # fluid is handled separately
-                container = conn.fluid
-                container.sm_col = num_vars
-                num_vars += 1
-                self._variable_lookup[container.sm_col] = {
-                    "object": conn, "property": "fluid"
-                }
-                if conn not in self._object_to_variable_lookup:
-                    self._object_to_variable_lookup[conn] = {}
-                self._object_to_variable_lookup[conn].update(
-                    {"fluid": container.sm_col}
-                )
-
-        for comp in self.comps["object"]:
-            for prop, container in comp.get_variables().items():
-                container.sm_col = num_vars
-                num_vars += 1
-
-                self._variable_lookup[container.sm_col] = {
-                    "object": comp, "property": prop
-                }
-                if comp not in self._object_to_variable_lookup:
-                    self._object_to_variable_lookup[comp] = {}
-                self._object_to_variable_lookup[comp].update(
-                    {prop: container.sm_col}
-                )
+        num_vars = self._prepare_variables()
 
         sum_eq = 0
-        for conn in self.conns["object"]:
-            conn._preprocess(sum_eq)
-            self._structure_matrix.update(conn._structure_matrix)
-            self._rhs.update(conn._rhs)
-            eq_map = {
-                eq_num: (conn.label, eq_name)
-                for eq_num, eq_name in conn._equation_set_lookup.items()
-            }
-            self._equation_set_lookup.update(eq_map)
-            sum_eq += conn.num_eq
-
-        for cp in self.comps["object"]:
-            cp._preprocess(sum_eq)
-            self._structure_matrix.update(cp._structure_matrix)
-            self._rhs.update(cp._rhs)
-            eq_map = {
-                eq_num: (cp.label, eq_name)
-                for eq_num, eq_name in cp._equation_set_lookup.items()
-            }
-            self._equation_set_lookup.update(eq_map)
-            sum_eq += cp.num_eq
-
-        for ude in self.user_defined_eq.values():
-            ude._preprocess(sum_eq)
-            self._structure_matrix.update(ude._structure_matrix)
-            self._rhs.update(ude._rhs)
-            eq_map = {
-                eq_num: (ude.label, eq_name)
-                for eq_num, eq_name in ude._equation_set_lookup.items()
-            }
-            self._equation_set_lookup.update(eq_map)
-            sum_eq += ude.num_eq
+        sum_eq = self._preprocess_network_parts(self.conns["object"], sum_eq)
+        sum_eq = self._preprocess_network_parts(self.comps["object"], sum_eq)
+        sum_eq = self._preprocess_network_parts(self.user_defined_eq.values(), sum_eq)
 
         _linear_dependencies = self._find_linear_dependent_variables(
             self._structure_matrix, self._rhs
@@ -1335,6 +1263,68 @@ class Network:
             for dependents in self._variable_dependencies
             for indices in dependents["equation_indices"].values()
         ]
+
+    def _prepare_variables(self):
+        num_vars = 0
+        for conn in self.conns["object"]:
+            for prop, container in conn.get_variables().items():
+                # flag potential variables
+                container._potential_var = not container.is_set
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": conn, "property": prop
+                }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {prop: container.sm_col}
+                )
+
+            if hasattr(conn, "fluid"):
+                # fluid is handled separately
+                container = conn.fluid
+                container.sm_col = num_vars
+                num_vars += 1
+                self._variable_lookup[container.sm_col] = {
+                    "object": conn, "property": "fluid"
+                }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {"fluid": container.sm_col}
+                )
+
+        for comp in self.comps["object"]:
+            for prop, container in comp.get_variables().items():
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": comp, "property": prop
+                }
+                if comp not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[comp] = {}
+                self._object_to_variable_lookup[comp].update(
+                    {prop: container.sm_col}
+                )
+        return num_vars
+
+    def _preprocess_network_parts(self, parts, eq_counter):
+
+        for obj in parts:
+            obj._preprocess(eq_counter)
+            self._structure_matrix.update(obj._structure_matrix)
+            self._rhs.update(obj._rhs)
+            eq_map = {
+                eq_num: (obj.label, eq_name)
+                for eq_num, eq_name in obj._equation_set_lookup.items()
+            }
+            self._equation_set_lookup.update(eq_map)
+            eq_counter += obj.num_eq
+
+        return eq_counter
 
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
         edges_with_factors = []
@@ -1446,12 +1436,17 @@ class Network:
                 for neighbor, edge_factor in adjacency_list.get(curr_node, []):
                     if neighbor not in factors:  # Process unvisited neighbor
                         # Calculate edge offset
-                        edge_offset = rhs_offsets.get((curr_node, neighbor), 0.0) or -rhs_offsets.get((neighbor, curr_node), 0.0)
+                        idx_f = neighbor, curr_node
+                        idx_b = curr_node, neighbor
+                        edge_offset = (
+                            rhs_offsets.get(idx_b, 0.0)
+                            or -rhs_offsets.get(idx_f, 0.0)
+                        )
                         # Determine which equation to use
-                        if (neighbor, curr_node) in rhs_offsets:
-                            equation_indices[(neighbor, curr_node)] = eq_idx[(neighbor, curr_node)]
+                        if idx_f in rhs_offsets:
+                            equation_indices[idx_f] = eq_idx[idx_f]
                         else:
-                            equation_indices[(curr_node, neighbor)] = eq_idx[(curr_node, neighbor)]
+                            equation_indices[idx_b] = eq_idx[idx_b]
 
                         # Compute new factor and offset
                         new_factor = curr_factor * edge_factor
@@ -1468,7 +1463,9 @@ class Network:
         for node in adjacency_list:
             if node not in visited:
                 reference = node
-                factors, offsets, equation_indices = dfs_component(reference, 1.0, 0.0)
+                factors, offsets, equation_indices = dfs_component(
+                    reference, 1.0, 0.0
+                )
 
                 variables_factors_offsets.append({
                     'variables': list(factors.keys()),

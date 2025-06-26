@@ -15,11 +15,15 @@ import pytest
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
 from tespy.components import DiabaticCombustionChamber
+from tespy.components import Motor
+from tespy.components import PowerSink
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
+from tespy.tools import CharLine
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -56,6 +60,12 @@ class TestCombustion:
         self.nw.add_conns(
             self.c1, self.c2, self.c3, self.c4, self.c5, self.c6, self.c7
         )
+
+        motor = Motor("motor")
+        grid = PowerSink("grid")
+        self.e1 = PowerConnection(instance, "power", motor, "power_in")
+        self.e2 = PowerConnection(motor, "power_out", grid, "power")
+        self.nw.add_conns(self.e1, self.e2)
 
     def test_CombustionChamber(self):
         """
@@ -213,6 +223,11 @@ class TestCombustion:
         tmp_path = f'{tmp_path}.json'
         instance = CombustionEngine('combustion engine')
         self.setup_CombustionEngine_network(instance)
+        eta_char = CharLine(x=[0.5, 0.75, 1.0], y=[0.9, 0.98, 1])
+        self.nw.get_comp("motor").set_attr(
+            eta=0.98, design=["eta"], offdesign=["eta_char"],
+            eta_char=eta_char
+        )
 
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         fuel = {'CO2': 0.04, 'CH4': 0.96}
@@ -321,3 +336,14 @@ class TestCombustion:
             f'{instance.Qloss.val}.'
         )
         assert round(Qloss.P.val, 1) == round(instance.Qloss.val, 1), msg
+
+        # test connector specification
+        Qloss.set_attr(P=None)
+        self.e2.set_attr(E=400e5)
+        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.assert_convergence()
+        msg = (
+            f'Value of power must be {-self.e1.E.val}, is '
+            f'{instance.P.val}.'
+        )
+        assert round(-self.e1.E.val, 1) == round(instance.P.val, 1), msg

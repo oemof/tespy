@@ -1,9 +1,10 @@
 # %%[sec_1]
 from tespy.networks import Network
 from tespy.components import (
-    DiabaticCombustionChamber, Turbine, Source, Sink, Compressor
+    DiabaticCombustionChamber, Turbine, Source, Sink, Compressor,
+    Generator, PowerBus, PowerSink
 )
-from tespy.connections import Connection, Ref, Bus
+from tespy.connections import Connection, Ref, PowerConnection
 
 # define full fluid list for the network"s variable space
 nw = Network(p_unit="bar", T_unit="C")
@@ -51,12 +52,18 @@ c3 = Connection(cc, "out1", tu, "in1", label="3")
 c4 = Connection(tu, "out1", fg, "in1", label="4")
 nw.add_conns(c1, c2, c3, c4)
 
-generator = Bus("generator")
-generator.add_comps(
-    {"comp": tu, "char": 0.98, "base": "component"},
-    {"comp": cp, "char": 0.98, "base": "bus"},
-)
-nw.add_busses(generator)
+generator = Generator("generator")
+grid = PowerSink("grid")
+shaft = PowerBus("shaft", num_in=1, num_out=2)
+
+e1 = PowerConnection(tu, "power", shaft, "power_in1", label="e1")
+e2 = PowerConnection(shaft, "power_out1", cp, "power", label="e2")
+e3 = PowerConnection(shaft, "power_out2", generator, "power_in", label="e3")
+e4 = PowerConnection(generator, "power_out", grid, "power", label="e4")
+
+nw.add_conns(e1, e2, e3, e4)
+
+generator.set_attr(eta=0.98)
 # %%[sec_9]
 cp.set_attr(eta_s=0.85, pr=15)
 tu.set_attr(eta_s=0.90)
@@ -100,8 +107,8 @@ eta = {
 for T in data['T_3']:
     c3.set_attr(T=T)
     nw.solve('design')
-    power['T_3'] += [abs(generator.P.val) / 1e6]
-    eta['T_3'] += [abs(generator.P.val) / cc.ti.val * 100]
+    power['T_3'] += [abs(e4.E.val) / 1e6]
+    eta['T_3'] += [abs(e4.E.val) / cc.ti.val * 100]
 
 # reset to base value
 c3.set_attr(T=1200)
@@ -109,8 +116,8 @@ c3.set_attr(T=1200)
 for pr in data['pr']:
     cp.set_attr(pr=pr)
     nw.solve('design')
-    power['pr'] += [abs(generator.P.val) / 1e6]
-    eta['pr'] += [abs(generator.P.val) / cc.ti.val * 100]
+    power['pr'] += [abs(e4.E.val) / 1e6]
+    eta['pr'] += [abs(e4.E.val) / cc.ti.val * 100]
 
 # reset to base value
 cp.set_attr(pr=15)

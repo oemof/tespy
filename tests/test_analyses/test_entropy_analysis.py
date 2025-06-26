@@ -15,8 +15,8 @@ from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Splitter
 from tespy.components import Turbine
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 
 
@@ -39,20 +39,6 @@ class TestClausiusRankine:
         steam_generator = SimpleHeatExchanger('steam generator')
         cycle_close = CycleCloser('cycle closer')
 
-        # create busses
-        # power output bus
-        self.power = Bus('power_output')
-        self.power.add_comps({'comp': turb, 'char': 1})
-        # turbine driven feed water pump internal bus
-        self.fwp_power = Bus('feed water pump power', P=0)
-        self.fwp_power.add_comps(
-            {'comp': fwp_turb, 'char': 1},
-            {'comp': fwp, 'char': 1, 'base': 'bus'})
-        # heat input bus
-        self.heat = Bus('heat_input')
-        self.heat.add_comps({'comp': steam_generator, 'base': 'bus'})
-        self.nw.add_busses(self.power, self.fwp_power, self.heat)
-
         # create connections
         fs_in = Connection(cycle_close, 'out1', splitter1, 'in1', label='fs')
         fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')
@@ -63,8 +49,13 @@ class TestClausiusRankine:
         cond = Connection(condenser, 'out1', fwp, 'in1', label='cond')
         fw = Connection(fwp, 'out1', steam_generator, 'in1', label='fw')
         fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
-        self.nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw,
-                          fs_out)
+        self.nw.add_conns(
+            fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw, fs_out
+        )
+
+        # turbine driven feed water pump
+        e1 = PowerConnection(fwp_turb, "power", fwp, "power")
+        self.nw.add_conns(e1)
 
         # component parameters
         turb.set_attr(eta_s=1)

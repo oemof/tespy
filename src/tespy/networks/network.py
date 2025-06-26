@@ -2475,7 +2475,15 @@ class Network:
 
         self.solve_determination()
 
-        self.solve_loop(print_results=print_results)
+        try:
+            self.solve_loop(print_results=print_results)
+        except ValueError as e:
+            self.status = 99
+            msg = f"Simulation crashed due to an unexpected error:\n{e}"
+            logger.exception(msg)
+            self.unload_variables()
+            return
+
         self.unload_variables()
 
         if self.status == 3:

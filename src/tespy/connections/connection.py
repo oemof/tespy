@@ -15,6 +15,7 @@ from tespy.components import Subsystem
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
+from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
@@ -37,6 +38,7 @@ from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import get_number_of_fluids
+from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
@@ -48,8 +50,6 @@ from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import convert_from_SI
 from tespy.tools.helpers import convert_to_SI
-from tespy.tools.fluid_properties.wrappers import wrapper_registry
-from tespy.tools.data_containers import DataContainer as dc
 
 
 def connection_registry(type):

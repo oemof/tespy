@@ -387,18 +387,6 @@ install the package with pip.
          - :code:`in2`
          - :code:`out2`
          - :code:`2`
-       * - class ORCEvaporator
-         - :code:`in1`
-         - :code:`out1`
-         - :code:`1`
-       * -
-         - :code:`in2`
-         - :code:`out2`
-         - :code:`2`
-       * -
-         - :code:`in3`
-         - :code:`out3`
-         - :code:`3`
        * - class Merge
          - :code:`in1`
          - :code:`out1`

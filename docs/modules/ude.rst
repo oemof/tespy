@@ -8,6 +8,11 @@ TESPy model. In order to implement this functionality in your model you will
 use the :py:class:`tespy.tools.helpers.UserDefinedEquation`. The API
 documentation provides you with an interesting example application, too.
 
+.. attention::
+
+    The API of the :code:`UserDefinedEquation` has changed with version 0.9.
+    Please consider the information in the changelog and on this page.
+
 Getting started
 ---------------
 
@@ -72,39 +77,37 @@ equation in a function which returns the residual value of the equation.
 .. note::
 
     The function must only take one parameter, i.e. the UserDefinedEquation
-    class instance. The **name of the parameter is arbitrary**. We will use
-    :code:`ude` in this example. It serves to access some important parameters
-    of the equation:
+    class instance, and must be named :code:`ude`! It serves to access some
+    important parameters of the equation:
 
-    - connections required in the equation
-    - Jacobian matrix to place the partial derivatives
+    - connections or components required in the equation
     - automatic numerical derivatives
     - other (external) parameters (e.g. the CharLine in the API docs example of
       :py:class:`tespy.tools.helpers.UserDefinedEquation`)
 
-.. note::
+.. attention::
 
     It is only possible to use the SI-values of the connection variables as
     these values are updated in every iteration. The values in the network's
     specified unit system are only updated after a simulation.
 
-The second step is to define the derivatives with respect to all primary
-variables of the network, i.e. mass flow, pressure, enthalpy and fluid
-composition of every connection. The derivatives have to be passed to the
-Jacobian. In order to do this, we create a function that updates the values
-inside the Jacobian of the :code:`UserDefinedEquation` and returns it:
+The second step is to define a function which returns on which variables the
+equation depends. This is used to automatically determine the derivatives of
+the equation to the system's variables.
 
-- :code:`ude.jacobian` is a dictionary containing numpy arrays for every
-  connection required by the :code:`UserDefinedEquation`.
-- derivatives are referred to with the :code:`J_col` attribute of the
-  variables of a :code:`Connection` object, i.e.
-  :code:`c.m.J_col` for mass flow, :code:`c.p.J_col` for pressure,
-  :code:`c.h.J_col` for enthalpy, and :code:`c.fluid.J_col[fluid_name]` for the
-  derivative of the fluid composition towards a specific fluid
-  :code:`fluid_name`.
+.. code-block:: python
 
-If we calculate the derivatives of our equation, it is easy to find, that only
-derivatives to mass flow are not zero.
+    >>> def my_ude_dependents(ude):
+    ...     c1, c2 = ude.conns
+    ...     return [c1.m, c2.m]
+
+In theory, this is already sufficient information to use the equation in your
+model. However, it is possible to additionally provide a function specifying
+the derivatives. This is useful if the derivatives can be calculated
+analytically. In order to do this, we create a function that updates the values
+inside the Jacobian of the :code:`UserDefinedEquation`. We can use the
+highlevel method :code:`partial_derivative` for this. In this case the partial
+derivatives are easy to find:
 
 - The derivative to mass flow of connection :code:`c1` is equal to :math:`1`
 - The derivative to mass flow of connection :code:`c2` is equal to
@@ -112,29 +115,39 @@ derivatives to mass flow are not zero.
 
 .. code-block:: python
 
-    >>> def my_ude_deriv(ude):
+    >>> def my_ude_deriv(increment_filter, k, dependents=None, ude=None):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1
-    ...     if c2.m.is_var:
-    ...         ude.jacobian[c2.m.J_col] = -2 * ude.conns[1].m.val_SI
+    ...     ude.partial_derivative(c1.m, 1)
+    ...     ude.partial_derivative(c2.m, -2 * ude.conns[1].m.val_SI)
+
+.. attention::
+
+    The function arguments have to look exactly as provided in the example!
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
 the network. The class requires four mandatory arguments to be passed:
 
 - :code:`label` of type String.
 - :code:`func` which is the function holding the equation to be applied.
-- :code:`deriv` which is the function holding the calculation of the Jacobian.
-- :code:`conns` which is a list of the connections required by the equation.
-  The order of the connections specified in the list is equal to the accessing
-  order in the equation and derivative calculation.
-- :code:`params` (optional keyword argument) which is a dictionary holding
-  additional data required in the equation or derivative calculation.
+- :code:`dependents` which is the function returning the dependent variables.
+- :code:`deriv` (optional) which is the function holding the calculation of the
+  Jacobian.
+- :code:`conns` (optional) which is a list of the connections required by the
+  equation. The order of the connections specified in the list is equal to the
+  accessing order in the equation and derivative calculation.
+- :code:`comps` (optional) which is a list of the components required by the
+  equation. The order of the components specified in the list is equal to the
+  accessing order in the equation and derivative calculation.
+- :code:`params` (optional) which is a dictionary holding additional data
+  required in the equation, dependents specification or derivative calculation.
 
 .. code-block:: python
 
-    >>> ude = UserDefinedEquation('my ude', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation(
+    ... 'my ude', my_ude, my_ude_dependents,
+    ... deriv=my_ude_deriv, conns=[c1, c2]
+    ... )
     >>> nw.add_ude(ude)
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
@@ -173,6 +186,13 @@ the logarithmic value.
     ValueErrors within the solution process as the mass flow is not restricted
     to positive values.
 
+.. code-block:: python
+
+    >>> def my_ude_dependents(ude):
+    ...     c1 = ude.conns[0]
+    ...     c2 = ude.conns[1]
+    ...     return [c1.m, c1.p, c2.p, c2.h]
+
 The derivatives can be determined analytically for the pressure and mass flow
 of the first stream easily. For the temperature value, you can use the
 predefined fluid property functions :code:`dT_mix_dph` and :code:`dT_mix_pdh`
@@ -183,47 +203,32 @@ respectively to calculate the partial derivatives.
     >>> from tespy.tools.fluid_properties import dT_mix_dph
     >>> from tespy.tools.fluid_properties import dT_mix_pdh
 
-    >>> def my_ude_deriv(ude):
+    >>> def my_ude_deriv(increment_filter, k, dependents=None, ude=None):
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = 1 / ude.conns[0].m.val_SI
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = - 2 / ude.conns[0].p.val_SI
+    ...     ude.partial_derivative(c1.m, 1 / ude.conns[0].m.val_SI)
+    ...     ude.partial_derivative(c1.p, - 2 / ude.conns[0].p.val_SI)
     ...     T = c2.calc_T()
+    ...     # this API also works, it is not as convenient, but saves
+    ...     # computational effort because the derivatives are only calculated
+    ...     # on demand
     ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = (
+    ...         ude.partial_derivative(
+    ...             c2.p,
     ...             dT_mix_dph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
     ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = (
+    ...         ude.partial_derivative(
+    ...             c2.h,
     ...             dT_mix_pdh(c2.p.val_SI, c2.h.val_SI, c2.fluid_data, c2.mixing_rule)
     ...             * 0.5 / (T ** 0.5)
     ...         )
 
-But, what if the analytical derivative is not available? You can make use of
-generic numerical derivatives using the inbuilt method :code:`numeric_deriv`.
-The methods expects the variable :code:`'m'`, :code:`'p'`, :code:`'h'` or
-:code:`'fluid'` (fluid composition) to derive the function to as well as the
-respective connection index from the list of connections. The "lazy" solution
-for the above derivatives would therefore look like this:
-
-.. code-block:: python
-
-    >>> def my_ude_deriv(ude):
-    ...     c1 = ude.conns[0]
-    ...     c2 = ude.conns[1]
-    ...     if c1.m.is_var:
-    ...         ude.jacobian[c1.m.J_col] = ude.numeric_deriv('m', c1)
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-    ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = ude.numeric_deriv('p', c2)
-    ...     if c2.h.is_var:
-    ...         ude.jacobian[c2.h.J_col] = ude.numeric_deriv('h', c2)
-
-    >>> ude = UserDefinedEquation('ude numerical', my_ude, my_ude_deriv, [c1, c2])
+    >>> ude = UserDefinedEquation(
+    ...     'ude numerical', my_ude, my_ude_dependents,
+    ...     deriv=my_ude_deriv, conns=[c1, c2]
+    ... )
     >>> nw.add_ude(ude)
     >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
     >>> nw.solve('design')
@@ -241,9 +246,30 @@ for the above derivatives would therefore look like this:
     >>> round(c2.T.val, 1)
     257.0
 
+But, what if the analytical derivative is not available? Then we can just
+not specify the :code:`deriv` keyword to the :code:`UserDefinedEquation`:
+
+.. code-block:: python
+
+    >>> nw.del_ude(ude)
+    >>> ude = UserDefinedEquation(
+    ...     'ude numerical', my_ude, my_ude_dependents, conns=[c1, c2]
+    ... )
+    >>> nw.add_ude(ude)
+    >>> c1.set_attr(p=None)
+    >>> c2.set_attr(T=250)
+    >>> nw.solve('design')
+    >>> round(c1.p.val, 3)
+    0.926
+    >>> c1.set_attr(p=1)
+    >>> c2.set_attr(T=None)
+    >>> nw.solve('design')
+    >>> round(c2.T.val, 1)
+    257.0
+
 Obviously, the downside is a slower performance of the solver, as for every
-:code:`numeric_deriv` call the function will be evaluated fully twice
-(central finite difference).
+dependent the function will be evaluated fully twice (central finite
+difference).
 
 Last, we want to consider an example using additional parameters in the
 UserDefinedEquation, where :math:`a` might be a factor between 0 and 1 and
@@ -273,57 +299,25 @@ instance must therefore be changed as below.
     ...         (c2.h.val_SI - h_mix_pQ(c1.p.val_SI, b, c1.fluid_data))
     ...     )
 
+    >>> def my_ude_dependents(ude):
+    ...     c1 = ude.conns[0]
+    ...     c2 = ude.conns[1]
+    ...     return [c1.p, c1.h, c2.h]
+
     >>> def my_ude_deriv(ude):
     ...     a = ude.params['a']
     ...     b = ude.params['b']
     ...     c1 = ude.conns[0]
     ...     c2 = ude.conns[1]
-    ...     if c1.p.is_var:
-    ...         ude.jacobian[c1.p.J_col] = dh_mix_dpQ(c1.p.val_SI, b, c1.fluid_data)
-    ...     if c1.h.is_var:
-    ...         ude.jacobian[c1.h.J_col] = -a
-    ...     if c2.p.is_var:
-    ...         ude.jacobian[c2.p.J_col] = a - 1
+    ...     ude.partial_derivative(c1.p, dh_mix_dpQ(c1.p.val_SI, b, c1.fluid_data))
+    ...     ude.partial_derivative(c1.h, -a)
+    ...     ude.partial_derivative(c2.p, a - 1)
 
     >>> ude = UserDefinedEquation(
-    ...     'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1}
+    ...     'my ude', my_ude, my_ude_dependents,
+    ...     deriv=my_ude_deriv, conns=[c1, c2], params={'a': 0.5, 'b': 1}
     ... )
 
-
-One more example (using a CharLine for data point interpolation) can be found in
-the API documentation of class
+One more example (using a CharLine for data point interpolation) can be found
+in the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
-
-Document your equations
------------------------
-
-For the automatic documentation of your models just pass the :code:`latex`
-keyword on creation of the UserDefinedEquation instance. It should contain the
-latex equation string. For example, the last equation from above:
-
-.. code-block:: python
-
-    latex = (
-       r'0 = a \cdot \left(h_2 - h_1 \right) - '
-       r'\left(h_2 - h\left(p_1, x=b \right)\right)'
-    )
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={'equation': latex}
-    )
-
-The documentation will also create figures of :code:`CharLine` and
-:code:`CharMap` objects provided. To add these, adjust the code like this.
-Provide the :code:`CharLine` and :code:`CharMap` objects within a list.
-
-.. code-block:: python
-
-    ude = UserDefinedEquation(
-       'my ude', my_ude, my_ude_deriv, [c1, c2], params={'a': 0.5, 'b': 1},
-       latex={
-           'equation': latex,
-           'lines': [charline1, charline2],
-           'maps': [map1]
-       }
-    )

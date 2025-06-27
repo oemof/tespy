@@ -1,0 +1,1599 @@
+{
+  "Network": {
+    "m_unit": "kg / s",
+    "m_range": [
+      -1000000000000.0,
+      1000000000000.0
+    ],
+    "p_unit": "bar",
+    "p_range": [
+      0.002,
+      300.0
+    ],
+    "h_unit": "kJ / kg",
+    "h_range": [
+      1.0,
+      7000.0
+    ],
+    "T_unit": "C",
+    "x_unit": "-",
+    "v_unit": "m3 / s",
+    "s_unit": "J / kgK"
+  },
+  "Connection": {
+    "ambient air": {
+      "source": "air",
+      "target": "compressor",
+      "source_id": "out1",
+      "target_id": "in1",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 2.9806399703707602,
+        "val0": 2.9806399703707602,
+        "val_SI": 2.9806399703707602,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 1.0,
+        "val0": 1.0,
+        "val_SI": 100000.0,
+        "is_set": true,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 298.5072132870764,
+        "val0": 298.5072132870764,
+        "val_SI": 298507.2132870764,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 0.8558662069179369,
+        "val0": NaN,
+        "val_SI": 0.8558662069179369,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 6863.951017983647,
+        "val0": NaN,
+        "val_SI": 6863.951017983647,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "N2": 0.7556,
+          "O2": 0.2315,
+          "Ar": 0.0129,
+          "CO2": 0,
+          "H2O": 0,
+          "CH4": 0
+        },
+        "is_set": [
+          "Ar",
+          "O2",
+          "N2"
+        ],
+        "engine": {
+          "N2": "CoolPropWrapper",
+          "O2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "CO2": "CoolPropWrapper",
+          "H2O": "CoolPropWrapper",
+          "CH4": "CoolPropWrapper"
+        },
+        "back_end": {
+          "N2": null,
+          "O2": null,
+          "Ar": null,
+          "CO2": null,
+          "CH4": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 25.0,
+        "val0": NaN,
+        "val_SI": 298.15,
+        "is_set": true,
+        "unit": "C"
+      },
+      "v": {
+        "val": 2.5510290256292145,
+        "val0": NaN,
+        "val_SI": 2.5510290256292145,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {},
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    },
+    "combustion:out1_turbine:in1": {
+      "source": "combustion",
+      "target": "turbine",
+      "source_id": "out1",
+      "target_id": "in1",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 3.039581153303046,
+        "val0": 3.039581153303046,
+        "val_SI": 3.039581153303046,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 10.0,
+        "val0": 10.0,
+        "val_SI": 1000000.0,
+        "is_set": false,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 1646.65707326239,
+        "val0": 1646.65707326239,
+        "val_SI": 1646657.07326239,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 0.40066202301475606,
+        "val0": NaN,
+        "val_SI": 0.40066202301475606,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 7814.209108390101,
+        "val0": NaN,
+        "val_SI": 7814.209108390101,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "H2O": 0.041808725003933865,
+          "CO2": 0.05184326616476113,
+          "Ar": 0.01264985421805742,
+          "N2": 0.7409480501677664,
+          "CH4": 0.0,
+          "O2": 0.15275010444548123
+        },
+        "is_set": [],
+        "engine": {
+          "H2O": "CoolPropWrapper",
+          "CO2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "N2": "CoolPropWrapper",
+          "CH4": "CoolPropWrapper",
+          "O2": "CoolPropWrapper"
+        },
+        "back_end": {
+          "CO2": null,
+          "CH4": null,
+          "Ar": null,
+          "O2": null,
+          "N2": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 1100.0000000005748,
+        "val0": NaN,
+        "val_SI": 1373.150000000575,
+        "is_set": true,
+        "unit": "C"
+      },
+      "v": {
+        "val": 1.2178447339999237,
+        "val0": NaN,
+        "val_SI": 1.2178447339999237,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {},
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    },
+    "compressor:out1_combustion:in1": {
+      "source": "compressor",
+      "target": "combustion",
+      "source_id": "out1",
+      "target_id": "in1",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 2.9806399703707602,
+        "val0": 2.9806399703707602,
+        "val_SI": 2.9806399703707602,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 10.0,
+        "val0": 10.0,
+        "val_SI": 1000000.0,
+        "is_set": false,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 614.8696114025388,
+        "val0": 614.8696114025388,
+        "val_SI": 614869.6114025388,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 0.174747437765401,
+        "val0": NaN,
+        "val_SI": 0.174747437765401,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 6928.423164802235,
+        "val0": NaN,
+        "val_SI": 6928.423164802235,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "N2": 0.7556,
+          "O2": 0.2315,
+          "Ar": 0.0129,
+          "CO2": 0,
+          "H2O": 0,
+          "CH4": 0
+        },
+        "is_set": [],
+        "engine": {
+          "CO2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "N2": "CoolPropWrapper",
+          "H2O": "CoolPropWrapper",
+          "CH4": "CoolPropWrapper",
+          "O2": "CoolPropWrapper"
+        },
+        "back_end": {
+          "CO2": null,
+          "CH4": null,
+          "Ar": null,
+          "O2": null,
+          "N2": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 333.9145499752033,
+        "val0": NaN,
+        "val_SI": 607.0645499752032,
+        "is_set": false,
+        "unit": "C"
+      },
+      "v": {
+        "val": 0.5208591977234311,
+        "val0": NaN,
+        "val_SI": 0.5208591977234311,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {},
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    },
+    "fuel preheater:out1_combustion:in2": {
+      "source": "fuel preheater",
+      "target": "combustion",
+      "source_id": "out1",
+      "target_id": "in2",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 0.05894118293228556,
+        "val0": 0.05894118293228556,
+        "val_SI": 0.05894118293228556,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 10.0,
+        "val0": 10.0,
+        "val_SI": 1000000.0,
+        "is_set": false,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 885.4828440965908,
+        "val0": 885.4828440965908,
+        "val_SI": 885482.8440965909,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 0.14814002973483156,
+        "val0": NaN,
+        "val_SI": 0.14814002973483156,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 5379.530355955076,
+        "val0": NaN,
+        "val_SI": 5379.530355955076,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "CH4": 0.96,
+          "CO2": 0.04,
+          "Ar": 0,
+          "N2": 0,
+          "H2O": 0,
+          "O2": 0
+        },
+        "is_set": [],
+        "engine": {
+          "CO2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "N2": "CoolPropWrapper",
+          "H2O": "CoolPropWrapper",
+          "CH4": "CoolPropWrapper",
+          "O2": "CoolPropWrapper"
+        },
+        "back_end": {
+          "CO2": null,
+          "CH4": null,
+          "Ar": null,
+          "O2": null,
+          "N2": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 25.0,
+        "val0": NaN,
+        "val_SI": 298.15,
+        "is_set": true,
+        "unit": "C"
+      },
+      "v": {
+        "val": 0.00873154859219493,
+        "val0": NaN,
+        "val_SI": 0.00873154859219493,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {},
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    },
+    "fuel:out1_fuel preheater:in1": {
+      "source": "fuel",
+      "target": "fuel preheater",
+      "source_id": "out1",
+      "target_id": "in1",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 0.05894118293228556,
+        "val0": 0.05894118293228556,
+        "val_SI": 0.05894118293228556,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 40.0,
+        "val0": 40.0,
+        "val_SI": 4000000.0,
+        "is_set": true,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 856.9279645910249,
+        "val0": 856.9279645910249,
+        "val_SI": 856927.9645910249,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 0.035256723144882506,
+        "val0": NaN,
+        "val_SI": 0.035256723144882506,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 4608.521667706131,
+        "val0": NaN,
+        "val_SI": 4608.521667706131,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "CH4": 0.96,
+          "CO2": 0.04,
+          "Ar": 0,
+          "N2": 0,
+          "H2O": 0,
+          "O2": 0
+        },
+        "is_set": [
+          "CO2",
+          "CH4"
+        ],
+        "engine": {
+          "CH4": "CoolPropWrapper",
+          "CO2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "N2": "CoolPropWrapper",
+          "H2O": "CoolPropWrapper",
+          "O2": "CoolPropWrapper"
+        },
+        "back_end": {
+          "CH4": null,
+          "CO2": null,
+          "Ar": null,
+          "O2": null,
+          "N2": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 25.0,
+        "val0": NaN,
+        "val_SI": 298.15,
+        "is_set": true,
+        "unit": "C"
+      },
+      "v": {
+        "val": 0.0020780729684754663,
+        "val0": NaN,
+        "val_SI": 0.0020780729684754663,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {},
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    },
+    "turbine:out1_sink:in1": {
+      "source": "turbine",
+      "target": "sink",
+      "source_id": "out1",
+      "target_id": "in1",
+      "design_path": null,
+      "design": [],
+      "offdesign": [],
+      "local_design": false,
+      "printout": true,
+      "mixing_rule": "ideal-cond",
+      "m": {
+        "val": 3.039581153303046,
+        "val0": 3.039581153303046,
+        "val_SI": 3.039581153303046,
+        "is_set": false,
+        "unit": "kg / s"
+      },
+      "p": {
+        "val": 1.0,
+        "val0": 1.0,
+        "val_SI": 100000.0,
+        "is_set": false,
+        "unit": "bar"
+      },
+      "h": {
+        "val": 1007.4366310531333,
+        "val0": 1007.4366310531333,
+        "val_SI": 1007436.6310531333,
+        "is_set": false,
+        "unit": "kJ / kg"
+      },
+      "vol": {
+        "val": 2.473268170710068,
+        "val0": NaN,
+        "val_SI": 2.473268170710068,
+        "is_set": false,
+        "unit": "m3 / kg"
+      },
+      "s": {
+        "val": 7901.06850476002,
+        "val0": NaN,
+        "val_SI": 7901.06850476002,
+        "is_set": false,
+        "unit": "J / kgK"
+      },
+      "fluid": {
+        "val": {
+          "H2O": 0.041808725003933865,
+          "CO2": 0.05184326616476113,
+          "Ar": 0.01264985421805742,
+          "N2": 0.7409480501677664,
+          "CH4": 0.0,
+          "O2": 0.15275010444548123
+        },
+        "is_set": [],
+        "engine": {
+          "CO2": "CoolPropWrapper",
+          "Ar": "CoolPropWrapper",
+          "N2": "CoolPropWrapper",
+          "H2O": "CoolPropWrapper",
+          "CH4": "CoolPropWrapper",
+          "O2": "CoolPropWrapper"
+        },
+        "back_end": {
+          "CO2": null,
+          "CH4": null,
+          "Ar": null,
+          "O2": null,
+          "N2": null,
+          "H2O": null
+        }
+      },
+      "fluid_balance": {
+        "val": false,
+        "is_set": false
+      },
+      "T": {
+        "val": 575.6267630702246,
+        "val0": NaN,
+        "val_SI": 848.7767630702245,
+        "is_set": false,
+        "unit": "C"
+      },
+      "v": {
+        "val": 7.517699318754623,
+        "val0": NaN,
+        "val_SI": 7.517699318754623,
+        "is_set": false,
+        "unit": "m3 / s"
+      },
+      "x": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "-"
+      },
+      "Td_bp": {
+        "val": 0.0,
+        "val0": NaN,
+        "val_SI": 0,
+        "is_set": false,
+        "unit": "C"
+      },
+      "m_ref": {},
+      "p_ref": {
+        "is_set": true,
+        "unit": "bar",
+        "conn": "ambient air",
+        "factor": 1,
+        "delta": 0
+      },
+      "h_ref": {},
+      "T_ref": {},
+      "v_ref": {},
+      "state": {
+        "val": NaN,
+        "is_set": false
+      }
+    }
+  },
+  "Component": {
+    "Source": {
+      "air": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "air",
+        "char_warnings": true,
+        "bypass": false
+      },
+      "fuel": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "fuel",
+        "char_warnings": true,
+        "bypass": false
+      }
+    },
+    "CombustionChamber": {
+      "combustion": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "combustion",
+        "char_warnings": true,
+        "bypass": false,
+        "lamb": {
+          "val": 3.056940018203356,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 1,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "ti": {
+          "val": 2830665.1900067898,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        }
+      }
+    },
+    "Compressor": {
+      "compressor": {
+        "design": [
+          "eta_s",
+          "pr"
+        ],
+        "offdesign": [
+          "char_map_eta_s",
+          "char_map_pr"
+        ],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "compressor",
+        "char_warnings": true,
+        "bypass": false,
+        "P": {
+          "val": 942962.4089452947,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "pr": {
+          "val": 10.0,
+          "val_SI": 0,
+          "is_set": true,
+          "d": 0.0001,
+          "min_val": 1,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "dp": {
+          "val": -9.0,
+          "val_SI": -900000.0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": -1000000000000.0,
+          "max_val": 0,
+          "is_var": false
+        },
+        "eta_s": {
+          "val": 0.8800000000000001,
+          "val_SI": 0,
+          "is_set": true,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1,
+          "is_var": false
+        },
+        "eta_s_char": {
+          "char_func": {
+            "x": [
+              0.49,
+              0.55782,
+              0.62612,
+              0.69418,
+              0.76132,
+              0.82682,
+              0.89,
+              0.95016,
+              1.0,
+              1.04326,
+              1.07753,
+              1.10916,
+              1.13795,
+              1.16365,
+              1.18604,
+              1.2049,
+              1.22
+            ],
+            "y": [
+              0.78,
+              0.82066,
+              0.86025,
+              0.89742,
+              0.93083,
+              0.95914,
+              0.981,
+              0.99507,
+              1.0,
+              0.99733,
+              0.98913,
+              0.97496,
+              0.95435,
+              0.92687,
+              0.89205,
+              0.84944,
+              0.79859
+            ],
+            "extrapolate": false
+          },
+          "is_set": false,
+          "param": "m",
+          "char_params": {
+            "type": "rel",
+            "inconn": 0,
+            "outconn": 0
+          }
+        },
+        "igva": {
+          "val": 0,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.001,
+          "min_val": -90,
+          "max_val": 90,
+          "is_var": false
+        },
+        "char_map_eta_s": {
+          "char_func": {
+            "x": [
+              0.81,
+              0.87,
+              0.946,
+              0.971,
+              1.0,
+              1.029,
+              1.062
+            ],
+            "y": [
+              [
+                0.46,
+                0.481,
+                0.502,
+                0.523,
+                0.543,
+                0.562,
+                0.583,
+                0.598,
+                0.606,
+                0.612
+              ],
+              [
+                0.59,
+                0.605,
+                0.62,
+                0.64,
+                0.66,
+                0.685,
+                0.703,
+                0.71,
+                0.711,
+                0.713
+              ],
+              [
+                0.767,
+                0.805,
+                0.838,
+                0.859,
+                0.87,
+                0.876,
+                0.878,
+                0.878,
+                0.879,
+                0.88
+              ],
+              [
+                0.874,
+                0.908,
+                0.93,
+                0.943,
+                0.953,
+                0.961,
+                0.962,
+                0.963,
+                0.963,
+                0.964
+              ],
+              [
+                0.948,
+                0.974,
+                0.987,
+                0.995,
+                1.0,
+                1.002,
+                1.005,
+                1.005,
+                1.006,
+                1.006
+              ],
+              [
+                1.014,
+                1.017,
+                1.02,
+                1.023,
+                1.026,
+                1.028,
+                1.03,
+                1.032,
+                1.034,
+                1.036
+              ],
+              [
+                1.045,
+                1.047,
+                1.049,
+                1.051,
+                1.052,
+                1.053,
+                1.054,
+                1.054,
+                1.055,
+                1.056
+              ]
+            ],
+            "z": [
+              [
+                0.872,
+                0.885,
+                0.898,
+                0.911,
+                0.925,
+                0.94,
+                0.945,
+                0.926,
+                0.903,
+                0.879
+              ],
+              [
+                0.887,
+                0.909,
+                0.93,
+                0.947,
+                0.963,
+                0.971,
+                0.965,
+                0.939,
+                0.913,
+                0.887
+              ],
+              [
+                0.891,
+                0.918,
+                0.946,
+                0.973,
+                1.001,
+                1.014,
+                1.015,
+                0.986,
+                0.955,
+                0.925
+              ],
+              [
+                0.977,
+                0.977,
+                0.981,
+                0.995,
+                1.007,
+                1.002,
+                0.981,
+                0.961,
+                0.94,
+                0.92
+              ],
+              [
+                0.956,
+                0.959,
+                0.969,
+                0.984,
+                1.0,
+                0.985,
+                0.967,
+                0.95,
+                0.932,
+                0.914
+              ],
+              [
+                0.948,
+                0.959,
+                0.962,
+                0.949,
+                0.935,
+                0.922,
+                0.908,
+                0.895,
+                0.881,
+                0.868
+              ],
+              [
+                0.879,
+                0.888,
+                0.898,
+                0.907,
+                0.916,
+                0.924,
+                0.915,
+                0.906,
+                0.896,
+                0.887
+              ]
+            ]
+          },
+          "is_set": false,
+          "param": null
+        },
+        "char_map_eta_s_group": {},
+        "char_map_pr": {
+          "char_func": {
+            "x": [
+              0.81,
+              0.87,
+              0.946,
+              0.971,
+              1.0,
+              1.029,
+              1.062
+            ],
+            "y": [
+              [
+                0.46,
+                0.481,
+                0.502,
+                0.523,
+                0.543,
+                0.562,
+                0.583,
+                0.598,
+                0.606,
+                0.612
+              ],
+              [
+                0.59,
+                0.605,
+                0.62,
+                0.64,
+                0.66,
+                0.685,
+                0.703,
+                0.71,
+                0.711,
+                0.713
+              ],
+              [
+                0.767,
+                0.805,
+                0.838,
+                0.859,
+                0.87,
+                0.876,
+                0.878,
+                0.878,
+                0.879,
+                0.88
+              ],
+              [
+                0.874,
+                0.908,
+                0.93,
+                0.943,
+                0.953,
+                0.961,
+                0.962,
+                0.963,
+                0.963,
+                0.964
+              ],
+              [
+                0.948,
+                0.974,
+                0.987,
+                0.995,
+                1.0,
+                1.002,
+                1.005,
+                1.005,
+                1.006,
+                1.006
+              ],
+              [
+                1.014,
+                1.017,
+                1.02,
+                1.023,
+                1.026,
+                1.028,
+                1.03,
+                1.032,
+                1.034,
+                1.036
+              ],
+              [
+                1.045,
+                1.047,
+                1.049,
+                1.051,
+                1.052,
+                1.053,
+                1.054,
+                1.054,
+                1.055,
+                1.056
+              ]
+            ],
+            "z": [
+              [
+                0.502,
+                0.493,
+                0.485,
+                0.467,
+                0.442,
+                0.411,
+                0.378,
+                0.344,
+                0.31,
+                0.276
+              ],
+              [
+                0.65,
+                0.637,
+                0.617,
+                0.589,
+                0.556,
+                0.519,
+                0.482,
+                0.445,
+                0.407,
+                0.37
+              ],
+              [
+                0.931,
+                0.917,
+                0.893,
+                0.859,
+                0.82,
+                0.779,
+                0.738,
+                0.698,
+                0.657,
+                0.616
+              ],
+              [
+                1.05,
+                1.02,
+                0.982,
+                0.939,
+                0.895,
+                0.851,
+                0.806,
+                0.762,
+                0.717,
+                0.672
+              ],
+              [
+                1.195,
+                1.151,
+                1.102,
+                1.052,
+                1.0,
+                0.951,
+                0.9,
+                0.85,
+                0.799,
+                0.748
+              ],
+              [
+                1.34,
+                1.276,
+                1.213,
+                1.149,
+                1.085,
+                1.022,
+                0.958,
+                0.894,
+                0.831,
+                0.767
+              ],
+              [
+                1.441,
+                1.37,
+                1.3,
+                1.229,
+                1.158,
+                1.088,
+                1.017,
+                0.946,
+                0.876,
+                0.805
+              ]
+            ]
+          },
+          "is_set": false,
+          "param": null
+        },
+        "char_map_pr_group": {}
+      }
+    },
+    "SimpleHeatExchanger": {
+      "fuel preheater": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "fuel preheater",
+        "char_warnings": true,
+        "bypass": false,
+        "Q": {
+          "val": 1683.058376546936,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": -1000000000000.0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "pr": {
+          "val": 0.25,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0.0001,
+          "max_val": 1,
+          "is_var": false
+        },
+        "dp": {
+          "val": 30.0,
+          "val_SI": 3000000.0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "zeta": {
+          "val": 11618008000.923494,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1000000000000000.0,
+          "is_var": false
+        },
+        "D": {
+          "val": 1,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0.01,
+          "max_val": 2,
+          "is_var": false
+        },
+        "L": {
+          "val": 1,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.001,
+          "min_val": 0.1,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "ks": {
+          "val": 0.0001,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 1e-08,
+          "min_val": 1e-07,
+          "max_val": 0.001,
+          "is_var": false
+        },
+        "ks_HW": {
+          "val": 10,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.01,
+          "min_val": 0.1,
+          "max_val": 1000.0,
+          "is_var": false
+        },
+        "kA": {
+          "val": 1,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 1,
+          "min_val": 0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "kA_char": {
+          "char_func": {
+            "x": [
+              0.0,
+              0.01084,
+              0.03655,
+              0.07779,
+              0.13389,
+              0.20417,
+              0.28796,
+              0.38458,
+              0.49337,
+              0.61364,
+              0.74473,
+              0.88595,
+              1.0,
+              1.19613,
+              1.36374,
+              1.53879,
+              1.72061,
+              1.90854,
+              2.10189,
+              2.29999,
+              2.50217,
+              2.70776,
+              2.91608,
+              3.0
+            ],
+            "y": [
+              0.01,
+              0.09598,
+              0.18995,
+              0.28191,
+              0.37185,
+              0.45974,
+              0.54557,
+              0.62932,
+              0.71098,
+              0.79053,
+              0.86796,
+              0.94324,
+              1.0,
+              1.0873,
+              1.15605,
+              1.22259,
+              1.28691,
+              1.34898,
+              1.40879,
+              1.46633,
+              1.52157,
+              1.5745,
+              1.62511,
+              1.645
+            ],
+            "extrapolate": false
+          },
+          "is_set": false,
+          "param": "m",
+          "char_params": {
+            "type": "rel",
+            "inconn": 0,
+            "outconn": 0
+          }
+        },
+        "Tamb": {
+          "val": 1,
+          "val_SI": 274.15,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": -1000000000000.0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "dissipative": {
+          "val": null,
+          "is_set": false
+        },
+        "darcy_group": {},
+        "hw_group": {},
+        "kA_group": {},
+        "kA_char_group": {}
+      }
+    },
+    "Sink": {
+      "sink": {
+        "design": [],
+        "offdesign": [],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "sink",
+        "char_warnings": true,
+        "bypass": false
+      }
+    },
+    "Turbine": {
+      "turbine": {
+        "design": [
+          "eta_s"
+        ],
+        "offdesign": [
+          "eta_s_char",
+          "cone"
+        ],
+        "local_design": false,
+        "local_offdesign": false,
+        "design_path": null,
+        "printout": true,
+        "fkt_group": "turbine",
+        "char_warnings": true,
+        "bypass": false,
+        "P": {
+          "val": -1942962.4089452955,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": -1000000000000.0,
+          "max_val": 0,
+          "is_var": false
+        },
+        "pr": {
+          "val": 0.1,
+          "val_SI": 0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1,
+          "is_var": false
+        },
+        "dp": {
+          "val": 9.0,
+          "val_SI": 900000.0,
+          "is_set": false,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1000000000000.0,
+          "is_var": false
+        },
+        "eta_s": {
+          "val": 0.8999999999996984,
+          "val_SI": 0,
+          "is_set": true,
+          "d": 0.0001,
+          "min_val": 0,
+          "max_val": 1,
+          "is_var": false
+        },
+        "eta_s_char": {
+          "char_func": {
+            "x": [
+              0.0,
+              0.3,
+              0.6,
+              0.7,
+              0.8,
+              0.9,
+              1.0,
+              1.1,
+              1.2,
+              1.3,
+              1.4,
+              1.5
+            ],
+            "y": [
+              0.95,
+              0.98,
+              0.993,
+              0.996,
+              0.998,
+              0.9995,
+              1.0,
+              0.999,
+              0.996,
+              0.99,
+              0.98,
+              0.96
+            ],
+            "extrapolate": false
+          },
+          "is_set": false,
+          "param": "m",
+          "char_params": {
+            "type": "rel",
+            "inconn": 0,
+            "outconn": 0
+          }
+        },
+        "cone": {
+          "val": NaN,
+          "is_set": false
+        }
+      }
+    }
+  },
+  "Bus": {
+    "total power output": {
+      "P": {
+        "val": -1000000.0000000008,
+        "is_set": true
+      },
+      "compressor": {
+        "param": null,
+        "base": "bus",
+        "char": {
+          "x": [
+            0.0,
+            3.0
+          ],
+          "y": [
+            1.0,
+            1.0
+          ],
+          "extrapolate": false
+        }
+      },
+      "turbine": {
+        "param": null,
+        "base": "component",
+        "char": {
+          "x": [
+            0.0,
+            3.0
+          ],
+          "y": [
+            1.0,
+            1.0
+          ],
+          "extrapolate": false
+        }
+      }
+    }
+  }
+}

@@ -19,8 +19,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import convert_from_SI
 
@@ -185,7 +183,7 @@ class Condenser(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import shutil
+    >>> import os
     >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
     ... m_range=[0.01, 1000], iterinfo=False)
     >>> amb_in = Source('ambient air inlet')
@@ -193,8 +191,6 @@ class Condenser(HeatExchanger):
     >>> waste_steam = Source('waste steam')
     >>> c = Sink('condensate sink')
     >>> cond = Condenser('condenser')
-    >>> cond.component()
-    'condenser'
     >>> amb_he = Connection(amb_in, 'out1', cond, 'in2')
     >>> he_amb = Connection(cond, 'out2', amb_out, 'in1')
     >>> ws_he = Connection(waste_steam, 'out1', cond, 'in1')
@@ -236,27 +232,25 @@ class Condenser(HeatExchanger):
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'condenser'
 
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
             'subcooling': dc_simple(
-                val=False, num_eq=1, latex=self.subcooling_func_doc,
-                deriv=self.subcooling_deriv, func=self.subcooling_func)
+                _val=False, num_eq_sets=1,
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+            )
         })
         return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, row_idx):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        super().preprocess(num_nw_vars)
+        super()._preprocess(row_idx)
 
     def subcooling_func(self):
         r"""
@@ -278,40 +272,11 @@ class Condenser(HeatExchanger):
         o = self.outl[0]
         return o.h.val_SI - h_mix_pQ(o.p.val_SI, 0, o.fluid_data)
 
-    def subcooling_func_doc(self, label):
-        r"""
-        Equation for hot side outlet state.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
-        return generate_latex_eq(self, latex, label)
-
-    def subcooling_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of subcooling function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        o = self.outl[0]
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data)
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = 1
+    def subcooling_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]
 
     def calculate_td_log(self):
 
@@ -343,31 +308,6 @@ class Condenser(HeatExchanger):
 
         return td_log
 
-    def kA_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
-            r'T_\mathrm{in,2} -T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'+ T_\mathrm{out,2}}'
-            r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
-            r'{T_\mathrm{sat}\left( p_\mathrm{in,1}\right) -'
-            r'T_\mathrm{out,2}}}}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def kA_char_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
@@ -395,36 +335,6 @@ class Condenser(HeatExchanger):
         """
         return super().kA_char_func()
 
-    def kA_char_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)\\' + '\n'
-            r'&+kA_\mathrm{design} \cdot '
-            r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
-            r' - T_\mathrm{sat}\left( p_\mathrm{in,1}\right) +'
-            r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
-            r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'- T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
-            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
     def ttd_u_func(self):
         r"""
         Equation for upper terminal temperature difference.
@@ -449,24 +359,12 @@ class Condenser(HeatExchanger):
         T_o2 = o.calc_T()
         return self.ttd_u.val - T_i1 + T_o2
 
-    def ttd_u_func_doc(self, label):
-        r"""
-        Equation for upper terminal temperature difference.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
-            r' + T_\mathrm{out,2}')
-        return generate_latex_eq(self, latex, label)
+    def ttd_u_dependents(self):
+        return [
+            self.inl[0].p,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

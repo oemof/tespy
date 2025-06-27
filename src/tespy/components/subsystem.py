@@ -73,11 +73,11 @@ class Subsystem:
     >>> nw.add_conns(c1, c2)
     >>> nw.add_subsystems(mysub)
 
-    We can run the :code:`check_network` method to check if everything is
+    We can run the :code:`check_topology` method to check if everything is
     properly connected and a valid topology was created, without needing to
     parametrize the system (for the sake of simplicity in this example).
 
-    >>> nw.check_network()
+    >>> nw.check_topology()
 
     You can retrieve components and connections from inside the subsystem with
     their label, which is used inside the :code:`create_network` method of the

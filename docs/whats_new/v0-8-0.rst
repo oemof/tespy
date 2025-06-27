@@ -71,7 +71,7 @@ API breaking changes
     ['Sink', 'Source']
     >>> imported_nw = Network.from_json("tmp.json")
     >>> data_without_json_writing = nwk.export()
-    >>> list(data_without_json_writing["Connection"])
+    >>> list(data_without_json_writing["Connection"]["Connection"])
     ['1']
 
   Diff: (`PR #605 <https://github.com/oemof/tespy/pull/605>`__ and

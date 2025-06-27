@@ -2,13 +2,13 @@
 
 Fluid properties
 ================
-The default fluid property engine `CoolProp <http://coolprop.org/>`_. All
+The default fluid property engine `CoolProp <https://coolprop.org/>`_. All
 available fluids can be found on their homepage. Also see :cite:`Bell2014`.
 Since version 0.7 of TESPy it is possible to use other engines. TESPy comes with
 two additional predefined engines, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
-- the `pyromat <http://pyromat.org>`_ library.
+- the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.
 
 For each fluid you can specify, which library should be used, and you can easily
 implement your own engine, for example, if your fluid is not available through
@@ -51,14 +51,14 @@ Pure and pseudo-pure fluids
 CoolProp covers the most important fluids such as water, air as a pseudo-pure
 fluid as well as its components, several fuels and refrigerants etc.. Look for
 the aliases in the list of
-`fluids <http://www.coolprop.org/fluid_properties/PurePseudoPure.html>`__.
+`fluids <https://coolprop.org/fluid_properties/PurePseudoPure.html>`__.
 All fluids provided in this list cover liquid and gaseous state and the
 two-phase region.
 
 Incompressible fluids
 +++++++++++++++++++++
 If you are looking for heat transfer fluids, the list of incompressible
-`fluids <http://www.coolprop.org/fluid_properties/Incompressibles.html>`__
+`fluids <https://coolprop.org/fluid_properties/Incompressibles.html>`__
 might be interesting for you. In contrast to the pure fluids, the properties
 cover liquid state only.
 
@@ -387,18 +387,6 @@ install the package with pip.
          - :code:`in2`
          - :code:`out2`
          - :code:`2`
-       * - class ORCEvaporator
-         - :code:`in1`
-         - :code:`out1`
-         - :code:`1`
-       * -
-         - :code:`in2`
-         - :code:`out2`
-         - :code:`2`
-       * -
-         - :code:`in3`
-         - :code:`out3`
-         - :code:`3`
        * - class Merge
          - :code:`in1`
          - :code:`out1`

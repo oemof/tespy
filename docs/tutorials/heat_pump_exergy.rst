@@ -3,6 +3,22 @@
 Exergy Analysis of a Ground-Coupled Heat Pump
 ---------------------------------------------
 
+.. note::
+
+    tespy v0.9 will be the last major version supporting the inbuilt exergy
+    analysis feature. All features have moved to the new external library
+    `exerpy <https://github.com/oemof/exerpy>`__. Exerpy is fully compatible to
+    input from a tespy model, meaning, you can build your model in the same way
+    as you are used to it and pass the relevant system boundary crossing
+    streams to exerpy to make the automatic analysis. On top of that, exerpy
+    offers advanced features like exergoecomic methods. You will find a couple
+    of examples on how to integrate tespy models with exerpy in the respective
+    section of the
+    `documentation <https://exerpy.readthedocs.io/en/latest/examples.html>`__.
+    The examples given in the tespy documentation will still be supported, but
+    the implementation will be adjusted to work with exerpy with the next major
+    version.
+
 Task
 ^^^^
 
@@ -117,8 +133,7 @@ The units used, and the ambient state are defined as follows:
 .. code-block:: python
 
     nw = Network(
-        T_unit='C', p_unit='bar',
-        h_unit='kJ / kg', m_unit='kg / s'
+        T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s'
     )
 
     pamb = 1.013
@@ -284,16 +299,17 @@ a lower temperature than the temperature of the geothermal heat collector.
 
     char = CharLine(x=x, y=y)
     power = Bus('power input')
-    power.add_comps({'comp': cp, 'char': char, 'base': 'bus'},
-                    {'comp': ghp, 'char': char, 'base': 'bus'},
-                    {'comp': hsp, 'char': char, 'base': 'bus'})
+    power.add_comps(
+        {'comp': cp, 'char': char, 'base': 'bus'},
+        {'comp': ghp, 'char': char, 'base': 'bus'},
+        {'comp': hsp, 'char': char, 'base': 'bus'}
+    )
 
     heat_cons = Bus('heating system')
     heat_cons.add_comps({'comp': hs_ret, 'base': 'bus'}, {'comp': hs_feed})
 
     heat_geo = Bus('geothermal heat')
-    heat_geo.add_comps({'comp': gh_in, 'base': 'bus'},
-                       {'comp': gh_out})
+    heat_geo.add_comps({'comp': gh_in, 'base': 'bus'}, {'comp': gh_out})
 
     nw.add_busses(power, heat_cons, heat_geo)
 
@@ -308,9 +324,7 @@ documentation of class :py:class:`tespy.tools.analyses.ExergyAnalysis`.
 
 .. code-block:: python
 
-   ean = ExergyAnalysis(network=nw,
-                        E_F=[power, heat_geo],
-                        E_P=[heat_cons])
+   ean = ExergyAnalysis(network=nw, E_F=[power, heat_geo], E_P=[heat_cons])
 
    ean.analyse(pamb, Tamb)
 
@@ -350,7 +364,8 @@ method returns a dictionary containing links and nodes for the sankey diagram.
             "label": nodes,
             'pad': 11,
             'color': 'orange'},
-        link=links))
+        link=links
+    ))
     plot(fig, filename='NH3_sankey')
 
 
@@ -610,8 +625,9 @@ of :code:`Ths` as columns.
 .. code-block:: python
 
     # calculate epsilon and COP
-    print("\nVarying mean geothermal temperature and "+
-          "heating system temperature:\n")
+    print(
+        "\nVary mean geothermal temperature and heating system temperature:\n"
+    )
     for Tgeo in Tgeo_range:
         # set feed and return flow temperatures around mean value Tgeo
         gh_in_ghp.set_attr(T=Tgeo+1.5)

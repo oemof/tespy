@@ -15,7 +15,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -146,14 +145,12 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, SolarCollector
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> sc = SolarCollector('solar collector')
-    >>> sc.component()
-    'solar collector'
     >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
     ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = Connection(so, 'out1', sc, 'in1')
@@ -179,12 +176,8 @@ class SolarCollector(SimpleHeatExchanger):
     6083.8
     >>> round(outg.T.val, 1)
     70.5
-    >>> shutil.rmtree('./tmp.json', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'solar collector'
 
     def get_parameters(self):
         data = super().get_parameters()
@@ -197,11 +190,12 @@ class SolarCollector(SimpleHeatExchanger):
             'lkf_lin': dc_cp(min_val=0),
             'lkf_quad': dc_cp(min_val=0),
             'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
-                num_eq=1, latex=self.energy_group_func_doc,
-                func=self.energy_group_func, deriv=self.energy_group_deriv
+                num_eq_sets=1,
+                func=self.energy_group_func,
+                dependents=self.energy_group_dependents
             )
         })
         return data
@@ -241,67 +235,14 @@ class SolarCollector(SimpleHeatExchanger):
             )
         )
 
-    def energy_group_func_doc(self, label):
-        r"""
-        Equation for solar collector energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)\\' + '\n'
-            r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} - \alpha_1 \cdot'
-            r'\left(T_\mathrm{m} - T_\mathrm{amb} \right) - \alpha_2 \cdot'
-            r'\left(T_\mathrm{m} -T_\mathrm{amb}\right)^2 \right]\\' + '\n'
-            r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
-            '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy group function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.energy_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        # custom variables for the energy-group
-        for variable_name in self.energy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter == self.Tamb:
-                continue
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+    def energy_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.energy_group.elements]
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

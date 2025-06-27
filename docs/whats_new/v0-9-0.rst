@@ -11,13 +11,18 @@ For that reason: **We are looking forward for your feedback to the new**
 **version**. You can submit your feedback on this
 `GitHub discussion <https://github.com/oemof/tespy/discussions/>`__.
 
-On the high-level API few changes have been made, they are listed below. Please
-expect more changes to come in context of the :code:`Bus` class utilization in
-a future version. In constrast, the back-end has changed quite a bit. The
-most relevant changes in your custom component implementations are listed in
-that sections.
+On the high-level API (what users see when working with the standard components
+of tespy) few changes have been made, they are listed below. In constrast, the
+back-end has changed quite a bit. The most relevant changes in your custom
+component implementations are listed in that sections. Apart from these
+changes, further API changes will follow in the future. These will be
+dealing with:
 
-high-level API changes
+- The units of different quantities so that both component and connection
+  parameters can be associated with non-SI units in a structured way.
+- The post-processing of components and connections will be harmonized.
+
+High-level API changes
 ######################
 - The :code:`UserDefinedEquation` now needs additional specifications. You
   have to provide the :code:`dependents` and the :code:`deriv` has become
@@ -35,6 +40,11 @@ high-level API changes
 
 - The :code:`reset_topology_reduction_specifications` method of the
   :code:`Network` has been depricated and is not required anymore.
+- The :code:`Bus` class and the :code:`ExergyAnalysis` class will be depricated
+  in the next major version release following v0.9. The :code:`PowerConnection`
+  and the respective power components replace the :code:`Bus` class. The
+  :code:`ExergyAnalysis` feature moved to an external library:
+  `exerpy <https://github.com/oemof/exerpy>`__.
 
 Back-end API changes
 ####################
@@ -73,7 +83,7 @@ New Features
   :code:`Turbine`, :code:`Compressor`, :code:`Pump` or
   :code:`SimpleHeatExchanger`. It streamlines the API between connections
   transporting material flows and connections with non-material flows. For more
-  information please check
+  information and examples please check
   :ref:`this section in the docs <tespy_powerconnections_label>`.
 - The new version of tespy comes with great debugging capabilities, which allow
   you to explore, which variables have been solved in presolving with the help
@@ -100,19 +110,14 @@ Known Issues
   problem formulation. The starting value for the common variable will be taken
   from one of the both original variables. The procedure will be updated in a
   future release.
-- The `Bus` preprocessing and solving process has not been apdated to the same
-  back-end API as it has been done for the components, connections and user
-  defined equations as the system/API will be changed based on the refactoring
-  soon.
+- The :code:`Bus` class preprocessing and solving process has not been apdated
+  to the same back-end API as it has been done for the components, connections
+  and user defined equations as the class is deprecated.
 
 Other Changes
 #############
-- Depricated python 3.9 support.
-- Depricated :code:`load_network` and :code:`document_models` modules.
-- The :ref:`starting value tutorial <tespy_tutorial_starting_values_label>`
-  does not require the two-step solving approach anymore. The refactoring of
-  the presolver "fixed" this issue. The tutorial will still be kept, since it
-  still demonstrates a good practice in principle.
+- Removed python 3.9 support.
+- Removed :code:`load_network` and :code:`document_models` modules.
 
 Contributors
 ############

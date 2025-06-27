@@ -18,7 +18,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 @component_registry
 class Generator(Component):
-    """
+    r"""
     A generator converts mechanical energy into electrical energy.
 
     **Mandatory Equations**

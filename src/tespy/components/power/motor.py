@@ -18,7 +18,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 @component_registry
 class Motor(Component):
-    """
+    r"""
     A motor converts electrical energy into mechanical energy.
 
     **Mandatory Equations**

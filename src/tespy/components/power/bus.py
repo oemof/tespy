@@ -32,10 +32,10 @@ class PowerBus(Component):
 
     - None
 
-    Optional inlets/outlets
+    PowerConnection inlets/outlets
 
-    - specify number of inlets with :code:`num_in`
-    - specify number of outlets with :code:`num_out`
+    - specify number of inlets with :code:`num_in`: 'power_in1', ...
+    - specify number of outlets with :code:`num_out` 'power_out1', ...
 
     Image
 

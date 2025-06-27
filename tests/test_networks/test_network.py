@@ -690,7 +690,7 @@ def  test_cyclic_linear_dependent_variables():
 def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "../../_exported_nwk.json"
+        "_exported_nwk.json"
     )
 
     nw = Network.from_json(path)

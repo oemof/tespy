@@ -409,10 +409,9 @@ while
 
     You have to provide the exact amount of required parameters (neither less
     nor more) and the parametrisation must not lead to linear dependencies.
-    Each parameter you set for a connection and each energy flow you specify
-    for a bus will add one equation to your system. On top, each component
-    provides a different amount of basic equations plus the equations provided
-    by your component specification.
+    Each parameter you set for a connection will add one equation to your
+    system. On top, each component provides a different amount of basic
+    equations plus the equations provided by your component specification.
 
 For example, consider a pump: Total mass flow as well as the fluid mass
 fractions of the mixture entering the pump will be identical at the outlet. The
@@ -668,7 +667,7 @@ have further options:
 Results printing
 ^^^^^^^^^^^^^^^^
 To print the results in your console use the :code:`print_results()` method.
-It will print tables containing the component, connection and bus properties.
+It will print tables containing the component and connection properties.
 Some results will be colored, the colored results indicate
 
 * if a parameter was specified as value before calculation.
@@ -683,15 +682,14 @@ you can instead call the method the following way:
 
     my_plant.print_results(colored=False)
 
-If you want to limit your printouts to a specific subset of components,
-connections and busses, you can specify the :code:`printout` parameter to block
-individual result printout.
+If you want to limit your printouts to a specific subset of components and
+connections, you can specify the :code:`printout` parameter to block individual
+result printout.
 
 .. code-block:: python
 
     mycomp.set_attr(printout=False)
     myconn.set_attr(printout=False)
-    mybus.set_attr(printout=False)
 
 If you want to prevent all printouts of a subsystem, add something like this:
 
@@ -768,14 +766,12 @@ save the network first.
 
     my_plant.export('mynetwork.json')
 
-This generates a folder structure containing all relevant files defining your
+This exports a json file containing all relevant information defining your
 network (general network information, components, connections, busses,
 characteristics) holding the parametrisation of that network. You can re-import
-the network using following code with the path to the saved documents. The
+the network using following code with the path to the saved document. The
 generated network object contains the same information as a TESPy network
-created by a python script. Thus, it is possible to set your parameters in the
-.csv-files, too. The imported network is handled identically as a manually
-created network.
+created by a python script.
 
 .. code:: python
 

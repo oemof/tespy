@@ -14,6 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 
@@ -78,8 +79,6 @@ class CycleCloser(Component):
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
-    >>> cc.component()
-    'cycle closer'
     >>> pu_pi = Connection(pu, 'out1', pi, 'in1')
     >>> pi_cc = Connection(pi, 'out1', cc, 'in1')
     >>> cc_pu = Connection(cc, 'out1', pu, 'in1')
@@ -93,30 +92,24 @@ class CycleCloser(Component):
     """
 
     @staticmethod
-    def component():
-        return 'cycle closer'
-
-    @staticmethod
     def get_parameters():
         return {
-            'mass_deviation': dc_cp(val=0, max_val=1e-3, is_result=True),
-            'fluid_deviation': dc_cp(val=0, max_val=1e-5, is_result=True)
+            'mass_deviation': dc_cp(_val=0, max_val=1e-3, is_result=True),
+            'fluid_deviation': dc_cp(_val=0, max_val=1e-5, is_result=True)
         }
 
     def get_mandatory_constraints(self):
         return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 1},
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+            'pressure_equality_constraint': dc_cmc(**{
+                'num_eq_sets': 1,
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_equality_constraint': dc_cmc(**{
+                'num_eq_sets': 1,
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'func_params': {'variable': 'h'}
+            })
         }
 
     @staticmethod
@@ -126,21 +119,6 @@ class CycleCloser(Component):
     @staticmethod
     def outlets():
         return ['out1']
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
 
     def start_fluid_wrapper_branch(self):
         outconn = self.outl[0]
@@ -152,16 +130,9 @@ class CycleCloser(Component):
 
         return {outconn.label: branch}
 
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         return
-
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

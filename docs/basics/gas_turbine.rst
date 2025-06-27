@@ -134,8 +134,14 @@ Setting up the Full System
 After learning more about the component, we are going to add the remaining
 components: The turbine, the compressor and the generator. To do that, remove
 the existing connections from the network, create the new connections and
-add them to the network again. We also add a :code:`Bus` representing the
-generator, assuming 98 % mechanical-electrical efficiency.
+add them to the network again. To represent the power flow between the turbine,
+compressor, generator and the electricity grid, we can add instances of
+:code:`PowerConnection`:
+
+- a :code:`PowerBus` to represent a shaft (equates all energy inflows and
+  outflows),
+- a :code:`Generator` to model mechanical-electrical efficiency, e.g. 98 % and
+- a :code:`PowerSink` analogously to the :code:`Sink` for material flows.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python

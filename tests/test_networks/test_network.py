@@ -46,15 +46,26 @@ class TestNetworks:
         with raises(TESPyNetworkError):
             self.nw.solve('offdesign', **kwargs)
 
-    def test_Network_linear_dependency(self):
+    def test_Network_overdetermined_fluid_state(self):
         """Test network linear dependency."""
         a = Connection(
             self.source, 'out1', self.sink, 'in1', p=5, x=1, T=7, fluid={"H2": 1}
         )
         self.nw.add_conns(a)
-        self.nw.solve('design')
-        msg = 'Test must result in a linear dependency of the jacobian matrix.'
-        assert self.nw.status == 3, msg
+        with raises(TESPyNetworkError):
+            self.nw.solve('design')
+
+    def test_Network_linear_dependency(self):
+        pump = Pump("pump")
+        a = Connection(self.source, "out1", pump, "in1")
+        b = Connection(pump, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        a.set_attr(fluid={"water": 1}, p=1, T=25)
+        b.set_attr(p=2, T=27)
+        pump.set_attr(eta_s=0.9)
+
+        self.nw.solve("design")
+        assert self.nw.status == 3
 
     def test_Network_no_progress(self):
         """Test no convergence progress."""
@@ -88,13 +99,15 @@ class TestNetworks:
         """Test deleting a network's connection."""
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        self.nw.check_network()
+        self.nw.check_topology()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
         self.nw.del_conns(a)
-        msg = ('A connection has been deleted, the network consistency check '
-               'must be repeated (.checked-property must be False).')
+        msg = (
+            'A connection has been deleted, the network consistency check '
+            'must be repeated (.checked-property must be False).'
+        )
         assert not self.nw.checked, msg
 
     def test_Network_delete_comps(self):
@@ -505,15 +518,15 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design")
         self.nwk.assert_convergence()
         variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
-        # no mass flow is variable
+        # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
         # first connection pressure and enthalpy not variable
         assert c1.p not in variables
         assert c1.h not in variables
-        # second connection pressure and enthalpy are variable
-        assert c2.p in variables
-        assert c2.h in variables
+        # second connection pressure and enthalpy not variable
+        assert c2.p not in variables
+        assert c2.h not in variables
 
     @mark.skip("Not implemented")
     def test_splitting_branch_massflow_presolve(self):
@@ -625,59 +638,81 @@ def test_missing_source_sink_cycle_closer():
 
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
-        nw.check_network()
+        nw.solve("design")
 
+def  test_dublicated_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
 
-def test_v07_to_v08_export(tmp_path):
-    tmp_path = f"{tmp_path}.json"
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+def  test_cyclic_linear_dependent_variables():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    compressor = Compressor("compressor")
+    turbine = Turbine("turbine")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    c4 = Connection(turbine, "out1", si, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=Ref(c2, 1, 0))
+    c2.set_attr(p=Ref(c4, 1, 0))
+    c4.set_attr(p=Ref(c1, 1, 0))
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "_exported_nwk.json"
     )
 
-    with open(tmp_path, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    nw = Network.from_json(tmp_path)
+    nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
 
-
-def test_v07_to_v08_save(tmp_path):
-    tmp_path = f"{tmp_path}.json"
-
-    path = os.path.join(
+def test_v08_to_v09_complete():
+    network_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
+        "_exported_nwk.json"
     )
 
-    data = v07_to_v08_save(path)
-    assert "Bus" in data, "Bus entry expected but not found"
-    assert "CombustionChamber" in data["Component"], "CombustionChamber expected but not found"
-    assert "Connection" in data, "Connection entry expected but not found"
+    nw = Network.from_json(network_path)
 
-
-def test_v07_to_v08_complete(tmp_path):
-    tmp_path1 = f"{tmp_path}1.json"
-    tmp_path2 = f"{tmp_path}2.json"
-
-    path = os.path.join(
+    design_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "exported_nwk"
+        "_design_state.json"
     )
 
-    with open(tmp_path1, "w") as f:
-        json.dump(v07_to_v08_export(path), f)
-
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "design_state"
-    )
-
-    with open(tmp_path2, "w") as f:
-        json.dump(v07_to_v08_save(path), f)
-
-    nw = Network.from_json(tmp_path1)
-    nw.solve("offdesign", design_path=tmp_path2)
+    nw = Network.from_json(network_path)
+    nw.solve("design")
+    nw.get_comp('compressor').set_attr(igva='var')
+    nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():

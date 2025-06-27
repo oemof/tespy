@@ -19,6 +19,7 @@ import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
+from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data
 
@@ -138,59 +139,45 @@ def convert_from_SI(property, SI_value, unit):
         return SI_value / fluid_property_data[property]['units'][unit]
 
 
-def latex_unit(unit):
-    r"""
-    Convert unit to LaTeX.
-
-    Parameters
-    ----------
-    unit : str
-        Value of unit for input, e.g. :code:`m3 / kg`.
-
-    Returns
-    -------
-    unit : str
-        Value of unit for output, e.g. :code:`$\unitfrac{m3}{kg}$`.
-    """
-    if '/' in unit:
-        numerator = unit.split('/')[0].replace(' ', '')
-        denominator = unit.split('/')[1].replace(' ', '')
-        return r'$\unitfrac[]{' + numerator + '}{' + denominator + '}$'
-    else:
-        if unit == 'C' or unit == 'F':
-            unit = r'^\circ ' + unit
-        return r'$\unit[]{' + unit + '}$'
-
-
 class UserDefinedEquation:
 
-    def __init__(self, label, func, deriv, conns, params={},
-                 latex={}):
+    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=[], comps:list=[], params:dict={}):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
         Parameters
         ----------
         label : str
-            Label of the user defined function.
+            Label of the user defined function
 
         func : function
-            Equation to evaluate.
+            Method returning residual value of equation to evaluate
 
-        deriv : function
-            Partial derivatives of the equation.
+        dependents : function
+            Function, that returns the variables the equation depends on
+
+        deriv : function, optional
+            Method calculating partial derivatives of the equation, be default
+            None
 
         conns : list
-            List of connections used by the function.
+            List of connections used
+
+        comps : list
+            List of components used
 
         params : dict
             Dictionary containing keyword arguments required by the function
             and/or derivative.
 
-        latex : dict
-            Dictionary holding LaTeX string of the equation as well as
-            CharLine and CharMap instances applied in the equation for the
-            automatic model documentation module.
+        Note
+        ----
+        The derivative function specification is optional.
+
+        - In case you provide the dependents and no derivative, the equation
+          will numerically derived to all of the specified dependents.
+        - In case you provide the dependents and the derivative, the derivative
+          method will be used to calculate the partial derivatives.
 
         Example
         -------
@@ -253,55 +240,36 @@ class UserDefinedEquation:
 
         On top of the equation the solver requires its derivatives with respect
         to all relevant primary variables of the network, which are mass flow
-        pressure, enthalpy and fluid composition. In this case, the derivatives
-        to the mass flow, pressure and enthalpy of the inflow as well as the
-        derivatives to the pressure and enthalpy of the outflow will be
-        required. You have to define a function placing the derivatives in the
-        Jacobian matrix. The Jacobian is a dictionary containing tuples as keys
-        with the derivative as their value. The tuples indicate the equation
-        number (always 0 for user defined equations, since there is only a
-        single equation) and the position of the variable in the system matrix.
-        The position of the variables is stored in the :code:`J_col` attribute.
-        Before calculating and placing a result in the Jacobian, you have to
-        make sure, that the variable you want to calculate the partial
-        derivative for is actually a variable. For example, in case you
-        specified a value for the mass flow, it will not be part of the
-        variables' space, since it has a constant value, and thus, no derivate
-        needs to be calculated. You can use the :code:`is_var` keyword to check,
-        whether a mass flow, pressure or enthalpy is actually variable.
+        pressure, enthalpy and fluid composition, potentially also component
+        variables. In this case, the derivatives to the mass flow, pressure and
+        enthalpy of the inflow as well as the derivatives to the pressure and
+        enthalpy of the outflow will be required.
 
-        We can calculate the derivatives numerically, if an easy analytical
-        solution is not available. Simply use the :code:`numeric_deriv` method
-        passing the variable ('m', 'p', 'h', 'fluid') as well as the
-        connection.
+        We can now apply two different approaches:
 
-        >>> def myjacobian(ude):
-        ...     c0 = ude.conns[0]
-        ...     c1 = ude.conns[1]
-        ...     if c0.m.is_var:
-        ...         ude.jacobian[c0.m.J_col] = ude.numeric_deriv('m', c0)
-        ...     if c0.p.is_var:
-        ...         ude.jacobian[c0.p.J_col] = ude.numeric_deriv('p', c0)
-        ...     if c0.h.is_var:
-        ...         ude.jacobian[c0.h.J_col] = ude.numeric_deriv('h', c0)
-        ...     if c1.p.is_var:
-        ...         ude.jacobian[c1.p.J_col] = ude.numeric_deriv('p', c1)
-        ...     if c1.h.is_var:
-        ...         ude.jacobian[c1.h.J_col] = ude.numeric_deriv('h', c1)
+        - Either we specify the dependents and let the solver automatically
+          derive the method, or
+        - we specify the derivative function directly ourselves.
 
-        After that, we only need to th specify the characteristic line we want
-        out temperature drop to follow as well as create the
-        UserDefinedEquation instance and add it to the network. Its equation
-        is automatically applied. We apply extrapolation for the characteristic
-        line as it helps with convergence, in case a paramter
+        In the first example, we will only specify the dependents. With that,
+        we only need to specify the characteristic line we want our temperature
+        drop to follow as well as create the UserDefinedEquation instance and
+        add it to the network. We apply extrapolation for the characteristic
+        line as it helps with convergence.
 
+        >>> def mydependents(ude):
+        ...    c0, c1 = ude.conns
+        ...    return [c0.m, c0.p, c0.h, c1.p, c1.h]
         >>> char = CharLine(
         ...    x=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0],
         ...    y=[17, 12, 9, 6.5, 4.5, 3, 2, 1.5, 1.25, 1.125, 1.1, 1.05],
         ...    extrapolate=True)
         >>> my_ude = UserDefinedEquation(
-        ...    'myudelabel', myfunc, myjacobian, [inflow, outflow],
-        ...    params={'char': char})
+        ...    'myudelabel', myfunc,
+        ...    conns=[inflow, outflow],
+        ...    dependents=mydependents,
+        ...    params={'char': char}
+        ... )
         >>> nw.add_ude(my_ude)
         >>> nw.solve('design')
 
@@ -328,59 +296,263 @@ class UserDefinedEquation:
         >>> nw.solve('design')
         >>> round(inflow.v.val, 3)
         0.067
+
+        To make the example complete, we will quickly have a look at, how you
+        can specify the derivative method. In this case, you have to define a
+        function placing the derivatives in the correct locations of the
+        Jacobian matrix. The highlevel method :code:`partial_derivative` of the
+        class can handle this for your. You have to pass the variable to this
+        method, for which you want to calculate the partial derivative. In case
+        the value can be determined analytically, you can additionally pass the
+        value as second argument to the function. If you do not pass a second
+        argument to the function as in the example below, a numerical
+        derivative will be calculated.
+
+        >>> def myjacobian(increment_filter, k, dependents=None, ude=None):
+        ...     c0 = ude.conns[0]
+        ...     c1 = ude.conns[1]
+        ...     ude.partial_derivative(c0.m)
+        ...     ude.partial_derivative(c0.p)
+        ...     ude.partial_derivative(c0.h)
+        ...     ude.partial_derivative(c1.p)
+        ...     ude.partial_derivative(c1.h)
+
+        >>> my_ude.deriv = myjacobian
+        >>> nw.solve('design')
+
         """
         if isinstance(label, str):
             self.label = label
         else:
             msg = 'Label of UserDefinedEquation object must be of type String.'
-            logger.error(msg)
-            raise TypeError(msg)
-
-        if isinstance(conns, list):
-            self.conns = conns
-        else:
-            msg = (
-                'Parameter conns must be a list of '
-                'tespy.connections.connection.Connection objects.')
-            logger.error(msg)
+            logger.exception(msg)
             raise TypeError(msg)
 
         self.func = func
         self.deriv = deriv
+        self.dependents = dependents
+        self.conns = conns
+        self.comps = comps
+        self.params = params
 
-        if isinstance(params, dict):
-            self.params = params
+    def _preprocess(self, row_idx):
+        self.num_eq = 0
+
+        self._structure_matrix = {}
+        self._rhs = {}
+        self._equation_set_lookup = {}
+
+        self._equation_set_lookup[row_idx] = "equation"
+
+        self.num_eq += 1
+
+    def _prepare_for_solver(self, system_dependencies, eq_counter):
+        self.num_eq = 0
+        self.it = 0
+        self.equations = {}
+        self._equation_lookup = {}
+        self._equation_scalar_dependents_lookup = {}
+        self._equation_vector_dependents_lookup = {}
+
+        for eq_num, value in self._equation_set_lookup.items():
+            if eq_num in system_dependencies:
+                continue
+
+            if value not in self.equations:
+                self.equations[value] = dc_cp(
+                    func_params={"ude": self},
+                    dependents=self.dependents,
+                    num_eq_sets=1,
+                    func=self.func,
+                    deriv=self.deriv
+                )
+                self._assign_dependents_and_eq_mapping(
+                    value, self.equations[value], self.equations, eq_counter
+                )
+                self.num_eq += 1
+                eq_counter += 1
+
+        self.residual = {}
+        self.jacobian = {}
+
+        return eq_counter
+
+    def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
+        if data.dependents is None:
+            scalar_dependents = [[] for _ in range(data.num_eq)]
+            vector_dependents = [{} for _ in range(data.num_eq)]
         else:
-            msg = 'The parameter params must be passed as dictionary.'
-            logger.error(msg)
-            raise TypeError(msg)
+            dependents = data.dependents(**data.func_params)
+            if type(dependents) == list:
+                scalar_dependents = _get_dependents(dependents)
+                vector_dependents = [{} for _ in range(data.num_eq)]
+            else:
+                scalar_dependents = _get_dependents(dependents["scalars"])
+                vector_dependents = _get_vector_dependents(dependents["vectors"])
 
-        self.latex = {
-            'equation': r'\text{equation string not available}',
-            'lines': [],
-            'maps': []
-        }
-        if isinstance(latex, dict):
-            self.latex.update(latex)
+                # this is a temporary fix
+                if len(vector_dependents) < data.num_eq:
+                    vector_dependents = [{} for _ in range(data.num_eq)]
+
+        eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._vector_dependents = vector_dependents
+        eq_dict[value]._first_eq_index = eq_counter
+
+        for i in range(data.num_eq):
+            self._equation_lookup[eq_counter + i] = (value, i)
+            self._equation_scalar_dependents_lookup[eq_counter + i] = scalar_dependents[i]
+            self._equation_vector_dependents_lookup[eq_counter + i] = vector_dependents[i]
+
+    def get_structure_matrix(self):
+        return
+
+    def partial_derivative(self, var, value=None):
+        eq_num = self.equations["equation"]._first_eq_index
+        if value is None:
+            value = self.func
+        self._partial_derivative(var, eq_num, value, **{"ude": self})
+
+    def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
+        result = _partial_derivative(var, value, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col] = result
+
+    def _partial_derivative_fluid(self, var, eq_num, value, dx, increment_filter=None, **kwargs):
+        result = _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs)
+        if result is not None:
+            self.jacobian[eq_num, var.J_col[dx]] = result
+
+
+def solve(obj, increment_filter):
+    """
+    Solve equations and calculate partial derivatives of a component.
+
+    Parameters
+    ----------
+    increment_filter : ndarray
+        Matrix for filtering non-changing variables.
+    """
+    for label, data in obj.equations.items():
+        eq_num = data._first_eq_index
+        _solve_residual(obj, data, eq_num)
+        _solve_jacobian(obj, data, increment_filter, eq_num)
+
+
+def _solve_residual(obj, data, eq_num):
+    result = data.func(**data.func_params)
+    if isinstance(result, list):
+        result = {eq_num + k: value for k, value in enumerate(result)}
+    else:
+        result = {eq_num: result}
+
+    obj.residual.update(result)
+
+
+def _solve_jacobian(obj, data, increment_filter, eq_num):
+    if data.constant_deriv:
+        return
+    elif data.deriv is not None:
+        data.deriv(
+            increment_filter,
+            eq_num,
+            dependents={
+                "scalars": data._scalar_dependents,
+                "vectors": data._vector_dependents
+            },
+            **data.func_params
+        )
+    else:
+        # these can only be parameters with a single equation for now
+        for dependent in data._scalar_dependents[0]:
+            f = data.func
+            obj._partial_derivative(
+                dependent, eq_num, f, increment_filter, **data.func_params
+            )
+
+        for dependent, dx in data._vector_dependents[0].items():
+            f = data.func
+            obj._partial_derivative_fluid(
+                dependent, eq_num, f, dx, increment_filter, **data.func_params
+            )
+
+
+def _is_variable(var, increment_filter=None):
+    if var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col]:
+            return True
+    return False
+
+
+def _is_variable_vecvar(var, dx, increment_filter=None):
+    if dx in var.is_var:
+        if increment_filter is None or not increment_filter[var.J_col[dx]]:
+            return True
+    return False
+
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
+
+
+def _partial_derivative(var, value, increment_filter, **kwargs):
+    if _is_variable(var, increment_filter):
+        if callable(value):
+            if type(var) != dc_scavar:
+                var = var._reference_container
+            return _numeric_deriv(var, value, **kwargs)
         else:
-            msg = 'The parameter latex must be passed as dictionary.'
-            logger.error(msg)
-            raise TypeError(msg)
-
-    def solve(self):
-        self.residual = self.func(self)
-        self.deriv(self)
-
-    def numeric_deriv(self, dx, conn):
-        r"""
-        Calculate partial derivative of the user defined function to dx.
-
-        For details see :py:func:`tespy.tools.helpers._numeric_deriv`
-        """
-        return _numeric_deriv(self, self.func, dx, conn, ude=self)
+            return value
+    else:
+        return None
 
 
-def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
+def _partial_derivative_vecvar(var, value, dx, increment_filter, **kwargs):
+    if _is_variable_vecvar(var, dx, increment_filter):
+        if callable(value):
+            if type(var) != dc_vecvar:
+                var = var._reference_container
+            return _numeric_deriv_vecvar(var, value, dx, **kwargs)
+        else:
+            return value
+    else:
+        return None
+
+
+def _numeric_deriv(variable, func, **kwargs):
+    r"""
+    Calculate partial derivative of the function func to dx.
+
+    Parameters
+    ----------
+    variable : object
+        Variable container.
+
+    func : function
+        Function :math:`f` to calculate the partial derivative for.
+
+    Returns
+    -------
+    deriv : float/list
+        Partial derivative(s) of the function :math:`f` to variable(s)
+        :math:`x`.
+
+        .. math::
+
+            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+    """
+    d = variable.d
+    variable.val_SI += d
+    exp = func(**kwargs)
+
+    variable.val_SI -= 2 * d
+    exp -= func(**kwargs)
+    deriv = exp / (2 * d)
+
+    variable.val_SI += d
+
+    return deriv
+
+
+def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     r"""
     Calculate partial derivative of the function func to dx.
 
@@ -408,66 +580,19 @@ def _numeric_deriv(obj, func, dx, conn=None, **kwargs):
 
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
-    if conn is None:
-        d = obj.get_attr(dx).d
-        exp = 0
-        obj.get_attr(dx).val += d
-        exp += func(**kwargs)
+    original_vector = variable.val.copy()
+    # this is specific to fluids right now (upper limit of 1, lower limit of 0)
+    d1 = min(variable.d, 1 - variable.val[dx])
+    variable.val[dx] += d1
+    exp = func(**kwargs)
+    d2 = min(variable.d * 2, variable.val[dx])
+    variable.val[dx] -= d2
+    exp -= func(**kwargs)
 
-        obj.get_attr(dx).val -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        obj.get_attr(dx).val += d
-
-    elif dx in conn.fluid.is_var:
-        d = 1e-5
-
-        val = conn.fluid.val[dx]
-        if conn.fluid.val[dx] + d <= 1:
-            conn.fluid.val[dx] += d
-        else:
-            conn.fluid.val[dx] = 1
-
-        conn.build_fluid_data()
-        exp = func(**kwargs)
-
-        if conn.fluid.val[dx] - 2 * d >= 0:
-            conn.fluid.val[dx] -= 2 * d
-        else:
-            conn.fluid.val[dx] = 0
-
-        conn.build_fluid_data()
-        exp -= func(**kwargs)
-
-        conn.fluid.val[dx] = val
-        conn.build_fluid_data()
-
-        deriv = exp / (2 * d)
-
-    elif dx in ['m', 'p', 'h']:
-
-        if dx == 'm':
-            d = 1e-4
-        else:
-            d = 1e-1
-        conn.get_attr(dx).val_SI += d
-        exp = func(**kwargs)
-
-        conn.get_attr(dx).val_SI -= 2 * d
-        exp -= func(**kwargs)
-        deriv = exp / (2 * d)
-
-        conn.get_attr(dx).val_SI += d
-
-    else:
-        msg = (
-            "Your variable specification for the numerical derivative "
-            "calculation seems to be wrong. It has to be a fluid name, m, "
-            "p, h or the name of a component variable."
-        )
-        logger.exception(msg)
-        raise ValueError(msg)
+    variable.val = original_vector
+    # d2 is the complete delta of the central difference no matter how big
+    # d1 is actually
+    deriv = exp / d2
     return deriv
 
 
@@ -596,6 +721,41 @@ def extend_basic_path(subfolder):
     return extended_path
 
 
+def _get_vector_dependents(variable_list):
+    if len(variable_list) == 0:
+        return []
+    if isinstance(variable_list, list):
+        variable_list_new = []
+        for _eq_set in variable_list:
+            variable_list_new.append({})
+            for key, value in _eq_set.items():
+                if not value:
+                    continue
+                k = key._reference_container
+                if k not in variable_list_new[-1]:
+                    variable_list_new[-1][k] = set()
+                variable_list_new[-1][k] |= value
+        return variable_list_new
+    else:
+        return [
+            set(var for var in variable_list)
+        ]
+
+
+def _get_dependents(variable_list):
+    if isinstance(variable_list[0], list):
+        return [set(
+            var._reference_container
+            for var in sublist if var.is_var
+        ) for sublist in variable_list
+    ]
+    else:
+        return [set(
+            var._reference_container
+            for var in variable_list if var.is_var
+        )]
+
+
 def _nested_dict_of_dataframes_to_dict(dictionary):
     """Transpose a nested dict with dataframes or series in a json style dict
 
@@ -620,6 +780,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
             dictionary[key] = value.to_dict(**kwargs)
 
     return dictionary
+
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
     """Dump a nested dict with dataframes into a folder structrue

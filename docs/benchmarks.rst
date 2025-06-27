@@ -30,6 +30,14 @@ The code for the full models is accessible open source on GitHub:
 - `Air refrigeration machine <https://github.com/fwitte/refrigeration_cycle_exergy>`__
 - `CGAM process <https://github.com/KarimHShawky/Chemical-Exergy-in-TESPy>`__
 
+More validations have been carried out in context of the implementation of
+the `exerpy library <https://github.com/oemof/exerpy>`__. Here TESPy has been
+benchmarked with EBSILON and ASPEN models. The results are available in the
+github repository:
+
+- `Combined Cycle CHP <https://github.com/oemof/exerpy/blob/main/examples/ccpp/validation.ipynb>`__
+- `CGAM model <https://github.com/oemof/exerpy/blob/main/examples/cgam/validation.ipynb>`__
+- `Air Source Heat Pump <https://github.com/oemof/exerpy/blob/main/examples/heatpump/validation.ipynb>`__
 
 Unit testing
 ------------

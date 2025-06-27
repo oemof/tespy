@@ -14,6 +14,8 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -302,6 +304,16 @@ class ExergyAnalysis:
 
         >>> links, nodes = ean.generate_plotly_sankey_input()
         """
+        msg = (
+            "The ExergyAnalysis class of tespy is deprecated and will be "
+            "removed in the next major release of tespy. The functionalities "
+            "and further extensions have been ported to a new external "
+            "library. Please refer to the examples integrating tespy models "
+            "with exerpy in the exerpy github repository and documentation: "
+            "https://github.com/oemof/exerpy"
+        )
+        warnings.warn(msg, FutureWarning)
+
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
             logger.error(msg)
@@ -376,9 +388,10 @@ class ExergyAnalysis:
         self.network_data[:] = 0
 
         # physical exergy of connections
-        for conn in self.nw.conns['object']:
-            conn.get_physical_exergy(pamb_SI, Tamb_SI)
-            conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
+        mask = self.nw.conns['conn_type'] == 'Connection'
+        for conn in self.nw.conns.loc[mask, 'object']:
+            conn._get_physical_exergy(pamb_SI, Tamb_SI)
+            conn._get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech

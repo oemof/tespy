@@ -3,10 +3,11 @@ from tespy.networks import Network
 
 from tespy.components import (
     Condenser, Compressor, CycleCloser,  HeatExchanger,
-    SimpleHeatExchanger, Pump, Sink, Source, Valve
+    SimpleHeatExchanger, Pump, Sink, Source, Valve, PowerBus, PowerSource,
+    PowerSink
     )
 
-from tespy.connections import Connection, Bus
+from tespy.connections import Connection, PowerConnection
 # %%[sec_2]
 wf = "NH3"
 
@@ -107,7 +108,6 @@ try:
     nw.solve("design")
 except ValueError as e:
     print(e)
-    nw.reset_topology_reduction_specifications()
 
 # %%[sec_4]
 import CoolProp.CoolProp as CP
@@ -252,20 +252,21 @@ def generate_network_with_starting_values(wf):
     # consumer heat demand
     cons_heatsink.set_attr(Q=-1e6)
 
-    power_bus = Bus("Total power input")
-    heat_bus = Bus("Total heat production")
-    power_bus.add_comps(
-        {"comp": compressor, "base": "bus"},
-        {"comp": cons_pump, "base": "bus"},
-        {"comp": heatsource_pump, "base": "bus"},
-    )
-    heat_bus.add_comps({"comp": cons_heatsink})
+    grid = PowerSource("grid")
+    electricity = PowerBus("electricity distribution", num_in=1, num_out=3)
+    heat = PowerSink("heat production")
+    cons_heatsink.set_attr(power_connector_location="outlet")
+    e1 = PowerConnection(grid, "power", electricity, "power_in1", label="e1")
+    e2 = PowerConnection(electricity, "power_out1", compressor, "power", label="e2")
+    e3 = PowerConnection(electricity, "power_out2", cons_pump, "power", label="e3")
+    e4 = PowerConnection(electricity, "power_out3", heatsource_pump, "power", label="e4")
 
-    nw.add_busses(power_bus, heat_bus)
+    h1 = PowerConnection(cons_heatsink, "heat", heat, "power", label="h1")
+    nw.add_conns(e1, e2, e3, e4, h1)
 
     nw.solve("design")
 
-        # evaporation point
+    # evaporation point
     c1.set_attr(p=None)
     heatsource_evaporator.set_attr(ttd_l=5)
 
@@ -293,8 +294,8 @@ cop = pd.DataFrame(columns=["COP"])
 for wf in ["NH3", "R22", "R134a", "R152a", "R290", "R718"]:
     nw = generate_network_with_starting_values(wf)
 
-    power = nw.busses["Total power input"].P.val
-    heat = abs(nw.busses["Total heat production"].P.val)
+    power = nw.get_conn("e1").E.val
+    heat = nw.get_conn("h1").E.val
     cop.loc[wf] = heat / power
 
 fig, ax = plt.subplots(1, figsize=(16, 8))

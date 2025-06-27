@@ -16,9 +16,10 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -110,14 +111,12 @@ class Pump(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
-    >>> import shutil
+    >>> import os
     >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
     ... iterinfo=False)
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')
-    >>> pu.component()
-    'pump'
     >>> inc = Connection(so, 'out1', pu, 'in1')
     >>> outg = Connection(pu, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -151,12 +150,23 @@ class Pump(Turbomachine):
     0.71
     >>> round(inc.v.val, 1)
     0.9
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
-    def component():
-        return 'pump'
+    def powerinlets():
+        return ["power"]
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_inl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     def get_parameters(self):
         parameters = super().get_parameters()
@@ -165,23 +175,45 @@ class Pump(Turbomachine):
         parameters["dp"].max_val = 0
         parameters.update({
             'eta_s': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
-                deriv=self.eta_s_deriv,
+                min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
-                latex=self.eta_s_func_doc),
+                dependents=self.eta_s_dependents,
+                deriv=self.eta_s_deriv
+            ),
             'eta_s_char': dc_cc(
-                param='v', num_eq=1,
-                deriv=self.eta_s_char_deriv,
+                param='v', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                latex=self.eta_s_char_func_doc),
+                dependents=self.eta_s_char_dependents
+            ),
             'flow_char': dc_cc(
-                param='v', num_eq=1,
-                deriv=self.flow_char_deriv,
+                param='v', num_eq_sets=1,
                 func=self.flow_char_func,
-                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
-                latex=self.flow_char_func_doc)
+                dependents=self.flow_char_dependents,
+                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0}
+            )
         })
         return parameters
+
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E - \dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)
+        """
+        return self.power_inl[0].E.val_SI - self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
+    def energy_connector_dependents(self):
+        return [self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def eta_s_func(self):
         r"""
@@ -212,28 +244,9 @@ class Pump(Turbomachine):
             )
         )
 
-    def eta_s_func_doc(self, label):
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
-        Equation for given isentropic efficiency.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency function.
+        Partial derivatives for isentropic efficiency.
 
         Parameters
         ----------
@@ -243,17 +256,26 @@ class Pump(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+
+        if o.h.is_var and not i.h.is_var:
+            self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
+
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
+
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -294,51 +316,14 @@ class Pump(Turbomachine):
             )
         )
 
-    def eta_s_char_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left( X \right)-'
-            r'\left( h_{out,s} - h_{in} \right)')
-        return generate_latex_eq(self, latex, label)
-
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def flow_char_func(self):
         r"""
@@ -356,50 +341,17 @@ class Pump(Turbomachine):
         p = self.flow_char.param
         expr = self.get_char_expr(p, **self.flow_char.char_params)
         return (
-            self.outl[0].p.val_SI - self.inl[0].p.val_SI -
-            self.flow_char.char_func.evaluate(expr))
+            self.outl[0].p.val_SI - self.inl[0].p.val_SI
+            - self.flow_char.char_func.evaluate(expr)
+        )
 
-    def flow_char_func_doc(self, label):
-        r"""
-        Equation for given flow characteristic of a pump.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=p_\mathrm{out}-p_\mathrm{in}-f\left(X\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def flow_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for flow characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.flow_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
+    def flow_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+        ]
 
     def convergence_check(self):
         r"""
@@ -414,25 +366,25 @@ class Pump(Turbomachine):
         o = self.outl[0]
 
         if o.p.is_var and o.p.val_SI < i.p.val_SI:
-            o.p.val_SI = o.p.val_SI * 2
-        if i.p.is_var and o.p.val_SI < i.p.val_SI:
-            i.p.val_SI = o.p.val_SI * 0.5
+            o.p.set_reference_val_SI(i.p.val_SI * 1.5)
 
         if o.h.is_var and o.h.val_SI < i.h.val_SI:
-            o.h.val_SI = o.h.val_SI * 1.1
-        if i.h.is_var and o.h.val_SI < i.h.val_SI:
-            i.h.val_SI = o.h.val_SI * 0.9
+            o.h.set_reference_val_SI(i.h.val_SI + 10e3)
 
-        if self.flow_char.is_set:
+        if i.p.is_var and o.p.val_SI < i.p.val_SI:
+            i.p.set_reference_val_SI(o.p.val_SI * 2 / 3)
+            i.p.val_SI = o.p.val_SI * 0.9
+
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
+            i.h.set_reference_val_SI(o.h.val_SI - 10e3)
+
+        if i.m.is_var and self.flow_char.is_set:
             vol = i.calc_vol(T0=i.T.val_SI)
             expr = i.m.val_SI * vol
-
-            if expr > self.flow_char.char_func.x[-1] and i.m.is_var:
-                i.m.val_SI = self.flow_char.char_func.x[-1] / vol
-            elif expr < self.flow_char.char_func.x[1] and i.m.is_var:
-                i.m.val_SI = self.flow_char.char_func.x[0] / vol
-            else:
-                pass
+            if expr > self.flow_char.char_func.x[-1]:
+                i.m.set_reference_val_SI(self.flow_char.char_func.x[-1] / vol)
+            elif expr < self.flow_char.char_func.x[1]:
+                i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
 
     @staticmethod
     def initialise_Source(c, key):

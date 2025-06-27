@@ -79,8 +79,8 @@ nw.add_conns(hs_ret_hsp, hsp_cd, cd_hs_feed)
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
             offdesign=['zeta2', 'kA_char'])
 # evaporator
-kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
-kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
+kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
+kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
             kA_char1=kA_char1, kA_char2=kA_char2,
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
@@ -266,7 +266,7 @@ for Tgeo in Tgeo_range:
     # set feed and return flow temperatures around mean value Tgeo
     gh_in_ghp.set_attr(T=Tgeo + 1.5)
     ev_gh_out.set_attr(T=Tgeo - 1.5)
-    nw.solve('offdesign', init_path=path, design_path=path)
+    nw.solve('offdesign', design_path=path)
     ean.analyse(pamb, Tamb_design)
     eps_Tgeo.append(ean.network_data.epsilon)
     print("Case %d: Tgeo = %.1f °C" % (i, Tgeo))

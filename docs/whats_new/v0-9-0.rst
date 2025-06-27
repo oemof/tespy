@@ -1,5 +1,5 @@
-v0.9.0 - release candiate 1 (June, 17, 2025)
-++++++++++++++++++++++++++++++++++++++++++++
+v0.9.0 - Kelvin's Kingdom (June, 27, 2025)
+++++++++++++++++++++++++++++++++++++++++++
 
 This version of tespy comes with a refactoring of the complete presolver and
 solver back-end. This comes with many changes in the back-end APIs and

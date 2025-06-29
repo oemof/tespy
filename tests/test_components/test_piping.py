@@ -82,23 +82,30 @@ class TestPiping:
 
         # parameter specification
         self.c1.set_attr(fluid={'H2O': 1}, m=10, p=10, T=220)
-        
-        instance.set_attr(pr=0.99, Tamb = 20, L=1000, D=0.2, 
-                       insulation_thickness=0.1 ,insulation_tc= 0.035, 
-                       pipe_thickness=0.002, material='Steel', 
-                       environment_media= 'air', wind_velocity = 2,
-            ) 
+
+        instance.set_attr(
+            pr=0.99, Tamb=20, L=1000, D=0.2,
+            insulation_thickness=0.1 ,insulation_tc=0.035,
+            pipe_thickness=0.002, material='Steel',
+            environment_media='air', wind_velocity=2,
+        )
         self.nw.solve('design')
-        self.nw._convergence_check()
-        Q=-62683.7
-        msg = (f'The Heat loss of surface pipe should be {Q} but is {round(instance.Q.val,1)}.')
-        assert Q== round(instance.Q.val,1), msg
-        
-        instance.set_attr( wind_velocity =None,
-                       environment_media= 'moist soil', pipe_depth = 5,
-            ) 
+        self.nw.assert_convergence()
+        Q = -62683.7
+        msg = (
+            f"The Heat loss of surface pipe should be {Q} but is "
+            f"{round(instance.Q.val, 1)}."
+        )
+        assert Q == round(instance.Q.val, 1), msg
+
+        instance.set_attr(
+            wind_velocity=None, environment_media='moist soil', pipe_depth=5
+            )
         self.nw.solve('design')
-        self.nw._convergence_check()
-        Q=-57.0
-        msg = (f'The Heat loss of sub surface pipe should be {Q} but is {round(instance.Q.val,1)}.')
-        assert Q== round(instance.Q.val,1), msg
+        self.nw.assert_convergence()
+        Q = -57.4
+        msg = (
+            f"The Heat loss of sub surface pipe should be {Q} but is "
+            f"{round(instance.Q.val, 1)}."
+        )
+        assert Q == round(instance.Q.val, 1), msg

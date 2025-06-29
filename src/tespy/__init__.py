@@ -1,18 +1,9 @@
 # -*- coding: utf-8
 import importlib.resources
 import os
-import sys
-import warnings
-
-if sys.version_info[1] < 10:
-    msg = (
-        "Supprt for python versions below 3.10 will be dropped with the "
-        "next major release"
-    )
-    warnings.warn(FutureWarning(msg))
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.8.2.dev0'
+__version__ = '0.9.0 - Kelvin\'s Kingdom'
 
 # tespy data and connections import
 from . import connections  # noqa: F401
@@ -29,7 +20,6 @@ from .components import subsystem  # noqa: F401
 from .components import turbomachinery  # noqa: F401
 # tespy networks imports
 from .networks import network  # noqa: F401
-from .networks import network_reader  # noqa: F401
 # tespy tools imports
 from .tools import characteristics  # noqa: F401
 from .tools import data_containers  # noqa: F401

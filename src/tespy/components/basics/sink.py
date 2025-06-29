@@ -14,7 +14,6 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry
@@ -54,15 +53,9 @@ class Sink(Component):
 
     >>> from tespy.components import Sink
     >>> si = Sink('a labeled sink')
-    >>> si.component()
-    'sink'
     >>> si.label
     'a labeled sink'
     """
-
-    @staticmethod
-    def component():
-        return 'sink'
 
     @staticmethod
     def inlets():
@@ -71,13 +64,6 @@ class Sink(Component):
     @staticmethod
     def get_mandatory_constraints():
         return {}
-
-    @staticmethod
-    def get_bypass_constraints():
-        return {}
-
-    def propagate_to_target(self, branch):
-        return
 
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]

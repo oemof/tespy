@@ -1,0 +1,14 @@
+v0.9.1 - Under development
+++++++++++++++++++++++++++
+
+New Features
+############
+- A new component :code:`Pipeline` has been added, which can calculate heat
+  losses based on its material, insulation as well as the surrounding
+  conditions, e.g. if it is an above surface pipeline or a subsurface buried
+  pipeline (`PR #661 <https://github.com/oemof/tespy/pull/661>`__).
+
+Contributors
+############
+- `@HaSchneider <https://github.com/HaSchneider>`__
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

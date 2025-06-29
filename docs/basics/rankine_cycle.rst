@@ -130,37 +130,26 @@ Assess Electrical Power
 To assess the electrical power output we want to consider the power generated
 by the turbine as well as the power required to drive the feed pump. It is
 possible to include both of the component's power values in a single electrical
-:code:`Bus`. We can do this by importing the
-:py:class:`tespy.connections.bus.Bus` class, creating an instance and adding
-both components to the bus.
+:code:`PowerConnection`. We can do this by importing the respective component
+classes, i.e.
+
+- :py:class:`tespy.components.power.generator.Generator`
+- :py:class:`tespy.components.power.motor.Motor`
+- :py:class:`tespy.components.power.bus.PowerBus`
+- :py:class:`tespy.components.power.sink.PowerSink`
+
+as well as the :py:class:`tespy.connections.powerconnection.PowerConnection`
+class. Then we create a :code:`PowerBus` for the electrical distribution, which
+takes electricity fromt he :code:`Generator` and distributes it to the pump's
+:code:`Motor` and the grid represented by the :code:`PowerSink`.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
     :language: python
     :start-after: [sec_6]
     :end-before: [sec_7]
 
-.. note::
-
-    The :code:`Bus` can take components which either produce or consume energy.
-    Specifying :code:`'base': 'bus'` means, that the efficiency value is
-    referenced to the electrical power
-
-    .. math::
-
-        \dot{W} = \dot{W}_\text{el} \cdot \eta
-
-    while specifying :code:`'base': 'component'` (default) takes the component's
-    power as base value.
-
-    .. math::
-
-        \dot{W}_\text{el} = \dot{W} \cdot \eta
-
-The results for the bus are printed separately. Observe, that the steam
-turbine's electrical power production (:code:`bus value`) is lower than the
-:code:`component value`, while it is inverted for the feed pump.
-
-You can also set the total desired power production of the system, for example
+The results for the :code:`PowerConnections` are printed separately. You can
+also set the total desired power production of the system, for example
 replacing the mass flow specification at connection 1:
 
 .. literalinclude:: /../tutorial/basics/rankine.py

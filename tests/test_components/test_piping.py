@@ -42,7 +42,7 @@ class TestPiping:
         # test variable pressure ration
         instance.set_attr(pr='var')
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(round(instance.pr.val, 2)) + '.')
@@ -52,7 +52,7 @@ class TestPiping:
         zeta = round(instance.zeta.val, 0)
         instance.set_attr(zeta='var', pr=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         msg = ('Value of dimension independent zeta value must be ' +
                str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
         assert zeta == round(instance.zeta.val, 0), msg
@@ -67,7 +67,7 @@ class TestPiping:
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)

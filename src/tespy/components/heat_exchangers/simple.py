@@ -19,12 +19,13 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
+from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import convert_to_SI
 
 
@@ -154,14 +155,12 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
-    >>> heat_sink.component()
-    'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
     ... offdesign=['zeta', 'kA_char'])
     >>> inc = Connection(so1, 'out1', heat_sink, 'in1')
@@ -195,74 +194,99 @@ class SimpleHeatExchanger(Component):
     -47275.8
     >>> round(outg.T.val, 1)
     140.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
-    @staticmethod
-    def component():
-        return 'heat exchanger simple'
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_inl + self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     def get_parameters(self):
         return {
+            'power_connector_location': dc_simple(),
             'Q': dc_cp(
-                deriv=self.energy_balance_deriv,
-                latex=self.energy_balance_func_doc, num_eq=1,
-                func=self.energy_balance_func),
+                num_eq_sets=1,
+                func=self.energy_balance_func,
+                dependents=self.energy_balance_dependents,
+            ),
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                func=self.pr_func,
+                structure_matrix=self.pr_structure_matrix,
+                dependents=self.pr_dependents,
+                func_params={'pr': 'pr'},
+            ),
             'dp': dc_cp(
-                min_val=0, deriv=self.dp_deriv,
+                min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.dp_func,
-                num_eq=1, func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                dependents=self.dp_dependents,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp'}
             ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                latex=self.zeta_func_doc,
-                func_params={'zeta': 'zeta'}),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
+                func_params={'zeta': 'zeta'}
+            ),
             'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
             'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
-            'ks_HW': dc_cp(val=10, min_val=1e-1, max_val=1e3, d=1e-2),
+            'ks': dc_cp(_val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+            'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3, d=1e-2),
             'kA': dc_cp(min_val=0, d=1),
             'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
-            'dissipative': dc_simple(val=None),
+            'dissipative': dc_simple(_val=None),
             'darcy_group': dc_gcp(
-                elements=['L', 'ks', 'D'], num_eq=1,
-                latex=self.darcy_func_doc,
-                func=self.darcy_func, deriv=self.darcy_deriv),
+                elements=['L', 'ks', 'D'], num_eq_sets=1,
+                func=self.darcy_func,
+                dependents=self.darcy_dependents
+            ),
             'hw_group': dc_gcp(
-                elements=['L', 'ks_HW', 'D'], num_eq=1,
-                latex=self.hazen_williams_func_doc,
-                func=self.hazen_williams_func, deriv=self.hazen_williams_deriv),
+                elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
+                func=self.hazen_williams_func,
+                dependents=self.hazen_williams_dependents
+            ),
             'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'], num_eq=1,
-                latex=self.kA_group_func_doc,
-                func=self.kA_group_func, deriv=self.kA_group_deriv),
+                elements=['kA', 'Tamb'], num_eq_sets=1,
+                func=self.kA_group_func,
+                dependents=self.kA_group_dependents
+            ),
             'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'], num_eq=1,
-                latex=self.kA_char_group_func_doc,
-                func=self.kA_char_group_func, deriv=self.kA_char_group_deriv)
+                elements=['kA_char', 'Tamb'], num_eq_sets=1,
+                func=self.kA_char_group_func,
+                dependents=self.kA_char_group_dependents
+            )
         }
 
     def get_bypass_constraints(self):
         return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i
-            },
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': False,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': self.num_i
-            }
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
         }
 
     @staticmethod
@@ -273,13 +297,46 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
+    def powerinlets(self):
+        if self.power_connector_location.val == "inlet":
+            return ['heat']
+        else:
+            return []
 
+    def poweroutlets(self):
+        if self.power_connector_location.val == "outlet":
+            return ['heat']
+        else:
+            return []
+
+    def _preprocess(self, row_idx):
         self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
 
         if self.dp.is_set:
             self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
+
+        super()._preprocess(row_idx)
+
+    def _get_power_connector_location(self):
+        if self.power_connector_location.val == "inlet":
+            return self.power_inl[0]
+        else:
+            return self.power_outl[0]
+
+    def energy_connector_balance_func(self):
+        connector = self._get_power_connector_location()
+        if self.power_connector_location.val == "inlet":
+            energy_flow = -self.power_inl[0].E.val_SI
+        else:
+            energy_flow = self.power_outl[0].E.val_SI
+
+        return energy_flow + self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+            )
+
+    def energy_connector_dependents(self):
+        connector = self._get_power_connector_location()
+        return [connector.E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def energy_balance_func(self):
         r"""
@@ -298,49 +355,13 @@ class SimpleHeatExchanger(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         ) - self.Q.val
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right) -\dot{Q}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
-        # custom variable Q
-        if self.Q.is_var:
-            self.jacobian[k, self.Q.J_col] = -1
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h,
+            self.Q,
+        ]
 
     def darcy_func(self):
         r"""
@@ -373,7 +394,6 @@ class SimpleHeatExchanger(Component):
         visc_o = o.calc_viscosity(T0=o.T.val_SI)
         v_i = i.calc_vol(T0=i.T.val_SI)
         v_o = o.calc_vol(T0=o.T.val_SI)
-
         Re = 4 * abs(i.m.val_SI) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
 
         return (
@@ -383,64 +403,14 @@ class SimpleHeatExchanger(Component):
             / (math.pi ** 2 * self.D.val ** 5)
         )
 
-    def darcy_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from darcy friction factor.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &p_\mathrm{in}-p_\mathrm{out}-'
-            r'\frac{8\cdot|\dot{m}_\mathrm{in}| \cdot\dot{m}_\mathrm{in}'
-            r'\cdot \frac{v_\mathrm{in}+v_\mathrm{out}}{2} \cdot L \cdot'
-            r'\lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\' + '\n'
-            r'Re =&\frac{4 \cdot |\dot{m}_\mathrm{in}|}{\pi \cdot D \cdot'
-            r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def darcy_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        func = self.darcy_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        # custom variables of hydro group
-        for variable_name in self.darcy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
+    def darcy_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.darcy_group.elements]
 
     def hazen_williams_func(self):
         r"""
@@ -484,60 +454,57 @@ class SimpleHeatExchanger(Component):
             ) * (9.81 * ((v_i + v_o) / 2) ** 0.852)
         )
 
-    def hazen_williams_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from Hazen-Williams equation.
+    def hazen_williams_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.hw_group.elements]
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
+    def _calculate_td_log(self):
+        """
+        Calculation of mean logarithmic temperature difference.
+
+        For numerical stability: If temperature differences have
+        different sign use mean difference to avoid negative logarithm.
 
         Returns
         -------
-        latex : str
-            LaTeX code of equations applied.
+        deltaT_log : float
+            Mean logarithmic temperature difference.
+
+            .. math::
+
+                \Delta T_{log} = \begin{cases}
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
+                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
+                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
+                0 & T_{in} = T_{out}
+                \end{cases}
+
+                T_{amb}: \text{ambient temperature}
         """
-        latex = (
-            r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
-            r'\frac{10.67 \cdot |\dot{m}_\mathrm{in}| ^ {1.852}'
-            r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
-            r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def hazen_williams_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        func = self.hazen_williams_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        # custom variables of hydro group
-        for variable_name in self.hw_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
+
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+
+        # For numerical stability: If temperature differences have
+        # different sign use mean difference to avoid negative logarithm.
+        if (ttd_1 / ttd_2) < 0:
+            td_log = (ttd_2 + ttd_1) / 2
+        elif round(ttd_1, 6) == round(ttd_2, 6):
+            td_log = ttd_2
+        elif ttd_1 > ttd_2:
+            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+        else:
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
+
+        return td_log
 
     def kA_group_func(self):
         r"""
@@ -565,68 +532,18 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
+        td_log = self._calculate_td_log()
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
 
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * self._deltaT_log()
-
-    def kA_group_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def kA_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA group.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        if self.kA.is_var:
-            self.jacobian[k, self.kA.J_col] = self.numeric_deriv(f, self.vars[self.kA])
+    def kA_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.kA
+        ]
 
     def kA_char_group_func(self):
         r"""
@@ -659,75 +576,28 @@ class SimpleHeatExchanger(Component):
         For standard function of f\ :subscript:`kA` \ see module
         :py:mod:`tespy.data`.
         """
-        p = self.kA_char.param
-        expr = self.get_char_expr(p, **self.kA_char.char_params)
         i = self.inl[0]
         o = self.outl[0]
+        p = self.kA_char.param
 
+        expr = self.get_char_expr(p, **self.kA_char.char_params)
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
-        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) 
-                + self.kA.design * fkA * self._deltaT_log())
+        td_log = self._calculate_td_log()
 
-    def kA_char_group_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA_\mathrm{design} \cdot f_\mathrm{kA}'
-            r' \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'f_{kA}=&\frac{2}{1 + \frac{1}{f\left(X\right)}}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            + self.kA.design * fkA * td_log
         )
-        return generate_latex_eq(self, latex, label)
 
-    def kA_char_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA characteristics.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_char_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+    def kA_char_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def bus_func(self, bus):
         r"""
@@ -753,24 +623,6 @@ class SimpleHeatExchanger(Component):
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)')
-
     def bus_deriv(self, bus):
         r"""
         Calculate partial derivatives of the bus function.
@@ -789,17 +641,17 @@ class SimpleHeatExchanger(Component):
         if self.inl[0].m.is_var:
             if self.inl[0].m.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m._reference_container, f, bus=bus)
 
         if self.inl[0].h.is_var:
             if self.inl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h._reference_container, f, bus=bus)
 
         if self.outl[0].h.is_var:
             if self.outl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h._reference_container, f, bus=bus)
 
     def initialise_source(self, c, key):
         r"""
@@ -890,8 +742,13 @@ class SimpleHeatExchanger(Component):
         self.zeta.val = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:
-            
-            self.kA.val = abs(self.Q.val / self._deltaT_log())
+            ttd_1 = i.T.val_SI - self.Tamb.val_SI
+            ttd_2 = o.T.val_SI - self.Tamb.val_SI
+            if ttd_1 / ttd_2 < 0:
+                self.kA.val = np.nan
+            else:
+                self.kA.val = abs(self.Q.val / self._calculate_td_log())
+
             self.kA.is_result = True
         else:
             self.kA.is_result = False
@@ -1146,51 +1003,3 @@ class SimpleHeatExchanger(Component):
                 'ending_point_value': self.outl[0].s.val
             }
         }
-
-    def _deltaT_log(self):
-        """
-        Calculation of mean logarithmic temperature difference. 
-
-        For numerical stability: If temperature differences have
-        different sign use mean difference to avoid negative logarithm.
-
-        Returns
-        -------
-        deltaT_log : float
-            Mean logarithmic temperature difference.
-
-            .. math::
-
-                \Delta T_{log} = \begin{cases}
-                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
-                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
-                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
-                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
-                0 & T_{in} = T_{out}
-                \end{cases}
-
-                T_{amb}: \text{ambient temperature}
-        """
-        
-        i = self.inl[0]
-        o = self.outl[0]
-
-        if math.isnan(i.T.val):
-            ttd_1 = i.calc_T() - self.Tamb.val_SI
-        else:
-            ttd_1 = i.T.val_SI - self.Tamb.val_SI
-        if math.isnan(o.T.val):
-            ttd_2 = o.calc_T() - self.Tamb.val_SI
-        else:
-            ttd_2 = o.T.val_SI - self.Tamb.val_SI
-
-        if (ttd_1 / ttd_2) < 0:
-            td_log = np.nan
-        if ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_1
-        return td_log

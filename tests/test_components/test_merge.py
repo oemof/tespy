@@ -43,7 +43,7 @@ class TestMerge:
         c3.set_attr(fluid={"water": 1})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = c1.m.val_SI + c2.m.val_SI
         msg = f"Target value for mass flow at connection 3 must be {target}."
@@ -57,7 +57,7 @@ class TestMerge:
         c3.set_attr(fluid={"N2": 0.3, "O2": 0.7})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = c1.m.val / c3.fluid.val["N2"]
         msg = f"Target value for mass flow at connection 3 is {target}"
@@ -99,7 +99,7 @@ class TestCyclicMerging:
         c5.set_attr(h=170)
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = c1.m.val_SI
         msg = f"Target value for mass flow at connection 3 is {target}"
@@ -114,7 +114,7 @@ class TestCyclicMerging:
         c5.set_attr(h=170)
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = c1.m.val_SI
         msg = f"Target value for mass flow at connection 3 is {target}"

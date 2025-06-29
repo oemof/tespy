@@ -244,10 +244,6 @@ def udf_dummy():
 def test_UserDefinedEquation_errors():
     with raises(TypeError):
         UserDefinedEquation(7, udf_dummy, udf_dummy, [])
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, 'connections')
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, [], params=[])
 
 ##############################################################################
 # test errors of component classes
@@ -295,16 +291,6 @@ class TestCombustionEngineBusErrors:
         """Test wrong/missing bus parameter in bus function."""
         with raises(ValueError):
             self.instance.bus_func(self.bus.comps.loc[self.instance])
-
-    def test_missing_Bus_param_deriv(self):
-        """Test wrong/missing bus parameter in bus derivatives."""
-        # both values do not matter, but are required for the test
-        self.instance.num_nw_vars = 1
-        self.instance.num_vars = 1
-        self.instance.inl = ["foo", "bar", "baz", "foo"]
-        self.instance.outl = ["bar", "baz", "foo"]
-        with raises(ValueError):
-            self.instance.bus_deriv(self.bus)
 
 ##############################################################################
 # compressor
@@ -377,22 +363,6 @@ def test_wrong_Bus_param_func():
         instance.bus_func(some_bus.comps.loc[instance])
 
 
-def test_wrong_Bus_param_deriv():
-    """Test missing/wrong bus parameter specification in derivatives."""
-    # this test does not need setup, since the function is called without
-    # network initialisation
-    instance = WaterElectrolyzer('electrolyzer')
-    # required for calling bus_deriv method without network initialisation
-    instance.num_vars = 1
-    instance.num_nw_fluids = 1
-    instance.num_nw_vars = 1
-    some_bus = Bus('some_bus')
-    param = 'G'
-    some_bus.add_comps({'comp': instance, 'param': param})
-    with raises(ValueError):
-        instance.bus_deriv(some_bus)
-
-
 ##############################################################################
 # test errors of Network class
 
@@ -435,7 +405,7 @@ class TestNetworkErrors:
         b = Connection(source, 'out1', sink2, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_Connection_error_target(self):
         source1 = Source('source1')
@@ -445,7 +415,7 @@ class TestNetworkErrors:
         b = Connection(source2, 'out1', sink, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_inlets(self):
         merge = Merge('merge')
@@ -453,7 +423,7 @@ class TestNetworkErrors:
         a = Connection(merge, 'out1', sink, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_outlets(self):
         source = Source('source')
@@ -461,7 +431,7 @@ class TestNetworkErrors:
         a = Connection(source, 'out1', splitter, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_component_label_duplicates(self):
         source = Source('label')
@@ -596,6 +566,5 @@ def test_h_mix_pQ_on_mixtures():
     c = Connection(Source("test"), "out1", Sink("test2"), "in1")
     c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
     c._create_fluid_wrapper()
-    c.build_fluid_data()
     with raises(ValueError):
         h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)

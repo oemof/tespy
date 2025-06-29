@@ -36,8 +36,8 @@ class Pipe(SimpleHeatExchanger):
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
 
@@ -150,13 +150,13 @@ class Pipe(SimpleHeatExchanger):
         environment media around the pipe: air, 'gravel' , 'stones' ,'dry soil', 'moist soil'
 
     wind_velocity: float
-        Mean velocity of the wind. Needs to be greater than zero, 
+        Mean velocity of the wind. Needs to be greater than zero,
         :math:`wind_velocity/\frac{\text{m}}{\text{s}}`.
 
     pipe_depth: float
-        pipe depth in the ground, 
+        pipe depth in the ground,
         :math:`pipe_depth/\text{m}`
-        
+
     Example
     -------
     A mass flow of 10 kg/s hot ethanol is transported in a pipeline. The pipe is
@@ -165,75 +165,69 @@ class Pipe(SimpleHeatExchanger):
     the required diameter, we can predict pressure loss at a different mass
     flow through the pipeline.
     Afterwards heat losses can be calculated by defining insulation and environment parameters.
-    The heat losses of a subsurface pipe can be compared to heat losses of a surface pipe. 
+    The heat losses of a subsurface pipe can be compared to heat losses of a surface pipe.
 
 
     >>> from tespy.components import Sink, Source, Pipe
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
+    >>> import os
     >>> nw = Network()
     >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
     >>> so = Source('source 1')
     >>> si = Sink('sink 1')
     >>> pi = Pipe('pipeline')
-    >>> pi.component()
-    'pipe'
     >>> pi.set_attr(pr=0.975, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
     >>> inc = Connection(so, 'out1', pi, 'in1')
     >>> outg = Connection(pi, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
     >>> inc.set_attr(fluid={'ethanol': 1}, m=10, T=30, p=3)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
     >>> round(pi.D.val, 3)
     0.119
     >>> outg.p.val / inc.p.val == pi.pr.val
     True
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(D=pi.D.val)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('design')
     >>> round(pi.pr.val, 2)
     0.94
-    >>> pi.set_attr(D='var', Q= None,  
-    >>>             Tamb = 20, environment_media= 'dry soil', pipe_depth = 5,
-    >>>             insulation_thickness=0.1 ,insulation_tc= 0.035, pipe_thickness=0.003,material='Steel', 
-    >>>             ) 
+    >>> pi.set_attr(
+    ...     D='var', Q= None,
+    ...     Tamb=20, environment_media='dry soil', pipe_depth=5,
+    ...     insulation_thickness=0.1 ,insulation_tc=0.035,
+    ...     pipe_thickness=0.003,material='Steel'
+    ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
     -6.77
-    >>> pi.set_attr(pipe_depth = None, 
-    >>>             environment_media= 'air', wind_velocity = 2,
-    >>>             ) 
+    >>> pi.set_attr(
+    ...     pipe_depth=None, environment_media='air', wind_velocity=2
+    ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
     -917.85
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    @staticmethod
-    def component():
-        return 'pipe'
+    def _preprocess(self, row_idx):
+        self.air = CoolPropWrapper('air')
 
-    def preprocess(self, num_nw_vars):
-        self.air= CoolPropWrapper('air')
-
-        super().preprocess(num_nw_vars)
+        super()._preprocess(row_idx)
 
     def get_parameters(self):
         parameters=super().get_parameters()
 
         parameters['Q_ohc_group_surface']=dc_gcp(
             elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media', 'wind_velocity'],
-            num_eq=1,
+            num_eq_sets=1,
             func=self.ohc_surface_group_func,
-            deriv=self.ohc_surface_group_deriv
+            dependents=self.ohc_surface_group_dependents
         )
         parameters['Q_ohc_group_subsurface']=dc_gcp(
             elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
-            num_eq=1,
+            num_eq_sets=1,
             func=self.ohc_subsurface_group_func,
-            deriv=self.ohc_subsurface_group_deriv
+            dependents=self.ohc_subsurface_group_dependents
         )
         parameters['insulation_thickness']=dc_cp(min_val=1e-3, max_val=1e1)
         parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2)
@@ -267,11 +261,11 @@ class Pipe(SimpleHeatExchanger):
                 Nu_\text{l}= 0.3 + \sqrt{Nu_\text{l, lam}^{2} +
                 Nu_\text{l, turb}^{2}}
 
-                Nu_\text{l, turb} = \frac{0.037 Re_l^{0.8} \cdot 
+                Nu_\text{l, turb} = \frac{0.037 Re_l^{0.8} \cdot
                 Pr}{1+2.443 \cdot Re_l^{-0.1}\cdot (Pr^{2/3}-1)}
 
                 Nu_\text{l, lam} = 0.664 \sqrt{Re_l}\cdot \sqrt[3]{Pr}
-        
+
         Reference: :cite:`gnielinski1975`
         """
 
@@ -294,7 +288,10 @@ class Pipe(SimpleHeatExchanger):
         '''
 
         # pipe wall heat transfer resistance
-        pipe_tc ={'Steel':46.5, 'Carbon Steel':46, 'Cast Iron':48.8, 'Stainless Steel':21, 'PVC':0.23, 'Copper': 380}
+        pipe_tc ={
+            'Steel':46.5, 'Carbon Steel':46, 'Cast Iron':48.8,
+            'Stainless Steel':21, 'PVC':0.23, 'Copper': 380
+        }
         if diameters[1] > diameters[0]:
             if isinstance(self.material.val, str):
                 wall_conductivity = pipe_tc[self.material.val]
@@ -334,12 +331,20 @@ class Pipe(SimpleHeatExchanger):
 
         if len(R_sum) == 0:
             raise ValueError("No heat transfer resistance. Check input values.")
-      
+
         i = self.inl[0]
         o = self.outl[0]
 
-        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) 
-                + area / sum(R_sum) * self._deltaT_log()
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            + area / sum(R_sum) * self._calculate_td_log()
+        )
+
+    def ohc_surface_group_dependents(self):
+        return (
+            [self.inl[0].m]
+            + [var for c in self.inl + self.outl for var in [c.p, c.h]]
+            + [self.D]
         )
 
     def ohc_subsurface_group_func(self):
@@ -360,7 +365,7 @@ class Pipe(SimpleHeatExchanger):
                 R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
 
                 First order approximation of multipole method for a single pipe in the ground.
-        
+
         Assume no surface resistance.
 
         Reference: :cite:`wallenten1991`
@@ -401,61 +406,13 @@ class Pipe(SimpleHeatExchanger):
         o = self.outl[0]
 
         return (
-            i.m.val_SI * (o.h.val_SI - i.h.val_SI) + 
-            1 / R_soil * self._deltaT_log()
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            + 1 / R_soil * self._calculate_td_log()
         )
 
-    def ohc_subsurface_group_deriv(self, increment_filter, k):
-        """Calculate the partial derivatives of the ohc equation
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        func= self.ohc_subsurface_group_func
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        if i.p.is_var:
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if o.p.is_var:
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.D.is_var:
-            self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
-
-    def ohc_surface_group_deriv(self, increment_filter, k):
-        """Calculate the partial derivatives of the ohc equation
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        func= self.ohc_surface_group_func
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        if i.p.is_var:
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if o.p.is_var:
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.D.is_var:
-            self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
-
+    def ohc_subsurface_group_dependents(self):
+        return (
+            [self.inl[0].m]
+            + [var for c in self.inl + self.outl for var in [c.p, c.h]]
+            + [self.D]
+        )

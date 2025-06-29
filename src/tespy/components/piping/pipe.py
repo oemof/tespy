@@ -10,8 +10,15 @@ available from its original location tespy/components/piping/pipe.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import component_registry
+import math
+
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
+from tespy.components.component import component_registry
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+
+from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 
 
 @component_registry
@@ -117,18 +124,49 @@ class Pipe(SimpleHeatExchanger):
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature
         unit.
+        :math:`Tamb/\text{K}`.
 
     kA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
 
+    insulation_thickness: float
+        thickness of insulation,
+        :math:`insulation_thickness/\text{m}`.
+
+    insulation_tc: float
+        thermal conductivity insulation,
+        :math:`insulation_tc/\frac{\text{W}}{\text{m}\text{K}}`.
+
+    material: str, float
+        material of pipe: 'Steel', 'Carbon Steel', 'Cast Iron', 'Stainless Steel', 'PVC', 'CommercialCopper'
+        or heat conductivity of material: float
+
+    pipe_thickness: float
+        thickness of pipe,
+        :math:`pipe_thickness/\text{m}`.
+
+    environment_media: str
+        environment media around the pipe: air, 'gravel' , 'stones' ,'dry soil', 'moist soil'
+
+    wind_velocity: float
+        Mean velocity of the wind. Needs to be greater than zero, 
+        :math:`wind_velocity/\frac{\text{m}}{\text{s}}`.
+
+    pipe_depth: float
+        pipe depth in the ground, 
+        :math:`pipe_depth/\text{m}`
+        
     Example
     -------
-    A mass flow of 10 kg/s ethanol is transported in a pipeline. The pipe is
-    considered adiabatic and has a length of 500 meters. We can calculate the
+    A mass flow of 10 kg/s hot ethanol is transported in a pipeline. The pipe is
+    considered in the first approach adiabatic and has a length of 500 meters. We can calculate the
     diameter required at a given pressure loss of 2.5 %. After we determined
     the required diameter, we can predict pressure loss at a different mass
     flow through the pipeline.
+    Afterwards heat losses can be calculated by defining insulation and environment parameters.
+    The heat losses of a subsurface pipe can be compared to heat losses of a surface pipe. 
+
 
     >>> from tespy.components import Sink, Source, Pipe
     >>> from tespy.connections import Connection
@@ -157,9 +195,267 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(pi.pr.val, 2)
     0.94
+    >>> pi.set_attr(D='var', Q= None,  
+    >>>             Tamb = 20, environment_media= 'dry soil', pipe_depth = 5,
+    >>>             insulation_thickness=0.1 ,insulation_tc= 0.035, pipe_thickness=0.003,material='Steel', 
+    >>>             ) 
+    >>> nw.solve('design')
+    >>> round(pi.Q.val, 2)
+    -6.77
+    >>> pi.set_attr(pipe_depth = None, 
+    >>>             environment_media= 'air', wind_velocity = 2,
+    >>>             ) 
+    >>> nw.solve('design')
+    >>> round(pi.Q.val, 2)
+    -917.85
     >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
     @staticmethod
     def component():
         return 'pipe'
+
+    def preprocess(self, num_nw_vars):
+        self.air= CoolPropWrapper('air')
+
+        super().preprocess(num_nw_vars)
+
+    def get_parameters(self):
+        parameters=super().get_parameters()
+
+        parameters['Q_ohc_group_surface']=dc_gcp(
+            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media', 'wind_velocity'],
+            num_eq=1,
+            func=self.ohc_surface_group_func,
+            deriv=self.ohc_surface_group_deriv
+        )
+        parameters['Q_ohc_group_subsurface']=dc_gcp(
+            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
+            num_eq=1,
+            func=self.ohc_subsurface_group_func,
+            deriv=self.ohc_subsurface_group_deriv
+        )
+        parameters['insulation_thickness']=dc_cp(min_val=1e-3, max_val=1e1)
+        parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2)
+        parameters['material']=dc_simple(val='Steel')
+        parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1)
+        parameters['environment_media']=dc_simple(val='soil')
+        parameters['wind_velocity']=dc_cp(min_val=1e-10, max_val=20)
+        parameters['pipe_depth']= dc_cp(min_val=1e-2, max_val=1e2)
+        return parameters
+
+    def ohc_surface_group_func(self):
+        r"""Heat transfer calculation based on pipe material, insulation and
+        surrounding ambient conditions fur surface pipes.
+        Valid for forced convection.
+
+        Returns
+        -------
+        float
+            Residual value of equation
+
+            .. math::
+
+                0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
+                \Delta T_\text{log} \cdot A \cdot U
+
+                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
+                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+
+                \alpha_\text{outer} = \frac{Nu_\text{l} \cdot \lambda}{l}
+
+                Nu_\text{l}= 0.3 + \sqrt{Nu_\text{l, lam}^{2} +
+                Nu_\text{l, turb}^{2}}
+
+                Nu_\text{l, turb} = \frac{0.037 Re_l^{0.8} \cdot 
+                Pr}{1+2.443 \cdot Re_l^{-0.1}\cdot (Pr^{2/3}-1)}
+
+                Nu_\text{l, lam} = 0.664 \sqrt{Re_l}\cdot \sqrt[3]{Pr}
+        
+        Reference: :cite:`gnielinski1975`
+        """
+
+        diameters= [
+            self.D.val,
+            self.D.val + 2 * self.pipe_thickness.val,
+            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
+        ]
+
+        # outer surface area per definition
+        area = self.L.val * math.pi * diameters[2]
+
+        # heat transfer resistance
+        R_sum = []
+
+        '''
+        inner heat transfer resistance neglected yet
+        R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
+        R_sum.append(R_int)
+        '''
+
+        # pipe wall heat transfer resistance
+        pipe_tc ={'Steel':46.5, 'Carbon Steel':46, 'Cast Iron':48.8, 'Stainless Steel':21, 'PVC':0.23, 'Copper': 380}
+        if diameters[1] > diameters[0]:
+            if isinstance(self.material.val, str):
+                wall_conductivity = pipe_tc[self.material.val]
+            else:
+                wall_conductivity = self.material.val
+            R_sum.append(
+                diameters[1] / wall_conductivity
+                * math.log(diameters[1] / diameters[0]) / 2
+            )
+
+        # insulation heat transfer resistance
+        if self.insulation_thickness.val != 0:
+            R_sum.append(
+                diameters[2] / self.insulation_tc.val
+                * math.log(diameters[2] / diameters[1]) / 2
+            )
+        # external heat transfer resistance (to environment)
+        Re = (
+            self.wind_velocity.val * math.pi / 2
+            * (diameters[1] + self.insulation_thickness.val * 2)
+            / self.air.viscosity_pT(101300, self.Tamb.val_SI)
+            * self.air.d_pT(101300, self.Tamb.val_SI)
+        )
+        Pr = self.air.AS.Prandtl()
+        Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)
+        Nu_turb = (
+            0.037 * Re ** 0.8 * Pr
+            / (1+ 2.443 * Re** (-0.1) * (Pr ** (2 / 3) - 1))
+        )
+        Nu_ext = 0.3 + (Nu_lam ** 2 + Nu_turb ** 2) ** 0.5
+        alpha_ext = (
+            Nu_ext
+            / (math.pi / 2 * (diameters[1] + self.insulation_thickness.val *2))
+            * self.air.AS.conductivity()
+        ) #W/m²/K
+        R_sum.append(1 / alpha_ext)
+
+        if len(R_sum) == 0:
+            raise ValueError("No heat transfer resistance. Check input values.")
+      
+        i = self.inl[0]
+        o = self.outl[0]
+
+        return (i.m.val_SI * (o.h.val_SI - i.h.val_SI) 
+                + area / sum(R_sum) * self._deltaT_log()
+        )
+
+    def ohc_subsurface_group_func(self):
+        r"""Heat transfer calculation based on pipe material, insulation and
+        surrounding ambient conditions for subsurface pipes.
+
+        Returns
+        -------
+        float
+            Residual value of equation
+
+            .. math::
+
+                0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
+                \Delta T_\text{log} \cdot A \cdot U
+
+                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
+                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+
+                First order approximation of multipole method for a single pipe in the ground.
+        
+        Assume no surface resistance.
+
+        Reference: :cite:`wallenten1991`
+        """
+
+        diameters= [
+            self.D.val,
+            self.D.val + 2 * self.pipe_thickness.val,
+            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
+        ]
+
+        '''
+        inner heat transfer resistance neglected yet
+        R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
+        R_sum.append(R_int)
+        '''
+
+        # external heat transfer resistance (to environment)
+        ground_conductivity ={
+            'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
+        }
+
+        Beta = (
+            ground_conductivity[self.environment_media.val]
+            / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
+        )
+        _h = (
+            math.log(2 * self.pipe_depth.val / diameters[0]) + Beta
+            + 1 / (
+                1 - (2 * self.pipe_depth.val / diameters[0]) ** 2
+                * (1 + Beta) / (1 - Beta)
+            )
+        )
+        R_soil = (
+            _h / (2 * math.pi * ground_conductivity[self.environment_media.val])
+        )
+        i = self.inl[0]
+        o = self.outl[0]
+
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI) + 
+            1 / R_soil * self._deltaT_log()
+        )
+
+    def ohc_subsurface_group_deriv(self, increment_filter, k):
+        """Calculate the partial derivatives of the ohc equation
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        func= self.ohc_subsurface_group_func
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        if i.p.is_var:
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if o.p.is_var:
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.D.is_var:
+            self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
+
+    def ohc_surface_group_deriv(self, increment_filter, k):
+        """Calculate the partial derivatives of the ohc equation
+
+        Parameters
+        ----------
+        increment_filter : ndarray
+            Matrix for filtering non-changing variables.
+
+        k : int
+            Position of derivatives in Jacobian matrix (k-th equation).
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        func= self.ohc_surface_group_func
+        if i.m.is_var:
+            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
+        if i.h.is_var:
+            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
+        if o.h.is_var:
+            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
+        if i.p.is_var:
+            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
+        if o.p.is_var:
+            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
+        if self.D.is_var:
+            self.jacobian[k, self.D.J_col] = self.numeric_deriv(func, 'D', None)
+

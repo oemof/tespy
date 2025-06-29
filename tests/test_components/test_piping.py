@@ -15,7 +15,6 @@ from tespy.components import Pipe
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve
-from tespy.components import Pipeline
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
@@ -81,29 +80,25 @@ class TestPiping:
         instance = Pipe('pipe')
         self.setup_piping_network(instance)
 
-        # NO TEST NEEDED AT THE MOMENT, THE PIPE PROPERTIES ARE IDENTICAL TO
-        # THE PROPERTIES OF THE SIMPLE HEAT EXCHANGER. TESTS ARE LOCATED AT
-        # heat_exchanger_tests.py
-
-    def test_Pipeline(self):
-        instance = Pipeline('pipeline')
-
-        self.setup_piping_network(instance)
-
         # parameter specification
         self.c1.set_attr(fluid={'H2O': 1}, m=10, p=10, T=220)
         
         instance.set_attr(pr=0.99, Tamb = 20, L=1000, D=0.2, 
-                       insulation_m=0.1 ,insulation_tc= 0.035, pipe_thickness=0.002,
-                       material='Steel', 
+                       insulation_thickness=0.1 ,insulation_tc= 0.035, 
+                       pipe_thickness=0.002, material='Steel', 
                        environment_media= 'air', wind_velocity = 2,
             ) 
         self.nw.solve('design')
         self.nw._convergence_check()
-        instance.set_attr(pr=0.99, Tamb = 20, L=1000, D=0.2, 
-                       insulation_m=0.1 ,insulation_tc= 0.035, pipe_thickness=0.002,
-                       material='Steel', 
+        Q=-62683.7
+        msg = (f'The Heat loss of surface pipe should be {Q} but is {round(instance.Q.val,1)}.')
+        assert Q== round(instance.Q.val,1), msg
+        
+        instance.set_attr( wind_velocity =None,
                        environment_media= 'moist soil', pipe_depth = 5,
             ) 
         self.nw.solve('design')
         self.nw._convergence_check()
+        Q=-57.0
+        msg = (f'The Heat loss of sub surface pipe should be {Q} but is {round(instance.Q.val,1)}.')
+        assert Q== round(instance.Q.val,1), msg

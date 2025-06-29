@@ -20,7 +20,6 @@ from .nodes.merge import Merge  # noqa: F401
 from .nodes.separator import Separator  # noqa: F401
 from .nodes.splitter import Splitter  # noqa: F401
 from .piping.pipe import Pipe  # noqa: F401
-from .piping.pipeline import Pipeline  # noqa: F401
 from .piping.valve import Valve  # noqa: F401
 from .power.bus import PowerBus  # noqa: F401
 from .power.generator import Generator  # noqa: F401

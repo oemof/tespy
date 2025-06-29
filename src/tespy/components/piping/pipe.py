@@ -177,7 +177,7 @@ class Pipe(SimpleHeatExchanger):
     >>> so = Source('source 1')
     >>> si = Sink('sink 1')
     >>> pi = Pipe('pipeline')
-    >>> pi.set_attr(pr=0.975, Q=0, design=['pr'], L=100, D='var', ks=5e-5)
+    >>> pi.set_attr(pr=0.975, Q=0, L=100, D='var', ks=5e-5)
     >>> inc = Connection(so, 'out1', pi, 'in1')
     >>> outg = Connection(pi, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -188,12 +188,13 @@ class Pipe(SimpleHeatExchanger):
     >>> outg.p.val / inc.p.val == pi.pr.val
     True
     >>> inc.set_attr(m=15)
+    >>> pi.set_attr(pr=None)
     >>> pi.set_attr(D=pi.D.val)
     >>> nw.solve('design')
     >>> round(pi.pr.val, 2)
     0.94
     >>> pi.set_attr(
-    ...     D='var', Q= None,
+    ...     D='var', Q=None, pr=0.975,
     ...     Tamb=20, environment_media='dry soil', pipe_depth=5,
     ...     insulation_thickness=0.1 ,insulation_tc=0.035,
     ...     pipe_thickness=0.003,material='Steel'

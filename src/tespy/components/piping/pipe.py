@@ -26,6 +26,10 @@ class Pipe(SimpleHeatExchanger):
     r"""
     The Pipe is a subclass of a SimpleHeatExchanger.
 
+    There are two different types of pipes available: An at the surface and
+    a subsurface buried pipe. The implementation is based on
+    :cite:`gnielinski1975` (surface) and :cite:`wallenten1991` (subsurface).
+
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.component.Component.fluid_func`
@@ -40,11 +44,17 @@ class Pipe(SimpleHeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.piping.Pipe.ohc_surface_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.piping.Pipe.ohc_subsurface_group_func`
 
     Inlets/Outlets
 
     - in1
     - out1
+
+    Optional inlets/outlets
+
+    - heat
 
     Image
 
@@ -84,13 +94,13 @@ class Pipe(SimpleHeatExchanger):
     printout : boolean
         Include this component in the network's results printout.
 
-    Q : float, dict, :code:`"var"`
+    Q : float, dict
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : float, dict, :code:`"var"`
+    zeta : float, dict
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -123,50 +133,48 @@ class Pipe(SimpleHeatExchanger):
 
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature
-        unit.
-        :math:`Tamb/\text{K}`.
+        unit, :math:`Tamb/\text{K}`.
 
     kA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
         and area independent heat transfer coefficient kA.
 
     insulation_thickness: float
-        thickness of insulation,
-        :math:`insulation_thickness/\text{m}`.
+        thickness of insulation, :math:`insulation_thickness/\text{m}`.
 
     insulation_tc: float
         thermal conductivity insulation,
         :math:`insulation_tc/\frac{\text{W}}{\text{m}\text{K}}`.
 
     material: str, float
-        material of pipe: 'Steel', 'Carbon Steel', 'Cast Iron', 'Stainless Steel', 'PVC', 'CommercialCopper'
-        or heat conductivity of material: float
+        material of pipe: 'Steel', 'Carbon Steel', 'Cast Iron',
+        'Stainless Steel', 'PVC', 'CommercialCopper' or user-specified heat
+        conductivity of material: float
 
     pipe_thickness: float
-        thickness of pipe,
-        :math:`pipe_thickness/\text{m}`.
+        thickness of pipe, :math:`pipe_thickness/\text{m}`.
 
     environment_media: str
-        environment media around the pipe: air, 'gravel' , 'stones' ,'dry soil', 'moist soil'
+        environment media around the pipe: 'air', 'gravel', 'stones',
+        'dry soil', 'moist soil'.
 
     wind_velocity: float
         Mean velocity of the wind. Needs to be greater than zero,
         :math:`wind_velocity/\frac{\text{m}}{\text{s}}`.
 
     pipe_depth: float
-        pipe depth in the ground,
-        :math:`pipe_depth/\text{m}`
+        pipe depth in the ground, :math:`pipe_depth/\text{m}`
 
     Example
     -------
-    A mass flow of 10 kg/s hot ethanol is transported in a pipeline. The pipe is
-    considered in the first approach adiabatic and has a length of 500 meters. We can calculate the
-    diameter required at a given pressure loss of 2.5 %. After we determined
-    the required diameter, we can predict pressure loss at a different mass
-    flow through the pipeline.
-    Afterwards heat losses can be calculated by defining insulation and environment parameters.
-    The heat losses of a subsurface pipe can be compared to heat losses of a surface pipe.
-
+    A mass flow of 10 kg/s hot ethanol is transported in a pipeline. The pipe
+    is considered adiabatic, in the first approach and has a length of 100
+    meters. We can calculate the diameter required at a given pressure loss of
+    2.5 %. After we determined the required diameter, we can predict pressure
+    loss at a different mass flow through the pipeline. Afterwards heat losses
+    can be calculated by defining insulation and environment parameters. The
+    heat losses of a subsurface pipe can be compared to heat losses of a
+    surface pipe.
 
     >>> from tespy.components import Sink, Source, Pipe
     >>> from tespy.connections import Connection
@@ -193,21 +201,37 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('design')
     >>> round(pi.pr.val, 2)
     0.94
+
+    In the second section the example shows how to calcualte the heat losses of
+    the pipe to the ambient considering insulation. For this, we will look at a
+    pipe transporting hot water. Since we change the fluid, we should also give
+    a reasonable guess value for the outflow connection of the pipe as the
+    initial guess originates from the previos calculation using ethanol as
+    fluid.
+
+    >>> inc.set_attr(fluid={'water': 1, 'ethanol': 0}, T=100)
+    >>> outg.set_attr(h0=300)
     >>> pi.set_attr(
     ...     D='var', Q=None, pr=0.975,
-    ...     Tamb=20, environment_media='dry soil', pipe_depth=5,
-    ...     insulation_thickness=0.1 ,insulation_tc=0.035,
-    ...     pipe_thickness=0.003,material='Steel'
+    ...     Tamb=0, environment_media='dry soil', pipe_depth=5,
+    ...     insulation_thickness=0.1, insulation_tc=0.035,
+    ...     pipe_thickness=0.003, material='Steel'
     ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
-    -6.77
+    -17.81
+
+    We can reuse many of the given parameters of the pipe. By unsetting the
+    pipe's depth and setting the environment media and wind velocity instead
+    the analogous method for surface pipes is applied. Observe, how the
+    overall heat loss increases.
+
     >>> pi.set_attr(
     ...     pipe_depth=None, environment_media='air', wind_velocity=2
     ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
-    -917.85
+    -2434.12
     """
 
     def _preprocess(self, row_idx):
@@ -219,13 +243,19 @@ class Pipe(SimpleHeatExchanger):
         parameters=super().get_parameters()
 
         parameters['Q_ohc_group_surface']=dc_gcp(
-            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media', 'wind_velocity'],
+            elements=[
+                'insulation_thickness', 'insulation_tc', 'Tamb', 'material',
+                'pipe_thickness', 'environment_media', 'wind_velocity'
+            ],
             num_eq_sets=1,
             func=self.ohc_surface_group_func,
             dependents=self.ohc_surface_group_dependents
         )
         parameters['Q_ohc_group_subsurface']=dc_gcp(
-            elements=['insulation_thickness', 'insulation_tc', 'Tamb', 'material', 'pipe_thickness', 'environment_media','pipe_depth'],
+            elements=[
+                'insulation_thickness', 'insulation_tc', 'Tamb', 'material',
+                'pipe_thickness', 'environment_media','pipe_depth'
+            ],
             num_eq_sets=1,
             func=self.ohc_subsurface_group_func,
             dependents=self.ohc_subsurface_group_dependents

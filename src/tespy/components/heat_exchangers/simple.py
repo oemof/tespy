@@ -49,6 +49,7 @@ class SimpleHeatExchanger(Component):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.dp_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -463,6 +464,29 @@ class SimpleHeatExchanger(Component):
         ] + [self.get_attr(element) for element in self.hw_group.elements]
 
     def _calculate_td_log(self):
+        """
+        Calculation of mean logarithmic temperature difference.
+
+        For numerical stability: If temperature differences have
+        different sign use mean difference to avoid negative logarithm.
+
+        Returns
+        -------
+        deltaT_log : float
+            Mean logarithmic temperature difference.
+
+            .. math::
+
+                \Delta T_{log} = \begin{cases}
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
+                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
+                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
+                0 & T_{in} = T_{out}
+                \end{cases}
+
+                T_{amb}: \text{ambient temperature}
+        """
         i = self.inl[0]
         o = self.outl[0]
 
@@ -561,7 +585,10 @@ class SimpleHeatExchanger(Component):
 
         td_log = self._calculate_td_log()
 
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            + self.kA.design * fkA * td_log
+        )
 
     def kA_char_group_dependents(self):
         return [
@@ -717,17 +744,11 @@ class SimpleHeatExchanger(Component):
         if self.Tamb.is_set:
             ttd_1 = i.T.val_SI - self.Tamb.val_SI
             ttd_2 = o.T.val_SI - self.Tamb.val_SI
-
-            if (ttd_1 / ttd_2) < 0:
-                td_log = np.nan
-            elif round(ttd_1, 6) == round(ttd_2, 6):
-                td_log = ttd_1
-            elif ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+            if ttd_1 / ttd_2 < 0:
+                self.kA.val = np.nan
             else:
-                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
+                self.kA.val = abs(self.Q.val / self._calculate_td_log())
 
-            self.kA.val = abs(self.Q.val / td_log)
             self.kA.is_result = True
         else:
             self.kA.is_result = False

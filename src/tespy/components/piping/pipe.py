@@ -19,6 +19,7 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
+from tespy.tools.logger import logger
 
 
 @component_registry
@@ -226,16 +227,26 @@ class Pipe(SimpleHeatExchanger):
     the analogous method for surface pipes is applied. Observe, how the
     overall heat loss increases.
 
+    >>> pi.Q_ohc_group_subsurface.is_set = False
     >>> pi.set_attr(
-    ...     pipe_depth=None, environment_media='air', wind_velocity=2
+    ...     pipe_depth=None, environment_media='air', wind_velocity=2.0
     ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
-    -2434.12
+    -2434.13
     """
 
     def _preprocess(self, row_idx):
         self.air = CoolPropWrapper('air')
+        if self.wind_velocity.is_set:
+            if self.wind_velocity.val < self.wind_velocity.min_val:
+                msg = (
+                    f"Minimum wind velocity is {self.wind_velocity.min_val} "
+                    "for numerical reasons. The value is changed to the "
+                    "specified minimum."
+                )
+                logger.debug(msg)
+                self.wind_velocity.val = self.wind_velocity.min_val
 
         super()._preprocess(row_idx)
 
@@ -265,7 +276,7 @@ class Pipe(SimpleHeatExchanger):
         parameters['material']=dc_simple(val='Steel')
         parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1)
         parameters['environment_media']=dc_simple(val='soil')
-        parameters['wind_velocity']=dc_cp(min_val=1e-10, max_val=20)
+        parameters['wind_velocity']=dc_cp(min_val=1e-6, max_val=20)
         parameters['pipe_depth']= dc_cp(min_val=1e-2, max_val=1e2)
         return parameters
 

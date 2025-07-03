@@ -44,6 +44,7 @@ class TestMerge:
 
         self.nwk.solve("design")
         self.nwk.assert_convergence()
+        assert self.nwk.status == 0
 
         target = c1.m.val_SI + c2.m.val_SI
         msg = f"Target value for mass flow at connection 3 must be {target}."

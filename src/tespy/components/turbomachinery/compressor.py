@@ -538,7 +538,7 @@ class Compressor(Turbomachine):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        super().check_parameter_bounds()
+        _no_limit_violations = super().check_parameter_bounds()
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
@@ -548,6 +548,8 @@ class Compressor(Turbomachine):
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
                 yarr *= (1 - self.igva.val / 100)
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
+
+        return _no_limit_violations
 
     def exergy_balance(self, T0):
         r"""

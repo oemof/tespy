@@ -1050,7 +1050,7 @@ class CombustionEngine(CombustionChamber):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        super().check_parameter_bounds()
+        _no_limit_violations = super().check_parameter_bounds()
         # get bound errors for characteristic lines
         if np.isnan(self.P.design):
             expr = 1
@@ -1060,6 +1060,8 @@ class CombustionEngine(CombustionChamber):
         self.Qloss_char.char_func.get_domain_errors(expr, self.label)
         self.Q1_char.char_func.get_domain_errors(expr, self.label)
         self.Q2_char.char_func.get_domain_errors(expr, self.label)
+
+        return _no_limit_violations
 
     def entropy_balance(self):
         r"""

@@ -48,5 +48,5 @@ def test_drum_with_blowdown(drum_network_setup):
     nw.add_conns(c3, c4, c5, c6)
 
     nw.solve("design")
-
+    assert nw.status == 0
     assert 0.72728 == approx(c4.m.val_SI)

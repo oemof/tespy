@@ -630,7 +630,7 @@ class Component:
                 )
             else:
                 msg = (
-                    f"The parameter {param}) is not available for "
+                    f"The parameter {param} is not available for "
                     "characteristic function evaluation."
                 )
                 logger.error(msg)
@@ -886,8 +886,9 @@ class Component:
                     _no_limit_violated = False
 
             elif isinstance(data, dc_cc) and data.is_set:
-                expr = self.get_char_expr(data.param, **data.char_params)
-                data.char_func.get_domain_errors(expr, self.label)
+                if data.param is not None:
+                    expr = self.get_char_expr(data.param, **data.char_params)
+                    data.char_func.get_domain_errors(expr, self.label)
 
             elif isinstance(data, dc_gcc) and data.is_set:
                 for char in data.elements:

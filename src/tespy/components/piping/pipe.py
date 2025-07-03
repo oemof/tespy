@@ -294,8 +294,7 @@ class Pipe(SimpleHeatExchanger):
                 0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
                 \Delta T_\text{log} \cdot A \cdot U
 
-                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
-                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+                U = R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
 
                 \alpha_\text{outer} = \frac{Nu_\text{l} \cdot \lambda}{l}
 
@@ -402,13 +401,9 @@ class Pipe(SimpleHeatExchanger):
                 0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
                 \Delta T_\text{log} \cdot A \cdot U
 
-                U = \frac{1}{\frac{1}{\alpha_\text{inner}} +
-                R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
-
                 First order approximation of multipole method for a single pipe in the ground.
 
-        Assume no surface resistance.
-
+        
         Reference: :cite:`wallenten1991`
         """
 
@@ -428,7 +423,7 @@ class Pipe(SimpleHeatExchanger):
         ground_conductivity ={
             'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
         }
-
+        # conductivity of the pipe neglected according to the original publication
         Beta = (
             ground_conductivity[self.environment_media.val]
             / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
@@ -448,7 +443,7 @@ class Pipe(SimpleHeatExchanger):
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            + 1 / R_soil * self._calculate_td_log()
+            + 1 / R_soil * self._calculate_td_log() * self.L.val
         )
 
     def ohc_subsurface_group_dependents(self):

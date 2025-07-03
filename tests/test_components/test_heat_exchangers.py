@@ -305,6 +305,7 @@ class TestHeatExchangers:
         self.nw.add_busses(b)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 3)
         msg = f"Value of pressure ratio must be {pr}, is {instance.pr.val}."
         assert pr == round(instance.pr.val, 3), msg
@@ -397,6 +398,7 @@ class TestHeatExchangers:
         )
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         # heat loss must be identical to E * A - Q (internal heat loss
         # calculation)
         T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
@@ -502,6 +504,7 @@ class TestHeatExchangers:
                           eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         # heat loss must be identical to E * A - Q (internal heat loss
         # calculation)
         T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
@@ -575,6 +578,7 @@ class TestHeatExchangers:
         self.nw.add_busses(b)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         self.nw.save(tmp_path)
         Q_design = instance.Q.val
 
@@ -762,6 +766,7 @@ class TestHeatExchangers:
         instance.set_attr(Q=-80e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         self.nw.save(tmp_path)
         Q_design = instance.Q.val
 

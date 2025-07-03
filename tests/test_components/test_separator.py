@@ -45,6 +45,7 @@ class TestSeparator:
 
         self.nwk.solve("design")
         self.nwk.assert_convergence()
+        assert self.nwk.status == 0
         assert c2.T.val == approx(c1.T.val)
 
         c1.set_attr(T=None)

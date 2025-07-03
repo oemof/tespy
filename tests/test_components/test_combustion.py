@@ -89,6 +89,7 @@ class TestCombustion:
         self.c3.set_attr(T=1200)
         instance.set_attr(lamb=None)
         self.nw.solve('design')
+        assert self.nw.status == 0
         self.nw.assert_convergence()
         msg = f'Value of thermal input must be {b.P.val}, is {instance.ti.val}.'
         assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
@@ -127,6 +128,7 @@ class TestCombustion:
 
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000, 1e-3)
 
         molar_flow = {}
@@ -157,6 +159,7 @@ class TestCombustion:
         self.c2.set_attr(fluid=fuel, T=30)
         self.c3.set_attr(T=1200)
         self.nw.solve('design')
+        assert self.nw.status == 0
         # a good guess for outlet fluid composition is necessary
         self.c3.set_attr(T=None)
         instance.set_attr(lamb=1)
@@ -184,6 +187,7 @@ class TestCombustion:
         instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
 
         valid = round(self.c1.p.val * pr, 2)
         check = round(self.c3.p.val, 2)
@@ -264,6 +268,7 @@ class TestCombustion:
         TI.set_attr(P=ti)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         self.nw.save(tmp_path)
         # calculate in offdesign mode
         self.nw.solve('offdesign', design_path=tmp_path)

@@ -101,6 +101,9 @@ New Features
   in a connected branch and fiing individual pressure values for all of
   those connections (as it was recommended to generate stable starting values
   before version 0.9).
+- You can now customize the orientiation for the optimization by passing
+  a list of :code:`True` and :code:`False` values in the :code:`minimize`
+  argument (`PR #704 <https://github.com/oemof/tespy/pull/704>`__).
 
 Known Issues
 ############

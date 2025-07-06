@@ -194,11 +194,14 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._p_crit = 1e8
             self._T_crit = None
             self._molar_mass = 1
-            try:
-                # how to know that we have a binary mixture?
-                self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
-            except ValueError:
-                pass
+            if self.mixture_type is not None:
+                try:
+                    self._T_min = max(
+                        self.AS.trivial_keyed_output(CP.iT_freeze),
+                        self._T_min
+                    )
+                except ValueError:
+                    pass
         else:
             if self.back_end == "HEOS":
                 # see https://github.com/CoolProp/CoolProp/discussions/2443

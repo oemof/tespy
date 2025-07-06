@@ -119,6 +119,12 @@ Other Changes
 - Removed python 3.9 support.
 - Removed :code:`load_network` and :code:`document_models` modules.
 
+Bug Fixes
+#########
+- Fixed a bug which made the simulation crash, when using :code:`MITSW` or
+  :code:`LiBr` as fluids as their :code:`T_freeze` is equal to 0 K in CoolProp
+  (`PR #703 <https://github.com/oemof/tespy/pull/703>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

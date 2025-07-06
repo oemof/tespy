@@ -297,7 +297,6 @@ print(optimize.individuals)
 pop
 # plot the results
 import matplotlib.pyplot as plt
-plt.style.use("dark_background")
 
 
 # make text reasonably sized
@@ -323,6 +322,6 @@ ax.set_xlabel("Pressure at connection 2 in bar")
 ax.set_ylabel("Pressure at connection 4 in bar")
 plt.tight_layout()
 
-fig.savefig("pygmo_optimization_darkmode.svg")
+fig.savefig("pygmo_optimization.svg")
 print(data.loc[data["efficiency"].values == data["efficiency"].max()])
 # %%[sec_6]

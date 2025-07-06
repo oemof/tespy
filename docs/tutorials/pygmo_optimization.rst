@@ -121,9 +121,12 @@ implementing pareto or multi-objective problems.
 
 .. attention::
 
-    The sense of optimization is always minimization, therefore you need to
-    define your objective functions in the appropriate way: We return the
-    reciprocal value of the efficiency for this reason.
+    The sense of optimization is minimization by default. We can change the
+    sense for each of the objectives we pass to the :code:`OptimizationProblem`
+    class by passing a list with :code:`True` or :code:`False` for each
+    inidivual objective **in identical order as the objectives** using the
+    :code:`minimize` argument. In this example we only use a single objective,
+    so there is not too much, that can go wrong.
 
 We also have to make sure, only the results of physically feasible solutions
 are returned. In case we have infeasible solutions, we can simply return
@@ -145,9 +148,11 @@ instance of our self defined class, which we pass to an instance of the
 OptimizationProblem class. We also have to pass
 
 - the variables to optimize,
-- the constraints to consider and
+- the constraints to consider,
 - the objective function name (you could define multiple in the
-  :code:`get_objective` method if you wanted).
+  :code:`get_objective` method if you wanted) and
+- the optimization sense for each objective, here we pass :code:`[False]` since
+  we want to maximize efficiency.
 
 We set one inequality constraint, namely that the pressure of the first
 extraction has to be higher than the pressure at the second one:
@@ -190,8 +195,8 @@ In our run, we got:
 .. code:: bash
 
     Efficiency: 44.82 %
-    Extraction 1: 26.429 bar
-    Extraction 2: 2.823 bar
+    Extraction 1: 26.462 bar
+    Extraction 2: 2.820 bar
 
 .. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
     :align: center

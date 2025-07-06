@@ -51,6 +51,7 @@ class TestTurbomachinery:
         instance.set_attr(eta_s=0.8)
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         self.nw.save(tmp_path)
 
         # test isentropic efficiency value

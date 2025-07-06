@@ -43,6 +43,7 @@ class TestPiping:
         instance.set_attr(pr='var')
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
         msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
                str(round(instance.pr.val, 2)) + '.')

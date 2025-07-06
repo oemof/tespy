@@ -60,6 +60,7 @@ class TestReactors:
 
         self.nw.solve('design')
         self.nw.assert_convergence()
+        assert self.nw.status == 0
         msg = ('Value of power must be ' + str(power.P.val) + ', is ' +
                str(self.instance.P.val) + '.')
         assert round(power.P.val, 1) == round(self.instance.P.val), msg

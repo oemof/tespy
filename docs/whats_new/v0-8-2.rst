@@ -48,3 +48,4 @@ Other Changes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

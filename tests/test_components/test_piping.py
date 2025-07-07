@@ -104,7 +104,7 @@ class TestPiping:
             )
         self.nw.solve('design')
         self.nw.assert_convergence()
-        Q = 57081.9
+        Q = -57081.9
         msg = (
             f"The Heat loss of sub surface pipe should be {Q} but is "
             f"{round(instance.Q.val, 1)}."

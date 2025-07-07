@@ -219,7 +219,7 @@ class Pipe(SimpleHeatExchanger):
     ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
-    -17.81
+    -1780.74
 
     We can reuse many of the given parameters of the pipe. By unsetting the
     pipe's depth and setting the environment media and wind velocity instead
@@ -403,7 +403,7 @@ class Pipe(SimpleHeatExchanger):
 
                 First order approximation of multipole method for a single pipe in the ground.
 
-        
+
         Reference: :cite:`wallenten1991`
         """
 
@@ -441,6 +441,8 @@ class Pipe(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
+        # here the resistance is a per meter of pipe resistance, therefore
+        # we only multiply be length
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
             + 1 / R_soil * self._calculate_td_log() * self.L.val

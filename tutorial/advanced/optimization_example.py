@@ -245,7 +245,7 @@ class SamplePlant:
         """
         if self.solved:
             if objective == "efficiency":
-                return 1 / (
+                return (
                     self.nw.get_conn("e7").E.val
                     / self.nw.get_conn("h1").E.val
                 )
@@ -275,7 +275,7 @@ constraints = {
 }
 
 optimize = OptimizationProblem(
-    plant, variables, constraints, objective=["efficiency"]
+    plant, variables, constraints, objective=["efficiency"], minimize=[False]
 )
 # %%[sec_4]
 num_ind = 40
@@ -311,7 +311,7 @@ data = optimize.individuals.loc[mask_constraint & mask_objective]
 sc = ax.scatter(
     data["Connections-2-p"],
     data["Connections-4-p"],
-    c=1 / data["efficiency"] * 100,
+    c=data["efficiency"] * 100,
     s=100
 )
 cbar = plt.colorbar(sc)
@@ -323,5 +323,5 @@ ax.set_ylabel("Pressure at connection 4 in bar")
 plt.tight_layout()
 
 fig.savefig("pygmo_optimization.svg")
-print(data.loc[data["efficiency"].values == data["efficiency"].min()])
+print(data.loc[data["efficiency"].values == data["efficiency"].max()])
 # %%[sec_6]

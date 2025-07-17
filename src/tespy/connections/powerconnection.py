@@ -157,6 +157,7 @@ class PowerConnection(_ConnectionBase):
 
     def calc_results(self):
         self.E.val = self.E.val_SI
+        self.E.val0 = self.E.val
         return True
 
     def _set_design_params(self, data):

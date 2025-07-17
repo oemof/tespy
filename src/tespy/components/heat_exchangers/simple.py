@@ -49,6 +49,7 @@ class SimpleHeatExchanger(Component):
 
     - :py:meth:`tespy.components.component.Component.pr_func`
     - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.dp_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -194,6 +195,33 @@ class SimpleHeatExchanger(Component):
     >>> round(outg.T.val, 1)
     140.0
     >>> os.remove('tmp.json')
+
+    Use of the PowerConnection
+    --------------------------
+
+    Single sided heat exchangers can also connect to a
+    :code:`PowerConnection`. In this case the heat exchanger represents a heat
+    source from the perspective of the :code:`PowerConnection`, meaning, we
+    need a :code:`PowerSink` component as target of that connection.
+    To utilize the component in this connects, it is required to set the
+    :code:`power_connector_location`, in this case it should be the
+    :code:`'outlet'`.
+
+    >>> from tespy.connections import PowerConnection
+    >>> from tespy.components import PowerSink
+    >>> ambient = PowerSink('ambient heat dissipation')
+    >>> heat_sink.set_attr(power_connector_location='outlet')
+
+    Then we can create and add the :code:`PowerConnection`. We run a new
+    design calculation, because the old design case did not inlcude the
+    :code:`PowerConnection`. The energy value will be identical to the heat
+    transfer of the pipe.
+
+    >>> h1 = PowerConnection(heat_sink, 'heat', ambient, 'power', label='h1')
+    >>> nw.add_conns(h1)
+    >>> nw.solve('design')
+    >>> round(h1.E.val) == round(-heat_sink.Q.val)
+    True
     """
 
     def get_mandatory_constraints(self):
@@ -325,9 +353,9 @@ class SimpleHeatExchanger(Component):
     def energy_connector_balance_func(self):
         connector = self._get_power_connector_location()
         if self.power_connector_location.val == "inlet":
-            energy_flow = -self.power_inl[0].E.val_SI
+            energy_flow = -connector.E.val_SI
         else:
-            energy_flow = self.power_outl[0].E.val_SI
+            energy_flow = connector.E.val_SI
 
         return energy_flow + self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI
@@ -463,6 +491,29 @@ class SimpleHeatExchanger(Component):
         ] + [self.get_attr(element) for element in self.hw_group.elements]
 
     def _calculate_td_log(self):
+        """
+        Calculation of mean logarithmic temperature difference.
+
+        For numerical stability: If temperature differences have
+        different sign use mean difference to avoid negative logarithm.
+
+        Returns
+        -------
+        deltaT_log : float
+            Mean logarithmic temperature difference.
+
+            .. math::
+
+                \Delta T_{log} = \begin{cases}
+                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
+                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
+                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
+                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
+                0 & T_{in} = T_{out}
+                \end{cases}
+
+                T_{amb}: \text{ambient temperature}
+        """
         i = self.inl[0]
         o = self.outl[0]
 
@@ -561,7 +612,10 @@ class SimpleHeatExchanger(Component):
 
         td_log = self._calculate_td_log()
 
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
+        return (
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+            + self.kA.design * fkA * td_log
+        )
 
     def kA_char_group_dependents(self):
         return [
@@ -717,17 +771,11 @@ class SimpleHeatExchanger(Component):
         if self.Tamb.is_set:
             ttd_1 = i.T.val_SI - self.Tamb.val_SI
             ttd_2 = o.T.val_SI - self.Tamb.val_SI
-
-            if (ttd_1 / ttd_2) < 0:
-                td_log = np.nan
-            elif round(ttd_1, 6) == round(ttd_2, 6):
-                td_log = ttd_1
-            elif ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+            if ttd_1 / ttd_2 < 0:
+                self.kA.val = np.nan
             else:
-                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
+                self.kA.val = abs(self.Q.val / self._calculate_td_log())
 
-            self.kA.val = abs(self.Q.val / td_log)
             self.kA.is_result = True
         else:
             self.kA.is_result = False

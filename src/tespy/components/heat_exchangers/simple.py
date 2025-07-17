@@ -195,6 +195,33 @@ class SimpleHeatExchanger(Component):
     >>> round(outg.T.val, 1)
     140.0
     >>> os.remove('tmp.json')
+
+    Use of the PowerConnection
+    --------------------------
+
+    Single sided heat exchangers can also connect to a
+    :code:`PowerConnection`. In this case the heat exchanger represents a heat
+    source from the perspective of the :code:`PowerConnection`, meaning, we
+    need a :code:`PowerSink` component as target of that connection.
+    To utilize the component in this connects, it is required to set the
+    :code:`power_connector_location`, in this case it should be the
+    :code:`'outlet'`.
+
+    >>> from tespy.connections import PowerConnection
+    >>> from tespy.components import PowerSink
+    >>> ambient = PowerSink('ambient heat dissipation')
+    >>> heat_sink.set_attr(power_connector_location='outlet')
+
+    Then we can create and add the :code:`PowerConnection`. We run a new
+    design calculation, because the old design case did not inlcude the
+    :code:`PowerConnection`. The energy value will be identical to the heat
+    transfer of the pipe.
+
+    >>> h1 = PowerConnection(heat_sink, 'heat', ambient, 'power', label='h1')
+    >>> nw.add_conns(h1)
+    >>> nw.solve('design')
+    >>> round(h1.E.val) == round(-heat_sink.Q.val)
+    True
     """
 
     def get_mandatory_constraints(self):
@@ -326,9 +353,9 @@ class SimpleHeatExchanger(Component):
     def energy_connector_balance_func(self):
         connector = self._get_power_connector_location()
         if self.power_connector_location.val == "inlet":
-            energy_flow = -self.power_inl[0].E.val_SI
+            energy_flow = -connector.E.val_SI
         else:
-            energy_flow = self.power_outl[0].E.val_SI
+            energy_flow = connector.E.val_SI
 
         return energy_flow + self.inl[0].m.val_SI * (
                 self.outl[0].h.val_SI - self.inl[0].h.val_SI

@@ -522,11 +522,20 @@ class SimpleHeatExchanger(Component):
 
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
+        from tespy.tools.fluid_properties import h_mix_pT
         if (ttd_1 / ttd_2) < 0:
             if ttd_1 > 0:
-                ttd_2 = 0.1
+                ttd_2 = 0.01
+                if o.h.is_var:
+                    o.h.set_reference_val_SI(
+                        h_mix_pT(o.p.val_SI, self.Tamb.val_SI + 0.01, o.fluid_data, o.mixing_rule)
+                    )
             else:
-                ttd_1 = -0.1
+                ttd_2 = -0.01
+                if o.h.is_var:
+                    o.h.set_reference_val_SI(
+                        h_mix_pT(o.p.val_SI, self.Tamb.val_SI - 0.01, i.fluid_data, i.mixing_rule)
+                    )
 
         if round(ttd_1, 6) == round(ttd_2, 6):
             td_log = ttd_2

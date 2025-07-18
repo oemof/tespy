@@ -24,7 +24,6 @@ from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 
 
-
 @component_registry
 class Pump(Turbomachine):
     r"""

@@ -523,8 +523,12 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
         if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif round(ttd_1, 6) == round(ttd_2, 6):
+            if ttd_1 > 0:
+                ttd_2 = 0.1
+            else:
+                ttd_1 = -0.1
+
+        if round(ttd_1, 6) == round(ttd_2, 6):
             td_log = ttd_2
         elif ttd_1 > ttd_2:
             td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)

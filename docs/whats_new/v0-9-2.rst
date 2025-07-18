@@ -1,0 +1,11 @@
+v0.9.2 - Under development
+++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The :code:`Pump` convergence check now enforces liquid state in the first
+  iterations (`PR #708 <https://github.com/oemof/tespy/pull/708>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

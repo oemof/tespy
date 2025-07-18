@@ -18,7 +18,9 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 
 
@@ -365,6 +367,18 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
+        if o.h.is_var:
+            fluid = single_fluid(i.fluid_data)
+            if fluid is not None:
+                if i.fluid_data[fluid]["wrapper"].back_end != "INCOMP":
+                    h_max = h_mix_pQ(i.p.val_SI, 0, i.fluid_data)
+
+                    if o.h.val_SI > h_max:
+                        o.h.set_reference_val_SI(h_max - 20e3)
+
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
+            i.h.set_reference_val_SI(o.h.val_SI - 10e3)
+
         if o.p.is_var and o.p.val_SI < i.p.val_SI:
             o.p.set_reference_val_SI(i.p.val_SI * 1.5)
 
@@ -374,9 +388,6 @@ class Pump(Turbomachine):
         if i.p.is_var and o.p.val_SI < i.p.val_SI:
             i.p.set_reference_val_SI(o.p.val_SI * 2 / 3)
             i.p.val_SI = o.p.val_SI * 0.9
-
-        if i.h.is_var and o.h.val_SI < i.h.val_SI:
-            i.h.set_reference_val_SI(o.h.val_SI - 10e3)
 
         if i.m.is_var and self.flow_char.is_set:
             vol = i.calc_vol(T0=i.T.val_SI)

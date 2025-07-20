@@ -19,6 +19,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
@@ -398,7 +399,7 @@ class Pump(Turbomachine):
                 i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
 
     @staticmethod
-    def initialise_Source(c, key):
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -414,18 +415,28 @@ class Pump(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                3 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
+        fluid = single_fluid(c.fluid_data)
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
+            else:
+                return 10e5
         elif key == 'h':
-            return 3e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                temp = c.fluid.wrapper[fluid]._T_crit
+                if temp is None:
+                    temp = c.fluid.wrapper[fluid]._T_max
+
+                dT = temp - c.fluid.wrapper[fluid]._T_min
+
+                temp = temp - dT * 0.89
+            else:
+                # a pump with a mixture does not really make a lot of sense
+                temp = 300
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     @staticmethod
     def initialise_target(c, key):
@@ -444,18 +455,30 @@ class Pump(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^5 & \text{key = 'p'}\\
-                2.9 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
+        fluid = single_fluid(c.fluid_data)
+        print(fluid)
+        print(c.fluid.wrapper[fluid]._p_crit / 2)
         if key == 'p':
-            return 1e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
+            else:
+                return 1e5
         elif key == 'h':
-            return 2.9e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                temp = c.fluid.wrapper[fluid]._T_crit
+                if temp is None:
+                    temp = c.fluid.wrapper[fluid]._T_max
+
+                dT = temp - c.fluid.wrapper[fluid]._T_min
+
+                temp = temp - dT * 0.9
+            else:
+                # a pump with a mixture does not really make a lot of sense
+                temp = 300
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

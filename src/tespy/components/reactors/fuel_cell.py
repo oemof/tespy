@@ -634,13 +634,6 @@ class FuelCell(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5  \cdot 10^5 & \text{key = 'p'}\\
-                h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
             return 5e5
@@ -664,13 +657,6 @@ class FuelCell(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5  \cdot 10^5 & \text{key = 'p'}\\
-                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
             return 5e5

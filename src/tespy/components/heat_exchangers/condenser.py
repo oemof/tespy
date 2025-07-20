@@ -20,6 +20,7 @@ from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import convert_from_SI
 
 
@@ -429,3 +430,27 @@ class Condenser(HeatExchanger):
             )
             logger.warning(msg)
         self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)
+
+    def initialise_source(self, c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+        """
+        fluid = single_fluid(c.fluid_data)
+        if key == 'p':
+            return c.fluid.wrapper[fluid]._p_crit / 2
+
+        elif key == 'h':
+            return h_mix_pQ(c.p.val_SI, 0, c.fluid_data, c.mixing_rule)

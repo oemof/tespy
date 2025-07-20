@@ -1,6 +1,14 @@
 v0.9.2 - Under development
 ++++++++++++++++++++++++++
 
+Other Changes
+#############
+- The generic starting values have been reworked to some extent (and as an
+  interim solution). Through this, the guesses are more fluid agnostic and
+  should work better for a larger variety of fluids, including incompressibles.
+  An overall refactoring of this part of the presolver follow in the future
+  (`PR #708 <https://github.com/oemof/tespy/pull/708>`__).
+
 Bug Fixes
 #########
 - The :code:`Pump` convergence check now enforces liquid state in the first

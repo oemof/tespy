@@ -457,8 +457,6 @@ class Pump(Turbomachine):
             Starting value for pressure/enthalpy in SI units.
         """
         fluid = single_fluid(c.fluid_data)
-        print(fluid)
-        print(c.fluid.wrapper[fluid]._p_crit / 2)
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:

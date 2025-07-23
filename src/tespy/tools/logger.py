@@ -38,8 +38,8 @@ class FutureWarningHandler:
 
     def __call__(self, message, category, filename, lineno, file=None, line=None):
         self.logger.warning(
-            f"FutureWarning: {message}",
-            stacklevel=2  # Adjust the stack level accordingly
+            f"{category.__name__}: {message}",
+            stacklevel=2
         )
 
 # Register the custom warning handler for FutureWarnings

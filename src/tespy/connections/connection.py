@@ -1435,6 +1435,8 @@ class Connection(_ConnectionBase):
 
         if self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+        # this is supposed to never be accessed with INCOMP backend but it is
+        # not enforced. With INCOMP backend this causes a crash
         if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.h.val_SI < h:

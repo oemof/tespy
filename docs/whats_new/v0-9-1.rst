@@ -1,5 +1,5 @@
-v0.9.1 - Under development
-++++++++++++++++++++++++++
+v0.9.1 - Kelvin's Kingdom (June, 27, 2025)
+++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -8,7 +8,13 @@ New Features
   conditions, e.g. if it is an above surface pipeline or a subsurface buried
   pipeline (`PR #661 <https://github.com/oemof/tespy/pull/661>`__).
 
+Other Changes
+#############
+- A short description has been added to the :code:`SimpleHeatExchanger`
+  docstrings on how to use the :code:`PowerConnection` in this context
+  (`PR #705 <https://github.com/oemof/tespy/pull/705>`__).
+
 Contributors
 ############
-- `@HaSchneider <https://github.com/HaSchneider>`__
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

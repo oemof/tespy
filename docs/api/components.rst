@@ -191,14 +191,6 @@ tespy.components.piping.pipe module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.piping.pipeline module
----------------------------------------
-
-.. automodule:: tespy.components.piping.pipeline
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 tespy.components.piping.valve module
 ------------------------------------
 

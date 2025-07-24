@@ -448,9 +448,8 @@ class Condenser(HeatExchanger):
         val : float
             Starting value for pressure/enthalpy in SI units.
         """
-        fluid = single_fluid(c.fluid_data)
-        if key == 'p':
-            return c.fluid.wrapper[fluid]._p_crit / 2
+        if c.source_id == 'out1':
+            if key == 'h':
+                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data, c.mixing_rule)
 
-        elif key == 'h':
-            return h_mix_pQ(c.p.val_SI, 0, c.fluid_data, c.mixing_rule)
+        return super().initialise_source(c, key)

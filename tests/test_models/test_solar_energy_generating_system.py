@@ -323,7 +323,7 @@ class TestSEGS:
         c26.set_attr(x=0)
 
         # a stable solution is generated for parts of the network
-        self.nw.solve(mode='design', robust_relax=True)
+        self.nw.solve(mode='design')
 
         self.nw.del_conns(c19, c21, c23, c27, c29, c37, c42, c47, c52, c57)
 

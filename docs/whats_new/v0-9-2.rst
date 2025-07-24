@@ -5,7 +5,12 @@ Bug Fixes
 #########
 - The :code:`Pump` convergence check now enforces liquid state in the first
   iterations (`PR #708 <https://github.com/oemof/tespy/pull/708>`__).
+- The :code:`_to_exerpy` export of the :code:`Network` instance was broken due
+  to the change in the connector IDs for some components with the introduction
+  of the :code:`PowerConnection` class
+  (`PR #713 <https://github.com/oemof/tespy/pull/713>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@sertomas <https://github.com/sertomas>`__

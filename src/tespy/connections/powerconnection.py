@@ -204,11 +204,29 @@ class PowerConnection(_ConnectionBase):
 
         if self.source.__class__.__name__ in ["Motor", "Generator"]:
             source_connector = 0
+        elif self.source.__class__.__name__ in ["Turbine"]:
+            source_connector = 1
+        elif self.source.__class__.__name__ in ["PowerBus"]:
+            if self.source_id.startswith("power_out"):
+                s_id = self.source_id.removeprefix("power_out")
+                source_connector = 0 if s_id == "" else int(s_id) - 1
+            elif self.source_id.startswith("power_in"):
+                s_id = self.source_id.removeprefix("power_in")
+                source_connector = 0 if s_id == "" else int(s_id) - 1
         else:
             source_connector = 999
 
         if self.target.__class__.__name__ in ["Motor", "Generator"]:
             target_connector = 0
+        elif self.target.__class__.__name__ in ["Compressor", "Pump"]:
+            target_connector = 1
+        elif self.target.__class__.__name__ in ["PowerBus"]:
+            if self.target_id.startswith("power_in"):
+                t_id = self.target_id.removeprefix("power_in")
+                target_connector = 0 if t_id == "" else int(t_id) - 1
+            elif self.target_id.startswith("power_out"):
+                t_id = self.target_id.removeprefix("power_out")
+                target_connector = 0 if t_id == "" else int(t_id) - 1
         else:
             target_connector = 999
 

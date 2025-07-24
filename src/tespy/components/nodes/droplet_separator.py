@@ -16,6 +16,7 @@ from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -278,17 +279,10 @@ class DropletSeparator(NodeBase):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=1 \right) & \text{key = 'h' at outlet 1}\\
-                h\left(p, x=0 \right) & \text{key = 'h' at outlet 2}
-                \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            return c.fluid.wrapper[fluid]._p_crit / 2
         elif key == 'h':
             if c.source_id == 'out1':
                 return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
@@ -321,7 +315,8 @@ class DropletSeparator(NodeBase):
                 \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            return c.fluid.wrapper[fluid]._p_crit / 2
         elif key == 'h':
             return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
 

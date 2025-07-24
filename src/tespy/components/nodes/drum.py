@@ -165,8 +165,7 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
-    @staticmethod
-    def initialise_target(c, key):
+    def initialise_target(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at inlet.
 
@@ -182,17 +181,9 @@ class Drum(DropletSeparator):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=0 \right) & \text{key = 'h' at inlet 1}\\
-                h\left(p, x=0.7 \right) & \text{key = 'h' at inlet 2}
-                \end{cases}
         """
         if key == 'p':
-            return 10e5
+           return super().initialise_target(c, key)
         elif key == 'h':
             if c.target_id == 'in1':
                 return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)

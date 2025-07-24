@@ -19,7 +19,10 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 
 
@@ -396,7 +399,7 @@ class Turbine(Turbomachine):
             o.p.set_reference_val_SI(i.p.val_SI * 2 /3)
 
     @staticmethod
-    def initialise_Source(c, key):
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -412,18 +415,20 @@ class Turbine(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5 \cdot 10^4 & \text{key = 'p'}\\
-                1.5 \cdot 10^6 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 0.5e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
+            else:
+                return 1e5
         elif key == 'h':
-            return 1.5e6
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+            else:
+                temp = 1000
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     @staticmethod
     def initialise_target(c, key):
@@ -442,18 +447,20 @@ class Turbine(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                2.5 \cdot 10^6 & \text{key = 'p'}\\
-                2 \cdot 10^6 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 2.5e6
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 4 * 3
+            else:
+                return 10e5
         elif key == 'h':
-            return 2e6
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 1e5
+            else:
+                temp = 500
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

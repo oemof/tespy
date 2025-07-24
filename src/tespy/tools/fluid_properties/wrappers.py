@@ -546,6 +546,11 @@ class PyromatWrapper(FluidPropertyWrapper):
             self._not_implemented()
         return self.AS.h(x=Q, T=T)[0]
 
+    def h_pQ(self, p, Q):
+        if self.back_end == "ig":
+            self._not_implemented()
+        return self.AS.h(p=p, x=Q)[0]
+
     def s_QT(self, Q, T):
         if self.back_end == "ig":
             self._not_implemented()

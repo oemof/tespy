@@ -870,19 +870,12 @@ class WaterElectrolyzer(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5  \cdot 10^5 & \text{key = 'p'}\\
-                h\left(T=323.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            T = 50 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+            temp = 50 + 273.15
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -900,19 +893,12 @@ class WaterElectrolyzer(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5  \cdot 10^5 & \text{key = 'p'}\\
-                h\left(T=293.15, p=5  \cdot 10^5\right) & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
             return 5e5
         elif key == 'h':
-            T = 20 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+            temp = 20 + 273.15
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

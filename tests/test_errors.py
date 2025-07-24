@@ -9,10 +9,13 @@ tests/test_errors.py
 
 SPDX-License-Identifier: MIT
 """
+import logging
 import os
 import shutil
+import warnings
 
 from pytest import raises
+from pytest import warns
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
@@ -42,6 +45,7 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import extend_basic_path
+from tespy.tools.logger import FutureWarningHandler
 
 ##############################################################################
 # test errors of set_attr and get_attr methods
@@ -568,3 +572,18 @@ def test_h_mix_pQ_on_mixtures():
     c._create_fluid_wrapper()
     with raises(ValueError):
         h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)
+
+
+def test_warning_logged_with_correct_category(caplog):
+    logger_name = "TESPyLogger"
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.WARNING)
+
+    with caplog.at_level(logging.WARNING, logger=logger_name):
+        warnings.showwarning = FutureWarningHandler(logger)
+        warnings.warn("Custom test message", category=UserWarning)
+
+        assert any([
+            "UserWarning: Custom test message" in msg
+            for msg in caplog.messages
+        ])

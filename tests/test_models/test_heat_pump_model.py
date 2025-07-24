@@ -256,7 +256,7 @@ class TestHeatPump:
 
         # evaporator system cold side
         pu_ev.set_attr(m=Ref(dr_su, 10, 0))
-        dr_su.set_attr(p=5)
+        dr_su.set_attr(T=5)
         su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
 
         # evaporator system hot side
@@ -282,7 +282,6 @@ class TestHeatPump:
         # the model does not consistently solve!!
         self.nw.assert_convergence()
         dr_su = self.nw.get_conn("drum:out2_superheater:in2")
-        dr_su.set_attr(T=5, p=None)
         self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
         self.nw.get_comp("evaporator").set_attr(ttd_l=5)
         self.nw.solve('design')

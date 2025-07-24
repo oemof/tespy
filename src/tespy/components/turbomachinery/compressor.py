@@ -21,7 +21,10 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 
 
@@ -460,7 +463,7 @@ class Compressor(Turbomachine):
             i.h.set_reference_val_SI(o.h.val_SI - 100e3)
 
     @staticmethod
-    def initialise_Source(c, key):
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -476,18 +479,26 @@ class Compressor(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                6 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
+            else:
+                return 10e5
         elif key == 'h':
-            return 6e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 2e5
+                else:
+                    temp = c.fluid.wrapper[fluid]._T_crit
+                    return h_mix_pT(
+                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
+                    ) + 2e5
+            else:
+                temp = 450
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     @staticmethod
     def initialise_target(c, key):
@@ -506,18 +517,20 @@ class Compressor(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^5 & \text{key = 'p'}\\
-                4 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 1e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 3
+            else:
+                return 1e5
         elif key == 'h':
-            return 4e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+            else:
+                temp = 350
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

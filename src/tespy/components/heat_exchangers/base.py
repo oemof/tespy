@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import convert_to_SI
@@ -876,23 +877,33 @@ class HeatExchanger(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                h\left(p, 200 \text{K} \right) & \text{key = 'h' at outlet 1}\\
-                h\left(p, 250 \text{K} \right) & \text{key = 'h' at outlet 2}
-                \end{cases}
         """
         if key == 'p':
-            return 50e5
-        elif key == 'h':
-            if c.source_id == 'out1':
-                T = 200 + 273.15
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
             else:
-                T = 250 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+                return 1e5
+
+        elif key == 'h':
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                temp = c.fluid.wrapper[fluid]._T_crit
+                if temp is None:
+                    temp = c.fluid.wrapper[fluid]._T_max
+
+                dT = temp - c.fluid.wrapper[fluid]._T_min
+
+                if c.source_id == 'out1':
+                    temp = temp - dT * 2 / 3
+                else:
+                    temp = temp - dT / 3
+            else:
+                if c.source_id == 'out1':
+                    temp = 600
+                else:
+                    temp = 500
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -910,23 +921,34 @@ class HeatExchanger(Component):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                h\left(p, 300 \text{K} \right) & \text{key = 'h' at inlet 1}\\
-                h\left(p, 220 \text{K} \right) & \text{key = 'h' at outlet 2}
-                \end{cases}
         """
         if key == 'p':
-            return 50e5
-        elif key == 'h':
-            if c.target_id == 'in1':
-                T = 300 + 273.15
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
             else:
-                T = 220 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+                return 1e5
+        elif key == 'h':
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                temp = c.fluid.wrapper[fluid]._T_crit
+                if temp is None:
+                    temp = c.fluid.wrapper[fluid]._T_max
+
+                dT = temp - c.fluid.wrapper[fluid]._T_min
+
+                if c.target_id == 'in1':
+                    temp = temp - dT / 4
+                else:
+                    temp = temp - dT / 3
+
+            else:
+                if c.target_id == 'in1':
+                    temp = 650
+                else:
+                    temp = 550
+
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

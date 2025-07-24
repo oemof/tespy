@@ -255,3 +255,27 @@ class SteamTurbine(Turbine):
 
             # return residual: outlet enthalpy = calculated outlet enthalpy
             return outl.h.val_SI - hout
+
+    def initialise_source(self, c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+        """
+        if key == 'p':
+            return super().initialise_source(c, key)
+        elif key == 'h':
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return h_mix_pQ(c.p.val_SI, 0.9, c.fluid_data, c.mixing_rule)

@@ -16,6 +16,7 @@ from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -229,3 +230,26 @@ class Desuperheater(HeatExchanger):
             self.outl[0].p,
             self.outl[0].h
         ]
+
+    def initialise_source(self, c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+        """
+        if c.source_id == 'out1':
+            if key == 'h':
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+
+        return super().initialise_source(c, key)

@@ -247,64 +247,6 @@ class Valve(Component):
             dependents += [self.inl[0].h]
         return dependents
 
-    def initialise_source(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 4e5
-        elif key == 'h':
-            return 5e5
-
-    def initialise_target(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at inlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 5e5
-        elif key == 'h':
-            return 5e5
-
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]

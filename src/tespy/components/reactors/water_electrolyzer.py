@@ -874,8 +874,8 @@ class WaterElectrolyzer(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            T = 50 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+            temp = 50 + 273.15
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def initialise_target(self, c, key):
         r"""
@@ -897,8 +897,8 @@ class WaterElectrolyzer(Component):
         if key == 'p':
             return 5e5
         elif key == 'h':
-            T = 20 + 273.15
-            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+            temp = 20 + 273.15
+            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

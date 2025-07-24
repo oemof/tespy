@@ -8,7 +8,12 @@ Bug Fixes
 - The :code:`FutureWarningHandler` now passes through the warnings correctly
   to the logger without change the type of warning
   (`PR #712 <https://github.com/oemof/tespy/pull/712>`__).
+- The :code:`_to_exerpy` export of the :code:`Network` instance was broken due
+  to the change in the connector IDs for some components with the introduction
+  of the :code:`PowerConnection` class
+  (`PR #713 <https://github.com/oemof/tespy/pull/713>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@sertomas <https://github.com/sertomas>`__

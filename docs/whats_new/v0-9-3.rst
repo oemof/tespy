@@ -5,7 +5,7 @@ Bug Fixes
 #########
 - When adding connections to a subsystem in the :code:`create_network` method
   components were sometimes added multiple times
-  (`PR #708 <https://github.com/oemof/tespy/pull/708>`__).
+  (`PR #718 <https://github.com/oemof/tespy/pull/718>`__).
 
 Contributors
 ############

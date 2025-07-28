@@ -165,10 +165,11 @@ class Subsystem:
         self._add_comps(*args)
 
     def _add_comps(self, *args):
-        # get unique components in new connections
-        comps = list({cp for c in args for cp in [c.source, c.target]})
-        # add to the dict of components
-
+        # get unique components in new connections and remove existing ones
+        comps = (
+            {cp for c in args for cp in [c.source, c.target]}
+            - set(self.comps.values())
+        )
         for comp in comps:
             if comp.label in self.comps.keys():
                 msg = "Component name in subsystem is not unique"

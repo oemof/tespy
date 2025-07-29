@@ -378,6 +378,26 @@ class TestTurbomachinery:
         )
         assert eta_s == round(instance.eta_s.val, 3), msg
 
+    def test_Turbine_supercritical_outlet_guess(self):
+        instance = Turbine("turbine")
+        self.setup_network(instance)
+        fl = {"H2O": 1}
+        self.c1.set_attr(fluid=fl, m=1, p=300, T=600)
+        self.c2.set_attr(p=250)
+        instance.set_attr(eta_s=0.9)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+    def test_Turbine_supercritical_inlet_guess(self):
+        instance = Turbine("turbine")
+        self.setup_network(instance)
+        fl = {"H2O": 1}
+        self.c1.set_attr(fluid=fl, m=1, p=300)
+        self.c2.set_attr(p=250, T=500)
+        instance.set_attr(eta_s=0.9)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
     def test_SteamTurbine(self, tmp_path):
         instance = SteamTurbine('turbine')
         self.setup_network(instance)

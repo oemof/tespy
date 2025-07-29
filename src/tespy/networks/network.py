@@ -26,10 +26,8 @@ from tabulate import tabulate
 from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.connections import Ref
 from tespy.connections.connection import _ConnectionBase
 from tespy.connections.connection import connection_registry
-from tespy.tools import fluid_properties as fp
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -39,11 +37,8 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
-from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 
@@ -1327,99 +1322,21 @@ class Network:
         return eq_counter
 
     def _find_linear_dependent_variables(self, sparse_matrix, rhs):
-        edges_with_factors = []
-        rhs_offsets = {}
-        eq_idx = {}  # The equation indices keep track of which equations to eliminate
-
         if len(sparse_matrix) == 0:
             return []
 
-        num_rows = 1 + max([k[0] for k in sparse_matrix.keys()])
-        num_cols = 1 + max([k[1] for k in sparse_matrix.keys()])
-
-        # Convert sparse matrix to dense form
-        dense_matrix = np.zeros((num_rows, num_cols))
-        for idx, value in sparse_matrix.items():
-            dense_matrix[idx] = value
-
-        # Extract edges and offsets from rows with two non-zero entries
-        for row_idx in range(num_rows):
-            non_zero_indices = [
-                col_idx for col_idx, value
-                in enumerate(dense_matrix[row_idx]) if value != 0
-            ]
-            non_zero_values = [
-                dense_matrix[row_idx, col_idx] for col_idx in non_zero_indices
-            ]
-
-            if len(non_zero_indices) == 2:
-                col1, col2 = non_zero_indices
-                val1, val2 = non_zero_values
-                factor = -val1 / val2
-                offset = rhs[row_idx] / val2
-                edges_with_factors.append((col1, col2, factor))
-                rhs_offsets[(col1, col2)] = offset
-                if (col1, col2) in eq_idx:
-                    variables = self._get_variables_before_presolve_by_number([col1, col2])
-                    equations = self._get_equation_sets_by_eq_set_number(
-                        [eq_idx[(col1, col2)], row_idx]
-                    )
-                    msg = (
-                        f"The variables "
-                        f"{', '.join([str(v) for v in variables])} are "
-                        "directly linked with two equations "
-                        f"{', '.join([str(e) for e in equations])}. This "
-                        "overdetermines the problem."
-                    )
-                    raise hlp.TESPyNetworkError(msg)
-
-                eq_idx[(col1, col2)] = row_idx
-
-        # Build adjacency list for the graph
-        adjacency_list = {}
-        for col1, col2, factor in edges_with_factors:
-            if col1 not in adjacency_list:
-                adjacency_list[col1] = []
-            if col2 not in adjacency_list:
-                adjacency_list[col2] = []
-
-            # Add edge with factor and reverse edge with reciprocal value
-            adjacency_list[col1].append((col2, factor))
-            adjacency_list[col2].append((col1, 1 / factor))
-
+        adjacency_list, eq_idx, edges_with_factors, rhs_offsets = (
+            self._build_graph(sparse_matrix, rhs)
+        )
         # Detect cycles (to check for circular dependencies)
-        visited = set()
-        edge_list = []
-
-        def dfs_cycle(node, parent):
-            visited.add(node)
-            for neighbor, _ in adjacency_list.get(node, []):
-                if neighbor not in visited:
-                    edge_list.append(tuple(sorted([neighbor, node])))
-                    if dfs_cycle(neighbor, node):
-                        return True
-                elif neighbor != parent:  # A back edge is found
-                    edge_list.append(tuple(sorted([neighbor, node])))
-                    return True
-            return False
-
-        for node in adjacency_list:
-            if node not in visited:
-                if dfs_cycle(node, None):
-                    cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
-                    variable_names = self._get_variables_before_presolve_by_number(visited)
-                    equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
-                    msg = (
-                        "A circular dependency between the variables "
-                        f"{', '.join([str(v) for v in variable_names])} "
-                        "caused by the equations "
-                        f"{', '.join([str(e) for e in equations])} has been "
-                        "detected. This overdetermines the problem."
-                    )
-                    raise hlp.TESPyNetworkError(msg)
+        cycle = self._find_cycles_in_graph(
+            {k: [x[0] for x in v] for k, v in adjacency_list.items()}
+        )
+        if cycle is not None:
+            self._raise_error_if_cycle(cycle, edges_with_factors, eq_idx)
 
         # Find connected components and compute factors/offsets
-        visited.clear()
+        visited = set()
         variables_factors_offsets = []
 
         def dfs_component(node, current_factor, current_offset):
@@ -1478,8 +1395,106 @@ class Network:
 
         return variables_factors_offsets
 
-    def _map_column_indices_to_variable_names(self, cycle):
-        return cycle
+    def _build_graph(self, sparse_matrix, rhs):
+        edges_with_factors = []
+        rhs_offsets = {}
+        eq_idx = {}
+        # The equation indices keep track of which equations to eliminate
+        # Extract edges and offsets from rows with two non-zero entries
+        rows = {k[0] for k in sparse_matrix}
+        # sorting needs to be applied to always have same orientation on edges
+        # otherwise duplicate edges are not found if one is just in reverse
+        rows_with_cols = {
+            row: sorted([k[1] for k in sparse_matrix if k[0] == row])
+            for row in rows
+        }
+        for row, cols in rows_with_cols.items():
+            if len(cols) == 2:
+                non_zero_values = (
+                    sparse_matrix[(row, cols[0])], sparse_matrix[(row, cols[1])]
+                )
+                col1, col2 = cols
+                val1, val2 = non_zero_values
+                factor = -val1 / val2
+                offset = rhs[row] / val2
+                edges_with_factors.append((col1, col2, factor))
+                rhs_offsets[(col1, col2)] = offset
+                if (col1, col2) in eq_idx:
+                    variables = self._get_variables_before_presolve_by_number([col1, col2])
+                    equations = self._get_equation_sets_by_eq_set_number(
+                        [eq_idx[(col1, col2)], row]
+                    )
+                    msg = (
+                        "The variables "
+                        f"{', '.join([str(v) for v in variables])} are "
+                        "directly linked with two equations "
+                        f"{', '.join([str(e) for e in equations])}. This "
+                        "overdetermines the problem."
+                    )
+                    raise hlp.TESPyNetworkError(msg)
+
+                eq_idx[(col1, col2)] = row
+
+        # Build adjacency list for the graph
+        adjacency_list = {}
+        for col1, col2, factor in edges_with_factors:
+            if col1 not in adjacency_list:
+                adjacency_list[col1] = []
+            if col2 not in adjacency_list:
+                adjacency_list[col2] = []
+
+            # Add edge with factor and reverse edge with reciprocal value
+            adjacency_list[col1].append((col2, factor))
+            adjacency_list[col2].append((col1, 1 / factor))
+
+        return adjacency_list, eq_idx, edges_with_factors, rhs_offsets
+
+    def _find_cycles_in_graph(self, graph):
+        visited = set()
+        parent = {}
+
+        def dfs(node, prev):
+            visited.add(node)
+            for neighbor in graph.get(node, []):
+                if neighbor not in visited:
+                    parent[neighbor] = node
+                    result = dfs(neighbor, node)
+                    if result:
+                        return result
+                elif neighbor != prev:
+                    # Cycle found, reconstruct it
+                    cycle = [neighbor, node]
+                    while cycle[-1] != neighbor:
+                        cycle.append(parent[cycle[-1]])
+                    cycle.reverse()
+                    return cycle
+            return None
+
+        for node in graph:
+            if node not in visited:
+                parent[node] = None
+                cycle = dfs(node, None)
+                if cycle:
+                    return set(cycle)
+
+        return None
+
+    def _raise_error_if_cycle(self, cycle, edges_with_factors, eq_idx):
+        edge_list = [
+            e[:2] for e in edges_with_factors
+            if e[0] in cycle or e[1] in cycle
+        ]
+        cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
+        variable_names = self._get_variables_before_presolve_by_number(cycle)
+        equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
+        msg = (
+            "A circular dependency between the variables "
+            f"{', '.join([str(v) for v in variable_names])} "
+            "caused by the equations "
+            f"{', '.join([str(e) for e in equations])} has been "
+            "detected. This overdetermines the problem."
+        )
+        raise hlp.TESPyNetworkError(msg)
 
     def _create_fluid_wrapper_branches(self):
 
@@ -1746,7 +1761,6 @@ class Network:
             b.comps['P_ref'] = np.nan
 
         series = pd.Series(dtype='float64')
-        _local_design_paths = {}
         for cp in self.comps['object']:
             c = cp.__class__.__name__
             # read design point information of components with

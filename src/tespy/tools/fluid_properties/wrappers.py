@@ -500,6 +500,7 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
+        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
         self._molar_mass = self.AS.mw()
 

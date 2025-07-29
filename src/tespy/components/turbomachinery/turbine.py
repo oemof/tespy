@@ -425,7 +425,11 @@ class Turbine(Turbomachine):
         elif key == 'h':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+                if c.p.val_SI >= c.fluid.wrapper[fluid]._p_crit:
+                    temp = c.fluid.wrapper[fluid]._T_crit * 1.2
+                    return h_mix_pT(c.p.val_SI, temp, c.fluid_data)
+                else:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
             else:
                 temp = 1000
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
@@ -457,7 +461,11 @@ class Turbine(Turbomachine):
         elif key == 'h':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 1e5
+                if c.p.val_SI >= c.fluid.wrapper[fluid]._p_crit:
+                    temp = c.fluid.wrapper[fluid]._T_crit * 1.4
+                    return h_mix_pT(c.p.val_SI, temp, c.fluid_data)
+                else:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 1e5
             else:
                 temp = 500
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)

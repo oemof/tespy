@@ -9,6 +9,9 @@ Bug Fixes
 - The error message when imposing boundary conditions leading to a cyclic
   linear dependency was wrong for some instances
   (`PR #720 <https://github.com/oemof/tespy/pull/720>`__).
+- The starting value guesses for enthalpy of :code:`Turbine` class instances
+  now differentiates between supercritical and non-supercritical pressure
+  (`PR #721 <https://github.com/oemof/tespy/pull/721>`__).
 
 Contributors
 ############

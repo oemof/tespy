@@ -1251,16 +1251,20 @@ class Connection(_ConnectionBase):
                     try:
                         self.x.val_SI = self.calc_x()
                     except ValueError:
-                        pass
+                        self.x.val_SI = np.nan
                 if not self.Td_bp.is_set:
                     try:
                         self.Td_bp.val_SI = self.calc_Td_bp()
                     except ValueError:
-                        pass
+                        self.Td_bp.val_SI = np.nan
                 try:
                     self.phase.val = self.calc_phase()
                 except ValueError:
-                    pass
+                    self.phase.val = "phase not recognized"
+            else:
+                self.x.val_SI = np.nan
+                self.Td_bp.val_SI = np.nan
+                self.phase.val = "phase not recognized"
 
         if _converged:
             self.vol.val_SI = self.calc_vol()

@@ -807,50 +807,48 @@ class Connection(_ConnectionBase):
             Connection to precalculate values for.
         """
         # starting values for specified vapour content or temperature
-        if self.h.is_var:
-            if not self.good_starting_values:
-                if self.x.is_set:
-                    fluid = fp.single_fluid(self.fluid_data)
-                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+        if not self.h.is_var:
+            return
+
+        if not self.good_starting_values:
+            if self.x.is_set:
+                fluid = fp.single_fluid(self.fluid_data)
+                if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                    self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+                self.h.set_reference_val_SI(
+                    fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
+                )
+            if self.T.is_set:
+                try:
                     self.h.set_reference_val_SI(
-                        fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
+                        fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
                     )
+                except ValueError:
+                    pass
 
-                if self.T.is_set:
-                    try:
-                        self.h.set_reference_val_SI(
-                            fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-                        )
-                    except ValueError:
-                        pass
+        # starting values for specified quality, specified subcooling/overheating
+        # and state specification. These should be recalculated even with
+        # good starting values, for example, when one exchanges enthalpy
+        # with boiling point temperature difference.
+        if (self.Td_bp.is_set or self.state.is_set):
+            fluid = fp.single_fluid(self.fluid_data)
+            if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+            if (
+                    (self.Td_bp.val_SI > 0 and self.Td_bp.is_set)
+                    or (self.state.val == 'g' and self.state.is_set)
+                ):
+                h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
+                if self.h.val_SI < h:
+                    self.h.set_reference_val_SI(h * 1.001)
 
-            # starting values for specified subcooling/overheating
-            # and state specification. These should be recalculated even with
-            # good starting values, for example, when one exchanges enthalpy
-            # with boiling point temperature difference.
-            if (self.Td_bp.is_set or self.state.is_set):
-                if (
-                        (self.Td_bp.val_SI > 0 and self.Td_bp.is_set)
-                        or (self.state.val == 'g' and self.state.is_set)
-                    ):
-                    fluid = fp.single_fluid(self.fluid_data)
-                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
-                    h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
-                    if self.h.val_SI < h:
-                        self.h.set_reference_val_SI(h * 1.001)
-
-                elif (
-                        (self.Td_bp.val_SI < 0 and self.Td_bp.is_set)
-                        or (self.state.val == 'l' and self.state.is_set)
-                    ):
-                    fluid = fp.single_fluid(self.fluid_data)
-                    if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                        self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
-                    h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
-                    if self.h.val_SI > h:
-                        self.h.set_reference_val_SI(h * 0.999)
+            elif (
+                    (self.Td_bp.val_SI < 0 and self.Td_bp.is_set)
+                    or (self.state.val == 'l' and self.state.is_set)
+                ):
+                h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
+                if self.h.val_SI > h:
+                    self.h.set_reference_val_SI(h * 0.999)
 
     def _presolve(self):
         if len(self.fluid.is_var) > 0:

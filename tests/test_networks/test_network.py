@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 import json
 import os
 
+import numpy as np
 from pytest import approx
 from pytest import mark
 from pytest import raises
@@ -846,3 +847,18 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
 
     nw.solve("design")
     assert nw.status == 99
+
+def test_postprocessing_supercritical():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", si, "in1", label="c1")
+
+    nw.add_conns(c1)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
+    nw.solve("design")
+    assert np.isnan(c1.Td_bp.val)
+    assert np.isnan(c1.x.val)

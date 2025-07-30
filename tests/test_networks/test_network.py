@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
 import json
 import os
 
+import numpy as np
+from pytest import approx
 from pytest import mark
 from pytest import raises
 
@@ -517,7 +519,10 @@ class TestNetworkPreprocessing:
         b.set_attr(pr=1)
         self.nwk.solve("design")
         self.nwk.assert_convergence()
-        variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
+        variables = [
+            data["obj"].get_attr(data["variable"])
+            for data in self.nwk.variables_dict.values()
+        ]
         # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
@@ -798,3 +803,62 @@ def test_missing_cyclecloser_but_no_missing_source():
     # absence of cycle closer)
     with raises(TESPyNetworkError):
         nw.solve(mode="design")
+
+
+def test_two_phase_in_supercritical_starting_pressure_convergence():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", heater, "in1", label="c1")
+    c2 = Connection(heater, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=250, T=400)
+    c2.set_attr(x=1, p0=250)
+
+    heater.set_attr(Q=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert approx(c2.h.val_SI) == c1.h.val_SI
+    assert approx(c2.p.val) == 160.67964
+
+
+def test_two_phase_in_supercritical_pressure_non_convergence():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", heater, "in1", label="c1")
+    c2 = Connection(heater, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
+    c2.set_attr(x=1, p0=250)
+
+    heater.set_attr(Q=0)
+
+    nw.solve("design")
+    assert nw.status == 99
+
+def test_postprocessing_supercritical():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", si, "in1", label="c1")
+
+    nw.add_conns(c1)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
+    nw.solve("design")
+    assert np.isnan(c1.Td_bp.val)
+    assert np.isnan(c1.x.val)

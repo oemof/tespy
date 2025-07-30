@@ -1,6 +1,16 @@
 v0.9.3 - Under development
 ++++++++++++++++++++++++++
 
+Other Changes
+#############
+- :code:`Td_bp` and :code:`x` are now set to :code:`nan`, if the state of the
+  fluid is supercritical. The :code:`_make_p_subcritical` method has been
+  removed from the :code:`FluidPropertyWrapper` classes, because the
+  convergence helpers will ensure, that no two-phase properties are accessed in
+  supercritical states. Otherwise it was possible, that a simulation converged
+  with a supercritical state and :code:`x` or :code:`Td_bp` set by the user
+  (`PR #722 <https://github.com/oemof/tespy/pull/722>`__).
+
 Bug Fixes
 #########
 - When adding connections to a subsystem in the :code:`create_network` method

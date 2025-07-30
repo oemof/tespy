@@ -37,7 +37,7 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
-from tespy.tools.fluid_properties.helpers import get_number_of_fluids
+from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
@@ -1212,9 +1212,10 @@ class Connection(_ConnectionBase):
 
     def calc_results(self):
         self.T.val_SI = self.calc_T()
-        number_fluids = get_number_of_fluids(self.fluid_data)
+        fluid = single_fluid(self.fluid_data)
         _converged = True
-        if number_fluids > 1:
+        if fluid is None:
+            # this is a mixture
             h_from_T = h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
             if (
                 abs(h_from_T - self.h.val_SI) > ERR ** .5 and
@@ -1243,22 +1244,27 @@ class Connection(_ConnectionBase):
                     )
                     logger.warning(msg)
         else:
-            try:
+            # these are pure fluids
+            # two-phase properties are calculated based on pressure
+            if self.p.val_SI < self.fluid.wrapper[fluid]._p_crit:
                 if not self.x.is_set:
-                    self.x.val_SI = self.calc_x()
-            except ValueError:
-                self.x.val_SI = np.nan
-
-            try:
-                self.phase.val = self.calc_phase()
-            except ValueError:
-                self.phase.val = np.nan
-
-            try:
+                    try:
+                        self.x.val_SI = self.calc_x()
+                    except ValueError:
+                        self.x.val_SI = np.nan
                 if not self.Td_bp.is_set:
-                    self.Td_bp.val_SI = self.calc_Td_bp()
-            except ValueError:
+                    try:
+                        self.Td_bp.val_SI = self.calc_Td_bp()
+                    except ValueError:
+                        self.Td_bp.val_SI = np.nan
+                try:
+                    self.phase.val = self.calc_phase()
+                except ValueError:
+                    self.phase.val = "phase not recognized"
+            else:
+                self.x.val_SI = np.nan
                 self.Td_bp.val_SI = np.nan
+                self.phase.val = "phase not recognized"
 
         if _converged:
             self.vol.val_SI = self.calc_vol()

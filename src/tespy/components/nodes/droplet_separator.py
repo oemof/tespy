@@ -262,6 +262,15 @@ class DropletSeparator(NodeBase):
             branch["components"] += [self]
             outconn.target.propagate_wrapper_to_target(branch)
 
+    def convergence_check(self):
+        # here all pressures are the same value
+        o = self.outl[0]
+        if o.p.is_var:
+            fluid = single_fluid(o.fluid_data)
+            p_crit = o.fluid.wrapper[fluid]._p_crit
+            if o.p.val_SI > p_crit:
+                o.p.set_reference_val_SI(p_crit * 0.9)
+
     @staticmethod
     def initialise_source(c, key):
         r"""

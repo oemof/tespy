@@ -174,6 +174,8 @@ isentropic change of pressure for an ideal gas.
     ...         self._T_max = 2000
     ...         self._p_min = 1000
     ...         self._p_max = 10000000
+    ...         self._T_crit = 647.096
+    ...         self._p_crit = 2206400
     ...
     ...     def cp_pT(self, p, T):
     ...         y = T * 1e-3

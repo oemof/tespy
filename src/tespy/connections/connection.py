@@ -1246,15 +1246,21 @@ class Connection(_ConnectionBase):
         else:
             # these are pure fluids
             # two-phase properties are calculated based on pressure
-            self.x.val_SI = np.nan
-            self.phase.val = np.nan
-            self.Td_bp.val_SI = np.nan
             if self.p.val_SI < self.fluid.wrapper[fluid]._p_crit:
                 if not self.x.is_set:
-                    self.x.val_SI = self.calc_x()
+                    try:
+                        self.x.val_SI = self.calc_x()
+                    except ValueError:
+                        pass
                 if not self.Td_bp.is_set:
-                    self.Td_bp.val_SI = self.calc_Td_bp()
-                self.phase.val = self.calc_phase()
+                    try:
+                        self.Td_bp.val_SI = self.calc_Td_bp()
+                    except ValueError:
+                        pass
+                try:
+                    self.phase.val = self.calc_phase()
+                except ValueError:
+                    pass
 
         if _converged:
             self.vol.val_SI = self.calc_vol()

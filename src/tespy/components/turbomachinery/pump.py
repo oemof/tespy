@@ -371,11 +371,12 @@ class Pump(Turbomachine):
         if o.h.is_var:
             fluid = single_fluid(i.fluid_data)
             if fluid is not None:
-                if i.fluid_data[fluid]["wrapper"].back_end != "INCOMP":
-                    h_max = h_mix_pQ(i.p.val_SI, 0, i.fluid_data)
+                if i.p.val_SI < i.fluid_data[fluid]["wrapper"]._p_crit:
+                    if i.fluid_data[fluid]["wrapper"].back_end != "INCOMP":
+                        h_max = h_mix_pQ(i.p.val_SI, 0, i.fluid_data)
 
-                    if o.h.val_SI > h_max:
-                        o.h.set_reference_val_SI(h_max - 20e3)
+                        if o.h.val_SI > h_max:
+                            o.h.set_reference_val_SI(h_max - 20e3)
 
         if i.h.is_var and o.h.val_SI < i.h.val_SI:
             i.h.set_reference_val_SI(o.h.val_SI - 10e3)

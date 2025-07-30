@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
 import json
 import os
 
+import numpy as np
+from pytest import approx
 from pytest import mark
 from pytest import raises
 
@@ -517,7 +519,10 @@ class TestNetworkPreprocessing:
         b.set_attr(pr=1)
         self.nwk.solve("design")
         self.nwk.assert_convergence()
-        variables = [data["obj"].get_attr(data["variable"]) for data in self.nwk.variables_dict.values()]
+        variables = [
+            data["obj"].get_attr(data["variable"])
+            for data in self.nwk.variables_dict.values()
+        ]
         # no variable at all, everything must have been presolved
         assert c1.m not in variables
         assert c2.m not in variables
@@ -640,7 +645,7 @@ def test_missing_source_sink_cycle_closer():
     with raises(TESPyNetworkError):
         nw.solve("design")
 
-def  test_dublicated_linear_dependent_variables():
+def test_dublicated_linear_dependent_variables():
     nw = Network(T_unit="C", p_unit="bar")
 
     so = Source("source")
@@ -663,7 +668,7 @@ def  test_dublicated_linear_dependent_variables():
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
 
-def  test_cyclic_linear_dependent_variables():
+def test_cyclic_linear_dependent_variables():
     nw = Network(T_unit="C", p_unit="bar")
 
     so = Source("source")
@@ -686,6 +691,53 @@ def  test_cyclic_linear_dependent_variables():
 
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
+
+    adjacency_list, _, _, _ = (
+        nw._build_graph(nw._structure_matrix, nw._rhs)
+    )
+    # Detect cycles (to check for circular dependencies)
+    cycle = nw._find_cycles_in_graph(
+        {k: [x[0] for x in v] for k, v in adjacency_list.items()}
+    )
+    # checksum for the variable numbers
+    assert sum(cycle) == 19
+
+def test_cyclic_linear_dependent_with_merge_and_split():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    splitter = Splitter("splitter")
+    heater1 = SimpleHeatExchanger("heater 1")
+    heater2 = SimpleHeatExchanger("heater 2")
+    merge = Merge("merge")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", splitter, "in1", label="c1")
+    c2 = Connection(splitter, "out1", heater1, "in1", label="c2")
+    c3 = Connection(heater1, "out1", merge, "in1", label="c3")
+    c4 = Connection(splitter, "out2", heater2, "in1", label="c4")
+    c5 = Connection(heater2, "out1", merge, "in2", label="c5")
+    c6 = Connection(merge, "out1", si, "in1", label="c6")
+
+    nw.add_conns(c1, c2, c3, c4, c5, c6)
+
+    # fluid has to be specified, otherwise crash due to other issue
+    c1.set_attr(fluid={"air": 1}, p=1)
+    heater1.set_attr(pr=0.98)
+    heater2.set_attr(pr=0.98)
+
+    with raises(TESPyNetworkError):
+        nw.solve("design", init_only=True)
+
+    adjacency_list, _, _, _ = (
+        nw._build_graph(nw._structure_matrix, nw._rhs)
+    )
+    # Detect cycles (to check for circular dependencies)
+    cycle = nw._find_cycles_in_graph(
+        {k: [x[0] for x in v] for k, v in adjacency_list.items()}
+    )
+    # checksum for the variable numbers
+    assert sum(cycle) == 45
 
 def test_v08_to_v09_import():
     path = os.path.join(
@@ -716,8 +768,6 @@ def test_v08_to_v09_complete():
     nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():
-
-    # Define network
     nw = Network(
         T_unit="C", p_unit="bar", h_unit="kJ / kg"
     )
@@ -742,13 +792,73 @@ def test_missing_cyclecloser_but_no_missing_source():
 
     # Set fluid and boundary conditions
     c2.set_attr(fluid={"PROPANE": 1})
-    c5.set_attr(fluid={'WATER':1},p=1,T=50)
+    c5.set_attr(fluid={'WATER':1}, p=1, T=50)
 
     # Component parameters
     comp.set_attr(eta_s=0.7)
     cond.set_attr(td_pinch=3, Q=-15e3)
     evap.set_attr(pr=1, Tamb = 5)
 
-    # This will fail with a fluid key error (instead of warning for the absence of cycle closer)
+    # This will fail with a fluid key error (instead of warning for the
+    # absence of cycle closer)
     with raises(TESPyNetworkError):
         nw.solve(mode="design")
+
+
+def test_two_phase_in_supercritical_starting_pressure_convergence():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", heater, "in1", label="c1")
+    c2 = Connection(heater, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=250, T=400)
+    c2.set_attr(x=1, p0=250)
+
+    heater.set_attr(Q=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert approx(c2.h.val_SI) == c1.h.val_SI
+    assert approx(c2.p.val) == 160.67964
+
+
+def test_two_phase_in_supercritical_pressure_non_convergence():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    heater = SimpleHeatExchanger("heater")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", heater, "in1", label="c1")
+    c2 = Connection(heater, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
+    c2.set_attr(x=1, p0=250)
+
+    heater.set_attr(Q=0)
+
+    nw.solve("design")
+    assert nw.status == 99
+
+def test_postprocessing_supercritical():
+    nw = Network(T_unit="C", p_unit="bar")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", si, "in1", label="c1")
+
+    nw.add_conns(c1)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
+    nw.solve("design")
+    assert np.isnan(c1.Td_bp.val)
+    assert np.isnan(c1.x.val)

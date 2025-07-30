@@ -431,6 +431,14 @@ class Condenser(HeatExchanger):
             logger.warning(msg)
         self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)
 
+    def convergence_check(self):
+        o = self.outl[0]
+        if o.p.is_var:
+            fluid = single_fluid(o.fluid_data)
+            p_crit = o.fluid.wrapper[fluid]._p_crit
+            if o.p.val_SI > p_crit:
+                o.p.set_reference_val_SI(p_crit * 0.9)
+
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.

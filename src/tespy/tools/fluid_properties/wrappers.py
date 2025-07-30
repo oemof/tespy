@@ -101,9 +101,6 @@ class FluidPropertyWrapper:
     def _is_below_T_critical(self, T):
         self._not_implemented()
 
-    def _make_p_subcritical(self, p):
-        self._not_implemented()
-
     def T_ph(self, p, h):
         self._not_implemented()
 
@@ -219,11 +216,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
     def _is_below_T_critical(self, T):
         return T < self._T_crit
 
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
-
     def get_T_max(self, p):
         if self.back_end == "INCOMP":
             return self.T_sat(p)
@@ -262,7 +254,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
         self.AS.update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
@@ -274,7 +265,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.p()
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
         if len(self.fractions) > 1:
             return self.AS.Q()
@@ -290,7 +280,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return -1
 
     def phase_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
 
@@ -300,7 +289,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return "l"
         elif phase == CP.iphase_gas:
             return "g"
-        else:  # all other phases - though this should be unreachable as p is sub-critical
+        else:
             return "state not recognised"
 
     def d_ph(self, p, h):
@@ -386,11 +375,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
     def _is_below_T_critical(self, T):
         return T < self._T_crit
 
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
-
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
@@ -416,7 +400,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T, x=Q).s * 1e3
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
         return self.AS(P=p / 1e6, x=0).T
 
     def p_sat(self, T):
@@ -426,12 +409,9 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T / 1e6, x=0).P * 1e6
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         return self.AS(h=h / 1e3, P=p / 1e6).x
 
     def phase_ph(self, p, h):
-        p = self._make_p_subcritical(p)
-
         phase = self.AS(h=h / 1e3, P=p / 1e6).phase
 
         if phase in ["Liquid"]:
@@ -500,6 +480,7 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
+        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
         self._molar_mass = self.AS.mw()
 

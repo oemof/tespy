@@ -213,6 +213,9 @@ class CoolPropWrapper(FluidPropertyWrapper):
             self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
             self._molar_mass = self.AS.trivial_keyed_output(CP.imolar_mass)
 
+    def _is_below_T_critical(self, T):
+        return T < self._T_crit
+
     def get_T_max(self, p):
         if self.back_end == "INCOMP":
             return self.T_sat(p)

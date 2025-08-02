@@ -1,6 +1,12 @@
 v0.9.3 - Kelvin's Kingdom (July, 30, 2025)
 ++++++++++++++++++++++++++++++++++++++++++
 
+Hotfix for Postrelease
+######################
+- :code:`UserDefinedEquations` now automatically reassign their connection and
+  component objections. This is necessary in context of pygmo base
+  optimization (`PR #726 <https://github.com/oemof/tespy/pull/726>`__).
+
 Other Changes
 #############
 - :code:`Td_bp` and :code:`x` are now set to :code:`nan`, if the state of the

@@ -1170,6 +1170,8 @@ class Network:
 
         num_vars = self._prepare_variables()
 
+        self._reassign_ude_objects()
+
         sum_eq = 0
         sum_eq = self._preprocess_network_parts(self.conns["object"], sum_eq)
         sum_eq = self._preprocess_network_parts(self.comps["object"], sum_eq)
@@ -1305,6 +1307,11 @@ class Network:
                     {prop: container.sm_col}
                 )
         return num_vars
+
+    def _reassign_ude_objects(self):
+        for ude in self.user_defined_eq.values():
+            ude.conns = [self.get_conn(c.label) for c in ude.conns]
+            ude.comps = [self.get_comp(c.label) for c in ude.comps]
 
     def _preprocess_network_parts(self, parts, eq_counter):
 

@@ -206,6 +206,8 @@ class PowerConnection(_ConnectionBase):
             source_connector = 0
         elif self.source.__class__.__name__ in ["Turbine"]:
             source_connector = 1
+        elif self.source.__class__.__name__ in ["SimpleHeatExchanger"]:
+            source_connector = 1
         elif self.source.__class__.__name__ in ["PowerBus"]:
             if self.source_id.startswith("power_out"):
                 s_id = self.source_id.removeprefix("power_out")
@@ -219,6 +221,8 @@ class PowerConnection(_ConnectionBase):
         if self.target.__class__.__name__ in ["Motor", "Generator"]:
             target_connector = 0
         elif self.target.__class__.__name__ in ["Compressor", "Pump"]:
+            target_connector = 1
+        elif self.target.__class__.__name__ in ["SimpleHeatExchanger"]:
             target_connector = 1
         elif self.target.__class__.__name__ in ["PowerBus"]:
             if self.target_id.startswith("power_in"):

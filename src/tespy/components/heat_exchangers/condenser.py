@@ -395,6 +395,8 @@ class Condenser(HeatExchanger):
             self.td_log.val = np.nan
         elif round(self.ttd_l.val, 6) == round(self.ttd_u.val, 6):
             self.td_log.val = self.ttd_l.val
+        elif round(self.ttd_l.val, 6) == 0 or round(self.ttd_u.val, 6) == 0:
+            self.td_log.val = np.nan
         else:
             self.td_log.val = (
                 (self.ttd_l.val - self.ttd_u.val)

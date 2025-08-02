@@ -6,6 +6,9 @@ Hotfix for Postrelease
 - :code:`UserDefinedEquations` now automatically reassign their connection and
   component objections. This is necessary in context of pygmo base
   optimization (`PR #726 <https://github.com/oemof/tespy/pull/726>`__).
+- When either :code:`ttd_u` or :code:`ttd_l` on a class :code:`HeatExchanger`
+  component is zero, :code:`kA` will be set to nan to pervent a crash
+  (`PR #728 <https://github.com/oemof/tespy/pull/728>`__).
 
 Other Changes
 #############

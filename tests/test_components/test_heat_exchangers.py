@@ -749,6 +749,28 @@ class TestHeatExchangers:
         )
         assert np.isnan(instance.eff_hot.val), msg
 
+    def test_HeatExchanger_ttd_zero(self):
+
+        instance = HeatExchanger('heat exchanger')
+        self.setup_HeatExchanger_network(instance)
+
+        # add new fluids
+        # temperature range > 300 °C
+        self.c1.set_attr(fluid={"H2O": 1}, m=10, T=100, p=1)
+        self.c2.set_attr(T=50)
+        # temperature range < 100 °C at 1 bar
+        self.c3.set_attr(fluid={"air": 1}, T=50, p=1)
+        self.c4.set_attr(T=75)
+        instance.set_attr(dp1=0, dp2=0)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        msg = (
+            'Value of heat transfer coefficient must be nan but is '
+            f'{round(instance.kA.val, 1)}.'
+        )
+        assert np.isnan(instance.kA.val), msg
+
     def test_Condenser(self, tmp_path):
         """Test component properties of Condenser."""
         tmp_path = f'{tmp_path}.json'
@@ -778,8 +800,9 @@ class TestHeatExchangers:
         # test heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         msg = (
-            'Value of heat flow must be ' + str(round(Q_design * 2 / 3, 0)) +
-            ', is ' + str(round(Q, 0)) + '.')
+            f'Value of heat flow must be {round(Q_design * 2 / 3, 0)}, is '
+            f'{round(Q, 0)}.'
+        )
         assert round(Q, 1) == round(Q_design * 2 / 3, 1), msg
 
         # back to design case
@@ -789,26 +812,30 @@ class TestHeatExchangers:
 
         # test heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        msg = ('Value of heat flow must be ' + str(round(instance.Q.val, 0)) +
-               ', is ' + str(round(Q, 0)) + '.')
+        msg = (
+            f'Value of heat flow must be {round(instance.Q.val, 0)}, is '
+            f'{round(Q, 0)}.'
+        )
         assert round(Q, 1) == round(instance.Q.val, 1), msg
 
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(self.c1.calc_T_sat() - self.c4.T.val_SI, 1)
         p = round(self.c1.p.val_SI, 5)
-        msg = ('Value of terminal temperature difference must be ' +
-               str(round(instance.ttd_u.val, 1)) + ', is ' +
-               str(ttd_u) + '.')
+        msg = (
+            'Value of terminal temperature difference must be '
+            f'{round(instance.ttd_u.val, 1)}, is {ttd_u}.'
+        )
         assert ttd_u == round(instance.ttd_u.val, 1), msg
 
         # test lower terminal temperature difference
         instance.set_attr(ttd_l=20, ttd_u=None, design=['pr2', 'ttd_l'])
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of terminal temperature difference must be ' +
-               str(instance.ttd_l.val) + ', is ' +
-               str(self.c2.T.val - self.c3.T.val) + '.')
+        msg = (
+            'Value of terminal temperature difference must be '
+            f'{instance.ttd_l.val}, is {self.c2.T.val - self.c3.T.val}.'
+        )
         ttd_l_calc = round(self.c2.T.val - self.c3.T.val, 1)
         ttd_l = round(instance.ttd_l.val, 1)
         assert ttd_l_calc == ttd_l, msg
@@ -817,8 +844,10 @@ class TestHeatExchangers:
         # no changes to design point means: identical pressure
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of condensing pressure be ' + str(p) + ', is ' +
-               str(round(self.c1.p.val_SI, 5)) + '.')
+        msg = (
+            f'Value of condensing pressure be {p}, is '
+            f'{round(self.c1.p.val_SI, 5)}.'
+        )
         assert p == round(self.c1.p.val_SI, 5), msg
 
     def test_CondenserWithEvaporation(self):
@@ -847,3 +876,26 @@ class TestHeatExchangers:
             f"ttd_l={ttd_l}."
         )
         assert instance.td_log.val == instance.ttd_l.val, msg
+
+    def test_Condenser_ttd_zero(self):
+
+        instance = Condenser('condenser')
+        self.setup_HeatExchanger_network(instance)
+
+        # add new fluids
+        # temperature range > 300 °C
+        self.c1.set_attr(fluid={"H2O": 1}, m=1, T=100)
+        self.c2.set_attr(p=0.5)
+        # temperature range < 100 °C at 1 bar
+        self.c3.set_attr(fluid={"air": 1}, p=1)
+        self.c4.set_attr(T=75)
+        instance.set_attr(dp1=0, dp2=0, ttd_l=0)
+
+        self.nw.solve("design")
+        self.nw.print_results()
+        self.nw.assert_convergence()
+        msg = (
+            'Value of heat transfer coefficient must be nan but is '
+            f'{round(instance.kA.val, 1)}.'
+        )
+        assert np.isnan(instance.kA.val), msg

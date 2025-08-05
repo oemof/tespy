@@ -1,11 +1,17 @@
 v0.9.3 - Kelvin's Kingdom (July, 30, 2025)
 ++++++++++++++++++++++++++++++++++++++++++
 
-Hotfix for Postrelease
-######################
+Hotfix for Postreleases
+#######################
 - :code:`UserDefinedEquations` now automatically reassign their connection and
   component objections. This is necessary in context of pygmo base
   optimization (`PR #726 <https://github.com/oemof/tespy/pull/726>`__).
+- When either :code:`ttd_u` or :code:`ttd_l` on a class :code:`HeatExchanger`
+  component is zero, :code:`kA` will be set to nan to pervent a crash
+  (`PR #728 <https://github.com/oemof/tespy/pull/728>`__).
+- A bug has been fixed, that applied a convergence check based on :code:`Td_bp`
+  value even if it was not a set value
+  (`PR #731 <https://github.com/oemof/tespy/pull/731>`__).
 
 Other Changes
 #############
@@ -32,3 +38,4 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@sertomas <https://github.com/sertomas>`__

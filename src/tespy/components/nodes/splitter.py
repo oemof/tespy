@@ -154,40 +154,6 @@ class Splitter(NodeBase):
             branch["connections"] += [outconn]
             outconn.target.propagate_wrapper_to_target(branch)
 
-    def energy_balance_func(self):
-        r"""
-        Calculate energy balance.
-
-        Returns
-        -------
-        residual : list
-            Residual value of energy balance.
-
-            .. math::
-
-                0 = h_{in} - h_{out,j} \;
-                \forall j \in \mathrm{outlets}\\
-        """
-        residual = []
-        for o in self.outl:
-            residual += [self.inl[0].h.val_SI - o.h.val_SI]
-        return residual
-
-    def energy_balance_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives for energy balance equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        for eq, o in enumerate(self.outl):
-            if self.inl[0].h.is_var:
-                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
-            if o.h.is_var:
-                self.jacobian[k + eq, o.h.J_col] = -1
-
     def enthalpy_structure_matrix(self, k):
         r"""
         Calculate partial derivatives for energy balance equation.

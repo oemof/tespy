@@ -1,6 +1,7 @@
-from tespy.components import Splitter, Merge
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.components.nodes.merge import Merge
+from tespy.components.nodes.splitter import Splitter
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 class Node(Splitter, Merge):

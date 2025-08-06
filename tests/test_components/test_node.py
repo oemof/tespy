@@ -1,10 +1,24 @@
-from pytest import fixture
-from pytest import approx
-from numpy.testing import assert_almost_equal
+# -*- coding: utf-8
 
-from tespy.networks import Network
-from tespy.components import Source, Sink, Node, Merge, Splitter
+"""Module for testing components of type merge.
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/test_components/test_merge.py
+SPDX-License-Identifier: MIT
+"""
+
+from numpy.testing import assert_almost_equal
+from pytest import approx
+from pytest import fixture
+
+from tespy.components import Merge
+from tespy.components import Node
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Splitter
 from tespy.connections import Connection
+from tespy.networks import Network
 
 
 @fixture

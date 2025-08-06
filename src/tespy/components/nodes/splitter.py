@@ -24,9 +24,9 @@ class Splitter(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_structure_matrix`
 
     Inlets/Outlets
 

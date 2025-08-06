@@ -27,13 +27,13 @@ class Merge(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
     - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
     - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
 
     Inlets/Outlets
 
-    - specify number of outlets with :code:`num_in` (default value: 2)
+    - specify number of inlets with :code:`num_in` (default value: 2)
     - out1
 
     Image

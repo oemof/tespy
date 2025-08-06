@@ -24,15 +24,15 @@ class SubsystemInterface(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - :py:meth:`tespy.components.component.Component.pressure_equality_func`
-    - :py:meth:`tespy.components.component.Component.enthalpy_equality_func`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     Inlets/Outlets
 
     - Specify number of inlets and outlets with :code:`num_inter`,
-      predefined value: 1.
+      default value: 1.
 
     Image
 

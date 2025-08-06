@@ -5,6 +5,73 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 class Node(Splitter, Merge):
+    r"""
+    Class for combined merge and splitting points with multiple inflows and
+    outflows.
+
+    **Mandatory Equations**
+
+    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.node.Node.enthalpy_structure_matrix`
+    - :py:meth:`tespy.components.nodes.node.Node.fluid_structure_matrix`
+    - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
+    - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
+
+    Inlets/Outlets
+
+    - specify number of inlets with :code:`num_in` (default value: 2)
+    - specify number of outlets with :code:`num_in` (default value: 2)
+
+    Image
+
+    .. image:: /api/_images/Node.svg
+       :alt: flowsheet of the node
+       :align: center
+       :class: only-light
+
+    .. image:: /api/_images/Node_darkmode.svg
+       :alt: flowsheet of the node
+       :align: center
+       :class: only-dark
+
+    Parameters
+    ----------
+    label : str
+        The label of the component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    local_offdesign : boolean
+        Treat this component in offdesign mode in a design calculation.
+
+    local_design : boolean
+        Treat this component in design mode in an offdesign calculation.
+
+    char_warnings : boolean
+        Ignore warnings on default characteristics usage for this component.
+
+    printout : boolean
+        Include this component in the network's results printout.
+
+    num_in : float
+        Number of inlets for this component, default value: 2.
+
+    num_out : float
+        Number of outlets for this component, default value: 2.
+
+    Example
+    -------
+    """
 
     @staticmethod
     def get_parameters():
@@ -12,24 +79,6 @@ class Node(Splitter, Merge):
             'num_out': dc_simple(),
             'num_in': dc_simple()
         }
-
-    def _update_num_eq(self):
-        self.variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
-        )
-        set_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_set]
-        )
-        self.all_fluids = self.variable_fluids | set_fluids
-        if len(self.variable_fluids) == 0 and len(set_fluids) == 0:
-            fluid_eq = 0
-            self.constraints["mass_flow_constraints"].num_eq = 1
-        elif len(self.variable_fluids) == 0:
-            fluid_eq = len(self.all_fluids)
-            self.constraints["mass_flow_constraints"].num_eq = 0
-        else:
-            fluid_eq = len(self.variable_fluids)
-        self.constraints["fluid_constraints"].num_eq = fluid_eq
 
     def get_mandatory_constraints(self):
         return {

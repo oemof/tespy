@@ -28,7 +28,7 @@ class Separator(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
     - :py:meth:`tespy.components.nodes.separator.Separator.fluid_func`
     - :py:meth:`tespy.components.nodes.separator.Separator.energy_balance_func`
 

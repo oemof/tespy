@@ -17,8 +17,6 @@ class Node(Splitter, Merge):
     - :py:meth:`tespy.components.nodes.node.Node.fluid_structure_matrix`
     - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
     - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
 
     Inlets/Outlets
 
@@ -71,6 +69,45 @@ class Node(Splitter, Merge):
 
     Example
     -------
+    The :code:`Node` serves as a splitter and a merger at the same time. For
+    example, you can use it to represent a preheating vessel, which produces
+    saturated liquid water by mixing pumped condensate and a steam stream.
+    The saturated liquid is then split into a specified amount of outlet
+    streams. In this example it will be just two.
+
+    >>> from tespy.components import Source, Sink, Node
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> so1 = Source("source1")
+    >>> so2 = Source("source2")
+    >>> si1 = Sink("sink1")
+    >>> si2 = Sink("sink2")
+    >>> node = Node("node")
+    >>> node.set_attr(num_in=2, num_out=2)
+    >>> c1 = Connection(so1, "out1", node, "in1", label="pumped condensate")
+    >>> c2 = Connection(so2, "out1", node, "in2", label="extraction steam")
+    >>> c3 = Connection(node, "out1", si1, "in1", label="outlet 1")
+    >>> c4 = Connection(node, "out2", si2, "in1", label="outlet 2")
+    >>> nw.add_conns(c1, c2, c3, c4)
+
+    We can parametrize the system, for example, to preheat 50 kg/s of water.
+    The system will then identify, what amout of extraction steam is required
+    to preheat the water to the saturated liquid state. Apart from the inlet
+    states we have to add one mass flow specification to define the split
+    ratio between the two outlets.
+
+    .. note::
+
+        The enthalpy of the fluid will be identical at all exits. If you want
+        to have separation of phasey, you have to use a `DropletSeparator`
+        downstream of this component.
+
+    >>> c1.set_attr(fluid={"water": 1}, m=50, p=3, T=50)
+    >>> c2.set_attr(fluid={"water": 1}, T=200)
+    >>> c3.set_attr(x=0)
+    >>> c4.set_attr(m=1)
+    >>> nw.solve("design")
     """
 
     @staticmethod

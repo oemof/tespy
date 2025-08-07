@@ -32,20 +32,21 @@ class Pipe(SimpleHeatExchanger):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.piping.Pipe.ohc_surface_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.piping.Pipe.ohc_subsurface_group_func`
+    - :py:meth:`tespy.components.piping.pipe.Pipe.ohc_surface_group_func`
+    - :py:meth:`tespy.components.piping.pipe.Pipe.ohc_subsurface_group_func`
 
     Inlets/Outlets
 

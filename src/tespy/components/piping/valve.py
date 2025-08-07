@@ -28,12 +28,13 @@ class Valve(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
 

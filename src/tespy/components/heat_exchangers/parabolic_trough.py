@@ -24,8 +24,8 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 

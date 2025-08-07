@@ -42,8 +42,8 @@ class SimpleHeatExchanger(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
@@ -601,7 +601,7 @@ class SimpleHeatExchanger(Component):
         Note
         ----
         For standard function of f\ :subscript:`kA` \ see module
-        :py:mod:`tespy.data`.
+        :ref:`tespy.data <tespy_data_label>`.
         """
         i = self.inl[0]
         o = self.outl[0]

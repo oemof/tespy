@@ -26,7 +26,7 @@ from tabulate import tabulate
 from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
-from tespy.connections.connection import _ConnectionBase
+from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
@@ -456,7 +456,7 @@ class Network:
             :code:`add_conns(c1, c2, c3, ...)`.
         """
         for c in args:
-            if not isinstance(c, _ConnectionBase):
+            if not isinstance(c, ConnectionBase):
                 msg = (
                     'Must provide tespy.connections.connection.Connection '
                     'objects as parameters.'

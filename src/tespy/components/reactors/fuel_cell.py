@@ -27,18 +27,19 @@ class FuelCell(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
 
     **Optional Equations**
 
     - cooling loop:
 
+      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
       - :py:meth:`tespy.components.component.Component.zeta_func`
-      - :py:meth:`tespy.components.component.Component.pr_func`
 
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
@@ -94,8 +95,12 @@ class FuelCell(Component):
     eta : float, dict
         Electrolysis efficiency, :math:`\eta/1`.
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Cooling loop pressure ratio, :math:`pr/1`.
+
+    dp : float, dict
+        Inlet to outlet pressure difference of cooling loop,
+        :math:`dp/\text{p_unit}}` Is specified in the Network's pressure unit
 
     zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient for cooling loop pressure
@@ -203,12 +208,10 @@ class FuelCell(Component):
                 'num_eq_sets': 2
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
-                'func': self.cooling_mass_flow_func,
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
                 'num_eq_sets': 1
             }),
             'cooling_fluid_constraints': dc_cmc(**{
-                'func': self.cooling_fluid_func,
                 'structure_matrix': self.cooling_fluid_structure_matrix,
                 'num_eq_sets': 1
             }),
@@ -220,9 +223,7 @@ class FuelCell(Component):
                 'num_eq_sets': 1
             }),
             'reactor_pressure_constraints': dc_cmc(**{
-                'func': self.reactor_pressure_func,
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'constant_deriv': True,
                 'num_eq_sets': 2
             })
         }
@@ -501,52 +502,23 @@ class FuelCell(Component):
             [self.inl[2].m, self.outl[1].m]
         ]
 
-    def cooling_mass_flow_func(self):
-        return self.inl[0].m.val_SI - self.outl[0].m.val_SI
-
     def cooling_mass_flow_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].m.sm_col] = 1
         self._structure_matrix[k, self.outl[0].m.sm_col] = -1
-
-    def cooling_fluid_func(self):
-        return 0
 
     def cooling_fluid_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].fluid.sm_col] = 1
         self._structure_matrix[k, self.outl[0].fluid.sm_col] = -1
 
-    def reactor_pressure_func(self):
-        r"""
-        Equations for reactor pressure balance.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
-        """
-        return [
-            self.outl[1].p.val_SI - self.inl[1].p.val_SI,
-            self.outl[1].p.val_SI - self.inl[2].p.val_SI
-        ]
-
     def reactor_pressure_structure_matrix(self, k):
         r"""
-        Equations for reactor pressure balance.
+        Structure matrix representing the equations for reactor pressure
+        balance.
 
-        Returns
-        -------
-        residual : list
-            Residual values of equations.
+        .. math::
 
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
+            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1

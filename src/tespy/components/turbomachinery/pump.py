@@ -32,12 +32,13 @@ class Pump(Turbomachine):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_char_func`
@@ -92,8 +93,12 @@ class Pump(Turbomachine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
@@ -128,10 +133,10 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calulate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :py:mod:`tespy.data` module. Of course you are able to specify your own
-    characteristcs, like done for the :code:`flow_char`. More information on
-    how to specify characteristic functions are given in the corresponding part
-    of the online documentation.
+    :ref:`tespy.data <tespy_data_label>` module. Of course you are able to
+    specify your own characteristcs, like done for the :code:`flow_char`. More
+    information on how to specify characteristic functions are given in the
+    corresponding part of the online documentation.
 
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5

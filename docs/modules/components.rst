@@ -53,7 +53,6 @@ well as the equations.
 - Piping
 
   * :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
-  * :py:class:`Pipeline <tespy.components.piping.pipeline.Pipeline>`
   * :py:class:`Valve <tespy.components.piping.valve.Valve>`
 
 - Reactors
@@ -436,8 +435,8 @@ Characteristics are available for the following components and parameters:
 
 - compressor
 
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: pressure ratio vs. non-dimensional mass flow.
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: isentropic efficiency vs. non-dimensional mass flow.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func>`: pressure ratio vs. non-dimensional mass flow.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func>`: isentropic efficiency vs. non-dimensional mass flow.
   * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`: isentropic efficiency.
 
 - heat exchangers:

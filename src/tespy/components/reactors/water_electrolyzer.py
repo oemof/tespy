@@ -31,9 +31,10 @@ class WaterElectrolyzer(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.fluid_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.mass_flow_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix`
     - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func`
     - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func`
 
@@ -42,12 +43,13 @@ class WaterElectrolyzer(Component):
     - cooling loop:
 
       - :py:meth:`tespy.components.component.Component.zeta_func`
-      - :py:meth:`tespy.components.component.Component.pr_func`
+      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
 
     - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func`
     - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
     - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_consumption_func`
+    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_func`
 
     Inlets/Outlets
 
@@ -109,10 +111,14 @@ class WaterElectrolyzer(Component):
     eta_char : tespy.tools.characteristics.CharLine, dict
         Electrolysis efficiency characteristic line.
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Cooling loop pressure ratio, :math:`pr/1`.
 
-    zeta : float, dict, :code:`"var"`
+    dp : float, dict
+        Inlet to outlet pressure difference of cooling loop,
+        :math:`dp/\text{p_unit}}` Is specified in the Network's pressure unit
+
+    zeta : float, dict
         Geometry independent friction coefficient for cooling loop pressure
         drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -148,7 +154,8 @@ class WaterElectrolyzer(Component):
     pressure is 25 bars. The electrolysis efficiency is at 80 % and the
     compressor isentropic efficiency at 85 %. After designing the plant the
     offdesign electrolysis efficiency is predicted by the characteristic line.
-    The default characteristic line can be found here: :py:mod:`tespy.data`.
+    The default characteristic line can be found here:
+    :ref:`tespy.data <tespy_data_label>`.
 
     >>> fw_el = Connection(fw, 'out1', el, 'in2')
     >>> el_o = Connection(el, 'out2', oxy, 'in1')
@@ -236,35 +243,31 @@ class WaterElectrolyzer(Component):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
+                'dependents': self.reactor_mass_flow_dependents,
                 'constant_deriv': True,
                 'num_eq_sets': 2
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
-                'func': self.cooling_mass_flow_func,
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
                 'num_eq_sets': 1
             }),
             'cooling_fluid_constraints': dc_cmc(**{
-                'func': self.cooling_fluid_func,
                 'structure_matrix': self.cooling_fluid_structure_matrix,
                 'num_eq_sets': 1
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'constant_deriv': False,
+                'dependents': self.energy_balance_dependents,
                 'num_eq_sets': 1
             }),
             'reactor_pressure_constraints': dc_cmc(**{
-                'func': self.reactor_pressure_func,
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'constant_deriv': True,
                 'num_eq_sets': 2
             }),
             'gas_temperature_constraints': dc_cmc(**{
                 'func': self.gas_temperature_func,
                 'dependents': self.gas_temperature_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1
             })
         }
@@ -623,52 +626,23 @@ class WaterElectrolyzer(Component):
             [self.inl[1].m, self.outl[2].m]
         ]
 
-    def cooling_mass_flow_func(self):
-        return self.inl[0].m.val_SI - self.outl[0].m.val_SI
-
     def cooling_mass_flow_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].m.sm_col] = 1
         self._structure_matrix[k, self.outl[0].m.sm_col] = -1
-
-    def cooling_fluid_func(self):
-        return 0
 
     def cooling_fluid_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].fluid.sm_col] = 1
         self._structure_matrix[k, self.outl[0].fluid.sm_col] = -1
 
-    def reactor_pressure_func(self):
-        r"""
-        Equations for reactor pressure balance.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
-        """
-        return [
-            self.inl[1].p.val_SI - self.outl[1].p.val_SI,
-            self.inl[1].p.val_SI - self.outl[2].p.val_SI
-        ]
-
     def reactor_pressure_structure_matrix(self, k):
         r"""
-        Equations for reactor pressure balance.
+        Structure matrix representing the equations for reactor pressure
+        balance.
 
-        Returns
-        -------
-        residual : list
-            Residual values of equations.
+        .. math::
 
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
+            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1

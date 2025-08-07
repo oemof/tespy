@@ -60,7 +60,7 @@ def connection_registry(type):
 connection_registry.items = {}
 
 
-class _ConnectionBase:
+class ConnectionBase:
 
     def __init__(self):
         pass
@@ -292,7 +292,7 @@ class _ConnectionBase:
 
 
 @connection_registry
-class Connection(_ConnectionBase):
+class Connection(ConnectionBase):
     r"""
     Class connection is the container for fluid properties between components.
 

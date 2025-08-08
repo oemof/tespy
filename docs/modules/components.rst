@@ -46,6 +46,7 @@ well as the equations.
   * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator.DropletSeparator>`
   * :py:class:`Drum <tespy.components.nodes.drum.Drum>`
   * :py:class:`Merge <tespy.components.nodes.merge.Merge>`
+  * :py:class:`Node <tespy.components.nodes.node.Node>`: This component combines a :code:`Merge` with a :code:`Splitter` in a single component
   * :py:class:`Separator <tespy.components.nodes.separator.Separator>`
   * :py:class:`Splitter <tespy.components.nodes.splitter.Splitter>`
 

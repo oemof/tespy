@@ -46,31 +46,15 @@ class NodeBase(Component):
     def mass_flow_dependents(self):
         return [c.m for c in self.inl + self.outl]
 
-    def pressure_equality_func(self):
-        r"""
-        Calculate the residual values of pressure equality equations.
-
-        Returns
-        -------
-        residual : list
-            Vector with residual value for pressure equality equations.
-
-            .. math::
-
-                0 = p_{in,1} - p_{in,i}\forall i \in \text{inlets > 1}\\
-                0 = p_{in,1} - p_{out,j}\forall j \in \text{outlets}
-        """
-        residual = []
-        inl = []
-        if self.num_i > 1:
-            inl = self.inl[1:]
-        for c in inl + self.outl:
-            residual += [self.inl[0].p.val_SI - c.p.val_SI]
-        return residual
-
     def pressure_structure_matrix(self, k):
         r"""
-        Calculate partial derivatives for all pressure equations.
+        Set up structure matrix for all pressure constraints representing the
+        following equations:
+
+        .. math::
+
+            0 = p_{in,1} - p_{in,i}\forall i \in \text{inlets > 1}\\
+            0 = p_{in,1} - p_{out,j}\forall j \in \text{outlets}
         """
         if self.num_i > 1:
             conns = self.inl[1:] + self.outl

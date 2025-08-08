@@ -26,10 +26,11 @@ class Drum(DropletSeparator):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
     - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
+    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
+    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
 
     Inlets/Outlets
 

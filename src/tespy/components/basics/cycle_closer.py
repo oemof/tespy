@@ -25,8 +25,8 @@ class CycleCloser(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.pressure_equality_func`
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.enthalpy_equality_func`
+    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     Image not available
 

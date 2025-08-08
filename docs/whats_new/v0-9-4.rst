@@ -1,0 +1,20 @@
+v0.9.4 - under development
+++++++++++++++++++++++++++
+
+New Features
+############
+- A new component :code:`Node` is available. The component combines the
+  :code:`Splitter` and :code:`Merge` component in a single one, meaning you can
+  connect multiple inlets and multiple outlets at the same time. The pressure
+  is forced equal for all connections, the enthalpy and fluid composition will
+  be equal for all of the outlets and based on the incoming fluids' states
+  (`PR #733 <https://github.com/oemof/tespy/pull/733>`__).
+
+Other Changes
+#############
+- A few broken internal links have been fixed in the documentation
+  (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -158,4 +158,3 @@ Characteristic maps
     :align: center
 
     Reference: :cite:`Plis2016`.
-

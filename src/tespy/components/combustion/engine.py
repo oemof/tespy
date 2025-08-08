@@ -39,16 +39,19 @@ class CombustionEngine(CombustionChamber):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.fluid_func`
-      (for cooling water)
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.energy_balance_func`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.tiP_char_func`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_char_func`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_char_func`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Qloss_char_func`
+
+    - for each cooling loop:
+
+      - mass flow: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
+      - fluid: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
 
     **Optional Equations**
 
@@ -57,12 +60,11 @@ class CombustionEngine(CombustionChamber):
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_func`
     - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_func`
 
-    - cooling loops:
+    - for each cooling loop:
 
-      - 1 :py:meth:`tespy.components.component.Component.pr_func`
-      - 2 :py:meth:`tespy.components.component.Component.pr_func`
-      - 1 :py:meth:`tespy.components.component.Component.zeta_func`
-      - 2 :py:meth:`tespy.components.component.Component.zeta_func`
+      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+      - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Available fuels
 

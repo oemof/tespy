@@ -60,7 +60,7 @@ def connection_registry(type):
 connection_registry.items = {}
 
 
-class _ConnectionBase:
+class ConnectionBase:
 
     def __init__(self):
         pass
@@ -292,7 +292,7 @@ class _ConnectionBase:
 
 
 @connection_registry
-class Connection(_ConnectionBase):
+class Connection(ConnectionBase):
     r"""
     Class connection is the container for fluid properties between components.
 
@@ -1441,16 +1441,17 @@ class Connection(_ConnectionBase):
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
         # this is supposed to never be accessed with INCOMP backend but it is
         # not enforced. With INCOMP backend this causes a crash
-        if (self.Td_bp.val_SI > 0 or (self.state.val == 'g' and self.state.is_set)):
-            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
-            if self.h.val_SI < h:
-                self.h.set_reference_val_SI(h * 1.01)
-                logger.debug(self._property_range_message('h'))
-        elif (self.Td_bp.val_SI < 0 or (self.state.val == 'l' and self.state.is_set)):
-            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
-            if self.h.val_SI > h:
-                self.h.set_reference_val_SI(h * 0.99)
-                logger.debug(self._property_range_message('h'))
+        if self.Td_bp.is_set or self.state.is_set:
+            if self.Td_bp.val_SI > 0 or self.state.val == 'g':
+                h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
+                if self.h.val_SI < h:
+                    self.h.set_reference_val_SI(h * 1.01)
+                    logger.debug(self._property_range_message('h'))
+            else:
+                h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
+                if self.h.val_SI > h:
+                    self.h.set_reference_val_SI(h * 0.99)
+                    logger.debug(self._property_range_message('h'))
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)
             self.h.set_reference_val_SI(h)

@@ -26,7 +26,7 @@ API breaking changes
   respective data, which you can dump into a :code:`.json` file.
 
   This also breaks the API of the
-  :py:meth:`tespy.networks.network_reader.load_network` method, meaning
+  :code:`tespy.networks.network_reader.load_network` method, meaning
   exported network data based on :code:`tespy<0.8` are not compatible with how
   :code:`tespy>=0.8` is handling the data. Use the described method above to
   adjust that. On top of that, instead of the :code:`load_network` method, use

@@ -38,7 +38,7 @@ class CombustionChamber(Component):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.energy_balance_func`
 

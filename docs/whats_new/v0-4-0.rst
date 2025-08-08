@@ -28,7 +28,7 @@ API Changes
   (`PR #237 <https://github.com/oemof/tespy/pull/237>`_).
 - The definition of power and heat transfer of the components
   :py:class:`tespy.components.combustion.engine.CombustionEngine`
-  and :py:class:`tespy.components.customs.orc_evaporator.ORCEvaporator` as well
+  and :code:`tespy.components.customs.orc_evaporator.ORCEvaporator` as well
   as the heat loss values of the components
   :py:class:`tespy.components.heat_exchangers.solar_collector.SolarCollector`
   and
@@ -234,8 +234,8 @@ Other Changes
   (`#7adff43a <https://github.com/oemof/tespy/commit/7adff43>`_).
 
 - For improved convergence stability of the methods
-  :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func` and
-  :py:meth:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`,
+  :code:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_group_func` and
+  :code:`tespy.components.heat_exchangers.simple.HeatExchangerSimple.kA_char_group_func`,
   the logarithmic temperature difference is calculated based on the mean
   temperature difference between ambient and inlet and outlet temperature, if
   the terminal temperature differences do not have the same sign

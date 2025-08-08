@@ -35,8 +35,8 @@ class Compressor(Turbomachine):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
@@ -96,8 +96,12 @@ class Compressor(Turbomachine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as

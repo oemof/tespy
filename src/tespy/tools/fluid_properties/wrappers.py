@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 
 import CoolProp as CP
-import numpy as np
 
 from tespy.tools.global_vars import ERR
 
@@ -449,7 +448,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
 class PyromatWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
-        """_summary_
+        """Wrapper for the Pyromat fluid property library
 
         Parameters
         ----------

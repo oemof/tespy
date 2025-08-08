@@ -21,3 +21,11 @@ tespy.connections.connection module
     :members:
     :undoc-members:
     :show-inheritance:
+
+tespy.connections.powerconnection module
+----------------------------------------
+
+.. automodule:: tespy.connections.powerconnection
+    :members:
+    :undoc-members:
+    :show-inheritance:

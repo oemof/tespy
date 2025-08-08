@@ -16,7 +16,7 @@ Documentation
 #############
 - Change license from GPLv3 to MIT (`PR #93 <https://github.com/oemof/tespy/pull/93>`_).
 - Fix unit error in component documentation for the zeta-value (`PR #93 <https://github.com/oemof/tespy/pull/93>`_).
-- Improve documentation of the functions :func:`tespy.components.components.component.zeta_func` and :func:`tespy.components.components.component.zeta2_func`
+- Improve documentation of the functions :code:`tespy.components.components.component.zeta_func` and :code:`tespy.components.components.component.zeta2_func`
   (`4291bd <https://github.com/oemof/tespy/commit/4291bd7f32a89a90851c53ae2d7987cfb8381930>`_).
 
 Parameter renaming

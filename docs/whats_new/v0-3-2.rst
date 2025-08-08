@@ -12,7 +12,7 @@ New features
   - faulty parameters (:code:`'err'`, red)
 
   In order to change the colors, simply import :code:`coloring` from the
-  :py:mod:`tespy.tools.global_vars` module and adjust the escape codes. For
+  :code:`tespy.tools.global_vars` module and adjust the escape codes. For
   example, to reset all colors to white text:
 
   .. code-block:: python

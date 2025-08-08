@@ -34,8 +34,8 @@ class Condenser(HeatExchanger):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - condensate outlet state, function can be disabled by specifying
       :code:`set_attr(subcooling=True)`
@@ -44,7 +44,8 @@ class Condenser(HeatExchanger):
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
+       (utilizes the :code:`td_log` calculation of the Condenser class)
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
@@ -332,7 +333,7 @@ class Condenser(HeatExchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :py:mod:`tespy.data`.
+        module :ref:`tespy.data <tespy_data_label>`.
         """
         return super().kA_char_func()
 

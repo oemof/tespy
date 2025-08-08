@@ -539,7 +539,7 @@ class HeatExchanger(Component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :py:mod:`tespy.data`.
+        module :ref:`tespy.data <tespy_data_label>`.
         """
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param
@@ -986,7 +986,7 @@ class HeatExchanger(Component):
                 (self.ttd_l.val - self.ttd_u.val)
                 / math.log(self.ttd_l.val / self.ttd_u.val)
             )
-            
+
         self.kA.val = -self.Q.val / self.td_log.val
 
         # heat exchanger efficiencies

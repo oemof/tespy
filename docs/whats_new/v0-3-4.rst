@@ -24,7 +24,7 @@ Bug Fixes
 Other Changes
 #############
 - Add network check at the end of
-  :py:func:`tespy.networks.network_reader.load_network` function
+  :code:`tespy.networks.network_reader.load_network` function
   (`PR #212 <https://github.com/oemof/tespy/pull/212>`_).
 
 Contributors

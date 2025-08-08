@@ -1,6 +1,6 @@
 import numpy as np
 
-from tespy.connections.connection import _ConnectionBase
+from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
@@ -9,7 +9,7 @@ from tespy.tools.logger import logger
 
 
 @connection_registry
-class PowerConnection(_ConnectionBase):
+class PowerConnection(ConnectionBase):
 
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
         self._check_types(source, target)

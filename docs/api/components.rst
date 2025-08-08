@@ -142,7 +142,6 @@ tespy.components.nodes.base module
     :undoc-members:
     :show-inheritance:
 
-
 tespy.components.nodes.droplet_separator module
 -----------------------------------------------
 
@@ -163,6 +162,14 @@ tespy.components.nodes.merge module
 -----------------------------------
 
 .. automodule:: tespy.components.nodes.merge
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.node module
+----------------------------------
+
+.. automodule:: tespy.components.nodes.node
     :members:
     :undoc-members:
     :show-inheritance:
@@ -256,6 +263,14 @@ tespy.components.reactors.water_electrolyzer module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.turbomachinery.base module
+-------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.turbomachinery.compressor module
 -------------------------------------------------
 
@@ -272,18 +287,18 @@ tespy.components.turbomachinery.pump module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery.turbine module
-----------------------------------------------
+tespy.components.turbomachinery.steam_turbine module
+----------------------------------------------------
 
-.. automodule:: tespy.components.turbomachinery.turbine
+.. automodule:: tespy.components.turbomachinery.steam_turbine
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery.base module
--------------------------------------------
+tespy.components.turbomachinery.turbine module
+----------------------------------------------
 
-.. automodule:: tespy.components.turbomachinery.base
+.. automodule:: tespy.components.turbomachinery.turbine
     :members:
     :undoc-members:
     :show-inheritance:

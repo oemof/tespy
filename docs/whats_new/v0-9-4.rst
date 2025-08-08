@@ -10,6 +10,11 @@ New Features
   be equal for all of the outlets and based on the incoming fluids' states
   (`PR #733 <https://github.com/oemof/tespy/pull/733>`__).
 
+Other Changes
+#############
+- A few broken internal links have been fixed in the documentation
+  (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

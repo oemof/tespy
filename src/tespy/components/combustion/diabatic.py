@@ -29,7 +29,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
 
     **Optional Equations**
@@ -37,7 +37,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
     - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
 
     Available fuels
 

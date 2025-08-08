@@ -87,6 +87,9 @@ def test_node_equals_merge_splitter_model(node_network, merge_splitter_network):
     # the node network has the index subset
     index = node_network.results["Connection"].index
     number_cols = node_network.results["Connection"].dtypes == float
+    # this transposes the mask into the actual column names so the order
+    # in both networks is the same
+    number_cols = number_cols[number_cols].index
 
     assert_almost_equal(
         node_network.results["Connection"].loc[index, number_cols].values,

@@ -868,7 +868,7 @@ class TestHeatExchangers:
             "Value of upper and lower terminal temperature differences must be "
             f"identical, but they are not: ttd_u={ttd_u}, ttd_l={ttd_l}."
         )
-        assert instance.ttd_l.val == instance.ttd_u.val, msg
+        assert approx(instance.ttd_l.val) == instance.ttd_u.val, msg
 
         msg = (
             "Value of logarithmic and lower terminal temperature differences "

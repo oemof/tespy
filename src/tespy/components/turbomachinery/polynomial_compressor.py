@@ -188,7 +188,7 @@ class PolynomialCompressor(Turbomachine):
         if T_sc > 0:
             h_cond_out = PSI("H", "P", p_cond, "T", T_cond - T_sc, fluid)
         else:
-            h_cond_out = PSI("H", "P", p_cond, "Q", 1, fluid)
+            h_cond_out = PSI("H", "P", p_cond, "Q", 0, fluid)
 
         s_comp_in = PSI("S", "P", p_evap, "H", h_evap_out, fluid)
         h_comp_s = PSI("H", "P", p_cond, "S", s_comp_in, fluid)
@@ -199,8 +199,8 @@ class PolynomialCompressor(Turbomachine):
         rpm_ref = reference_state["rpm_ref"]
         displacement_ref = reference_state["displacement_ref"]
         displacement = (
-            reference_state["displacement"] * rpm_ref
-            / (displacement_ref * 3600)
+            (reference_state["displacement"] / 3600)
+            * (rpm_ref / displacement_ref)
         )
         rho_comp_in = PSI("D", "P", p_evap, "H", h_evap_out, fluid)
         eta_vol = dot_m / (rho_comp_in * displacement)

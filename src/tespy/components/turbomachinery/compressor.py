@@ -40,7 +40,8 @@ class Compressor(Turbomachine):
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
@@ -51,6 +52,10 @@ class Compressor(Turbomachine):
 
     - in1
     - out1
+
+    Optional inlets
+
+    - power
 
     Image
 
@@ -100,7 +105,7 @@ class Compressor(Turbomachine):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict

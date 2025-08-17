@@ -279,6 +279,14 @@ tespy.components.turbomachinery.compressor module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.turbomachinery.polynomial_compressor module
+------------------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.polynomial_compressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.turbomachinery.pump module
 -------------------------------------------
 

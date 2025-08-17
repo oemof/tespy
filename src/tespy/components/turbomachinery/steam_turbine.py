@@ -48,6 +48,10 @@ class SteamTurbine(Turbine):
     - in1
     - out1
 
+    Optional outlets
+
+    - power
+
     Image
 
     .. image:: /api/_images/Turbine.svg
@@ -102,7 +106,7 @@ class SteamTurbine(Turbine):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict

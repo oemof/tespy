@@ -9,6 +9,13 @@ New Features
   is forced equal for all connections, the enthalpy and fluid composition will
   be equal for all of the outlets and based on the incoming fluids' states
   (`PR #733 <https://github.com/oemof/tespy/pull/733>`__).
+- A new component :code:`PolynomialCompressor` is available. The component
+  uses `EN 12900` type polynomial coefficients to calculate isentropic and
+  volumetric efficiencies, and can take dissipative heat loss into
+  consideration. With the assumption, that these efficiencies do not change,
+  the displacement in offdesign conditions can be calculated based on variable
+  rpm of the compressor
+  (`PR #741 <https://github.com/oemof/tespy/pull/741>`__).
 
 Other Changes
 #############

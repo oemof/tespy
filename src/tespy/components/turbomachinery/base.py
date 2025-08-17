@@ -73,7 +73,7 @@ class Turbomachine(Component):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     Example

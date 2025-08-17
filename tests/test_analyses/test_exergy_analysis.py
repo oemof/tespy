@@ -57,7 +57,8 @@ class TestClausiusRankine:
         self.fwp_power = Bus('feed water pump power', P=0)
         self.fwp_power.add_comps(
             {'comp': fwp_turb, 'char': 1},
-            {'comp': fwp, 'char': 1, 'base': 'bus'})
+            {'comp': fwp, 'char': 1, 'base': 'bus'}
+        )
         # heat input bus
         self.heat = Bus('heat_input')
         self.heat.add_comps({'comp': steam_generator, 'base': 'bus'})
@@ -86,7 +87,7 @@ class TestClausiusRankine:
 
         # connection parameters
         fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
-        cond.set_attr(T=self.Tamb, x=0.0)
+        cond.set_attr(T=self.Tamb + 0.00000001, x=0.0)
 
         # solve network
         self.nw.solve('design')
@@ -97,7 +98,8 @@ class TestClausiusRankine:
         """Test exergy analysis in the perfect clausius rankine cycle."""
         ean = ExergyAnalysis(
             self.nw, E_P=[self.power], E_F=[self.heat],
-            internal_busses=[self.fwp_power])
+            internal_busses=[self.fwp_power]
+        )
         ean.analyse(pamb=self.pamb, Tamb=self.Tamb)
         msg = (
             'Exergy destruction of this network must be 0 (smaller than ' +

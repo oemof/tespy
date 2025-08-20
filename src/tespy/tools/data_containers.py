@@ -15,6 +15,8 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.tools import logger
+from tespy.tools.units import UREG
+from tespy.tools.units import UNITS
 
 
 class DataContainer:
@@ -595,7 +597,7 @@ class FluidProperties(DataContainer):
         """
         return {
             "design": np.nan,
-            "val": np.nan,
+            "_val": np.nan,
             "val0": np.nan,
             "_val_SI": 0,
             "d": 1e-1,
@@ -611,7 +613,8 @@ class FluidProperties(DataContainer):
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
-            'dependents': None
+            'dependents': None,
+            "quantity": "mass_flow"
         }
 
     def _serialize(self):
@@ -662,6 +665,22 @@ class FluidProperties(DataContainer):
         else:
             raise ValueError()
 
+    def get_val(self):
+        return self._val
+
+    def set_val(self, value):
+        if isinstance(value, UREG.Quantity):
+            if self._check_unit_compatibilty(value.units):
+                self._val = value
+            else:
+                raise ValueError("Unit does not fit quantity of this property.")
+        else:
+            self._val = UREG.Quantity(value, UNITS.default[self.quantity])
+
+    def _check_unit_compatibilty(self, unit):
+        return UNITS._quantities[self.quantity].is_compatible_with(unit)
+
+    val = property(get_val, set_val)
     val_SI = property(get_val_SI, set_val_SI)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)

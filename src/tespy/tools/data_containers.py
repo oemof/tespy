@@ -673,7 +673,11 @@ class FluidProperties(DataContainer):
             if self._check_unit_compatibilty(value.units):
                 self._val = value
             else:
-                raise ValueError("Unit does not fit quantity of this property.")
+                msg = (
+                    f"Unit '{value.units}' is not compatible with "
+                    f"{self.quantity}."
+                )
+                raise ValueError(msg)
         else:
             self._val = UREG.Quantity(value, UNITS.default[self.quantity])
 

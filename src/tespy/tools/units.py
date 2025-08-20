@@ -16,6 +16,9 @@ class DefaultUnits:
             # "volumetric_flow": "m3/s",  # not in ureg
             "power": "MW",
             "heat": "MW",
+            "quality": "1",
+            "efficiency": "1",
+            "ratio": "1"
         }
         self._quantities = {
             k: UREG.Quantity(1, v) for k, v in self.default.items()

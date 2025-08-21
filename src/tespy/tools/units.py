@@ -1,9 +1,6 @@
 import pint
 
 
-UREG = pint.UnitRegistry()
-
-
 class DefaultUnits:
 
     def __init__(self):
@@ -20,14 +17,27 @@ class DefaultUnits:
             "efficiency": "1",
             "ratio": "1"
         }
+        self.ureg = pint.UnitRegistry()
         self._quantities = {
-            k: UREG.Quantity(1, v) for k, v in self.default.items()
+            k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
 
     def set_default_units(self, **kwargs):
         for key, value in kwargs.items():
             if self._quantities[key].is_compatible_with(value):
                 self.default[key] = value
+
+    def set_ureg(self, ureg):
+        self._ureg = ureg
+        self._quantities = {
+            k: self.ureg.Quantity(1, v) for k, v in self.default.items()
+        }
+
+
+    def get_ureg(self):
+        return self._ureg
+
+    ureg = property(get_ureg, set_ureg)
 
 
 UNITS = DefaultUnits()

@@ -13,9 +13,9 @@ available from its original location tespy/tools/data_containers.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+import pint
 
 from tespy.tools import logger
-from tespy.tools.units import UREG
 from tespy.tools.units import UNITS
 
 
@@ -669,7 +669,16 @@ class FluidProperties(DataContainer):
         return self._val
 
     def set_val(self, value):
-        if isinstance(value, UREG.Quantity):
+        Q = UNITS.ureg.Quantity
+        if isinstance(value, pint.Quantity):
+            if not value._REGISTRY is UNITS.ureg:
+                msg = (
+                    "The provided quantity uses a different unit registry "
+                    "than tespy's UNITS.ureg. If you want tespy to make use "
+                    "of your ureg, you have to specify it with the "
+                    "'UNITS.set_ureg' methd."
+                )
+                raise ValueError(msg)
             if self._check_unit_compatibilty(value.units):
                 self._val = value
             else:
@@ -679,7 +688,7 @@ class FluidProperties(DataContainer):
                 )
                 raise ValueError(msg)
         else:
-            self._val = UREG.Quantity(value, UNITS.default[self.quantity])
+            self._val = Q(value, UNITS.default[self.quantity])
 
     def _check_unit_compatibilty(self, unit):
         return UNITS._quantities[self.quantity].is_compatible_with(unit)

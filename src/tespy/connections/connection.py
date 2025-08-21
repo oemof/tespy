@@ -110,6 +110,7 @@ class ConnectionBase:
     def _parameter_specification(self, key, value):
 
         import pint
+        is_numeric = False
         is_quantity = False
 
         if isinstance(value, pint.Quantity):
@@ -119,8 +120,7 @@ class ConnectionBase:
                 float(value)
                 is_numeric = True
             except (TypeError, ValueError):
-                is_numeric = False
-
+                pass
 
         if value is None:
             self.get_attr(key).set_attr(is_set=False)

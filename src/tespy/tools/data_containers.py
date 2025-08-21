@@ -110,20 +110,35 @@ class DataContainer:
             See the class documentation of desired DataContainer for available
             keywords.
         """
-        var = self.attr()
-        # specify values
-        for key in kwargs:
-            if key in var:
-                self.__dict__.update({key: kwargs[key]})
-            elif f"_{key}" in var:
-                self.__dict__.update({f"_{key}": kwargs[key]})
+        for key, value in kwargs.items():
+            prop = getattr(type(self), key, None)
+
+            if prop is not None and prop.fset is not None:
+                setattr(self, key, value)  # goes through setter
+            elif hasattr(self, key):
+                setattr(self, key, value)  # plain attribute
             else:
-                msg = (
-                    f"Datacontainer of type {self.__class__.__name__} has no "
-                    f"attribute \"{key}\"."
-                )
-                logger.error(msg)
-                raise KeyError(msg)
+                raise AttributeError(f"Unknown parameter {key!r}")
+        # apply kwargs via setters
+        # for key, value in kwargs.items():
+        #     if hasattr(self, key):  # property exists
+        #         setattr(self, key, value)  # goes through setter
+        #     else:
+        #         raise AttributeError(f"Unknown parameter {key!r}")
+        # var = self.attr()
+        # specify values
+        # for key in kwargs:
+        #     if f"_{key}" in var:
+        #         self.__dict__.update({f"_{key}": kwargs[key]})
+        #     elif key in var:
+        #         self.__dict__.update({key: kwargs[key]})
+        #     else:
+        #         msg = (
+        #             f"Datacontainer of type {self.__class__.__name__} has no "
+        #             f"attribute \"{key}\"."
+        #         )
+        #         logger.error(msg)
+        #         raise KeyError(msg)
 
     def get_attr(self, key):
         """
@@ -598,7 +613,7 @@ class FluidProperties(DataContainer):
         return {
             "design": np.nan,
             "_val": np.nan,
-            "val0": np.nan,
+            "_val0": np.nan,
             "_val_SI": 0,
             "d": 1e-1,
             "unit": None,
@@ -665,10 +680,43 @@ class FluidProperties(DataContainer):
         else:
             raise ValueError()
 
+    def _get_base_unit(self):
+        return self.val.to_base_units().units
+
+    def set_SI_from_val(self):
+        self.val_SI = self.val.to_base_units().magnitude
+
+    def set_val_from_SI(self):
+        # intermediate fix
+        if not isinstance(self.val, pint.Quantity):
+            self.val = self.val
+
+        self.val = UNITS.ureg.Quantity(
+            self.val_SI, self._get_base_unit()
+        ).to(self.val.units)
+
+    def set_val0_from_SI(self):
+        # intermediate fix
+        if not isinstance(self.val0, pint.Quantity):
+            self.val0 = self.val0
+
+        self.val0 = UNITS.ureg.Quantity(
+            self.val_SI, self._get_base_unit()
+        ).to(self.val0.units)
+
     def get_val(self):
         return self._val
 
     def set_val(self, value):
+        self._val = self._handle_value_with_quantity(value)
+
+    def get_val0(self):
+        return self._val0
+
+    def set_val0(self, value):
+        self._val0 = self._handle_value_with_quantity(value)
+
+    def _handle_value_with_quantity(self, value):
         Q = UNITS.ureg.Quantity
         if isinstance(value, pint.Quantity):
             if not value._REGISTRY is UNITS.ureg:
@@ -680,7 +728,7 @@ class FluidProperties(DataContainer):
                 )
                 raise ValueError(msg)
             if self._check_unit_compatibilty(value.units):
-                self._val = value
+                return value
             else:
                 msg = (
                     f"Unit '{value.units}' is not compatible with "
@@ -688,12 +736,13 @@ class FluidProperties(DataContainer):
                 )
                 raise ValueError(msg)
         else:
-            self._val = Q(value, UNITS.default[self.quantity])
+            return Q(value, UNITS.default[self.quantity])
 
     def _check_unit_compatibilty(self, unit):
         return UNITS._quantities[self.quantity].is_compatible_with(unit)
 
     val = property(get_val, set_val)
+    val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)

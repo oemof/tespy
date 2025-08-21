@@ -6,18 +6,22 @@ class DefaultUnits:
     def __init__(self):
         self.default = {
             "temperature": "degC",
+            "temperature_difference": "kelvin",
             "enthalpy": "kJ/kg",
             "entropy": "kJ/kg/K",
             "pressure": "bar",
             "mass_flow": "kg/s",
-            # "volumetric_flow": "m3/s",  # not in ureg
+            "volumetric_flow": "m3/s",  # not in ureg
+            "specific_volume": "m3/kg",
             "power": "MW",
             "heat": "MW",
             "quality": "1",
             "efficiency": "1",
             "ratio": "1"
         }
-        self.ureg = pint.UnitRegistry()
+        # cannot use the setter here because we have to define m3 first!
+        self._ureg = pint.UnitRegistry()
+        self.ureg.define("m3 = meter ** 3")
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }

@@ -1685,33 +1685,36 @@ class Network:
                 prop = key.split("_ref")[0]
                 if "fluid" in key:
                     continue
-                elif key == "E":
-                    c.get_attr(key).unit = "W"
-                elif key == 'Td_bp':
-                    c.get_attr(key).unit = self.get_attr('T_unit')
-                else:
-                    c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
-                # set SI value
+
                 if c.get_attr(key).is_set:
-                    # this could be externalized to either
-                    # the connections class or actually the data containers
-                    if "ref" in key:
-                        if prop == 'T':
-                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                                'Td_bp', c.get_attr(key).ref.delta,
-                                c.get_attr(prop).unit
-                            )
-                        else:
-                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                                prop, c.get_attr(key).ref.delta,
-                                c.get_attr(prop).unit
-                            )
-                    elif key == "E":
-                        c.E.val_SI = c.E.val
-                    else:
-                        c.get_attr(key).val_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).val, c.get_attr(key).unit
-                        )
+                    c.get_attr(key).set_SI_from_val()
+                # elif key == "E":
+                #     c.get_attr(key).unit = "W"
+                # elif key == 'Td_bp':
+                #     c.get_attr(key).unit = self.get_attr('T_unit')
+                # else:
+                #     c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
+                # # set SI value
+                # if c.get_attr(key).is_set:
+                #     # this could be externalized to either
+                #     # the connections class or actually the data containers
+                #     if "ref" in key:
+                #         if prop == 'T':
+                #             c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                #                 'Td_bp', c.get_attr(key).ref.delta,
+                #                 c.get_attr(prop).unit
+                #             )
+                #         else:
+                #             c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
+                #                 prop, c.get_attr(key).ref.delta,
+                #                 c.get_attr(prop).unit
+                #             )
+                #     elif key == "E":
+                #         c.E.val_SI = c.E.val
+                #     else:
+                #         c.get_attr(key).val_SI = hlp.convert_to_SI(
+                #             key, c.get_attr(key).val, c.get_attr(key).unit
+                #         )
         msg = (
             "Updated fluid property SI values and fluid mass fraction for user "
             "specified connection parameters."

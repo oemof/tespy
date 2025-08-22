@@ -5,19 +5,20 @@ class DefaultUnits:
 
     def __init__(self):
         self.default = {
-            "temperature": "degC",
+            "temperature": "kelvin",
             "temperature_difference": "delta_degC",
-            "enthalpy": "kJ/kg",
-            "entropy": "kJ/kg/K",
-            "pressure": "bar",
+            "enthalpy": "J/kg",
+            "entropy": "J/kg/K",
+            "pressure": "Pa",
             "mass_flow": "kg/s",
             "volumetric_flow": "m3/s",  # not in ureg
             "specific_volume": "m3/kg",
-            "power": "MW",
-            "heat": "MW",
+            "power": "W",
+            "heat": "W",
             "quality": "1",
             "efficiency": "1",
-            "ratio": "1"
+            "ratio": "1",
+            "None": "1"
         }
         # cannot use the setter here because we have to define m3 first!
         self._ureg = pint.UnitRegistry()

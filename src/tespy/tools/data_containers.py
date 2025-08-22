@@ -118,7 +118,7 @@ class DataContainer:
             elif hasattr(self, key):
                 setattr(self, key, value)  # plain attribute
             else:
-                raise AttributeError(f"Unknown parameter {key!r}")
+                raise AttributeError(f"Unknown parameter '{key}'.")
         # apply kwargs via setters
         # for key, value in kwargs.items():
         #     if hasattr(self, key):  # property exists

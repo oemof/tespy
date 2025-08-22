@@ -98,13 +98,15 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                quantity="power"
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
-                structure_matrix=self.pr_structure_matrix
+                structure_matrix=self.pr_structure_matrix,
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
@@ -112,6 +114,7 @@ class Turbomachine(Component):
                 dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
+                quantity="pressure"
             )
         }
 
@@ -229,11 +232,10 @@ class Turbomachine(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.P.val = self.inl[0].m.val_SI * (
+        self.P.val_SI = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
 
     def entropy_balance(self):
         r"""

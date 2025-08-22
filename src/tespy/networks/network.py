@@ -1721,6 +1721,12 @@ class Network:
         )
         logger.debug(msg)
 
+        for cp in self.comps["object"]:
+            for param, value in cp.parameters.items():
+                if isinstance(value, dc_prop):
+                    if cp.get_attr(param).is_set:
+                        cp.get_attr(param).set_SI_from_val()
+
     def _init_design(self):
         r"""
         Initialise a design calculation.
@@ -3046,6 +3052,9 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
+            for param, value in cp.parameters.items():
+                if isinstance(value, dc_prop):
+                    cp.get_attr(param).set_val_from_SI()
 
             key = cp.__class__.__name__
             for param in self.results[key].columns:

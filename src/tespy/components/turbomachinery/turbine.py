@@ -197,7 +197,8 @@ class Turbine(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
-                deriv=self.eta_s_deriv
+                deriv=self.eta_s_deriv,
+                quantity="efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -474,7 +475,7 @@ class Turbine(Turbomachine):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
-        self.eta_s.val = self.calc_eta_s()
+        self.eta_s.val_SI = self.calc_eta_s()
 
     def exergy_balance(self, T0):
         r"""

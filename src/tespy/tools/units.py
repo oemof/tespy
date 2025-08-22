@@ -6,7 +6,7 @@ class DefaultUnits:
     def __init__(self):
         self.default = {
             "temperature": "degC",
-            "temperature_difference": "kelvin",
+            "temperature_difference": "delta_degC",
             "enthalpy": "kJ/kg",
             "entropy": "kJ/kg/K",
             "pressure": "bar",

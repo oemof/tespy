@@ -681,19 +681,22 @@ class FluidProperties(DataContainer):
             raise ValueError()
 
     def _get_base_unit(self):
-        return self.val.to_base_units().units
+        return self._val.to_base_units().units
+
+    def get_val_with_unit(self):
+        return self._val
 
     def set_SI_from_val(self):
-        self.val_SI = self.val.to_base_units().magnitude
+        self.val_SI = self._val.to_base_units().magnitude
 
     def set_val_from_SI(self):
         # intermediate fix
-        if not isinstance(self.val, pint.Quantity):
-            self.val = self.val
+        if not isinstance(self._val, pint.Quantity):
+            self.val = self._val
 
         self.val = UNITS.ureg.Quantity(
             self.val_SI, self._get_base_unit()
-        ).to(self.val.units)
+        ).to(self._val.units)
 
     def set_val0_from_SI(self):
         # intermediate fix
@@ -705,7 +708,7 @@ class FluidProperties(DataContainer):
         ).to(self.val0.units)
 
     def get_val(self):
-        return self._val
+        return self._val.magnitude
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
@@ -739,11 +742,22 @@ class FluidProperties(DataContainer):
             return Q(value, UNITS.default[self.quantity])
 
     def _check_unit_compatibilty(self, unit):
-        return UNITS._quantities[self.quantity].is_compatible_with(unit)
+        if self.quantity == "temperature_difference":
+            unit_label = list(unit._units.keys())[0]
+            if unit_label.startswith("delta_"):
+                return UNITS._quantities[self.quantity].is_compatible_with(unit)
+            else:
+                _units = UNITS.ureg._units
+                kelvin = list(_units["K"].aliases) + [_units["K"].name]
+                rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
+                return unit_label in kelvin or unit_label in rankine
+        else:
+            return UNITS._quantities[self.quantity].is_compatible_with(unit)
 
     val = property(get_val, set_val)
     val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)
+    val_with_unit = property(get_val_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
 

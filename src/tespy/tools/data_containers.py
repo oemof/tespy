@@ -485,6 +485,7 @@ class FluidProperties(DataContainer):
             "structure_matrix": None,
             "constant_deriv": False,
             "num_eq_sets": 0,
+            "_num_eq": None,
             "func_params": {},
             "_reference_container": None,
             "_offset": None,
@@ -548,10 +549,13 @@ class FluidProperties(DataContainer):
         if self._reference_container is not None:
             self._reference_container.is_var = value
         else:
-            raise ValueError()
+            pass
 
-    def _get_base_unit(self):
+    def _get_val_base_unit(self):
         return self._val.to_base_units().units
+
+    def _get_val0_base_unit(self):
+        return self._val0.to_base_units().units
 
     def get_val_with_unit(self):
         return self._val
@@ -559,13 +563,16 @@ class FluidProperties(DataContainer):
     def set_SI_from_val(self):
         self.val_SI = self._val.to_base_units().magnitude
 
+    def set_SI_from_val0(self):
+        self.val_SI = self._val0.to_base_units().magnitude
+
     def set_val_from_SI(self):
         # intermediate fix
         if not isinstance(self._val, pint.Quantity):
             self.val = self._val
 
         self.val = UNITS.ureg.Quantity(
-            self.val_SI, self._get_base_unit()
+            self.val_SI, self._get_val_base_unit()
         ).to(self._val.units)
 
     def set_val0_from_SI(self):
@@ -574,7 +581,7 @@ class FluidProperties(DataContainer):
             self.val0 = self.val0
 
         self.val0 = UNITS.ureg.Quantity(
-            self.val_SI, self._get_base_unit()
+            self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
 
     def get_val(self):

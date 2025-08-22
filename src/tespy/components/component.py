@@ -189,9 +189,9 @@ class Component:
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
                     if is_numeric:
-                        data.set_attr(_val=kwargs[key], is_set=True)
+                        data.set_attr(val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
-                            data.set_attr(_is_var=False)
+                            data.set_attr(is_var=False)
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, _is_var=True)

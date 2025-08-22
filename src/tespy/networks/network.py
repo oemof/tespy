@@ -2087,9 +2087,8 @@ class Network:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
 
-                    variable.val_SI = hlp.convert_to_SI(
-                        key, variable.val0, variable.unit
-                    )
+                    c.get_attr(key).set_SI_from_val0()
+                    # variable.set_SI_from_val0()
                     variable._reference_container.val_SI = variable.get_reference_val_SI()
 
         for cp in self.comps["object"]:
@@ -2119,7 +2118,7 @@ class Network:
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                c.get_attr(key).val0 = float(np.random.random() + 1)
+                value = float(np.random.random() + 1)
 
             # generic starting values for pressure and enthalpy
             elif key in ['p', 'h']:
@@ -2129,23 +2128,23 @@ class Network:
 
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
-                        c.get_attr(key).val0 = 1e5
+                        value = 1e5
                     elif key == 'h':
-                        c.get_attr(key).val0 = 1e6
+                        value = 1e6
 
                 elif val_s == 0:
-                    c.get_attr(key).val0 = val_t
+                    value = val_t
                 elif val_t == 0:
-                    c.get_attr(key).val0 = val_s
+                    value = val_s
                 else:
-                    c.get_attr(key).val0 = (val_s + val_t) / 2
+                    value = (val_s + val_t) / 2
 
-                # change value according to specified unit system
-                c.get_attr(key).val0 = hlp.convert_from_SI(
-                    key, c.get_attr(key).val0, self.get_attr(key + '_unit')
-                )
             elif key == 'E':
-                c.get_attr(key).val0 = 0.0
+                value = 0.0
+
+            # change value according to specified unit system
+            c.get_attr(key).val_SI = value
+            c.get_attr(key).set_val0_from_SI()
 
     @staticmethod
     def _load_network_state(json_path):

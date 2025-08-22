@@ -241,7 +241,7 @@ class Turbine(Turbomachine):
                     T0=inl.T.val_SI
                 )
                 - inl.h.val_SI
-            ) * self.eta_s.val
+            ) * self.eta_s.val_SI
         )
 
     def eta_s_deriv(self, increment_filter, k, dependents=None):

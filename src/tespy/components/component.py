@@ -867,7 +867,7 @@ class Component:
         for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                if data.val > data.max_val + ERR:
+                if data.val_SI > data.max_val + ERR:
                     msg = (
                         f"Invalid value for {p}: {p} = {data.val} above "
                         f"maximum value ({data.max_val}) at component "
@@ -876,7 +876,7 @@ class Component:
                     logger.warning(msg)
                     _no_limit_violated = False
 
-                elif data.val < data.min_val - ERR:
+                elif data.val_SI < data.min_val - ERR:
                     msg = (
                         f"Invalid value for {p}: {p} = {data.val} below "
                         f"minimum value ({data.min_val}) at component "

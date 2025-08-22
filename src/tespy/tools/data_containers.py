@@ -358,147 +358,6 @@ class ComponentMandatoryConstraints(DataContainer):
     num_eq = property(get_num_eq, set_num_eq)
 
 
-class ComponentProperties(DataContainer):
-    """
-    Data container for component properties.
-
-    Parameters
-    ----------
-    val : float
-        Value for this component attribute, default: val=1.
-
-    val_SI : float
-        Value in SI_unit (available for temperatures only, unit transformation
-        according to network's temperature unit), default: val_SI=0.
-
-    is_set : boolean
-        Has the value for this attribute been set?, default: is_set=False.
-
-    is_var : boolean
-        Is this attribute part of the system variables?, default: is_var=False.
-
-    d : float
-        Interval width for numerical calculation of partial derivative towards
-        this attribute, it is part of the system variables, default d=1e-4.
-
-    min_val : float
-        Minimum value for this attribute, used if attribute is part of the
-        system variables, default: min_val=1.1e-4.
-
-    max_val : float
-        Maximum value for this attribute, used if attribute is part of the
-        system variables, default: max_val=1e12.
-    """
-
-    @staticmethod
-    def attr():
-        """
-        Return the available attributes for a ComponentProperties type object.
-
-        Returns
-        -------
-        out : dict
-            Dictionary of available attributes (dictionary keys) with default
-            values.
-        """
-        return {
-            '_val': 1,
-            'val_SI': 0,
-            'is_set': False,
-            'd': 1e-4,
-            'min_val': -1e12,
-            'max_val': 1e12,
-            '_is_var': False,
-            'design': np.nan,
-            'is_result': False,
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'structure_matrix': None,
-            'constant_deriv': False,
-            '_reference_container': None,
-            '_factor': None,
-            '_offset': None,
-            'dependents': None
-        }
-
-    def _serialize(self):
-        keys = self._serializable_keys()
-        return {k: getattr(self, k) for k in keys}
-
-    @staticmethod
-    def _serializable_keys():
-        return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
-        ]
-
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    def get_J_col(self):
-        reference = self._reference_container
-        if reference:
-            return reference.J_col
-        else:
-            raise ValueError("")
-
-    def get_reference_val_SI(self):
-        """Get value of the reference corresponding to own value
-
-        Returns
-        -------
-        float
-            Value of reference container corresponding to this data container's
-            value.
-        """
-        return (self._val - self._offset) / self._factor
-
-    def set_reference_val_SI(self, value):
-        if self._reference_container is not None:
-            self._reference_container.val_SI = (value - self._offset) / self._factor
-        else:
-            raise ValueError()
-
-    def get_J_col(self):
-        if self._reference_container is not None:
-            return self._reference_container.J_col
-        else:
-            raise ValueError()
-
-    def get_val_SI(self):
-        if self._reference_container is not None:
-            return self._reference_container.val_SI * self._factor + self._offset
-        else:
-            return float(self._val)
-
-    def set_val_SI(self, value):
-        self._val = value
-
-    def get_is_var(self):
-        if self._reference_container is not None:
-            return self._reference_container.is_var
-        else:
-            return self._is_var
-
-    def set_is_var(self, value):
-        if self._reference_container is not None:
-            self._reference_container.is_var = value
-        else:
-            raise ValueError()
-
-    num_eq = property(get_num_eq, set_num_eq)
-    val = property(get_val_SI, set_val_SI)
-    J_col = property(get_J_col)
-    is_var = property(get_is_var, set_is_var)
-
 class GroupedComponentProperties(DataContainer):
     """
     Data container for grouped component parameters.
@@ -615,6 +474,8 @@ class FluidProperties(DataContainer):
             "_val": np.nan,
             "_val0": np.nan,
             "_val_SI": 0,
+            "min_val": -1e12,
+            "max_val": 1e12,
             "d": 1e-1,
             "unit": None,
             "is_set": False,
@@ -623,18 +484,27 @@ class FluidProperties(DataContainer):
             "deriv": None,
             "structure_matrix": None,
             "constant_deriv": False,
-            "num_eq": 0,
+            "num_eq_sets": 0,
             "func_params": {},
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
             'dependents': None,
-            "quantity": "mass_flow"
+            "quantity": "None"
         }
 
     def _serialize(self):
         keys = ["val", "val0", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
 
     def get_reference_val_SI(self):
         """Get value of the reference corresponding to own value
@@ -672,7 +542,7 @@ class FluidProperties(DataContainer):
         if self._reference_container is not None:
             return self._reference_container.is_var
         else:
-            raise ValueError()
+            return False
 
     def set_is_var(self, value):
         if self._reference_container is not None:
@@ -760,6 +630,11 @@ class FluidProperties(DataContainer):
     val_with_unit = property(get_val_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
+    num_eq = property(get_num_eq, set_num_eq)
+
+
+class ComponentProperties(FluidProperties):
+    pass
 
 
 class ScalarVariable(DataContainer):

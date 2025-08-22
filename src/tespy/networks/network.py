@@ -2142,8 +2142,8 @@ class Network:
             elif key == 'E':
                 value = 0.0
 
-            # change value according to specified unit system
-            c.get_attr(key).val_SI = value
+            # these values are SI, so they are set to the respective variable
+            c.get_attr(key).set_reference_val_SI(value)
             c.get_attr(key).set_val0_from_SI()
 
     @staticmethod

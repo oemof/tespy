@@ -253,43 +253,49 @@ class CombustionEngine(CombustionChamber):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'P': dc_cp(_val=-1e6, d=1, max_val=-1),
+            'P': dc_cp(_val=-1e6, d=1, max_val=-1, quantity="power"),
             'Q1': dc_cp(
                 max_val=-1,
                 num_eq_sets=1,
                 dependents=self.Q1_dependents,
-                func=self.Q1_func
+                func=self.Q1_func,
+                quantity="heat"
             ),
             'Q2': dc_cp(
                 max_val=-1,
                 num_eq_sets=1,
                 dependents=self.Q2_dependents,
-                func=self.Q2_func
+                func=self.Q2_func,
+                quantity="heat"
             ),
-            'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1),
+            'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1, quantity="heat"),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
-                func_params={'pr': 'pr1'}
+                func_params={'pr': 'pr1'},
+                quantity="ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
+                quantity="ratio"
             ),
             'dp1': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
-                func_params={"inconn": 0, "outconn": 0, "dp": "dp1"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp1"},
+                quantity="pressure"
             ),
             'dp2': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
-                func_params={"inconn": 1, "outconn": 1, "dp": "dp2"}
+                func_params={"inconn": 1, "outconn": 1, "dp": "dp2"},
+                quantity="pressure"
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
@@ -431,7 +437,7 @@ class CombustionEngine(CombustionChamber):
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
     def energy_connector_balance_func(self):
-        return self.power_outl[0].E.val_SI + self.P.val
+        return self.power_outl[0].E.val_SI + self.P.val_SI
 
     def energy_connector_dependents(self):
         return [self.power_outl[0].E, self.P]
@@ -479,7 +485,7 @@ class CombustionEngine(CombustionChamber):
             )
 
         # power output and heat loss
-        res += self.P.val + self.Qloss.val
+        res += self.P.val_SI + self.Qloss.val_SI
 
         return res
 
@@ -570,7 +576,7 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[0]
         o = self.outl[0]
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val_SI
 
     def Q1_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -591,7 +597,7 @@ class CombustionEngine(CombustionChamber):
         """
         i = self.inl[1]
         o = self.outl[1]
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val_SI
 
     def Q2_dependents(self):
         return [self.inl[1].m, self.inl[1].h, self.outl[1].h]
@@ -612,14 +618,10 @@ class CombustionEngine(CombustionChamber):
                 x_{f,i}\right) - \dot{m}_{out,3} \cdot x_{f,3} \right]
                 \; \forall i \in [3,4]
         """
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return (
             self.calc_ti()
-            + self.tiP_char.char_func.evaluate(expr) * self.P.val
+            + self.tiP_char.char_func.evaluate(expr) * self.P.val_SI
         )
 
     def tiP_char_dependents(self):
@@ -655,11 +657,7 @@ class CombustionEngine(CombustionChamber):
         i = self.inl[0]
         o = self.outl[0]
 
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return (
             self.calc_ti() * self.Q1_char.char_func.evaluate(expr)
             - self.tiP_char.char_func.evaluate(expr) * i.m.val_SI
@@ -701,11 +699,7 @@ class CombustionEngine(CombustionChamber):
         i = self.inl[1]
         o = self.outl[1]
 
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return (
             self.calc_ti() * self.Q2_char.char_func.evaluate(expr)
             - self.tiP_char.char_func.evaluate(expr) * i.m.val_SI
@@ -744,14 +738,10 @@ class CombustionEngine(CombustionChamber):
                 \end{split}\\
                 \forall i \in [3,4]
         """
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return (
             self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
-            + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val
+            + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val_SI
         )
 
     def Qloss_char_dependents(self):
@@ -778,11 +768,7 @@ class CombustionEngine(CombustionChamber):
                 {f_{TI}\left(\frac{P}{P_{ref}}\right)}
 
         """
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return -self.calc_ti() / self.tiP_char.char_func.evaluate(expr)
 
     def calc_Qloss(self):
@@ -800,15 +786,17 @@ class CombustionEngine(CombustionChamber):
                 f_{QLOSS}\left(\frac{P}{P_{ref}}\right)}
                 {f_{TI}\left(\frac{P}{P_{ref}}\right)}
         """
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
-
+        expr = self._calc_char_expr()
         return (
             -self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
             / self.tiP_char.char_func.evaluate(expr)
         )
+
+    def _calc_char_expr(self):
+        if np.isnan(self.P.design):
+            return 1
+        else:
+            return self.P.val_SI / self.P.design
 
     def bus_func(self, bus):
         r"""
@@ -1029,24 +1017,18 @@ class CombustionEngine(CombustionChamber):
         r"""Postprocessing parameter calculation."""
         # Q, pr and zeta
         for i in range(2):
-            self.get_attr(f'Q{i + 1}').val = -self.inl[i].m.val_SI * (
+            self.get_attr(f'Q{i + 1}').val_SI = -self.inl[i].m.val_SI * (
                 self.outl[i].h.val_SI - self.inl[i].h.val_SI
             )
             self.get_attr(f'dp{i + 1}').val_SI = (
                 self.inl[i].p.val_SI - self.outl[i].p.val_SI
             )
-            self.get_attr(f'dp{i + 1}').val = (
-                self.inl[i].p.val - self.outl[i].p.val
-            )
-            self.get_attr(f'pr{i + 1}').val = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI
-            )
-            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
+            self.get_attr(f'zeta{i + 1}').val_SI = self.calc_zeta(
                 self.inl[i], self.outl[i]
             )
 
-        self.P.val = self.calc_P()
-        self.Qloss.val = self.calc_Qloss()
+        self.P.val_SI = self.calc_P()
+        self.Qloss.val_SI = self.calc_Qloss()
 
         super().calc_parameters()
 
@@ -1054,10 +1036,7 @@ class CombustionEngine(CombustionChamber):
         r"""Check parameter value limits."""
         _no_limit_violations = super().check_parameter_bounds()
         # get bound errors for characteristic lines
-        if np.isnan(self.P.design):
-            expr = 1
-        else:
-            expr = self.P.val / self.P.design
+        expr = self._calc_char_expr()
         self.tiP_char.char_func.get_domain_errors(expr, self.label)
         self.Qloss_char.char_func.get_domain_errors(expr, self.label)
         self.Q1_char.char_func.get_domain_errors(expr, self.label)
@@ -1196,13 +1175,13 @@ class CombustionEngine(CombustionChamber):
         )
 
         # internal irreversibilty
-        self.P_irr_i = (1 / self.eta_mech.val - 1) * self.P.val
+        self.P_irr_i = (1 / self.eta_mech.val_SI - 1) * self.P.val_SI
 
         # internal entropy flow and production
-        self.S_Q11 = self.Q1.val / self.T_v_inner.val
-        self.S_Q21 = self.Q2.val / self.T_v_inner.val
-        self.S_Qloss = self.Qloss.val / self.T_v_inner.val
-        self.S_irr_i = self.P_irr_i / self.T_v_inner.val
+        self.S_Q11 = self.Q1.val_SI / self.T_v_inner.val_SI
+        self.S_Q21 = self.Q2.val_SI / self.T_v_inner.val_SI
+        self.S_Qloss = self.Qloss.val_SI / self.T_v_inner.val_SI
+        self.S_irr_i = self.P_irr_i / self.T_v_inner.val_SI
 
         # entropy production of heaters due to heat transfer
         self.S_Q1irr = self.S_Q12 - self.S_Q11
@@ -1226,7 +1205,7 @@ class CombustionEngine(CombustionChamber):
 
         self.E_P = (
             self.outl[2].Ex_physical - (self.inl[3].Ex_physical + self.inl[2].Ex_physical)
-            - self.P.val + (self.outl[1] - self.inl[1]) + (self.outl[0] - self.inl[0])
+            - self.P.val_SI + (self.outl[1] - self.inl[1]) + (self.outl[0] - self.inl[0])
         )
         self.E_F = (
             self.inl[3].Ex_chemical + self.inl[2].Ex_chemical
@@ -1235,5 +1214,5 @@ class CombustionEngine(CombustionChamber):
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
         self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": -self.P.val
+            "chemical": np.nan, "physical": np.nan, "massless": -self.P.val_SI
         }

@@ -153,11 +153,11 @@ class PowerConnection(ConnectionBase):
         return {"E": self.E}
 
     def get_parameters(self):
-        return {"E": dc_prop(d=1e-4)}
+        return {"E": dc_prop(d=1e-4, quantity="power")}
 
     def calc_results(self):
-        self.E.val = self.E.val_SI
-        self.E.val0 = self.E.val
+        self.E.set_val_from_SI()
+        self.E.set_val0_from_SI()
         return True
 
     def _set_design_params(self, data):

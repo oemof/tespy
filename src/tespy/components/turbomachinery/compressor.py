@@ -184,7 +184,8 @@ class Compressor(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 deriv=self.eta_s_deriv,
-                dependents=self.eta_s_dependents
+                dependents=self.eta_s_dependents,
+                quantity="efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -246,7 +247,7 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.val_SI - (
                 isentropic(
                     i.p.val_SI,
                     i.h.val_SI,
@@ -276,7 +277,7 @@ class Compressor(Turbomachine):
         f = self.eta_s_func
 
         if o.h.is_var and not i.h.is_var:
-            self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
+            self._partial_derivative(o.h, k, self.eta_s.val_SI, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
 
@@ -375,8 +376,8 @@ class Compressor(Turbomachine):
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
-        yarr *= (1 - self.igva.val / 100)
-        zarr *= (1 - self.igva.val / 100)
+        yarr *= (1 - self.igva.val_SI / 100)
+        zarr *= (1 - self.igva.val_SI / 100)
         pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
 
         return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
@@ -415,8 +416,8 @@ class Compressor(Turbomachine):
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
-        yarr *= (1 - self.igva.val / 100)
-        zarr *= (1 - self.igva.val ** 2 / 10000)
+        yarr *= (1 - self.igva.val_SI / 100)
+        zarr *= (1 - self.igva.val_SI ** 2 / 10000)
         eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
 
         return (
@@ -542,7 +543,7 @@ class Compressor(Turbomachine):
 
         i = self.inl[0]
         o = self.outl[0]
-        self.eta_s.val =  (
+        self.eta_s.val_SI =  (
             isentropic(
                 i.p.val_SI,
                 i.h.val_SI,
@@ -563,7 +564,7 @@ class Compressor(Turbomachine):
                 y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
                     self.inl[0].m.design * self.inl[0].p.val_SI * x)
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
-                yarr *= (1 - self.igva.val / 100)
+                yarr *= (1 - self.igva.val_SI / 100)
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
 
         return _no_limit_violations

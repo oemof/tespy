@@ -491,7 +491,7 @@ class FluidProperties(DataContainer):
             "_offset": None,
             "_factor": None,
             'dependents': None,
-            "quantity": "None"
+            "quantity": None
         }
 
     def _serialize(self):

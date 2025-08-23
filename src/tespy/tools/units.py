@@ -11,17 +11,19 @@ class DefaultUnits:
             "entropy": "J/kg/K",
             "pressure": "Pa",
             "mass_flow": "kg/s",
-            "volumetric_flow": "m3/s",  # not in ureg
+            "volumetric_flow": "m3/s",
             "specific_volume": "m3/kg",
             "power": "W",
             "heat": "W",
             "quality": "1",
             "efficiency": "1",
             "ratio": "1",
-            "None": "1"
+            # None is the default if not quantity is supplied
+            None: "1"
         }
         # cannot use the setter here because we have to define m3 first!
         self._ureg = pint.UnitRegistry()
+        # m3 is not in standard ureg
         self.ureg.define("m3 = meter ** 3")
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()

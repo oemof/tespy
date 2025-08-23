@@ -277,12 +277,12 @@ dependency between variables. These are, for example,
 - and many more
 
 These linear dependencies are used to build a graph, which then determines a
-mapping from the phyiscal problem to the mathematical problem indicating which
+mapping from the physical problem to the mathematical problem indicating which
 variables are represented by a single one. I.e.
 
 - which mass flows are the same or directly linear dependent
 - which pressures are the same or directly linear dependent,
-- which enthalpies are the same or directly linear dependen and
+- which enthalpies are the same or directly linear dependent and
 - which fluid compositions are identical.
 
 For example, in a simple Clausius Rankine cycle there will only be a single
@@ -531,7 +531,7 @@ can be, for example
   important and how it can be implemented.
 - two parallel flows starting and ending in a common point (e.g. from a
   :code:`Splitter` to a :code:`Merge`) and both having linear specifications
-  for the change of pressure from the start to the end. Then the comming inflow
+  for the change of pressure from the start to the end. Then the common inflow
   and the common outflow pressure would be connected linearly through two
   different ways, which cannot be solved. One of both must be a result. Note:
   the same is of course true for a nonlinear dependency of pressure change, but
@@ -585,7 +585,7 @@ Then you can use the following methods to obtain information on your problem:
   form as tuples, e.g. :code:`("3", "T")` for the temperature equation of the
   connection with label "3".
 - :code:`get_variables`: A dictionary of the actual variables remaining for the
-  sovler to solve for. The keys of the dictionary are again tuples, with an
+  solver to solve for. The keys of the dictionary are again tuples, with an
   index number and the variable type, e.g. :code:`(0, "h")` for a variable
   representing enthalpy. The values corresponding to each key are again a list,
   which show all of the variables the are representing, e.g.

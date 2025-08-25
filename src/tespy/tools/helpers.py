@@ -638,7 +638,7 @@ def bus_char_derivative(component_value, char_func, reference_value, bus_value, 
 
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
-        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
+        tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
 
     # start newton loop

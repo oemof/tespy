@@ -1,6 +1,35 @@
 v0.9.4 - under development
 ++++++++++++++++++++++++++
 
+API Changes
+###########
+- The specification of units via the :code:`Network` class instance is
+  deprecated and will be removed with the next major release. Use the new
+  `tespy.units` module instead.
+- In the back-end of the :code:`tespy.components` you have to adjust the
+  access to component property values. Previously, these were accessed through
+  the :code:`val` property of the respective object, e.g.
+
+  - turbine efficiency: :code:`turbine.eta_s.val`
+  - or heat exchanger heat :code:`heatexchanger.Q.val`
+
+  With the introduction of units for all component parameters, these should now
+  exclusively be accessed with the :code:`val_SI` property, which also aligns
+  the API with the :code:`Connection` class API, e.g.:
+
+  - turbine efficiency: :code:`turbine.eta_s.val_SI`
+  - heat exchanger heat :code:`heatexchanger.Q.val_SI`
+
+  The old way of access may still work if you are exclusively using SI units in
+  your models, but may have unexpected side-effects.
+
+  If you want to make use of the unit conversion capabilities yourself for
+  custom components and their attributes, then you have to provide the
+  :code:`quantity` information to the respective parameter. For more
+  information on this, please check the
+  :ref:`respective section <tespy_components_custom_components_label>` in the
+  docs.
+
 New Features
 ############
 - A new component :code:`Node` is available. The component combines the
@@ -9,6 +38,17 @@ New Features
   is forced equal for all connections, the enthalpy and fluid composition will
   be equal for all of the outlets and based on the incoming fluids' states
   (`PR #733 <https://github.com/oemof/tespy/pull/733>`__).
+- TESPy now integrates `pint <https://pint.readthedocs.io/>`__ for unit
+  conversions. With this change, you can now also specify units for the missing
+  connection parameters
+
+  - quality: :code:`x`,
+  - temperature differences: :code:`Td_bp` and
+  - power/heat :code:`E` for :code:`PowerConnections`
+
+  as well as all component parameters. For an example on how to work with the
+  new units, please check :ref:`this section <TODOADDSECTIONLABEL>`
+  (`PR #743 <https://github.com/oemof/tespy/pull/743>`__).
 
 Other Changes
 #############

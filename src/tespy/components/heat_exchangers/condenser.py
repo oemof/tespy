@@ -370,49 +370,48 @@ class Condenser(HeatExchanger):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = self.inl[0].m.val_SI * (
+        self.Q.val_SI = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-        self.ttd_u.val = self.inl[0].calc_T_sat() - self.outl[1].T.val_SI
-        self.ttd_l.val = self.outl[0].T.val_SI - self.inl[1].T.val_SI
-        self.ttd_min.val = min(self.ttd_u.val, self.ttd_l.val)
+        self.ttd_u.val_SI = self.inl[0].calc_T_sat() - self.outl[1].T.val_SI
+        self.ttd_l.val_SI = self.outl[0].T.val_SI - self.inl[1].T.val_SI
+        self.ttd_min.val_SI = min(self.ttd_u.val_SI, self.ttd_l.val_SI)
 
         # pr and zeta
         for i in range(2):
-            self.get_attr(f'pr{i + 1}').val = (
+            self.get_attr(f'pr{i + 1}').val_SI = (
                 self.outl[i].p.val_SI / self.inl[i].p.val_SI
             )
-            self.get_attr(f'zeta{i + 1}').val = self.calc_zeta(
+            self.get_attr(f'zeta{i + 1}').val_SI = self.calc_zeta(
                 self.inl[i], self.outl[i]
             )
             self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI)
-            self.get_attr(f'dp{i + 1}').val = convert_from_SI(
-                'p', self.get_attr(f'dp{i + 1}').val_SI, self.inl[i].p.unit
+                self.inl[i].p.val_SI - self.outl[i].p.val_SI
             )
 
         # kA and logarithmic temperature difference
-        if self.ttd_u.val < 0 or self.ttd_l.val < 0:
-            self.td_log.val = np.nan
-        elif round(self.ttd_l.val, 6) == round(self.ttd_u.val, 6):
-            self.td_log.val = self.ttd_l.val
-        elif round(self.ttd_l.val, 6) == 0 or round(self.ttd_u.val, 6) == 0:
-            self.td_log.val = np.nan
+        if self.ttd_u.val_SI < 0 or self.ttd_l.val_SI < 0:
+            self.td_log.val_SI = np.nan
+        elif round(self.ttd_l.val_SI, 6) == round(self.ttd_u.val_SI, 6):
+            self.td_log.val_SI = self.ttd_l.val_SI
+        elif round(self.ttd_l.val_SI, 6) == 0 or round(self.ttd_u.val_SI, 6) == 0:
+            self.td_log.val_SI = np.nan
         else:
-            self.td_log.val = (
-                (self.ttd_l.val - self.ttd_u.val)
-                / math.log(self.ttd_l.val / self.ttd_u.val)
+            self.td_log.val_SI = (
+                (self.ttd_l.val_SI - self.ttd_u.val_SI)
+                / math.log(self.ttd_l.val_SI / self.ttd_u.val_SI)
             )
-        self.kA.val = -self.Q.val / self.td_log.val
+
+        self.kA.val_SI = -self.Q.val_SI / self.td_log.val_SI
 
         # heat exchanger efficiencies
         try:
-            self.eff_hot.val = (
+            self.eff_hot.val_SI = (
                 (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
                 / self.calc_dh_max_hot()
             )
         except ValueError:
-            self.eff_hot.val = np.nan
+            self.eff_hot.val_SI = np.nan
             msg = (
                 f"Cannot calculate {self.label} hot side effectiveness "
                 "because cold side inlet temperature is out of bounds for hot "
@@ -420,19 +419,19 @@ class Condenser(HeatExchanger):
             )
             logger.warning(msg)
         try:
-            self.eff_cold.val = (
+            self.eff_cold.val_SI = (
                 (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
                 / self.calc_dh_max_cold()
             )
         except ValueError:
-            self.eff_cold.val = np.nan
+            self.eff_cold.val_SI = np.nan
             msg = (
                 f"Cannot calculate {self.label} cold side effectiveness "
                 "because hot side inlet temperature is out of bounds for cold "
                 "side fluid."
             )
             logger.warning(msg)
-        self.eff_max.val = max(self.eff_hot.val, self.eff_cold.val)
+        self.eff_max.val_SI = max(self.eff_hot.val_SI, self.eff_cold.val_SI)
 
     def convergence_check(self):
         o = self.outl[0]

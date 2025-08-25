@@ -170,7 +170,7 @@ class Component:
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
                     try:
-                        data.set_attr(_is_var=False)
+                        data.set_attr(is_var=False)
                     except KeyError:
                         pass
                     continue
@@ -194,7 +194,7 @@ class Component:
                             data.set_attr(is_var=False)
 
                     elif kwargs[key] == 'var' and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, _is_var=True)
+                        data.set_attr(is_set=True, is_var=True)
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
@@ -869,7 +869,7 @@ class Component:
             if isinstance(data, dc_cp):
                 if data.val_SI > data.max_val + ERR:
                     msg = (
-                        f"Invalid value for {p}: {p} = {data.val} above "
+                        f"Invalid value for {p}: {p} = {data.val_SI} above "
                         f"maximum value ({data.max_val}) at component "
                         f"{self.label}."
                     )
@@ -878,7 +878,7 @@ class Component:
 
                 elif data.val_SI < data.min_val - ERR:
                     msg = (
-                        f"Invalid value for {p}: {p} = {data.val} below "
+                        f"Invalid value for {p}: {p} = {data.val_SI} below "
                         f"minimum value ({data.min_val}) at component "
                         f"{self.label}."
                     )
@@ -957,8 +957,8 @@ class Component:
 
                 0 = p_{in} \cdot pr - p_{out}
         """
-        pr = self.get_attr(pr)
-        return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
+        pr = self.get_attr(pr).val_SI
+        return self.inl[inconn].p.val_SI * pr - self.outl[outconn].p.val_SI
 
     def pr_deriv(self, increment_filter, k, pr=None, inconn=0, outconn=0):
         r"""
@@ -986,7 +986,7 @@ class Component:
         i = self.inl[inconn]
         o = self.outl[outconn]
 
-        self._partial_derivative(i.p, k, pr.val)
+        self._partial_derivative(i.p, k, pr.val_SI)
         self._partial_derivative(o.p, k, -1)
         if pr.is_var:
             self.jacobian[k, self.pr.J_col] = i.p.val_SI
@@ -1004,7 +1004,7 @@ class Component:
         o = self.outl[outconn]
 
         if not pr.is_var:
-            self._structure_matrix[k, i.p.sm_col] = pr.val
+            self._structure_matrix[k, i.p.sm_col] = pr.val_SI
             self._structure_matrix[k, o.p.sm_col] = -1
 
     def variable_equality_structure_matrix(self, k, **kwargs):
@@ -1075,7 +1075,7 @@ class Component:
             v_i = i.calc_vol(T0=i.T.val_SI)
             v_o = o.calc_vol(T0=o.T.val_SI)
             return (
-                data.val - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
+                data.val_SI - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 

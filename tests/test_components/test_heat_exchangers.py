@@ -500,8 +500,10 @@ class TestHeatExchangers:
         assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
-        instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
-                          eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
+        instance.set_attr(
+            E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
+            eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99
+        )
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
@@ -512,9 +514,10 @@ class TestHeatExchangers:
             instance.E.val * (1 - instance.eta_opt.val) +
             T_diff * instance.lkf_lin.val +
             T_diff ** 2 * instance.lkf_quad.val), 0)
-        msg = ('Value for heat loss of solar collector must be '
-               + str(Q_loss) + ', is ' + str(round(instance.Q_loss.val, 0)) +
-               '.')
+        msg = (
+            f"Value for heat loss of solar collector must be {Q_loss}, is "
+            f"{round(instance.Q_loss.val, 0)}."
+        )
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
         # test all parameters of the energy group: E

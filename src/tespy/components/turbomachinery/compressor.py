@@ -192,7 +192,7 @@ class Compressor(Turbomachine):
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
             ),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, _val=0),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,

@@ -41,6 +41,7 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.units import _UNITS
 
 # Only require cupy if Cuda shall be used
 try:
@@ -56,7 +57,7 @@ class Network:
     Parameters
     ----------
     h_range : list
-        List with minimum and maximum values for enthalpy value range.
+        aist with minimum and maximum values for enthalpy value range.
 
     h_unit : str
         Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
@@ -202,12 +203,12 @@ class Network:
         self.checked = False
         self.design_path = None
         self.iterinfo = True
+        self.units = _UNITS
 
         msg = 'Default unit specifications:\n'
-        for prop, data in fpd.items():
+        for prop, unit in self.units._quantities.items():
             # standard unit set
-            self.__dict__.update({prop + '_unit': data['SI_unit']})
-            msg += data['text'] + ': ' + data['SI_unit'] + '\n'
+            msg += f"{prop}: {unit}" + "\n"
 
         # don't need the last newline
         logger.debug(msg[:-1])
@@ -217,14 +218,23 @@ class Network:
         self.p_range_SI = [2e2, 300e5]
         self.h_range_SI = [1e3, 7e6]
 
-        for prop in ['m', 'p', 'h']:
-            limits = self.get_attr(prop + '_range_SI')
+        property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
+        for prop, name in property_names.items():
+            limits = self.get_attr(f"{prop}_range_SI")
             msg = (
-                f"Default {fpd[prop]['text']} limits\n"
-                f"min: {limits[0]} {self.get_attr(prop + '_unit')}\n"
-                f"max: {limits[1]} {self.get_attr(prop + '_unit')}"
+                f"Default {name} limits\n"
+                f"min: {limits[0]} {self.units._quantities[name]}\n"
+                f"max: {limits[1]} {self.units._quantities[name]}"
             )
             logger.debug(msg)
+
+            unit = self.units._quantities[name]
+            key = f"{prop}_range"
+            self.__dict__.update({
+                key: self.units.ureg.Quantity(
+                    np.array(self.get_attr(f"{key}_SI")), unit
+                )
+            })
 
     def set_attr(self, **kwargs):
         r"""
@@ -267,28 +277,33 @@ class Network:
         vol_unit : str
             Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
         """
+        self.units = kwargs.get('units', self.units)
+        unit_replace = {
+            "C": "degC",
+            "J / kgK": "kJ / (kg * K)",
+            "kJ / kgK": "kJ / (kg * K)",
+            "MJ / kgK": "MJ / (kg * K)",
+        }
         # unit sets
         for prop in fpd.keys():
             unit = f'{prop}_unit'
             if unit in kwargs:
-                if kwargs[unit] in fpd[prop]['units']:
-                    self.__dict__.update({unit: kwargs[unit]})
-                    msg = f'Setting {fpd[prop]["text"]} unit: {kwargs[unit]}.'
-                    logger.debug(msg)
-                else:
-                    keys = ', '.join(fpd[prop]['units'].keys())
-                    msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
-                    logger.error(msg)
-                    raise ValueError(msg)
+                # for backwards compatibility: Update in the default units
+                self.units.set_default_units(**{
+                    fpd[prop]["text"].replace(" ", "_"):
+                    unit_replace.get(kwargs[unit], kwargs[unit])
+                })
 
         for prop in ['m', 'p', 'h']:
-            if f'{prop}_range' in kwargs:
-                if isinstance(kwargs[f'{prop}_range'], list):
+            key = f"{prop}_range"
+            if key in kwargs:
+                if isinstance(kwargs[key], list):
+                    unit = self.units._quantities[fpd[prop]["text"].replace(" ", "_")]
                     self.__dict__.update({
-                        f'{prop}_range_SI': [hlp.convert_to_SI(
-                            prop, value,
-                            self.get_attr(f'{prop}_unit')
-                        ) for value in kwargs[f'{prop}_range']]
+                        key: self.units.ureg.Quantity(
+                            np.array(kwargs[key]),
+                            unit
+                        )
                     })
                 else:
                     msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
@@ -303,20 +318,14 @@ class Network:
                 )
                 logger.debug(msg)
 
-        # update non SI value ranges
-        for prop in ['m', 'p', 'h']:
-            SI_range = self.get_attr(f'{prop}_range_SI')
             self.__dict__.update({
-                f'{prop}_range': [hlp.convert_from_SI(
-                    prop, SI_value,
-                    self.get_attr(f'{prop}_unit')
-                ) for SI_value in SI_range]
+                f"{key}_SI": self.get_attr(key).to_base_units().magnitude
             })
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
         if not isinstance(self.iterinfo, bool):
-            msg = ('Network parameter iterinfo must be True or False!')
+            msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
             raise TypeError(msg)
 
@@ -1687,7 +1696,7 @@ class Network:
                     continue
 
                 if c.get_attr(key).is_set:
-                    c.get_attr(key).set_SI_from_val()
+                    c.get_attr(key).set_SI_from_val(self.units)
                 # elif key == "E":
                 #     c.get_attr(key).unit = "W"
                 # elif key == 'Td_bp':
@@ -1724,8 +1733,10 @@ class Network:
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
                 if isinstance(value, dc_prop):
-                    if cp.get_attr(param).is_set:
-                        cp.get_attr(param).set_SI_from_val()
+                    if np.isnan(value._val):
+                        value.val = (value.min_val + value.max_val) / 2
+                    value.set_SI_from_val(self.units)
+
 
     def _init_design(self):
         r"""
@@ -1870,7 +1881,7 @@ class Network:
                     param = c.get_attr(var)
                     param.is_set = True
                     param.val_SI = param.design
-                    param.val = hlp.convert_from_SI(var, param.val_SI, param.unit)
+                    param.set_val_from_SI(self.units)
 
                 c.new_design = False
 
@@ -1893,7 +1904,8 @@ class Network:
 
                     # take nominal values from design point
                     if isinstance(data, dc_cp):
-                        cp.get_attr(var).val = cp.get_attr(var).design
+                        data.val_SI = data.design
+                        data.set_val_from_SI(self.units)
                         switched = True
                         msg += var + ', '
 
@@ -2025,7 +2037,7 @@ class Network:
             raise hlp.TESPyNetworkError(msg)
 
         data = df.loc[c.label]
-        c._set_design_params(data)
+        c._set_design_params(data, self.units)
 
     def _init_conn_params_from_path(self, c, df):
         r"""
@@ -2046,7 +2058,7 @@ class Network:
             return
 
         data = df.loc[c.label]
-        c._set_starting_values(data)
+        c._set_starting_values(data, self.units)
         c.good_starting_values = True
 
     def _init_properties(self):
@@ -2083,18 +2095,23 @@ class Network:
                     logger.warning(msg)
 
             for key, variable in c.get_variables().items():
+                # for connections variables can be presolved and not be var anymore
                 if variable.is_var:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
 
-                    c.get_attr(key).set_SI_from_val0()
+                    variable.set_SI_from_val0(self.units)
                     # variable.set_SI_from_val0()
-                    variable._reference_container.val_SI = variable.get_reference_val_SI()
+                    variable.set_reference_val_SI(variable._val_SI)
 
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
-                if variable.is_var:
-                    variable._reference_container.val_SI = variable.get_reference_val_SI()
+                # for components every variable should be an actual variable
+                # if variable.is_var:
+                if np.isnan(variable.val):
+                    variable.val = 1.0
+                variable.set_SI_from_val(self.units)
+                variable.set_reference_val_SI(variable._val_SI)
 
         for c in self.conns['object']:
             c._precalc_guess_values()
@@ -2144,7 +2161,7 @@ class Network:
 
             # these values are SI, so they are set to the respective variable
             c.get_attr(key).set_reference_val_SI(value)
-            c.get_attr(key).set_val0_from_SI()
+            c.get_attr(key).set_val0_from_SI(self.units)
 
     @staticmethod
     def _load_network_state(json_path):
@@ -3027,10 +3044,7 @@ class Network:
                 variable_dict = self._variable_lookup[variable_num]
                 variable = variable_dict["object"].get_attr(variable_dict["property"])
                 if variable_dict["property"] != "fluid":
-                    if isinstance(variable, dc_cp):
-                        variable.val = variable.val
-                    else:
-                        variable.val_SI = variable.val_SI
+                    variable.val_SI = variable.val_SI
                 else:
                     variable.val = variable.val
                 variable._reference_container = None
@@ -3040,7 +3054,7 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = _converged and c.calc_results()
+            _converged = _converged and c.calc_results(self.units)
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
@@ -3051,9 +3065,10 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
-            for param, value in cp.parameters.items():
+            # this thing could be somewhere else
+            for value in cp.parameters.values():
                 if isinstance(value, dc_prop):
-                    cp.get_attr(param).set_val_from_SI()
+                    value.set_val_from_SI(self.units)
 
             key = cp.__class__.__name__
             for param in self.results[key].columns:

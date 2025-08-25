@@ -16,7 +16,7 @@ import numpy as np
 import pint
 
 from tespy.tools import logger
-from tespy.tools.units import UNITS
+from tespy.tools.units import _UNITS
 
 
 class DataContainer:
@@ -473,7 +473,9 @@ class FluidProperties(DataContainer):
             "design": np.nan,
             "_val": np.nan,
             "_val0": np.nan,
-            "_val_SI": 0,
+            "_val_SI": np.nan,
+            "_is_var": False,
+            "is_result": False,
             "min_val": -1e12,
             "max_val": 1e12,
             "d": 1e-1,
@@ -543,13 +545,13 @@ class FluidProperties(DataContainer):
         if self._reference_container is not None:
             return self._reference_container.is_var
         else:
-            return False
+            return self._is_var
 
     def set_is_var(self, value):
         if self._reference_container is not None:
             self._reference_container.is_var = value
         else:
-            pass
+            self._is_var = value
 
     def _get_val_base_unit(self):
         return self._val.to_base_units().units
@@ -560,27 +562,44 @@ class FluidProperties(DataContainer):
     def get_val_with_unit(self):
         return self._val
 
-    def set_SI_from_val(self):
+    def _assign_default_unit_to_val(self, units):
+        ureg = units.ureg
+        default_unit = units.default[self.quantity]
+        self.val = ureg.Quantity(self._val, default_unit)
+
+    def _assign_default_unit_to_val0(self, units):
+        ureg = units.ureg
+        default_unit = units.default[self.quantity]
+        self.val0 = ureg.Quantity(self._val0, default_unit)
+
+    def set_SI_from_val(self, units):
+
+        if not isinstance(self._val, pint.Quantity):
+            self._assign_default_unit_to_val(units)
+
         self.val_SI = self._val.to_base_units().magnitude
 
-    def set_SI_from_val0(self):
+    def set_SI_from_val0(self, units):
+        if not isinstance(self._val0, pint.Quantity):
+            self._assign_default_unit_to_val0(units)
+
         self.val_SI = self._val0.to_base_units().magnitude
 
-    def set_val_from_SI(self):
+    def set_val_from_SI(self, units):
         # intermediate fix
         if not isinstance(self._val, pint.Quantity):
-            self.val = self._val
+            self._assign_default_unit_to_val(units)
 
-        self.val = UNITS.ureg.Quantity(
+        self.val = units.ureg.Quantity(
             self.val_SI, self._get_val_base_unit()
         ).to(self._val.units)
 
-    def set_val0_from_SI(self):
+    def set_val0_from_SI(self, units):
         # intermediate fix
         if not isinstance(self.val0, pint.Quantity):
-            self.val0 = self.val0
+            self._assign_default_unit_to_val0(units)
 
-        self.val0 = UNITS.ureg.Quantity(
+        self.val0 = units.ureg.Quantity(
             self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
 
@@ -597,16 +616,15 @@ class FluidProperties(DataContainer):
         self._val0 = self._handle_value_with_quantity(value)
 
     def _handle_value_with_quantity(self, value):
-        Q = UNITS.ureg.Quantity
         if isinstance(value, pint.Quantity):
-            if not value._REGISTRY is UNITS.ureg:
-                msg = (
-                    "The provided quantity uses a different unit registry "
-                    "than tespy's UNITS.ureg. If you want tespy to make use "
-                    "of your ureg, you have to specify it with the "
-                    "'UNITS.set_ureg' methd."
-                )
-                raise ValueError(msg)
+            # if not value._REGISTRY is UNITS.ureg:
+            #     msg = (
+            #         "The provided quantity uses a different unit registry "
+            #         "than tespy's UNITS.ureg. If you want tespy to make use "
+            #         "of your ureg, you have to specify it with the "
+            #         "'UNITS.set_ureg' methd."
+            #     )
+            #     raise ValueError(msg)
             if self._check_unit_compatibilty(value.units):
                 return value
             else:
@@ -616,21 +634,25 @@ class FluidProperties(DataContainer):
                 )
                 raise ValueError(msg)
         else:
-            return Q(value, UNITS.default[self.quantity])
+            return value#Q(value, UNITS.default[self.quantity])
 
     def _check_unit_compatibilty(self, unit):
         if self.quantity == "temperature_difference":
             unit_label = list(unit._units.keys())[0]
             if unit_label.startswith("delta_"):
-                return UNITS._quantities[self.quantity].is_compatible_with(unit)
+                return _UNITS._quantities[self.quantity].is_compatible_with(unit)
             else:
-                _units = UNITS.ureg._units
+                _units = _UNITS.ureg._units
                 kelvin = list(_units["K"].aliases) + [_units["K"].name]
                 rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
                 return unit_label in kelvin or unit_label in rankine
         else:
-            return UNITS._quantities[self.quantity].is_compatible_with(unit)
+            return _UNITS._quantities[self.quantity].is_compatible_with(unit)
 
+    def get_unit(self):
+        return str(self.val_with_unit.units)
+
+    unit = property(get_unit)
     val = property(get_val, set_val)
     val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)

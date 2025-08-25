@@ -1222,7 +1222,7 @@ class Connection(ConnectionBase):
             return np.nan
 
 
-    def calc_results(self):
+    def calc_results(self, units):
         self.T.val_SI = self.calc_T()
         fluid = single_fluid(self.fluid_data)
         _converged = True
@@ -1284,29 +1284,32 @@ class Connection(ConnectionBase):
             self.s.val_SI = self.calc_s()
 
         for prop in self._result_attributes():
-            self.get_attr(prop).set_val_from_SI()
+            self.get_attr(prop).set_val_from_SI(units)
 
-
-        self.m.set_val0_from_SI()
-        self.p.set_val0_from_SI()
-        self.h.set_val0_from_SI()
+        self.m.set_val0_from_SI(units)
+        self.p.set_val0_from_SI(units)
+        self.h.set_val0_from_SI(units)
         self.fluid.val0 = self.fluid.val.copy()
 
         return _converged
 
-    def _set_design_params(self, data):
+    def _set_design_params(self, data, units):
         for var in self._result_attributes():
-            self.get_attr(var).design = convert_to_SI(
-                var, float(data[var]), data[f"{var}_unit"]
-            )
+            self.get_attr(var).design = units.ureg.Quantity(
+                float(data[var]),
+                data[f"{var}_unit"]
+            ).to_base_units().magnitude
+
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])
 
-    def _set_starting_values(self, data):
+    def _set_starting_values(self, data, units):
         for prop in self.get_variables():
             var = self.get_attr(prop)
-            var.val0 = float(data[prop])
-            var.unit = data[prop + '_unit']
+            var.val0 = units.ureg.Quantity(
+                float(data[prop]),
+                data[f"{prop}_unit"]
+            )
 
         for fluid in self.fluid.is_var:
             self.fluid.val[fluid] = float(data[fluid])

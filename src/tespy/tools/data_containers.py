@@ -72,8 +72,9 @@ class DataContainer:
     <class 'tespy.tools.data_containers.ComponentCharacteristicMaps'>
     >>> type(ComponentCharacteristics(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.ComponentCharacteristics'>
-    >>> type(ComponentProperties(_val=100, is_set=True, _is_var=True,
-    ...      max_val=1000, min_val=1))
+    >>> type(ComponentProperties(
+    ...     val=100, is_set=True, is_var=True, max_val=1000, min_val=1
+    ... ))
     <class 'tespy.tools.data_containers.ComponentProperties'>
     >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
     >>> type(GroupedComponentProperties(
@@ -84,9 +85,11 @@ class DataContainer:
     ... _val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03}, _is_set={'O2'}
     ... ))
     <class 'tespy.tools.data_containers.FluidComposition'>
-    >>> type(FluidProperties(val=5, _val_SI=500000, is_set=True, unit='bar'))
+    >>> type(FluidProperties(
+    ...     val=5, val_SI=500000, is_set=True, quantity="pressure"
+    ... ))
     <class 'tespy.tools.data_containers.FluidProperties'>
-    >>> type(SimpleDataContainer(_val=5, is_set=False))
+    >>> type(SimpleDataContainer(val=5, is_set=False))
     <class 'tespy.tools.data_containers.SimpleDataContainer'>
     """
 

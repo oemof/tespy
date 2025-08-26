@@ -174,14 +174,16 @@ class Generator(Component):
                 "dependents": self.eta_dependents,
                 "num_eq_sets": 1,
                 "max_val": 1,
-                "min_val": 0
+                "min_val": 0,
+                "quantity": "efficiency"
             }),
             "delta_power": dc_cp(**{
                 "structure_matrix": self.delta_power_structure_matrix,
                 "func": self.delta_power_func,
                 "dependents": self.delta_power_dependents,
                 "num_eq_sets": 1,
-                "min_val": 0
+                "min_val": 0,
+                "quantity": "power"
             }),
             "eta_char": dc_cc(**{
                 "func": self.eta_char_func,
@@ -204,12 +206,12 @@ class Generator(Component):
                 0=\dot E_\text{in} \cdot \eta - \dot E_\text{out}
         """
         return (
-            self.power_inl[0].E.val_SI * self.eta.val
+            self.power_inl[0].E.val_SI * self.eta.val_SI
             - self.power_outl[0].E.val_SI
         )
 
     def eta_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].E.sm_col] = self.eta.val
+        self._structure_matrix[k, self.power_inl[0].E.sm_col] = self.eta.val_SI
         self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
 
     def eta_dependents(self):
@@ -230,13 +232,13 @@ class Generator(Component):
         """
         return (
             self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-            - self.delta_power.val
+            - self.delta_power.val_SI
         )
 
     def delta_power_structure_matrix(self, k):
         self._structure_matrix[k, self.power_inl[0].E.sm_col] = 1
         self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
-        self._rhs[k] = self.delta_power.val
+        self._rhs[k] = self.delta_power.val_SI
 
     def delta_power_dependents(self):
         return [self.power_inl[0].E, self.power_outl[0].E]
@@ -267,7 +269,7 @@ class Generator(Component):
         return [self.power_inl[0].E, self.power_outl[0].E]
 
     def calc_parameters(self):
-        self.eta.val = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
-        self.delta_power.val = (
+        self.eta.val_SI = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
+        self.delta_power.val_SI = (
             self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
         )

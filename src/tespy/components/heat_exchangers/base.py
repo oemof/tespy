@@ -228,58 +228,69 @@ class HeatExchanger(Component):
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
-                dependents=self.energy_balance_hot_dependents
+                dependents=self.energy_balance_hot_dependents,
+                quantity="heat"
             ),
             'kA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.kA_func,
                 dependents=self.kA_dependents,
-                deriv=self.kA_deriv
+                deriv=self.kA_deriv,
+                quantity="heat_transfer_coefficient"
             ),
-            'td_log': dc_cp(min_val=0, is_result=True),
+            'td_log': dc_cp(
+                min_val=0, is_result=True, quantity="temperature_difference"
+            ),
             'ttd_u': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_u_func,
-                dependents=self.ttd_u_dependents
+                dependents=self.ttd_u_dependents,
+                quantity="temperature_difference"
             ),
             'ttd_l': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 func=self.ttd_l_func,
-                dependents=self.ttd_l_dependents
+                dependents=self.ttd_l_dependents,
+                quantity="temperature_difference"
             ),
             'ttd_min': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_min_func,
-                dependents=self.ttd_min_dependents
+                dependents=self.ttd_min_dependents,
+                quantity="temperature_difference"
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
-                func_params={'pr': 'pr1'}
+                func_params={'pr': 'pr1'},
+                quantity="ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}
+                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
+                quantity="ratio"
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.dp_func,
                 dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
-                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0}
+                func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
+                quantity="pressure"
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.dp_func,
                 dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
-                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1}
+                func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
+                quantity="pressure"
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
@@ -307,17 +318,20 @@ class HeatExchanger(Component):
             'eff_cold': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_cold_func,
-                dependents=self.eff_cold_dependents
+                dependents=self.eff_cold_dependents,
+                quantity="efficiency"
             ),
             'eff_hot': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_hot_func,
-                dependents=self.eff_hot_dependents
+                dependents=self.eff_hot_dependents,
+                quantity="efficiency"
             ),
             'eff_max': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_max_func,
-                dependents=self.eff_max_dependents
+                dependents=self.eff_max_dependents,
+                quantity="efficiency"
             )
         }
 

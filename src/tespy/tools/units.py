@@ -45,6 +45,8 @@ class Units:
 
     def set_ureg(self, ureg):
         self._ureg = ureg
+        self.ureg.define("m3 = m ** 3")
+        self.ureg.define("m2 = m ** 2")
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }

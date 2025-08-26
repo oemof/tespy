@@ -263,16 +263,18 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'U_twophase_gas': dc_cp(min_val=0),
             'U_twophase_twophase': dc_cp(min_val=0),
             'U_twophase_liquid': dc_cp(min_val=0),
-            'A': dc_cp(min_val=0),
+            'A': dc_cp(min_val=0, quantity="area"),
             'UA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
-                dependents=self.UA_dependents
+                dependents=self.UA_dependents,
+                quantity="heat_transfer_coefficient"
             ),
             'td_pinch': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
+                quantity="temperature_difference"
             )
         })
         return params
@@ -478,7 +480,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 0 = UA - \sum UA_\text{i}
         """
         sections = self.calc_sections()
-        return self.UA.val - self.calc_UA(sections)
+        return self.UA.val_SI - self.calc_UA(sections)
 
     def UA_dependents(self):
         return [
@@ -518,7 +520,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 0 = td_\text{pinch} - min(td_\text{sections})
         """
         sections = self.calc_sections()
-        return self.td_pinch.val - self.calc_td_pinch(sections)
+        return self.td_pinch.val_SI - self.calc_td_pinch(sections)
 
     def td_pinch_dependents(self):
         return [
@@ -536,8 +538,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         super().calc_parameters()
 
         sections = self.calc_sections()
-        self.UA.val = self.calc_UA(sections)
-        self.td_pinch.val = self.calc_td_pinch(sections)
+        self.UA.val_SI = self.calc_UA(sections)
+        self.td_pinch.val_SI = self.calc_td_pinch(sections)
 
         if round(self.inl[0].p.val_SI) != round(self.outl[0].p.val_SI):
             msg = (

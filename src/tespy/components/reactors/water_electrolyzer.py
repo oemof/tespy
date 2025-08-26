@@ -192,24 +192,27 @@ class WaterElectrolyzer(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(min_val=0),
+            'P': dc_cp(min_val=0, quantity="power"),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
-                dependents=self.heat_dependents
+                dependents=self.heat_dependents,
+                quantity="heat"
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func,
-                func_params={'pr': 'pr'}
+                func_params={'pr': 'pr'},
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
                 num_eq_sets=1,
-                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
             ),
             'zeta': dc_cp(
                 min_val=0,
@@ -221,7 +224,8 @@ class WaterElectrolyzer(Component):
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
-                dependents=self.eta_dependents
+                dependents=self.eta_dependents,
+                quantity="efficiency"
             ),
             'eta_char': dc_cc(
                 deriv=self.eta_char_deriv,
@@ -234,7 +238,8 @@ class WaterElectrolyzer(Component):
             'e': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
-                dependents=self.specific_energy_dependents
+                dependents=self.specific_energy_dependents,
+                quantity="specific_energy"
             )
         }
 
@@ -389,7 +394,7 @@ class WaterElectrolyzer(Component):
 
                 0 = P \cdot \eta - \dot{m}_{H_2,out,3} \cdot e_0
         """
-        return self.P.val * self.eta.val - self.outl[2].m.val_SI * self.e0
+        return self.P.val_SI * self.eta.val_SI - self.outl[2].m.val_SI * self.e0
 
     def eta_dependents(self):
         return [self.outl[2].m, self.P]
@@ -407,7 +412,7 @@ class WaterElectrolyzer(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{in,1}-h_{out,1}\right)
         """
-        return self.Q.val + self.inl[0].m.val_SI * (
+        return self.Q.val_SI + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
 
@@ -427,7 +432,7 @@ class WaterElectrolyzer(Component):
 
                 0 = P - \dot{m}_{H_2,out3} \cdot e
         """
-        return self.P.val - self.outl[2].m.val_SI * self.e.val
+        return self.P.val_SI - self.outl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.outl[2].m, self.P, self.e]
@@ -457,7 +462,7 @@ class WaterElectrolyzer(Component):
             - Reference temperature: 298.15 K.
             - Reference pressure: 1 bar.
         """
-        return self.P.val - self.calc_P()
+        return self.P.val_SI - self.calc_P()
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -538,7 +543,7 @@ class WaterElectrolyzer(Component):
             raise ValueError(msg)
 
         return (
-            self.P.val - self.outl[2].m.val_SI * self.e0 /
+            self.P.val_SI - self.outl[2].m.val_SI * self.e0 /
             (self.eta.design * self.eta_char.char_func.evaluate(expr))
         )
 
@@ -876,18 +881,14 @@ class WaterElectrolyzer(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = -self.inl[0].m.val_SI * (
+        self.Q.val_SI = -self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
-        self.e.val = self.P.val / self.outl[2].m.val_SI
-        self.eta.val = self.e0 / self.e.val
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
+        self.e.val_SI = self.P.val_SI / self.outl[2].m.val_SI
+        self.eta.val_SI = self.e0 / self.e.val_SI
 
     def exergy_balance(self, T0):
         self.E_P = (
@@ -895,8 +896,8 @@ class WaterElectrolyzer(Component):
             - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
             + self.inl[0].Ex_physical
         )
-        self.E_F = self.P.val
+        self.E_F = self.P.val_SI
 
         self.E_D = self.E_F - self.E_P
         self.epsilon = self._calc_epsilon()
-        self.E_bus = self.P.val
+        self.E_bus = self.P.val_SI

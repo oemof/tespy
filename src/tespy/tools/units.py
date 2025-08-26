@@ -8,6 +8,7 @@ class Units:
             "temperature": "kelvin",
             "temperature_difference": "delta_degC",
             "enthalpy": "J/kg",
+            "specific_energy": "J/kg",
             "entropy": "J/kg/K",
             "pressure": "Pa",
             "mass_flow": "kg/s",

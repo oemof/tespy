@@ -986,25 +986,30 @@ class Connection(ConnectionBase):
             "m_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "m"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="mass_flow"
             ),
             "p_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "p"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="pressure"
             ),
             "h_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "h"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="enthalpy"
             ),
             "T_ref": dc_ref(
                 func=self.T_ref_func, deriv=self.T_ref_deriv,
-                dependents=self.T_ref_dependents, num_eq=1
+                dependents=self.T_ref_dependents, num_eq=1,
+                quantity="temperature_difference"  # reference has delta T
             ),
             "v_ref": dc_ref(
                 func=self.v_ref_func, deriv=self.v_ref_deriv,
-                dependents=self.v_ref_dependents, num_eq=1
+                dependents=self.v_ref_dependents, num_eq=1,
+                quantity="volumetric_flow"
             ),
 
         }

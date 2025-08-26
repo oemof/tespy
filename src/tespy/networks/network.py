@@ -1691,13 +1691,19 @@ class Network:
                 c.good_starting_values = False
 
             for key in c.property_data:
-                # read unit specifications
-                prop = key.split("_ref")[0]
                 if "fluid" in key:
                     continue
 
-                if c.get_attr(key).is_set:
-                    c.get_attr(key).set_SI_from_val(self.units)
+                param = c.get_attr(key)
+                if param.is_set:
+                    if "ref" in key:
+                        unit = self.units.default[param.quantity]
+                        param.ref.delta_SI = self.units.ureg.Quantity(
+                            param.ref.delta,
+                            unit
+                        ).to_base_units().magnitude
+                    else:
+                        param.set_SI_from_val(self.units)
                 # elif key == "E":
                 #     c.get_attr(key).unit = "W"
                 # elif key == 'Td_bp':

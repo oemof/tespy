@@ -84,11 +84,17 @@ class TestConnections:
         )
         assert T_is == T_expected, msg
 
-        c2.set_attr(T=Ref(c1, 1.5, -75))
+        delta = -75
+        c2.set_attr(T=Ref(c1, 1.5, delta))
         self.nw.solve('design')
 
-        T_expected = round(convert_from_SI("T", c1.T.val_SI * 1.5, c1.T.unit) - 75, 4)
-        T_is = round(c2.T.val, 4)
+        delta_SI = self.nw.units.ureg.Quantity(
+            delta, self.nw.units.default["temperature_difference"]
+        ).to_base_units().magnitude
+        assert round(delta_SI, 4) == round(c2.T_ref.ref.delta_SI, 4)
+
+        T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
+        T_is = round(c2.T.val_SI, 4)
         msg = (
             'The temperature of the connection 2 should be equal to '
             f'{T_expected} C, but is {T_is} C'
@@ -113,11 +119,16 @@ class TestConnections:
         )
         assert m_is == m_expected, msg
 
-        c2.set_attr(m=Ref(c1, 2, -0.5))
+        delta = -0.5
+        c2.set_attr(m=Ref(c1, 2, delta))
         self.nw.solve('design')
+        delta_SI = self.nw.units.ureg.Quantity(
+            delta, self.nw.units.default["mass_flow"]
+        ).to_base_units().magnitude
+        assert round(delta_SI, 4) == round(c2.m_ref.ref.delta_SI, 4)
 
-        m_expected = round(convert_from_SI("m", c1.m.val_SI * 2, c1.m.unit) - 0.5, 4)
-        m_is = round(c2.m.val, 4)
+        m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)
+        m_is = round(c2.m.val_SI, 4)
         msg = (
             'The mass flow of the connection 2 should be equal to '
             f'{m_expected} kg/s, but is {m_is} kg/s'

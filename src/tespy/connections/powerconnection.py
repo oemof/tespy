@@ -160,15 +160,20 @@ class PowerConnection(ConnectionBase):
         self.E.set_val0_from_SI(units)
         return True
 
-    def _set_design_params(self, data):
+    def _set_design_params(self, data, units):
         for var in self._result_attributes():
-            self.get_attr(var).design = float(data[var])
+            self.get_attr(var).design = units.ureg.Quantity(
+                float(data[var]),
+                data[f"{var}_unit"]
+            ).to_base_units().magnitude
 
-    def _set_starting_values(self, data):
+    def _set_starting_values(self, data, units):
         for prop in self.get_variables():
             var = self.get_attr(prop)
-            var.val0 = float(data[prop])
-            var.unit = data[prop + '_unit']
+            var.val0 = units.ureg.Quantity(
+                float(data[prop]),
+                data[f"{prop}_unit"]
+            )
 
     @classmethod
     def _print_attributes(cls):

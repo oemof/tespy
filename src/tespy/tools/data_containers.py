@@ -607,7 +607,10 @@ class FluidProperties(DataContainer):
         ).to(self.val0.units)
 
     def get_val(self):
-        return self._val.magnitude
+        if not isinstance(self._val, pint.Quantity):
+            return self._val
+        else:
+            return self._val.magnitude
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
@@ -933,6 +936,7 @@ class ReferencedFluidProperties(DataContainer):
             "func_params": {},
             "_solved": False,
             "dependents": None,
+            "quantity": None
         }
 
     def _serialize(self):

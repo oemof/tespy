@@ -41,7 +41,7 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
-from tespy.tools.units import _UNITS
+from tespy.tools.units import Units
 
 # Only require cupy if Cuda shall be used
 try:
@@ -203,7 +203,7 @@ class Network:
         self.checked = False
         self.design_path = None
         self.iterinfo = True
-        self.units = _UNITS
+        self.units = Units()
 
         msg = 'Default unit specifications:\n'
         for prop, unit in self.units.default.items():
@@ -1704,33 +1704,6 @@ class Network:
                         ).to_base_units().magnitude
                     else:
                         param.set_SI_from_val(self.units)
-                # elif key == "E":
-                #     c.get_attr(key).unit = "W"
-                # elif key == 'Td_bp':
-                #     c.get_attr(key).unit = self.get_attr('T_unit')
-                # else:
-                #     c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
-                # # set SI value
-                # if c.get_attr(key).is_set:
-                #     # this could be externalized to either
-                #     # the connections class or actually the data containers
-                #     if "ref" in key:
-                #         if prop == 'T':
-                #             c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                #                 'Td_bp', c.get_attr(key).ref.delta,
-                #                 c.get_attr(prop).unit
-                #             )
-                #         else:
-                #             c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                #                 prop, c.get_attr(key).ref.delta,
-                #                 c.get_attr(prop).unit
-                #             )
-                #     elif key == "E":
-                #         c.E.val_SI = c.E.val
-                #     else:
-                #         c.get_attr(key).val_SI = hlp.convert_to_SI(
-                #             key, c.get_attr(key).val, c.get_attr(key).unit
-                #         )
         msg = (
             "Updated fluid property SI values and fluid mass fraction for user "
             "specified connection parameters."
@@ -1739,7 +1712,7 @@ class Network:
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
-                if isinstance(value, dc_prop):
+                if isinstance(value, dc_prop) and (value.is_set or value.is_var):
                     if np.isnan(value._val):
                         value.val = (value.min_val + value.max_val) / 2
                     value.set_SI_from_val(self.units)

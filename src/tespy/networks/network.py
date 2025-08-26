@@ -158,11 +158,11 @@ class Network:
     def _serialize(self):
         return {
             "m_unit": self.m_unit,
-            "m_range": list(self.m_range),
+            "m_range": list(self.m_range.magnitude),
             "p_unit": self.p_unit,
-            "p_range": list(self.p_range),
+            "p_range": list(self.p_range.magnitude),
             "h_unit": self.h_unit,
-            "h_range": list(self.h_range),
+            "h_range": list(self.h_range.magnitude),
             "T_unit": self.T_unit,
             "x_unit": self.x_unit,
             "v_unit": self.v_unit,
@@ -280,7 +280,7 @@ class Network:
         self.units = kwargs.get('units', self.units)
         unit_replace = {
             "C": "degC",
-            "J / kgK": "kJ / (kg * K)",
+            "J / kgK": "J / (kg * K)",
             "kJ / kgK": "kJ / (kg * K)",
             "MJ / kgK": "MJ / (kg * K)",
         }

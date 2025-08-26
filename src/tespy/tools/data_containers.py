@@ -482,7 +482,7 @@ class FluidProperties(DataContainer):
             "min_val": -1e12,
             "max_val": 1e12,
             "d": 1e-1,
-            "unit": None,
+            "_unit": None,
             "is_set": False,
             "_potential_var": False,
             "func": None,
@@ -500,7 +500,7 @@ class FluidProperties(DataContainer):
         }
 
     def _serialize(self):
-        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
 
     def get_num_eq(self):
@@ -567,13 +567,21 @@ class FluidProperties(DataContainer):
 
     def _assign_default_unit_to_val(self, units):
         ureg = units.ureg
-        default_unit = units.default[self.quantity]
+        default_unit = self._get_default_unit(units)
         self.val = ureg.Quantity(self._val, default_unit)
 
     def _assign_default_unit_to_val0(self, units):
         ureg = units.ureg
-        default_unit = units.default[self.quantity]
+        default_unit = self._get_default_unit(units)
         self.val0 = ureg.Quantity(self._val0, default_unit)
+
+    def _get_default_unit(self, units):
+        if self._unit is None:
+            return units.default[self.quantity]
+        else:
+            # compatibility with older version exports
+            self._unit = self._replace_unit_for_compatibility(self._unit)
+            return self._unit
 
     def set_SI_from_val(self, units):
 
@@ -623,15 +631,7 @@ class FluidProperties(DataContainer):
 
     def _handle_value_with_quantity(self, value):
         if isinstance(value, pint.Quantity):
-            # if not value._REGISTRY is UNITS.ureg:
-            #     msg = (
-            #         "The provided quantity uses a different unit registry "
-            #         "than tespy's UNITS.ureg. If you want tespy to make use "
-            #         "of your ureg, you have to specify it with the "
-            #         "'UNITS.set_ureg' methd."
-            #     )
-            #     raise ValueError(msg)
-            if self._check_unit_compatibilty(value.units):
+            if self._is_compatible(value.units):
                 return value
             else:
                 msg = (
@@ -640,9 +640,9 @@ class FluidProperties(DataContainer):
                 )
                 raise ValueError(msg)
         else:
-            return value#Q(value, UNITS.default[self.quantity])
+            return value
 
-    def _check_unit_compatibilty(self, unit):
+    def _is_compatible(self, unit):
         if self.quantity == "temperature_difference":
             unit_label = list(unit._units.keys())[0]
             if unit_label.startswith("delta_"):
@@ -656,9 +656,28 @@ class FluidProperties(DataContainer):
             return _UNITS._quantities[self.quantity].is_compatible_with(unit)
 
     def get_unit(self):
-        return str(self.val_with_unit.units)
+        if not isinstance(self._val, pint.Quantity):
+            # if a unit was never attached from the network
+            return _UNITS.default[self.quantity]
+        else:
+            return str(self.val_with_unit.units)
 
-    unit = property(get_unit)
+    def _replace_unit_for_compatibility(self, value):
+        if value == "C":
+            if self.quantity == "temperature":
+                value = "degC"
+            elif self.quantity == "temperature_difference":
+                value = "delta_degC"
+        elif "kgK" in value:
+            value = value.replace("kgK", "kg/K")
+        elif value == "-":
+            value = "1"
+        return value
+
+    def set_unit(self, value):
+        self._unit = self._replace_unit_for_compatibility(value)
+
+    unit = property(get_unit, set_unit)
     val = property(get_val, set_val)
     val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)
@@ -805,6 +824,9 @@ class FluidComposition(DataContainer):
     def get_is_set(self):
         return self._is_set
 
+    def set_is_set(self, value):
+        self._is_set = value
+
     def get_val(self):
         reference = self._reference_container
         if reference:
@@ -829,7 +851,7 @@ class FluidComposition(DataContainer):
             return self._val
 
     val = property(get_val, set_val)
-    is_set = property(get_is_set)
+    is_set = property(get_is_set, set_is_set)
     is_var = property(get_is_var)
     J_col = property(get_J_col)
 

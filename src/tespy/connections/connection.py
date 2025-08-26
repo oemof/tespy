@@ -1300,9 +1300,19 @@ class Connection(ConnectionBase):
 
     def _set_design_params(self, data, units):
         for var in self._result_attributes():
+            unit = data[f"{var}_unit"]
+            if unit == "C":
+                if var == "T":
+                    unit = "degC"
+                elif var == "Td_bp":
+                    unit = "delta_degC"
+            elif "kgK" in unit:
+                unit = unit.replace("kgK", "kg/K")
+            elif unit == "-":
+                unit = "1"
             self.get_attr(var).design = units.ureg.Quantity(
                 float(data[var]),
-                data[f"{var}_unit"]
+                unit
             ).to_base_units().magnitude
 
         for fluid in self.fluid.val:

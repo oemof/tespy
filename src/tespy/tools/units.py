@@ -39,6 +39,8 @@ class Units:
 
     def set_default_units(self, **kwargs):
         for key, value in kwargs.items():
+            if value == "-":
+                value = "1"
             if self._quantities[key].is_compatible_with(value):
                 self.default[key] = value
             else:

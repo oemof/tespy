@@ -206,7 +206,7 @@ class Network:
         self.units = _UNITS
 
         msg = 'Default unit specifications:\n'
-        for prop, unit in self.units._quantities.items():
+        for prop, unit in self.units.default.items():
             # standard unit set
             msg += f"{prop}: {unit}" + "\n"
 
@@ -228,7 +228,7 @@ class Network:
             )
             logger.debug(msg)
 
-            unit = self.units._quantities[name]
+            unit = self.units.default[name]
             key = f"{prop}_range"
             self.__dict__.update({
                 key: self.units.ureg.Quantity(
@@ -293,34 +293,35 @@ class Network:
                     fpd[prop]["text"].replace(" ", "_"):
                     unit_replace.get(kwargs[unit], kwargs[unit])
                 })
+            if prop in ["m", "p", "h", "s", "T", "x", "v"]:
+                setattr(self, unit, self.units.default[fpd[prop]["text"].replace(" ", "_")])
 
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"
             if key in kwargs:
                 if isinstance(kwargs[key], list):
-                    unit = self.units._quantities[fpd[prop]["text"].replace(" ", "_")]
+                    unit = self.units.default[fpd[prop]["text"].replace(" ", "_")]
                     self.__dict__.update({
                         key: self.units.ureg.Quantity(
                             np.array(kwargs[key]),
                             unit
                         )
                     })
+                    self.__dict__.update({
+                        f"{key}_SI": self.get_attr(key).to_base_units().magnitude
+                    })
                 else:
                     msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
                     logger.error(msg)
                     raise TypeError(msg)
 
-                limits = self.get_attr(f'{prop}_range_SI')
+                limits = self.get_attr(f'{key}_SI')
                 msg = (
                     f'Setting {fpd[prop]["text"]} limits\n'
                     f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
                     f'max: {limits[1]} {fpd[prop]["SI_unit"]}'
                 )
                 logger.debug(msg)
-
-            self.__dict__.update({
-                f"{key}_SI": self.get_attr(key).to_base_units().magnitude
-            })
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 

@@ -16,6 +16,7 @@ class Units:
             "power": "W",
             "heat": "W",
             "quality": "1",
+            "vapor_mass_fraction": "1",  # for backwards compatibility
             "efficiency": "1",
             "ratio": "1",
             "length": "m",

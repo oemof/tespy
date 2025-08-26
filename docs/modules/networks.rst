@@ -43,7 +43,7 @@ be at 10 bar, use it as upper boundary.
     >>> my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
     >>> my_plant.p_unit
     'bar'
-    >>> my_plant.p_range_SI
+    >>> [float(p) for p in my_plant.p_range_SI]
     [5000.0, 1000000.0]
 
 .. _printout_logging_label:

@@ -181,7 +181,7 @@ class Subsystem:
         for comp in comps:
             if comp.label in self.comps.keys():
                 msg = "Component name in subsystem is not unique"
-                raise ValueError(msg)
+                raise TESPyComponentError(msg)
 
             self.comps[comp.label] = comp
             self.comps[comp.label].label = f"{self.label}_{comp.label}"

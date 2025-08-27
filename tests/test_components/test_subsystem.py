@@ -1,7 +1,9 @@
-from tespy.components import Splitter, SimpleHeatExchanger
+from pytest import raises
+
+from tespy.components import SimpleHeatExchanger
+from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.connections import Connection
-from pytest import raises
 from tespy.tools.helpers import TESPyComponentError
 
 

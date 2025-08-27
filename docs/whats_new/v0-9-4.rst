@@ -14,6 +14,9 @@ Other Changes
 #############
 - A few broken internal links have been fixed in the documentation
   (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+- An error is raised, when a Subsystem calls its :code:`add_conns` method and
+  the label of the to be added connection is already existing inside the
+  Subsystem (`PR #745 <https://github.com/oemof/tespy/pull/745>`).
 
 Contributors
 ############

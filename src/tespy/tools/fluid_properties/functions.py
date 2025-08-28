@@ -34,6 +34,20 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
 
 
+def _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data):
+    pure_fluid = get_pure_fluid(fluid_data)
+    if pure_fluid["wrapper"].mixture_type is None:
+        # real pure fluid
+        if pure_fluid["wrapper"].phase_ph(p, h) == "tp":
+            if round(pure_fluid["wrapper"].T_ph(p, h), 6) == round(Tamb, 6):
+                h0 = h_mix_pT(pamb, Tamb, fluid_data)
+                s0 = s_mix_pT(pamb, Tamb, fluid_data)
+                ex_mech = (h - h0) - Tamb * (s - s0)
+                return 0.0, ex_mech
+
+    return None
+
+
 def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
     r"""
     Calculate specific physical exergy.
@@ -65,6 +79,11 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
+    if get_number_of_fluids(fluid_data) == 1:
+        ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
+        if ex is not None:
+            return ex[0], ex[1]
+
     h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
     s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
     ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)

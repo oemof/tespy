@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+import pint
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -175,11 +176,18 @@ class Component:
                         pass
                     continue
 
-                try:
-                    float(kwargs[key])
-                    is_numeric = True
-                except (TypeError, ValueError):
-                    is_numeric = False
+
+                is_numeric = False
+                is_quantity = False
+
+                if isinstance(kwargs[key], pint.Quantity):
+                    is_quantity = True
+                else:
+                    try:
+                        float(kwargs[key])
+                        is_numeric = True
+                    except (TypeError, ValueError):
+                        pass
 
                 # dict specification
                 if (isinstance(kwargs[key], dict) and
@@ -188,7 +196,7 @@ class Component:
 
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
-                    if is_numeric:
+                    if is_numeric or is_quantity:
                         data.set_attr(val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
                             data.set_attr(is_var=False)

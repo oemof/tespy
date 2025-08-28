@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import pint
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -109,7 +110,6 @@ class ConnectionBase:
 
     def _parameter_specification(self, key, value):
 
-        import pint
         is_numeric = False
         is_quantity = False
 
@@ -1225,7 +1225,6 @@ class Connection(ConnectionBase):
             return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         except NotImplementedError:
             return np.nan
-
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()

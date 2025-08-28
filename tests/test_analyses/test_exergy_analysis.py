@@ -87,7 +87,7 @@ class TestClausiusRankine:
 
         # connection parameters
         fs_in.set_attr(m=10, p=120, T=600, fluid={'water': 1})
-        cond.set_attr(T=self.Tamb + 0.00000001, x=0.0)
+        cond.set_attr(T=self.Tamb, x=0.0)
 
         # solve network
         self.nw.solve('design')

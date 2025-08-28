@@ -14,6 +14,10 @@ Other Changes
 #############
 - A few broken internal links have been fixed in the documentation
   (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+- For pure fluids in two-phase at the state of :code:`p=p` and :code:`T=T0`
+  the splitting of exergy was broken, because the enthalpy :code:`h(p=p, T=T0)`
+  cannot be calculated. Instead :code:`ex_therm` is assigned :code:`0.0` in
+  this case (`PR #738 <https://github.com/oemof/tespy/pull/738>`__).
 
 Contributors
 ############

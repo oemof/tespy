@@ -354,8 +354,9 @@ class ExergyAnalysis:
             Ambient temperature value for analysis, provide value in network's
             temperature unit.
         """
-        pamb_SI = hlp.convert_to_SI('p', pamb, self.nw.p_unit)
-        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
+        _Q = self.nw.units.ureg.Quantity
+        pamb_SI = _Q(pamb, self.nw.units.default["pressure"]).to_base_units().magnitude
+        Tamb_SI = _Q(Tamb, self.nw.units.default["temperature"]).to_base_units().magnitude
 
         # reset data
         dtypes = {

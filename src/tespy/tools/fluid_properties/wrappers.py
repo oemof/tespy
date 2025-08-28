@@ -291,6 +291,9 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return -1
 
     def phase_ph(self, p, h):
+        if self.back_end == "INCOMP":
+            return "state not recognized"
+
         self.AS.update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
 

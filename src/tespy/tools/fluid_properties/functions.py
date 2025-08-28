@@ -81,9 +81,8 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
     """
     if get_number_of_fluids(fluid_data) == 1:
         ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
-
-    if ex is not None:
-        return ex[0], ex[1]
+        if ex is not None:
+            return ex[0], ex[1]
 
     h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
     s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)

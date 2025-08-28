@@ -17,6 +17,10 @@ Other Changes
 - An error is raised, when a Subsystem calls its :code:`add_conns` method and
   the label of the to be added connection is already existing inside the
   Subsystem (`PR #745 <https://github.com/oemof/tespy/pull/745>`).
+- For pure fluids in two-phase at the state of :code:`p=p` and :code:`T=T0`
+  the splitting of exergy was broken, because the enthalpy :code:`h(p=p, T=T0)`
+  cannot be calculated. Instead :code:`ex_therm` is assigned :code:`0.0` in
+  this case (`PR #738 <https://github.com/oemof/tespy/pull/738>`__).
 
 Contributors
 ############

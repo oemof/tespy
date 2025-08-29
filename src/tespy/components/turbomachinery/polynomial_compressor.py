@@ -11,6 +11,8 @@ tespy/components/turbomachinery/polynomial_compressor.py
 
 SPDX-License-Identifier: MIT
 """
+import numpy as np
+
 from tespy.components.component import Component
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -18,7 +20,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.helpers import _get_dependents
+from tespy.tools.fluid_properties import T_sat_p
 
 
 # the polynomial compressor is a fundamentally different component, therefore
@@ -261,15 +263,17 @@ class PolynomialCompressor(Turbomachine):
             "Q_diss_rel": dc_cp(min_val=0, max_val=1),
             "rpm": dc_cp(min_val=0),
             "reference_state": dc_simple(),
+            "eta_s_poly": dc_simple(),
+            "eta_vol_poly": dc_simple(),
             "eta_vol_group": dc_gcp(
-                elements=["reference_state", "eta_vol", "rpm"],
+                elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1
             ),
             "eta_s": dc_cp(min_val=0, max_val=1),
             "eta_s_group": dc_gcp(
-                elements=["eta_s", "Q_diss_rel"],
+                elements=["eta_s_poly", "Q_diss_rel"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
                 num_eq_sets=1
@@ -322,6 +326,10 @@ class PolynomialCompressor(Turbomachine):
         """
         i = self.inl[0]
         o = self.outl[0]
+
+        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        eta_s = calc_EN12900(self.eta_s_poly.val, t_evap, t_cond)
         h_out_s = isentropic(
             i.p.val_SI,
             i.h.val_SI,
@@ -330,36 +338,12 @@ class PolynomialCompressor(Turbomachine):
             i.mixing_rule,
             T0=None
         )
+
         return (
-            self.eta_s.val
+            eta_s,
             * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
             - (h_out_s - i.h.val_SI)
         )
-
-    def eta_s_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives for isentropic efficiency.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        dependents = dependents["scalars"][0]
-        i = self.inl[0]
-        o = self.outl[0]
-        f = self.eta_s_group_func
-
-        if o.h.is_var and not i.h.is_var:
-            self._partial_derivative(o.h, k, self.eta_s.val / (1 - self.Q_diss_rel.val), increment_filter)
-            # remove o.h from the dependents
-            dependents = dependents.difference(_get_dependents([o.h])[0])
-
-        for dependent in dependents:
-            self._partial_derivative(dependent, k, f, increment_filter)
 
     def eta_s_group_dependents(self):
         return [
@@ -384,17 +368,23 @@ class PolynomialCompressor(Turbomachine):
         float
             residual value
         """
+        i = self.inl[0]
+        o = self.outl[0]
+
+        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        eta_vol = calc_EN12900(self.eta_vol_poly.val, t_evap, t_cond)
         displacement = (
             self.reference_state.val["displacement"] / 3600
             * self.rpm.val / self.reference_state.val["rpm_displacement"]
         )
+
         return (
-            self.inl[0].m.val_SI
-            - self.eta_vol.val * displacement / self.inl[0].calc_vol()
+            i.m.val_SI - eta_vol * displacement / i.calc_vol()
         )
 
     def eta_vol_group_dependents(self):
-        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.rpm]
+        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p, self.rpm]
 
     def calc_parameters(self):
         i = self.inl[0]
@@ -416,78 +406,76 @@ class PolynomialCompressor(Turbomachine):
                 (h_2 - i.h.val_SI)
             )
 
-    @staticmethod
-    def calc_etas_from_polynome(fluid: str, reference_state: dict, polynomes: dict) -> dict:
-        """Calculate the isentropic and polynomial efficiency for the reference
-        state according to the procedure in :cite:`cecchinato2010`.
 
-        Parameters
-        ----------
-        fluid : str
-            Name of the fluid
-        reference_state : dict
-            Dictionary with reference state information, i.e.
+def calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:
+    """Calculate the isentropic and polynomial efficiency for the reference
+    state according to the procedure in :cite:`cecchinato2010`.
 
-            - T_evap: evaporation temperature (°C)
-            - T_cond: condensation temperature (°C)
-            - T_sh: superheating delta T (Kelvin)
-            - T_sc: subcooling delta T (Kelvin)
-            - rpm_poly: reference rpm of the polynomial
-            - displancement: displacement in m3/h
-            - rpm_displacement: reference rpm of the displacement
+    Parameters
+    ----------
+    fluid : str
+        Name of the fluid
+    T_evap : float
+        Evaporation temperature in K
+    T_cond : float
+        Evaporation temperature in K
+    reference_state : dict
+        Dictionary with reference state information, i.e.
+        - T_sh: superheating delta T (Kelvin)
+        - T_sc: subcooling delta T (Kelvin)
+        - rpm_poly: reference rpm of the polynomial
+        - displancement: displacement in m3/h
+        - rpm_displacement: reference rpm of the displacement
+    polynomes : dict
+        Dictionary containing the power and the evaporator heat polynomial
 
-        polynomes : dict
-            Dictionary containing the power and the evaporator heat polynomial
+    Returns
+    -------
+    dict
+        Dictonary with keys "eta_s" and "eta_vol" for isentropic and
+        volumetric efficiency
+    """
+    # this method will have few calls, therefore high-level interface
+    # usage is fine
+    from CoolProp.CoolProp import PropsSI as PSI
 
-        Returns
-        -------
-        dict
-            Dictonary with keys "eta_s" and "eta_vol" for isentropic and
-            volumetric efficiency
-        """
-        # this method will have few calls, therefore high-level interface
-        # usage is fine
-        from CoolProp.CoolProp import PropsSI as PSI
+    P_comp = calc_EN12900(polynomes["power"], T_evap, T_cond) * 1000
+    Q_evap = calc_EN12900(polynomes["cooling"], T_evap, T_cond) * 1000
 
-        T_evap = reference_state["T_evap"]
-        T_cond = reference_state["T_cond"]
-        P_comp = calc_EN12900(polynomes["power"], T_evap, T_cond) * 1000
-        Q_evap = calc_EN12900(polynomes["cooling"], T_evap, T_cond) * 1000
+    p_evap = PSI("P", "T", T_evap, "Q", 1, fluid)
+    p_cond = PSI("P", "T", T_cond, "Q", 0, fluid)
+    T_sh = reference_state["T_sh"]
+    T_sc = reference_state["T_sc"]
 
-        p_evap = PSI("P", "T", T_evap, "Q", 1, fluid)
-        p_cond = PSI("P", "T", T_cond, "Q", 0, fluid)
-        T_sh = reference_state["T_sh"]
-        T_sc = reference_state["T_sc"]
+    if T_sh > 0:
+        h_evap_out = PSI("H", "P", p_evap, "T", T_evap + T_sh, fluid)
+    else:
+        h_evap_out = PSI("H", "P", p_evap, "Q", 1, fluid)
 
-        if T_sh > 0:
-            h_evap_out = PSI("H", "P", p_evap, "T", T_evap + T_sh, fluid)
-        else:
-            h_evap_out = PSI("H", "P", p_evap, "Q", 1, fluid)
+    if T_sc > 0:
+        h_cond_out = PSI("H", "P", p_cond, "T", T_cond - T_sc, fluid)
+    else:
+        h_cond_out = PSI("H", "P", p_cond, "Q", 0, fluid)
 
-        if T_sc > 0:
-            h_cond_out = PSI("H", "P", p_cond, "T", T_cond - T_sc, fluid)
-        else:
-            h_cond_out = PSI("H", "P", p_cond, "Q", 0, fluid)
+    s_comp_in = PSI("S", "P", p_evap, "H", h_evap_out, fluid)
+    h_comp_s = PSI("H", "P", p_cond, "S", s_comp_in, fluid)
 
-        s_comp_in = PSI("S", "P", p_evap, "H", h_evap_out, fluid)
-        h_comp_s = PSI("H", "P", p_cond, "S", s_comp_in, fluid)
+    dot_m = Q_evap / (h_evap_out - h_cond_out)
+    eta_s = dot_m * (h_comp_s - h_evap_out) / P_comp
 
-        dot_m = Q_evap / (h_evap_out - h_cond_out)
-        eta_s = dot_m * (h_comp_s - h_evap_out) / P_comp
+    rpm_poly = reference_state["rpm_poly"]
+    rpm_displacement = reference_state["rpm_displacement"]
+    displacement = (
+        (reference_state["displacement"] / 3600)
+        * (rpm_poly / rpm_displacement)
+    )
+    rho_comp_in = PSI("D", "P", p_evap, "H", h_evap_out, fluid)
+    eta_vol = dot_m / (rho_comp_in * displacement)
 
-        rpm_poly = reference_state["rpm_poly"]
-        rpm_displacement = reference_state["rpm_displacement"]
-        displacement = (
-            (reference_state["displacement"] / 3600)
-            * (rpm_poly / rpm_displacement)
-        )
-        rho_comp_in = PSI("D", "P", p_evap, "H", h_evap_out, fluid)
-        eta_vol = dot_m / (rho_comp_in * displacement)
-
-        return {
-            "eta_s": eta_s,
-            "eta_vol": eta_vol
-        }
+    return {
+        "eta_s": eta_s,
+        "eta_vol": eta_vol
+    }
 
 
 def calc_EN12900(c: list, t_evap: float, t_cond: float) -> float:
@@ -515,4 +503,143 @@ def calc_EN12900(c: list, t_evap: float, t_cond: float) -> float:
         + c[3] * t_evap**2 + c[4] * t_evap * t_cond + c[5] * t_cond ** 2
         + c[6] * t_evap**3 + c[7] * t_evap ** 2 * t_cond
         + c[8] * t_evap * t_cond ** 2 + c[9] * t_cond ** 3
+    )
+
+
+def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array, check_diff: bool=True) -> np.array:
+    """Fit the polynome coefficients of EN12900 polynome based on evaporation
+    and condensation temperature and respective measurements
+
+    Parameters
+    ----------
+    t_evap : np.array
+        1-d array of evaporation temperatures
+    t_cond : np.array
+        1-d array of condensation temperatures
+    data : np.array
+        datasheet information
+
+    Returns
+    -------
+    np.array
+        1-d array of polynome coefficients
+    """
+    z = data.flatten()
+    t_cond, t_evap = np.meshgrid(t_evap, t_cond)  # needs to be inverted here
+    x = t_cond.flatten()
+    y = t_evap.flatten()
+    A = np.column_stack([
+        np.ones_like(x),         # c0
+        x,                       # c1 * t_evap
+        y,                       # c2 * t_cond
+        x**2,                    # c3 * t_evap^2
+        x*y,                     # c4 * t_evap*t_cond
+        y**2,                    # c5 * t_cond^2
+        x**3,                    # c6 * t_evap^3
+        (x**2)*y,                # c7 * t_evap^2*t_cond
+        x*(y**2),                # c8 * t_evap*t_cond^2
+        y**3                     # c9 * t_cond^3
+    ])
+    c, _, _, _ = np.linalg.lstsq(A, z, rcond=None)
+    if check_diff:
+        def en12900_poly(c, t_evap, t_cond):
+            return (
+                c[0]
+                + c[1] * t_evap + c[2] * t_cond
+                + c[3] * t_evap**2 + c[4] * t_evap * t_cond + c[5] * t_cond ** 2
+                + c[6] * t_evap**3 + c[7] * t_evap ** 2 * t_cond
+                + c[8] * t_evap * t_cond ** 2 + c[9] * t_cond ** 3
+            )
+        np.testing.assert_array_almost_equal(
+            en12900_poly(c, x, y), z,
+            decimal=1
+        )
+    return c
+
+
+def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
+    """Generate polynomials for calculation of isentropic and volumetric
+    efficiency of a compressor
+
+    Parameters
+    ----------
+    power_poly : list
+        List of polynomial coefficients for power
+    cooling_poly : list
+        List of polynomial coefficients for cooling
+    fluid : str
+        Name of fluid
+    reference_state : dict
+        Dictionary with reference state information, i.e.
+        - T_sh: superheating delta T (Kelvin)
+        - T_sc: subcooling delta T (Kelvin)
+        - rpm_poly: reference rpm of the polynomial
+        - displancement: displacement in m3/h
+        - rpm_displacement: reference rpm of the displacement
+
+    Returns
+    -------
+    tuple
+        Polynomial coefficients for isentropic and volumetric efficiency as
+        function of evaporation and condensation temperature
+    """
+    columns = t_evap
+    index = t_cond
+
+    t_evap, t_cond = np.meshgrid(t_evap, t_cond)
+    t_evap = t_evap.flatten() + 273.15
+    t_cond = t_cond.flatten() + 273.15
+    etas = calc_etas_from_polynome(
+        fluid,
+        t_evap,
+        t_cond,
+        reference_state=reference_state,
+        polynomes={"power": power_poly, "cooling": cooling_poly}
+    )
+    eta_s_poly = fit_EN12900(columns, index, etas["eta_s"].reshape(3, 6))
+    eta_vol_poly = fit_EN12900(columns, index, etas["eta_vol"].reshape(3, 6))
+    return eta_s_poly, eta_vol_poly
+
+
+def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_state: dict) -> tuple:
+    """Generate polynomials for calculation of isentropic and volumetric
+    efficiency of a compressor
+
+    Parameters
+    ----------
+    df_power : pd.DataFrame
+        Power consumption data
+    df_cooling : pd.DataFrame
+        Cooling data
+    fluid : str
+        Name of fluid
+    reference_state : dict
+        Dictionary with reference state information, i.e.
+        - T_sh: superheating delta T (Kelvin)
+        - T_sc: subcooling delta T (Kelvin)
+        - rpm_poly: reference rpm of the polynomial
+        - displancement: displacement in m3/h
+        - rpm_displacement: reference rpm of the displacement
+
+    Returns
+    -------
+    tuple
+        Polynomial coefficients for isentropic and volumetric efficiency as
+        function of evaporation and condensation temperature
+    """
+    same_columns = (df_cooling.columns == df_power.columns).all()
+    same_index = (df_cooling.index == df_power.index).all()
+    if not same_columns or not same_index:
+        msg = (
+            "The dataframes provided to this method must have identical "
+            "columns (evaporation temperature) and indices (condensation "
+            "temperature)."
+        )
+        raise ValueError(msg)
+
+    power_poly = fit_EN12900(df_power.columns, df_power.index, df_power.values)
+    cooling_poly = fit_EN12900(df_cooling.columns, df_cooling.index, df_cooling.values)
+
+    return generate_eta_polys_from_power_and_cooling_polys(
+        power_poly, cooling_poly, df_power.columns, df_power.index, fluid, reference_state
     )

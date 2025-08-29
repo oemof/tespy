@@ -193,11 +193,11 @@ class Component:
                         if isinstance(data, dc_cp):
                             data.set_attr(_is_var=False)
 
-                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, _is_var=True)
-
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
+
+                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
+                        data.set_attr(is_set=True, _is_var=True)
 
                     # invalid datatype for keyword
                     else:

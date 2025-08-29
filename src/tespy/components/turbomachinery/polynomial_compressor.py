@@ -340,8 +340,7 @@ class PolynomialCompressor(Turbomachine):
         )
 
         return (
-            eta_s,
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
+            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
             - (h_out_s - i.h.val_SI)
         )
 

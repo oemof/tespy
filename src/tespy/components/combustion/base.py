@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
@@ -258,7 +259,7 @@ class CombustionChamber(Component):
 
         for fluid in ["O2", "CO2", "H2O", "N2"]:
             if not fluidalias_in_list(fluid, all_fluids):
-                aliases = ", ".join(CP.get_aliases(fluid))
+                aliases = ", ".join(FLUID_ALIASES.get_fluid(fluid))
                 msg = (
                     f"The component {self.label} (class "
                     f"{self.__class__.__name__}) requires that the fluid "
@@ -321,9 +322,7 @@ class CombustionChamber(Component):
         # water (gaseous)
         hf[self.h2o] = -241.826
 
-        key = set(list(hf.keys())).intersection(
-            set([a.replace(' ', '') for a in CP.get_aliases(f)])
-        )
+        key = set(list(hf.keys())).intersection(FLUID_ALIASES.get_fluid(f))
 
         val = (
             -(

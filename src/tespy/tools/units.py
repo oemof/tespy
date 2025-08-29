@@ -29,7 +29,7 @@ class Units:
             None: "1"
         }
         # cannot use the setter here because we have to define m3 first!
-        self._ureg = pint.UnitRegistry()
+        self._ureg = pint.UnitRegistry(cache_folder=":auto:")
         # m3 is not in standard ureg
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")

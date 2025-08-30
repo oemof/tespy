@@ -17,6 +17,7 @@ import json
 import math
 import os
 from time import time
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -157,16 +158,10 @@ class Network:
 
     def _serialize(self):
         return {
-            "m_unit": self.m_unit,
             "m_range": list(self.m_range.magnitude),
-            "p_unit": self.p_unit,
             "p_range": list(self.p_range.magnitude),
-            "h_unit": self.h_unit,
             "h_range": list(self.h_range.magnitude),
-            "T_unit": self.T_unit,
-            "x_unit": self.x_unit,
-            "v_unit": self.v_unit,
-            "s_unit": self.s_unit,
+            "units": self.units._serialize()
         }
 
     def set_defaults(self):
@@ -285,16 +280,27 @@ class Network:
             "MJ / kgK": "MJ / (kg * K)",
         }
         # unit sets
+        msg = None
         for prop in fpd.keys():
             unit = f'{prop}_unit'
             if unit in kwargs:
+                if msg is None:
+                    msg = (
+                        "The API for specification of units in a Network "
+                        "changed. The old variant will be removed in the next "
+                        "major release. Please use the "
+                        "'Network.units.set_defaults' method instead."
+                    )
                 # for backwards compatibility: Update in the default units
-                self.units.set_default_units(**{
+                self.units.set_defaults(**{
                     fpd[prop]["text"].replace(" ", "_"):
                     unit_replace.get(kwargs[unit], kwargs[unit])
                 })
             if prop in ["m", "p", "h", "s", "T", "x", "v"]:
                 setattr(self, unit, self.units.default[fpd[prop]["text"].replace(" ", "_")])
+
+        if msg:
+            warnings.warn(msg, FutureWarning)
 
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"
@@ -3442,6 +3448,9 @@ class Network:
         logger.info(msg)
 
         # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
         nw = cls(**network_data["Network"])
 
         conns = {}

@@ -16,7 +16,7 @@ API Changes
       ... )
       >>> from tespy.connections import Connection, PowerConnection
       >>> nw = Network(iterinfo=False)
-      >>> nw.units.set_default_units(**{
+      >>> nw.units.set_defaults(**{
       ...     "pressure": "bar",
       ...     "temperature": "degC",
       ...     "temperature_difference": "delta_degC",

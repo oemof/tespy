@@ -3,6 +3,12 @@ import pint
 
 class Units:
 
+    @classmethod
+    def from_json(cls, default_units):
+        instance = cls()
+        instance.set_defaults(**default_units)
+        return instance
+
     def __init__(self):
         self.default = {
             "temperature": "kelvin",
@@ -37,7 +43,7 @@ class Units:
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
 
-    def set_default_units(self, **kwargs):
+    def set_defaults(self, **kwargs):
         for key, value in kwargs.items():
             if value == "-":
                 value = "1"
@@ -57,6 +63,9 @@ class Units:
 
     def get_ureg(self):
         return self._ureg
+
+    def _serialize(self):
+        return {k: v for k, v in self.default.items() if k is not None}
 
     ureg = property(get_ureg, set_ureg)
 

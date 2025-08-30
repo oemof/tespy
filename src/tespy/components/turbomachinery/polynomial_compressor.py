@@ -28,7 +28,7 @@ from tespy.tools.fluid_properties import isentropic
 class PolynomialCompressor(Turbomachine):
     r"""
     Class for a compressor model following the EN12900 implementation of
-    cite:`cecchinato2010`.
+    :cite:`cecchinato2010`.
 
     See the example for the intended use of the component.
 

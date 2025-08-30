@@ -75,7 +75,10 @@ class CycleCloser(Component):
     >>> from tespy.components import CycleCloser, Pipe, Pump
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')

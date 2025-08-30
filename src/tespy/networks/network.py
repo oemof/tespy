@@ -57,48 +57,22 @@ class Network:
 
     Parameters
     ----------
-    h_range : list
-        aist with minimum and maximum values for enthalpy value range.
-
-    h_unit : str
-        Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
     iterinfo : boolean
         Print convergence progress to console.
+
+    h_range : list
+        List with minimum and maximum values for enthalpy value range.
 
     m_range : list
         List with minimum and maximum values for mass flow value range.
 
-    m_unit : str
-        Specify the unit for mass flow: 'kg / s', 't / h'.
-
     p_range : list
         List with minimum and maximum values for pressure value range.
 
-    p_unit : str
-        Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-    s_unit : str
-        Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
-        'MJ / kgK'.
-
-    T_unit : str
-        Specify the unit for temperature: 'K', 'C', 'F', 'R'.
-
-    v_unit : str
-        Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
-        'l / h'.
-
-    vol_unit : str
-        Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
-
-    x_unit : str
-        Specify the unit for steam mass fraction: '-', '%'.
-
     Note
     ----
-    Unit specification is optional: If not specified the SI unit (first
-    element in above lists) will be applied!
+    Units are specified via the :code:`Network.units.set_defaults` interface.
+    The specification is optional and will use SI units by default.
 
     Range specification is optional, too. The value range is used to stabilize
     the newton algorithm. For more information see the "getting started"
@@ -106,16 +80,18 @@ class Network:
 
     Example
     -------
-    Basic example for a setting up a tespy.networks.network.Network object.
-    Specifying the fluids is mandatory! Unit systems, fluid property range and
-    iterinfo are optional.
+    Basic example for a setting up a :code:`tespy.networks.network.Network`
+    object.
 
     Standard value for iterinfo is :code:`True`. This will print out
     convergence progress to the console. You can stop the printouts by setting
     this property to :code:`False`.
 
     >>> from tespy.networks import Network
-    >>> mynetwork = Network(p_unit='bar', T_unit='C')
+    >>> mynetwork = Network()
+    >>> mynetwork.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
@@ -135,7 +111,10 @@ class Network:
     >>> from tespy.networks import Network
     >>> from tespy.components import Source, Sink, Pipe, PowerSink
     >>> from tespy.connections import Connection, PowerConnection
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> nw = Network()
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False, power_connector_location="outlet")
@@ -237,40 +216,17 @@ class Network:
 
         Parameters
         ----------
-        h_range : list
-            List with minimum and maximum values for enthalpy value range.
-
-        h_unit : str
-            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
         iterinfo : boolean
             Print convergence progress to console.
+
+        h_range : list
+            List with minimum and maximum values for enthalpy value range.
 
         m_range : list
             List with minimum and maximum values for mass flow value range.
 
-        m_unit : str
-            Specify the unit for mass flow: 'kg / s', 't / h'.
-
         p_range : list
             List with minimum and maximum values for pressure value range.
-
-        p_unit : str
-            Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-        s_unit : str
-            Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
-            'MJ / kgK'.
-
-        T_unit : str
-            Specify the unit for temperature: 'K', 'C', 'F', 'R'.
-
-        v_unit : str
-            Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
-            'l / h'.
-
-        vol_unit : str
-            Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
         """
         self.units = kwargs.get('units', self.units)
         unit_replace = {
@@ -3311,7 +3267,10 @@ class Network:
         >>> from tespy.connections import Connection, Ref, PowerConnection
         >>> from tespy.networks import Network
         >>> import os
-        >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+        >>> nw = Network(iterinfo=False)
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
         >>> compressor = Compressor('compressor')

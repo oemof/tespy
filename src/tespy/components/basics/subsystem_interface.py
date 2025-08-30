@@ -93,8 +93,10 @@ class SubsystemInterface(Component):
     >>> from tespy.components import Sink, Source, SubsystemInterface
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> so2 = Source('source 2')

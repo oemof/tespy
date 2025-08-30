@@ -132,8 +132,10 @@ class Compressor(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
-    ... iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> comp = Compressor('compressor')

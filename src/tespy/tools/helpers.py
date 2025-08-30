@@ -196,8 +196,9 @@ class UserDefinedEquation:
         >>> from tespy.tools import UserDefinedEquation
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
-        >>> nw = Network(p_unit='bar', T_unit='C')
+        >>> nw = Network()
         >>> nw.set_attr(iterinfo=False)
+        >>> nw.units.set_defaults(**{"pressure": "bar", "temperature": "degC"})
         >>> so = Source('source')
         >>> si = Sink('sink')
         >>> pipeline = Pipe('pipeline')

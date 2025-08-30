@@ -139,7 +139,10 @@ class WaterElectrolyzer(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ... })
     >>> fw = Source('feed water')
     >>> oxy = Sink('oxygen sink')
     >>> hydro = Sink('hydrogen sink')

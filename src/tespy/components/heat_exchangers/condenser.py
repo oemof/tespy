@@ -186,8 +186,10 @@ class Condenser(HeatExchanger):
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> import os
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
-    ... m_range=[0.01, 1000], iterinfo=False)
+    >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')
     >>> waste_steam = Source('waste steam')

@@ -182,7 +182,10 @@ class Pipe(SimpleHeatExchanger):
     >>> from tespy.networks import Network
     >>> import os
     >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source 1')
     >>> si = Sink('sink 1')
     >>> pi = Pipe('pipeline')

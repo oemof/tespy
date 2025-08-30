@@ -179,8 +179,10 @@ class ExergyAnalysis:
         >>> Tamb = 20
         >>> pamb = 1
         >>> nw = Network()
-        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
-        ... iterinfo=False)
+        >>> nw.set_attr(iterinfo=False)
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ... })
 
         In order to show all functionalities available we use a feed water pump
         that is not driven electrically by a motor but instead internally by

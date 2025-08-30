@@ -124,8 +124,10 @@ class Pump(Turbomachine):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
-    ... iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')

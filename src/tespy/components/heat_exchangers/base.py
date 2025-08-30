@@ -181,7 +181,10 @@ class HeatExchanger(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> exhaust_hot = Source('Exhaust air outlet')
     >>> exhaust_cold = Sink('Exhaust air inlet')
     >>> cw_cold = Source('cooling water inlet')

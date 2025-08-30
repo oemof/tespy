@@ -157,7 +157,10 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.networks import Network
     >>> import os
     >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')

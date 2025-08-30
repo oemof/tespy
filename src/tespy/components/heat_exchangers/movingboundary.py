@@ -175,7 +175,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import numpy as np
-    >>> nw = Network(T_unit="C", p_unit="bar")
+    >>> nw = Network()
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> nw.set_attr(iterinfo=False)
     >>> so1 = Source("vapor source")
     >>> so2 = Source("air source")

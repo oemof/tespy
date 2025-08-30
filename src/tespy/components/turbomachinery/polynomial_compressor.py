@@ -137,7 +137,10 @@ class PolynomialCompressor(Turbomachine):
     >>> from tespy.networks import Network
     >>> import pandas as pd
     >>> from CoolProp.CoolProp import PropsSI
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
     >>> compressor = PolynomialCompressor("compressor")

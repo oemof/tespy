@@ -122,7 +122,10 @@ class FuelCell(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ... })
     >>> fc = FuelCell('fuel cell')
     >>> oxygen_source = Source('oxygen_source')
     >>> hydrogen_source = Source('hydrogen_source')

@@ -127,7 +127,10 @@ class SteamTurbine(Turbine):
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> st = SteamTurbine('steam turbine')

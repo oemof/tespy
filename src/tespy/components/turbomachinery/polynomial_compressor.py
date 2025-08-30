@@ -265,25 +265,37 @@ class PolynomialCompressor(Turbomachine):
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
             "eta_vol_poly": dc_simple(),
-            "eta_vol_group": dc_gcp(
+            "eta_vol_poly_group": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "rpm"],
+                func=self.eta_vol_poly_group_func,
+                dependents=self.eta_vol_poly_group_dependents,
+                num_eq_sets=1
+            ),
+            "eta_vol_group": dc_gcp(
+                elements=["reference_state", "eta_vol", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1
             ),
             "eta_s": dc_cp(min_val=0, max_val=1),
-            "eta_s_group": dc_gcp(
+            "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "Q_diss_rel"],
+                func=self.eta_s_poly_group_func,
+                dependents=self.eta_s_group_dependents,
+                num_eq_sets=1
+            ),
+            "eta_s_group": dc_gcp(
+                elements=["eta_s", "Q_diss_rel"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
                 num_eq_sets=1
             ),
-            # "energy_balance_group": dc_gcp(
-            #     elements=["P", "Q_diss_rel"],
-            #     func=self.energy_balance_group_func,
-            #     dependents=self.energy_balance_group_dependents,
-            #     num_eq_sets=1
-            # )
+            "energy_balance_group": dc_gcp(
+                elements=["P", "Q_diss_rel"],
+                func=self.energy_balance_group_func,
+                dependents=self.energy_balance_group_dependents,
+                num_eq_sets=1
+            )
         }
 
     # this is a bit different that in other cases, because the power cannot
@@ -301,21 +313,86 @@ class PolynomialCompressor(Turbomachine):
             self.power_inl[0].E, self.inl[0].m, self.inl[0].h, self.outl[0].h
         ]
 
-    def eta_s_group_func(self):
-        r"""Isentropic efficiency function featuning in a heat loss
+    def energy_balance_group_func(self):
+        r"""Equation for specified power and relative heat dissipation
 
         .. math::
 
-            0 = \eta_\text{s} \cdot
+            \dot m \cdot
+            \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
+            - P
+
+        Returns
+        -------
+        float
+            residual
+        """
+        return (
+            self.inl[0].m.val_SI
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            / (1 - self.Q_diss_rel.val)
+            - self.P.val
+        )
+
+    def energy_balance_group_dependents(self):
+        return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
+
+    def eta_s_group_func(self):
+        r"""Isentropic efficiency function with a heat loss term
+
+        .. math::
+
+            0 = \eta_\text{s} \left(T_\text{evap}, T_\text{cond}\right)\cdot
             \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
             - \left( h_\text{out,s} - h_\text{in} \right)
 
         .. note::
 
-            For this, the actual enthalpy increase is further incresead by the
+            For this, the actual enthalpy increase is further increased by the
             relative heat loss to calculate the (virtual) compression outlet
             enthalpy. The compressor is first considered isentropic, then the
-            relative heat loss (relative to compression power) is substracted
+            relative heat loss (relative to compression power) is subtracted
+            from the outlet enthalpy afterwards.
+
+        Returns
+        -------
+        float
+            residual value
+
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+
+        h_out_s = isentropic(
+            i.p.val_SI,
+            i.h.val_SI,
+            o.p.val_SI,
+            i.fluid_data,
+            i.mixing_rule,
+            T0=None
+        )
+
+        return (
+            self.eta_s.val
+            * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
+            - (h_out_s - i.h.val_SI)
+        )
+
+    def eta_s_poly_group_func(self):
+        r"""Isentropic efficiency function with a heat loss term
+
+        .. math::
+
+            0 = \eta_\text{s} \left(T_\text{evap}, T_\text{cond}\right)\cdot
+            \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
+            - \left( h_\text{out,s} - h_\text{in} \right)
+
+        .. note::
+
+            For this, the actual enthalpy increase is further increased by the
+            relative heat loss to calculate the (virtual) compression outlet
+            enthalpy. The compressor is first considered isentropic, then the
+            relative heat loss (relative to compression power) is subtracted
             from the outlet enthalpy afterwards.
 
         Returns
@@ -346,7 +423,6 @@ class PolynomialCompressor(Turbomachine):
 
     def eta_s_group_dependents(self):
         return [
-            self.inl[0].m,
             self.inl[0].p,
             self.inl[0].h,
             self.outl[0].p,
@@ -360,6 +436,40 @@ class PolynomialCompressor(Turbomachine):
 
             0 = \dot m_\text{in} -
             \eta_\text{vol} \cdot \frac{\dot V_\text{ref}}{3600} \cdot
+            \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
+
+        Returns
+        -------
+        float
+            residual value
+        """
+        i = self.inl[0]
+
+        displacement = (
+            self.reference_state.val["displacement"] / 3600
+            * self.rpm.val / self.reference_state.val["rpm_displacement"]
+        )
+
+        return (
+            i.m.val_SI - self.eta_val.val * displacement / i.calc_vol()
+        )
+
+    def eta_vol_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.rpm
+        ]
+
+    def eta_vol_poly_group_func(self):
+        r"""Volumetric efficiency function.
+
+        .. math::
+
+            0 = \dot m_\text{in} -
+            \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
+            \frac{\dot V_\text{ref}}{3600} \cdot
             \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
 
         Returns
@@ -382,8 +492,14 @@ class PolynomialCompressor(Turbomachine):
             i.m.val_SI - eta_vol * displacement / i.calc_vol()
         )
 
-    def eta_vol_group_dependents(self):
-        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p, self.rpm]
+    def eta_vol_poly_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.rpm
+        ]
 
     def calc_parameters(self):
         i = self.inl[0]
@@ -437,7 +553,7 @@ def calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_
     Returns
     -------
     dict
-        Dictonary with keys "eta_s" and "eta_vol" for isentropic and
+        Dictionary with keys "eta_s" and "eta_vol" for isentropic and
         volumetric efficiency
     """
     # this method will have few calls, therefore high-level interface

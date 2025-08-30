@@ -380,7 +380,7 @@ class PolynomialCompressor(Turbomachine):
 
         .. math::
 
-            \dot m \cdot
+            0 = \dot m \cdot
             \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
             - P
 

@@ -9,20 +9,20 @@ tests/test_components/test_turbomachinery.py
 
 SPDX-License-Identifier: MIT
 """
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
 from CoolProp.CoolProp import PropsSI as PSI
 
 from tespy.components import PolynomialCompressor
-from tespy.components.turbomachinery.polynomial_compressor import fit_EN12900
-from tespy.components.turbomachinery.polynomial_compressor import calc_EN12900
-from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_data
-from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Connection, PowerConnection
+from tespy.components.turbomachinery.polynomial_compressor import calc_EN12900
+from tespy.components.turbomachinery.polynomial_compressor import fit_EN12900
+from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_data
+from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
+from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 
 
@@ -187,6 +187,6 @@ class TestPolynomialCompressor:
         )
 
         assert (
-            abs((instance.P.val- power_data.loc[50, 0.0]) / power_data.loc[50, 0.0])
-            <= 1e-2
+            abs((instance.P.val- power_data.loc[50, 0.0]))
+            / power_data.loc[50, 0.0] <= 1e-2
         )

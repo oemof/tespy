@@ -318,10 +318,10 @@ class PolynomialCompressor(Turbomachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0),
+            "Q_diss": dc_cp(max_val=0, val=0),
             "P": dc_cp(min_val=0),
             "eta_vol": dc_cp(min_val=0, max_val=1),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1),
+            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0),
             "rpm": dc_cp(min_val=0),
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
@@ -513,7 +513,7 @@ class PolynomialCompressor(Turbomachine):
         )
 
         return (
-            i.m.val_SI - self.eta_val.val * displacement / i.calc_vol()
+            i.m.val_SI - self.eta_vol.val * displacement / i.calc_vol()
         )
 
     def eta_vol_group_dependents(self):

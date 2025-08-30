@@ -181,7 +181,6 @@ class Pipe(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network()
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"

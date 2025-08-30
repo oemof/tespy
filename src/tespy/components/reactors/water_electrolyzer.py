@@ -116,7 +116,7 @@ class WaterElectrolyzer(Component):
 
     dp : float, dict
         Inlet to outlet pressure difference of cooling loop,
-        :math:`dp/\text{p_unit}}` Is specified in the Network's pressure unit
+        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
 
     zeta : float, dict
         Geometry independent friction coefficient for cooling loop pressure

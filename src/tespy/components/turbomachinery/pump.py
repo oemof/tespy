@@ -49,6 +49,10 @@ class Pump(Turbomachine):
     - in1
     - out1
 
+    Optional inlets
+
+    - power
+
     Image
 
     .. image:: /api/_images/Pump.svg
@@ -97,7 +101,7 @@ class Pump(Turbomachine):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict

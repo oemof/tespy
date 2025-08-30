@@ -19,8 +19,8 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import T_sat_p
+from tespy.tools.fluid_properties import isentropic
 
 
 # the polynomial compressor is a fundamentally different component, therefore

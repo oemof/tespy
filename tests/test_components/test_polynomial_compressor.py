@@ -15,6 +15,7 @@ import pytest
 from CoolProp.CoolProp import PropsSI as PSI
 
 from tespy.components import PolynomialCompressor
+from tespy.components import PowerSource
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components.turbomachinery.polynomial_compressor import calc_EN12900
@@ -157,6 +158,51 @@ class TestPolynomialCompressor:
             * instance.eta_vol.val,
             2
         )
+
+    def test_power(self):
+        instance = PolynomialCompressor('compressor')
+        self.setup_network(instance)
+
+        # compress NH3, other fluids in network are for turbine, pump, ...
+        fl = {'R134a': 1}
+        self.c1.set_attr(fluid=fl, x=0, T=0)
+        p = PSI("P", "Q", 1, "T", 50 + 273.15, "R134a") / 1e5
+        self.c2.set_attr(p=p)
+        instance.set_attr(P=1e6, Q_diss_rel=0.1, eta_s=0.8)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert (
+            round(instance.P.val, 3)
+            ==
+            round(
+                (self.c2.h.val_SI - self.c1.h.val_SI)
+                / (1 - instance.Q_diss_rel.val) * self.c1.m.val_SI,
+                3
+            )
+        )
+
+    def test_with_powerconnection(self):
+        instance = PolynomialCompressor('compressor')
+        self.setup_network(instance)
+
+        # compress NH3, other fluids in network are for turbine, pump, ...
+        fl = {'R134a': 1}
+        self.c1.set_attr(fluid=fl, x=0, T=0)
+        p = PSI("P", "Q", 1, "T", 50 + 273.15, "R134a") / 1e5
+        self.c2.set_attr(p=p)
+        instance.set_attr(Q_diss_rel=0.1, eta_s=0.8)
+
+        grid = PowerSource("grid")
+        e = PowerConnection(grid, "power", instance, "power", label="e")
+        e.set_attr(E=1e6)
+
+        self.nw.add_conns(e)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert round(e.E.val, 3) == round(instance.P.val, 3)
 
     def test_eta_poly(self, power_data, cooling_data, reference_state):
         """Test component properties of compressors."""

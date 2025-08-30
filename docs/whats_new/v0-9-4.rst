@@ -140,6 +140,13 @@ New Features
   as well as all component parameters. For an example on how to work with the
   new units, please check :ref:`this section <TODOADDSECTIONLABEL>`
   (`PR #743 <https://github.com/oemof/tespy/pull/743>`__).
+- A new component :code:`PolynomialCompressor` is available. The component
+  uses `EN 12900` type polynomial coefficients to calculate isentropic and
+  volumetric efficiencies, and can take dissipative heat loss into
+  consideration. Displacement in offdesign conditions can be calculated based
+  on variable rpm of the compressor. For an extensive example please check the
+  docstrings of this component
+  (`PR #741 <https://github.com/oemof/tespy/pull/741>`__).
 
 Other Changes
 #############

@@ -8,6 +8,7 @@ available from its original location tespy/tools/global_vars.py
 
 SPDX-License-Identifier: MIT
 """
+import CoolProp as CP
 
 ERR = 1e-6
 molar_masses = {}
@@ -83,6 +84,25 @@ fluid_property_data = {
     }
 
 }
+
+
+class FluidAliases:
+
+    def __init__(self):
+        self.fluids = {}
+
+    def get_fluid(self, fluid):
+        if fluid not in self.fluids:
+            self.fluids[fluid] = set(
+                alias.replace(' ', '')
+                for alias in CP.CoolProp.get_aliases(fluid)
+            )
+
+        return self.fluids[fluid]
+
+
+FLUID_ALIASES = FluidAliases()
+
 
 combustion_gases = [
     'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane',

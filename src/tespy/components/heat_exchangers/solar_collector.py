@@ -147,8 +147,10 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> sc = SolarCollector('solar collector')
@@ -186,12 +188,13 @@ class SolarCollector(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
-            'eta_opt': dc_cp(min_val=0, max_val=1),
+            'E': dc_cp(min_val=0, quantity="heat"),
+            'A': dc_cp(min_val=0, quantity="area"),
+            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
             'lkf_lin': dc_cp(min_val=0),
             'lkf_quad': dc_cp(min_val=0),
-            'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, _val=0),
+            'Tamb': dc_cp(quantity="temperature"),
+            'Q_loss': dc_cp(max_val=0, _val=0, quantity="temperature"),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq_sets=1,
@@ -229,10 +232,10 @@ class SolarCollector(SimpleHeatExchanger):
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            - self.A.val * (
-                self.E.val * self.eta_opt.val
-                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val
-                - self.lkf_quad.val * (T_m - self.Tamb.val_SI) ** 2
+            - self.A.val_SI * (
+                self.E.val_SI * self.eta_opt.val_SI
+                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val_SI
+                - self.lkf_quad.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
 
@@ -250,14 +253,13 @@ class SolarCollector(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(i, o)
 
         if self.energy_group.is_set:
-            self.Q_loss.val = -(self.E.val * self.A.val - self.Q.val)
+            self.Q_loss.val_SI = -(self.E.val_SI * self.A.val_SI - self.Q.val_SI)
             self.Q_loss.is_result = True
         else:
             self.Q_loss.is_result = False

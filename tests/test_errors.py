@@ -76,6 +76,11 @@ def set_attr_ValueError(instance, **kwargs):
         instance.set_attr(**kwargs)
 
 
+def set_attr_AttributeError(instance, **kwargs):
+    with raises(AttributeError):
+        instance.set_attr(**kwargs)
+
+
 def test_set_attr_errors():
     """Test errors of set_attr methods."""
     nw = Network()
@@ -122,7 +127,7 @@ def test_set_attr_errors():
     set_attr_TypeError(mybus, printout=5)
 
     # KeyErrors
-    set_attr_KeyError(dc_cc(), x=7)
+    set_attr_AttributeError(dc_cc(), x=7)
     set_attr_KeyError(comb, wow=5)
     set_attr_KeyError(conn, jey=5)
     set_attr_KeyError(mybus, power_output=100000)

@@ -191,10 +191,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
         """
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        try:
-            self._aliases = CP.CoolProp.get_aliases(self.fluid)
-        except RuntimeError:
-            self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
             self._p_min = 1e2
@@ -362,11 +358,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if back_end is None:
             back_end = "IF97"
         super().__init__(fluid, back_end)
-        self._aliases = CP.CoolProp.get_aliases("H2O")
-
-        if self.fluid not in self._aliases:
-            msg = "The iapws wrapper only supports water as fluid."
-            raise ValueError(msg)
 
         if self.back_end == "IF97":
             self.AS = iapws.IAPWS97

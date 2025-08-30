@@ -86,7 +86,10 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')

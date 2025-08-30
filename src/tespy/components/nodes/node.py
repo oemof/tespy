@@ -78,7 +78,10 @@ class Node(Splitter, Merge):
     >>> from tespy.components import Source, Sink, Node
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so1 = Source("source1")
     >>> so2 = Source("source2")
     >>> si1 = Sink("sink1")

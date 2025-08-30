@@ -55,7 +55,10 @@ class Bus:
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')

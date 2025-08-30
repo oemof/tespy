@@ -137,7 +137,10 @@ class PolynomialCompressor(Turbomachine):
     >>> from tespy.networks import Network
     >>> import pandas as pd
     >>> from CoolProp.CoolProp import PropsSI
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
     >>> compressor = PolynomialCompressor("compressor")
@@ -392,8 +395,8 @@ class PolynomialCompressor(Turbomachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.Q_diss_rel.val)
-            - self.P.val
+            / (1 - self.Q_diss_rel.val_SI)
+            - self.P.val_SI
         )
 
     def energy_balance_group_dependents(self):
@@ -435,8 +438,8 @@ class PolynomialCompressor(Turbomachine):
         )
 
         return (
-            self.eta_s.val
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
+            self.eta_s.val_SI
+            * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -468,6 +471,7 @@ class PolynomialCompressor(Turbomachine):
 
         t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
         t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        # here .val is fine, because it just holds the coefficients
         eta_s = _calc_EN12900_SI(self.eta_s_poly.val, t_evap, t_cond)
         h_out_s = isentropic(
             i.p.val_SI,
@@ -479,7 +483,7 @@ class PolynomialCompressor(Turbomachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val)
+            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -509,11 +513,11 @@ class PolynomialCompressor(Turbomachine):
 
         displacement = (
             self.reference_state.val["displacement"] / 3600
-            * self.rpm.val / self.reference_state.val["rpm_displacement"]
+            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
         )
 
         return (
-            i.m.val_SI - self.eta_vol.val * displacement / i.calc_vol()
+            i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
         )
 
     def eta_vol_group_dependents(self):
@@ -544,10 +548,11 @@ class PolynomialCompressor(Turbomachine):
 
         t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
         t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        # here .val is fine, because it just holds the coefficients
         eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
         displacement = (
             self.reference_state.val["displacement"] / 3600
-            * self.rpm.val / self.reference_state.val["rpm_displacement"]
+            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
         )
 
         return (
@@ -567,15 +572,17 @@ class PolynomialCompressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
 
         if self.Q_diss_rel.is_set:
-            h_2 = (o.h.val_SI - i.h.val_SI * self.Q_diss_rel.val) / (1 - self.Q_diss_rel.val)
-            self.P.val = i.m.val_SI * (h_2 - i.h.val_SI)
-            self.Q_diss.val = i.m.val_SI * (o.h.val_SI - h_2)
-            self.eta_s.val = (
+            h_2 = (
+                (o.h.val_SI - i.h.val_SI * self.Q_diss_rel.val_SI)
+                / (1 - self.Q_diss_rel.val_SI)
+            )
+            self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
+            self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
+            self.eta_s.val_SI = (
                 isentropic(
                     i.p.val_SI,
                     i.h.val_SI,
@@ -591,9 +598,9 @@ class PolynomialCompressor(Turbomachine):
         if self.reference_state.is_set:
             displacement = (
                 self.reference_state.val["displacement"] / 3600
-                * self.rpm.val / self.reference_state.val["rpm_displacement"]
+                * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
             )
-            self.eta_vol.val = i.m.val_SI * i.calc_vol() / displacement
+            self.eta_vol.val_SI = i.m.val_SI * i.calc_vol() / displacement
 
 
 def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:

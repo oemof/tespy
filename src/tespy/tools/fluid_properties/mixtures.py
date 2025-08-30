@@ -13,8 +13,7 @@ SPDX-License-Identifier: MIT
 
 import math
 
-import CoolProp as CP
-
+from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import gas_constants
 
 from .helpers import _is_larger_than_precision
@@ -252,7 +251,7 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
         if x == 0:
             continue
 
-        fluid_aliases = fluid_data[fluid]["wrapper"]._aliases
+        fluid_aliases = FLUID_ALIASES.get_fluid(fluid)
 
         if molar_liquid > 0 and "water" in fluid_aliases:
             y = [
@@ -272,8 +271,7 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
 
 
 def _water_in_mixture(fluid_data):
-    water_aliases = set(CP.CoolProp.get_aliases("H2O"))
-    return water_aliases & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
+    return FLUID_ALIASES.get_fluid("H2O") & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
 
 
 def cond_check(p, T, fluid_data, water_alias):

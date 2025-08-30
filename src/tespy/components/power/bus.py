@@ -90,7 +90,10 @@ class PowerBus(Component):
     >>> from tespy.connections import PowerConnection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
 
     We can add a PowerSource representing the grid and three PowerSink
     components representing different power demands.

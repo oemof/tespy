@@ -11,6 +11,8 @@ tespy/tools/fluid_properties/functions.py
 SPDX-License-Identifier: MIT
 """
 
+from tespy.tools.global_vars import FLUID_ALIASES
+
 from .helpers import _check_mixing_rule
 from .helpers import get_number_of_fluids
 from .helpers import get_pure_fluid
@@ -96,7 +98,7 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 def calc_chemical_exergy(pamb, Tamb, fluid_data, Chem_Ex, mixing_rule=None, T0=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
-        fluid_aliases = pure_fluid["wrapper"]._aliases
+        fluid_aliases = FLUID_ALIASES.get_fluid(pure_fluid["wrapper"].fluid)
         y = [Chem_Ex[k][Chem_Ex[k][4]] for k in fluid_aliases if k in Chem_Ex]
         return y[0] / pure_fluid["wrapper"]._molar_mass * 1e3
     else:

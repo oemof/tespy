@@ -32,12 +32,13 @@ class Pump(Turbomachine):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_char_func`
@@ -47,6 +48,10 @@ class Pump(Turbomachine):
 
     - in1
     - out1
+
+    Optional inlets
+
+    - power
 
     Image
 
@@ -92,8 +97,12 @@ class Pump(Turbomachine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
+        Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
@@ -115,8 +124,10 @@ class Pump(Turbomachine):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
-    ... iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')
@@ -128,10 +139,10 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calulate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :py:mod:`tespy.data` module. Of course you are able to specify your own
-    characteristcs, like done for the :code:`flow_char`. More information on
-    how to specify characteristic functions are given in the corresponding part
-    of the online documentation.
+    :ref:`tespy.data <tespy_data_label>` module. Of course you are able to
+    specify your own characteristcs, like done for the :code:`flow_char`. More
+    information on how to specify characteristic functions are given in the
+    corresponding part of the online documentation.
 
     >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
     >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
@@ -181,7 +192,8 @@ class Pump(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
-                deriv=self.eta_s_deriv
+                deriv=self.eta_s_deriv,
+                quantity="efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
@@ -235,7 +247,7 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.val_SI - (
                 isentropic(
                     i.p.val_SI,
                     i.h.val_SI,
@@ -265,7 +277,7 @@ class Pump(Turbomachine):
         f = self.eta_s_func
 
         if o.h.is_var and not i.h.is_var:
-            self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
+            self._partial_derivative(o.h, k, self.eta_s.val_SI, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
 
@@ -485,7 +497,7 @@ class Pump(Turbomachine):
 
         i = self.inl[0]
         o = self.outl[0]
-        self.eta_s.val =  (
+        self.eta_s.val_SI =  (
             isentropic(
                 i.p.val_SI,
                 i.h.val_SI,

@@ -27,13 +27,13 @@ class Merge(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
     - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
     - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
 
     Inlets/Outlets
 
-    - specify number of outlets with :code:`num_in` (default value: 2)
+    - specify number of inlets with :code:`num_in` (default value: 2)
     - out1
 
     Image
@@ -86,7 +86,10 @@ class Merge(NodeBase):
     >>> from tespy.components import Sink, Source, Merge
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar"
+    ... })
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
     >>> so3 = Source('source3')
@@ -235,8 +238,10 @@ class Merge(NodeBase):
                 \; \forall i \in \text{inlets}
         """
         residual = []
+        # we take the total mass flow to handle more than one outlet if necessary
+        total_mass_flow = sum([c.m.val_SI for c in self.outl])
         for fluid in self.all_fluids:
-            res = -self.outl[0].fluid.val.get(fluid, 0) * self.outl[0].m.val_SI
+            res = -self.outl[0].fluid.val.get(fluid, 0) * total_mass_flow
             for i in self.inl:
                 res += i.fluid.val.get(fluid, 0) * i.m.val_SI
             residual += [res]
@@ -254,27 +259,30 @@ class Merge(NodeBase):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
-        o = self.outl[0]
+        # we take the total mass flow to handle more than one outlet if necessary
+        total_mass_flow = sum([c.m.val_SI for c in self.outl])
         for fluid in self.all_fluids:
             for i in self.inl:
                 if i.m.is_var:
                     self.jacobian[k, i.m.J_col] = i.fluid.val.get(fluid, 0)
                 if fluid in i.fluid.is_var:
                     self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-            if o.m.is_var:
-                self.jacobian[k, o.m.J_col] = -o.fluid.val.get(fluid, 0)
-            if fluid in o.fluid.is_var:
-                self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
+            for o in self.outl:
+                if o.m.is_var:
+                    self.jacobian[k, o.m.J_col] = -self.outl[0].fluid.val.get(fluid, 0)
+            if fluid in self.outl[0].fluid.is_var:
+                self.jacobian[k, self.outl[0].fluid.J_col[fluid]] = -total_mass_flow
             k += 1
 
     def fluid_dependents(self):
         return {
             "scalars": [
-                [c.m for c in self.inl + self.outl]
-                for f in self.all_fluids
+                [c.m for c in self.inl + self.outl] for f in self.all_fluids
             ],
             "vectors": [{
-                c.fluid: c.fluid.is_var for c in self.inl + self.outl
+                # only depends on first outlet (there is only one in merge)
+                # but there may be more in inheriting components
+                c.fluid: c.fluid.is_var for c in self.inl + self.outl[:1]
             } for f in self.all_fluids]
         }
 
@@ -293,7 +301,9 @@ class Merge(NodeBase):
                 \dot{m}_{out} \cdot h_{out}\\
                 \forall i \in \text{inlets}
         """
-        res = -self.outl[0].m.val_SI * self.outl[0].h.val_SI
+        # we take the total mass flow to handle more than one outlet if necessary
+        total_mass_flow = sum([c.m.val_SI for c in self.outl])
+        res = -total_mass_flow * self.outl[0].h.val_SI
         for i in self.inl:
             res += i.m.val_SI * i.h.val_SI
         return res
@@ -308,10 +318,10 @@ class Merge(NodeBase):
         if self in branch["components"]:
             return
 
-        outconn = self.outl[0]
-        branch["connections"] += [outconn]
         branch["components"] += [self]
-        outconn.target.propagate_wrapper_to_target(branch)
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            outconn.target.propagate_wrapper_to_target(branch)
 
     def entropy_balance(self):
         r"""

@@ -131,10 +131,11 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(
-    ...     T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
-    ...     iterinfo=False
-    ... )
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "volumetric_flow": "l/s"
+    ... })
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
     >>> cw_in = Source('cooling water inlet')

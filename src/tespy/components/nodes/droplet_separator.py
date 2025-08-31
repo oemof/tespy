@@ -29,10 +29,11 @@ class DropletSeparator(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
     - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
+    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
+    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
 
     Inlets/Outlets
 
@@ -85,7 +86,10 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')
@@ -211,7 +215,8 @@ class DropletSeparator(NodeBase):
 
     def saturated_outlet_func(self, outconn=None, quality=None):
         r"""
-        Set the outlet state.
+        Set the outlet quality :math:`x` to be equal to 0 or 1 at the respective
+        outlet.
 
         Returns
         -------
@@ -220,13 +225,12 @@ class DropletSeparator(NodeBase):
 
             .. math::
 
-                0 = h_{out,1} - h\left(p, x=0 \right)\
+                0 = h_{out} - h\left(p, x=x \right)
         """
         o = self.outl[outconn]
         return h_mix_pQ(o.p.val_SI, quality, o.fluid_data) - o.h.val_SI
 
     def saturated_outlet_deriv(self, increment_filter, k, dependents=None, outconn=None, quality=None):
-
         o = self.outl[outconn]
         if o.p.is_var:
             self._partial_derivative(
@@ -242,12 +246,7 @@ class DropletSeparator(NodeBase):
 
     def fluid_structure_matrix(self, k):
         r"""
-        Calculate partial derivatives for all pressure equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
+        Set the fluid strucutre matrix to force fluid composition equality.
         """
         for eq, conn in enumerate(self.outl):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1

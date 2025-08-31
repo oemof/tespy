@@ -26,10 +26,11 @@ class Drum(DropletSeparator):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
     - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
+    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
+    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
 
     Inlets/Outlets
 
@@ -100,7 +101,10 @@ class Drum(DropletSeparator):
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> import os
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')
     >>> amb_out = Sink('air outlet')

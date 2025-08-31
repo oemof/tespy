@@ -29,7 +29,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
 
     **Optional Equations**
@@ -37,7 +37,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
     - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
 
     Available fuels
 
@@ -123,7 +123,10 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -192,9 +195,6 @@ class DiabaticCombustionChamber(CombustionChamber):
     """
 
     def _preprocess(self, num_nw_vars):
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
-
         super()._preprocess(num_nw_vars)
 
     def get_parameters(self):
@@ -205,22 +205,25 @@ class DiabaticCombustionChamber(CombustionChamber):
                 num_eq_sets=1,
                 func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
-                func_params={"inconn": 0, "outconn": 0, "pr": "pr"}
+                func_params={"inconn": 0, "outconn": 0, "pr": "pr"},
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 func=self.dp_func,
                 structure_matrix=self.dp_structure_matrix,
-                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
             ),
             'eta': dc_cp(
                 max_val=1, min_val=0,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                quantity="efficiency"
             ),
-            'Qloss': dc_cp(max_val=0, is_result=True)
+            'Qloss': dc_cp(max_val=0, is_result=True, quantity="heat")
         })
         return params
 
@@ -278,7 +281,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        res += self.calc_ti() * self.eta.val
+        res += self.calc_ti() * self.eta.val_SI
         return res
 
     def calc_parameters(self):
@@ -301,12 +304,11 @@ class DiabaticCombustionChamber(CombustionChamber):
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        self.eta.val = -res / self.ti.val
-        self.Qloss.val = -(1 - self.eta.val) * self.ti.val
+        self.eta.val_SI = -res / self.ti.val_SI
+        self.Qloss.val_SI = -(1 - self.eta.val_SI) * self.ti.val_SI
 
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
         for num, i in enumerate(self.inl):
             if i.p.val < self.outl[0].p.val:
                 msg = (

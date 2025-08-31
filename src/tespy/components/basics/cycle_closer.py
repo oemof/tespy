@@ -25,8 +25,8 @@ class CycleCloser(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.pressure_equality_func`
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.enthalpy_equality_func`
+    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     Image not available
 
@@ -75,7 +75,10 @@ class CycleCloser(Component):
     >>> from tespy.components import CycleCloser, Pipe, Pump
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
@@ -94,7 +97,9 @@ class CycleCloser(Component):
     @staticmethod
     def get_parameters():
         return {
-            'mass_deviation': dc_cp(_val=0, max_val=1e-3, is_result=True),
+            'mass_deviation': dc_cp(
+                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow"
+            ),
             'fluid_deviation': dc_cp(_val=0, max_val=1e-5, is_result=True)
         }
 
@@ -137,7 +142,7 @@ class CycleCloser(Component):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         # calculate deviation in mass flow
-        self.mass_deviation.val = abs(
+        self.mass_deviation.val_SI = abs(
             self.inl[0].m.val_SI - self.outl[0].m.val_SI
         )
 
@@ -145,4 +150,4 @@ class CycleCloser(Component):
         d1 = self.inl[0].fluid.val
         d2 = self.outl[0].fluid.val
         diff = [d1[key] - d2[key] for key in d1.keys()]
-        self.fluid_deviation.val = np.linalg.norm(diff)
+        self.fluid_deviation.val_SI = np.linalg.norm(diff)

@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 
 from tespy.components import SubsystemInterface
 from tespy.tools import logger
+from tespy.tools.helpers import TESPyComponentError
 
 
 class Subsystem:
@@ -159,6 +160,13 @@ class Subsystem:
     def add_conns(self, *args):
 
         for conn in args:
+            if conn.label in self.conns:
+                msg = (
+                    f"A connection with the label {conn.label} has already "
+                    "been added to this Subsystem. All connections must have "
+                    "unique labels."
+                )
+                raise TESPyComponentError(msg)
             self.conns[conn.label] = conn
             self.conns[conn.label].label = f"{self.label}_{conn.label}"
 
@@ -173,7 +181,7 @@ class Subsystem:
         for comp in comps:
             if comp.label in self.comps.keys():
                 msg = "Component name in subsystem is not unique"
-                raise ValueError(msg)
+                raise TESPyComponentError(msg)
 
             self.comps[comp.label] = comp
             self.comps[comp.label].label = f"{self.label}_{comp.label}"

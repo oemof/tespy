@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 
 import CoolProp as CP
-import numpy as np
 
 from tespy.tools.global_vars import ERR
 
@@ -51,44 +50,6 @@ class FluidPropertyWrapper:
         self.back_end = back_end
         self.fluid = fluid
         self.mixture_type = None
-
-        if "[" in self.fluid:
-            if "|" not in self.fluid:
-                msg = (
-                    f"The fluid {self.fluid} requires the specification of "
-                    "mass, volume or molar based composition information."
-                    "You can do this by appending '|' and 'mass' at the end "
-                    "of the fluid string. For example, "
-                    "'NAMEOFFLUID[0.5]|mass' to indicate a mass based mixture."
-                )
-                raise ValueError(msg)
-
-            self.fluid, self.mixture_type = self.fluid.split("|")
-            allowed = ["mass", "molar", "volume"]
-            if self.mixture_type not in allowed:
-                msg = (
-                    "For the specification of the composition type you have "
-                    f"to select from {', '.join(allowed)}."
-                )
-
-        if "&" in self.fluid:
-            _fluids_with_fractions = self.fluid.split("&")
-        else:
-            _fluids_with_fractions = [self.fluid]
-
-        fluid_names = []
-        fractions = []
-        for fluid in _fluids_with_fractions:
-            if "[" in fluid:
-                _fluid_name, _fraction = fluid.split("[")
-                _fraction = float(_fraction.replace("]", ""))
-                fractions += [_fraction]
-            else:
-                _fluid_name = fluid
-            fluid_names += [_fluid_name]
-
-        self.fractions = fractions
-        self.fluid = "&".join(fluid_names)
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -163,27 +124,73 @@ class CoolPropWrapper(FluidPropertyWrapper):
         back_end : str, optional
             CoolProp back end for the AbstractState object, by default "HEOS"
         """
-        if back_end is None:
-            back_end = "HEOS"
-
         super().__init__(fluid, back_end)
+
+        if self.back_end is None:
+            self.back_end = "HEOS"
+
+        self._identify_mixture()
         self.AS = SerializableAbstractState(self.back_end, self.fluid)
+        self._set_mixture_fractions()
         self._set_constants()
 
-    def _set_constants(self):
+    def _identify_mixture(self):
+        """Parse the fluid name to identify, if and what kind of mixture we are
+        working with
+        """
+        if "[" in self.fluid:
+            if "|" not in self.fluid:
+                msg = (
+                    f"The fluid {self.fluid} requires the specification of "
+                    "mass, volume or molar based composition information."
+                    "You can do this by appending '|' and 'mass' at the end "
+                    "of the fluid string. For example, "
+                    "'NAMEOFFLUID[0.5]|mass' to indicate a mass based mixture."
+                )
+                raise ValueError(msg)
+
+            self.fluid, self.mixture_type = self.fluid.split("|")
+            allowed = ["mass", "molar", "volume"]
+            if self.mixture_type not in allowed:
+                msg = (
+                    "For the specification of the composition type you have "
+                    f"to select from {', '.join(allowed)}."
+                )
+
+        if "&" in self.fluid:
+            _fluids_with_fractions = self.fluid.split("&")
+        else:
+            _fluids_with_fractions = [self.fluid]
+
+        fluid_names = []
+        fractions = []
+        for fluid in _fluids_with_fractions:
+            if "[" in fluid:
+                _fluid_name, _fraction = fluid.split("[")
+                _fraction = float(_fraction.replace("]", ""))
+                fractions += [_fraction]
+            else:
+                _fluid_name = fluid
+            fluid_names += [_fluid_name]
+
+        self.fractions = fractions
+        self.fluid = "&".join(fluid_names)
+
+    def _set_mixture_fractions(self):
+        """Set the fractions for provided mixture"""
         if self.mixture_type == "mass":
             self.AS.set_mass_fractions(self.fractions)
         elif self.mixture_type == "molar":
-            self.AS.set_molar_fractions(self.fractions)
+            self.AS.set_mole_fractions(self.fractions)
         elif self.mixture_type == "volume":
             self.AS.set_volu_fractions(self.fractions)
 
+    def _set_constants(self):
+        """Setup constants for later quick access, e.g. mixture fractions
+        minimum/maximum pressure/temperature and critical point properties
+        """
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        try:
-            self._aliases = CP.CoolProp.get_aliases(self.fluid)
-        except RuntimeError:
-            self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
             self._p_min = 1e2
@@ -203,7 +210,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
             if self.back_end == "HEOS":
                 # see https://github.com/CoolProp/CoolProp/discussions/2443
                 self._T_max *= 1.45
-            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
+
             if self.back_end == "REFPROP":
                 self._p_min = 1e1
             else:
@@ -280,6 +287,9 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return -1
 
     def phase_ph(self, p, h):
+        if self.back_end == "INCOMP":
+            return "state not recognized"
+
         self.AS.update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
 
@@ -348,11 +358,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if back_end is None:
             back_end = "IF97"
         super().__init__(fluid, back_end)
-        self._aliases = CP.CoolProp.get_aliases("H2O")
-
-        if self.fluid not in self._aliases:
-            msg = "The iapws wrapper only supports water as fluid."
-            raise ValueError(msg)
 
         if self.back_end == "IF97":
             self.AS = iapws.IAPWS97
@@ -449,7 +454,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
 class PyromatWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
-        """_summary_
+        """Wrapper for the Pyromat fluid property library
 
         Parameters
         ----------

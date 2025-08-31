@@ -15,6 +15,10 @@ on:
 
 jobs:
   pytest:
+    permissions:
+      contents: read
+      checks: write
+
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,11 +37,25 @@ jobs:
     - name: Test with tox
       run: tox
 
-    - name: Check test coverage
+    - name: Check test coverage ${{ matrix.test_number }}
       run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 84 || 85 }}
 
-    - name: Report to coveralls
-      run: coveralls
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_SERVICE_NAME: github
+    - name: Coveralls Parallel
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: test-${{ join(matrix.*, '-') }}
+        parallel: true
+
+  finish:
+    permissions:
+      contents: read
+      checks: write
+    needs: pytest
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v2
+      with:
+        parallel-finished: true
+        carryforward: "test-3.10,test-3.11,test-3.12"

@@ -230,7 +230,8 @@ electricity. First we can set up a system as we are used to do without any
     >>> from tespy.components import Source, Sink, Turbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("source")
     >>> turbine = Turbine("turbine")
     >>> si = Sink("sink")
@@ -298,7 +299,8 @@ system connecting the compressor to the heater and to the turbine.
     ...     Generator, PowerSink
     ... )
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("source")
     >>> heater = SimpleHeatExchanger("heater")
     >>> compressor = Compressor("compressor")
@@ -387,7 +389,8 @@ consumption.
     >>> from tespy.components import Pump, Turbine, Source, Sink
     >>> from tespy.connections import Connection, PowerConnection
 
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> cond = Source("condensate")
     >>> fwp = Pump("feed water pump")
     >>> feedwater = Sink("feedwater")
@@ -429,7 +432,8 @@ indermediate pressure is variable.
     >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
     >>> from tespy.tools import UserDefinedEquation
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("air source")
     >>> compressor1 = Compressor("compressor 1")
     >>> compressor2 = Compressor("compressor 2")
@@ -482,7 +486,8 @@ instance.
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
 
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("evaporated refrigerant")
     >>> compressor = Compressor("compressor")
     >>> si = Sink("compressed refrigerant")

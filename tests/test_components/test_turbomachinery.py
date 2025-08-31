@@ -31,7 +31,11 @@ from tespy.tools.fluid_properties import s_mix_ph
 class TestTurbomachinery:
 
     def setup_network(self, instance):
-        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC",
+            "volumetric_flow": "m3/s"
+        })
         self.source = Source('source')
         self.sink = Sink('sink')
         self.c1 = Connection(self.source, 'out1', instance, 'in1')

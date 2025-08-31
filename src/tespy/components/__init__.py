@@ -17,6 +17,7 @@ from .heat_exchangers.solar_collector import SolarCollector  # noqa: F401
 from .nodes.droplet_separator import DropletSeparator  # noqa: F401
 from .nodes.drum import Drum  # noqa: F401
 from .nodes.merge import Merge  # noqa: F401
+from .nodes.node import Node  # noqa: F401
 from .nodes.separator import Separator  # noqa: F401
 from .nodes.splitter import Splitter  # noqa: F401
 from .piping.pipe import Pipe  # noqa: F401
@@ -30,6 +31,7 @@ from .reactors.fuel_cell import FuelCell  # noqa: F401
 from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
+from .turbomachinery.polynomial_compressor import PolynomialCompressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.steam_turbine import SteamTurbine  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401

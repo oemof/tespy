@@ -1,11 +1,11 @@
 # -*- coding: utf-8
 
-"""Module of class Turbine.
+"""Module of class SteamTurbine.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/components/turbomachinery/turbine.py
+available from its original location tespy/components/turbomachinery/steam_turbine.py
 
 SPDX-License-Identifier: MIT
 """
@@ -30,14 +30,15 @@ class SteamTurbine(Turbine):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_dry_s_func`
+    - :py:meth:`tespy.components.turbomachinery.steam_turbine.SteamTurbine.eta_s_wet_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
     - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`
@@ -46,6 +47,10 @@ class SteamTurbine(Turbine):
 
     - in1
     - out1
+
+    Optional outlets
+
+    - power
 
     Image
 
@@ -91,11 +96,18 @@ class SteamTurbine(Turbine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    eta_dry_s : float, dict
+    eta_s_dry : float, dict
         Dry isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, dict, :code:`"var"`
+    alpha: float, dict
+        Influence factor on wetness efficiency modifier, :math:`\alpha/1`
+
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
+        Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
@@ -115,7 +127,10 @@ class SteamTurbine(Turbine):
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> st = SteamTurbine('steam turbine')
@@ -148,7 +163,9 @@ class SteamTurbine(Turbine):
 
         params = super().get_parameters()
         params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
-        params["eta_s_dry"] = dc_cp(min_val=0.0, max_val=1.0)
+        params["eta_s_dry"] = dc_cp(
+            min_val=0.0, max_val=1.0, quantity="efficiency"
+        )
         params["eta_s_dry_group"] = dc_gcp(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
@@ -201,12 +218,12 @@ class SteamTurbine(Turbine):
             ym = 1 - (inl.calc_x() + outl.calc_x()) / 2  # average wetness
             return (
                 self.calc_eta_s()
-                - self.eta_s_dry.val * (1 - self.alpha.val * ym)
+                - self.eta_s_dry.val_SI * (1 - self.alpha.val_SI * ym)
             )
 
         else:  # superheated vapour
             if outl.calc_phase() == "g":
-                return self.calc_eta_s() - self.eta_s_dry.val
+                return self.calc_eta_s() - self.eta_s_dry.val_SI
 
             dp = inl.p.val_SI - outl.p.val_SI
 
@@ -225,7 +242,7 @@ class SteamTurbine(Turbine):
                     T0=inl.T.val_SI
                 )
                 hout = (
-                    inl.h.val_SI - self.eta_s_dry.val
+                    inl.h.val_SI - self.eta_s_dry.val_SI
                     * (inl.h.val_SI - hout_isen)
                 )
 
@@ -240,7 +257,7 @@ class SteamTurbine(Turbine):
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_s_dry.val * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(

@@ -28,7 +28,7 @@ class Separator(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
     - :py:meth:`tespy.components.nodes.separator.Separator.fluid_func`
     - :py:meth:`tespy.components.nodes.separator.Separator.energy_balance_func`
 
@@ -92,7 +92,10 @@ class Separator(NodeBase):
     >>> from tespy.components import Sink, Source, Separator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')

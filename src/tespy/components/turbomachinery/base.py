@@ -26,13 +26,14 @@ class Turbomachine(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.base.base.energy_balance_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
 
     Inlets/Outlets
 
@@ -68,8 +69,12 @@ class Turbomachine(Component):
     P : float, dict
         Power, :math:`P/\text{W}`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
+        Is specified in the Network's pressure unit
 
     Example
     -------
@@ -78,6 +83,7 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.compressor.Compressor`
     - :class:`tespy.components.turbomachinery.pump.Pump`
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
+    - :class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
     """
 
     def _preprocess(self, num_nw_vars):
@@ -92,13 +98,15 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                quantity="power"
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func=self.pr_func,
                 dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
-                structure_matrix=self.pr_structure_matrix
+                structure_matrix=self.pr_structure_matrix,
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
@@ -106,6 +114,7 @@ class Turbomachine(Component):
                 dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
+                quantity="pressure"
             )
         }
 
@@ -223,11 +232,10 @@ class Turbomachine(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.P.val = self.inl[0].m.val_SI * (
+        self.P.val_SI = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
 
     def entropy_balance(self):
         r"""

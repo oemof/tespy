@@ -23,9 +23,9 @@ well as the equations.
 - Combustion
 
   * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
-  * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
-    (Advanced version of combustion chamber, featuring heat losses and pressure
-    drop)
+  * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`:
+    Advanced version of combustion chamber, featuring heat losses and pressure
+    drop
   * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
 
 - Heat exchangers
@@ -36,23 +36,23 @@ well as the equations.
   * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
   * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
   * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
-  * :py:class:`Moving Boundary Heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`
-    (Advanced heat exchanger class, automatically identifying phase change
+  * :py:class:`Moving Boundary Heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
+    Advanced heat exchanger class, automatically identifying phase change
     sections in the heat transfer of both sides and assigning individual UA
-    values per section of heat transfer)
+    values per section of heat transfer
 
 - Nodes
 
   * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator.DropletSeparator>`
   * :py:class:`Drum <tespy.components.nodes.drum.Drum>`
   * :py:class:`Merge <tespy.components.nodes.merge.Merge>`
+  * :py:class:`Node <tespy.components.nodes.node.Node>`: This component combines a :code:`Merge` with a :code:`Splitter` in a single component
   * :py:class:`Separator <tespy.components.nodes.separator.Separator>`
   * :py:class:`Splitter <tespy.components.nodes.splitter.Splitter>`
 
 - Piping
 
   * :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
-  * :py:class:`Pipeline <tespy.components.piping.pipeline.Pipeline>`
   * :py:class:`Valve <tespy.components.piping.valve.Valve>`
 
 - Reactors
@@ -63,11 +63,14 @@ well as the equations.
 - Turbomachinery
 
   * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
+  * :py:class:`PolynomialCompressor <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor>`:
+    Advanced compressor model to map manufacturer datasheet information
+    according to EN12900
   * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
   * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
-  * :py:class:`Steam turbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`
-    (Advanced component for isentropic efficiency correction in wet outlet
-    steam conditions implementing the Baumann correlation)
+  * :py:class:`Steam turbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`:
+    Advanced component for isentropic efficiency correction in wet outlet
+    steam conditions implementing the Baumann correlation
 
 - Power components
 
@@ -136,7 +139,8 @@ not be implemented by the solver.
     >>> from tespy.networks import Network
     >>> from tespy.connections import Connection
 
-    >>> nw = Network(T_unit='C', p_unit='bar')
+    >>> nw = Network()
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -275,7 +279,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> from tespy.tools.characteristics import CharLine
 
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> he = HeatExchanger('evaporator')
     >>> cond = Source('condensate')
@@ -352,7 +357,10 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> from tespy.tools.characteristics import CharLine
     >>> import numpy as np
 
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    ... )
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> t = Turbine('turbine')
@@ -426,41 +434,46 @@ parameter to :code:`True`.
 
 Characteristics are available for the following components and parameters:
 
-- combustion engine
+- CombustionEngine
 
   * :py:meth:`tiP_char <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
   * :py:meth:`Q1_char <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
   * :py:meth:`Q2_char <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
   * :py:meth:`Qloss_char <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
 
-- compressor
+- Compressor
 
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: pressure ratio vs. non-dimensional mass flow.
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_func>`: isentropic efficiency vs. non-dimensional mass flow.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func>`: pressure ratio vs. non-dimensional mass flow.
+  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func>`: isentropic efficiency vs. non-dimensional mass flow.
   * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`: isentropic efficiency.
 
-- heat exchangers:
+- PolynomialCompressor
+
+  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
+  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
+
+- HeatExchanger:
 
   * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`: heat transfer coefficient.
 
-- pump
+- Pump
 
   * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.Pump.eta_s_char_func>`: isentropic efficiency.
   * :py:meth:`flow_char <tespy.components.turbomachinery.pump.Pump.flow_char_func>`: absolute pressure change.
 
-- simple heat exchangers
+- SimpleHeatExchanger
 
   * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func>`: heat transfer coefficient.
 
-- turbine
+- Turbine
 
   * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func>`: isentropic efficiency.
 
-- valve
+- Valve
 
   * :py:meth:`dp_char <tespy.components.piping.valve.Valve.dp_char_func>`: absolute pressure change.
 
-- water electrolyzer
+- WaterElectrolyzer
 
   * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
@@ -491,9 +504,9 @@ class shown below.
 .. code:: python
 
     # [...]
-    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-    'L': dc_cp(min_val=1e-1, d=1e-3),
-    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
+    'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
     'darcy_group': dc_gcp(
         elements=['L', 'ks', 'D'], num_eq_sets=1,
         func=self.darcy_func,
@@ -501,13 +514,24 @@ class shown below.
     ),
     # [...]
 
+.. tip::
+
+    With the :code:`quantity` keyword, tespy will automatically understand what
+    unit conversion to apply to the respective parameter. E.g. in case you
+    want to specify the roughness  :code:`ks` in millimeter, you can either
+    set the default unit for length of your :code:`Network` to millimeter, or
+    you can pass the :code:`ks` value as :code:`pint.Quantity` to your
+    component using millimeter as unit. Then the conversion to the SI unit is
+    taken care of automatically in the preprocessing and the respective
+    equation will make use of the SI value.
+
 :code:`func` and :code:`dependents` are pointing to the method that should be
 applied for the corresponding purpose. For more information on defining the
-equations and dependents you will find the information in the next section on
-custom components. When defining the dependents in a standalone way, the
-partial derivatives are calculated automatically. If you want to insert the
-partial derivatives manually, you can define another function and pass with
-the :code:`deriv` keyword.
+equations and dependents see the next section on custom components. When
+defining the dependents in a standalone way, the partial derivatives are
+calculated automatically. If you want to insert the partial derivatives
+manually, you can define another function and pass with the :code:`deriv`
+keyword.
 
 .. _tespy_components_custom_components_label:
 
@@ -774,6 +798,11 @@ associated with the class :code:`Valve` is the following:
 .. literalinclude:: /../src/tespy/components/piping/valve.py
     :pyobject: Valve.dp_char_func
 
+.. caution::
+
+    Your equations should only use and access the SI values :code:`val_SI`
+    associated with connection or component parameters in the back-end .
+
 Define the dependents
 ^^^^^^^^^^^^^^^^^^^^^
 Next, you have to define the list of variables the equation depends on, i.e.
@@ -966,13 +995,6 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
     ...
     ...         self.add_conns(inlet_sup, sup_eva, eva_eco, eco_outlet)
 
-.. note::
-
-    Please note, that you should label your components (and connections) with
-    unitque names, otherwise you can only use the subsystem once per model. In
-    this case, it is achieved by adding the subsystem label to all of the
-    component labels.
-
 Make use of your subsystem
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -987,7 +1009,8 @@ different tespy classes required.
     >>> import numpy as np
 
     >>> # %% network definition
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> # %% component definition
     >>> feed_water = Source('feed water inlet')

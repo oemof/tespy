@@ -21,7 +21,10 @@ from tespy.networks import Network
 
 @fixture()
 def drum_network_setup():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
     dr = Drum("drum")
     so = Source("liquid")
     si = Sink("vapor")

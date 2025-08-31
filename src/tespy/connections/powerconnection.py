@@ -1,6 +1,6 @@
 import numpy as np
 
-from tespy.connections.connection import _ConnectionBase
+from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
@@ -9,7 +9,7 @@ from tespy.tools.logger import logger
 
 
 @connection_registry
-class PowerConnection(_ConnectionBase):
+class PowerConnection(ConnectionBase):
 
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
         self._check_types(source, target)
@@ -153,22 +153,27 @@ class PowerConnection(_ConnectionBase):
         return {"E": self.E}
 
     def get_parameters(self):
-        return {"E": dc_prop(d=1e-4)}
+        return {"E": dc_prop(d=1e-4, quantity="power")}
 
-    def calc_results(self):
-        self.E.val = self.E.val_SI
-        self.E.val0 = self.E.val
+    def calc_results(self, units):
+        self.E.set_val_from_SI(units)
+        self.E.set_val0_from_SI(units)
         return True
 
-    def _set_design_params(self, data):
+    def _set_design_params(self, data, units):
         for var in self._result_attributes():
-            self.get_attr(var).design = float(data[var])
+            self.get_attr(var).design = units.ureg.Quantity(
+                float(data[var]),
+                data[f"{var}_unit"]
+            ).to_base_units().magnitude
 
-    def _set_starting_values(self, data):
+    def _set_starting_values(self, data, units):
         for prop in self.get_variables():
             var = self.get_attr(prop)
-            var.val0 = float(data[prop])
-            var.unit = data[prop + '_unit']
+            var.val0 = units.ureg.Quantity(
+                float(data[prop]),
+                data[f"{prop}_unit"]
+            )
 
     @classmethod
     def _print_attributes(cls):

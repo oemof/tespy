@@ -27,18 +27,19 @@ class FuelCell(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_func`
+    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
 
     **Optional Equations**
 
     - cooling loop:
 
+      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
       - :py:meth:`tespy.components.component.Component.zeta_func`
-      - :py:meth:`tespy.components.component.Component.pr_func`
 
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
     - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
@@ -94,8 +95,12 @@ class FuelCell(Component):
     eta : float, dict
         Electrolysis efficiency, :math:`\eta/1`.
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Cooling loop pressure ratio, :math:`pr/1`.
+
+    dp : float, dict
+        Inlet to outlet pressure difference of cooling loop,
+        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
 
     zeta : float, dict, :code:`"var"`
         Geometry independent friction coefficient for cooling loop pressure
@@ -117,7 +122,10 @@ class FuelCell(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ... })
     >>> fc = FuelCell('fuel cell')
     >>> oxygen_source = Source('oxygen_source')
     >>> hydrogen_source = Source('hydrogen_source')
@@ -155,24 +163,27 @@ class FuelCell(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(max_val=0),
+            'P': dc_cp(max_val=0, quantity="power"),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
-                dependents=self.heat_dependents
+                dependents=self.heat_dependents,
+                quantity="heat"
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func,
-                func_params={'pr': 'pr'}
+                func_params={'pr': 'pr'},
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
                 num_eq_sets=1,
-                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
             ),
             'zeta': dc_cp(
                 min_val=0,
@@ -184,12 +195,14 @@ class FuelCell(Component):
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
-                dependents=self.eta_dependents
+                dependents=self.eta_dependents,
+                quantity="efficiency"
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
-                dependents=self.specific_energy_dependents
+                dependents=self.specific_energy_dependents,
+                quantity="specific_energy"
             )
         }
 
@@ -203,12 +216,10 @@ class FuelCell(Component):
                 'num_eq_sets': 2
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
-                'func': self.cooling_mass_flow_func,
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
                 'num_eq_sets': 1
             }),
             'cooling_fluid_constraints': dc_cmc(**{
-                'func': self.cooling_fluid_func,
                 'structure_matrix': self.cooling_fluid_structure_matrix,
                 'num_eq_sets': 1
             }),
@@ -220,9 +231,7 @@ class FuelCell(Component):
                 'num_eq_sets': 1
             }),
             'reactor_pressure_constraints': dc_cmc(**{
-                'func': self.reactor_pressure_func,
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'constant_deriv': True,
                 'num_eq_sets': 2
             })
         }
@@ -358,7 +367,7 @@ class FuelCell(Component):
 
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
-        return self.P.val - self.inl[2].m.val_SI * self.e.val
+        return self.P.val - self.inl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.inl[2].m, self.P, self.e]
@@ -388,7 +397,7 @@ class FuelCell(Component):
             - Reference temperature: 298.15 K.
             - Reference pressure: 1 bar.
         """
-        return self.P.val - self.calc_P()
+        return self.P.val_SI - self.calc_P()
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -501,52 +510,23 @@ class FuelCell(Component):
             [self.inl[2].m, self.outl[1].m]
         ]
 
-    def cooling_mass_flow_func(self):
-        return self.inl[0].m.val_SI - self.outl[0].m.val_SI
-
     def cooling_mass_flow_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].m.sm_col] = 1
         self._structure_matrix[k, self.outl[0].m.sm_col] = -1
-
-    def cooling_fluid_func(self):
-        return 0
 
     def cooling_fluid_structure_matrix(self, k):
         self._structure_matrix[k, self.inl[0].fluid.sm_col] = 1
         self._structure_matrix[k, self.outl[0].fluid.sm_col] = -1
 
-    def reactor_pressure_func(self):
-        r"""
-        Equations for reactor pressure balance.
-
-        Returns
-        -------
-        residual : list
-            Residual values of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
-        """
-        return [
-            self.outl[1].p.val_SI - self.inl[1].p.val_SI,
-            self.outl[1].p.val_SI - self.inl[2].p.val_SI
-        ]
-
     def reactor_pressure_structure_matrix(self, k):
         r"""
-        Equations for reactor pressure balance.
+        Structure matrix representing the equations for reactor pressure
+        balance.
 
-        Returns
-        -------
-        residual : list
-            Residual values of equations.
+        .. math::
 
-            .. math::
-
-                0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-                0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
+            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1
@@ -666,15 +646,11 @@ class FuelCell(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = -self.inl[0].m.val_SI * (
+        self.Q.val_SI = -self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
-        self.e.val = self.P.val / self.inl[2].m.val_SI
-        self.eta.val = self.e.val / self.e0
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
+        self.e.val_SI = self.P.val_SI / self.inl[2].m.val_SI
+        self.eta.val_SI = self.e.val_SI / self.e0

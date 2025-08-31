@@ -40,7 +40,10 @@ from tespy.tools.helpers import TESPyNetworkError
 
 class TestNetworks:
     def setup_method(self):
-        self.nw = Network(p_unit='bar', v_unit='m3 / s', T_unit='C')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
         self.source = Source('source')
         self.sink = Sink('sink')
 
@@ -273,7 +276,11 @@ class TestNetworkIndividualOffdesign:
 
     def setup_Network_individual_offdesign(self):
         """Set up network for individual offdesign tests."""
-        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC",
+            "volumetric_flow": "m3/s"
+        })
 
         so = Source('source')
         sp = Splitter('splitter', num_out=2)
@@ -286,16 +293,20 @@ class TestNetworkIndividualOffdesign:
         me = Merge('merge', num_in=2)
         si = Sink('sink')
 
-        self.pump1.set_attr(eta_s=0.8, design=['eta_s'],
-                            offdesign=['eta_s_char'])
-        self.pump2.set_attr(eta_s=0.8, design=['eta_s'],
-                            offdesign=['eta_s_char'])
-        self.sc1.set_attr(pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
-        self.sc2.set_attr(pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
+        self.pump1.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
+        )
+        self.pump2.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
+        )
+        self.sc1.set_attr(
+            pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
+        self.sc2.set_attr(
+            pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
 
         fl = {'H2O': 1}
         inlet = Connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
@@ -460,7 +471,10 @@ class TestNetworkIndividualOffdesign:
 class TestNetworkPreprocessing:
 
     def setup_method(self):
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit='kJ / kg')
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
     def _create_linear_branch(self):
         a = Source("source")
@@ -475,7 +489,10 @@ class TestNetworkPreprocessing:
     def _create_recirculation(self):
         self.nwk = Network()
 
-        self.nwk.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
         source = Source('source')
         merge = Merge('merge')
@@ -646,7 +663,10 @@ def test_missing_source_sink_cycle_closer():
         nw.solve("design")
 
 def test_dublicated_linear_dependent_variables():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     heater = SimpleHeatExchanger("heater")
@@ -669,7 +689,10 @@ def test_dublicated_linear_dependent_variables():
         nw.solve("design", init_only=True)
 
 def test_cyclic_linear_dependent_variables():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     heater = SimpleHeatExchanger("heater")
@@ -703,7 +726,10 @@ def test_cyclic_linear_dependent_variables():
     assert sum(cycle) == 19
 
 def test_cyclic_linear_dependent_with_merge_and_split():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     splitter = Splitter("splitter")
@@ -768,9 +794,10 @@ def test_v08_to_v09_complete():
     nw.assert_convergence()
 
 def test_missing_cyclecloser_but_no_missing_source():
-    nw = Network(
-        T_unit="C", p_unit="bar", h_unit="kJ / kg"
-    )
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    })
 
     # Components
     source = Source("source")
@@ -806,7 +833,10 @@ def test_missing_cyclecloser_but_no_missing_source():
 
 
 def test_two_phase_in_supercritical_starting_pressure_convergence():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     heater = SimpleHeatExchanger("heater")
@@ -829,7 +859,10 @@ def test_two_phase_in_supercritical_starting_pressure_convergence():
 
 
 def test_two_phase_in_supercritical_pressure_non_convergence():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     heater = SimpleHeatExchanger("heater")
@@ -849,7 +882,10 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
     assert nw.status == 99
 
 def test_postprocessing_supercritical():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
 
     so = Source("source")
     si = Sink("sink")

@@ -24,9 +24,9 @@ class Splitter(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_structure_matrix`
 
     Inlets/Outlets
 
@@ -82,7 +82,10 @@ class Splitter(NodeBase):
     >>> from tespy.components import Sink, Source, Splitter
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')
@@ -153,40 +156,6 @@ class Splitter(NodeBase):
         for outconn in self.outl:
             branch["connections"] += [outconn]
             outconn.target.propagate_wrapper_to_target(branch)
-
-    def energy_balance_func(self):
-        r"""
-        Calculate energy balance.
-
-        Returns
-        -------
-        residual : list
-            Residual value of energy balance.
-
-            .. math::
-
-                0 = h_{in} - h_{out,j} \;
-                \forall j \in \mathrm{outlets}\\
-        """
-        residual = []
-        for o in self.outl:
-            residual += [self.inl[0].h.val_SI - o.h.val_SI]
-        return residual
-
-    def energy_balance_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives for energy balance equation.
-
-        Returns
-        -------
-        deriv : list
-            Matrix of partial derivatives.
-        """
-        for eq, o in enumerate(self.outl):
-            if self.inl[0].h.is_var:
-                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
-            if o.h.is_var:
-                self.jacobian[k + eq, o.h.J_col] = -1
 
     def enthalpy_structure_matrix(self, k):
         r"""

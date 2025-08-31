@@ -11,6 +11,8 @@ tespy/tools/fluid_properties/functions.py
 SPDX-License-Identifier: MIT
 """
 
+from tespy.tools.global_vars import FLUID_ALIASES
+
 from .helpers import _check_mixing_rule
 from .helpers import get_number_of_fluids
 from .helpers import get_pure_fluid
@@ -32,6 +34,20 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
         s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule)
         T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule)
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
+
+
+def _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data):
+    pure_fluid = get_pure_fluid(fluid_data)
+    if pure_fluid["wrapper"].mixture_type is None:
+        # real pure fluid
+        if pure_fluid["wrapper"].phase_ph(p, h) == "tp":
+            if round(pure_fluid["wrapper"].T_ph(p, h), 6) == round(Tamb, 6):
+                h0 = h_mix_pT(pamb, Tamb, fluid_data)
+                s0 = s_mix_pT(pamb, Tamb, fluid_data)
+                ex_mech = (h - h0) - Tamb * (s - s0)
+                return 0.0, ex_mech
+
+    return None
 
 
 def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
@@ -65,6 +81,11 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
+    if get_number_of_fluids(fluid_data) == 1:
+        ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
+        if ex is not None:
+            return ex[0], ex[1]
+
     h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
     s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
     ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)
@@ -77,7 +98,7 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 def calc_chemical_exergy(pamb, Tamb, fluid_data, Chem_Ex, mixing_rule=None, T0=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
-        fluid_aliases = pure_fluid["wrapper"]._aliases
+        fluid_aliases = FLUID_ALIASES.get_fluid(pure_fluid["wrapper"].fluid)
         y = [Chem_Ex[k][Chem_Ex[k][4]] for k in fluid_aliases if k in Chem_Ex]
         return y[0] / pure_fluid["wrapper"]._molar_mass * 1e3
     else:

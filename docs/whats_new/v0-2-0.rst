@@ -38,7 +38,7 @@ Parameter renaming
   helpers (hlp), logger (logger), networks (nwk), network_reader (nwkr) are **no longer supported**
   (`PR #108 <https://github.com/oemof/tespy/pull/108>`_)! We instead implemented new shortcuts instead
   for tespy.networks and tespy.components modules (`PR #118 <https://github.com/oemof/tespy/pull/118>`_).
-- The method :code:`set_printoptions` for the :py:class:`tespy.networks.networks.network` class is not available anymore.
+- The method :code:`set_printoptions` for the :code:`tespy.networks.networks.network` class is not available anymore.
   Use :code:`yournetwork.set_attr(iterinfo=True/False)` in future (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Parameter :code:`interface` for sinks and sources has been removed (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - The method for loading networks from the network_reader module has been renamed from :code:`load_nwk` to
@@ -59,7 +59,7 @@ Bug fixes
 - Parameters :code:`local_design` and :code:`local_offdesign` are now also available for network exports and imports (`PR #109 <https://github.com/oemof/tespy/pull/109>`_).
 - Busses and characteristics are not exported, if none are used in the network. The network_reader can now
   handle missing bus.csv, char_line.csv and char_map.csv (`PR #127 <https://github.com/oemof/tespy/pull/127>`_).
-- Some parameters of class :py:class:`combustion_engine <tespy.components.combustion.engine>` have been
+- Some parameters of class :code:`combustion_engine <tespy.components.combustion.engine>` have been
   printed out twice in the value range check (`PR #135 <https://github.com/oemof/tespy/pull/135>`_).
 
 Other changes
@@ -69,7 +69,7 @@ Other changes
 - The subsystem architecture has been simplified. Your connections and components are saved to dictionaries to make
   accessing the individual properties much easier (`PR #126 <https://github.com/oemof/tespy/pull/126>`_). For a use
   case of subsystems, have a look at the :ref:`district heating example <tespy_tutorial_district_heating_label>`.
-- Change the specification of set value for :py:class:`dc_simple <tespy.tools.data_containers.dc_simple>`
+- Change the specification of set value for :code:`dc_simple <tespy.tools.data_containers.dc_simple>`
   class from :code:`val_set` to :code:`is_set` (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).
 - Move the default characteristic function plots to the :ref:`tespy_data_label` documentation
   (`PR #138 <https://github.com/oemof/tespy/pull/138>`_).

@@ -497,7 +497,7 @@ class SimpleHeatExchanger(Component):
         ] + [self.get_attr(element) for element in self.hw_group.elements]
 
     def _calculate_td_log(self):
-        """
+        r"""
         Calculation of mean logarithmic temperature difference.
 
         For numerical stability: If temperature differences have

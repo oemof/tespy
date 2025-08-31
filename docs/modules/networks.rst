@@ -146,6 +146,27 @@ your :code:`Network.units`: :code:`ureg`.
         >>> c1.m.val_with_unit
         <Quantity(5.0, 'kilogram / second')>
 
+To understand, what quantity is associated with a specific parameter, you can
+do the following:
+
+.. code-block:: python
+
+    >>> compressor.dp.quantity
+    'pressure'
+    >>> c1.Td_bp.quantity
+    'temperature_difference'
+
+Finally, it is also possible to use your own :code:`UnitRegistry`:
+
+.. code-block:: python
+
+    >>> from pint import UnitRegistry
+    >>> ureg = UnitRegistry()
+    >>> nw.units.set_ureg(ureg)
+
+Changing the ureg will only have effect on future specifications. Existing
+quantities are not changed.
+
 .. _printout_logging_label:
 
 Printouts and logging
@@ -542,7 +563,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid component never exceeds these boundaries.
+  mass fraction of a single fluid component never exceeds oxygenthese boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 

@@ -25,6 +25,7 @@ class Units:
             "power": "W",
             "heat": "W",
             "quality": "1",
+            "vapor_mass_fraction": "1",  # backwards compatibility network import
             "efficiency": "1",
             "ratio": "1",
             "length": "m",

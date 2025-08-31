@@ -293,16 +293,20 @@ class TestNetworkIndividualOffdesign:
         me = Merge('merge', num_in=2)
         si = Sink('sink')
 
-        self.pump1.set_attr(eta_s=0.8, design=['eta_s'],
-                            offdesign=['eta_s_char'])
-        self.pump2.set_attr(eta_s=0.8, design=['eta_s'],
-                            offdesign=['eta_s_char'])
-        self.sc1.set_attr(pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
-        self.sc2.set_attr(pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-                          Tamb=20, eta_opt=0.92, design=['pr'],
-                          offdesign=['zeta'])
+        self.pump1.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
+        )
+        self.pump2.set_attr(
+            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
+        )
+        self.sc1.set_attr(
+            pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
+        self.sc2.set_attr(
+            pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+        )
 
         fl = {'H2O': 1}
         inlet = Connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)

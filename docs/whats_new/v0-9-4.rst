@@ -151,10 +151,10 @@ New Features
 Other Changes
 #############
 - A few broken internal links have been fixed in the documentation
-  (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+  (`PR #735 <https://github.com/oemof/tespy/pull/735>`__).
 - An error is raised, when a Subsystem calls its :code:`add_conns` method and
   the label of the to be added connection is already existing inside the
-  Subsystem (`PR #745 <https://github.com/oemof/tespy/pull/745>`).
+  Subsystem (`PR #745 <https://github.com/oemof/tespy/pull/745>`__).
 - For pure fluids in two-phase at the state of :code:`p=p` and :code:`T=T0`
   the splitting of exergy was broken, because the enthalpy :code:`h(p=p, T=T0)`
   cannot be calculated. Instead :code:`ex_therm` is assigned :code:`0.0` in

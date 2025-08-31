@@ -36,11 +36,6 @@ jobs:
     - name: Check test coverage ${{ matrix.test_number }}
       run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 84 || 85 }}
 
-    - name: Report to coveralls
-      run: coveralls
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Coveralls Parallel
       uses: coverallsapp/github-action@v2
       with:

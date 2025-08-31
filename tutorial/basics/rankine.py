@@ -4,7 +4,7 @@ from tespy.networks import Network
 # create a network object with R134a as fluid
 my_plant = Network()
 my_plant.units.set_defaults(
-    temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
 )
 # %%[sec_2]
 from tespy.components import (
@@ -138,7 +138,7 @@ motor.set_attr(eta=0.97)
 my_plant.solve(mode='design')
 my_plant.print_results()
 # %%[sec_7]
-e5.set_attr(E=10e6)
+e5.set_attr(E=10)
 c1.set_attr(m=None)
 
 my_plant.solve(mode='design')
@@ -171,7 +171,7 @@ for T in data['T_livesteam']:
     c1.set_attr(T=T)
     my_plant.solve('design')
     eta['T_livesteam'] += [e5.E.val / sg.Q.val * 100]
-    power['T_livesteam'] += [e5.E.val / 1e6]
+    power['T_livesteam'] += [e5.E.val]
 
 # reset to base temperature
 c1.set_attr(T=600)
@@ -181,7 +181,7 @@ for T in data['T_cooling']:
     c11.set_attr(T=T - 10)
     my_plant.solve('design')
     eta['T_cooling'] += [e5.E.val / sg.Q.val * 100]
-    power['T_cooling'] += [e5.E.val / 1e6]
+    power['T_cooling'] += [e5.E.val]
 
 # reset to base temperature
 c12.set_attr(T=30)
@@ -191,7 +191,7 @@ for p in data['p_livesteam']:
     c1.set_attr(p=p)
     my_plant.solve('design')
     eta['p_livesteam'] += [e5.E.val / sg.Q.val * 100]
-    power['p_livesteam'] += [e5.E.val / 1e6]
+    power['p_livesteam'] += [e5.E.val]
 
 # reset to base pressure
 c1.set_attr(p=150)

@@ -1,4 +1,5 @@
 import pint
+import warnings
 
 
 class Units:
@@ -23,7 +24,6 @@ class Units:
             "power": "W",
             "heat": "W",
             "quality": "1",
-            "vapor_mass_fraction": "1",  # for backwards compatibility
             "efficiency": "1",
             "ratio": "1",
             "length": "m",
@@ -39,14 +39,74 @@ class Units:
         # m3 is not in standard ureg
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")
+        self.ureg.define("kgK = kg * K")
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
 
     def set_defaults(self, **kwargs):
+        """Set the default units
+
+        Parameters
+        ----------
+        temperature : str
+            Default unit: "kelvin"
+        temperature_difference : str
+            Default unit: "delta_degC"
+        enthalpy : str
+            Default unit: "J/kg"
+        specific_energy : str
+            Default unit: "J/kg"
+        entropy : str
+            Default unit: "J/kg/K"
+        pressure : str
+            Default unit: "Pa"
+        mass_flow : str
+            Default unit: "kg/s"
+        volumetric_flow : str
+            Default unit: "m3/s"
+        specific_volume : str
+            Default unit: "m3/kg"
+        power : str
+            Default unit: "W"
+        heat : str
+            Default unit: "W"
+        quality : str
+            Default unit: "1"
+        efficiency : str
+            Default unit: "1"
+        ratio : str
+            Default unit: "1"
+        length : str
+            Default unit: "m"
+        speed : str
+            Default unit: "m/s"
+        area : str
+            Default unit: "m2"
+        thermal_conductivity : str
+            Default unit: "W/m/K"
+        heat_transfer_coefficient : str
+            Default unit: "W/K"
+        """
         for key, value in kwargs.items():
+            if key not in self.default:
+                msg = (
+                    f"The quantity {key} is unknown. Please specify any of "
+                    f"the following: "
+                    f"{', '.join([key for key in self.default if key is not None])}."
+                )
+                raise KeyError(msg)
             if value == "-":
                 value = "1"
+            elif value == "C":
+                value = "degC"
+                msg = (
+                    "The unit 'C' is used for 'Coulomb' in pint. For "
+                    "backwards compatibility it will be parsed as degC for "
+                    "now. Please use degC (or correct pint aliases) instead "
+                    "as it will stop working with the next major release"
+                )
+                warnings.warn(msg, FutureWarning)
             if self._quantities[key].is_compatible_with(value):
                 self.default[key] = value
             else:
@@ -54,6 +114,13 @@ class Units:
                 raise ValueError(msg)
 
     def set_ureg(self, ureg):
+        """Replace default ureg with a custom one
+
+        Parameters
+        ----------
+        ureg : pint.UnitRegistry
+            Change the pint.UnitRegistry to a custom one
+        """
         self._ureg = ureg
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")

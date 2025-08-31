@@ -995,13 +995,6 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
     ...
     ...         self.add_conns(inlet_sup, sup_eva, eva_eco, eco_outlet)
 
-.. note::
-
-    Please note, that you should label your components (and connections) with
-    unitque names, otherwise you can only use the subsystem once per model. In
-    this case, it is achieved by adding the subsystem label to all of the
-    component labels.
-
 Make use of your subsystem
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

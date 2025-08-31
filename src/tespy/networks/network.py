@@ -3203,12 +3203,14 @@ class Network:
         comp = self.get_comp(c.name)
         if comp.printout:
             # select parameter from results DataFrame
-            val = c[param]
+            param_obj = comp.get_attr(param)
+            val = param_obj.val
+            val_SI = param_obj.val_SI
             if not colored:
                 return str(val)
             # else part
-            if (val < comp.get_attr(param).min_val - ERR or
-                    val > comp.get_attr(param).max_val + ERR ):
+            if (val_SI < comp.get_attr(param).min_val - ERR or
+                    val_SI > comp.get_attr(param).max_val + ERR ):
                 return f"{coloring['err']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_var:
                 return f"{coloring['var']}{val}{coloring['end']}"

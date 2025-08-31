@@ -36,7 +36,17 @@ jobs:
     - name: Check test coverage
       run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 84 || 85 }}
 
-    - name: Report to coveralls
-      run: coveralls
+
+    - name: Report to Coveralls (parallel)
+      run: coveralls --parallel
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  coveralls_finish:
+    needs: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finish Coveralls
+        run: coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

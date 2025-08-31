@@ -1,5 +1,6 @@
-import pint
 import warnings
+
+import pint
 
 
 class Units:

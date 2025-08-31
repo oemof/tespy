@@ -103,18 +103,18 @@ to be in horse power:
 
 .. code-block:: python
 
-    >>> round(compressor.P.val)
-    185
+    >>> round(compressor.P.val, 0)
+    185.0
 
 We can also retrieve the value with the respective unit, and then use pint to
 transform it into what ever unit we need:
 
 .. code-block:: python
 
-    >>> round(compressor.P.val_with_unit)
-    <Quantity(185, 'horsepower')>
-    >>> round(compressor.P.val_with_unit.to("kW"))
-    <Quantity(138, 'kilowatt')>
+    >>> round(compressor.P.val_with_unit, 0)
+    <Quantity(185.0, 'horsepower')>
+    >>> round(compressor.P.val_with_unit.to("kW"), 0)
+    <Quantity(138.0, 'kilowatt')>
 
 Alternatively, we can specify an individual unit using the :code:`Quantity`
 class of pint. For that you have to utilize the :code:`UnitRegistry` of
@@ -858,23 +858,23 @@ The easiest way to access the results of one specific component looks like this
     80.0
     >>> round(compressor.eta_s.val_SI, 2)  # isentropic efficiency of mycomp in SI unit
     0.8
-    >>> round(compressor.P.val)  # power of mycomp in network unit
-    926
-    >>> round(compressor.P.val_SI)  # power of mycomp in SI unit
-    690223
-    >>> round(compressor.P.val_with_unit)  # power as pint Quantity with unit and magnitude
-    <Quantity(926, 'horsepower')>
+    >>> round(compressor.P.val, 0)  # power of mycomp in network unit
+    926.0
+    >>> round(compressor.P.val_SI, 0)  # power of mycomp in SI unit
+    690223.0
+    >>> round(compressor.P.val_with_unit, 0)  # power as pint Quantity with unit and magnitude
+    <Quantity(926.0, 'horsepower')>
 
 and similar for connection parameters:
 
 .. code:: python
 
-    >>> round(c1.m.val)  # value in specified network unit
-    5
-    >>> round(c1.m.val_SI)  # value in SI unit
-    5
-    >>> round(c1.m.val_with_unit)  # mass flow as pint Quantity with unit and magnitude
-    <Quantity(5, 'kilogram / second')>
+    >>> round(c1.m.val, 0)  # value in specified network unit
+    5.0
+    >>> round(c1.m.val_SI, 0)  # value in SI unit
+    5.0
+    >>> round(c1.m.val_with_unit, 0)  # mass flow as pint Quantity with unit and magnitude
+    <Quantity(5.0, 'kilogram / second')>
     >>> c1.fluid.val['air']  # mass fraction of air
     1.0
 

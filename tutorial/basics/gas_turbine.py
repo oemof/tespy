@@ -7,7 +7,8 @@ from tespy.components import (
 from tespy.connections import Connection, Ref, PowerConnection
 
 # define full fluid list for the network"s variable space
-nw = Network(p_unit="bar", T_unit="C")
+nw = Network()
+nw.units.set_defaults(temperature="degC", pressure="bar")
 
 cp = Compressor("Compressor")
 cc = DiabaticCombustionChamber("combustion chamber")

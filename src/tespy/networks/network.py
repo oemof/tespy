@@ -252,8 +252,6 @@ class Network:
                     fpd[prop]["text"].replace(" ", "_"):
                     unit_replace.get(kwargs[unit], kwargs[unit])
                 })
-            if prop in ["m", "p", "h", "s", "T", "x", "v"]:
-                setattr(self, unit, self.units.default[fpd[prop]["text"].replace(" ", "_")])
 
         if msg:
             warnings.warn(msg, FutureWarning)

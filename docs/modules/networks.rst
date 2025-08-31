@@ -37,11 +37,11 @@ be at 10 bar, use it as upper boundary.
     >>> from tespy.networks import Network
 
     >>> my_plant = Network()
-    >>> my_plant.p_unit
+    >>> my_plant.units.default["pressure"]
     'Pa'
-    >>> my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
+    >>> my_plant.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
     >>> my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
-    >>> my_plant.p_unit
+    >>> my_plant.units.default["pressure"]
     'bar'
     >>> [float(p) for p in my_plant.p_range_SI]
     [5000.0, 1000000.0]

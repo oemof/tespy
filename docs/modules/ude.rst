@@ -46,7 +46,9 @@ create an instance with the respective data. First, we set up the TESPy model.
     >>> from tespy.tools import UserDefinedEquation
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    >>> nw.units.set_defaults(
+    ...     pressure='bar', temperature='degC', enthalpy='kJ/kg'
+    ... )
 
     >>> so1 = Source('source 1')
     >>> so2 = Source('source 2')

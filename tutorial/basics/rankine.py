@@ -3,7 +3,9 @@ from tespy.networks import Network
 
 # create a network object with R134a as fluid
 my_plant = Network()
-my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+my_plant.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg"
+)
 # %%[sec_2]
 from tespy.components import (
     CycleCloser, Pump, Condenser, Turbine, SimpleHeatExchanger, Source, Sink

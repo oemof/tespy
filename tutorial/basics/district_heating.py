@@ -7,7 +7,7 @@ from tespy.components import (
 from tespy.connections import Connection
 
 nw = Network()
-nw.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+nw.units.set_defaults(temperature="degC", pressure="bar", enthalpy="kJ/kg")
 
 # central heating plant
 hs = SimpleHeatExchanger('heat source')

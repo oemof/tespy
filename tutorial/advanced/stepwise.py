@@ -2,9 +2,8 @@
 from tespy.networks import Network
 working_fluid = "NH3"
 
-nw = Network(
-    T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s"
-)
+nw = Network()
+nw.units.set_defaults(temperature="degC", pressure="bar", enthalpy="kJ/kg")
 # %%[sec_2]
 from tespy.components import Condenser
 from tespy.components import CycleCloser

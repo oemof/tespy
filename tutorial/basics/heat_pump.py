@@ -5,7 +5,9 @@ from tespy.networks import Network
 my_plant = Network()
 # %%[sec_2]
 # set the unitsystem for temperatures to °C and for pressure to bar
-my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+my_plant.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg"
+)
 # %%[sec_3]
 from tespy.components import (
     CycleCloser, Compressor, Valve, SimpleHeatExchanger

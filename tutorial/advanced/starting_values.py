@@ -12,7 +12,10 @@ from tespy.connections import Connection, PowerConnection
 wf = "NH3"
 
 # network
-nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s")
+nw = Network()
+nw.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg"
+)
 
 # components
 cycle_closer = CycleCloser("Refrigerant Cycle Closer")
@@ -152,9 +155,9 @@ print(cop)
 # %%[sec_6]
 def generate_network_with_starting_values(wf):
     # network
-    nw = Network(
-        T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s",
-        iterinfo=False
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", enthalpy="kJ/kg"
     )
 
     # components

@@ -13,8 +13,10 @@ available from its original location tespy/tools/data_containers.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+import pint
 
 from tespy.tools import logger
+from tespy.tools.units import _UNITS
 
 
 class DataContainer:
@@ -70,8 +72,9 @@ class DataContainer:
     <class 'tespy.tools.data_containers.ComponentCharacteristicMaps'>
     >>> type(ComponentCharacteristics(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.ComponentCharacteristics'>
-    >>> type(ComponentProperties(_val=100, is_set=True, _is_var=True,
-    ...      max_val=1000, min_val=1))
+    >>> type(ComponentProperties(
+    ...     val=100, is_set=True, is_var=True, max_val=1000, min_val=1
+    ... ))
     <class 'tespy.tools.data_containers.ComponentProperties'>
     >>> pi = Pipe('testpipe', L=100, D=0.5, ks=5e-5)
     >>> type(GroupedComponentProperties(
@@ -82,9 +85,11 @@ class DataContainer:
     ... _val={'CO2': 0.1, 'H2O': 0.11, 'N2': 0.75, 'O2': 0.03}, _is_set={'O2'}
     ... ))
     <class 'tespy.tools.data_containers.FluidComposition'>
-    >>> type(FluidProperties(val=5, _val_SI=500000, is_set=True, unit='bar'))
+    >>> type(FluidProperties(
+    ...     val=5, val_SI=500000, is_set=True, quantity="pressure"
+    ... ))
     <class 'tespy.tools.data_containers.FluidProperties'>
-    >>> type(SimpleDataContainer(_val=5, is_set=False))
+    >>> type(SimpleDataContainer(val=5, is_set=False))
     <class 'tespy.tools.data_containers.SimpleDataContainer'>
     """
 
@@ -108,20 +113,35 @@ class DataContainer:
             See the class documentation of desired DataContainer for available
             keywords.
         """
-        var = self.attr()
-        # specify values
-        for key in kwargs:
-            if key in var:
-                self.__dict__.update({key: kwargs[key]})
-            elif f"_{key}" in var:
-                self.__dict__.update({f"_{key}": kwargs[key]})
+        for key, value in kwargs.items():
+            prop = getattr(type(self), key, None)
+
+            if prop is not None and prop.fset is not None:
+                setattr(self, key, value)  # goes through setter
+            elif hasattr(self, key):
+                setattr(self, key, value)  # plain attribute
             else:
-                msg = (
-                    f"Datacontainer of type {self.__class__.__name__} has no "
-                    f"attribute \"{key}\"."
-                )
-                logger.error(msg)
-                raise KeyError(msg)
+                raise AttributeError(f"Unknown parameter '{key}'.")
+        # apply kwargs via setters
+        # for key, value in kwargs.items():
+        #     if hasattr(self, key):  # property exists
+        #         setattr(self, key, value)  # goes through setter
+        #     else:
+        #         raise AttributeError(f"Unknown parameter {key!r}")
+        # var = self.attr()
+        # specify values
+        # for key in kwargs:
+        #     if f"_{key}" in var:
+        #         self.__dict__.update({f"_{key}": kwargs[key]})
+        #     elif key in var:
+        #         self.__dict__.update({key: kwargs[key]})
+        #     else:
+        #         msg = (
+        #             f"Datacontainer of type {self.__class__.__name__} has no "
+        #             f"attribute \"{key}\"."
+        #         )
+        #         logger.error(msg)
+        #         raise KeyError(msg)
 
     def get_attr(self, key):
         """
@@ -341,147 +361,6 @@ class ComponentMandatoryConstraints(DataContainer):
     num_eq = property(get_num_eq, set_num_eq)
 
 
-class ComponentProperties(DataContainer):
-    """
-    Data container for component properties.
-
-    Parameters
-    ----------
-    val : float
-        Value for this component attribute, default: val=1.
-
-    val_SI : float
-        Value in SI_unit (available for temperatures only, unit transformation
-        according to network's temperature unit), default: val_SI=0.
-
-    is_set : boolean
-        Has the value for this attribute been set?, default: is_set=False.
-
-    is_var : boolean
-        Is this attribute part of the system variables?, default: is_var=False.
-
-    d : float
-        Interval width for numerical calculation of partial derivative towards
-        this attribute, it is part of the system variables, default d=1e-4.
-
-    min_val : float
-        Minimum value for this attribute, used if attribute is part of the
-        system variables, default: min_val=1.1e-4.
-
-    max_val : float
-        Maximum value for this attribute, used if attribute is part of the
-        system variables, default: max_val=1e12.
-    """
-
-    @staticmethod
-    def attr():
-        """
-        Return the available attributes for a ComponentProperties type object.
-
-        Returns
-        -------
-        out : dict
-            Dictionary of available attributes (dictionary keys) with default
-            values.
-        """
-        return {
-            '_val': 1,
-            'val_SI': 0,
-            'is_set': False,
-            'd': 1e-4,
-            'min_val': -1e12,
-            'max_val': 1e12,
-            '_is_var': False,
-            'design': np.nan,
-            'is_result': False,
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'structure_matrix': None,
-            'constant_deriv': False,
-            '_reference_container': None,
-            '_factor': None,
-            '_offset': None,
-            'dependents': None
-        }
-
-    def _serialize(self):
-        keys = self._serializable_keys()
-        return {k: getattr(self, k) for k in keys}
-
-    @staticmethod
-    def _serializable_keys():
-        return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
-        ]
-
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    def get_J_col(self):
-        reference = self._reference_container
-        if reference:
-            return reference.J_col
-        else:
-            raise ValueError("")
-
-    def get_reference_val_SI(self):
-        """Get value of the reference corresponding to own value
-
-        Returns
-        -------
-        float
-            Value of reference container corresponding to this data container's
-            value.
-        """
-        return (self._val - self._offset) / self._factor
-
-    def set_reference_val_SI(self, value):
-        if self._reference_container is not None:
-            self._reference_container.val_SI = (value - self._offset) / self._factor
-        else:
-            raise ValueError()
-
-    def get_J_col(self):
-        if self._reference_container is not None:
-            return self._reference_container.J_col
-        else:
-            raise ValueError()
-
-    def get_val_SI(self):
-        if self._reference_container is not None:
-            return self._reference_container.val_SI * self._factor + self._offset
-        else:
-            return float(self._val)
-
-    def set_val_SI(self, value):
-        self._val = value
-
-    def get_is_var(self):
-        if self._reference_container is not None:
-            return self._reference_container.is_var
-        else:
-            return self._is_var
-
-    def set_is_var(self, value):
-        if self._reference_container is not None:
-            self._reference_container.is_var = value
-        else:
-            raise ValueError()
-
-    num_eq = property(get_num_eq, set_num_eq)
-    val = property(get_val_SI, set_val_SI)
-    J_col = property(get_J_col)
-    is_var = property(get_is_var, set_is_var)
-
 class GroupedComponentProperties(DataContainer):
     """
     Data container for grouped component parameters.
@@ -595,28 +474,43 @@ class FluidProperties(DataContainer):
         """
         return {
             "design": np.nan,
-            "val": np.nan,
-            "val0": np.nan,
-            "_val_SI": 0,
+            "_val": np.nan,
+            "_val0": np.nan,
+            "_val_SI": np.nan,
+            "_is_var": False,
+            "is_result": False,
+            "min_val": -1e12,
+            "max_val": 1e12,
             "d": 1e-1,
-            "unit": None,
+            "_unit": None,
             "is_set": False,
             "_potential_var": False,
             "func": None,
             "deriv": None,
             "structure_matrix": None,
             "constant_deriv": False,
-            "num_eq": 0,
+            "num_eq_sets": 0,
+            "_num_eq": None,
             "func_params": {},
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
-            'dependents': None
+            'dependents': None,
+            "quantity": None
         }
 
     def _serialize(self):
-        keys = ["val", "val0", "val_SI", "is_set", "unit"]
+        keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
 
     def get_reference_val_SI(self):
         """Get value of the reference corresponding to own value
@@ -654,17 +548,147 @@ class FluidProperties(DataContainer):
         if self._reference_container is not None:
             return self._reference_container.is_var
         else:
-            raise ValueError()
+            return self._is_var
 
     def set_is_var(self, value):
         if self._reference_container is not None:
             self._reference_container.is_var = value
         else:
-            raise ValueError()
+            self._is_var = value
 
+    def _get_val_base_unit(self):
+        return self._val.to_base_units().units
+
+    def _get_val0_base_unit(self):
+        return self._val0.to_base_units().units
+
+    def get_val_with_unit(self):
+        return self._val
+
+    def _assign_default_unit_to_val(self, units):
+        ureg = units.ureg
+        default_unit = self._get_default_unit(units)
+        self.val = ureg.Quantity(self._val, default_unit)
+
+    def _assign_default_unit_to_val0(self, units):
+        ureg = units.ureg
+        default_unit = self._get_default_unit(units)
+        self.val0 = ureg.Quantity(self._val0, default_unit)
+
+    def _get_default_unit(self, units):
+        if self._unit is None:
+            return units.default[self.quantity]
+        else:
+            # compatibility with older version exports
+            self._unit = self._replace_unit_for_compatibility(self._unit)
+            return self._unit
+
+    def set_SI_from_val(self, units):
+
+        if not isinstance(self._val, pint.Quantity):
+            self._assign_default_unit_to_val(units)
+
+        self.val_SI = self._val.to_base_units().magnitude
+
+    def set_SI_from_val0(self, units):
+        if not isinstance(self._val0, pint.Quantity):
+            self._assign_default_unit_to_val0(units)
+
+        self.val_SI = self._val0.to_base_units().magnitude
+
+    def set_val_from_SI(self, units):
+        # intermediate fix
+        if not isinstance(self._val, pint.Quantity):
+            self._assign_default_unit_to_val(units)
+
+        self.val = units.ureg.Quantity(
+            self.val_SI, self._get_val_base_unit()
+        ).to(self._val.units)
+
+    def set_val0_from_SI(self, units):
+        # intermediate fix
+        if not isinstance(self.val0, pint.Quantity):
+            self._assign_default_unit_to_val0(units)
+
+        self.val0 = units.ureg.Quantity(
+            self.val_SI, self._get_val0_base_unit()
+        ).to(self.val0.units)
+
+    def get_val(self):
+        if not isinstance(self._val, pint.Quantity):
+            return self._val
+        else:
+            return self._val.magnitude
+
+    def set_val(self, value):
+        self._val = self._handle_value_with_quantity(value)
+
+    def get_val0(self):
+        return self._val0
+
+    def set_val0(self, value):
+        self._val0 = self._handle_value_with_quantity(value)
+
+    def _handle_value_with_quantity(self, value):
+        if isinstance(value, pint.Quantity):
+            if self._is_compatible(value.units):
+                return value
+            else:
+                msg = (
+                    f"Unit '{value.units}' is not compatible with "
+                    f"{self.quantity}."
+                )
+                raise ValueError(msg)
+        else:
+            return value
+
+    def _is_compatible(self, unit):
+        if self.quantity == "temperature_difference":
+            unit_label = list(unit._units.keys())[0]
+            if unit_label.startswith("delta_"):
+                return _UNITS._quantities[self.quantity].is_compatible_with(unit)
+            else:
+                _units = _UNITS.ureg._units
+                kelvin = list(_units["K"].aliases) + [_units["K"].name]
+                rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
+                return unit_label in kelvin or unit_label in rankine
+        else:
+            return _UNITS._quantities[self.quantity].is_compatible_with(unit)
+
+    def get_unit(self):
+        if not isinstance(self._val, pint.Quantity):
+            # if a unit was never attached from the network
+            return _UNITS.default[self.quantity]
+        else:
+            return str(self.val_with_unit.units)
+
+    def _replace_unit_for_compatibility(self, value):
+        if value == "C":
+            if self.quantity == "temperature":
+                value = "degC"
+            elif self.quantity == "temperature_difference":
+                value = "delta_degC"
+        elif "kgK" in value:
+            value = value.replace("kgK", "kg/K")
+        elif value == "-":
+            value = "1"
+        return value
+
+    def set_unit(self, value):
+        self._unit = self._replace_unit_for_compatibility(value)
+
+    unit = property(get_unit, set_unit)
+    val = property(get_val, set_val)
+    val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)
+    val_with_unit = property(get_val_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
+    num_eq = property(get_num_eq, set_num_eq)
+
+
+class ComponentProperties(FluidProperties):
+    pass
 
 
 class ScalarVariable(DataContainer):
@@ -800,6 +824,9 @@ class FluidComposition(DataContainer):
     def get_is_set(self):
         return self._is_set
 
+    def set_is_set(self, value):
+        self._is_set = value
+
     def get_val(self):
         reference = self._reference_container
         if reference:
@@ -824,7 +851,7 @@ class FluidComposition(DataContainer):
             return self._val
 
     val = property(get_val, set_val)
-    is_set = property(get_is_set)
+    is_set = property(get_is_set, set_is_set)
     is_var = property(get_is_var)
     J_col = property(get_J_col)
 
@@ -931,6 +958,7 @@ class ReferencedFluidProperties(DataContainer):
             "func_params": {},
             "_solved": False,
             "dependents": None,
+            "quantity": None
         }
 
     def _serialize(self):

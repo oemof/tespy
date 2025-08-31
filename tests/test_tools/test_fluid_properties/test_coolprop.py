@@ -152,7 +152,9 @@ class TestFluidPropertyBackEnds:
     def setup_clausius_rankine(self, fluid, back_end):
         """Setup a Clausius-Rankine cycle."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=True)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         # %% components
 
@@ -204,7 +206,9 @@ class TestFluidPropertyBackEnds:
     def setup_pipeline_network(self, fluid, back_end):
         """Setup a pipeline network."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         # %% components
 

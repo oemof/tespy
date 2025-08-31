@@ -31,7 +31,10 @@ from tespy.tools.helpers import get_chem_ex_lib
 class TestCGAM:
 
     def setup_method(self):
-        self.nwk = Network(p_unit='bar', T_unit='C')
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         air_molar = {
             'O2': 0.2059, 'N2': 0.7748, 'CO2': 0.0003, 'H2O': 0.019, 'CH4': 0

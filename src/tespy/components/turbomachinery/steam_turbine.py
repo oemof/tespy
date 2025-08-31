@@ -127,7 +127,10 @@ class SteamTurbine(Turbine):
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> st = SteamTurbine('steam turbine')
@@ -160,7 +163,9 @@ class SteamTurbine(Turbine):
 
         params = super().get_parameters()
         params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
-        params["eta_s_dry"] = dc_cp(min_val=0.0, max_val=1.0)
+        params["eta_s_dry"] = dc_cp(
+            min_val=0.0, max_val=1.0, quantity="efficiency"
+        )
         params["eta_s_dry_group"] = dc_gcp(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
@@ -213,12 +218,12 @@ class SteamTurbine(Turbine):
             ym = 1 - (inl.calc_x() + outl.calc_x()) / 2  # average wetness
             return (
                 self.calc_eta_s()
-                - self.eta_s_dry.val * (1 - self.alpha.val * ym)
+                - self.eta_s_dry.val_SI * (1 - self.alpha.val_SI * ym)
             )
 
         else:  # superheated vapour
             if outl.calc_phase() == "g":
-                return self.calc_eta_s() - self.eta_s_dry.val
+                return self.calc_eta_s() - self.eta_s_dry.val_SI
 
             dp = inl.p.val_SI - outl.p.val_SI
 
@@ -237,7 +242,7 @@ class SteamTurbine(Turbine):
                     T0=inl.T.val_SI
                 )
                 hout = (
-                    inl.h.val_SI - self.eta_s_dry.val
+                    inl.h.val_SI - self.eta_s_dry.val_SI
                     * (inl.h.val_SI - hout_isen)
                 )
 
@@ -252,7 +257,7 @@ class SteamTurbine(Turbine):
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_s_dry.val * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(

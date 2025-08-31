@@ -156,8 +156,10 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
@@ -242,6 +244,7 @@ class SimpleHeatExchanger(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                quantity="heat"
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
@@ -249,13 +252,15 @@ class SimpleHeatExchanger(Component):
                 structure_matrix=self.pr_structure_matrix,
                 dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.dp_func,
                 dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
-                func_params={'dp': 'dp'}
+                func_params={'dp': 'dp'},
+                quantity="pressure"
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
@@ -263,12 +268,15 @@ class SimpleHeatExchanger(Component):
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'}
             ),
-            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-            'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(_val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
+            'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+            'ks': dc_cp(
+                _val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"
+            ),
             'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3, d=1e-2),
-            'kA': dc_cp(min_val=0, d=1),
-            'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
+            'kA': dc_cp(min_val=0, d=1, quantity="heat_transfer_coefficient"),
+            'kA_char': dc_cc(param='m'),
+            'Tamb': dc_cp(quantity="temperature"),
             'dissipative': dc_simple(_val=None),
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
@@ -337,11 +345,6 @@ class SimpleHeatExchanger(Component):
             return []
 
     def _preprocess(self, row_idx):
-        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
-
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
-
         super()._preprocess(row_idx)
 
     def _get_power_connector_location(self):
@@ -380,7 +383,7 @@ class SimpleHeatExchanger(Component):
         """
         return self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        ) - self.Q.val
+        ) - self.Q.val_SI
 
     def energy_balance_dependents(self):
         return [
@@ -421,13 +424,16 @@ class SimpleHeatExchanger(Component):
         visc_o = o.calc_viscosity(T0=o.T.val_SI)
         v_i = i.calc_vol(T0=i.T.val_SI)
         v_o = o.calc_vol(T0=o.T.val_SI)
-        Re = 4 * abs(i.m.val_SI) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
+        Re = (
+            4 * abs(i.m.val_SI)
+            / (math.pi * self.D.val_SI * (visc_i + visc_o) / 2)
+        )
 
         return (
             (i.p.val_SI - o.p.val_SI)
             - 8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o)
-            / 2 * self.L.val * dff(Re, self.ks.val, self.D.val)
-            / (math.pi ** 2 * self.D.val ** 5)
+            / 2 * self.L.val_SI * dff(Re, self.ks.val_SI, self.D.val_SI)
+            / (math.pi ** 2 * self.D.val_SI ** 5)
         )
 
     def darcy_dependents(self):
@@ -476,8 +482,8 @@ class SimpleHeatExchanger(Component):
         return (
             math.copysign(i.p.val_SI - o.p.val_SI, i.m.val_SI)
             - (
-                10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
-                (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)
+                10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val_SI /
+                (self.ks_HW.val_SI ** 1.852 * self.D.val_SI ** 4.871)
             ) * (9.81 * ((v_i + v_o) / 2) ** 0.852)
         )
 
@@ -491,7 +497,7 @@ class SimpleHeatExchanger(Component):
         ] + [self.get_attr(element) for element in self.hw_group.elements]
 
     def _calculate_td_log(self):
-        """
+        r"""
         Calculation of mean logarithmic temperature difference.
 
         For numerical stability: If temperature differences have
@@ -560,7 +566,7 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         td_log = self._calculate_td_log()
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
+        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val_SI * td_log
 
     def kA_group_dependents(self):
         return [
@@ -648,7 +654,8 @@ class SimpleHeatExchanger(Component):
                 \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
         """
         return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
 
     def bus_deriv(self, bus):
         r"""
@@ -762,19 +769,18 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
 
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(i, o)
 
         if self.Tamb.is_set:
             ttd_1 = i.T.val_SI - self.Tamb.val_SI
             ttd_2 = o.T.val_SI - self.Tamb.val_SI
             if ttd_1 / ttd_2 < 0:
-                self.kA.val = np.nan
+                self.kA.val_SI = np.nan
             else:
-                self.kA.val = abs(self.Q.val / self._calculate_td_log())
+                self.kA.val_SI = abs(self.Q.val_SI / self._calculate_td_log())
 
             self.kA.is_result = True
         else:
@@ -923,7 +929,7 @@ class SimpleHeatExchanger(Component):
                 f"exergy analysis for component {self.label}."
             )
             logger.warning(msg)
-        if self.Q.val < 0:
+        if self.Q.val_SI < 0:
             if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
                 if self.dissipative.val:
                     self.E_P = np.nan
@@ -958,7 +964,7 @@ class SimpleHeatExchanger(Component):
                 self.E_bus = {
                     "chemical": np.nan, "physical": np.nan, "massless": np.nan
                 }
-        elif self.Q.val > 0:
+        elif self.Q.val_SI > 0:
             if self.inl[0].T.val_SI >= T0 - 1e-6 and self.outl[0].T.val_SI >= T0 - 1e-6:
                 self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
                 self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm

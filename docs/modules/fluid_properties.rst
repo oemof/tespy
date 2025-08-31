@@ -278,7 +278,8 @@ the previous section:
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
 
-    >>> nwk = Network(T_unit="C", p_unit="MPa", iterinfo=False)
+    >>> nwk = Network(iterinfo=False)
+    >>> nwk.units.set_defaults(temperature="degC", pressure="MPa")
 
     >>> so = Source("Source")
     >>> tu = Turbine("Turbine")

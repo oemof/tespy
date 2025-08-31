@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import pint
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -108,11 +109,18 @@ class ConnectionBase:
             raise ValueError(msg)
 
     def _parameter_specification(self, key, value):
-        try:
-            float(value)
-            is_numeric = True
-        except (TypeError, ValueError):
-            is_numeric = False
+
+        is_numeric = False
+        is_quantity = False
+
+        if isinstance(value, pint.Quantity):
+            is_quantity = True
+        else:
+            try:
+                float(value)
+                is_numeric = True
+            except (TypeError, ValueError):
+                pass
 
         if value is None:
             self.get_attr(key).set_attr(is_set=False)
@@ -120,7 +128,7 @@ class ConnectionBase:
             if f"{key}_ref" in self.property_data:
                 self.get_attr(f"{key}_ref").set_attr(is_set=False)
 
-        elif is_numeric:
+        elif is_numeric or is_quantity:
             # value specification
             if key in self.property_data:
                 self.get_attr(key).set_attr(is_set=True, val=value)
@@ -943,11 +951,11 @@ class Connection(ConnectionBase):
 
     def get_parameters(self):
         return {
-            "m": dc_prop(d=1e-4),
-            "p": dc_prop(d=1e-1),
-            "h": dc_prop(d=1e-1),
-            "vol": dc_prop(),
-            "s": dc_prop(),
+            "m": dc_prop(d=1e-4, quantity="mass_flow"),
+            "p": dc_prop(d=1e-1, quantity="pressure"),
+            "h": dc_prop(d=1e-1, quantity="enthalpy"),
+            "vol": dc_prop(quantity="specific_volume"),
+            "s": dc_prop(quantity="entropy"),
             "fluid": dc_flu(d=1e-5),
             "fluid_balance": dc_simple(
                 func=self.fluid_balance_func,
@@ -957,42 +965,51 @@ class Connection(ConnectionBase):
             ),
             "T": dc_prop(
                 func=self.T_func, deriv=self.T_deriv,
-                dependents=self.T_dependents, num_eq=1
+                dependents=self.T_dependents, num_eq=1,
+                quantity="temperature"
             ),
             "v": dc_prop(
                 func=self.v_func, deriv=self.v_deriv,
-                dependents=self.v_dependents, num_eq=1
+                dependents=self.v_dependents, num_eq=1,
+                quantity="volumetric_flow"
             ),
             "x": dc_prop(
                 func=self.x_func, deriv=self.x_deriv,
-                dependents=self.x_dependents, num_eq=1
+                dependents=self.x_dependents, num_eq=1,
+                quantity="quality"
             ),
             "Td_bp": dc_prop(
                 func=self.Td_bp_func, deriv=self.Td_bp_deriv,
-                dependents=self.Td_bp_dependents, num_eq=1
+                dependents=self.Td_bp_dependents, num_eq=1,
+                quantity="temperature_difference"
             ),
             "m_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "m"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="mass_flow"
             ),
             "p_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "p"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="pressure"
             ),
             "h_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "h"},
-                structure_matrix=self.primary_ref_structure_matrix
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="enthalpy"
             ),
             "T_ref": dc_ref(
                 func=self.T_ref_func, deriv=self.T_ref_deriv,
-                dependents=self.T_ref_dependents, num_eq=1
+                dependents=self.T_ref_dependents, num_eq=1,
+                quantity="temperature_difference"  # reference has delta T
             ),
             "v_ref": dc_ref(
                 func=self.v_ref_func, deriv=self.v_ref_deriv,
-                dependents=self.v_ref_dependents, num_eq=1
+                dependents=self.v_ref_dependents, num_eq=1,
+                quantity="volumetric_flow"
             ),
 
         }
@@ -1209,8 +1226,7 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
-
-    def calc_results(self):
+    def calc_results(self, units):
         self.T.val_SI = self.calc_T()
         fluid = single_fluid(self.fluid_data)
         _converged = True
@@ -1272,30 +1288,42 @@ class Connection(ConnectionBase):
             self.s.val_SI = self.calc_s()
 
         for prop in self._result_attributes():
-            self.get_attr(prop).val = convert_from_SI(
-                prop, self.get_attr(prop).val_SI, self.get_attr(prop).unit
-            )
+            self.get_attr(prop).set_val_from_SI(units)
 
-        self.m.val0 = self.m.val
-        self.p.val0 = self.p.val
-        self.h.val0 = self.h.val
+        self.m.set_val0_from_SI(units)
+        self.p.set_val0_from_SI(units)
+        self.h.set_val0_from_SI(units)
         self.fluid.val0 = self.fluid.val.copy()
 
         return _converged
 
-    def _set_design_params(self, data):
+    def _set_design_params(self, data, units):
         for var in self._result_attributes():
-            self.get_attr(var).design = convert_to_SI(
-                var, float(data[var]), data[f"{var}_unit"]
-            )
+            unit = data[f"{var}_unit"]
+            if unit == "C":
+                if var == "T":
+                    unit = "degC"
+                elif var == "Td_bp":
+                    unit = "delta_degC"
+            elif "kgK" in unit:
+                unit = unit.replace("kgK", "kg/K")
+            elif unit == "-":
+                unit = "1"
+            self.get_attr(var).design = units.ureg.Quantity(
+                float(data[var]),
+                unit
+            ).to_base_units().magnitude
+
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])
 
-    def _set_starting_values(self, data):
+    def _set_starting_values(self, data, units):
         for prop in self.get_variables():
             var = self.get_attr(prop)
-            var.val0 = float(data[prop])
-            var.unit = data[prop + '_unit']
+            var.val0 = units.ureg.Quantity(
+                float(data[prop]),
+                data[f"{prop}_unit"]
+            )
 
         for fluid in self.fluid.is_var:
             self.fluid.val[fluid] = float(data[fluid])

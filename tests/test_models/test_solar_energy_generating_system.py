@@ -43,9 +43,10 @@ class TestSEGS:
 
         # setting up network
         self.nw = Network()
-        self.nw.set_attr(
-            T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-            s_unit="kJ / kgK")
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+            "entropy": "kJ/kgK"
+        })
 
         # components definition
         air_in = Source('Ambient air source', fkt_group='CW')

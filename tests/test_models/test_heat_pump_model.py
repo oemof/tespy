@@ -31,7 +31,10 @@ from tespy.tools.characteristics import CharLine
 class TestHeatPump:
 
     def setup_method(self):
-        self.nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
         # sources & sinks
         cc_refrigerant = CycleCloser('refrigerant cycle closer')

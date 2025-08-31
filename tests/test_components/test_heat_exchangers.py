@@ -86,7 +86,10 @@ def _calc_eff_cold(c3, c4, c1):
 @fixture
 def heatexchanger_network(request):
 
-    nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC", "volumetric_flow": "m3/s"
+    })
 
     inl1 = Source('inlet 1')
     outl1 = Sink('outlet 1')
@@ -253,7 +256,11 @@ class TestHeatExchangers:
 
     def setup_method(self):
 
-        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC",
+            "volumetric_flow": "m3/s"
+        })
         self.inl1 = Source('inlet 1')
         self.outl1 = Sink('outlet 1')
 
@@ -500,31 +507,34 @@ class TestHeatExchangers:
         assert not instance.energy_group.is_set, msg
 
         # test solar collector params as system variables
-        instance.set_attr(E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
-                          eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99)
+        instance.set_attr(
+            E=1e3, lkf_lin=1.0, lkf_quad=0.005, A='var',
+            eta_opt=0.9, Q=1e5, Tamb=20, pr=0.99
+        )
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
         # heat loss must be identical to E * A - Q (internal heat loss
         # calculation)
-        T_diff = (self.c2.T.val + self.c1.T.val) / 2 - instance.Tamb.val
-        Q_loss = -round(instance.A.val * (
-            instance.E.val * (1 - instance.eta_opt.val) +
-            T_diff * instance.lkf_lin.val +
-            T_diff ** 2 * instance.lkf_quad.val), 0)
-        msg = ('Value for heat loss of solar collector must be '
-               + str(Q_loss) + ', is ' + str(round(instance.Q_loss.val, 0)) +
-               '.')
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        T_diff = (self.c2.T.val_SI + self.c1.T.val_SI) / 2 - instance.Tamb.val_SI
+        Q_loss = -round(instance.A.val_SI * (
+            instance.E.val_SI * (1 - instance.eta_opt.val_SI) +
+            T_diff * instance.lkf_lin.val_SI +
+            T_diff ** 2 * instance.lkf_quad.val_SI), 0)
+        msg = (
+            f"Value for heat loss of solar collector must be {Q_loss}, is "
+            f"{round(instance.Q_loss.val_SI, 0)}."
+        )
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
         # test all parameters of the energy group: E
-        area = instance.A.val
+        area = instance.A.val_SI
         instance.set_attr(A=area * 1.2, E='var')
         self.nw.solve('design')
         instance.set_attr(A=area)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
         # test all parameters of the energy group: eta_opt
         instance.set_attr(E=8e2, eta_opt='var')
@@ -532,7 +542,7 @@ class TestHeatExchangers:
         instance.set_attr(E=1e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
         # test all parameters of the energy group: lkf_lin
         instance.set_attr(E=8e2, eta_opt=instance.eta_opt.val, lkf_lin='var')
@@ -540,7 +550,7 @@ class TestHeatExchangers:
         instance.set_attr(E=1e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
         # test all parameters of the energy group: lkf_quad
         instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
@@ -548,7 +558,7 @@ class TestHeatExchangers:
         instance.set_attr(E=1e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
         # test all parameters of the energy group: Tamb
         instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
@@ -556,7 +566,7 @@ class TestHeatExchangers:
         instance.set_attr(E=1e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
+        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
     def test_HeatExchanger(self, tmp_path):
         """Test component properties of heat exchanger."""

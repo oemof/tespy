@@ -2,8 +2,9 @@
 from tespy.networks import Network
 working_fluid = "NH3"
 
-nw = Network(
-    T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s"
+nw = Network()
+nw.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW"
 )
 # %%[sec_2]
 from tespy.components import Condenser
@@ -46,7 +47,7 @@ c20.set_attr(T=60, p=2, fluid={"water": 1})
 c22.set_attr(T=90)
 
 # key design paramter
-cons.set_attr(Q=-230e3)
+cons.set_attr(Q=-230)
 # %%[sec_6]
 nw.solve("design")
 nw.print_results()

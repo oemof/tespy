@@ -164,8 +164,10 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import math
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> pt = ParabolicTrough('parabolic trough collector')
@@ -224,17 +226,16 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0),
-            'A': dc_cp(min_val=0),
-            'eta_opt': dc_cp(min_val=0, max_val=1),
+            'E': dc_cp(min_val=0, quantity="heat"),
+            'A': dc_cp(min_val=0, quantity="area"),
+            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
             'c_1': dc_cp(min_val=0),
             'c_2': dc_cp(min_val=0),
             'iam_1': dc_cp(),
             'iam_2': dc_cp(),
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
-            'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, _val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0, quantity="heat"),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
@@ -277,15 +278,15 @@ class ParabolicTrough(SimpleHeatExchanger):
         T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         iam = (
-            1 - self.iam_1.val * abs(self.aoi.val)
-            - self.iam_2.val * self.aoi.val ** 2
+            1 - self.iam_1.val_SI * abs(self.aoi.val_SI)
+            - self.iam_2.val_SI * self.aoi.val_SI ** 2
         )
 
         return (
-            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val * (
-                self.E.val * self.eta_opt.val * self.doc.val ** 1.5 * iam
-                - (T_m - self.Tamb.val_SI) * self.c_1.val
-                - self.c_2.val * (T_m - self.Tamb.val_SI) ** 2
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val_SI * (
+                self.E.val_SI * self.eta_opt.val_SI * self.doc.val_SI ** 1.5 * iam
+                - (T_m - self.Tamb.val_SI) * self.c_1.val_SI
+                - self.c_2.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
 
@@ -303,14 +304,13 @@ class ParabolicTrough(SimpleHeatExchanger):
         i = self.inl[0]
         o = self.outl[0]
 
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
+        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.dp.val = i.p.val - o.p.val
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(i, o)
 
         if self.energy_group.is_set:
-            self.Q_loss.val = - self.E.val * self.A.val + self.Q.val
+            self.Q_loss.val_SI = - self.E.val_SI * self.A.val_SI + self.Q.val_SI
             self.Q_loss.is_result = True
         else:
             self.Q_loss.is_result = False

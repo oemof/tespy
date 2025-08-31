@@ -122,7 +122,10 @@ class FuelCell(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='l / s', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ... })
     >>> fc = FuelCell('fuel cell')
     >>> oxygen_source = Source('oxygen_source')
     >>> hydrogen_source = Source('hydrogen_source')
@@ -160,24 +163,27 @@ class FuelCell(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(max_val=0),
+            'P': dc_cp(max_val=0, quantity="power"),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
-                dependents=self.heat_dependents
+                dependents=self.heat_dependents,
+                quantity="heat"
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func=self.pr_func,
-                func_params={'pr': 'pr'}
+                func_params={'pr': 'pr'},
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 func=self.dp_func,
                 num_eq_sets=1,
-                func_params={"inconn": 0, "outconn": 0, "dp": "dp"}
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
             ),
             'zeta': dc_cp(
                 min_val=0,
@@ -189,12 +195,14 @@ class FuelCell(Component):
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
-                dependents=self.eta_dependents
+                dependents=self.eta_dependents,
+                quantity="efficiency"
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
-                dependents=self.specific_energy_dependents
+                dependents=self.specific_energy_dependents,
+                quantity="specific_energy"
             )
         }
 
@@ -359,7 +367,7 @@ class FuelCell(Component):
 
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
-        return self.P.val - self.inl[2].m.val_SI * self.e.val
+        return self.P.val - self.inl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.inl[2].m, self.P, self.e]
@@ -389,7 +397,7 @@ class FuelCell(Component):
             - Reference temperature: 298.15 K.
             - Reference pressure: 1 bar.
         """
-        return self.P.val - self.calc_P()
+        return self.P.val_SI - self.calc_P()
 
     def energy_balance_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -638,15 +646,11 @@ class FuelCell(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.Q.val = -self.inl[0].m.val_SI * (
+        self.Q.val_SI = -self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
-        self.e.val = self.P.val / self.inl[2].m.val_SI
-        self.eta.val = self.e.val / self.e0
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.zeta.val = self.calc_zeta(i, o)
+        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
+        self.e.val_SI = self.P.val_SI / self.inl[2].m.val_SI
+        self.eta.val_SI = self.e.val_SI / self.e0

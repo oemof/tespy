@@ -139,7 +139,8 @@ not be implemented by the solver.
     >>> from tespy.networks import Network
     >>> from tespy.connections import Connection
 
-    >>> nw = Network(T_unit='C', p_unit='bar')
+    >>> nw = Network()
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -278,7 +279,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> from tespy.tools.characteristics import load_default_char as ldc
     >>> from tespy.tools.characteristics import CharLine
 
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> he = HeatExchanger('evaporator')
     >>> cond = Source('condensate')
@@ -355,7 +357,10 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> from tespy.tools.characteristics import CharLine
     >>> import numpy as np
 
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    ... )
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> t = Turbine('turbine')
@@ -499,15 +504,26 @@ class shown below.
 .. code:: python
 
     # [...]
-    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-    'L': dc_cp(min_val=1e-1, d=1e-3),
-    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
+    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
+    'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
     'darcy_group': dc_gcp(
         elements=['L', 'ks', 'D'], num_eq_sets=1,
         func=self.darcy_func,
         dependents=self.darcy_dependents
     ),
     # [...]
+
+.. tip::
+
+    With the :code:`quantity` keyword, tespy will automatically understand what
+    unit conversion to apply to the respective parameter. E.g. in case you
+    want to specify the roughness  :code:`ks` in millimeter, you can either
+    set the default unit for length of your :code:`Network` to millimeter, or
+    you can pass the :code:`ks` value as :code:`pint.Quantity` to your
+    component using millimeter as unit. Then the conversion to the SI unit is
+    taken care of automatically in the preprocessing and the respective
+    equation will make use of the SI value.
 
 :code:`func` and :code:`dependents` are pointing to the method that should be
 applied for the corresponding purpose. For more information on defining the
@@ -782,6 +798,11 @@ associated with the class :code:`Valve` is the following:
 .. literalinclude:: /../src/tespy/components/piping/valve.py
     :pyobject: Valve.dp_char_func
 
+.. caution::
+
+    Your equations should only use and access the SI values :code:`val_SI`
+    associated with connection or component parameters in the back-end .
+
 Define the dependents
 ^^^^^^^^^^^^^^^^^^^^^
 Next, you have to define the list of variables the equation depends on, i.e.
@@ -974,13 +995,6 @@ Create a file, e.g. :code:`mysubsystems.py` and add the following lines:
     ...
     ...         self.add_conns(inlet_sup, sup_eva, eva_eco, eco_outlet)
 
-.. note::
-
-    Please note, that you should label your components (and connections) with
-    unitque names, otherwise you can only use the subsystem once per model. In
-    this case, it is achieved by adding the subsystem label to all of the
-    component labels.
-
 Make use of your subsystem
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -995,7 +1009,8 @@ different tespy classes required.
     >>> import numpy as np
 
     >>> # %% network definition
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
 
     >>> # %% component definition
     >>> feed_water = Source('feed water inlet')

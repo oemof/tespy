@@ -123,7 +123,10 @@ class Turbine(Turbomachine):
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> t = Turbine('turbine')
@@ -201,7 +204,8 @@ class Turbine(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
-                deriv=self.eta_s_deriv
+                deriv=self.eta_s_deriv,
+                quantity="efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -244,7 +248,7 @@ class Turbine(Turbomachine):
                     T0=inl.T.val_SI
                 )
                 - inl.h.val_SI
-            ) * self.eta_s.val
+            ) * self.eta_s.val_SI
         )
 
     def eta_s_deriv(self, increment_filter, k, dependents=None):
@@ -478,7 +482,7 @@ class Turbine(Turbomachine):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
-        self.eta_s.val = self.calc_eta_s()
+        self.eta_s.val_SI = self.calc_eta_s()
 
     def exergy_balance(self, T0):
         r"""

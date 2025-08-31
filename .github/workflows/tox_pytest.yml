@@ -33,23 +33,27 @@ jobs:
     - name: Test with tox
       run: tox
 
-    - name: Check test coverage
+    - name: Check test coverage ${{ matrix.test_number }}
       run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 84 || 85 }}
 
-
-    - name: Report to Coveralls (parallel)
-      run: coveralls --parallel
+    - name: Report to coveralls
+      run: coveralls
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  coveralls_finish:
-    permissions:
-      contents: read
-      checks: write
+    - name: Coveralls Parallel
+      uses: coverallsapp/github-action@v2
+      with:
+        flag-name: test-${{ join(matrix.*, '-') }}
+        parallel: true
+
+  finish:
     needs: pytest
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Finish Coveralls
-        run: coveralls --finish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v2
+      with:
+        parallel-finished: true
+        carryforward: "test-3.10,test-3.11,test-3.12"

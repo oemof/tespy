@@ -14,7 +14,7 @@ wf = "NH3"
 # network
 nw = Network()
 nw.units.set_defaults(
-    temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
 )
 
 # components
@@ -105,7 +105,7 @@ heatsource_evaporator.set_attr(ttd_l=5)
 condenser.set_attr(ttd_u=5)
 
 # consumer heat demand
-cons_heatsink.set_attr(Q=-1e6)
+cons_heatsink.set_attr(Q=-1)
 
 try:
     nw.solve("design")
@@ -253,7 +253,7 @@ def generate_network_with_starting_values(wf):
     c2.set_attr(h=h_evap * 1.01)
 
     # consumer heat demand
-    cons_heatsink.set_attr(Q=-1e6)
+    cons_heatsink.set_attr(Q=-1)
 
     grid = PowerSource("grid")
     electricity = PowerBus("electricity distribution", num_in=1, num_out=3)

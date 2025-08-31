@@ -31,7 +31,11 @@ class TestCombustion:
 
     def setup_method(self):
 
-        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC",
+            "volumetric_flow": "m3/s"
+})
         self.fuel = Source('fuel')
         self.air = Source('ambient air')
         self.fg = Sink('flue gas')

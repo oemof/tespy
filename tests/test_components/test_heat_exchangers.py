@@ -86,7 +86,10 @@ def _calc_eff_cold(c3, c4, c1):
 @fixture
 def heatexchanger_network(request):
 
-    nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC", "volumetric_flow": "m3/s"
+    })
 
     inl1 = Source('inlet 1')
     outl1 = Sink('outlet 1')
@@ -253,7 +256,11 @@ class TestHeatExchangers:
 
     def setup_method(self):
 
-        self.nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC",
+            "volumetric_flow": "m3/s"
+        })
         self.inl1 = Source('inlet 1')
         self.outl1 = Sink('outlet 1')
 

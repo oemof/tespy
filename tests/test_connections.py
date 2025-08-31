@@ -15,14 +15,17 @@ from tespy.components import Source
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from tespy.tools.helpers import convert_from_SI
 
 
 class TestConnections:
 
     def setup_method(self):
         """Set up the model."""
-        self.nw = Network(p_unit='bar', T_unit='C', v_unit="l / s", m_unit="t / h")
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "C", "volumetric_flow": "l/s",
+            "mass_flow": "t/h"
+        })
 
         so1 = Source('source 1')
         so2 = Source('source 2')

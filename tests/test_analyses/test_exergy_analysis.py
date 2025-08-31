@@ -37,7 +37,9 @@ class TestClausiusRankine:
         self.Tamb = 20
         self.pamb = 1
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # create components
         splitter1 = Splitter('splitter 1')
@@ -277,7 +279,9 @@ class TestRefrigerator:
         self.Tamb = 20
         self.pamb = 1
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # create components
         va = Valve('expansion valve')
@@ -345,7 +349,9 @@ class TestCompressedAirIn:
 
         # compressor part
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # components
         amb = Source('air intake')
@@ -403,7 +409,9 @@ class TestCompressedAirOut:
 
         # turbine part
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # components
         cas = Source('compressed air storage')
@@ -492,7 +500,9 @@ class TestCompression:
 
         # turbine part
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # components
         so = Source('inlet')
@@ -571,7 +581,9 @@ class TestExpansion:
 
         # turbine part
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # components
         so = Source('inlet')

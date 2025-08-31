@@ -21,7 +21,10 @@ from tespy.networks import Network
 class TestSeparator:
 
     def setup_method(self):
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
         self.nwk.set_attr(iterinfo=False)
 
         so = Source("Source")

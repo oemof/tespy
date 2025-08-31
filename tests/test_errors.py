@@ -94,12 +94,6 @@ def test_set_attr_errors():
 
     set_attr_ValueError(conn, offdesign=['f'])
 
-    set_attr_ValueError(nw, m_unit='kg')
-    set_attr_ValueError(nw, h_unit='kg')
-    set_attr_ValueError(nw, p_unit='kg')
-    set_attr_ValueError(nw, T_unit='kg')
-    set_attr_ValueError(nw, v_unit='kg')
-
     # TypeErrors
     set_attr_TypeError(comb, P=[5])
     set_attr_TypeError(comb, P=[5])

@@ -22,7 +22,10 @@ class TestReactors:
 
     def setup_method(self):
         """Set up network for electrolyzer tests."""
-        self.nw = Network(T_unit='C', p_unit='bar')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
         self.instance = WaterElectrolyzer('electrolyzer')
 
         fw = Source('feed water')

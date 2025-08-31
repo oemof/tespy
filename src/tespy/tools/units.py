@@ -91,13 +91,7 @@ class Units:
             Default unit: "W/K"
         """
         for key, value in kwargs.items():
-            if key not in self.default:
-                msg = (
-                    f"The quantity {key} is unknown. Please specify any of "
-                    f"the following: "
-                    f"{', '.join([key for key in self.default if key is not None])}."
-                )
-                raise KeyError(msg)
+            self._check_quantity_exists(key)
             if value == "-":
                 value = "1"
             elif value == "C":
@@ -114,6 +108,20 @@ class Units:
             else:
                 msg = f"Unit {value} is not compatible with quantity {key}"
                 raise ValueError(msg)
+
+    def get_default(self, quantity):
+        self._check_quantity_exists(quantity)
+        return self.default[quantity]
+
+    def _check_quantity_exists(self, quantity):
+        if quantity not in self.default:
+            msg = (
+                f"The quantity {quantity} is unknown. Please specify any of "
+                f"the following: "
+                f"{', '.join([key for key in self.default if key is not None])}."
+            )
+            raise KeyError(msg)
+
 
     def set_ureg(self, ureg):
         """Replace default ureg with a custom one

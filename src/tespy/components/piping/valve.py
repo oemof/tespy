@@ -18,7 +18,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -134,10 +133,6 @@ class Valve(Component):
     30.0
     >>> os.remove('tmp.json')
     """
-
-    def _preprocess(self, num_nw_vars):
-        super()._preprocess(num_nw_vars)
-
     def get_parameters(self):
         return {
             'pr': dc_cp(

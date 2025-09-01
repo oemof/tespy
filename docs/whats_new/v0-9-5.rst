@@ -1,0 +1,14 @@
+v0.9.5 - Under development
+++++++++++++++++++++++++++
+
+New Features
+############
+
+Other Changes
+#############
+- Clean up some residual code, that was not used anymore
+  (`PR #753 <https://github.com/oemof/tespy/pull/753>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

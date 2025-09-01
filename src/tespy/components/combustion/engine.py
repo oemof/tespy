@@ -24,7 +24,6 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -419,16 +418,6 @@ class CombustionEngine(CombustionChamber):
             logger.info(msg)
 
         return super().get_variables()
-
-    def _preprocess(self, num_nw_vars):
-        if self.dp1.is_set:
-            self.dp1.val_SI = convert_to_SI('p', self.dp1.val, self.inl[0].p.unit)
-
-        if self.dp2.is_set:
-            self.dp2.val_SI = convert_to_SI('p', self.dp2.val, self.inl[1].p.unit)
-
-        super()._preprocess(num_nw_vars)
-        self.setup_reaction_parameters()
 
     def _get_combustion_connections(self):
         return (self.inl[2:], [self.outl[2]])

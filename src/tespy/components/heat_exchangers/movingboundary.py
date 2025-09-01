@@ -16,6 +16,8 @@ import numpy as np
 
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -273,6 +275,20 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 dependents=self.UA_dependents,
                 quantity="heat_transfer_coefficient"
             ),
+            'UA_mod_refrigerant': dc_cc(
+                param='m',
+                char_params={'type': 'rel', 'inconn': 0, 'outconn': 0}
+            ),
+            'UA_mod_secondary': dc_cc(
+                param='m',
+                char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
+            ),
+            'UA_cecchinato': dc_gcc(
+                elements=['UA_mod_refrigerant', 'UA_mod_secondary'],
+                num_eq_sets=1,
+                func=self.UA_char_cecchinato_func,
+                dependents=self.UA_dependents,
+            ),
             'td_pinch': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
@@ -482,8 +498,35 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
                 0 = UA - \sum UA_\text{i}
         """
-        sections = self.calc_sections()
+        sections = self.calc_sections(False)
         return self.UA.val_SI - self.calc_UA(sections)
+
+    def UA_char_cecchinato_func(self):
+        """_summary_
+        """
+        alpha_ratio = 8.4e-3
+        area_ratio = 1
+        re_exp_sf = 0.8
+        re_exp_r = 0.8
+
+        p = self.UA_mod_refrigerant.param
+        mass_flow_ratio_r = self.get_char_expr(
+            p, **self.UA_mod_refrigerant.char_params
+        )
+        p = self.UA_mod_secondary.param
+        mass_flow_ratio_sf = self.get_char_expr(
+            p, **self.UA_mod_secondary.char_params
+        )
+
+        fUA = (
+            (1 + alpha_ratio * area_ratio)
+            / (
+                mass_flow_ratio_sf ** -re_exp_sf
+                + alpha_ratio * area_ratio * mass_flow_ratio_r ** -re_exp_r
+            )
+        )
+        sections = self.calc_sections(False)
+        return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_dependents(self):
         return [

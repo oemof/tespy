@@ -15,6 +15,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.turbomachinery.base import Turbomachine
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
@@ -303,9 +304,6 @@ class PolynomialCompressor(Turbomachine):
     @staticmethod
     def powerinlets():
         return ["power"]
-
-    def _preprocess(self, num_nw_vars):
-        return Component._preprocess(self, num_nw_vars)
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
@@ -720,7 +718,7 @@ def _calc_EN12900_SI(c: list, t_evap: float, t_cond: float) -> float:
     return calc_EN12900(c, t_evap - 273.15, t_cond - 273.15)
 
 
-def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array, check_diff: bool=True) -> np.array:
+def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
     """Fit the polynome coefficients of EN12900 polynome based on evaporation
     and condensation temperature and respective measurements
 
@@ -755,11 +753,19 @@ def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array, check_diff: 
         y ** 3                     # c9 * t_cond^3
     ])
     c, _, _, _ = np.linalg.lstsq(A, z, rcond=None)
-    if check_diff:
-        np.testing.assert_allclose(
-            calc_EN12900(c, x, y), z,
-            rtol=0.05
+    check = calc_EN12900(c, x, y)
+    if not np.allclose(check, z, rtol=0.02):
+        deviation = abs((check - z) / z)
+        location = np.argmax(deviation)
+
+        T_evap = y[location]
+        T_cond = x[location]
+        msg = (
+            f"A maximum relative deviation of {deviation.max()} at "
+            f"{T_evap=} and {T_cond=} remains when fitting the polynomial "
+            "coefficients to the data."
         )
+        logger.warning(msg)
     return c
 
 
@@ -802,8 +808,11 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
         reference_state=reference_state,
         polynomes={"power": power_poly, "cooling": cooling_poly}
     )
-    eta_s_poly = fit_EN12900(columns, index, etas["eta_s"].reshape(3, 6))
-    eta_vol_poly = fit_EN12900(columns, index, etas["eta_vol"].reshape(3, 6))
+    for k in etas:
+        etas[k] = etas[k].reshape(len(index), len(columns))
+
+    eta_s_poly = fit_EN12900(columns, index, etas["eta_s"])
+    eta_vol_poly = fit_EN12900(columns, index, etas["eta_vol"])
     return eta_s_poly, eta_vol_poly
 
 

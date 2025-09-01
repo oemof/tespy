@@ -17,11 +17,8 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.fluid_properties import dT_mix_dph
-from tespy.tools.fluid_properties import dT_mix_pdh
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -315,9 +312,6 @@ class WaterElectrolyzer(Component):
         return super().get_variables()
 
     def _preprocess(self, num_nw_vars):
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
-
         self.o2 = "O2"
         self.h2 = "H2"
         self.h2o = "H2O"

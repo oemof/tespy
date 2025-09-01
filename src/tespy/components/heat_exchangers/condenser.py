@@ -21,7 +21,6 @@ from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.helpers import convert_from_SI
 
 
 @component_registry

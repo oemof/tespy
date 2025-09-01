@@ -18,7 +18,6 @@ from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -193,10 +192,6 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> round(comb.ti.val * comb.eta.val, 0)
     450000.0
     """
-
-    def _preprocess(self, num_nw_vars):
-        super()._preprocess(num_nw_vars)
-
     def get_parameters(self):
         params = super().get_parameters()
         params.update({

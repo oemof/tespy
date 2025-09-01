@@ -49,8 +49,7 @@ from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import convert_from_SI
-from tespy.tools.helpers import convert_to_SI
+from tespy.tools.units import SI_UNITS
 
 
 def connection_registry(type):
@@ -1309,10 +1308,11 @@ class Connection(ConnectionBase):
                 unit = unit.replace("kgK", "kg/K")
             elif unit == "-":
                 unit = "1"
-            self.get_attr(var).design = units.ureg.Quantity(
+            param = self.get_attr(var)
+            param.design = units.ureg.Quantity(
                 float(data[var]),
                 unit
-            ).to_base_units().magnitude
+            ).to(SI_UNITS[param.quantity]).magnitude
 
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])

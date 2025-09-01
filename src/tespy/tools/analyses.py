@@ -25,6 +25,7 @@ from tespy.tools import logger
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import combustion_gases
+from tespy.tools.units import SI_UNITS
 
 idx = pd.IndexSlice
 
@@ -357,8 +358,8 @@ class ExergyAnalysis:
             temperature unit.
         """
         _Q = self.nw.units.ureg.Quantity
-        pamb_SI = _Q(pamb, self.nw.units.default["pressure"]).to_base_units().magnitude
-        Tamb_SI = _Q(Tamb, self.nw.units.default["temperature"]).to_base_units().magnitude
+        pamb_SI = _Q(pamb, self.nw.units.default["pressure"]).to(SI_UNITS["pressure"]).magnitude
+        Tamb_SI = _Q(Tamb, self.nw.units.default["temperature"]).to(SI_UNITS["temperature"]).magnitude
 
         # reset data
         dtypes = {

@@ -24,7 +24,7 @@ exclude = ["docs/_build"]
 
 [project]
 name = "tespy"
-version = "0.9.4"
+version = "0.9.4.post1"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -77,6 +77,7 @@ dev = [
     "sphinx-design",
     "sphinxcontrib.bibtex",
     "tox",
+    "twine"
 ]
 
 [tool.pytest.ini_options]

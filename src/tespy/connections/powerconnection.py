@@ -6,6 +6,7 @@ from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.logger import logger
+from tespy.tools.units import SI_UNITS
 
 
 @connection_registry
@@ -162,10 +163,11 @@ class PowerConnection(ConnectionBase):
 
     def _set_design_params(self, data, units):
         for var in self._result_attributes():
-            self.get_attr(var).design = units.ureg.Quantity(
+            param = self.get_attr(var)
+            param.design = units.ureg.Quantity(
                 float(data[var]),
                 data[f"{var}_unit"]
-            ).to_base_units().magnitude
+            ).to(SI_UNITS[param.quantity]).magnitude
 
     def _set_starting_values(self, data, units):
         for prop in self.get_variables():

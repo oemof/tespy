@@ -26,7 +26,6 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -380,9 +379,6 @@ class HeatExchanger(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
-
-    def _preprocess(self, num_nw_vars):
-        super()._preprocess(num_nw_vars)
 
     def energy_balance_func(self):
         r"""

@@ -304,9 +304,6 @@ class PolynomialCompressor(Turbomachine):
     def powerinlets():
         return ["power"]
 
-    def _preprocess(self, num_nw_vars):
-        return Component._preprocess(self, num_nw_vars)
-
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if len(self.power_inl) > 0:

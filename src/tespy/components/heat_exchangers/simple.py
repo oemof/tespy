@@ -26,7 +26,6 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -343,9 +342,6 @@ class SimpleHeatExchanger(Component):
             return ['heat']
         else:
             return []
-
-    def _preprocess(self, row_idx):
-        super()._preprocess(row_idx)
 
     def _get_power_connector_location(self):
         if self.power_connector_location.val == "inlet":

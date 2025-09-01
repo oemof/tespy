@@ -16,7 +16,6 @@ from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -85,13 +84,6 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
     - :class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
     """
-
-    def _preprocess(self, num_nw_vars):
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
-
-        super()._preprocess(num_nw_vars)
-
     def get_parameters(self):
         return {
             'P': dc_cp(

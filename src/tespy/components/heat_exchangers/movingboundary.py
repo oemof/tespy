@@ -427,7 +427,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         return T_steps_hot, T_steps_cold
 
     @staticmethod
-    def _calc_td_log_per_section(T_steps_hot, T_steps_cold):
+    def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
         """Calculate the logarithmic temperature difference values per section
         of heat exchanged.
 
@@ -444,6 +444,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         list
             Lists of temperature differences per section of heat exchanged.
         """
+        if postprocess:
+            td_at_steps = T_steps_hot - T_steps_cold
+            if (td_at_steps <= 0).any():
+                return np.ones(len(td_at_steps) - 1) * np.nan
         # the temperature ranges both come with increasing values
         td_at_steps = np.abs(T_steps_hot - T_steps_cold)
 
@@ -457,7 +461,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             for i in range(len(td_at_steps) - 1)
         ])
 
-    def calc_sections(self):
+    def calc_sections(self, postprocess=True):
         """Calculate the sections of the heat exchanger.
 
         Returns
@@ -469,7 +473,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         Q_sections = self._assign_sections()
         T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
         Q_per_section = np.diff(Q_sections)
-        td_log_per_section = self._calc_td_log_per_section(T_steps_hot, T_steps_cold)
+        td_log_per_section = self._calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess)
         return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
 
     def calc_UA(self, sections):
@@ -565,7 +569,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
                 0 = td_\text{pinch} - min(td_\text{sections})
         """
-        sections = self.calc_sections()
+        sections = self.calc_sections(False)
         return self.td_pinch.val_SI - self.calc_td_pinch(sections)
 
     def td_pinch_dependents(self):

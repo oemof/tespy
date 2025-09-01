@@ -3,6 +3,10 @@ v0.9.5 - Under development
 
 New Features
 ############
+- A partload UA modification is available for the
+  :code:`MovingBoundaryHeatExchanger` class implementing the equation described
+  in :cite:`cecchinato2010`
+  (`PR #752 <https://github.com/oemof/tespy/pull/752>`__).
 
 Other Changes
 #############

@@ -158,3 +158,4 @@ class Units:
 
 
 _UNITS = Units()
+SI_UNITS = _UNITS.default.copy()

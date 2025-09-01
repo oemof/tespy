@@ -15,6 +15,7 @@ from tespy.components import Source
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.tools.units import SI_UNITS
 
 
 class TestConnections:
@@ -93,7 +94,7 @@ class TestConnections:
 
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["temperature_difference"]
-        ).to_base_units().magnitude
+        ).to(SI_UNITS["temperature_difference"]).magnitude
         assert round(delta_SI, 4) == round(c2.T_ref.ref.delta_SI, 4)
 
         T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
@@ -127,7 +128,7 @@ class TestConnections:
         self.nw.solve('design')
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["mass_flow"]
-        ).to_base_units().magnitude
+        ).to(SI_UNITS["mass_flow"]).magnitude
         assert round(delta_SI, 4) == round(c2.m_ref.ref.delta_SI, 4)
 
         m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)

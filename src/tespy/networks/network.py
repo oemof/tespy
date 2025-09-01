@@ -42,6 +42,7 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
 
 # Only require cupy if Cuda shall be used
@@ -260,7 +261,8 @@ class Network:
             key = f"{prop}_range"
             if key in kwargs:
                 if isinstance(kwargs[key], list):
-                    unit = self.units.default[fpd[prop]["text"].replace(" ", "_")]
+                    quantity = fpd[prop]["text"].replace(" ", "_")
+                    unit = self.units.default[quantity]
                     self.__dict__.update({
                         key: self.units.ureg.Quantity(
                             np.array(kwargs[key]),
@@ -268,7 +270,8 @@ class Network:
                         )
                     })
                     self.__dict__.update({
-                        f"{key}_SI": self.get_attr(key).to_base_units().magnitude
+                        f"{key}_SI":
+                        self.get_attr(key).to(SI_UNITS[quantity]).magnitude
                     })
                 else:
                     msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
@@ -1661,7 +1664,7 @@ class Network:
                         param.ref.delta_SI = self.units.ureg.Quantity(
                             param.ref.delta,
                             unit
-                        ).to_base_units().magnitude
+                        ).to(SI_UNITS[param.quantity]).magnitude
                     else:
                         param.set_SI_from_val(self.units)
         msg = (

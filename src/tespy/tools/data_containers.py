@@ -17,6 +17,7 @@ import pint
 
 from tespy.tools import logger
 from tespy.tools.units import _UNITS
+from tespy.tools.units import SI_UNITS
 
 
 class DataContainer:
@@ -557,10 +558,10 @@ class FluidProperties(DataContainer):
             self._is_var = value
 
     def _get_val_base_unit(self):
-        return self._val.to_base_units().units
+        return self._val.to(SI_UNITS[self.quantity]).units
 
     def _get_val0_base_unit(self):
-        return self._val0.to_base_units().units
+        return self._val0.to(SI_UNITS[self.quantity]).units
 
     def get_val_with_unit(self):
         return self._val
@@ -588,13 +589,13 @@ class FluidProperties(DataContainer):
         if not isinstance(self._val, pint.Quantity):
             self._assign_default_unit_to_val(units)
 
-        self.val_SI = self._val.to_base_units().magnitude
+        self.val_SI = self._val.to(SI_UNITS[self.quantity]).magnitude
 
     def set_SI_from_val0(self, units):
         if not isinstance(self._val0, pint.Quantity):
             self._assign_default_unit_to_val0(units)
 
-        self.val_SI = self._val0.to_base_units().magnitude
+        self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
 
     def set_val_from_SI(self, units):
         # intermediate fix

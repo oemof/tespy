@@ -159,6 +159,8 @@ Other Changes
   the splitting of exergy was broken, because the enthalpy :code:`h(p=p, T=T0)`
   cannot be calculated. Instead :code:`ex_therm` is assigned :code:`0.0` in
   this case (`PR #738 <https://github.com/oemof/tespy/pull/738>`__).
+- Clean up some residual code, that was not used anymore
+  (`PR #753 <https://github.com/oemof/tespy/pull/753>`__).
 
 Contributors
 ############

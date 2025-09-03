@@ -264,32 +264,24 @@ class HeatExchanger(Component):
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
                 quantity="ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
                 quantity="ratio"
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
                 quantity="pressure"
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
                 quantity="pressure"

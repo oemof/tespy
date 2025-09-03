@@ -3017,7 +3017,7 @@ class Network:
             for param in self.results[key].columns:
                 p = cp.get_attr(param)
                 if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result):
+                        p.is_result or p.structure_matrix is not None):
                     self.results[key].loc[cp.label, param] = p.val
                 else:
                     self.results[key].loc[cp.label, param] = np.nan

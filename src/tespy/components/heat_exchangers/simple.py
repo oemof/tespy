@@ -46,9 +46,9 @@ class SimpleHeatExchanger(Component):
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.component.Component.dp_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -247,16 +247,12 @@ class SimpleHeatExchanger(Component):
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
-                dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
                 quantity="ratio"
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
                 quantity="pressure"

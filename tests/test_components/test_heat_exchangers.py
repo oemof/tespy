@@ -329,17 +329,9 @@ class TestHeatExchangers:
         assert zeta == round(instance.zeta.val, 0), msg
         assert round(diameter, 3) == round(instance.D.val, 3)
 
-        # same test with pressure ratio as system variable
-        pr = round(instance.pr.val, 3)
-        instance.set_attr(zeta=None, pr='var')
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        msg = f"Value of pressure ratio must be {pr}, is {instance.pr.val}."
-        assert pr == round(instance.pr.val, 3), msg
-
         # test heat transfer coefficient as variable of the system (ambient
         # temperature required)
-        instance.set_attr(kA='var', pr=None)
+        instance.set_attr(kA='var', zeta=None)
         b.set_attr(P=-5e4)
         self.nw.solve('design')
         self.nw.assert_convergence()

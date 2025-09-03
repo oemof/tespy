@@ -94,16 +94,12 @@ class Turbomachine(Component):
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
                 quantity="ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
                 quantity="pressure"

@@ -6,6 +6,16 @@ New Features
 
 Other Changes
 #############
+- Component parameters which have :code:`structure_matrix` specified now also
+  invoke equations if the do not have :code:`func` associated at the same time.
+  This was already the case for mandatory constraints, but now it is also
+  rolled out to the parameters
+  (`PR #756 <https://github.com/oemof/tespy/pull/756>`__).
+- Selection of mass flow starting values, where no value is available is now
+  reproducibly random
+  (`PR #755 <https://github.com/oemof/tespy/pull/755>`__).
+- Fix a couple of broken internal links
+  (`PR #757 <https://github.com/oemof/tespy/pull/757>`__).
 
 Contributors
 ############

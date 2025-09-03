@@ -138,8 +138,6 @@ class Valve(Component):
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
                 quantity="ratio"
             ),
@@ -147,8 +145,6 @@ class Valve(Component):
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure"
             ),

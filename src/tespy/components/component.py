@@ -439,12 +439,14 @@ class Component:
             elif type(data) == dc_gcc:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
-            if data.is_set and data.func is not None:
+            structure_matrix = data.structure_matrix is not None
+            func = data.func is not None
+            if data.is_set and (structure_matrix or func):
                 for i in range(sum_eq, sum_eq + data.num_eq_sets):
                     self._rhs[i + row_idx] = 0
                     self._equation_set_lookup[i + row_idx] = key
 
-                if data.structure_matrix is not None:
+                if structure_matrix:
                     data.structure_matrix(row_idx + sum_eq, **data.func_params)
 
                 sum_eq += data.num_eq_sets
@@ -940,82 +942,52 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def pr_func(self, pr=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure ratio function.
-
-        Parameters
-        ----------
-        pr : str
-            Component parameter to evaluate the pr_func on, e.g.
-            :code:`pr1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-
-            .. math::
-
-                0 = p_{in} \cdot pr - p_{out}
-        """
-        pr = self.get_attr(pr).val_SI
-        return self.inl[inconn].p.val_SI * pr - self.outl[outconn].p.val_SI
-
-    def pr_deriv(self, increment_filter, k, pr=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure ratio function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-
-        pr : str
-            Component parameter to evaluate the pr_func on, e.g.
-            :code:`pr1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-        """
-        pr = self.get_attr(pr)
-        i = self.inl[inconn]
-        o = self.outl[outconn]
-
-        self._partial_derivative(i.p, k, pr.val_SI)
-        self._partial_derivative(o.p, k, -1)
-        if pr.is_var:
-            self.jacobian[k, self.pr.J_col] = i.p.val_SI
-
-    def pr_dependents(self, pr=None, inconn=0, outconn=0):
-        return [
-            self.inl[inconn].p,
-            self.outl[outconn].p,
-            self.get_attr(pr)
-        ]
-
     def pr_structure_matrix(self, k, pr=None, inconn=0, outconn=0):
+        r"""
+        Create linear relationship between inflow and outflow pressure
+
+        .. math::
+
+            p_{in} \cdot pr = p_{out}
+
+        Parameters
+        ----------
+        k : int
+            equation number in systems of equations
+
+        pr : str
+            Component parameter, e.g. :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
         pr = self.get_attr(pr)
         i = self.inl[inconn]
         o = self.outl[outconn]
 
-        if not pr.is_var:
-            self._structure_matrix[k, i.p.sm_col] = pr.val_SI
-            self._structure_matrix[k, o.p.sm_col] = -1
+        self._structure_matrix[k, i.p.sm_col] = pr.val_SI
+        self._structure_matrix[k, o.p.sm_col] = -1
 
     def variable_equality_structure_matrix(self, k, **kwargs):
+        r"""
+        Create pairwise linear relationship between two variables for all
+        inlets and the respective outlets
+
+        .. math::
+
+            h_\ŧext{in,i} = h_\text{out,i}
+
+        Parameters
+        ----------
+        k : int
+            equation number in systems of equations
+
+        variable : str
+            Connection variable name, e.g. :code:`h`.
+        """
         variable = kwargs.get("variable")
         for count, (i, o) in enumerate(zip(self.inl, self.outl)):
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
@@ -1097,42 +1069,28 @@ class Component:
             self.get_attr(zeta)
         ]
 
-    def dp_func(self, dp=None, inconn=None, outconn=None):
-        """Calculate residual value of pressure difference function.
+    def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
+        r"""
+        Create linear relationship between inflow and outflow pressure
+
+        .. math::
+
+            p_{in} - dp = p_{out}
 
         Parameters
         ----------
+        k : int
+            equation number in systems of equations
+
         dp : str
-            Component parameter to evaluate the dp_func on, e.g.
-            :code:`dp1`.
+            Component parameter, e.g. :code:`dp1`.
 
         inconn : int
             Connection index of inlet.
 
         outconn : int
             Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-
-            .. math::
-
-                0 = p_{in} - p_{out} - dp
         """
-        inlet_conn = self.inl[inconn]
-        outlet_conn = self.outl[outconn]
-        dp_value = self.get_attr(dp).val_SI
-        return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
-
-    def dp_dependents(self, dp=None, inconn=None, outconn=None):
-        return [
-            self.inl[inconn].p,
-            self.outl[outconn].p
-        ]
-
-    def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         self._structure_matrix[k, inlet_conn.p.sm_col] = 1

@@ -2078,7 +2078,9 @@ class Network:
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                value = float(np.random.random() + 1)
+                seed = abs(hash(c.label)) % (2**32)
+                rng = np.random.default_rng(seed=seed)
+                value = float(rng.random() + 1)
 
             # generic starting values for pressure and enthalpy
             elif key in ['p', 'h']:
@@ -3017,7 +3019,7 @@ class Network:
             for param in self.results[key].columns:
                 p = cp.get_attr(param)
                 if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result):
+                        p.is_result or p.structure_matrix is not None):
                     self.results[key].loc[cp.label, param] = p.val
                 else:
                     self.results[key].loc[cp.label, param] = np.nan

@@ -273,14 +273,12 @@ class CombustionEngine(CombustionChamber):
             'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1, quantity="heat"),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
                 quantity="ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
                 quantity="ratio"
@@ -288,14 +286,12 @@ class CombustionEngine(CombustionChamber):
             'dp1': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
-                func=self.dp_func,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp1"},
                 quantity="pressure"
             ),
             'dp2': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
-                func=self.dp_func,
                 func_params={"inconn": 1, "outconn": 1, "dp": "dp2"},
                 quantity="pressure"
             ),

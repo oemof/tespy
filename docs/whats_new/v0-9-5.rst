@@ -6,6 +6,11 @@ New Features
 
 Other Changes
 #############
+- Component parameters which have :code:`structure_matrix` specified now also
+  invoke equations if the do not have :code:`func` associated at the same time.
+  This was already the case for mandatory constraints, but now it is also
+  rolled out to the parameters
+  (`PR #756 <https://github.com/oemof/tespy/pull/756>`__).
 
 Contributors
 ############

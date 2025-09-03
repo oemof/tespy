@@ -37,6 +37,7 @@ class HeatExchanger(Component):
 
     - :py:class:`tespy.components.heat_exchangers.condenser.Condenser`
     - :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`
+    - :py:class:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
 
     **Mandatory Equations**
 

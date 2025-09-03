@@ -25,7 +25,7 @@ from tespy.tools.logger import logger
 
 class MovingBoundaryHeatExchanger(HeatExchanger):
     r"""
-    Class for counter current heat exchanger with UA sections.
+    Class for counter flow heat exchanger with UA sections.
 
     The heat exchanger is internally discretized into multiple sections, which
     are defined by phase changes. The component assumes, that no pressure
@@ -33,11 +33,15 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
 
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.td_pinch_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
@@ -46,14 +50,12 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-    - hot side :py:meth:`tespy.components.component.Component.dp_func`
-    - cold side :py:meth:`tespy.components.component.Component.dp_func`
-    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_func`
-    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.td_pinch_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 

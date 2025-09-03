@@ -26,6 +26,8 @@ class Desuperheater(HeatExchanger):
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
@@ -36,10 +38,16 @@ class Desuperheater(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 

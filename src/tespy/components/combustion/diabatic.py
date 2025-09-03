@@ -198,7 +198,6 @@ class DiabaticCombustionChamber(CombustionChamber):
             'pr': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
-                func=self.pr_func,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "pr": "pr"},
                 quantity="ratio"
@@ -206,7 +205,6 @@ class DiabaticCombustionChamber(CombustionChamber):
             'dp': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
-                func=self.dp_func,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure"

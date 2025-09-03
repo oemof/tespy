@@ -2078,7 +2078,9 @@ class Network:
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                value = float(np.random.random() + 1)
+                seed = abs(hash(c.label)) % (2**32)
+                rng = np.random.default_rng(seed=seed)
+                value = float(rng.random() + 1)
 
             # generic starting values for pressure and enthalpy
             elif key in ['p', 'h']:

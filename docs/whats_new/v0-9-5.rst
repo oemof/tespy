@@ -14,6 +14,8 @@ Other Changes
 - Selection of mass flow starting values, where no value is available is now
   reproducibly random
   (`PR #755 <https://github.com/oemof/tespy/pull/755>`__).
+- Fix a couple of broken internal links
+  (`PR #757 <https://github.com/oemof/tespy/pull/757>`__).
 
 Contributors
 ############

@@ -31,15 +31,18 @@ from tespy.tools.helpers import _numeric_deriv
 @component_registry
 class HeatExchanger(Component):
     r"""
-    Class for counter current heat exchanger.
+    Class for counter flow heat exchanger.
 
     The component HeatExchanger is the parent class for the components:
 
     - :py:class:`tespy.components.heat_exchangers.condenser.Condenser`
     - :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`
+    - :py:class:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
 
     **Optional Equations**
@@ -53,12 +56,12 @@ class HeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-    - hot side :py:meth:`tespy.components.component.Component.dp_func`
-    - cold side :py:meth:`tespy.components.component.Component.dp_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 

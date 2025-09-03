@@ -80,6 +80,12 @@ class FluidPropertyWrapper:
     def T_sat(self, p):
         self._not_implemented()
 
+    def T_dew(self, p):
+        self._not_implemented()
+
+    def T_bubble(self, p):
+        self._not_implemented()
+
     def p_sat(self, T):
         self._not_implemented()
 
@@ -261,6 +267,14 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
     def T_sat(self, p):
+        self.AS.update(CP.PQ_INPUTS, p, 0)
+        return self.AS.T()
+
+    def T_dew(self, p):
+        self.AS.update(CP.PQ_INPUTS, p, 1)
+        return self.AS.T()
+
+    def T_bubble(self, p):
         self.AS.update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 

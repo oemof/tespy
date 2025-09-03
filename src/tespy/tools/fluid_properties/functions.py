@@ -203,6 +203,24 @@ def T_sat_p(p, fluid_data, mixing_rule=None):
         raise ValueError(msg)
 
 
+def T_dew_p(p, fluid_data, mixing_rule=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].T_dew(p)
+    else:
+        msg = "Saturation function cannot be called on mixtures."
+        raise ValueError(msg)
+
+
+def T_bubble_p(p, fluid_data, mixing_rule=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].T_bubble(p)
+    else:
+        msg = "Saturation function cannot be called on mixtures."
+        raise ValueError(msg)
+
+
 def dT_sat_dp(p, fluid_data, mixing_rule=None):
     d = 0.01
     upper = T_sat_p(p + d, fluid_data)

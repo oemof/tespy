@@ -982,6 +982,16 @@ class Connection(ConnectionBase):
                 dependents=self.Td_bp_dependents, num_eq=1,
                 quantity="temperature_difference"
             ),
+            "td_dew": dc_prop(
+                func=self.td_dew_func, deriv=self.td_dew_deriv,
+                dependents=self.td_dew_dependents, num_eq=1,
+                quantity="temperature_difference"
+            ),
+            "td_bubble": dc_prop(
+                func=self.td_bubble_func, deriv=self.td_bubble_deriv,
+                dependents=self.td_bubble_dependents, num_eq=1,
+                quantity="temperature_difference"
+            ),
             "m_ref": dc_ref(
                 func=self.primary_ref_func,
                 num_eq=1, func_params={"variable": "m"},
@@ -1183,6 +1193,18 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
+    def calc_td_dew(self):
+        try:
+            return self.calc_T() - T_dew_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_td_bubble(self):
+        try:
+            return T_bubble_p(self.p.val_SI, self.fluid_data) - self.calc_T()
+        except NotImplementedError:
+            return np.nan
+
     def Td_bp_func(self, **kwargs):
         # temperature difference to boiling point
         return self.calc_Td_bp() - self.Td_bp.val_SI
@@ -1193,6 +1215,20 @@ class Connection(ConnectionBase):
         self._partial_derivative(self.h, k, f)
 
     def Td_bp_dependents(self):
+        return [self.p, self.h]
+
+    def td_dew_func(self, **kwargs):
+        # temperature difference to boiling point
+        return self.calc_td_bubble() - self.td_bubble.val_SI
+
+    def td_dew_dependents(self):
+        return [self.p, self.h]
+
+    def td_bubble_func(self, **kwargs):
+        # temperature difference to boiling point
+        return self.calc_td_bubble() - self.td_bubble.val_SI
+
+    def td_bubble_dependents(self):
         return [self.p, self.h]
 
     def fluid_balance_func(self, **kwargs):

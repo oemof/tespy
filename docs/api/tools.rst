@@ -30,6 +30,14 @@ tespy.tools.data_containers module
     :undoc-members:
     :show-inheritance:
 
+tespy.tools.fluid_properties module
+-----------------------------------
+
+.. automodule:: tespy.tools.fluid_properties
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.tools.fluid_properties.functions module
 ---------------------------------------------
 

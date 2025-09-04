@@ -521,8 +521,12 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
         if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif round(ttd_1, 6) == round(ttd_2, 6):
+            if ttd_1 > 0:
+                ttd_2 = 0.1
+            else:
+                ttd_2 = -0.1
+
+        if round(ttd_1, 6) == round(ttd_2, 6):
             td_log = ttd_2
         elif ttd_1 > ttd_2:
             td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
@@ -623,6 +627,17 @@ class SimpleHeatExchanger(Component):
             self.outl[0].p,
             self.outl[0].h,
         ]
+
+    def convergence_check(self):
+        from tespy.tools.fluid_properties import h_mix_pT
+        if self.kA_group.is_set:
+            if self.outl[0].h.is_var:
+                T_in = self.inl[0].calc_T()
+                T_out = self.outl[0].calc_T()
+                if T_in > self.Tamb.val_SI:
+                    if T_out < self.Tamb.val_SI:
+                        h_out = h_mix_pT(self.outl[0].p.val_SI, self.Tamb.val_SI + 0.0001, self.outl[0].fluid_data, self.outl[0].mixing_rule)
+                        self.outl[0].h.set_reference_val_SI(h_out)
 
     def bus_func(self, bus):
         r"""

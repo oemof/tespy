@@ -36,6 +36,8 @@ from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
+from tespy.tools.fluid_properties.functions import T_bubble_p
+from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -897,6 +899,34 @@ class Connection(ConnectionBase):
                 msg = f"Determined h by known p and Td_bp at {self.label}."
                 logger.info(msg)
 
+            elif self.td_bubble.is_set:
+                T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
+                # fix for pure fluids: T cannot be too close to saturation
+                if abs(self.td_bubble.val_SI) <= 1e-3:
+                    # at saturation we can use h_mix_pQ
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data))
+                else:
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_bubble - self.td_bubble.val_SI, self.fluid_data))
+                self.h._potential_var = False
+                if "td_bubble" in self._equation_set_lookup.values():
+                    presolved_equations += ["td_bubble"]
+                msg = f"Determined h by known p and td_bubble at {self.label}."
+                logger.info(msg)
+
+            elif self.td_dew.is_set:
+                T_dew = T_dew_p(self.p.val_SI, self.fluid_data)
+                # fix for pure fluids: T cannot be too close to saturation
+                if abs(self.td_dew.val_SI) <= 1e-3:
+                    # at saturation we can use h_mix_pQ
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data))
+                else:
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_dew + self.td_dew.val_SI, self.fluid_data))
+                self.h._potential_var = False
+                if "td_dew" in self._equation_set_lookup.values():
+                    presolved_equations += ["td_dew"]
+                msg = f"Determined h by known p and td_bubble at {self.label}."
+                logger.info(msg)
+
             elif self.x.is_set:
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
@@ -918,7 +948,7 @@ class Connection(ConnectionBase):
                 msg = f"Determined h and p by known T and x at {self.label}."
                 logger.info(msg)
 
-            if self.T.is_set and self.Td_bp.is_set:
+            elif self.T.is_set and self.Td_bp.is_set:
                 self.p.set_reference_val_SI(p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))

@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import _numeric_deriv
@@ -629,15 +630,31 @@ class SimpleHeatExchanger(Component):
         ]
 
     def convergence_check(self):
-        from tespy.tools.fluid_properties import h_mix_pT
         if self.kA_group.is_set:
-            if self.outl[0].h.is_var:
-                T_in = self.inl[0].calc_T()
-                T_out = self.outl[0].calc_T()
-                if T_in > self.Tamb.val_SI:
-                    if T_out < self.Tamb.val_SI:
-                        h_out = h_mix_pT(self.outl[0].p.val_SI, self.Tamb.val_SI + 0.0001, self.outl[0].fluid_data, self.outl[0].mixing_rule)
-                        self.outl[0].h.set_reference_val_SI(h_out)
+            i = self.inl[0]
+            o = self.outl[0]
+            T_in = i.calc_T()
+            T_out = o.calc_T()
+            if T_in > self.Tamb.val_SI:
+                if T_out < self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI + 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
+            elif T_in < self.Tamb.val_SI:
+                if T_out > self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI - 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
 
     def bus_func(self, bus):
         r"""

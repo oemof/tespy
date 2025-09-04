@@ -1013,12 +1013,12 @@ class Connection(ConnectionBase):
                 quantity="temperature_difference"
             ),
             "td_dew": dc_prop(
-                func=self.td_dew_func, deriv=self.td_dew_deriv,
+                func=self.td_dew_func, #deriv=self.td_dew_deriv,
                 dependents=self.td_dew_dependents, num_eq=1,
                 quantity="temperature_difference"
             ),
             "td_bubble": dc_prop(
-                func=self.td_bubble_func, deriv=self.td_bubble_deriv,
+                func=self.td_bubble_func, #deriv=self.td_bubble_deriv,
                 dependents=self.td_bubble_dependents, num_eq=1,
                 quantity="temperature_difference"
             ),
@@ -1249,7 +1249,7 @@ class Connection(ConnectionBase):
 
     def td_dew_func(self, **kwargs):
         # temperature difference to boiling point
-        return self.calc_td_bubble() - self.td_bubble.val_SI
+        return self.calc_td_dew() - self.td_dew.val_SI
 
     def td_dew_dependents(self):
         return [self.p, self.h]

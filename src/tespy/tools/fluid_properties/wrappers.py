@@ -218,6 +218,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
                 self._T_max *= 1.45
 
             if self.back_end == "REFPROP":
+                if self.mixture_type is not None:
+                    self._T_min += 5
                 self._p_min = 1e1
             else:
                 self._p_min = self.AS.trivial_keyed_output(CP.iP_min)

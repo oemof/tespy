@@ -17,7 +17,7 @@ Other Changes
 - Fix a couple of broken internal links
   (`PR #757 <https://github.com/oemof/tespy/pull/757>`__).
 - Immediately check temperature difference unit compatibility when specifying
-  via :code:`set_defaukts`
+  via :code:`set_defaults`
   (`PR #764 <https://github.com/oemof/tespy/pull/764>`__).
 
 Contributors

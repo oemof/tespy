@@ -2974,7 +2974,7 @@ class Network:
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
         _converged = self.process_connections()
-        _converged = _converged and self.process_components()
+        _converged = self.process_components() and _converged
         self.process_busses()
 
         if self.status == 0 and not _converged:
@@ -2999,7 +2999,7 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = _converged and c.calc_results(self.units)
+            _converged = c.calc_results(self.units) and _converged
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 

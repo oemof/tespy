@@ -106,5 +106,5 @@ FLUID_ALIASES = FluidAliases()
 
 combustion_gases = [
     'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane',
-    'CO'
+    'CO', 'acetone', 'Dichloroethane'
 ]

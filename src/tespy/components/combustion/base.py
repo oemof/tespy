@@ -319,6 +319,8 @@ class CombustionChamber(Component):
         hf['propane'] = -103.8
         hf['butane'] = -125.7
         hf['nDodecane'] = -289.4
+        hf['acetone']= -2.157E+02
+        hf['Dichloroethane']= -1.2979E+02
         hf['CO'] = -110.5
         hf[self.o2] = 0
         hf[self.co2] = -393.51

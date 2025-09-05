@@ -19,6 +19,7 @@ from pytest import mark
 from tespy.components import Condenser
 from tespy.components import Desuperheater
 from tespy.components import HeatExchanger
+from tespy.components import ParallelFlowHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
@@ -901,3 +902,18 @@ class TestHeatExchangers:
             f'{round(instance.kA.val, 1)}.'
         )
         assert np.isnan(instance.kA.val), msg
+
+
+    def test_ParallelFlowHeatExchanger(self):
+        instance = ParallelFlowHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+        self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
+        instance.set_attr(dp1=0, dp2=0, ttd_u=15)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.ttd_l.val) == self.c1.T.val - self.c3.T.val
+        assert approx(instance.ttd_u.val) == self.c2.T.val - self.c4.T.val

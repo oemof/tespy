@@ -610,6 +610,7 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design", init_only=True)
         assert c2.fluid.val["R134a"] == 1
 
+
 def test_use_cuda_without_it_being_installed():
     nw = Network()
 
@@ -625,6 +626,7 @@ def test_use_cuda_without_it_being_installed():
     nw.assert_convergence()
     assert not nw.use_cuda
 
+
 def test_component_not_found():
     nw = Network()
 
@@ -636,6 +638,7 @@ def test_component_not_found():
 
     nw.add_conns(c1, c2)
     assert nw.get_comp("Turbine") is None
+
 
 def test_connection_not_found():
     nw = Network()
@@ -649,6 +652,7 @@ def test_connection_not_found():
     nw.add_conns(c1, c2)
     assert nw.get_conn("1") is None
 
+
 def test_missing_source_sink_cycle_closer():
     nw = Network()
 
@@ -661,6 +665,7 @@ def test_missing_source_sink_cycle_closer():
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
         nw.solve("design")
+
 
 def test_dublicated_linear_dependent_variables():
     nw = Network()
@@ -687,6 +692,7 @@ def test_dublicated_linear_dependent_variables():
 
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
+
 
 def test_cyclic_linear_dependent_variables():
     nw = Network()
@@ -724,6 +730,7 @@ def test_cyclic_linear_dependent_variables():
     )
     # checksum for the variable numbers
     assert sum(cycle) == 19
+
 
 def test_cyclic_linear_dependent_with_merge_and_split():
     nw = Network()
@@ -765,6 +772,7 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     # checksum for the variable numbers
     assert sum(cycle) == 45
 
+
 def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -773,6 +781,7 @@ def test_v08_to_v09_import():
 
     nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
+
 
 def test_v08_to_v09_complete():
     network_path = os.path.join(
@@ -792,6 +801,7 @@ def test_v08_to_v09_complete():
     nw.get_comp('compressor').set_attr(igva='var')
     nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
+
 
 def test_missing_cyclecloser_but_no_missing_source():
     nw = Network()
@@ -881,6 +891,7 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
     nw.solve("design")
     assert nw.status == 99
 
+
 def test_postprocessing_supercritical():
     nw = Network()
     nw.units.set_defaults(**{
@@ -898,3 +909,11 @@ def test_postprocessing_supercritical():
     nw.solve("design")
     assert np.isnan(c1.Td_bp.val)
     assert np.isnan(c1.x.val)
+
+
+def test_nonconverged_simulation_does_not_overwrite_connection_specification():
+    raise NotImplementedError()
+
+
+def test_nonconverged_simulation_does_not_overwrite_component_specification():
+    raise NotImplementedError()

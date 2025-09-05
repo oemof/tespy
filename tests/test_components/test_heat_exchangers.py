@@ -374,6 +374,34 @@ class TestHeatExchangers:
         msg = 'kA value needs to be identical on network and component level.'
         assert kA_network == kA_comp, msg
 
+    def test_SimpleHeatExchanger_kA_convergence_cooling(self):
+        """Test kA group equation convergence for near ambient temperature outflow."""
+        instance = SimpleHeatExchanger("heatexchanger")
+        self.setup_SimpleHeatExchanger_network(instance)
+        self.c1.set_attr(fluid={"H2O": 1}, x=0, p=28, m=0.005)
+        instance.D.min_val = 0.001
+        instance.set_attr(
+            pr=0.95,
+            Tamb=20,
+            kA=250,
+            L=1000,
+            D='var',
+            ks=4.57e-5
+        )
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert round(self.c2.T.val - instance.Tamb.val, 3) == 0.002
+
+    def test_SimpleHeatExchanger_kA_convergence_heating(self):
+        instance = SimpleHeatExchanger("heatexchanger")
+        self.setup_SimpleHeatExchanger_network(instance)
+
+        instance.set_attr(Tamb=10, D=0.0215, L=50, ks=0.00001, kA=3000.0)
+        self.c1.set_attr(p=4, m=0.1, fluid={"Water": 1}, T=0)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert round(instance.Tamb.val - self.c2.T.val, 3) == 0.008
+
     def test_ParabolicTrough(self):
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')

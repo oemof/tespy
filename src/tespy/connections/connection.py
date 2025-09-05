@@ -460,7 +460,7 @@ class Connection(ConnectionBase):
     >>> so_si2.T.is_set
     False
     >>> so_si2.Td_bp.val
-    5
+    5.0
     >>> so_si2.set_attr(Td_bp=None)
     >>> so_si2.Td_bp.is_set
     False

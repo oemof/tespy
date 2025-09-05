@@ -617,9 +617,9 @@ class FluidProperties(DataContainer):
 
     def get_val(self):
         if not isinstance(self._val, pint.Quantity):
-            return self._val
+            return float(self._val)
         else:
-            return self._val.magnitude
+            return float(self._val.magnitude)
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)

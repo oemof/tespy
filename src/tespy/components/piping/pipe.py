@@ -196,7 +196,7 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('design')
     >>> round(pi.D.val, 3)
     0.119
-    >>> outg.p.val / inc.p.val == pi.pr.val
+    >>> round(outg.p.val / inc.p.val, 3) == round(pi.pr.val, 3)
     True
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(pr=None)

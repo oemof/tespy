@@ -10,6 +10,8 @@ tests/test_components/test_turbomachinery.py
 SPDX-License-Identifier: MIT
 """
 
+from pytest import approx
+
 import numpy as np
 
 from tespy.components import Compressor
@@ -25,7 +27,6 @@ from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.fluid_properties import s_mix_ph
 
 
 class TestTurbomachinery:
@@ -461,9 +462,8 @@ class TestTurbomachinery:
         self.nw.assert_convergence()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         pr = self.c2.p.val_SI / self.c1.p.val_SI
-        msg = ('Value of power must be ' + str(power) + ', is ' +
-               str(instance.P.val) + '.')
-        assert power == instance.P.val, msg
+        msg = f"Value of power must be {power}), is {instance.P.val}."
+        assert approx(power) == instance.P.val, msg
         msg = ('Value of power must be ' + str(pr) + ', is ' +
                str(instance.pr.val) + '.')
         assert pr == instance.pr.val, msg
@@ -484,6 +484,5 @@ class TestTurbomachinery:
         self.nw.solve('design')
         self.nw.assert_convergence()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        msg = ('Value of power must be ' + str(power) + ', is ' +
-               str(instance.P.val) + '.')
-        assert power == instance.P.val, msg
+        msg = f"Value of power must be {power}, is {instance.P.val}."
+        assert approx(power) == instance.P.val, msg

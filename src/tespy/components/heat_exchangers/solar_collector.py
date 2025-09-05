@@ -248,9 +248,6 @@ class SolarCollector(SimpleHeatExchanger):
             self.outl[0].h,
         ] + [self.get_attr(element) for element in self.energy_group.elements]
 
-    def convergence_check(self):
-        pass
-
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]

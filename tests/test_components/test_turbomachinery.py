@@ -10,9 +10,8 @@ tests/test_components/test_turbomachinery.py
 SPDX-License-Identifier: MIT
 """
 
-from pytest import approx
-
 import numpy as np
+from pytest import approx
 
 from tespy.components import Compressor
 from tespy.components import Pump

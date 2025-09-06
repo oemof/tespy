@@ -70,6 +70,7 @@ dev = [
     "fluprodia",
     "furo",
     "iapws",
+    "isort",
     "pyromat",
     "pytest",
     "sphinx>=7.2.2",

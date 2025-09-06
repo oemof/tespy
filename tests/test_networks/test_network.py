@@ -610,6 +610,7 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design", init_only=True)
         assert c2.fluid.val["R134a"] == 1
 
+
 def test_use_cuda_without_it_being_installed():
     nw = Network()
 
@@ -625,6 +626,7 @@ def test_use_cuda_without_it_being_installed():
     nw.assert_convergence()
     assert not nw.use_cuda
 
+
 def test_component_not_found():
     nw = Network()
 
@@ -636,6 +638,7 @@ def test_component_not_found():
 
     nw.add_conns(c1, c2)
     assert nw.get_comp("Turbine") is None
+
 
 def test_connection_not_found():
     nw = Network()
@@ -649,6 +652,7 @@ def test_connection_not_found():
     nw.add_conns(c1, c2)
     assert nw.get_conn("1") is None
 
+
 def test_missing_source_sink_cycle_closer():
     nw = Network()
 
@@ -661,6 +665,7 @@ def test_missing_source_sink_cycle_closer():
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
         nw.solve("design")
+
 
 def test_dublicated_linear_dependent_variables():
     nw = Network()
@@ -687,6 +692,7 @@ def test_dublicated_linear_dependent_variables():
 
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
+
 
 def test_cyclic_linear_dependent_variables():
     nw = Network()
@@ -724,6 +730,7 @@ def test_cyclic_linear_dependent_variables():
     )
     # checksum for the variable numbers
     assert sum(cycle) == 19
+
 
 def test_cyclic_linear_dependent_with_merge_and_split():
     nw = Network()
@@ -765,6 +772,7 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     # checksum for the variable numbers
     assert sum(cycle) == 45
 
+
 def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -773,6 +781,7 @@ def test_v08_to_v09_import():
 
     nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
+
 
 def test_v08_to_v09_complete():
     network_path = os.path.join(
@@ -792,6 +801,7 @@ def test_v08_to_v09_complete():
     nw.get_comp('compressor').set_attr(igva='var')
     nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
+
 
 def test_missing_cyclecloser_but_no_missing_source():
     nw = Network()
@@ -881,6 +891,7 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
     nw.solve("design")
     assert nw.status == 99
 
+
 def test_postprocessing_supercritical():
     nw = Network()
     nw.units.set_defaults(**{
@@ -898,3 +909,71 @@ def test_postprocessing_supercritical():
     nw.solve("design")
     assert np.isnan(c1.Td_bp.val)
     assert np.isnan(c1.x.val)
+
+
+def test_nonconverged_simulation_does_not_overwrite_component_specification_1():
+    """This creates a result, that shows as converged but actually it did not
+    because of internal convergence helpers. It tests, that the user specified
+    input is not overwritten by the erroneous result
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("inflow")
+    outflow = Sink("outflow")
+    instance = SimpleHeatExchanger("heat exchanger")
+
+    c1 = Connection(inflow, "out1", instance, "in1")
+    c2 = Connection(instance, "out1", outflow, "in1")
+
+    nw.add_conns(c1, c2)
+    c1.set_attr(m=0.1, fluid={"N2": 0.7, "O2": 0.15, "Water": 0.15})
+    c2.set_attr(p=1, T=20)
+    instance.set_attr(Q=1e4, zeta=1e6)
+
+    nw.solve("design")
+    assert nw.status == 2
+    assert np.isnan(c1.T.val_SI)
+    assert instance.zeta.val == 1e6
+    assert np.isnan(instance.zeta.val_SI)
+
+
+def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
+    """This creates a result, that shows as converged but actually it did not
+    because of internal convergence helpers. It tests, that the user specified
+    input is not overwritten by the erroneous result
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = SimpleHeatExchanger("heatexchanger")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1)
+    c2.set_attr(T=19.5)
+    instance.set_attr(Tamb=20, kA=500, pr=1)
+    nw.solve("design")
+
+    assert nw.residual < 1e-3  # residual shows convergence
+    assert nw.status == 2  # status shows non-convergence
+
+    assert np.isnan(instance.kA.val_SI)  # calculated SI value is not equal to inputted value
+    assert instance.kA.val == 500  # inputted value stays the same
+
+    # recalculation works, because old kA input is correctly retained
+    c2.set_attr(T=20.2)
+    nw.solve("design")
+    assert nw.status == 0

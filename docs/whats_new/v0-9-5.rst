@@ -16,6 +16,19 @@ Other Changes
   (`PR #755 <https://github.com/oemof/tespy/pull/755>`__).
 - Fix a couple of broken internal links
   (`PR #757 <https://github.com/oemof/tespy/pull/757>`__).
+- Immediately check temperature difference unit compatibility when specifying
+  via :code:`set_defaults`
+  (`PR #764 <https://github.com/oemof/tespy/pull/764>`__).
+- Make a modification to the :code:`_calc_td_log` method of
+  :code:`SimpleHeatExchanger` classes to enable simulations with tiny
+  temperature difference between fluid outlet and ambient temperature
+  (`PR #761 <https://github.com/oemof/tespy/pull/761>`__).
+
+Bug Fixes
+#########
+- The post-processing of the components and connections now does not overwrite
+  user specified values anymore. Instead a warning is issued
+  (`PR #767 <https://github.com/oemof/tespy/pull/767>`__).
 
 Contributors
 ############

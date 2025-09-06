@@ -1004,7 +1004,10 @@ class Connection(ConnectionBase):
             elif self.T.is_set and self.td_bubble.is_set:
                 self.p.set_reference_val_SI(p_bubble_T(self.T.val_SI + self.td_bubble.val_SI, self.fluid_data))
                 self.p._potential_var = False
-                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
+                if round(self.td_bubble.val_SI, 6) == 0:
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data))
+                else:
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
@@ -1016,7 +1019,10 @@ class Connection(ConnectionBase):
             elif self.T.is_set and self.td_dew.is_set:
                 self.p.set_reference_val_SI(p_dew_T(self.T.val_SI - self.td_dew.val_SI, self.fluid_data))
                 self.p._potential_var = False
-                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
+                if round(self.td_dew.val_SI, 6) == 0:
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data))
+                else:
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
@@ -1078,7 +1084,7 @@ class Connection(ConnectionBase):
                 quantity="temperature_difference"
             ),
             "td_dew": dc_prop(
-                func=self.td_dew_func, #deriv=self.td_dew_deriv,
+                func=self.td_dew_func,
                 dependents=self.td_dew_dependents, num_eq=1,
                 quantity="temperature_difference"
             ),
@@ -1313,14 +1319,12 @@ class Connection(ConnectionBase):
         return [self.p, self.h]
 
     def td_dew_func(self, **kwargs):
-        # temperature difference to boiling point
         return self.calc_td_dew() - self.td_dew.val_SI
 
     def td_dew_dependents(self):
         return [self.p, self.h]
 
     def td_bubble_func(self, **kwargs):
-        # temperature difference to boiling point
         return self.calc_td_bubble() - self.td_bubble.val_SI
 
     def td_bubble_dependents(self):
@@ -1626,31 +1630,31 @@ class Connection(ConnectionBase):
             if self.Td_bp.val_SI > 0 or self.state.val == 'g':
                 h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h * 1.01)
+                    self.h.set_reference_val_SI(h + 1e3)
                     logger.debug(self._property_range_message('h'))
             else:
                 h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h * 0.99)
+                    self.h.set_reference_val_SI(h - 1e3)
                     logger.debug(self._property_range_message('h'))
 
         elif self.td_bubble.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
             if self.td_bubble.val_SI >= 0:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h -1e3)
+                    self.h.set_reference_val_SI(h)
             else:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
+                    self.h.set_reference_val_SI(h)
 
         elif self.td_dew.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.td_dew.val_SI >= 0:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
+                    self.h.set_reference_val_SI(h)
             else:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
+                    self.h.set_reference_val_SI(h)
 
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)

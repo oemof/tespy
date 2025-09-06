@@ -408,7 +408,7 @@ class TestTurbomachinery:
         fl = {'H2O': 1}
         # start in gas, end in gas
         self.c1.set_attr(fluid=fl, m=15, p=100, T=500)
-        self.c2.set_attr(Td_bp=1)
+        self.c2.set_attr(td_dew=1)
 
         eta_s_dry = 0.9
         instance.set_attr(eta_s_dry=eta_s_dry, alpha=1)
@@ -424,7 +424,7 @@ class TestTurbomachinery:
         assert eta_s_dry == eta_s, msg
 
         # end in two phase
-        self.c2.set_attr(Td_bp=None, x=0.9)
+        self.c2.set_attr(td_dew=None, x=0.9)
         self.nw.solve('design')
         self.nw.assert_convergence()
 

@@ -907,7 +907,7 @@ def test_postprocessing_supercritical():
 
     c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
     nw.solve("design")
-    assert np.isnan(c1.Td_bp.val)
+    assert np.isnan(c1.td_dew.val)
     assert np.isnan(c1.x.val)
 
 

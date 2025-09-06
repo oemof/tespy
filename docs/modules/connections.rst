@@ -507,7 +507,7 @@ method in the model of the motor.
 
 .. code-block:: python
 
-    >>> c1.set_attr(fluid={"R290": 1}, m=1, Td_bp=10, T=10)
+    >>> c1.set_attr(fluid={"R290": 1}, m=1, td_dew=10, T=10)
     >>> compressor.set_attr(pr=3, eta_s=0.85, design=["eta_s"], offdesign=["eta_s_char"])
     >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
     >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])

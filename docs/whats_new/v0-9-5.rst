@@ -19,6 +19,10 @@ Other Changes
 - Immediately check temperature difference unit compatibility when specifying
   via :code:`set_defaults`
   (`PR #764 <https://github.com/oemof/tespy/pull/764>`__).
+- Make a modification to the :code:`_calc_td_log` method of
+  :code:`SimpleHeatExchanger` classes to enable simulations with tiny
+  temperature difference between fluid outlet and ambient temperature
+  (`PR #761 <https://github.com/oemof/tespy/pull/761>`__).
 
 Bug Fixes
 #########

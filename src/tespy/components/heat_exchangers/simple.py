@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import _numeric_deriv
@@ -521,8 +522,28 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
         if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif round(ttd_1, 6) == round(ttd_2, 6):
+            if ttd_1 > 0:
+                if o.h.is_var:
+                    h_out = h_mix_pT(
+                        o.p.val_SI,
+                        self.Tamb.val_SI + 0.0001,
+                        o.fluid_data,
+                        o.mixing_rule
+                    )
+                    o.h.set_reference_val_SI(h_out)
+                ttd_2 = 0.1
+            elif ttd_1 < 0:
+                if o.h.is_var:
+                    h_out = h_mix_pT(
+                        o.p.val_SI,
+                        self.Tamb.val_SI - 0.0001,
+                        o.fluid_data,
+                        o.mixing_rule
+                    )
+                    o.h.set_reference_val_SI(h_out)
+                ttd_2 = -0.1
+
+        if round(ttd_1, 6) == round(ttd_2, 6):
             td_log = ttd_2
         elif ttd_1 > ttd_2:
             td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
@@ -623,6 +644,33 @@ class SimpleHeatExchanger(Component):
             self.outl[0].p,
             self.outl[0].h,
         ]
+
+    def convergence_check(self):
+        if self.kA_group.is_set:
+            i = self.inl[0]
+            o = self.outl[0]
+            T_in = i.calc_T()
+            T_out = o.calc_T()
+            if T_in > self.Tamb.val_SI:
+                if T_out < self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI + 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
+            elif T_in < self.Tamb.val_SI:
+                if T_out > self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI - 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
 
     def bus_func(self, bus):
         r"""

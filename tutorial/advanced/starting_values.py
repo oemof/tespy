@@ -86,7 +86,7 @@ c13.set_attr(T=T_hs_bf, p=1)
 # evaporation to fully saturated gas
 c1.set_attr(x=1, fluid={wf: 1})
 # degree of overheating after internal heat exchanger (evaporation side)
-c2.set_attr(Td_bp=10)
+c2.set_attr(td_dew=10)
 
 # parametrization components
 # isentropic efficiency
@@ -127,7 +127,7 @@ condenser.set_attr(ttd_u=None)
 
 # internal heat exchanger to compressor enthalpy
 h_evap = CP.PropsSI("H", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-3
-c2.set_attr(Td_bp=None, h=h_evap * 1.01)
+c2.set_attr(td_dew=None, h=h_evap * 1.01)
 
 # solve the network again
 nw.solve("design")
@@ -141,7 +141,7 @@ c4.set_attr(p=None)
 condenser.set_attr(ttd_u=5)
 
 # internal heat exchanger superheating
-c2.set_attr(Td_bp=5, h=None)
+c2.set_attr(td_dew=5, h=None)
 
 # solve the network again
 nw.solve("design")
@@ -278,7 +278,7 @@ def generate_network_with_starting_values(wf):
     condenser.set_attr(ttd_u=5)
 
     # internal heat exchanger superheating
-    c2.set_attr(Td_bp=5, h=None)
+    c2.set_attr(td_dew=5, h=None)
 
     # solve the network again
     nw.solve("design")

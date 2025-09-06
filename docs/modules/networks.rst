@@ -153,7 +153,7 @@ do the following:
 
     >>> compressor.dp.quantity
     'pressure'
-    >>> c1.Td_bp.quantity
+    >>> c1.td_dew.quantity
     'temperature_difference'
 
 Finally, it is also possible to use your own :code:`UnitRegistry`:

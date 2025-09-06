@@ -81,13 +81,19 @@ class FluidPropertyWrapper:
         self._not_implemented()
 
     def T_dew(self, p):
-        self._not_implemented()
+        return self.T_sat(p)
 
     def T_bubble(self, p):
-        self._not_implemented()
+        return self.T_sat(p)
 
     def p_sat(self, T):
         self._not_implemented()
+
+    def p_dew(self, T):
+        return self.p_sat(T)
+
+    def p_bubble(self, T):
+        return self.p_sat(T)
 
     def Q_ph(self, p, h):
         self._not_implemented()
@@ -281,10 +287,15 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.T()
 
     def p_sat(self, T):
-        if T > self._T_crit:
-            T = self._T_crit * 0.99
-
         self.AS.update(CP.QT_INPUTS, 0.5, T)
+        return self.AS.p()
+
+    def p_dew(self, T):
+        self.AS.update(CP.QT_INPUTS, 1, T)
+        return self.AS.p()
+
+    def p_bubble(self, T):
+        self.AS.update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):

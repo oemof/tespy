@@ -50,7 +50,7 @@ In order to create the connections we create the components to connect first.
     # analogously
     >>> myconn.set_attr(p=7, x=0.5)
     >>> myconn.p.val, myconn.x.val
-    (7, 0.5)
+    (7.0, 0.5)
 
     # set starting values for mass flow, pressure and enthalpy (has no effect
     # on temperature and vapor mass fraction!)

@@ -523,7 +523,7 @@ class SimpleHeatExchanger(Component):
         # different sign use mean difference to avoid negative logarithm.
         if (ttd_1 / ttd_2) < 0:
             if ttd_1 > 0:
-                if o.h.is_var:
+                if o.h.is_var and self.it < 10:
                     h_out = h_mix_pT(
                         o.p.val_SI,
                         self.Tamb.val_SI + 0.0001,
@@ -533,7 +533,7 @@ class SimpleHeatExchanger(Component):
                     o.h.set_reference_val_SI(h_out)
                 ttd_2 = 0.1
             elif ttd_1 < 0:
-                if o.h.is_var:
+                if o.h.is_var and self.it < 10:
                     h_out = h_mix_pT(
                         o.p.val_SI,
                         self.Tamb.val_SI - 0.0001,

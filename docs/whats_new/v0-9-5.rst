@@ -24,6 +24,12 @@ Other Changes
   temperature difference between fluid outlet and ambient temperature
   (`PR #761 <https://github.com/oemof/tespy/pull/761>`__).
 
+Bug Fixes
+#########
+- The post-processing of the components and connections now does not overwrite
+  user specified values anymore. Instead a warning is issued
+  (`PR #767 <https://github.com/oemof/tespy/pull/767>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

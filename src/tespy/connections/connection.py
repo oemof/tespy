@@ -460,7 +460,7 @@ class Connection(ConnectionBase):
     >>> so_si2.T.is_set
     False
     >>> so_si2.Td_bp.val
-    5
+    5.0
     >>> so_si2.set_attr(Td_bp=None)
     >>> so_si2.Td_bp.is_set
     False
@@ -1287,7 +1287,29 @@ class Connection(ConnectionBase):
             self.s.val_SI = self.calc_s()
 
         for prop in self._result_attributes():
-            self.get_attr(prop).set_val_from_SI(units)
+            param = self.get_attr(prop)
+            result = param._get_val_from_SI(units)
+            if param.is_set and round(result.magnitude, 3) != round(param.val, 3):
+                _converged = False
+                msg = (
+                    "The simulation converged but the calculated result "
+                    f"{result} for the fixed input parameter {prop} of "
+                    f"connection {self.label} is not equal to the originally "
+                    f"specified value of {param.val}. Usually, this can "
+                    "happen, when a method internally manipulates the "
+                    "associated equation during iteration in order to allow "
+                    "progress in situations, when the equation is otherwise "
+                    "not well defined for the current values of the "
+                    "variables, e.g. in case a negative root would need to be "
+                    "evaluated. Often, this can happen during the first "
+                    "iterations and then will resolve itself as convergence "
+                    "progresses. In this case it did not, meaning convergence "
+                    "was not actually achieved."
+                )
+                logger.warning(msg)
+            else:
+                if not param.is_set:
+                    param.set_val_from_SI(units)
 
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)

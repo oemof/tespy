@@ -469,7 +469,7 @@ class Connection(ConnectionBase):
     <class 'tespy.connections.connection.Connection'>
 
     Unset the specified temperature and specify temperature difference to
-    boiling point instead.
+    boiling point (deprecated) instead.
 
     >>> so_si2.T.is_set
     True
@@ -480,6 +480,25 @@ class Connection(ConnectionBase):
     5.0
     >>> so_si2.set_attr(Td_bp=None)
     >>> so_si2.Td_bp.is_set
+    False
+
+    Bubble line or dew line temperature difference:
+
+    >>> so_si2.set_attr(td_bubble=5)
+    >>> so_si2.td_bubble.is_set
+    True
+    >>> so_si2.td_bubble.val
+    5.0
+    >>> so_si2.set_attr(td_bubble=None)
+    >>> so_si2.td_bubble.is_set
+    False
+    >>> so_si2.set_attr(td_dew=5)
+    >>> so_si2.td_dew.is_set
+    True
+    >>> so_si2.td_dew.val
+    5.0
+    >>> so_si2.set_attr(td_dew=None)
+    >>> so_si2.td_dew.is_set
     False
 
     Specify the state keyword: The fluid will be forced to liquid or gaseous
@@ -1478,7 +1497,7 @@ class Connection(ConnectionBase):
                 self._adjust_enthalpy(fl)
 
                 # two-phase related
-                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set) and self.it < 10:
+                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 10:
                     self._adjust_to_two_phase(fl)
 
         # mixture
@@ -1583,6 +1602,25 @@ class Connection(ConnectionBase):
                 if self.h.val_SI > h:
                     self.h.set_reference_val_SI(h * 0.99)
                     logger.debug(self._property_range_message('h'))
+
+        elif self.td_bubble.is_set:
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
+            if self.td_bubble.val_SI >= 0:
+                if self.h.val_SI > h:
+                    self.h.set_reference_val_SI(h * 0.99)
+            else:
+                if self.h.val_SI < h:
+                    self.h.set_reference_val_SI(h * 1.01)
+
+        elif self.td_dew.is_set:
+            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
+            if self.td_dew.val_SI >= 0:
+                if self.h.val_SI < h:
+                    self.h.set_reference_val_SI(h * 1.01)
+            else:
+                if self.h.val_SI > h:
+                    self.h.set_reference_val_SI(h * 0.99)
+
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)
             self.h.set_reference_val_SI(h)

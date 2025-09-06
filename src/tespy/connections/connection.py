@@ -52,6 +52,7 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.units import SI_UNITS
+import warnings
 
 
 def connection_registry(type):
@@ -122,6 +123,20 @@ class ConnectionBase:
                 is_numeric = True
             except (TypeError, ValueError):
                 pass
+
+        if key == "Td_bp":
+            msg = (
+                "The parameter 'Td_bp' is depreciated and will be removed in "
+                "the next major release of tespy. Please use 'td_bubble' or "
+                "'td_dew' instead. In contrast to 'Td_bp' not the following: "
+                "A positive value for 'td_bubble' indicates a liquid state, "
+                "meaning the temperature of the fluid will be lower than the "
+                "associated bubble temperature by the specified value."
+                "A positive value for 'td_dew' indicates a gaseous state, "
+                "meaning the temperature of the fluid will be higher than the "
+                "associated dew temperature by the specified value."
+            )
+            warnings.warn(msg, FutureWarning)
 
         if value is None:
             self.get_attr(key).set_attr(is_set=False)

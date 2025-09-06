@@ -9,6 +9,8 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 import pint
 
@@ -38,9 +40,9 @@ from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
-from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.functions import p_bubble_T
 from tespy.tools.fluid_properties.functions import p_dew_T
+from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
@@ -54,7 +56,6 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.units import SI_UNITS
-import warnings
 
 
 def connection_registry(type):

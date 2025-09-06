@@ -31,15 +31,18 @@ from tespy.tools.helpers import _numeric_deriv
 @component_registry
 class HeatExchanger(Component):
     r"""
-    Class for counter current heat exchanger.
+    Class for counter flow heat exchanger.
 
     The component HeatExchanger is the parent class for the components:
 
     - :py:class:`tespy.components.heat_exchangers.condenser.Condenser`
     - :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`
+    - :py:class:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
 
     **Optional Equations**
@@ -53,12 +56,12 @@ class HeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-    - hot side :py:meth:`tespy.components.component.Component.dp_func`
-    - cold side :py:meth:`tespy.components.component.Component.dp_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
@@ -264,32 +267,24 @@ class HeatExchanger(Component):
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
                 quantity="ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
                 quantity="ratio"
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
                 quantity="pressure"
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
                 quantity="pressure"

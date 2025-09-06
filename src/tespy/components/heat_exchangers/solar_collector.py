@@ -29,9 +29,9 @@ class SolarCollector(SimpleHeatExchanger):
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.component.Component.dp_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -247,6 +247,9 @@ class SolarCollector(SimpleHeatExchanger):
             self.outl[0].p,
             self.outl[0].h,
         ] + [self.get_attr(element) for element in self.energy_group.elements]
+
+    def convergence_check(self):
+        pass
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

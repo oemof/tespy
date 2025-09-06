@@ -297,7 +297,7 @@ class TestSEGS:
         c65.set_attr(p=self.pamb + 0.0005)
         c66.set_attr(p=self.pamb, T=30)
         # power cycle
-        c32.set_attr(Td_bp=-2)
+        c32.set_attr(td_bubble=2)
         c34.set_attr(x=0.5)
         c1.set_attr(fluid={'water': 1}, p=100, T=371)
 
@@ -330,9 +330,9 @@ class TestSEGS:
         c26.set_attr(x=0)
 
         # subcoolers
-        c48.set_attr(Td_bp=-10)
-        c53.set_attr(Td_bp=-10)
-        c58.set_attr(Td_bp=-10)
+        c48.set_attr(td_bubble=10)
+        c53.set_attr(td_bubble=10)
+        c58.set_attr(td_bubble=10)
 
         lppre1_sub.set_attr(pr1=1, pr2=1)
         lppre2_sub.set_attr(pr1=1, pr2=1)
@@ -343,9 +343,9 @@ class TestSEGS:
         # solve inital state
         self.nw.solve(mode='design', robust_relax=True)
 
-        c48.set_attr(Td_bp=None)
-        c53.set_attr(Td_bp=None)
-        c58.set_attr(Td_bp=None)
+        c48.set_attr(td_bubble=None)
+        c53.set_attr(td_bubble=None)
+        c58.set_attr(td_bubble=None)
         lppre1_sub.set_attr(ttd_l=10)
         lppre2_sub.set_attr(ttd_l=10)
         lppre3_sub.set_attr(ttd_l=10)

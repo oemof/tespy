@@ -50,7 +50,7 @@ In order to create the connections we create the components to connect first.
     # analogously
     >>> myconn.set_attr(p=7, x=0.5)
     >>> myconn.p.val, myconn.x.val
-    (7, 0.5)
+    (7.0, 0.5)
 
     # set starting values for mass flow, pressure and enthalpy (has no effect
     # on temperature and vapor mass fraction!)
@@ -507,7 +507,7 @@ method in the model of the motor.
 
 .. code-block:: python
 
-    >>> c1.set_attr(fluid={"R290": 1}, m=1, Td_bp=10, T=10)
+    >>> c1.set_attr(fluid={"R290": 1}, m=1, td_dew=10, T=10)
     >>> compressor.set_attr(pr=3, eta_s=0.85, design=["eta_s"], offdesign=["eta_s_char"])
     >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
     >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])

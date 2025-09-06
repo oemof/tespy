@@ -127,7 +127,7 @@ def test_set_attr_errors():
     set_attr_KeyError(mybus, power_output=100000)
 
     # NotImplementedError
-    set_attr_NotImplementedError(conn, Td_bp=Ref(conn, 1, 0))
+    set_attr_NotImplementedError(conn, td_bubble=Ref(conn, 1, 0))
     set_attr_NotImplementedError(conn, x=Ref(conn, 1, 0))
 
 

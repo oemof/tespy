@@ -24,7 +24,7 @@ exclude = ["docs/_build"]
 
 [project]
 name = "tespy"
-version = "0.9.4.post2"
+version = "0.9.5"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -70,6 +70,7 @@ dev = [
     "fluprodia",
     "furo",
     "iapws",
+    "isort",
     "pyromat",
     "pytest",
     "sphinx>=7.2.2",

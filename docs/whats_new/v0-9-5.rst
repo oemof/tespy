@@ -1,11 +1,91 @@
-v0.9.5 - Under development
-++++++++++++++++++++++++++
+v0.9.5 - Kelvin's Kingdom (September, 6, 2025)
+++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
+- Temperature differences to bubble and dew temperature are now explicitly set
+  with the :code:`td_bubble` and :code:`td_dew` parameters, which will replace
+  the specification of :code:`Td_bp` in the next major release. The API for
+  these specifications is as follows:
+
+  - :code:`td_bubble` references the temperature at bubble line
+    (:code:`T(p,Q=0)`)
+  - :code:`td_dew` references the temperature at dew line
+    (:code:`T(p,Q=1)`)
+  - For pure fluids, this will be the same temperature, for mixtures (e.g. as
+    accessible through REFPROP it will not)!
+  - For :code:`td_bubble`:
+    - A **positive** value indicates a temperature **below** bubble temperature
+      by the specified value.
+    - A **negative** value indicates a temperature **above** bubble temperature
+      by the specified value.
+  - For :code:`td_dew`:
+    - A **positive** value indicates a temperature **above** dew temperature
+      by the specified value.
+    - A **negative** value indicates a temperature **below** dew temperature
+      by the specified value.
+  - You can also specify :code:`td_bubble=0` or :code:`td_dew=0`, which will
+    enforce saturated liquid or saturated gas state.
+
+  .. code-block:: python
+
+      >>> from tespy.connections import Connection
+      >>> from tespy.networks import Network
+      >>> from tespy.components import Source, Sink
+      >>> nw = Network(iterinfo=False)
+      >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+      >>> so = Source("source")
+      >>> si = Sink("sink")
+      >>> c = Connection(so, "out1", si, "in1")
+      >>> nw.add_conns(c)
+      >>> c.set_attr(fluid={"R290": 1}, m=1, p=10, td_bubble=5)
+      >>> nw.solve("design")
+      >>> round(c.T.val, 2)
+      21.94
+      >>> c.set_attr(td_bubble=None, td_dew=5)
+      >>> nw.solve("design")
+      >>> round(c.T.val, 2)
+      31.94
+      >>> c.set_attr(td_dew=-5)
+      >>> nw.solve("design")
+      >>> round(c.T.val, 2)
+      21.94
+      >>> c.set_attr(td_dew=None, td_bubble=-5)
+      >>> nw.solve("design")
+      >>> round(c.T.val, 2)
+      31.94
+      >>> c.set_attr(td_bubble=0)
+      >>> nw.solve("design")
+      >>> round(c.T.val, 2)
+      26.94
+
+  (`PR #758 <https://github.com/oemof/tespy/pull/758>`__).
 
 Other Changes
 #############
+- Component parameters which have :code:`structure_matrix` specified now also
+  invoke equations if the do not have :code:`func` associated at the same time.
+  This was already the case for mandatory constraints, but now it is also
+  rolled out to the parameters
+  (`PR #756 <https://github.com/oemof/tespy/pull/756>`__).
+- Selection of mass flow starting values, where no value is available is now
+  reproducibly random
+  (`PR #755 <https://github.com/oemof/tespy/pull/755>`__).
+- Fix a couple of broken internal links
+  (`PR #757 <https://github.com/oemof/tespy/pull/757>`__).
+- Immediately check temperature difference unit compatibility when specifying
+  via :code:`set_defaults`
+  (`PR #764 <https://github.com/oemof/tespy/pull/764>`__).
+- Make a modification to the :code:`_calc_td_log` method of
+  :code:`SimpleHeatExchanger` classes to enable simulations with tiny
+  temperature difference between fluid outlet and ambient temperature
+  (`PR #761 <https://github.com/oemof/tespy/pull/761>`__).
+
+Bug Fixes
+#########
+- The post-processing of the components and connections now does not overwrite
+  user specified values anymore. Instead a warning is issued
+  (`PR #767 <https://github.com/oemof/tespy/pull/767>`__).
 
 Contributors
 ############

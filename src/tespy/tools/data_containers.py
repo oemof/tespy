@@ -597,14 +597,17 @@ class FluidProperties(DataContainer):
 
         self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
 
-    def set_val_from_SI(self, units):
+    def _get_val_from_SI(self, units):
         # intermediate fix
         if not isinstance(self._val, pint.Quantity):
             self._assign_default_unit_to_val(units)
 
-        self.val = units.ureg.Quantity(
+        return units.ureg.Quantity(
             self.val_SI, self._get_val_base_unit()
         ).to(self._val.units)
+
+    def set_val_from_SI(self, units):
+        self.val = self._get_val_from_SI(units)
 
     def set_val0_from_SI(self, units):
         # intermediate fix
@@ -617,9 +620,9 @@ class FluidProperties(DataContainer):
 
     def get_val(self):
         if not isinstance(self._val, pint.Quantity):
-            return self._val
+            return float(self._val)
         else:
-            return self._val.magnitude
+            return float(self._val.magnitude)
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)

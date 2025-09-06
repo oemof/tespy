@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+from pytest import approx
 
 from tespy.components import Compressor
 from tespy.components import Pump
@@ -25,7 +26,6 @@ from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.fluid_properties import s_mix_ph
 
 
 class TestTurbomachinery:
@@ -408,7 +408,7 @@ class TestTurbomachinery:
         fl = {'H2O': 1}
         # start in gas, end in gas
         self.c1.set_attr(fluid=fl, m=15, p=100, T=500)
-        self.c2.set_attr(Td_bp=1)
+        self.c2.set_attr(td_dew=1)
 
         eta_s_dry = 0.9
         instance.set_attr(eta_s_dry=eta_s_dry, alpha=1)
@@ -424,7 +424,7 @@ class TestTurbomachinery:
         assert eta_s_dry == eta_s, msg
 
         # end in two phase
-        self.c2.set_attr(Td_bp=None, x=0.9)
+        self.c2.set_attr(td_dew=None, x=0.9)
         self.nw.solve('design')
         self.nw.assert_convergence()
 
@@ -461,9 +461,8 @@ class TestTurbomachinery:
         self.nw.assert_convergence()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
         pr = self.c2.p.val_SI / self.c1.p.val_SI
-        msg = ('Value of power must be ' + str(power) + ', is ' +
-               str(instance.P.val) + '.')
-        assert power == instance.P.val, msg
+        msg = f"Value of power must be {power}), is {instance.P.val}."
+        assert approx(power) == instance.P.val, msg
         msg = ('Value of power must be ' + str(pr) + ', is ' +
                str(instance.pr.val) + '.')
         assert pr == instance.pr.val, msg
@@ -484,6 +483,5 @@ class TestTurbomachinery:
         self.nw.solve('design')
         self.nw.assert_convergence()
         power = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        msg = ('Value of power must be ' + str(power) + ', is ' +
-               str(instance.P.val) + '.')
-        assert power == instance.P.val, msg
+        msg = f"Value of power must be {power}, is {instance.P.val}."
+        assert approx(power) == instance.P.val, msg

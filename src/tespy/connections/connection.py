@@ -1642,19 +1642,19 @@ class Connection(ConnectionBase):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
             if self.td_bubble.val_SI >= 0:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h)
+                    self.h.set_reference_val_SI(h - 1e3)
             else:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h)
+                    self.h.set_reference_val_SI(h + 1e3)
 
         elif self.td_dew.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.td_dew.val_SI >= 0:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h)
+                    self.h.set_reference_val_SI(h + 1e3)
             else:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h)
+                    self.h.set_reference_val_SI(h - 1e3)
 
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)

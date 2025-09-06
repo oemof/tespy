@@ -56,4 +56,4 @@ class TestSeparator:
         self.nwk.solve("design", max_iter=500)
         self.nwk.assert_convergence()
         assert c2.T.val_SI == approx(c1.T.val_SI, abs=1e-3)
-        assert c2.T.val == approx(101.992, abs=1e-3)
+        assert c2.T.val == approx(102.007, abs=1e-3)

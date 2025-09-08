@@ -791,8 +791,9 @@ class Network:
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
-                    col for col, data in comp.parameters.items()
+                    c for col, data in comp.parameters.items()
                     if isinstance(data, dc_cp)
+                    for c in [col, f"{col}_unit"]
                 ]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
@@ -2127,6 +2128,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
+        # TODO: depricate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -3050,13 +3052,10 @@ class Network:
 
         for cp in self.comps['object']:
             key = cp.__class__.__name__
-            for param in self.results[key].columns:
-                p = cp.get_attr(param)
-                if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result or p.structure_matrix is not None):
-                    self.results[key].loc[cp.label, param] = p.val
-                else:
-                    self.results[key].loc[cp.label, param] = np.nan
+            result = cp.collect_results()
+            if len(result) == 0:
+                continue
+            self.results[cp.__class__.__name__].loc[cp.label] = result
 
         return _converged
 
@@ -3126,6 +3125,9 @@ class Network:
         result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
+            for c in df.index:
+                if not self.get_comp(c).printout:
+                    df = df.drop(c)
             # are there any parameters to print?
             if df.size > 0:
                 if subsystem is not None:
@@ -3135,7 +3137,8 @@ class Network:
                     ]
                     df = df.loc[component_labels]
 
-                cols = df.columns
+                c = self.comps.loc[self.comps["comp_type"] == cp, "object"]
+                cols = c.iloc[0]._get_result_attributes()
                 if len(cols) > 0:
                     for col in cols:
                         df[col] = df.apply(
@@ -3308,7 +3311,8 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "power": "MW"
         ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
@@ -3370,7 +3374,7 @@ class Network:
         >>> combustion.set_attr(lamb=None)
         >>> c3.set_attr(T=1100)
         >>> c1.set_attr(m=None)
-        >>> e4.set_attr(E=1e6)
+        >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
         >>> nw.save('design_state.json')
@@ -3380,7 +3384,7 @@ class Network:
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> round(turbine.eta_s.val, 1)
         0.9
-        >>> e4.set_attr(E=0.75e6)
+        >>> e4.set_attr(E=0.75)
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> nw.assert_convergence()
         >>> eta_s_t = round(turbine.eta_s.val, 3)
@@ -3407,7 +3411,7 @@ class Network:
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
-        >>> imported_nwk.get_conn('e4').set_attr(E=0.75e6)
+        >>> imported_nwk.get_conn('e4').set_attr(E=0.75)
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
@@ -3419,14 +3423,19 @@ class Network:
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)
 
+        with open(json_file_path, "r") as f:
+            network_data = json.load(f)
+        # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
+        nw = cls(**network_data["Network"])
+
         # load components
         comps = {}
 
         module_name = "tespy.components"
         _ = importlib.import_module(module_name)
-
-        with open(json_file_path, "r") as f:
-            network_data = json.load(f)
 
         for component, data in network_data["Component"].items():
             if component not in component_registry.items:
@@ -3440,16 +3449,10 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data))
+            comps.update(_construct_components(target_class, data, nw))
 
         msg = 'Created network components.'
         logger.info(msg)
-
-        # create network
-        # get method to ensure compatibility with old style export
-        units = Units.from_json(network_data["Network"].get("units", {}))
-        network_data["Network"]["units"] = units
-        nw = cls(**network_data["Network"])
 
         conns = {}
         # load connections
@@ -3801,7 +3804,7 @@ def v07_to_v08_export(path):
     return data
 
 
-def _construct_components(target_class, data):
+def _construct_components(target_class, data, nw):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -3829,8 +3832,14 @@ def _construct_components(target_class, data):
                         param_data["char_func"] = CharLine(**param_data["char_func"])
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
-                if isinstance(container, dc_prop):
-                    param_data["val0"] = param_data["val"]
+
+                if "val" in param_data:
+                    if "unit" in param_data and param_data["unit"] is not None:
+                        param_data["val"] = nw.units.ureg.Quantity(
+                            param_data["val"], param_data["unit"]
+                        )
+                    if "val0" in param_data:
+                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})

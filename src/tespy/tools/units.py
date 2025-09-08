@@ -109,7 +109,7 @@ class Units:
                 msg = (
                     "The unit 'C' is used for 'Coulomb' in pint. For "
                     "backwards compatibility it will be parsed as degC for "
-                    "now. Please use degC (or correct pint aliases) instead "
+                    "now. Please use '°C' (or correct pint aliases) instead  "
                     "as it will stop working with the next major release"
                 )
                 warnings.warn(msg, FutureWarning)

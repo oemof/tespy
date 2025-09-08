@@ -86,6 +86,9 @@ Bug Fixes
 - The post-processing of the components and connections now does not overwrite
   user specified values anymore. Instead a warning is issued
   (`PR #767 <https://github.com/oemof/tespy/pull/767>`__).
+- Component properties are saved and exported with units and reading design
+  point information for components considers the unit specification
+  (`PR #771 <https://github.com/oemof/tespy/pull/771>`__).
 
 Contributors
 ############

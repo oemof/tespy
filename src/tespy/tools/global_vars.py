@@ -103,8 +103,49 @@ class FluidAliases:
 
 FLUID_ALIASES = FluidAliases()
 
+class COMBUSTION_GASES:
+    def __init__(self):
+        self.fluids={
+            'hydrogen': {'hf':0,
+                         'LHV':None
+            },
+            'methane': {'hf':-74.6,
+                         'LHV':None
+            },
+            'ethane': {'hf':-84.0,
+                         'LHV':None
+            }, 
+            'propane':{'hf':-103.8,
+                         'LHV':None
+            }, 
+            'butane':{'hf':-125.7,
+                         'LHV':None
+            }, 
+            'nDodecane':{'hf':-289.4,
+                         'LHV':None
+            }, 
 
-combustion_gases = [
-    'methane', 'ethane', 'propane', 'butane', 'hydrogen', 'nDodecane',
-    'CO', 'acetone', 'Dichloroethane'
-]
+            'Dichloroethane':{'hf':-1.2979E+02,
+                         'LHV':None
+            }, 
+            'CO':{'hf': -110.5,
+                         'LHV':None
+            },
+        }
+    def add_fluid(self, fluid, hf= None, LHV=None):
+        """Add a new fluid to the possible combustion gases.
+
+        Parameters
+        ----------
+        fluid : str
+            name of the fluid. Must be a valid fluid within the fluid property backend.
+        hf: float
+            specific enthalpy of formation at standard conditions in kJ/mol
+        LHV: float
+            lower heating value of the fuel in J/mol
+        """
+        self.fluids[fluid] = {'hf':hf,
+                              'LHV':LHV
+        }
+
+combustion_gases = COMBUSTION_GASES()

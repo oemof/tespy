@@ -144,7 +144,7 @@ your :code:`Network.units`: :code:`ureg`.
 
         >>> nw.solve("design")
         >>> c1.m.val_with_unit
-        <Quantity(5.0, 'kilogram / second')>
+        <Quantity(5, 'kilogram / second')>
 
 To understand, what quantity is associated with a specific parameter, you can
 do the following:
@@ -153,7 +153,7 @@ do the following:
 
     >>> compressor.dp.quantity
     'pressure'
-    >>> c1.Td_bp.quantity
+    >>> c1.td_dew.quantity
     'temperature_difference'
 
 Finally, it is also possible to use your own :code:`UnitRegistry`:
@@ -858,23 +858,23 @@ The easiest way to access the results of one specific component looks like this
     80.0
     >>> round(compressor.eta_s.val_SI, 2)  # isentropic efficiency of mycomp in SI unit
     0.8
-    >>> round(compressor.P.val, 0)  # power of mycomp in network unit
-    926.0
-    >>> round(compressor.P.val_SI, 0)  # power of mycomp in SI unit
-    690223.0
-    >>> round(compressor.P.val_with_unit, 0)  # power as pint Quantity with unit and magnitude
-    <Quantity(926.0, 'horsepower')>
+    >>> round(compressor.P.val, 1)  # power of mycomp in network unit
+    925.6
+    >>> round(compressor.P.val_SI, 1)  # power of mycomp in SI unit
+    690222.8
+    >>> round(compressor.P.val_with_unit, 1)  # power as pint Quantity with unit and magnitude
+    <Quantity(925.6, 'horsepower')>
 
 and similar for connection parameters:
 
 .. code:: python
 
-    >>> round(c1.m.val, 0)  # value in specified network unit
+    >>> round(c1.m.val, 1)  # value in specified network unit
     5.0
-    >>> round(c1.m.val_SI, 0)  # value in SI unit
+    >>> round(c1.m.val_SI, 1)  # value in SI unit
     5.0
-    >>> round(c1.m.val_with_unit, 0)  # mass flow as pint Quantity with unit and magnitude
-    <Quantity(5.0, 'kilogram / second')>
+    >>> round(c1.m.val_with_unit, 1)  # mass flow as pint Quantity with unit and magnitude
+    <Quantity(5, 'kilogram / second')>
     >>> c1.fluid.val['air']  # mass fraction of air
     1.0
 

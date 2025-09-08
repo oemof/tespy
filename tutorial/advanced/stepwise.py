@@ -167,7 +167,7 @@ cp1.set_attr(eta_s=0.8)
 c9.set_attr(h=None)
 cp2.set_attr(eta_s=0.8)
 
-c8.set_attr(h=None, Td_bp=4)
+c8.set_attr(h=None, td_dew=4)
 nw.solve("design")
 nw.save("system_design.json")
 # %% [sec_17]

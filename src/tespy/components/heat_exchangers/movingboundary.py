@@ -197,8 +197,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     pressure on the water side. The water enters at superheated vapor state
     with 15 °C superheating and leaves it with 10 °C subcooling.
 
-    >>> c1.set_attr(fluid={"Water": 1}, p=1, Td_bp=15, m=1)
-    >>> c2.set_attr(Td_bp=-15)
+    >>> c1.set_attr(fluid={"Water": 1}, p=1, td_dew=15, m=1)
+    >>> c2.set_attr(td_bubble=15)
     >>> c11.set_attr(fluid={"Air": 1}, p=1, T=15)
     >>> c12.set_attr(T=25)
     >>> cd.set_attr(pr1=1, pr2=1)
@@ -234,7 +234,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     If we change the subcooling degree at the water outlet, the condensation
     pressure and pinch will move.
 
-    >>> c2.set_attr(Td_bp=-5)
+    >>> c2.set_attr(td_bubble=5)
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042

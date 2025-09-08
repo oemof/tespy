@@ -2555,6 +2555,8 @@ class Network:
             if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
+                    # the increment should also be small
+                    and (abs(self.increment) < ERR ** 0.5).all()
                 ):
                 self.status = 0
                 break
@@ -2976,7 +2978,7 @@ class Network:
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
         _converged = self.process_connections()
-        _converged = _converged and self.process_components()
+        _converged = self.process_components() and _converged
         self.process_busses()
 
         if self.status == 0 and not _converged:
@@ -3001,7 +3003,7 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = _converged and c.calc_results(self.units)
+            _converged = c.calc_results(self.units) and _converged
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
@@ -3013,10 +3015,42 @@ class Network:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
             # this thing could be somewhere else
-            for value in cp.parameters.values():
+            for key, value in cp.parameters.items():
                 if isinstance(value, dc_prop):
-                    value.set_val_from_SI(self.units)
+                    result = value._get_val_from_SI(self.units)
+                    if (
+                        value.is_set
+                        and not value.is_var
+                        and round(result.magnitude, 3) != round(value.val, 3)
+                        and not cp.bypass
+                    ):
+                        _converged = False
+                        msg = (
+                            "The simulation converged but the calculated "
+                            f"result {result} for the fixed input parameter "
+                            f"{key} is not equal to the originally specified "
+                            f"value: {value.val}. Usually, this can happen, "
+                            "when a method internally manipulates the "
+                            "associated equation during iteration in order to "
+                            "allow progress in situations, when the equation "
+                            "is otherwise not well defined for the current"
+                            "values of the variables, e.g. in case a negative "
+                            "root would need to be evaluated.  Often, this "
+                            "can happen during the first iterations and then "
+                            "will resolve itself as convergence progresses. "
+                            "In this case it did not, meaning convergence was "
+                            "not actually achieved."
+                        )
+                        logger.warning(msg)
+                        self.status = 2
+                    else:
+                        if not value.is_set or value.is_var:
+                            value.set_val_from_SI(self.units)
 
+        if self.status == 2:
+            return False
+
+        for cp in self.comps['object']:
             key = cp.__class__.__name__
             for param in self.results[key].columns:
                 p = cp.get_attr(param)

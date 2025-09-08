@@ -241,7 +241,8 @@ class TestFluidPropertyBackEnds:
     @pytest.mark.skipif(
         os.environ.get('GITHUB_ACTIONS') == 'true',
         reason='GitHub actions cannot handle the tabular CoolProp back ends, '
-        'skipping this test. The test should run on your local machine.')
+        'skipping this test. The test should run on your local machine.'
+    )
     def test_clausius_rankine_tabular(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'

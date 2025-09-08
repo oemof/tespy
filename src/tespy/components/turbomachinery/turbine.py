@@ -125,7 +125,8 @@ class Turbine(Turbomachine):
     >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "mass_flow": "t/h"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -140,7 +141,7 @@ class Turbine(Turbomachine):
 
     >>> t.set_attr(eta_s=0.9, design=['eta_s'],
     ... offdesign=['eta_s_char', 'cone'])
-    >>> inc.set_attr(fluid={'water': 1}, m=10, T=550, p=110, design=['p'])
+    >>> inc.set_attr(fluid={'water': 1}, m=36, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
     >>> nw.save('tmp.json')
@@ -148,7 +149,7 @@ class Turbine(Turbomachine):
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
-    >>> inc.set_attr(m=8)
+    >>> inc.set_attr(m=28.8)
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(t.eta_s.val, 3)
     0.898

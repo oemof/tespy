@@ -3,7 +3,7 @@ import importlib.resources
 import os
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.9.5.dev0'
+__version__ = '0.9.5.post1 - Kelvin\'s Kingdom'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

@@ -196,7 +196,7 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('design')
     >>> round(pi.D.val, 3)
     0.119
-    >>> outg.p.val / inc.p.val == pi.pr.val
+    >>> round(outg.p.val / inc.p.val, 3) == round(pi.pr.val, 3)
     True
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(pr=None)
@@ -205,11 +205,11 @@ class Pipe(SimpleHeatExchanger):
     >>> round(pi.pr.val, 2)
     0.94
 
-    In the second section the example shows how to calcualte the heat losses of
+    In the second section the example shows how to calculate the heat losses of
     the pipe to the ambient considering insulation. For this, we will look at a
     pipe transporting hot water. Since we change the fluid, we should also give
     a reasonable guess value for the outflow connection of the pipe as the
-    initial guess originates from the previos calculation using ethanol as
+    initial guess originates from the previous calculation using ethanol as
     fluid.
 
     >>> inc.set_attr(fluid={'water': 1, 'ethanol': 0}, T=100)

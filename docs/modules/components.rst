@@ -1053,7 +1053,7 @@ different tespy classes required.
     ...     offdesign=['zeta1', 'zeta2', 'kA_char']
     ... )
 
-    >>> sg.get_conn('2').set_attr(Td_bp=-5, design=['Td_bp'])
+    >>> sg.get_conn('2').set_attr(td_bubble=5, design=['td_bubble'])
 
     >>> # %% solve
     >>> # solve design case

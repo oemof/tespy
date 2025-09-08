@@ -231,7 +231,7 @@ class Condenser(HeatExchanger):
     temperature is specified to 5 K.
 
     >>> cond.set_attr(subcooling=True)
-    >>> he_c.set_attr(Td_bp=-5)
+    >>> he_c.set_attr(td_bubble=5)
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5

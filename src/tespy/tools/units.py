@@ -109,15 +109,27 @@ class Units:
                 msg = (
                     "The unit 'C' is used for 'Coulomb' in pint. For "
                     "backwards compatibility it will be parsed as degC for "
-                    "now. Please use degC (or correct pint aliases) instead "
+                    "now. Please use '°C' (or correct pint aliases) instead  "
                     "as it will stop working with the next major release"
                 )
                 warnings.warn(msg, FutureWarning)
-            if self._quantities[key].is_compatible_with(value):
+            if self._is_compatible(key, value):
                 self.default[key] = value
             else:
                 msg = f"Unit {value} is not compatible with quantity {key}"
                 raise ValueError(msg)
+
+    def _is_compatible(self, quantity, unit):
+        if quantity == "temperature_difference":
+            if unit.startswith("delta_"):
+                return self._quantities[quantity].is_compatible_with(unit)
+            else:
+                _units = self.ureg._units
+                kelvin = list(_units["K"].aliases) + [_units["K"].name]
+                rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
+                return unit in kelvin or unit in rankine
+        else:
+            return self._quantities[quantity].is_compatible_with(unit)
 
     def get_default(self, quantity):
         self._check_quantity_exists(quantity)

@@ -230,7 +230,7 @@ class PolynomialCompressor(Turbomachine):
     displacement reference state. In that case, we should be able to get the
     same displacement value as inputted into the reference.
 
-    >>> c1.set_attr(fluid={"R134a": 1}, T=0, Td_bp=10)  # T_evap=-10°C
+    >>> c1.set_attr(fluid={"R134a": 1}, T=0, td_dew=10)  # T_evap=-10°C
     >>> compressor.set_attr(rpm=1200)
     >>> p_sat = PropsSI("P", "Q", 0, "T", 50 + 273.15, "R134a")  # T_cond=50°C
     >>> c2.set_attr(p=p_sat / 1e5)
@@ -276,7 +276,7 @@ class PolynomialCompressor(Turbomachine):
     Now, let's see what happens, if evaporation or condensation temperature
     change:
 
-    >>> c1.set_attr(T=20, Td_bp=10)  # T_evap=10°C
+    >>> c1.set_attr(T=20, td_dew=10)  # T_evap=10°C
     >>> p_sat = PropsSI("P", "Q", 0, "T", 40 + 273.15, "R134a")  # T_cond=40°C
     >>> c2.set_attr(p=p_sat / 1e5)
     >>> nw.solve("design")

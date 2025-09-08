@@ -215,7 +215,7 @@ class TestPolynomialCompressor:
 
         # compress NH3, other fluids in network are for turbine, pump, ...
         fl = {'R134a': 1}
-        self.c1.set_attr(fluid=fl, Td_bp=reference_state["T_sh"], T=20)
+        self.c1.set_attr(fluid=fl, td_dew=reference_state["T_sh"], T=20)
         p = PSI("P", "Q", 1, "T", 50 + 273.15, "R134a") / 1e5
         self.c2.set_attr(p=p)
         eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(

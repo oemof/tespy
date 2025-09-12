@@ -1000,12 +1000,13 @@ class Component:
 
     def variable_equality_structure_matrix(self, k, **kwargs):
         r"""
-        Create pairwise linear relationship between two variables for all
-        inlets and the respective outlets
+        Create pairwise linear relationship between two variables :code:`var`
+        for all inlets and the respective outlets. This usually is applied to
+        mass flow, pressure, enthalpy and fluid composition.
 
         .. math::
 
-            h_\ŧext{in,i} = h_\text{out,i}
+            var_\text{in,i} = var_\text{out,i}
 
         Parameters
         ----------

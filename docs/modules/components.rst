@@ -34,9 +34,13 @@ well as the equations.
   * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
   * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
   * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
+  * :py:class:`Parallel flow heat exchanger <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger>`:
+    Analogue component to the :code:`HeatExchanger` but with flows in parallel.
+    All other types of heat exchangers (below) as well as the
+    :code:`HeatExchanger` base class assume counter current flow!
   * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
   * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
-  * :py:class:`Moving Boundary Heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
+  * :py:class:`Moving boundary heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
     Advanced heat exchanger class, automatically identifying phase change
     sections in the heat transfer of both sides and assigning individual UA
     values per section of heat transfer

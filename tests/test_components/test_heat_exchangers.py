@@ -19,8 +19,8 @@ from pytest import mark
 from tespy.components import Condenser
 from tespy.components import Desuperheater
 from tespy.components import HeatExchanger
-from tespy.components import ParallelFlowHeatExchanger
 from tespy.components import ParabolicTrough
+from tespy.components import ParallelFlowHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
@@ -958,3 +958,27 @@ class TestHeatExchangers:
         assert approx(instance.kA.val) == _calc_kA(
             instance.Q.val, instance.td_log.val
         )
+
+    def test_ParallelFlowHeatExchanger_offdesign(self, tmp_path):
+        instance = ParallelFlowHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+        self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
+        instance.set_attr(dp1=0.1, dp2=0.1, ttd_u=15)
+        instance.set_attr(design=["ttd_u"], offdesign=["kA"])
+
+        self.nw.solve("design")
+        self.nw.save(design_path)
+        self.nw.solve("offdesign", design_path=design_path)
+        assert approx(instance.ttd_u.val) == 15
+        self.c1.set_attr(m=1.5)
+        self.nw.solve("offdesign", design_path=design_path)
+        assert approx(instance.kA.val_SI) == instance.kA.design
+        assert approx(instance.ttd_u.val, abs=0.01) == 23.01
+        self.c1.set_attr(m=0.8)
+        self.nw.solve("offdesign", design_path=design_path)
+        assert approx(instance.kA.val_SI) == instance.kA.design
+        assert approx(instance.ttd_u.val, abs=0.01) == 10.88

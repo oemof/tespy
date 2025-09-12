@@ -938,10 +938,23 @@ class TestHeatExchangers:
 
         self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
         self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
-        instance.set_attr(dp1=0, dp2=0, ttd_u=15)
+        instance.set_attr(dp1=0.1, dp2=0.1, ttd_u=15)
 
         self.nw.solve("design")
         self.nw.assert_convergence()
 
-        assert approx(instance.ttd_l.val) == self.c1.T.val - self.c3.T.val
-        assert approx(instance.ttd_u.val) == self.c2.T.val - self.c4.T.val
+        ttd_l = self.c1.T.val - self.c3.T.val
+        ttd_u = self.c2.T.val - self.c4.T.val
+        assert approx(instance.ttd_l.val) == ttd_l
+        assert approx(instance.ttd_u.val) == ttd_u
+
+        assert approx(instance.dp1.val_SI) == _calc_dp(self.c1, self.c2)
+        assert approx(instance.dp2.val_SI) == _calc_dp(self.c3, self.c4)
+
+        assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
+        assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
+
+        assert approx(instance.td_log.val_SI) == _calc_td_log(ttd_u, ttd_l)
+        assert approx(instance.kA.val) == _calc_kA(
+            instance.Q.val, instance.td_log.val
+        )

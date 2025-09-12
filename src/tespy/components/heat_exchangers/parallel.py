@@ -75,46 +75,35 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     Q : float, dict
         Heat transfer, :math:`Q/\text{W}`.
 
-    pr1 : float, dict, :code:`"var"`
+    pr1 : float, dict
         Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
 
-    pr2 : float, dict, :code:`"var"`
+    pr2 : float, dict
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    dp1 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at hot side, unit is the network's
-        pressure unit!.
+    dp1 : float, dict,
+        Inlet to outlet pressure delta at hot side, :math:`dp/\text{Pa}`
 
-    dp2 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at cold side, unit is the network's
-        pressure unit!.
+    dp2 : float, dict
+        Inlet to outlet pressure delta at cold side, :math:`dp\text{Pa}`.
 
-    zeta1 : float, dict, :code:`"var"`
+    zeta1 : float, dict
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict, :code:`"var"`
+    zeta2 : float, dict
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Initial terminal temperature difference, referring to the temperature
+        difference between the two inlets of the heat exchanger,
+        :math:`ttd_\mathrm{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
-
-    ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
-
-    eff_cold : float, dict
-        Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
-
-    eff_hot : float, dict
-        Hot side heat exchanger effectiveness :math:`eff_\text{hot}/\text{1}`.
-
-    eff_max : float, dict
-        Max value of hot and cold side heat exchanger effectiveness values
-        :math:`eff_\text{max}/\text{1}`.
+        Final terminal temperature difference, referring to the temperature
+        difference between the two outlets of the heat exchanger,
+        :math:`ttd_\mathrm{u}/\text{K}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,
@@ -131,67 +120,94 @@ class ParallelFlowHeatExchanger(HeatExchanger):
 
     Note
     ----
-    The HeatExchanger and subclasses (
-    :py:class:`tespy.components.heat_exchangers.condenser.Condenser`,
-    :py:class:`tespy.components.heat_exchangers.desuperheater.Desuperheater`)
-    are countercurrent heat exchangers. Equations (:code:`kA`, :code:`ttd_u`,
-    :code:`ttd_l`) do not work for directcurrent and crosscurrent or
-    combinations of different types.
+    The :code:`ParallelFlowHeatExchanger` implements parallel flow of both
+    streams, meaning the streams enter with a high temperature difference and
+    then gradually reduce their temperature difference to each other. The
+    initial temperature difference is the maximum temperature difference, the
+    final temperature difference is the minimum temperature difference.
 
     Example
     -------
-    A water cooling is installed to transfer heat from hot exhaust air. The
-    heat exchanger is designed for a terminal temperature difference of 5 K.
-    From this, it is possible to calculate the heat transfer coefficient and
-    predict water and air outlet temperature in offdesign operation.
+    Water at 75 °C is used to heat up an air stream 2500 l/s from 10 °C to
+    35 °C.
 
-    >>> from tespy.components import Sink, Source, HeatExchanger
+    >>> from tespy.components import Sink, Source, ParallelFlowHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "volumetric_flow": "l/s", "heat_transfer_coefficient": "kW/K"
     ... })
-    >>> exhaust_hot = Source('Exhaust air outlet')
-    >>> exhaust_cold = Sink('Exhaust air inlet')
-    >>> cw_cold = Source('cooling water inlet')
-    >>> cw_hot = Sink('cooling water outlet')
-    >>> he = HeatExchanger('waste heat exchanger')
-    >>> ex_he = Connection(exhaust_hot, 'out1', he, 'in1')
-    >>> he_ex = Connection(he, 'out1', exhaust_cold, 'in1')
-    >>> cw_he = Connection(cw_cold, 'out1', he, 'in2')
-    >>> he_cw = Connection(he, 'out2', cw_hot, 'in1')
-    >>> nw.add_conns(ex_he, he_ex, cw_he, he_cw)
+    >>> feed_water = Source("Feed water inlet")
+    >>> return_water = Sink("Water outlet")
+    >>> air_inlet = Source("Fresh air inlet")
+    >>> air_warm = Sink("Air outlet")
+    >>> he = ParallelFlowHeatExchanger("heat exchanger")
+    >>> c1 = Connection(feed_water, 'out1', he, 'in1')
+    >>> c2 = Connection(he, 'out1', return_water, 'in1')
+    >>> c3 = Connection(air_inlet, 'out1', he, 'in2')
+    >>> c4 = Connection(he, 'out2', air_warm, 'in1')
+    >>> nw.add_conns(c1, c2, c3, c4)
 
-    The volumetric flow of the air is at 100 l/s. After designing the component
-    it is possible to predict the temperature at different flow rates or
-    different inlet temperatures of the exhaust air.
+    We assume pressure losses of 10 mbar on the air side, and 100 mbar on the
+    water side. Depending on our specifications we can calculate:
 
-    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
-    ... offdesign=['m'])
-    >>> he_cw.set_attr(h0=1e2)
-    >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
-    >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
-    >>> nw.solve('design')
-    >>> nw.save('tmp.json')
-    >>> round(ex_he.T.val - he_cw.T.val, 0)
-    5.0
-    >>> ex_he.set_attr(v=0.075)
-    >>> nw.solve('offdesign', design_path='tmp.json')
-    >>> round(he_cw.T.val, 1)
-    27.5
-    >>> round(he_ex.T.val, 1)
-    14.4
-    >>> ex_he.set_attr(v=0.1, T=40)
-    >>> nw.solve('offdesign', design_path='tmp.json')
-    >>> round(he_cw.T.val, 1)
-    33.9
-    >>> round(he_ex.T.val, 1)
-    18.8
-    >>> os.remove("tmp.json")
+    - What is the temperature of the water leaving the heat exchanger, or
+    - What is the required mass flow of water to heat up the air
+
+    Let's first assume, that a final pinch :code:`ttd_u` of 7.5 K is desired,
+    meaning, the water should leave the heat exchanger with a temperature
+    higher than the air by 7.5 K. With that, we will get the water flow, and
+    also the heat transfer coefficient :code:`kA` as a result.
+
+    .. note::
+
+        Note, that for specification of initial or final pinch temperature
+        differences, it is often important to start the calculation with a good
+        initial guess. In this case, we know that the water will be in liquid
+        state, therefore we can
+
+        - either specify the outlet enthalpy initial guess to be liquid,
+        - the state at the water outlet to be :code:`"l"`,
+        - or use :code:`"INCOMP::Water"` as fluid, since this uses liquid phase
+          only.
+
+    >>> he.set_attr(dp1=0.1, dp2=0.01, ttd_u=7.5)
+    >>> c1.set_attr(fluid={"INCOMP::Water": 1}, T=70, p=1.3)
+    >>> c3.set_attr(fluid={"air": 1}, T=10, p=1.02, v=2500)
+    >>> c4.set_attr(T=35)
+    >>> nw.solve("design")
+    >>> round(c1.v.val, 2)
+    0.7
+    >>> round(he.kA.val, 2)
+    3.13
+
+    Now, it might be interesting to see what happens under different operation
+    conditions after we have designed the system. For that, we can assume that
+    the heat transfer coefficient is constant. First we just fix the :code:`kA`
+    value instead of the final pinch and then resolve again.
+
+    >>> he.set_attr(design=["ttd_u"], offdesign=["kA"])
+    >>> nw.save("design.json")
+    >>> nw.solve("offdesign", design_path="design.json")
+    >>> round(he.kA.val_SI / he.kA.design, 1)
+    1.0
+
+    Now, let's see what happens under different operating conditions. First
+    we change the air volumetric flow, then we change the air temperature to
+    check what happens to the outflow temperature of the water.
+
+    >>> c3.set_attr(v=2000)
+    >>> nw.solve("offdesign", design_path="design.json")
+    >>> round(c2.T.val, 2)
+    38.69
+    >>> c3.set_attr(v=2500, T=8)
+    >>> nw.solve("offdesign", design_path="design.json")
+    >>> round(c2.T.val, 2)
+    44.0
+    >>> os.remove("design.json")
     """
     def get_parameters(self):
         params = super().get_parameters()

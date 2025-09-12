@@ -10,6 +10,7 @@ tests/test_components/test_heat_exchangers.py
 SPDX-License-Identifier: MIT
 """
 import math
+import os
 
 import numpy as np
 from pytest import approx

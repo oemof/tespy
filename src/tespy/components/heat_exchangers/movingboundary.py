@@ -15,9 +15,10 @@ import math
 import numpy as np
 
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -285,6 +286,18 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
             ),
+            'Re_exp_r': dc_simple(
+                val=0.5
+            ),
+            'Re_exp_sf': dc_simple(
+                val=0.5
+            ),
+            'alpha_ratio': dc_simple(
+                val=8.4e-3
+            ),
+            'area_ratio': dc_simple(
+                val=1
+            ),
             'UA_cecchinato': dc_gcc(
                 elements=['UA_mod_refrigerant', 'UA_mod_secondary'],
                 num_eq_sets=1,
@@ -510,10 +523,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     def UA_char_cecchinato_func(self):
         """_summary_
         """
-        alpha_ratio = 8.4e-3
-        area_ratio = 1
-        re_exp_sf = 0.8
-        re_exp_r = 0.8
+        alpha_ratio = self.alpha_ratio.val
+        area_ratio = self.area_ratio.val
+        re_exp_sf = self.Re_exp_sf.val
+        re_exp_r = self.Re_exp_r.val
 
         p = self.UA_mod_refrigerant.param
         mass_flow_ratio_r = self.get_char_expr(

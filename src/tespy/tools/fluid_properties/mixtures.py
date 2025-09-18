@@ -41,7 +41,7 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
         # at saturation liquid mass may be zero, but we cannot calculate water properties with pT
-        if not _is_larger_than_precision(mass_liquid) and round(p_sat) != round(pp_water):
+        if not _is_larger_than_precision(mass_liquid) and abs(pp_water - p_sat) / p_sat > 1e-6:
             return h_mix_pT_ideal(p, T, fluid_data, **kwargs)
         h = 0
         for fluid, data in fluid_data.items():
@@ -108,7 +108,7 @@ def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
         # at saturation liquid mass may be zero, but we cannot calculate water properties with pT
-        if not _is_larger_than_precision(mass_liquid) and round(p_sat) != round(pp_water):
+        if not _is_larger_than_precision(mass_liquid) and abs(pp_water - p_sat) / p_sat > 1e-6:
             return s_mix_pT_ideal(p, T, fluid_data, **kwargs)
         s = 0
         for fluid, data in fluid_data.items():
@@ -156,7 +156,7 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         water_alias = next(iter(water_alias))
         _, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
         # at saturation liquid mass may be zero, but we cannot calculate water properties with pT
-        if not _is_larger_than_precision(mass_liquid) and round(p_sat) != round(pp_water):
+        if not _is_larger_than_precision(mass_liquid) and abs(pp_water - p_sat) / p_sat > 1e-6:
             return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
         d = 0
         for fluid, data in fluid_data.items():

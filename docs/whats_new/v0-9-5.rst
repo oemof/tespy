@@ -15,15 +15,19 @@ New Features
   - For pure fluids, this will be the same temperature, for mixtures (e.g. as
     accessible through REFPROP it will not)!
   - For :code:`td_bubble`:
+
     - A **positive** value indicates a temperature **below** bubble temperature
       by the specified value.
     - A **negative** value indicates a temperature **above** bubble temperature
       by the specified value.
+
   - For :code:`td_dew`:
+
     - A **positive** value indicates a temperature **above** dew temperature
       by the specified value.
     - A **negative** value indicates a temperature **below** dew temperature
       by the specified value.
+
   - You can also specify :code:`td_bubble=0` or :code:`td_dew=0`, which will
     enforce saturated liquid or saturated gas state.
 

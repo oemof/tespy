@@ -278,7 +278,13 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
 
 
 def _water_in_mixture(fluid_data):
-    return FLUID_ALIASES.get_fluid("H2O") & set([f for f in fluid_data if _is_larger_than_precision(fluid_data[f]["mass_fraction"])])
+    return (
+        FLUID_ALIASES.get_fluid("H2O")
+        & set([
+            f for f in fluid_data
+            if _is_larger_than_precision(fluid_data[f]["mass_fraction"])
+        ])
+    )
 
 
 def cond_check(p, T, fluid_data, water_alias):
@@ -286,22 +292,22 @@ def cond_check(p, T, fluid_data, water_alias):
 
     Parameters
     ----------
-    y_i : dict
-        Mass specific fluid composition.
-    x_i : dict
-        Mole specific fluid composition.
     p : float
-        Pressure of mass flow.
-    n : float
-        Molar mass flow.
+        pressure of mixture
     T : float
-        Temperature of mass flow.
+        temperature of mixture
+    fluid_data : dict
+        Dictionary of fluid data:
+        :code:`{fluid_name: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`
+    water_alias : str
+        label of the water in the fluid_data dictionary
 
     Returns
     -------
     tuple
         Tuple containing gas phase mass specific and molar specific
-        compositions and overall liquid water mass fraction.
+        compositions and overall liquid water mass fraction, as well as
+        saturation pressure of water and partial pressure of water in gas phase
     """
     molar_fractions = get_molar_fractions(fluid_data)
     molar_fractions_gas = molar_fractions

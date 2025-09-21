@@ -330,6 +330,8 @@ class TestSEGS:
         c26.set_attr(x=0)
 
         # subcoolers
+        c38.set_attr(td_bubble=10)
+        c43.set_attr(td_bubble=10)
         c48.set_attr(td_bubble=10)
         c53.set_attr(td_bubble=10)
         c58.set_attr(td_bubble=10)
@@ -337,18 +339,23 @@ class TestSEGS:
         lppre1_sub.set_attr(pr1=1, pr2=1)
         lppre2_sub.set_attr(pr1=1, pr2=1)
         lppre3_sub.set_attr(pr1=1, pr2=1)
-        hppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        hppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
+        hppre1_sub.set_attr(pr1=1, pr2=1)#, ttd_l=10)
+        hppre2_sub.set_attr(pr1=1, pr2=1)#, ttd_l=10)
 
         # solve inital state
-        self.nw.solve(mode='design', robust_relax=True)
+        self.nw.solve(mode='design')
+        self.nw.assert_convergence()
 
+        c38.set_attr(td_bubble=None)
+        c43.set_attr(td_bubble=None)
         c48.set_attr(td_bubble=None)
         c53.set_attr(td_bubble=None)
         c58.set_attr(td_bubble=None)
         lppre1_sub.set_attr(ttd_l=10)
         lppre2_sub.set_attr(ttd_l=10)
         lppre3_sub.set_attr(ttd_l=10)
+        hppre1_sub.set_attr(ttd_l=10)
+        hppre2_sub.set_attr(ttd_l=10)
 
         self.nw.solve(mode='design')
 

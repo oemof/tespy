@@ -339,8 +339,8 @@ class TestSEGS:
         lppre1_sub.set_attr(pr1=1, pr2=1)
         lppre2_sub.set_attr(pr1=1, pr2=1)
         lppre3_sub.set_attr(pr1=1, pr2=1)
-        hppre1_sub.set_attr(pr1=1, pr2=1)#, ttd_l=10)
-        hppre2_sub.set_attr(pr1=1, pr2=1)#, ttd_l=10)
+        hppre1_sub.set_attr(pr1=1, pr2=1)
+        hppre2_sub.set_attr(pr1=1, pr2=1)
 
         # solve inital state
         self.nw.solve(mode='design')

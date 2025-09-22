@@ -1,0 +1,6 @@
+v0.9.7 - Under development
+++++++++++++++++++++++++++
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

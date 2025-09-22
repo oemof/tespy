@@ -3,15 +3,10 @@ v0.9.6 - Kelvin's Kingdom (September, 22, 2025)
 
 New Features
 ############
-
 - There is a new component :code:`ParallelFlowHeatExchanger` implementing
   parallel flow heat exchange, which works analogously to the
   counter current variant :code:`HeatExchanger`
   (`PR #766 <https://github.com/oemof/tespy/pull/766>`__).
-- A partload UA modification is available for the
-  :code:`MovingBoundaryHeatExchanger` class implementing the equation described
-  in :cite:`cecchinato2010`
-  (`PR #752 <https://github.com/oemof/tespy/pull/752>`__).
 
 Bug Fixes
 #########

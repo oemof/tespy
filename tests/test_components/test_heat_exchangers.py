@@ -14,6 +14,7 @@ import os
 
 import numpy as np
 from CoolProp.CoolProp import PropsSI as PSI
+from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import fixture
 from pytest import mark
@@ -1071,6 +1072,10 @@ class TestHeatExchangers:
         # reducing heat transfer will reduce pinch at identical pinch
         assert instance.td_pinch.val_SI < 5
 
+    @mark.skipif(
+        get_global_param_string("REFPROP_version") == "n/a",
+        reason='This test requires REFPROP, dependency is missing.'
+    )
     def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_condenser(self, tmp_path):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
@@ -1120,6 +1125,10 @@ class TestHeatExchangers:
         )
         assert approx(instance.UA.val_SI) == instance.UA.design * fUA
 
+    @mark.skipif(
+        get_global_param_string("REFPROP_version") == "n/a",
+        reason='This test requires REFPROP, dependency is missing.'
+    )
     def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_evaporator(self, tmp_path):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)

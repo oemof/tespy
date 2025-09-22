@@ -45,8 +45,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_func`
     - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.td_pinch_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_cecchinato_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
@@ -147,21 +146,30 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         Max value of hot and cold side heat exchanger effectiveness values
         :math:`eff_\text{max}/\text{1}`.
 
-    kA : float, dict
-        Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
-
-    kA_char : dict
-        Area independent heat transfer coefficient characteristic.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for hot side heat transfer coefficient.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for cold side heat transfer coefficient.
-
     UA : float, dict
         Sum of UA in all sections of the heat exchanger.
+
+    UA_cecchinato : dict
+        Group specification for partload UA modification according to
+        :cite:`cecchinato2010`, for usage see details in the
+        :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_cecchinato_func`.
+        This method can only be used in offdesign simulations!
+
+    alpha_ration: float
+        Secondary fluid to refrigerant heat transfer coefficient ratio.
+
+    area_ration: float
+        Secondary fluid to refrigerant heat transfer area ratio.
+
+    re_exp_r: float
+        Reynolds exponent for refrigerant side.
+
+    re_exp_sf: float
+        Reynolds exponent for secondary fluid side.
+
+    refrigerant_index: int
+        Connection index for the refrigerant side, 0 if refrigerant is on hot
+        side, 1 if refrigerant is on cold side.
 
     td_pinch : float, dict
         Value of the lowest delta T between hot side and cold side at the
@@ -257,6 +265,52 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     173307
     >>> round(cd.UA.val)
     273449
+
+    It is also possible to apply a partload modification to UA following the
+    implementation of :cite:`cecchinato2010`. For this you have to specify
+    :code:`UA_cecchinato` as offdesign parameter and along with it, values for
+
+    - refrigerant side Reynolds exponent
+    - secondary fluid side Reynolds exponent
+    - secondary fluid to refrigerant area ratio
+    - secondary fluid to refrigerant alpha (heat transfer coefficient) ratio
+    - the refrigerant index (which side of the heat exchanger is passed by the
+      refrigerant)
+
+    >>> import os
+    >>> nw.save("design.json")
+    >>> cd.set_attr(
+    ...     area_ratio=20,        # typical for a finned heat exchanger
+    ...     alpha_ratio=1e-2,     # alpha for water side is higher
+    ...     re_exp_r=0.8,
+    ...     re_exp_sf=0.55,
+    ...     refrigerant_index=0,  # water is refrigerant in this case
+    ...     design=["td_pinch"],
+    ...     offdesign=["UA_cecchinato"]
+    ... )
+    >>> nw.solve("offdesign", design_path="design.json")
+
+    Without modifying any parameter, pinch and UA should be identical to
+    design conditions.
+
+    >>> round(cd.td_pinch.val, 2)
+    5.0
+    >>> round(cd.UA.val)
+    273449
+
+    With change in operating conditions, e.g. reduction of heat transfer
+    we'd typically observe lower pinch, if the heat transfer reduces faster
+    than the UA value does.
+
+    >>> c1.set_attr(m=0.8)
+    >>> nw.solve("offdesign", design_path="design.json")
+    >>> round(cd.Q.val_SI / cd.Q.design, 2)
+    0.8
+    >>> round(cd.UA.val_SI / cd.UA.design, 2)
+    0.88
+    >>> round(cd.td_pinch.val, 2)
+    4.3
+    >>> os.remove("design.json")
     """
 
     def get_parameters(self):
@@ -276,7 +330,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
             'UA_cecchinato': dc_gcp(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
-                func=self.UA_char_cecchinato_func,
+                func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
             ),
             'td_pinch': dc_cp(
@@ -495,7 +549,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         sections = self.calc_sections(False)
         return self.UA.val_SI - self.calc_UA(sections)
 
-    def UA_char_cecchinato_func(self):
+    def UA_cecchinato_func(self):
         r"""
         Method to calculate heat transfer via UA design with modification
         for part load according to :cite:`cecchinato2010`. UA is determined

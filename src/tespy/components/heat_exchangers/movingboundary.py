@@ -262,44 +262,19 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'U_gas_gas': dc_cp(min_val=0),
-            'U_gas_twophase': dc_cp(min_val=0),
-            'U_gas_liquid': dc_cp(min_val=0),
-            'U_liquid_gas': dc_cp(min_val=0),
-            'U_liquid_twophase': dc_cp(min_val=0),
-            'U_liquid_liquid': dc_cp(min_val=0),
-            'U_twophase_gas': dc_cp(min_val=0),
-            'U_twophase_twophase': dc_cp(min_val=0),
-            'U_twophase_liquid': dc_cp(min_val=0),
-            'A': dc_cp(min_val=0, quantity="area"),
             'UA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
                 dependents=self.UA_dependents,
                 quantity="heat_transfer_coefficient"
             ),
-            'UA_mod_refrigerant': dc_cc(
-                param='m',
-                char_params={'type': 'rel', 'inconn': 0, 'outconn': 0}
-            ),
-            'UA_mod_secondary': dc_cc(
-                param='m',
-                char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
-            ),
-            'Re_exp_r': dc_simple(
-                val=0.5
-            ),
-            'Re_exp_sf': dc_simple(
-                val=0.5
-            ),
-            'alpha_ratio': dc_simple(
-                val=8.4e-3
-            ),
-            'area_ratio': dc_simple(
-                val=1
-            ),
-            'UA_cecchinato': dc_gcc(
-                elements=['UA_mod_refrigerant', 'UA_mod_secondary'],
+            'refrigerant_index': dc_simple(val=0),
+            're_exp_r': dc_cp(),
+            're_exp_sf': dc_cp(),
+            'alpha_ratio': dc_cp(),
+            'area_ratio': dc_cp(),
+            'UA_cecchinato': dc_gcp(
+                elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_char_cecchinato_func,
                 dependents=self.UA_dependents,
@@ -521,27 +496,69 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         return self.UA.val_SI - self.calc_UA(sections)
 
     def UA_char_cecchinato_func(self):
-        """_summary_
-        """
-        alpha_ratio = self.alpha_ratio.val
-        area_ratio = self.area_ratio.val
-        re_exp_sf = self.Re_exp_sf.val
-        re_exp_r = self.Re_exp_r.val
+        r"""
+        Method to calculate heat transfer via UA design with modification
+        for part load according to :cite:`cecchinato2010`. UA is determined
+        over the UA values of the sections of the heat exchanger.
 
-        p = self.UA_mod_refrigerant.param
-        mass_flow_ratio_r = self.get_char_expr(
-            p, **self.UA_mod_refrigerant.char_params
-        )
-        p = self.UA_mod_secondary.param
-        mass_flow_ratio_sf = self.get_char_expr(
-            p, **self.UA_mod_secondary.char_params
-        )
+        .. note::
+
+            You need to specify a couple of parameters to use this method. The
+            values depend on the context, as they define relations between the
+            refrigerant and the secondary fluid. For an evaporator the
+            refrigerant is the cold side, for a condenser it is the hot side.
+            You can check the linked publication for reference values.
+
+        - alpha_ratio: Ratio of secondary fluid to refrigerant heat transfer
+          coefficient
+        - area_ratio: Ratio of secondary fluid to refrigerant area
+        - re_exp_sf: Reynolds exponent for the secondary fluid mass flow
+        - re_exp_r: Reynolds exponent for the refrigerant mass flow
+
+        The modification factor for UA is calculated as follows
+
+        .. math::
+
+            f_\text{UA}=\frac{
+                1 + \frac{\alpha_\text{sf}}{\alpha_\text{r}}
+                \cdot\frac{A_\text{sf}}{A_\text{r}}
+            }{
+                \frac{\dot m_\text{sf}}{\dot m_\text{sf,ref}}^{-Re_\text{sf}} +
+                \frac{\alpha_\text{sf}}{\alpha_\text{r}}
+                \cdot\frac{A_\text{sf}}{A_\text{r}}
+                \cdot\frac{\dot m_\text{r}}{\dot m_\text{r,ref}}^{-Re_\text{r}}
+            }
+
+        Returns
+        -------
+        float
+            residual value of equation
+
+            .. math::
+
+                0 = UA_\text{ref} \cdot f_\text{UA} - \sum UA_\text{i}
+        """
+        alpha_ratio = self.alpha_ratio.val_SI
+        area_ratio = self.area_ratio.val_SI
+        re_exp_sf = self.re_exp_sf.val_SI
+        re_exp_r = self.re_exp_r.val_SI
+        refrigerant_index = self.refrigerant_index.val
+
+        if refrigerant_index == 0:
+            secondary_index = 1
+        else:
+            secondary_index = 0
+
+        m_r = self.inl[refrigerant_index].m
+        m_ratio_r = m_r.val_SI / m_r.design
+        m_sf = self.inl[secondary_index].m
+        m_ratio_sf = m_sf.val_SI / m_sf.design
 
         fUA = (
             (1 + alpha_ratio * area_ratio)
             / (
-                mass_flow_ratio_sf ** -re_exp_sf
-                + alpha_ratio * area_ratio * mass_flow_ratio_r ** -re_exp_r
+                m_ratio_sf ** -re_exp_sf
+                + alpha_ratio * area_ratio * m_ratio_r ** -re_exp_r
             )
         )
         sections = self.calc_sections(False)
@@ -573,7 +590,8 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     def td_pinch_func(self):
         r"""
-        Equation for pinch point temperature difference of a condenser.
+        Equation for pinch point temperature difference for the number of
+        sections.
 
         Returns
         -------
@@ -582,7 +600,7 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
             .. math::
 
-                0 = td_\text{pinch} - min(td_\text{sections})
+                0 = td_\text{pinch} - min(td_\text{i})
         """
         sections = self.calc_sections(False)
         return self.td_pinch.val_SI - self.calc_td_pinch(sections)

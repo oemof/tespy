@@ -1,5 +1,5 @@
-v0.9.6 - Under Development
-++++++++++++++++++++++++++
+v0.9.6 - Kelvin's Kingdom (September, 22, 2025)
++++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -12,6 +12,18 @@ New Features
   :code:`MovingBoundaryHeatExchanger` class implementing the equation described
   in :cite:`cecchinato2010`
   (`PR #752 <https://github.com/oemof/tespy/pull/752>`__).
+
+Bug Fixes
+#########
+- Calculation with humid air (water air mixtures) were broken for a state
+  where partial pressure of the water exactly corresponds the saturation
+  pressure at the given temperature of the mixture. Now there is an additional
+  check in place to make sure the correct calculations are employed
+  (`PR #774 <https://github.com/oemof/tespy/pull/774>`__).
+- The caching for pint broke when the python version of an environment was
+  changed. Now a :code:`__pint_cache__` is placed in the tespy installation
+  folder, to which the :code:`cache_folder` of pint's :code:`UnitRegistry` is
+  linked (`PR #777 <https://github.com/oemof/tespy/pull/777>`__).
 
 Contributors
 ############

@@ -1,5 +1,6 @@
 *.py[cod]
 __pycache__
+__pint_cache__
 
 # C extensions
 *.so

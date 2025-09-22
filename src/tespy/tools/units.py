@@ -53,7 +53,9 @@ class Units:
         # necessary, because pint cannot auto detect environment changes and
         # pint version changes
         path = os.path.join(
-            importlib.resources.files("tespy"), ".pint_cache", pint.__version__
+            importlib.resources.files("tespy"),
+            "__pint_cache__",
+            pint.__version__
         )
         self._ureg = pint.UnitRegistry(cache_folder=path)
         # cannot use the setter here because we have to define m3 first!

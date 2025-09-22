@@ -1014,6 +1014,20 @@ class TestHeatExchangers:
         # minimum temperature difference at section borders = pinch
         assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
 
+    def test_MovingBoundaryHeatExchanger_negative_pinch(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=60)
+        self.c4.set_attr(T=70)
+        instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+        assert self.nw.status == 1
+        assert np.isnan(instance.UA.val)
+
     def test_MovingBoundaryHeatExchanger_set_pinch(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)

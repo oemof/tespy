@@ -2892,10 +2892,10 @@ class Network:
                 for fluid in data["obj"].is_var:
                     data["obj"]._val[fluid] /= total_mass_fractions
 
-
-        for c in self.conns['object']:
-            # check the fluid properties for physical ranges
-            c._adjust_to_property_limits(self)
+        if norm(self.increment) > 1e-1:
+            for c in self.conns['object']:
+                # check the fluid properties for physical ranges
+                c._adjust_to_property_limits(self)
 
         # second check based on component heuristics
         # - for first three iterations
@@ -3021,7 +3021,7 @@ class Network:
                     if (
                         value.is_set
                         and not value.is_var
-                        and round(result.magnitude, 3) != round(value.val, 3)
+                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
                         and not cp.bypass
                     ):
                         _converged = False

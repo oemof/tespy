@@ -445,12 +445,8 @@ class HeatExchanger(Component):
 
         if T_i1 <= T_o2:
             T_i1 = T_o2 + 0.01
-        if T_i1 <= T_o2:
-            T_o2 = T_i1 - 0.01
-        if T_i1 <= T_o2:
-            T_o1 = T_i2 + 0.02
         if T_o1 <= T_i2:
-            T_i2 = T_o1 - 0.02
+            T_o1 = T_i2 + 0.01
 
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2

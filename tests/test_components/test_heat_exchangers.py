@@ -13,6 +13,8 @@ import math
 import os
 
 import numpy as np
+from CoolProp.CoolProp import PropsSI as PSI
+from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import fixture
 from pytest import mark
@@ -20,6 +22,7 @@ from pytest import mark
 from tespy.components import Condenser
 from tespy.components import Desuperheater
 from tespy.components import HeatExchanger
+from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
 from tespy.components import SimpleHeatExchanger
@@ -260,7 +263,8 @@ class TestHeatExchangers:
 
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC",
+            "pressure": "bar",
+            "temperature": "degC",
             "volumetric_flow": "m3/s"
         })
         self.inl1 = Source('inlet 1')
@@ -932,7 +936,6 @@ class TestHeatExchangers:
         )
         assert np.isnan(instance.kA.val), msg
 
-
     def test_ParallelFlowHeatExchanger(self):
         instance = ParallelFlowHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
@@ -983,3 +986,210 @@ class TestHeatExchangers:
         self.nw.solve("offdesign", design_path=design_path)
         assert approx(instance.kA.val_SI) == instance.kA.design
         assert approx(instance.ttd_u.val, abs=0.01) == 10.88
+
+    def test_MovingBoundaryHeatExchanger(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.dp1.val_SI) == _calc_dp(self.c1, self.c2)
+        assert approx(instance.dp2.val_SI) == _calc_dp(self.c3, self.c4)
+
+        assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
+        assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
+
+        _, T_hot, T_cold, heat_sections, _ = instance.calc_sections()
+        # the sum of heat transfer of all sections must be equal to Q
+        assert approx(sum(heat_sections)) == -instance.Q.val_SI
+        # UA calculated over sections must be larger than kA
+        assert instance.UA.val > instance.kA.val
+        # minimum temperature difference at section borders = pinch
+        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+
+    def test_MovingBoundaryHeatExchanger_negative_pinch(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=60)
+        self.c4.set_attr(T=70)
+        instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+        assert self.nw.status == 1
+        assert np.isnan(instance.UA.val)
+
+    def test_MovingBoundaryHeatExchanger_set_pinch(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+
+        self.c4.set_attr(T=None)
+        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        _, T_hot, T_cold, _, _ = instance.calc_sections()
+        # minimum temperature difference at section borders = pinch
+        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+
+    def test_MovingBoundaryHeatExchanger_offdesign_UA(self, tmp_path):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+
+        self.c4.set_attr(T=None)
+        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        self.nw.save(design_path)
+
+        instance.set_attr(design=["td_pinch"], offdesign=["UA"])
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        assert approx(instance.td_pinch.val_SI) == 5
+
+        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
+        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+
+        # reduces heat transfer
+        self.c1.set_attr(m=0.9)
+        self.nw.solve("offdesign", design_path=design_path)
+
+        # reducing heat transfer will reduce pinch at identical pinch
+        assert instance.td_pinch.val_SI < 5
+
+    @mark.skipif(
+        get_global_param_string("REFPROP_version") == "n/a",
+        reason='This test requires REFPROP, dependency is missing.'
+    )
+    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_condenser(self, tmp_path):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.nw.units.set_defaults(heat="kW")
+        self.c1.set_attr(fluid={"REFPROP::R410A": 1}, T=70)
+        self.c2.set_attr(td_bubble=0, T=52.4)
+        self.c3.set_attr(fluid={"air": 1}, p=1, T=35)
+        self.c4.set_attr(T=35 + 12.4)
+        instance.set_attr(dp1=0.0, dp2=0.0, Q=-40.23)
+
+        self.nw.solve("design")
+
+        self.nw.assert_convergence()
+        self.nw.save(design_path)
+
+        instance.set_attr(
+            area_ratio=21.64,
+            alpha_ratio=8.4e-3,
+            re_exp_r=0.8,
+            re_exp_sf=0.55,
+            refrigerant_index=0
+        )
+        instance.set_attr(offdesign=["UA_cecchinato"])
+        self.c1.set_attr(design=["T"])
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        assert approx(instance.td_pinch.val_SI) == 7.61134
+
+        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
+        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+
+        # reduce heat transfer
+        instance.set_attr(Q=-35)
+        self.nw.solve("offdesign", design_path=design_path)
+
+        m_ratio_sf = self.c3.m.val_SI / self.c3.m.design
+        m_ratio_r = self.c1.m.val_SI / self.c1.m.design
+        fUA = (
+            (1 + 8.4e-3 * 21.64)
+            / (
+                m_ratio_sf ** -0.55
+                + 8.4e-3 * 21.64 * m_ratio_r ** -0.8
+            )
+        )
+        assert approx(instance.UA.val_SI) == instance.UA.design * fUA
+
+    @mark.skipif(
+        get_global_param_string("REFPROP_version") == "n/a",
+        reason='This test requires REFPROP, dependency is missing.'
+    )
+    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_evaporator(self, tmp_path):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.nw.units.set_defaults(heat="kW")
+        self.c1.set_attr(fluid={"water": 1}, p=1, T=12)
+        self.c2.set_attr(T=12 - 5.2)
+        # condenser outlet state
+        h = PSI("H", "T", 52.4 + 273.15, "Q", 0, "REFPROP::R410A")
+        self.c3.set_attr(fluid={"REFPROP::R410A": 1}, h=h)
+        self.c4.set_attr(td_dew=5, T=7.2)
+        instance.set_attr(dp1=0.0, dp2=0.0, Q=-28.4)
+
+        self.nw.solve("design")
+
+        self.nw.assert_convergence()
+        self.nw.save(design_path)
+
+        instance.set_attr(
+            area_ratio=1,
+            alpha_ratio=1.013,
+            re_exp_r=0.5,
+            re_exp_sf=0.5,
+            refrigerant_index=1
+        )
+        instance.set_attr(offdesign=["UA_cecchinato"])
+        self.c2.set_attr(design=["T"])
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        assert approx(instance.td_pinch.val_SI) == 4.662423
+
+        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
+        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+
+        # reduce heat transfer
+        instance.set_attr(Q=-25)
+        self.nw.solve("offdesign", design_path=design_path)
+
+        m_ratio_sf = self.c1.m.val_SI / self.c1.m.design
+        m_ratio_r = self.c3.m.val_SI / self.c3.m.design
+        fUA = (
+            (1 + 1.013 * 1)
+            / (
+                m_ratio_sf ** -0.5
+                + 1.013 * 1 * m_ratio_r ** -0.5
+            )
+        )
+        assert approx(instance.UA.val_SI) == instance.UA.design * fUA

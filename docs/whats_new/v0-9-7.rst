@@ -1,6 +1,13 @@
 v0.9.7 - Under development
 ++++++++++++++++++++++++++
 
+Bug Fixes
+#########
+- The printout of components included the units in the
+  :code:`Network.print_results()` method. This was not intended and removed
+  again. On top, all columns that, where all entries are :code:`NaN` are
+  removed as well (`PR #782 <https://github.com/oemof/tespy/pull/782>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

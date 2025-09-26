@@ -348,4 +348,5 @@ class DropletSeparator(NodeBase):
                 'starting_point_value': self.inl[0].vol.val,
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[i].vol.val
-            } for i in range(2)}
+            } for i in range(2)
+        }

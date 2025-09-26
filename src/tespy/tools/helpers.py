@@ -14,12 +14,13 @@ import os
 from collections.abc import Mapping
 from copy import deepcopy
 
-import CoolProp.CoolProp as CP
 import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import fluid_property_data
@@ -490,9 +491,6 @@ def _is_variable_vecvar(var, dx, increment_filter=None):
         if increment_filter is None or not increment_filter[var.J_col[dx]]:
             return True
     return False
-
-from tespy.tools.data_containers import ScalarVariable as dc_scavar
-from tespy.tools.data_containers import VectorVariable as dc_vecvar
 
 
 def _partial_derivative(var, value, increment_filter, **kwargs):

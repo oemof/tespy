@@ -7,6 +7,126 @@ New Features
   :code:`MovingBoundaryHeatExchanger` class implementing the equation described
   in :cite:`cecchinato2010`
   (`PR #752 <https://github.com/oemof/tespy/pull/752>`__).
+- There is a method to automatically extract all states and processes within a
+  cycle to be passed to `fluprodia <https://fluprodia.readthedocs.io>`__. You
+  can import the :code:`get_plotting_data` from the :code:`tespy.tools` module
+  and then pass your Network object as well as a connection label of the cycle
+  (the label of any connection within that cycle works) to retrieve the data
+  required by fluprodia. Consider the example of a simple heat pump below:
+
+  .. dropdown:: Show network setup code
+
+      .. code-block:: python
+
+          >>> from tespy.networks import Network
+          >>> from tespy.connections import Connection
+          >>> from tespy.components import (
+          ...     CycleCloser, MovingBoundaryHeatExchanger, Compressor, Valve,
+          ...     SimpleHeatExchanger, Source, Sink
+          ... )
+
+          >>> nw = Network(iterinfo=False)
+          >>> nw.units.set_defaults(
+          ...     temperature="°C", pressure="bar"
+          ... )
+
+          >>> cp = Compressor("compressor")
+          >>> cc = CycleCloser("cycle_closer")
+          >>> cd = MovingBoundaryHeatExchanger("condenser")
+          >>> va = Valve("expansion valve")
+          >>> ev = SimpleHeatExchanger("evaporator")
+          >>> so = Source("water source")
+          >>> si = Sink("water sink")
+
+          >>> c1 = Connection(cc, "out1", cd, "in1", label="c1")
+          >>> c2 = Connection(cd, "out1", va, "in1", label="c2")
+          >>> c3 = Connection(va, "out1", ev, "in1", label="c3")
+          >>> c4 = Connection(ev, "out1", cp, "in1", label="c4")
+          >>> c5 = Connection(cp, "out1", cc, "in1", label="c5")
+
+          >>> nw.add_conns(c1, c2, c3, c4, c5)
+
+          >>> a1 = Connection(so, "out1", cd, "in2", label="a1")
+          >>> a2 = Connection(cd, "out2", si, "in1", label="a2")
+
+          >>> nw.add_conns(a1, a2)
+
+          >>> cd.set_attr(dp1=0, dp2=0, Q=-1e6)
+          >>> ev.set_attr(dp=0)
+          >>> cp.set_attr(eta_s=0.8)
+
+          >>> c1.set_attr(fluid={"R290": 1})
+          >>> c2.set_attr(td_bubble=5, T=65)
+          >>> c4.set_attr(td_dew=5, T=15)
+
+          >>> a1.set_attr(fluid={"water": 1}, p=1, T=50)
+          >>> a2.set_attr(T=65)
+
+          >>> c2.set_attr(T=None)
+          >>> cd.set_attr(td_pinch=5)  # resolve with minimal pinch specification
+          >>> nw.solve("design")
+          >>> nw.assert_convergence()
+
+      Now you create the diagram:
+
+      .. code-block:: python
+
+          >>> from fluprodia import FluidPropertyDiagram
+          >>> import matplotlib.pyplot as plt
+          >>> diagram = FluidPropertyDiagram("R290")
+          >>> diagram.set_unit_system(T="°C", p="bar")
+          >>> diagram.set_isolines_subcritical(0, 120)
+          >>> diagram.calc_isolines()
+
+  You can retrieve the process data and points from the mentioned method and
+  then call the fluprodia method on it:
+
+  .. code-block:: python
+
+      >>> from tespy.tools import get_plotting_data
+      >>> processes, points = get_plotting_data(nw, "c1")
+      >>> processes = {
+      ...     key: diagram.calc_individual_isoline(**value)
+      ...     for key, value in processes.items()
+      ...     if value is not None
+      ... }
+
+  And then make the plot:
+
+  .. code-block:: python
+
+      >>> fig, ax = plt.subplots(1)
+      >>> diagram.draw_isolines(fig, ax, "Ts", 1000, 2750, 0, 120)
+      >>> for label, values in processes.items():
+      ...     _ = ax.plot(values["s"], values["T"], label=label, color="tab:red")
+      >>> for label, point in points.items():
+      ...     _ = ax.scatter(point["s"], point["T"], label=label, color="tab:red")
+
+  For visualization purpose, it is also possible to include the secondary sides
+  of heat exchangers specifically in context of :code:`Ts` diagrams!
+
+  .. code-block:: python
+
+      >>> from tespy.tools.plotting import get_heatexchanger_secondary_Ts
+      >>> other_processes, other_points = get_heatexchanger_secondary_Ts(nw, "c1")
+      >>> for data in other_processes.values():
+      ...     for label, values in data.items():
+      ...         _ = ax.plot(values["s"], values["T"], label=label, color="tab:blue")
+
+      >>> for data in other_points.values():
+      ...     for label, point in data.items():
+      ...         _ = ax.scatter(point["s"], point["T"], label=label, color="tab:blue")
+
+      >>> fig.savefig("process_Ts.svg", bbox_inches="tight")
+
+  (`PR #785 <https://github.com/oemof/tespy/pull/785>`__).
+
+Bug Fixes
+#########
+- The printout of components included the units in the
+  :code:`Network.print_results()` method. This was not intended and removed
+  again. On top, all columns that, where all entries are :code:`NaN` are
+  removed as well (`PR #782 <https://github.com/oemof/tespy/pull/782>`__).
 
 Contributors
 ############

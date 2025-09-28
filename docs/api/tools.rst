@@ -93,3 +93,11 @@ tespy.tools.optimization module
     :members:
     :undoc-members:
     :show-inheritance:
+
+tespy.tools.plotting module
+---------------------------
+
+.. automodule:: tespy.tools.plotting
+    :members:
+    :undoc-members:
+    :show-inheritance:

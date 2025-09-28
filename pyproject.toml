@@ -20,7 +20,9 @@ include = [
     "tests/",
     "tutorial/",
 ]
-exclude = ["docs/_build"]
+exclude = [
+    "docs/_build",
+]
 
 [project]
 name = "tespy"

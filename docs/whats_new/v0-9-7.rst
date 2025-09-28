@@ -127,6 +127,9 @@ Bug Fixes
   :code:`Network.print_results()` method. This was not intended and removed
   again. On top, all columns that, where all entries are :code:`NaN` are
   removed as well (`PR #782 <https://github.com/oemof/tespy/pull/782>`__).
+- Pint cache is not placed inside package installation anymore but inside
+  :code:`platforms.user_cache_dir`
+  (`PR #787 <https://github.com/oemof/tespy/pull/787>`__).
 
 Contributors
 ############

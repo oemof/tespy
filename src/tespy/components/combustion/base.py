@@ -691,7 +691,7 @@ class CombustionChamber(Component):
         The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the state of the water in the
-        flue gas is fored to gaseous.
+        flue gas is forced to gaseous.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.

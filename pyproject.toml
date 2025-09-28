@@ -20,11 +20,13 @@ include = [
     "tests/",
     "tutorial/",
 ]
-exclude = ["docs/_build"]
+exclude = [
+    "docs/_build",
+]
 
 [project]
 name = "tespy"
-version = "0.9.6"
+version = "0.9.7"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [

@@ -3138,9 +3138,13 @@ class Network:
                     df = df.loc[component_labels]
 
                 c = self.comps.loc[self.comps["comp_type"] == cp, "object"]
-                cols = c.iloc[0]._get_result_attributes()
+                cols = [
+                    col for col in c.iloc[0]._get_result_attributes()
+                    if not col.endswith("_unit")
+                ]
                 if len(cols) > 0:
-                    for col in cols:
+                    df = df[cols].dropna(axis=1, how="all")
+                    for col in df.columns:
                         df[col] = df.apply(
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))

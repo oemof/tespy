@@ -8,11 +8,12 @@ available from its original location tespy/tools/units.py
 
 SPDX-License-Identifier: MIT
 """
-import importlib
 import os
+import sys
 import warnings
 
 import pint
+import platformdirs
 
 from tespy import __datapath__
 
@@ -52,10 +53,10 @@ class Units:
         }
         # necessary, because pint cannot auto detect environment changes and
         # pint version changes
-        path = os.path.join(
-            importlib.resources.files("tespy"),
-            "__pint_cache__",
-            pint.__version__
+        major = sys.version_info.major
+        minor = sys.version_info.minor
+        path = platformdirs.user_cache_dir(
+            "tespy", False, f"py{major}{minor}pint{pint.__version__}"
         )
         self._ureg = pint.UnitRegistry(cache_folder=path)
         # cannot use the setter here because we have to define m3 first!

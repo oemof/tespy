@@ -3,6 +3,10 @@ v0.9.7 - Under development
 
 New Features
 ############
+- A partload UA modification is available for the
+  :code:`MovingBoundaryHeatExchanger` class implementing the equation described
+  in :cite:`cecchinato2010`
+  (`PR #752 <https://github.com/oemof/tespy/pull/752>`__).
 - There is a method to automatically extract all states and processes within a
   cycle to be passed to `fluprodia <https://fluprodia.readthedocs.io>`__. You
   can import the :code:`get_plotting_data` from the :code:`tespy.tools` module

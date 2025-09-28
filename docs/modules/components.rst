@@ -453,8 +453,8 @@ Characteristics are available for the following components and parameters:
 
 - PolynomialCompressor
 
-  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
-  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
 
 - HeatExchanger:
 

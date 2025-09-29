@@ -8,7 +8,7 @@ available from its original location tespy/tools/units.py
 
 SPDX-License-Identifier: MIT
 """
-import os
+import shutil
 import sys
 import warnings
 
@@ -58,7 +58,16 @@ class Units:
         path = platformdirs.user_cache_dir(
             "tespy", False, f"py{major}{minor}pint{pint.__version__}"
         )
-        self._ureg = pint.UnitRegistry(cache_folder=path)
+        try:
+            self._ureg = pint.UnitRegistry(cache_folder=path)
+        except FileNotFoundError:
+            # this is necessary, because inside the cache folder, pint points
+            # to the pint installation inside (any) of the venvs (potentially
+            # the first ever created?). If that venv moves or gets deleted,
+            # then the link cannot be found any more and we have to recreated
+            # the cache
+            shutil.rmtree(path)
+            self._ureg = pint.UnitRegistry(cache_folder=path)
         # cannot use the setter here because we have to define m3 first!
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")

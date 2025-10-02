@@ -1397,16 +1397,26 @@ class Connection(ConnectionBase):
             # these are pure fluids
             # two-phase properties are calculated based on pressure
             if self.p.val_SI < self.fluid.wrapper[fluid]._p_crit:
-                if not self.x.is_set:
-                    try:
-                        self.x.val_SI = self.calc_x()
-                    except ValueError:
-                        self.x.val_SI = np.nan
-                if not self.Td_bp.is_set:
-                    try:
-                        self.Td_bp.val_SI = self.calc_Td_bp()
-                    except ValueError:
-                        self.Td_bp.val_SI = np.nan
+                try:
+                    self.x.val_SI = self.calc_x()
+                except ValueError:
+                    self.x.val_SI = np.nan
+
+                try:
+                    self.Td_bp.val_SI = self.calc_Td_bp()
+                except ValueError:
+                    self.Td_bp.val_SI = np.nan
+
+                try:
+                    self.td_dew.val_SI = self.calc_td_dew()
+                except ValueError:
+                    self.td_dew.val_SI = np.nan
+
+                try:
+                    self.td_bubble.val_SI = self.calc_td_bubble()
+                except ValueError:
+                    self.td_bubble.val_SI = np.nan
+
                 try:
                     self.phase.val = self.calc_phase()
                 except ValueError:
@@ -1488,7 +1498,7 @@ class Connection(ConnectionBase):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp"]
+        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp", "td_dew", "td_bubble"]
 
     @classmethod
     def _get_result_cols(cls, all_fluids):

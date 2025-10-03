@@ -904,21 +904,6 @@ class Connection(ConnectionBase):
         if len(self.fluid.is_var) > 0:
             return []
 
-        if self.p.is_set and (self.T_dew.is_set or self.T_bubble.is_set):
-            msg = (
-                "You cannot simultaneously specify pressure and dew or bubble "
-                "temperature as these are equivalent to setting pressure."
-            )
-            raise TESPyNetworkError(msg)
-
-        elif self.T_dew.is_set:
-            self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data))
-            self.p._potential_var = False
-
-        elif self.T_bubble.is_set:
-            self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
-            self.p._potential_var = False
-
         specifications = []
         for name, container in self.property_data.items():
             if name in ["p", "h", "T", "x", "Td_bp", "td_bubble", "td_dew", "T_dew", "T_bubble"]:
@@ -937,6 +922,31 @@ class Connection(ConnectionBase):
             raise TESPyNetworkError(msg)
 
         presolved_equations = []
+        if self.p.is_set:
+            if self.T_dew.is_set or self.T_bubble.is_set:
+                msg = (
+                    "You cannot simultaneously specify pressure and dew or bubble "
+                    "temperature as these are equivalent to setting pressure."
+                )
+                raise TESPyNetworkError(msg)
+
+        elif self.p.is_var:
+            if self.T_dew.is_set:
+                self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data))
+                self.p._potential_var = False
+                if "T_dew" in self._equation_set_lookup.values():
+                    presolved_equations += ["T_dew"]
+                msg = f"Determined p by specified T_dew at {self.label}."
+                logger.info(msg)
+
+            elif self.T_bubble.is_set:
+                self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
+                self.p._potential_var = False
+                if "T_bubble" in self._equation_set_lookup.values():
+                    presolved_equations += ["T_bubble"]
+                msg = f"Determined p by specified T_bubble at {self.label}."
+                logger.info(msg)
+
         if self.h.is_var and not self.p.is_var:
             if self.T.is_set:
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))

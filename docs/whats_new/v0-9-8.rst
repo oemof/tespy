@@ -1,0 +1,15 @@
+v0.9.8 - Under development
+++++++++++++++++++++++++++
+
+New Features
+############
+
+Bug Fixes
+#########
+- :code:`td_bubble` and :code:`td_dew` are now calculated in postprocessing if
+  they are not specified
+  (`PR #792 <https://github.com/oemof/tespy/pull/792>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

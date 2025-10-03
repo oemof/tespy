@@ -925,8 +925,9 @@ class Connection(ConnectionBase):
         if self.p.is_set:
             if self.T_dew.is_set or self.T_bubble.is_set:
                 msg = (
-                    "You cannot simultaneously specify pressure and dew or bubble "
-                    "temperature as these are equivalent to setting pressure."
+                    "You cannot simultaneously specify pressure and dew or "
+                    "bubble temperature as these are equivalent to setting "
+                    "pressure."
                 )
                 raise TESPyNetworkError(msg)
 

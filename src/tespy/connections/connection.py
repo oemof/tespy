@@ -930,7 +930,7 @@ class Connection(ConnectionBase):
         if num_specs > 2:
             msg = (
                 "You have specified more than 2 parameters for the connection "
-                f"{self.label} with a known fluid compoistion: "
+                f"{self.label} with a known fluid composition: "
                 f"{', '.join(specifications)}. This overdetermines the state "
                 "of the fluid."
             )
@@ -1451,7 +1451,8 @@ class Connection(ConnectionBase):
         for prop in self._result_attributes():
             param = self.get_attr(prop)
             result = param._get_val_from_SI(units)
-            if param.is_set and round(result.magnitude, 3) != round(param.val, 3):
+            converged = np.isclose(result.magnitude, param.val, 1e-3, 1e-3)
+            if param.is_set and not converged:
                 _converged = False
                 msg = (
                     "The simulation converged but the calculated result "
@@ -1482,6 +1483,8 @@ class Connection(ConnectionBase):
 
     def _set_design_params(self, data, units):
         for var in self._result_attributes():
+            if var not in data:
+                continue
             unit = data[f"{var}_unit"]
             if unit == "C":
                 if var == "T":

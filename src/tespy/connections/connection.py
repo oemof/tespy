@@ -904,9 +904,24 @@ class Connection(ConnectionBase):
         if len(self.fluid.is_var) > 0:
             return []
 
+        if self.p.is_set and (self.T_dew.is_set or self.T_bubble.is_set):
+            msg = (
+                "You cannot simultaneously specify pressure and dew or bubble "
+                "temperature as these are equivalent to setting pressure."
+            )
+            raise TESPyNetworkError(msg)
+
+        elif self.T_dew.is_set:
+            self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data))
+            self.p._potential_var = False
+
+        elif self.T_bubble.is_set:
+            self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
+            self.p._potential_var = False
+
         specifications = []
         for name, container in self.property_data.items():
-            if name in ["p", "h", "T", "x", "Td_bp", "td_bubble", "td_dew"]:
+            if name in ["p", "h", "T", "x", "Td_bp", "td_bubble", "td_dew", "T_dew", "T_bubble"]:
                 if container.is_set:
                     specifications += [name]
 
@@ -1054,6 +1069,8 @@ class Connection(ConnectionBase):
             "m": dc_prop(d=1e-4, quantity="mass_flow"),
             "p": dc_prop(d=1e-3, quantity="pressure"),
             "h": dc_prop(d=1e-3, quantity="enthalpy"),
+            "T_bubble": dc_prop(quantity="temperature"),
+            "T_dew": dc_prop(quantity="temperature"),
             "vol": dc_prop(quantity="specific_volume"),
             "s": dc_prop(quantity="entropy"),
             "fluid": dc_flu(d=1e-5),

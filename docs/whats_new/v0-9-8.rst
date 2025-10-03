@@ -1,0 +1,20 @@
+v0.9.8 - Under development
+++++++++++++++++++++++++++
+
+New Features
+############
+- It is now possible the specify pressure indirectly by specifying the dew line
+  or bubble line temperature of the fluid :code:`T_dew` or :code:`T_bubble`.
+  Specifying any of these will precalculate the pressure in the preprocessing
+  and set it as fixed value on the respective connection
+  (`PR #793 <https://github.com/oemof/tespy/pull/793>`__).
+
+Bug Fixes
+#########
+- :code:`td_bubble` and :code:`td_dew` are now calculated in postprocessing if
+  they are not specified
+  (`PR #792 <https://github.com/oemof/tespy/pull/792>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

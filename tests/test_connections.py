@@ -309,6 +309,40 @@ def test_td_bubble_equals_0_in_preprocessing2(simple_test_network):
     assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
 
 
+def test_td_bubble_in_postprocessing(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, p=20)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_bubble.val) == 7.26229
+
+
+def test_T_bubble_specified(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, T_bubble=60)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_bubble.val) == 10
+
+
 def test_td_dew_larger_0(simple_test_network):
     nw = simple_test_network
     c1, c2 = nw.get_conn(["c1", "c2"])
@@ -417,3 +451,37 @@ def test_td_dew_equals_0_in_preprocessing2(simple_test_network):
 
     # minus delta T, because td_dew is higher than T_dew
     assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_in_postprocessing(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, p=10)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_dew.val) == 23.05767
+
+
+def test_T_dew_specified(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=70, T_dew=60)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_dew.val) == 10

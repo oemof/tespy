@@ -44,6 +44,7 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
+from tespy.tools.global_vars import combustion_gases
 
 # Only require cupy if Cuda shall be used
 try:
@@ -179,6 +180,7 @@ class Network:
         self.design_path = None
         self.iterinfo = True
         self.units = Units()
+        self.combustion_gases = combustion_gases
 
         msg = 'Default unit specifications:\n'
         for prop, unit in self.units.default.items():

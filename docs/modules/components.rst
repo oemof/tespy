@@ -40,10 +40,14 @@ well as the equations.
     :code:`HeatExchanger` base class assume counter current flow!
   * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
   * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
+  * :py:class:`Sectioned heat exchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`:
+    Advanced heat exchanger class, discretizes the heat exchange into a
+    specified number of sections (50 by default) and assigns individual pinch
+    and UA values per section of heat transfer
   * :py:class:`Moving boundary heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
     Advanced heat exchanger class, automatically identifying phase change
-    sections in the heat transfer of both sides and assigning individual UA
-    values per section of heat transfer
+    sections in the heat transfer of both sides and assigning individual pinch
+    and UA values per section of heat transfer
 
 - Nodes
 

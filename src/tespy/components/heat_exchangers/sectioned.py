@@ -144,6 +144,13 @@ class SectionedHeatExchanger(HeatExchanger):
     UA : float, dict
         Sum of UA in all sections of the heat exchanger.
 
+    td_pinch : float, dict
+        Value of the lowest delta T between hot side and cold side at the
+        different sections.
+
+    num_sections : int
+        Number of sections.
+
     UA_cecchinato : dict
         Group specification for partload UA modification according to
         :cite:`cecchinato2010`, for usage see details in the
@@ -165,10 +172,6 @@ class SectionedHeatExchanger(HeatExchanger):
     refrigerant_index: int
         Connection index for the refrigerant side, 0 if refrigerant is on hot
         side, 1 if refrigerant is on cold side.
-
-    td_pinch : float, dict
-        Value of the lowest delta T between hot side and cold side at the
-        different sections.
 
     Note
     ----
@@ -315,7 +318,7 @@ class SectionedHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'num_sections': dc_simple(val=51),
+            'num_sections': dc_simple(val=50),
             'UA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
@@ -343,7 +346,7 @@ class SectionedHeatExchanger(HeatExchanger):
         return params
 
     @staticmethod
-    def _get_h_steps(c1, c2, num_sections=51):
+    def _get_h_steps(c1, c2, num_steps=51):
         """Get the steps for enthalpy at the boundaries of phases during the
         change of enthalpy from one state to another
 
@@ -372,7 +375,7 @@ class SectionedHeatExchanger(HeatExchanger):
         if c1.h.val_SI > c2.h.val_SI:
             c1, c2 = c2, c1
 
-        h_at_steps = np.linspace(c1.h.val_SI, c2.h.val_SI, num_sections)
+        h_at_steps = np.linspace(c1.h.val_SI, c2.h.val_SI, num_steps)
 
         return h_at_steps
 
@@ -404,7 +407,8 @@ class SectionedHeatExchanger(HeatExchanger):
             List of cumulative sum of heat exchanged defining the heat exchanger
             sections.
         """
-        h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0], self.num_sections.val)
+        steps = self.num_sections.val + 1
+        h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0], steps)
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
         return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
 

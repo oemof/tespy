@@ -122,13 +122,13 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.

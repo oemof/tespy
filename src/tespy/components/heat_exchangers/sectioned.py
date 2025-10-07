@@ -129,7 +129,7 @@ class SectionedHeatExchanger(HeatExchanger):
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.

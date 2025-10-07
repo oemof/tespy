@@ -314,7 +314,6 @@ class SectionedHeatExchanger(HeatExchanger):
     4.3
     >>> os.remove("design.json")
     """
-
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
@@ -431,11 +430,12 @@ class SectionedHeatExchanger(HeatExchanger):
         # outlet of the hot side
         h_steps_hot = self.outl[0].h.val_SI + Q_sections / self.inl[0].m.val_SI
         h_steps_cold = self.inl[1].h.val_SI + Q_sections / self.inl[1].m.val_SI
+        steps = self.num_sections.val + 1
         p_steps_hot = np.linspace(
-            self.outl[0].p.val_SI, self.inl[0].p.val_SI, self.num_sections.val
+            self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
         )
         p_steps_cold = np.linspace(
-            self.inl[1].p.val_SI, self.outl[1].p.val_SI, self.num_sections.val
+            self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
         )
         T_steps_hot = np.array([
             T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)

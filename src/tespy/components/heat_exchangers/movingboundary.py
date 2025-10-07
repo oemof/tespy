@@ -37,9 +37,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_func`
-    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.td_pinch_func`
-    - :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_cecchinato_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.td_pinch_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
@@ -143,6 +143,10 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     UA : float, dict
         Sum of UA in all sections of the heat exchanger.
 
+    td_pinch : float, dict
+        Value of the lowest delta T between hot side and cold side at the
+        different sections.
+
     UA_cecchinato : dict
         Group specification for partload UA modification according to
         :cite:`cecchinato2010`, for usage see details in the
@@ -164,10 +168,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     refrigerant_index: int
         Connection index for the refrigerant side, 0 if refrigerant is on hot
         side, 1 if refrigerant is on cold side.
-
-    td_pinch : float, dict
-        Value of the lowest delta T between hot side and cold side at the
-        different sections.
 
     Note
     ----
@@ -308,6 +308,11 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     4.3
     >>> os.remove("design.json")
     """
+    def get_parameters(self):
+        params = super().get_parameters()
+        del params["num_sections"]
+        return params
+
     @staticmethod
     def _get_h_steps(c1, c2):
         """Get the steps for enthalpy at the boundaries of phases during the

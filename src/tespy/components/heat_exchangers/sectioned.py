@@ -27,7 +27,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     The heat exchanger is internally discretized into 51 sections of equal heat
     transfer. The number of section can be adjusted by the user. It is based on
-    the model implemented by :cite:`quoilin2020`.
+    the model implemented by :cite:`Quoilin2020`.
 
     **Mandatory Equations**
 

@@ -218,6 +218,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.056
+    >>> round(c1.T.val, 1)
+    50.0
 
     We can also see the temperature differences in all sections of the heat
     exchanger. Since the water vapor is cooled, condensed and then subcooled,
@@ -378,6 +380,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         """
         h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
+        # do not insert last section, that will come from other side
         Q_sections_hot = np.insert(np.cumsum(Q_sections_hot)[:-1], 0, 0.0)
 
         h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])

@@ -8,6 +8,13 @@ New Features
   Specifying any of these will precalculate the pressure in the preprocessing
   and set it as fixed value on the respective connection
   (`PR #793 <https://github.com/oemof/tespy/pull/793>`__).
+- A new component :code:`SectionedHeatExchanger` is available. This component
+  works similar to the :code:`MovingBoundaryHeatExchanger` but discretizes with
+  a specific number of steps (user specified) over the enthalpy and linearly
+  over the pressure drop. This allows you to integrate pressure drop in the UA
+  and internal pinch calculation. For an example look up the component in the
+  API documentation
+  (`PR #794 <https://github.com/oemof/tespy/pull/794>`__).
 
 Bug Fixes
 #########

@@ -86,14 +86,6 @@ tespy.components.heat_exchangers.base module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.movingboundary module
-------------------------------------------------------
-
-.. automodule:: tespy.components.heat_exchangers.movingboundary
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 tespy.components.heat_exchangers.condenser module
 -------------------------------------------------
 
@@ -106,6 +98,22 @@ tespy.components.heat_exchangers.desuperheater module
 -----------------------------------------------------
 
 .. automodule:: tespy.components.heat_exchangers.desuperheater
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.sectioned module
+-------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.sectioned
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.movingboundary module
+------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.movingboundary
     :members:
     :undoc-members:
     :show-inheritance:

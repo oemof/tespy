@@ -1,6 +1,6 @@
 .. _tespy_tutorial_heat_exchanger:
 
-Overview of Heat changer models
+Overview of Heat exchanger models
 -------------------------------
 
 +--------------------------------+----+------------+-------------+---------------+----------------+-----------------+

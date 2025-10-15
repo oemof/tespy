@@ -11,6 +11,8 @@ tespy/components/turbomachinery/polynomial_compressor.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 
 from tespy.components.component import Component
@@ -22,6 +24,7 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.helpers import TESPyComponentError
 
 
 # the polynomial compressor is a fundamentally different component, therefore
@@ -96,7 +99,7 @@ class PolynomialCompressor(Turbomachine):
     P : float, dict
         Compressor power, :math:`P/\text{W}`
 
-    Q_diss_rel : float, dict
+    dissipation_ratio : float, dict
         Relative heat loss of compressor, :math:`Q_\text{diss,rel}/1`
 
     eta_s : float, dict
@@ -222,7 +225,7 @@ class PolynomialCompressor(Turbomachine):
     together with the reference state and the assumption on heat dissipation.
 
     >>> compressor.set_attr(
-    ...     eta_s_poly=eta_s_poly, eta_vol_poly=eta_vol_poly, Q_diss_rel=0.05,
+    ...     eta_s_poly=eta_s_poly, eta_vol_poly=eta_vol_poly, dissipation_ratio=0.05,
     ...     reference_state=reference_state
     ... )
 
@@ -301,6 +304,32 @@ class PolynomialCompressor(Turbomachine):
     efficiencies for these components.
     """
 
+    def _preprocess(self, row_idx):
+        if self.Q_diss_rel.is_set:
+            msg = (
+                "The parameter Q_diss_rel has been renamed, please use "
+                "'dissipation_ratio' instead."
+            )
+            logger.warning(msg)
+            warnings.warn(msg, FutureWarning)
+            # this only injects to .val and not to .val_SI, the calculation
+            # of .val_SI from .val in preprocessing already happened before
+            # this point
+            self.set_attr(dissipation_ratio=self.Q_diss_rel.val)
+            self.dissipation_ratio.val_SI = self.Q_diss_rel.val_SI
+
+        if not self.dissipation_ratio.is_set:
+            msg = (
+                f"The component {self.label} of type {self.__class__.__name__} "
+                "requires you to specify the relative heat dissipation "
+                "dissipation_ratio. If you want to disregard heat dissipation set "
+                "the value to 0.0"
+            )
+            logger.error(msg)
+            raise TESPyComponentError(msg)
+
+        return super()._preprocess(row_idx)
+
     @staticmethod
     def powerinlets():
         return ["power"]
@@ -322,6 +351,7 @@ class PolynomialCompressor(Turbomachine):
             "Q_diss": dc_cp(max_val=0, val=0),
             "P": dc_cp(min_val=0),
             "eta_vol": dc_cp(min_val=0, max_val=1),
+            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0),
             "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0),
             "rpm": dc_cp(min_val=0),
             "reference_state": dc_simple(),
@@ -341,19 +371,19 @@ class PolynomialCompressor(Turbomachine):
             ),
             "eta_s": dc_cp(min_val=0, max_val=1),
             "eta_s_poly_group": dc_gcp(
-                elements=["eta_s_poly", "Q_diss_rel"],
+                elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
                 dependents=self.eta_s_group_dependents,
                 num_eq_sets=1
             ),
             "eta_s_group": dc_gcp(
-                elements=["eta_s", "Q_diss_rel"],
+                elements=["eta_s", "dissipation_ratio"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
                 num_eq_sets=1
             ),
             "energy_balance_group": dc_gcp(
-                elements=["P", "Q_diss_rel"],
+                elements=["P", "dissipation_ratio"],
                 func=self.energy_balance_group_func,
                 dependents=self.energy_balance_group_dependents,
                 num_eq_sets=1
@@ -367,7 +397,7 @@ class PolynomialCompressor(Turbomachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.Q_diss_rel.val)
+            / (1 - self.dissipation_ratio.val)
             - self.power_inl[0].E.val_SI
         )
 
@@ -393,7 +423,7 @@ class PolynomialCompressor(Turbomachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.Q_diss_rel.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
             - self.P.val_SI
         )
 
@@ -437,7 +467,7 @@ class PolynomialCompressor(Turbomachine):
 
         return (
             self.eta_s.val_SI
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val_SI)
+            * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -481,7 +511,7 @@ class PolynomialCompressor(Turbomachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.Q_diss_rel.val_SI)
+            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -573,25 +603,24 @@ class PolynomialCompressor(Turbomachine):
         self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
 
-        if self.Q_diss_rel.is_set:
-            h_2 = (
-                (o.h.val_SI - i.h.val_SI * self.Q_diss_rel.val_SI)
-                / (1 - self.Q_diss_rel.val_SI)
-            )
-            self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
-            self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
-            self.eta_s.val_SI = (
-                isentropic(
-                    i.p.val_SI,
-                    i.h.val_SI,
-                    o.p.val_SI,
-                    i.fluid_data,
-                    i.mixing_rule,
-                    T0=None
-                ) - i.h.val_SI
-            ) / (
-                (h_2 - i.h.val_SI)
-            )
+        h_2 = (
+            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
+        )
+        self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
+        self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
+        self.eta_s.val_SI = (
+            isentropic(
+                i.p.val_SI,
+                i.h.val_SI,
+                o.p.val_SI,
+                i.fluid_data,
+                i.mixing_rule,
+                T0=None
+            ) - i.h.val_SI
+        ) / (
+            (h_2 - i.h.val_SI)
+        )
 
         if self.reference_state.is_set:
             displacement = (

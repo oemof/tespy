@@ -78,6 +78,14 @@ tespy.components.combustion.engine module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.heat_exchangers.base module
+--------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.heat_exchangers.condenser module
 -------------------------------------------------
 
@@ -94,10 +102,18 @@ tespy.components.heat_exchangers.desuperheater module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.base module
---------------------------------------------
+tespy.components.heat_exchangers.sectioned module
+-------------------------------------------------
 
-.. automodule:: tespy.components.heat_exchangers.base
+.. automodule:: tespy.components.heat_exchangers.sectioned
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.movingboundary module
+------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.movingboundary
     :members:
     :undoc-members:
     :show-inheritance:
@@ -134,7 +150,6 @@ tespy.components.nodes.base module
     :undoc-members:
     :show-inheritance:
 
-
 tespy.components.nodes.droplet_separator module
 -----------------------------------------------
 
@@ -155,6 +170,14 @@ tespy.components.nodes.merge module
 -----------------------------------
 
 .. automodule:: tespy.components.nodes.merge
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.nodes.node module
+----------------------------------
+
+.. automodule:: tespy.components.nodes.node
     :members:
     :undoc-members:
     :show-inheritance:
@@ -191,6 +214,45 @@ tespy.components.piping.valve module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.power.bus module
+---------------------------------
+
+.. automodule:: tespy.components.power.bus
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.power.generator module
+---------------------------------------
+
+.. automodule:: tespy.components.power.generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.power.motor module
+-----------------------------------
+
+.. automodule:: tespy.components.power.motor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.power.sink module
+----------------------------------
+
+.. automodule:: tespy.components.power.sink
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.power.source module
+------------------------------------
+
+.. automodule:: tespy.components.power.source
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 tespy.components.reactors.fuel_cell module
 ---------------------------------------------------
@@ -209,10 +271,26 @@ tespy.components.reactors.water_electrolyzer module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.turbomachinery.base module
+-------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.turbomachinery.compressor module
 -------------------------------------------------
 
 .. automodule:: tespy.components.turbomachinery.compressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.polynomial_compressor module
+------------------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.polynomial_compressor
     :members:
     :undoc-members:
     :show-inheritance:
@@ -225,18 +303,18 @@ tespy.components.turbomachinery.pump module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery.turbine module
-----------------------------------------------
+tespy.components.turbomachinery.steam_turbine module
+----------------------------------------------------
 
-.. automodule:: tespy.components.turbomachinery.turbine
+.. automodule:: tespy.components.turbomachinery.steam_turbine
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.turbomachinery.base module
--------------------------------------------
+tespy.components.turbomachinery.turbine module
+----------------------------------------------
 
-.. automodule:: tespy.components.turbomachinery.base
+.. automodule:: tespy.components.turbomachinery.turbine
     :members:
     :undoc-members:
     :show-inheritance:

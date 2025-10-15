@@ -21,14 +21,17 @@ from tespy.networks import Network
 
 @fixture()
 def drum_network_setup():
-    nw = Network(T_unit="C", p_unit="bar")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC"
+    })
     dr = Drum("drum")
     so = Source("liquid")
     si = Sink("vapor")
     c1 = Connection(so, "out1", dr, "in1", label="1")
     c2 = Connection(dr, "out2", si, "in1", label="2")
     nw.add_conns(c1, c2)
-    c1.set_attr(fluid={"R290": 1}, m=10, Td_bp=-10, T=50)
+    c1.set_attr(fluid={"R290": 1}, m=10, td_bubble=10, T=50)
     yield nw
 
 
@@ -48,5 +51,5 @@ def test_drum_with_blowdown(drum_network_setup):
     nw.add_conns(c3, c4, c5, c6)
 
     nw.solve("design")
-
+    assert nw.status == 0
     assert 0.72728 == approx(c4.m.val_SI)

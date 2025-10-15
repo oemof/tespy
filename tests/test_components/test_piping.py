@@ -23,7 +23,10 @@ from tespy.tools.characteristics import CharLine
 class TestPiping:
 
     def setup_piping_network(self, instance):
-        self.nw = Network(T_unit='C', p_unit='bar')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
         self.source = Source('source')
         self.sink = Sink('sink')
         self.c1 = Connection(self.source, 'out1', instance, 'in1')
@@ -39,22 +42,24 @@ class TestPiping:
         self.c1.set_attr(fluid={'CH4': 1}, m=10, p=10, T=120)
         self.c2.set_attr(p=1)
 
-        # test variable pressure ration
-        instance.set_attr(pr='var')
         self.nw.solve('design')
-        self.nw._convergence_check()
-        pr = round(self.c2.p.val_SI / self.c1.p.val_SI, 2)
-        msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
-               str(round(instance.pr.val, 2)) + '.')
+        self.nw.assert_convergence()
+        assert self.nw.status == 0
+        pr = round(self.c2.p.val / self.c1.p.val, 2)
+        msg = (
+            f'Value of pressure ratio must be {pr}, is {instance.pr.val}.'
+        )
         assert pr == round(instance.pr.val, 2), msg
 
         # test variable zeta value
         zeta = round(instance.zeta.val, 0)
         instance.set_attr(zeta='var', pr=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
-        msg = ('Value of dimension independent zeta value must be ' +
-               str(zeta) + ', is ' + str(round(instance.zeta.val, 0)) + '.')
+        self.nw.assert_convergence()
+        msg = (
+            f'Value of dimension independent zeta value must be {zeta}, is '
+            f'{instance.zeta.val}.'
+        )
         assert zeta == round(instance.zeta.val, 0), msg
 
         # dp char
@@ -67,7 +72,7 @@ class TestPiping:
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=None)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)
@@ -80,6 +85,32 @@ class TestPiping:
         instance = Pipe('pipe')
         self.setup_piping_network(instance)
 
-        # NO TEST NEEDED AT THE MOMENT, THE PIPE PROPERTIES ARE IDENTICAL TO
-        # THE PROPERTIES OF THE SIMPLE HEAT EXCHANGER. TESTS ARE LOCATED AT
-        # heat_exchanger_tests.py
+        # parameter specification
+        self.c1.set_attr(fluid={'H2O': 1}, m=10, p=10, T=220)
+
+        instance.set_attr(
+            pr=0.99, Tamb=20, L=1000, D=0.2,
+            insulation_thickness=0.1 ,insulation_tc=0.035,
+            pipe_thickness=0.002, material='Steel',
+            environment_media='air', wind_velocity=2,
+        )
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        Q = -62683.7
+        msg = (
+            f"The Heat loss of surface pipe should be {Q} but is "
+            f"{round(instance.Q.val, 1)}."
+        )
+        assert Q == round(instance.Q.val, 1), msg
+
+        instance.set_attr(
+            wind_velocity=None, environment_media='moist soil', pipe_depth=5
+            )
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        Q = -57081.9
+        msg = (
+            f"The Heat loss of sub surface pipe should be {Q} but is "
+            f"{round(instance.Q.val, 1)}."
+        )
+        assert Q == round(instance.Q.val, 1), msg

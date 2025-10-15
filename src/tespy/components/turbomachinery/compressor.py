@@ -18,10 +18,14 @@ from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.helpers import _get_dependents
 
 
 @component_registry
@@ -31,12 +35,13 @@ class Compressor(Turbomachine):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
@@ -47,6 +52,10 @@ class Compressor(Turbomachine):
 
     - in1
     - out1
+
+    Optional inlets
+
+    - power
 
     Image
 
@@ -92,8 +101,12 @@ class Compressor(Turbomachine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
+        Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
@@ -118,14 +131,14 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
-    ... iterinfo=False)
+    >>> import os
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> comp = Compressor('compressor')
-    >>> comp.component()
-    'compressor'
     >>> inc = Connection(so, 'out1', comp, 'in1')
     >>> outg = Connection(comp, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -140,54 +153,89 @@ class Compressor(Turbomachine):
     ... offdesign=['char_map_pr', 'char_map_eta_s'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(comp.P.val, 0)
     12772.0
+    >>> round(comp.eta_s.val, 2)
+    0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
     0.77
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
 
     @staticmethod
-    def component():
-        return 'compressor'
+    def powerinlets():
+        return ["power"]
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if len(self.power_inl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     def get_parameters(self):
-        return {
-            'P': dc_cp(
-                min_val=0, num_eq=1,
-                deriv=self.energy_balance_deriv,
-                func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+        parameters = super().get_parameters()
+        parameters["P"].min_val = 0
+        parameters["pr"].min_val = 1
+        parameters["dp"].max_val = 0
+        parameters.update({
             'eta_s': dc_cp(
-                min_val=0, max_val=1, num_eq=1,
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eta_s_func,
                 deriv=self.eta_s_deriv,
-                func=self.eta_s_func, latex=self.eta_s_func_doc),
+                dependents=self.eta_s_dependents,
+                quantity="efficiency"
+            ),
             'eta_s_char': dc_cc(
-                param='m', num_eq=1,
-                deriv=self.eta_s_char_deriv,
-                func=self.eta_s_char_func, latex=self.eta_s_char_func_doc),
-            'pr': dc_cp(
-                min_val=1, num_eq=1,
-                deriv=self.pr_deriv,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-3, val=0),
+                param='m', num_eq_sets=1,
+                func=self.eta_s_char_func,
+                dependents=self.eta_s_char_dependents,
+            ),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
-                elements=['char_map_eta_s', 'igva'], num_eq=1,
-                latex=self.char_map_eta_s_func_doc,
+                elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                deriv=self.char_map_eta_s_deriv),
+                dependents=self.char_map_dependents
+            ),
             'char_map_pr': dc_cm(),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
-                deriv=self.char_map_pr_deriv, num_eq=1,
-                func=self.char_map_pr_func, latex=self.char_map_pr_func_doc)
-        }
+                num_eq_sets=1,
+                func=self.char_map_pr_func,
+                dependents=self.char_map_dependents
+            )
+        })
+        return parameters
+
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E - \dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)
+        """
+        return self.power_inl[0].E.val_SI - self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
+    def energy_connector_dependents(self):
+        return [self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def eta_s_func(self):
         r"""
@@ -206,7 +254,7 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.val_SI - (
                 isentropic(
                     i.p.val_SI,
                     i.h.val_SI,
@@ -218,26 +266,7 @@ class Compressor(Turbomachine):
             )
         )
 
-    def eta_s_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency of a compressor.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 =-\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s}+\left(h_\mathrm{out,s}-h_\mathrm{in}\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def eta_s_deriv(self, increment_filter, k):
+    def eta_s_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives for isentropic efficiency.
 
@@ -249,17 +278,26 @@ class Compressor(Turbomachine):
         k : int
             Position of derivatives in Jacobian matrix (k-th equation).
         """
+        dependents = dependents["scalars"][0]
         i = self.inl[0]
         o = self.outl[0]
         f = self.eta_s_func
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.eta_s.val
+
+        if o.h.is_var and not i.h.is_var:
+            self._partial_derivative(o.h, k, self.eta_s.val_SI, increment_filter)
+            # remove o.h from the dependents
+            dependents = dependents.difference(_get_dependents([o.h])[0])
+
+        for dependent in dependents:
+            self._partial_derivative(dependent, k, f, increment_filter)
+
+    def eta_s_dependents(self):
+        return [
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def eta_s_char_func(self):
         r"""
@@ -300,53 +338,17 @@ class Compressor(Turbomachine):
             )
         )
 
-    def eta_s_char_func_doc(self, label):
-        r"""
-        Equation for given isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\left(h_\mathrm{out}-h_\mathrm{in}\right)\cdot'
-            r'\eta_\mathrm{s,design}\cdot f\left(X\right)-'
-            r'\left( h_{out,s} - h_{in} \right)')
-        return generate_latex_eq(self, latex, label)
-
-    def eta_s_char_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for isentropic efficiency characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.eta_s_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
+    def eta_s_char_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
     def char_map_pr_func(self):
+
         r"""
         Calculate pressure ratio from characteristic map.
 
@@ -376,79 +378,16 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        beta = np.sqrt(i.T.design / i.calc_T())
+        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
 
-        yarr, zarr = self.char_map_pr.char_func.evaluate_x(x)
+        yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
-        yarr *= (1 - self.igva.val / 100)
-        zarr *= (1 - self.igva.val / 100)
+        yarr *= (1 - self.igva.val_SI / 100)
+        zarr *= (1 - self.igva.val_SI / 100)
         pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
 
         return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
-
-    def char_map_pr_func_doc(self, label):
-        r"""
-        Get LaTeX equation for pressure ratio from characteristic map.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-            '\n'
-            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-            '\n'
-            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
-            r'\\' + '\n'
-            r'\vec{Z} = &'
-            r'f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\' + '\n'
-            r'0 = &\frac{p_\mathrm{out} \cdot p_\mathrm{in,design}}'
-            r'{p_\mathrm{in} \cdot p_\mathrm{out,design}}-'
-            r'f\left(Y,\vec{Y},\vec{Z}\right)\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def char_map_pr_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for compressor map characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.char_map_pr_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = 1 / i.p.val_SI
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
-        if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
-                f, 'igva', None
-            )
 
     def char_map_eta_s_func(self):
         r"""
@@ -484,8 +423,8 @@ class Compressor(Turbomachine):
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
-        yarr *= (1 - self.igva.val / 100)
-        zarr *= (1 - self.igva.val ** 2 / 10000)
+        yarr *= (1 - self.igva.val_SI / 100)
+        zarr *= (1 - self.igva.val_SI ** 2 / 10000)
         eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
 
         return (
@@ -501,68 +440,15 @@ class Compressor(Turbomachine):
             / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
         )
 
-    def char_map_eta_s_func_doc(self, label):
-        r"""
-        Get LaTeX equation for isentropic efficiency from characteristic map.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}'
-            r'X = &\sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\'
-            '\n'
-            r'Y = &\frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}'
-            r'{\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\'
-            '\n'
-            r'\vec{Y} = &f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)'
-            r'\\' + '\n'
-            r'\vec{Z} = &'
-            r'f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\'
-            '\n'
-            r'0 = &\frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -'
-            r'f\left(Y,\vec{Y},\vec{Z}\right)' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def char_map_eta_s_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives for compressor map characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.char_map_eta_s_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
-        if self.igva.is_var:
-            self.jacobian[k, self.igva.J_col] = self.numeric_deriv(
-                f, 'igva', None
-            )
+    def char_map_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.igva
+        ]
 
     def convergence_check(self):
         r"""
@@ -573,22 +459,23 @@ class Compressor(Turbomachine):
         Manipulate enthalpies/pressure at inlet and outlet if not specified by
         user to match physically feasible constraints.
         """
-        i, o = self.inl, self.outl
+        i, o = self.inl[0], self.outl[0]
 
-        if o[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
-            o[0].p.val_SI = i[0].p.val_SI * 1.1
+        if o.p.is_var and o.p.val_SI < i.p.val_SI:
+            o.p.set_reference_val_SI(i.p.val_SI * 1.5)
 
-        if o[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
-            o[0].h.val_SI = i[0].h.val_SI * 1.1
+        if o.h.is_var and o.h.val_SI < i.h.val_SI:
+            o.h.set_reference_val_SI(i.h.val_SI + 100e3)
 
-        if i[0].p.is_var and o[0].p.val_SI < i[0].p.val_SI:
-            i[0].p.val_SI = o[0].p.val_SI * 0.9
+        if i.p.is_var and o.p.val_SI < i.p.val_SI:
+            i.p.set_reference_val_SI(o.p.val_SI * 2 / 3)
+            i.p.val_SI = o.p.val_SI * 0.9
 
-        if i[0].h.is_var and o[0].h.val_SI < i[0].h.val_SI:
-            i[0].h.val_SI = o[0].h.val_SI * 0.9
+        if i.h.is_var and o.h.val_SI < i.h.val_SI:
+            i.h.set_reference_val_SI(o.h.val_SI - 100e3)
 
     @staticmethod
-    def initialise_Source(c, key):
+    def initialise_source(c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -604,18 +491,26 @@ class Compressor(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                6 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 2
+            else:
+                return 10e5
         elif key == 'h':
-            return 6e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 2e5
+                else:
+                    temp = c.fluid.wrapper[fluid]._T_crit
+                    return h_mix_pT(
+                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
+                    ) + 2e5
+            else:
+                temp = 450
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     @staticmethod
     def initialise_target(c, key):
@@ -634,18 +529,20 @@ class Compressor(Turbomachine):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^5 & \text{key = 'p'}\\
-                4 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
         """
         if key == 'p':
-            return 1e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return c.fluid.wrapper[fluid]._p_crit / 3
+            else:
+                return 1e5
         elif key == 'h':
-            return 4e5
+            fluid = single_fluid(c.fluid_data)
+            if fluid is not None:
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+            else:
+                temp = 350
+                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
@@ -653,7 +550,7 @@ class Compressor(Turbomachine):
 
         i = self.inl[0]
         o = self.outl[0]
-        self.eta_s.val =  (
+        self.eta_s.val_SI =  (
             isentropic(
                 i.p.val_SI,
                 i.h.val_SI,
@@ -666,7 +563,7 @@ class Compressor(Turbomachine):
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
-        super().check_parameter_bounds()
+        _no_limit_violations = super().check_parameter_bounds()
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
@@ -674,8 +571,10 @@ class Compressor(Turbomachine):
                 y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
                     self.inl[0].m.design * self.inl[0].p.val_SI * x)
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
-                yarr *= (1 - self.igva.val / 100)
+                yarr *= (1 - self.igva.val_SI / 100)
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
+
+        return _no_limit_violations
 
     def exergy_balance(self, T0):
         r"""

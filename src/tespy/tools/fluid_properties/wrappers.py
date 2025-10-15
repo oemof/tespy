@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 
 import CoolProp as CP
-import numpy as np
 
 from tespy.tools.global_vars import ERR
 
@@ -50,11 +49,7 @@ class FluidPropertyWrapper:
         """
         self.back_end = back_end
         self.fluid = fluid
-        if "[" in self.fluid:
-            self.fluid, self._fractions = self.fluid.split("[")
-            self._fractions = self._fractions.replace("]", "")
-        else:
-            self._fractions = None
+        self.mixture_type = None
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -65,9 +60,6 @@ class FluidPropertyWrapper:
         self._not_implemented()
 
     def _is_below_T_critical(self, T):
-        self._not_implemented()
-
-    def _make_p_subcritical(self, p):
         self._not_implemented()
 
     def T_ph(self, p, h):
@@ -88,8 +80,20 @@ class FluidPropertyWrapper:
     def T_sat(self, p):
         self._not_implemented()
 
+    def T_dew(self, p):
+        return self.T_sat(p)
+
+    def T_bubble(self, p):
+        return self.T_sat(p)
+
     def p_sat(self, T):
         self._not_implemented()
+
+    def p_dew(self, T):
+        return self.p_sat(T)
+
+    def p_bubble(self, T):
+        return self.p_sat(T)
 
     def Q_ph(self, p, h):
         self._not_implemented()
@@ -132,40 +136,99 @@ class CoolPropWrapper(FluidPropertyWrapper):
         back_end : str, optional
             CoolProp back end for the AbstractState object, by default "HEOS"
         """
-        if back_end is None:
-            back_end = "HEOS"
-
         super().__init__(fluid, back_end)
+
+        if self.back_end is None:
+            self.back_end = "HEOS"
+
+        self._identify_mixture()
         self.AS = SerializableAbstractState(self.back_end, self.fluid)
+        self._set_mixture_fractions()
         self._set_constants()
 
+    def _identify_mixture(self):
+        """Parse the fluid name to identify, if and what kind of mixture we are
+        working with
+        """
+        if "[" in self.fluid:
+            if "|" not in self.fluid:
+                msg = (
+                    f"The fluid {self.fluid} requires the specification of "
+                    "mass, volume or molar based composition information."
+                    "You can do this by appending '|' and 'mass' at the end "
+                    "of the fluid string. For example, "
+                    "'NAMEOFFLUID[0.5]|mass' to indicate a mass based mixture."
+                )
+                raise ValueError(msg)
+
+            self.fluid, self.mixture_type = self.fluid.split("|")
+            allowed = ["mass", "molar", "volume"]
+            if self.mixture_type not in allowed:
+                msg = (
+                    "For the specification of the composition type you have "
+                    f"to select from {', '.join(allowed)}."
+                )
+
+        if "&" in self.fluid:
+            _fluids_with_fractions = self.fluid.split("&")
+        else:
+            _fluids_with_fractions = [self.fluid]
+
+        fluid_names = []
+        fractions = []
+        for fluid in _fluids_with_fractions:
+            if "[" in fluid:
+                _fluid_name, _fraction = fluid.split("[")
+                _fraction = float(_fraction.replace("]", ""))
+                fractions += [_fraction]
+            else:
+                _fluid_name = fluid
+            fluid_names += [_fluid_name]
+
+        self.fractions = fractions
+        self.fluid = "&".join(fluid_names)
+
+    def _set_mixture_fractions(self):
+        """Set the fractions for provided mixture"""
+        if self.mixture_type == "mass":
+            self.AS.set_mass_fractions(self.fractions)
+        elif self.mixture_type == "molar":
+            self.AS.set_mole_fractions(self.fractions)
+        elif self.mixture_type == "volume":
+            self.AS.set_volu_fractions(self.fractions)
+
     def _set_constants(self):
+        """Setup constants for later quick access, e.g. mixture fractions
+        minimum/maximum pressure/temperature and critical point properties
+        """
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        try:
-            self._aliases = CP.CoolProp.get_aliases(self.fluid)
-        except RuntimeError:
-            self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
-            if self._fractions is not None:
-                # how to find if a mixture is volumetric of mass based?
-                try:
-                    self.AS.set_volu_fractions([float(self._fractions)])
-                except ValueError:
-                    self.AS.set_mass_fractions([float(self._fractions)])
             self._p_min = 1e2
             self._p_max = 1e8
             self._p_crit = 1e8
             self._T_crit = None
             self._molar_mass = 1
-            try:
-                # how to know that we have a binary mixture?
-                self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
-            except ValueError:
-                pass
+            if self.mixture_type is not None:
+                try:
+                    self._T_min = max(
+                        self.AS.trivial_keyed_output(CP.iT_freeze),
+                        self._T_min
+                    )
+                except ValueError:
+                    pass
         else:
-            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
+            if self.back_end == "HEOS":
+                # see https://github.com/CoolProp/CoolProp/discussions/2443
+                self._T_max *= 1.45
+
+            if self.back_end == "REFPROP":
+                if self.mixture_type is not None:
+                    self._T_min += 5
+                self._p_min = 1e1
+            else:
+                self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
             self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
             self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
@@ -173,11 +236,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def _is_below_T_critical(self, T):
         return T < self._T_crit
-
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
 
     def get_T_max(self, p):
         if self.back_end == "INCOMP":
@@ -217,41 +275,58 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.AS.smass()
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
+        self.AS.update(CP.PQ_INPUTS, p, 0)
+        return self.AS.T()
+
+    def T_dew(self, p):
+        self.AS.update(CP.PQ_INPUTS, p, 1)
+        return self.AS.T()
+
+    def T_bubble(self, p):
         self.AS.update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
     def p_sat(self, T):
-        if T > self._T_crit:
-            T = self._T_crit * 0.99
+        self.AS.update(CP.QT_INPUTS, 0.5, T)
+        return self.AS.p()
 
+    def p_dew(self, T):
+        self.AS.update(CP.QT_INPUTS, 1, T)
+        return self.AS.p()
+
+    def p_bubble(self, T):
         self.AS.update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         self.AS.update(CP.HmassP_INPUTS, h, p)
-
-        if self.AS.phase() == CP.iphase_twophase:
+        if len(self.fractions) > 1:
             return self.AS.Q()
-        elif self.AS.phase() == CP.iphase_liquid:
+
+        phase = self.AS.phase()
+        if phase == CP.iphase_twophase:
+            return self.AS.Q()
+        elif phase == CP.iphase_liquid:
             return 0
-        elif self.AS.phase() == CP.iphase_gas:
+        elif phase == CP.iphase_gas:
             return 1
         else:  # all other phases - though this should be unreachable as p is sub-critical
             return -1
 
     def phase_ph(self, p, h):
-        p = self._make_p_subcritical(p)
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        if self.back_end == "INCOMP":
+            return "state not recognized"
 
-        if self.AS.phase() == CP.iphase_twophase:
+        self.AS.update(CP.HmassP_INPUTS, h, p)
+        phase = self.AS.phase()
+
+        if phase == CP.iphase_twophase:
             return "tp"
-        elif self.AS.phase() == CP.iphase_liquid:
+        elif phase == CP.iphase_liquid:
             return "l"
-        elif self.AS.phase() == CP.iphase_gas:
+        elif phase == CP.iphase_gas:
             return "g"
-        else:  # all other phases - though this should be unreachable as p is sub-critical
+        else:
             return "state not recognised"
 
     def d_ph(self, p, h):
@@ -310,11 +385,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if back_end is None:
             back_end = "IF97"
         super().__init__(fluid, back_end)
-        self._aliases = CP.CoolProp.get_aliases("H2O")
-
-        if self.fluid not in self._aliases:
-            msg = "The iapws wrapper only supports water as fluid."
-            raise ValueError(msg)
 
         if self.back_end == "IF97":
             self.AS = iapws.IAPWS97
@@ -336,11 +406,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
 
     def _is_below_T_critical(self, T):
         return T < self._T_crit
-
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
 
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
@@ -367,7 +432,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T, x=Q).s * 1e3
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
         return self.AS(P=p / 1e6, x=0).T
 
     def p_sat(self, T):
@@ -377,12 +441,9 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T / 1e6, x=0).P * 1e6
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         return self.AS(h=h / 1e3, P=p / 1e6).x
 
     def phase_ph(self, p, h):
-        p = self._make_p_subcritical(p)
-
         phase = self.AS(h=h / 1e3, P=p / 1e6).phase
 
         if phase in ["Liquid"]:
@@ -420,7 +481,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
 class PyromatWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None) -> None:
-        """_summary_
+        """Wrapper for the Pyromat fluid property library
 
         Parameters
         ----------
@@ -451,6 +512,7 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
+        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
         self._molar_mass = self.AS.mw()
 
@@ -496,6 +558,11 @@ class PyromatWrapper(FluidPropertyWrapper):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.h(x=Q, T=T)[0]
+
+    def h_pQ(self, p, Q):
+        if self.back_end == "ig":
+            self._not_implemented()
+        return self.AS.h(p=p, x=Q)[0]
 
     def s_QT(self, Q, T):
         if self.back_end == "ig":

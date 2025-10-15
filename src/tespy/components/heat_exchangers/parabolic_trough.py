@@ -15,7 +15,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -25,16 +24,17 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
     - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_group_func`
 
     Inlets/Outlets
@@ -164,14 +164,13 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import math
-    >>> import shutil
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> pt = ParabolicTrough('parabolic trough collector')
-    >>> pt.component()
-    'parabolic trough'
     >>> inc = Connection(so, 'out1', pt, 'in1')
     >>> outg = Connection(pt, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -183,10 +182,12 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     >>> aoi = 20
     >>> E = 1000 * math.cos(aoi / 180 * math.pi)
-    >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
+    >>> pt.set_attr(
+    ... pr=1, aoi=aoi, doc=1,
     ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
-    ... iam_1=-1.59e-3, iam_2=9.77e-5)
-    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=2)
+    ... iam_1=-1.59e-3, iam_2=9.77e-5
+    ... )
+    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=10)
     >>> outg.set_attr(T=260)
     >>> nw.solve('design')
     >>> round(pt.Q.val, 0)
@@ -216,12 +217,8 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> round(outg.T.val, 0)
     244.0
     >>> round(pt.Q.val, 0)
-    3603027.0
+    3602817.0
     """
-
-    @staticmethod
-    def component():
-        return 'parabolic trough'
 
     def get_parameters(self):
         data = super().get_parameters()
@@ -229,19 +226,24 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
-            'eta_opt': dc_cp(min_val=0, max_val=1),
-            'c_1': dc_cp(min_val=0), 'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(), 'iam_2': dc_cp(),
+            'E': dc_cp(min_val=0, quantity="heat"),
+            'A': dc_cp(min_val=0, quantity="area"),
+            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
+            'c_1': dc_cp(min_val=0),
+            'c_2': dc_cp(min_val=0),
+            'iam_1': dc_cp(),
+            'iam_2': dc_cp(),
             'aoi': dc_cp(min_val=-90, max_val=90),
             'doc': dc_cp(min_val=0, max_val=1),
-            'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'Q_loss': dc_cp(max_val=0, _val=0, quantity="heat"),
             'energy_group': dc_gcp(
-                elements=['E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
-                          'iam_2', 'A', 'Tamb'], num_eq=1,
-                latex=self.energy_group_func_doc,
-                func=self.energy_group_func, deriv=self.energy_group_deriv
+                elements=[
+                    'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
+                    'iam_2', 'A', 'Tamb'
+                ],
+                num_eq_sets=1,
+                func=self.energy_group_func,
+                dependents=self.energy_group_dependents
             )
         })
         return data
@@ -276,94 +278,42 @@ class ParabolicTrough(SimpleHeatExchanger):
         T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         iam = (
-            1 - self.iam_1.val * abs(self.aoi.val)
-            - self.iam_2.val * self.aoi.val ** 2
+            1 - self.iam_1.val_SI * abs(self.aoi.val_SI)
+            - self.iam_2.val_SI * self.aoi.val_SI ** 2
         )
 
         return (
-            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val * (
-                self.E.val * self.eta_opt.val * self.doc.val ** 1.5 * iam
-                - (T_m - self.Tamb.val_SI) * self.c_1.val
-                - self.c_2.val * (T_m - self.Tamb.val_SI) ** 2
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val_SI * (
+                self.E.val_SI * self.eta_opt.val_SI * self.doc.val_SI ** 1.5 * iam
+                - (T_m - self.Tamb.val_SI) * self.c_1.val_SI
+                - self.c_2.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
 
-    def energy_group_func_doc(self, label):
-        r"""
-        Equation for solar collector energy balance.
+    def energy_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.energy_group.elements]
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)\\' + '\n'
-            r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} \cdot doc^{1.5}'
-            r'\cdot iam \right. \\' + '\n'
-            r'&\left. -c_1\cdot\left(T_\mathrm{m}-T_\mathrm{amb}\right) -'
-            r'c_2 \cdot \left(T_\mathrm{m} - T_\mathrm{amb}\right)^2'
-            r'\vphantom{\eta_\mathrm{opt}\cdot doc^{1.5}}\right]\\' + '\n'
-            r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
-            '\n'
-            r'iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy group function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.energy_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        # custom variables for the energy-group
-        for variable_name in self.energy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter == self.Tamb:
-                continue
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+    def convergence_check(self):
+        pass
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]
         o = self.outl[0]
 
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = self.calc_zeta(i, o)
+        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.zeta.val_SI = self.calc_zeta(i, o)
 
         if self.energy_group.is_set:
-            self.Q_loss.val = - self.E.val * self.A.val + self.Q.val
+            self.Q_loss.val_SI = - self.E.val_SI * self.A.val_SI + self.Q.val_SI
             self.Q_loss.is_result = True
         else:
             self.Q_loss.is_result = False

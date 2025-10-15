@@ -2,8 +2,9 @@
 from tespy.networks import Network
 working_fluid = "NH3"
 
-nw = Network(
-    T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s"
+nw = Network()
+nw.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW"
 )
 # %%[sec_2]
 from tespy.components import Condenser
@@ -46,7 +47,7 @@ c20.set_attr(T=60, p=2, fluid={"water": 1})
 c22.set_attr(T=90)
 
 # key design paramter
-cons.set_attr(Q=-230e3)
+cons.set_attr(Q=-230)
 # %%[sec_6]
 nw.solve("design")
 nw.print_results()
@@ -166,9 +167,9 @@ cp1.set_attr(eta_s=0.8)
 c9.set_attr(h=None)
 cp2.set_attr(eta_s=0.8)
 
-c8.set_attr(h=None, Td_bp=4)
+c8.set_attr(h=None, td_dew=4)
 nw.solve("design")
-nw.save("system_design")
+nw.save("system_design.json")
 # %% [sec_17]
 cp1.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
 cp2.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
@@ -184,8 +185,8 @@ cd.set_attr(
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 
-kA_char1 = ldc("heat exchanger", "kA_char1", "DEFAULT", CharLine)
-kA_char2 = ldc("heat exchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
+kA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
+kA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
 ev.set_attr(
     kA_char1=kA_char1, kA_char2=kA_char2,
     design=["pr1", "ttd_l"], offdesign=["zeta1", "kA_char"]
@@ -199,7 +200,7 @@ ic.set_attr(
     design=["pr1", "pr2"], offdesign=["zeta1", "zeta2", "kA_char"]
 )
 c14.set_attr(design=["T"])
-nw.solve("offdesign", design_path="system_design")
+nw.solve("offdesign", design_path="system_design.json")
 nw.print_results()
 # %% [sec_18]
 import numpy as np
@@ -207,7 +208,7 @@ nw.set_attr(iterinfo=False)
 
 for Q in np.linspace(1, 0.6, 5) * cons.Q.val:
     cons.set_attr(Q=Q)
-    nw.solve("offdesign", design_path="system_design")
+    nw.solve("offdesign", design_path="system_design.json")
     print(
         "COP:",
         abs(cons.Q.val) / (cp1.P.val + cp2.P.val + hsp.P.val + rp.P.val)

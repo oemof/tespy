@@ -22,7 +22,8 @@ Tamb = 2.8  # ambient temperature
 # mean geothermal temperature (mean value of ground feed and return flow)
 Tgeo = 9.5
 
-nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
+nw = Network()
+nw.units.set_defaults(temperature="degC", pressure="bar", enthalpy="kJ/kg")
 
 # %% components
 
@@ -73,8 +74,8 @@ nw.add_conns(hs_ret_hsp, hsp_cd, cd_hs_feed)
 cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
             offdesign=['zeta2', 'kA_char'])
 # evaporator
-kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
-kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
+kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
+kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
 ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
             kA_char1=kA_char1, kA_char2=kA_char2,
             design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
@@ -90,7 +91,7 @@ ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 
 # heat pump system
 cc_cd.set_attr(fluid={'R410A': 1})
-ev_cp.set_attr(Td_bp=3)
+ev_cp.set_attr(td_dew=3)
 
 # geothermal heat collector
 gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1})
@@ -136,7 +137,7 @@ cd.set_attr(Q=-4e3)
 
 # %% design calculation
 
-path = 'R410A'
+path = 'R410A.json'
 nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path=path)

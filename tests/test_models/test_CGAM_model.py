@@ -31,7 +31,10 @@ from tespy.tools.helpers import get_chem_ex_lib
 class TestCGAM:
 
     def setup_method(self):
-        self.nwk = Network(p_unit='bar', T_unit='C')
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         air_molar = {
             'O2': 0.2059, 'N2': 0.7748, 'CO2': 0.0003, 'H2O': 0.019, 'CH4': 0
@@ -91,7 +94,7 @@ class TestCGAM:
         c10.set_attr(T=25, fluid=fuel, p=12)
         c7.set_attr(p=1.013)
         c3.set_attr(T=850 - 273.15)
-        c8p.set_attr(Td_bp=-15)
+        c8p.set_attr(td_bubble=15)
         c11p.set_attr(x=0.5)
 
         cmp.set_attr(pr=10, eta_s=0.86)
@@ -122,7 +125,7 @@ class TestCGAM:
         c4.set_attr(T=1520 - 273.15)
         cb.set_attr(lamb=None)
         self.nwk.solve('design')
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         self.result = self.nwk.results["Connection"].copy()
 

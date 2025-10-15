@@ -17,7 +17,6 @@ from tespy.components import CombustionChamber
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 from tespy.tools.fluid_properties import h_mix_pT
 
 
@@ -29,7 +28,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_func`
+    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
 
     **Optional Equations**
@@ -37,11 +36,11 @@ class DiabaticCombustionChamber(CombustionChamber):
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
     - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
     - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.pr_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
 
     Available fuels
 
-    - methane, ethane, propane, butane, hydrogen
+    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
 
     Inlets/Outlets
 
@@ -123,14 +122,14 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
     >>> comb = DiabaticCombustionChamber('combustion chamber')
-    >>> comb.component()
-    'diabatic combustion chamber'
     >>> amb_comb = Connection(amb, 'out1', comb, 'in1')
     >>> sf_comb = Connection(sf, 'out1', comb, 'in2')
     >>> comb_fg = Connection(comb, 'out1', fg, 'in1')
@@ -147,13 +146,15 @@ class DiabaticCombustionChamber(CombustionChamber):
     identical lambda or outlet temperature as in an adiabatic combustion
     chamber.
 
-    >>> comb.set_attr(ti=500000, pr=0.95, eta=1, lamb=1.5)
-    >>> amb_comb.set_attr(p=1.2, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}, p=1.3)
-    >>> nw.solve('design')
+    >>> comb.set_attr(ti=500000, pr=0.95, eta=1)
+    >>> amb_comb.set_attr(
+    ...     p=1.2, T=20,
+    ...     fluid={'Ar': 0.0129, 'N2': 0.7553, 'CO2': 0.0004, 'O2': 0.2314}
+    ... )
+    >>> sf_comb.set_attr(
+    ...     p=1.3, T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96}
+    ... )
     >>> comb_fg.set_attr(T=1200)
-    >>> comb.set_attr(lamb=None)
     >>> nw.solve('design')
     >>> round(comb.lamb.val, 3)
     2.014
@@ -180,100 +181,50 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     Now, if we change the efficiency value, e.g. to 0.9, a total of 10 % of
     heat respective to the thermal input will be transferred to the ambient.
-    Note, that the heat loss :code:`Q_loss` has a negative value as it is
+    Note, that the heat loss :code:`Qloss` has a negative value as it is
     extracted from the system.
 
     >>> eta = 0.9
     >>> comb.set_attr(eta=eta)
     >>> nw.solve('design')
-    >>> round(comb.Q_loss.val, 0)
+    >>> round(comb.Qloss.val, 0)
     -50000.0
     >>> round(comb.ti.val * comb.eta.val, 0)
     450000.0
     """
-
-    @staticmethod
-    def component():
-        return 'diabatic combustion chamber'
-
     def get_parameters(self):
-        return {
-            'lamb': dc_cp(
-                min_val=1, deriv=self.lambda_deriv, func=self.lambda_func,
-                latex=self.lambda_func_doc, num_eq=1),
-            'ti': dc_cp(
-                min_val=0, deriv=self.ti_deriv, func=self.ti_func,
-                latex=self.ti_func_doc, num_eq=1),
+        params = super().get_parameters()
+        params.update({
             'pr': dc_cp(
-                min_val=0, deriv=self.pr_deriv,
-                func=self.pr_func,
-                latex=self.pr_func_doc, num_eq=1),
+                min_val=0,
+                num_eq_sets=1,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={"inconn": 0, "outconn": 0, "pr": "pr"},
+                quantity="ratio"
+            ),
+            'dp': dc_cp(
+                min_val=0,
+                num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
+            ),
             'eta': dc_cp(
-                max_val=1, min_val=0, deriv=self.energy_balance_deriv,
+                max_val=1, min_val=0,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc, num_eq=1),
-            'Q_loss': dc_cp(max_val=0, is_result=True)
-        }
+                dependents=self.energy_balance_dependents,
+                num_eq_sets=1,
+                quantity="efficiency"
+            ),
+            'Qloss': dc_cp(max_val=0, is_result=True, quantity="heat")
+        })
+        return params
 
     def get_mandatory_constraints(self):
         return {
             k: v for k, v in super().get_mandatory_constraints().items()
             if k in ["mass_flow_constraints", "stoichiometry_constraints"]
         }
-
-    def pr_func(self):
-        r"""
-        Equation for pressure drop.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}
-        """
-        return self.inl[0].p.val_SI * self.pr.val - self.outl[0].p.val_SI
-
-    def pr_func_doc(self, label):
-        r"""
-        Equation for inlet pressure equality.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & p_\mathrm{in,1} \cdot pr - p_\mathrm{out,1}\\' + '\n'
-            r'\end{split}')
-        return generate_latex_eq(self, latex, label)
-
-    def pr_deriv(self, increment_filter, k):
-        r"""
-        Calculate the partial derivatives for combustion pressure ratio.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.p):
-            self.jacobian[k, i.p.J_col] = self.pr.val
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
 
     def energy_balance_func(self):
         r"""
@@ -312,51 +263,19 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        res += self.calc_ti() * self.eta.val
+        res += self.calc_ti() * self.eta.val_SI
         return res
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate the energy balance of the diabatic combustion chamber.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \sum_i \dot{m}_{\mathrm{in,}i} \cdot\left( '
-            r'h_{\mathrm{in,}i} - h_{\mathrm{in,}i\mathrm{,ref}} \right) -'
-            r'\dot{m}_\mathrm{out,1}\cdot\left( h_\mathrm{out,1}'
-            r' - h_\mathrm{out,1,ref}\right)\\' + '\n'
-            r'& + LHV_{fuel} \cdot \left(\sum_i \dot{m}_{\mathrm{in,}i} '
-            r'\cdot x_{fuel\mathrm{,in,}i} - \dot{m}_\mathrm{out,1} '
-            r'\cdot x_{fuel\mathrm{,out,1}} \right) \cdot \eta\\' + '\n'
-            r'& \forall i \in \text{inlets}\\'
-            r'& T_\mathrm{ref}=\unit[298.15]{K}'
-            r'\;p_\mathrm{ref}=\unit[10^5]{Pa}\\'
-            '\n' + r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
@@ -367,23 +286,22 @@ class DiabaticCombustionChamber(CombustionChamber):
 
         res = 0
         for i in self.inl:
-            i.build_fluid_data()
             res += i.m.val_SI * (
                 i.h.val_SI
                 - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
             )
 
         for o in self.outl:
-            o.build_fluid_data()
             res -= o.m.val_SI * (
                 o.h.val_SI
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        self.eta.val = -res / self.ti.val
-        self.Q_loss.val = -(1 - self.eta.val) * self.ti.val
+        self.eta.val_SI = -res / self.ti.val_SI
+        self.Qloss.val_SI = -(1 - self.eta.val_SI) * self.ti.val_SI
 
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
         for num, i in enumerate(self.inl):
             if i.p.val < self.outl[0].p.val:
                 msg = (

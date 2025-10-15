@@ -15,8 +15,8 @@ from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Splitter
 from tespy.components import Turbine
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 
 
@@ -27,7 +27,9 @@ class TestClausiusRankine:
         self.Tamb = 20
         self.pamb = 1
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+})
 
         # create components
         splitter1 = Splitter('splitter 1')
@@ -39,20 +41,6 @@ class TestClausiusRankine:
         steam_generator = SimpleHeatExchanger('steam generator')
         cycle_close = CycleCloser('cycle closer')
 
-        # create busses
-        # power output bus
-        self.power = Bus('power_output')
-        self.power.add_comps({'comp': turb, 'char': 1})
-        # turbine driven feed water pump internal bus
-        self.fwp_power = Bus('feed water pump power', P=0)
-        self.fwp_power.add_comps(
-            {'comp': fwp_turb, 'char': 1},
-            {'comp': fwp, 'char': 1, 'base': 'bus'})
-        # heat input bus
-        self.heat = Bus('heat_input')
-        self.heat.add_comps({'comp': steam_generator, 'base': 'bus'})
-        self.nw.add_busses(self.power, self.fwp_power, self.heat)
-
         # create connections
         fs_in = Connection(cycle_close, 'out1', splitter1, 'in1', label='fs')
         fs_fwpt = Connection(splitter1, 'out1', fwp_turb, 'in1')
@@ -63,8 +51,13 @@ class TestClausiusRankine:
         cond = Connection(condenser, 'out1', fwp, 'in1', label='cond')
         fw = Connection(fwp, 'out1', steam_generator, 'in1', label='fw')
         fs_out = Connection(steam_generator, 'out1', cycle_close, 'in1')
-        self.nw.add_conns(fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw,
-                          fs_out)
+        self.nw.add_conns(
+            fs_in, fs_fwpt, fs_t, fwpt_ws, t_ws, ws, cond, fw, fs_out
+        )
+
+        # turbine driven feed water pump
+        e1 = PowerConnection(fwp_turb, "power", fwp, "power")
+        self.nw.add_conns(e1)
 
         # component parameters
         turb.set_attr(eta_s=1)
@@ -81,7 +74,7 @@ class TestClausiusRankine:
         self.nw.solve('design')
         for cp in self.nw.comps['object']:
             cp.entropy_balance()
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
 
     def test_entropy_perfect_cycle(self):
         """Test entropy values in the perfect clausius rankine cycle."""
@@ -93,14 +86,15 @@ class TestClausiusRankine:
             cp = self.nw.get_comp(label)
             msg = (
                 'Entropy production due to irreversibility must be 0 for all '
-                'components in this test but is ' + str(round(cp.S_irr, 4)) +
-                ' at component ' + label + ' of type ' + cp.component() + '.')
+                f'components in this test but is {round(cp.S_irr, 4)} at '
+                f'component {label} of type {cp.__class__.__name__}.'
+            )
             assert round(cp.S_irr, 4) == 0, msg
         sg = self.nw.get_comp('steam generator')
         cd = self.nw.get_comp('condenser')
         msg = (
             'Value of entropy production due to heat input at steam generator '
-            '(S_Q=' + str(round(sg.S_Q, 4)) + ') must equal the negative '
-            'value of entropy reduction in condenser (S_Q=' +
-            str(round(cd.S_Q, 4)) + ').')
+            f'(S_Q={round(sg.S_Q, 4)}) must equal the negative value of '
+            f'entropy reduction in condenser (S_Q={round(cd.S_Q, 4)}).'
+        )
         assert round(sg.S_Q, 4) == -round(cd.S_Q, 4), msg

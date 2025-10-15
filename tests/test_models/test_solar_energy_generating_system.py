@@ -43,9 +43,10 @@ class TestSEGS:
 
         # setting up network
         self.nw = Network()
-        self.nw.set_attr(
-            T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s',
-            s_unit="kJ / kgK")
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+            "entropy": "kJ/kgK"
+        })
 
         # components definition
         air_in = Source('Ambient air source', fkt_group='CW')
@@ -137,46 +138,50 @@ class TestSEGS:
         c15 = Connection(sp6, 'out1', lpt5, 'in1', label='15')
         c16 = Connection(lpt5, 'out1', m1, 'in1', label='16')
         c17 = Connection(m1, 'out1', cond, 'in1', label='17')
+
         c18 = Connection(cond, 'out1', condpump, 'in1', label='18')
-        c19 = Connection(condpump, 'out1', lppre1, 'in2', label='19')
-        # c19 = Connection(condpump, 'out1', lppre1_sub, 'in2', label='19')
-        # c20 = Connection(lppre1_sub, 'out2', lppre1, 'in2', label='20')
-        c21 = Connection(lppre1, 'out2', lppre2, 'in2', label='21')
-        # c21 = Connection(lppre1, 'out2', lppre2_sub, 'in2', label='21')
-        # c22 = Connection(lppre2_sub, 'out2', lppre2, 'in2', label='22')
-        c23 = Connection(lppre2, 'out2', lppre3, 'in2', label='23')
-        # c23 = Connection(lppre2, 'out2', lppre3_sub, 'in2', label='23')
-        # c24 = Connection(lppre3_sub, 'out2', lppre3, 'in2', label='24')
+        c19 = Connection(condpump, 'out1', lppre1_sub, 'in2', label='19')
+        c20 = Connection(lppre1_sub, 'out2', lppre1, 'in2', label='20')
+        c21 = Connection(lppre1, 'out2', lppre2_sub, 'in2', label='21')
+        c22 = Connection(lppre2_sub, 'out2', lppre2, 'in2', label='22')
+        c23 = Connection(lppre2, 'out2', lppre3_sub, 'in2', label='23')
+        c24 = Connection(lppre3_sub, 'out2', lppre3, 'in2', label='24')
         c25 = Connection(lppre3, 'out2', fwt, 'in1', label='25')
+
         c26 = Connection(fwt, 'out1', fwp, 'in1', label='26')
-        c27 = Connection(fwp, 'out1', hppre1, 'in2', label='27')
-        c29 = Connection(hppre1, 'out2', hppre2, 'in2', label='29')
+        c27 = Connection(fwp, 'out1', hppre1_sub, 'in2', label='27')
+        c28 = Connection(hppre1_sub, 'out2', hppre1, 'in2', label='28')
+        c29 = Connection(hppre1, 'out2', hppre2_sub, 'in2', label='29')
+        c30 = Connection(hppre2_sub, 'out2', hppre2, 'in2', label='30')
         c31 = Connection(hppre2, 'out2', eco, 'in2', label='31')
 
         c36 = Connection(sp1, 'out2', hppre2, 'in1', label='36')
-        c37 = Connection(hppre2, 'out1', v1, 'in1', label='37')
+        c37 = Connection(hppre2, 'out1', hppre2_sub, 'in1', label='37')
+        c38 = Connection(hppre2_sub, 'out1', v1, 'in1', label='38')
         c39 = Connection(v1, 'out1', m2, 'in2', label='39')
         c40 = Connection(sp2, 'out2', m2, 'in1', label='40')
+
         c41 = Connection(m2, 'out1', hppre1, 'in1', label='41')
-        c42 = Connection(hppre1, 'out1', v2, 'in1', label='42')
+        c42 = Connection(hppre1, 'out1', hppre1_sub, 'in1', label='42')
+        c43 = Connection(hppre1_sub, 'out1', v2, 'in1', label='43')
         c44 = Connection(v2, 'out1', fwt, 'in2', label='44')
         c45 = Connection(sp3, 'out2', fwt, 'in3', label='45')
+
         c46 = Connection(sp4, 'out2', lppre3, 'in1', label='46')
-        c47 = Connection(lppre3, 'out1', v3, 'in1', label='47')
-        # c47 = Connection(lppre3, 'out1', lppre3_sub, 'in1', label='47')
-        # c48 = Connection(lppre3_sub, 'out1', v3, 'in1', label='48')
+        c47 = Connection(lppre3, 'out1', lppre3_sub, 'in1', label='47')
+        c48 = Connection(lppre3_sub, 'out1', v3, 'in1', label='48')
         c49 = Connection(v3, 'out1', m3, 'in1', label='49')
         c50 = Connection(sp5, 'out2', m3, 'in2', label='50')
+
         c51 = Connection(m3, 'out1', lppre2, 'in1', label='51')
-        c52 = Connection(lppre2, 'out1', v4, 'in1', label='52')
-        # c52 = Connection(lppre2, 'out1', lppre2_sub, 'in1', label='52')
-        # c53 = Connection(lppre2_sub, 'out1', v4, 'in1', label='53')
+        c52 = Connection(lppre2, 'out1', lppre2_sub, 'in1', label='52')
+        c53 = Connection(lppre2_sub, 'out1', v4, 'in1', label='53')
         c54 = Connection(v4, 'out1', m4, 'in2', label='54')
         c55 = Connection(sp6, 'out2', m4, 'in1', label='55')
+
         c56 = Connection(m4, 'out1', lppre1, 'in1', label='56')
-        c57 = Connection(lppre1, 'out1', v5, 'in1', label='57')
-        # c57 = Connection(lppre1, 'out1', lppre1_sub, 'in1', label='57')
-        # c58 = Connection(lppre1_sub, 'out1', v5, 'in1', label='58')
+        c57 = Connection(lppre1, 'out1', lppre1_sub, 'in1', label='57')
+        c58 = Connection(lppre1_sub, 'out1', v5, 'in1', label='58')
         c59 = Connection(v5, 'out1', m1, 'in2', label='59')
 
         # components from subsystem
@@ -199,7 +204,7 @@ class TestSEGS:
         c66 = Connection(ct, 'out2', air_out, 'in1', label='66')
 
         # parabolic trough cycle
-        c70 = Connection(pt, 'out1', closer_pt, 'in1', label='67')
+        c70 = Connection(pt, 'out1', closer_pt, 'in1', label='70')
         c71 = Connection(closer_pt, 'out1', sp7, 'in1', label='71')
         c72 = Connection(sp7, 'out1', sup, 'in1', label='72')
         c75 = Connection(eco, 'out1', m5, 'in1', label='75')
@@ -211,10 +216,12 @@ class TestSEGS:
         # add connections to network
         self.nw.add_conns(
             c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15,
-            c16, c17, c18, c19, c21, c23, c25, c26, c27, c29, c31, c32, c33,
-            c34, c35, c36, c37, c39, c40, c41, c42, c44, c45, c46, c47, c49,
-            c50, c51, c52, c54, c55, c56, c57, c59, c60, c61, c62, c63, c64,
-            c65, c66, c70, c71, c72, c73, c74, c75, c76, c77, c78, c79)
+            c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28,
+            c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41,
+            c42, c43, c44, c45, c46, c47, c48, c49, c50, c51, c52, c53, c54,
+            c55, c56, c57, c58, c59, c60, c61, c62, c63, c64, c65, c66, c70,
+            c71, c72, c73, c74, c75, c76, c77, c78, c79
+        )
 
         # power bus
         power = Bus('total output power')
@@ -242,10 +249,7 @@ class TestSEGS:
         self.nw.add_busses(power, heat_input_bus, exergy_loss_bus)
 
         # component parameters
-        pt.set_attr(doc=0.95, aoi=0,
-                    Tamb=25, A='var', eta_opt=0.73,
-                    c_1=0.00496, c_2=0.000691, E=1000,
-                    iam_1=1, iam_2=1, dissipative=False)
+        pt.set_attr(dissipative=False)
 
         ptpump.set_attr(eta_s=0.6)
 
@@ -274,12 +278,6 @@ class TestSEGS:
         hppre1.set_attr(pr1=1, ttd_u=5)
         hppre2.set_attr(pr1=1, ttd_u=5)
 
-        lppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        lppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        lppre3_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        hppre1_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-        hppre2_sub.set_attr(pr1=1, pr2=1, ttd_l=10)
-
         # connection parameters
         # parabolic trough cycle
         c70.set_attr(fluid={'INCOMP::TVP1': 1}, T=390, p=23.304)
@@ -290,15 +288,16 @@ class TestSEGS:
         c79.set_attr(p=41.024)
 
         # cooling water
-        c62.set_attr(
-            fluid={'water': 1}, T=30, p=self.pamb)
+        c60.set_attr(h0=120)
+        c61.set_attr(h0=122)
+        c63.set_attr(h0=90)
+        c62.set_attr(fluid={'INCOMP::Water': 1}, T=30, p=self.pamb)
         # cooling tower
-        c64.set_attr(
-            fluid={'air': 1}, p=self.pamb, T=self.Tamb)
+        c64.set_attr(fluid={'air': 1}, p=self.pamb, T=self.Tamb)
         c65.set_attr(p=self.pamb + 0.0005)
         c66.set_attr(p=self.pamb, T=30)
         # power cycle
-        c32.set_attr(Td_bp=-2)
+        c32.set_attr(td_bubble=2)
         c34.set_attr(x=0.5)
         c1.set_attr(fluid={'water': 1}, p=100, T=371)
 
@@ -330,47 +329,34 @@ class TestSEGS:
         # feedwater tank
         c26.set_attr(x=0)
 
-        # a stable solution is generated for parts of the network
+        # subcoolers
+        c38.set_attr(td_bubble=10)
+        c43.set_attr(td_bubble=10)
+        c48.set_attr(td_bubble=10)
+        c53.set_attr(td_bubble=10)
+        c58.set_attr(td_bubble=10)
+
+        lppre1_sub.set_attr(pr1=1, pr2=1)
+        lppre2_sub.set_attr(pr1=1, pr2=1)
+        lppre3_sub.set_attr(pr1=1, pr2=1)
+        hppre1_sub.set_attr(pr1=1, pr2=1)
+        hppre2_sub.set_attr(pr1=1, pr2=1)
+
+        # solve inital state
         self.nw.solve(mode='design')
+        self.nw.assert_convergence()
 
-        self.nw.del_conns(c19, c21, c23, c27, c29, c37, c42, c47, c52, c57)
+        c38.set_attr(td_bubble=None)
+        c43.set_attr(td_bubble=None)
+        c48.set_attr(td_bubble=None)
+        c53.set_attr(td_bubble=None)
+        c58.set_attr(td_bubble=None)
+        lppre1_sub.set_attr(ttd_l=10)
+        lppre2_sub.set_attr(ttd_l=10)
+        lppre3_sub.set_attr(ttd_l=10)
+        hppre1_sub.set_attr(ttd_l=10)
+        hppre2_sub.set_attr(ttd_l=10)
 
-        c19 = Connection(condpump, 'out1', lppre1_sub, 'in2', label='19')
-        c20 = Connection(lppre1_sub, 'out2', lppre1, 'in2', label='20')
-        c21 = Connection(lppre1, 'out2', lppre2_sub, 'in2', label='21')
-        c22 = Connection(lppre2_sub, 'out2', lppre2, 'in2', label='22')
-        c23 = Connection(lppre2, 'out2', lppre3_sub, 'in2', label='23')
-        c24 = Connection(lppre3_sub, 'out2', lppre3, 'in2', label='24')
-
-        c27 = Connection(fwp, 'out1', hppre1_sub, 'in2', label='27')
-        c28 = Connection(hppre1_sub, 'out2', hppre1, 'in2', label='28')
-        c29 = Connection(hppre1, 'out2', hppre2_sub, 'in2', label='29')
-        c30 = Connection(hppre2_sub, 'out2', hppre2, 'in2', label='30')
-
-        c37 = Connection(hppre2, 'out1', hppre2_sub, 'in1', label='37')
-        c38 = Connection(hppre2_sub, 'out1', v1, 'in1', label='38')
-        c42 = Connection(hppre1, 'out1', hppre1_sub, 'in1', label='42')
-        c43 = Connection(hppre1_sub, 'out1', v2, 'in1', label='43')
-
-        c47 = Connection(lppre3, 'out1', lppre3_sub, 'in1', label='47')
-        c48 = Connection(lppre3_sub, 'out1', v3, 'in1', label='48')
-        c52 = Connection(lppre2, 'out1', lppre2_sub, 'in1', label='52')
-        c53 = Connection(lppre2_sub, 'out1', v4, 'in1', label='53')
-        c57 = Connection(lppre1, 'out1', lppre1_sub, 'in1', label='57')
-        c58 = Connection(lppre1_sub, 'out1', v5, 'in1', label='58')
-
-        self.nw.add_conns(
-            c19, c20, c21, c22, c23, c24, c27, c28, c29, c30, c37, c38, c42,
-            c43, c47, c48, c52, c53, c57, c58)
-
-        # specification of missing parameters
-        c19.set_attr(p=14.755)
-        c21.set_attr(p=9.9975, state='l')
-        c23.set_attr(p=8.7012, state='l')
-        c27.set_attr(p=125)
-        c29.set_attr(p=112)
-
-        # solve final state
         self.nw.solve(mode='design')
 
     def test_model(self):
@@ -379,17 +365,18 @@ class TestSEGS:
         power_tespy = round(
             self.nw.busses['total output power'].P.val / 1e6, 3)
         msg = (
-            'The total power calculated (' + str(power_tespy) + ') does not '
-            'match the power calculated with the EBSILON model (' +
-            str(power_ebsilon) + ').')
+            f'The total power calculated ({power_tespy}) does not match the '
+            f'power calculated with the EBSILON model ({power_ebsilon}).'
+        )
         assert power_tespy == power_ebsilon, msg
 
         T_c79_ebsilon = 296.254
         T_c79_tespy = round(self.nw.get_conn('79').T.val, 3)
         msg = (
-            'The temperature at connection 79 calculated (' +
-            str(T_c79_tespy) + ') does not match the temperature calculated '
-            'with the EBSILON model (' + str(T_c79_ebsilon) + ').')
+            f'The temperature at connection 79 calculated ({T_c79_tespy}) '
+            'does not match the temperature calculated with the EBSILON model '
+            f'({T_c79_ebsilon}).'
+        )
         assert T_c79_tespy == T_c79_ebsilon, msg
 
     def test_exergy_analysis(self):
@@ -410,7 +397,7 @@ class TestSEGS:
         power_links = round(links['value'][position], 0)
         power_bus = round(-self.nw.busses['total output power'].P.val, 0)
         msg = (
-            'The exergy product value in the links (' + str(power_links) +
-            ') must be equal to the power on the respective bus (' +
-            str(power_bus) + ').')
+            f'The exergy product value in the links ({power_links}) must be '
+            f'equal to the power on the respective bus ({power_bus}).'
+        )
         assert power_links == power_bus, msg

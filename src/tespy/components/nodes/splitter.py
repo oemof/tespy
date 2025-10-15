@@ -12,8 +12,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -24,9 +24,9 @@ class Splitter(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_func`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.energy_balance_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix`
+    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_structure_matrix`
 
     Inlets/Outlets
 
@@ -82,15 +82,15 @@ class Splitter(NodeBase):
     >>> from tespy.components import Sink, Source, Splitter
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
     >>> si2 = Sink('sink2')
     >>> si3 = Sink('sink3')
     >>> s = Splitter('splitter', num_out=3)
-    >>> s.component()
-    'splitter'
     >>> inc = Connection(so, 'out1', s, 'in1')
     >>> outg1 = Connection(s, 'out1', si1, 'in1')
     >>> outg2 = Connection(s, 'out2', si2, 'in1')
@@ -116,30 +116,28 @@ class Splitter(NodeBase):
     """
 
     @staticmethod
-    def component():
-        return 'splitter'
-
-    @staticmethod
     def get_parameters():
         return {'num_out': dc_simple()}
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'energy_balance_constraints': {
-                'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': True, 'latex': self.energy_balance_func_doc,
-                'num_eq': self.num_o},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1}
+            'mass_flow_constraints': dc_cmc(**{
+                'func': self.mass_flow_func,
+                'dependents': self.mass_flow_dependents,
+                'num_eq_sets': 1
+            }),
+            'energy_balance_constraints': dc_cmc(**{
+                'structure_matrix': self.enthalpy_structure_matrix,
+                'num_eq_sets': self.num_o
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.pressure_structure_matrix,
+                'num_eq_sets': self.num_o
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.fluid_structure_matrix,
+                'num_eq_sets': self.num_o
+            })
         }
 
     @staticmethod
@@ -148,7 +146,7 @@ class Splitter(NodeBase):
 
     def outlets(self):
         if self.num_out.is_set:
-            return ['out' + str(i + 1) for i in range(self.num_out.val)]
+            return [f'out{i + 1}' for i in range(self.num_out.val)]
         else:
             self.set_attr(num_out=2)
             return self.outlets()
@@ -159,42 +157,7 @@ class Splitter(NodeBase):
             branch["connections"] += [outconn]
             outconn.target.propagate_wrapper_to_target(branch)
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
-
-    def energy_balance_func(self):
-        r"""
-        Calculate energy balance.
-
-        Returns
-        -------
-        residual : list
-            Residual value of energy balance.
-
-            .. math::
-
-                0 = h_{in} - h_{out,j} \;
-                \forall j \in \mathrm{outlets}\\
-        """
-        residual = []
-        for o in self.outl:
-            residual += [self.inl[0].h.val_SI - o.h.val_SI]
-        return residual
-
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-        """
-        latex = r'0=h_{in}-h_{\mathrm{out,}j}\;\forall j \in\text{outlets}'
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, k):
+    def enthalpy_structure_matrix(self, k):
         r"""
         Calculate partial derivatives for energy balance equation.
 
@@ -203,8 +166,19 @@ class Splitter(NodeBase):
         deriv : list
             Matrix of partial derivatives.
         """
-        for eq, o in enumerate(self.outl):
-            if self.inl[0].h.is_var:
-                self.jacobian[k + eq, self.inl[0].h.J_col] = 1
-            if o.h.is_var:
-                self.jacobian[k + eq, o.h.J_col] = -1
+        for eq, conn in enumerate(self.outl):
+            self._structure_matrix[k + eq, self.inl[0].h.sm_col] = 1
+            self._structure_matrix[k + eq, conn.h.sm_col] = -1
+
+    def fluid_structure_matrix(self, k):
+        r"""
+        Calculate partial derivatives for all pressure equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the fluid equations.
+        """
+        for eq, conn in enumerate(self.outl):
+            self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
+            self._structure_matrix[k + eq, conn.fluid.sm_col] = -1

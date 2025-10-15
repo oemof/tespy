@@ -13,8 +13,9 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
@@ -24,13 +25,14 @@ class Turbomachine(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.turbomachinery.base.base.energy_balance_func`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
 
     Inlets/Outlets
 
@@ -66,8 +68,12 @@ class Turbomachine(Component):
     P : float, dict
         Power, :math:`P/\text{W}`
 
-    pr : float, dict, :code:`"var"`
+    pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
+
+    dp : float, dict
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
+        Is specified in the Network's pressure unit
 
     Example
     -------
@@ -76,22 +82,52 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.compressor.Compressor`
     - :class:`tespy.components.turbomachinery.pump.Pump`
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
+    - :class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
     """
-
-    @staticmethod
-    def component():
-        return 'turbomachine'
-
     def get_parameters(self):
         return {
             'P': dc_cp(
-                deriv=self.energy_balance_deriv, num_eq=1,
+                num_eq_sets=1,
                 func=self.energy_balance_func,
-                latex=self.energy_balance_func_doc),
+                dependents=self.energy_balance_dependents,
+                quantity="power"
+            ),
             'pr': dc_cp(
-                deriv=self.pr_deriv, num_eq=1,
-                func=self.pr_func, func_params={'pr': 'pr'},
-                latex=self.pr_func_doc)
+                num_eq_sets=1,
+                func_params={'pr': 'pr'},
+                structure_matrix=self.pr_structure_matrix,
+                quantity="ratio"
+            ),
+            'dp': dc_cp(
+                num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp'},
+                quantity="pressure"
+            )
+        }
+
+    def get_bypass_constraints(self):
+        return {
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
         }
 
     @staticmethod
@@ -115,51 +151,17 @@ class Turbomachine(Component):
 
                 0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+        return (
+            self.inl[0].m.val_SI
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+        )
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Calculate energy balance of a turbomachine.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-h_\mathrm{in}'
-            r'\right)-P')
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance of a turbomachine.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
-        # custom variable P
-        if self.P.is_var:
-            self.jacobian[k, self.P.J_col] = -1
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h,
+        ]
 
     def bus_func(self, bus):
         r"""
@@ -186,24 +188,6 @@ class Turbomachine(Component):
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
 
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)')
-
     def bus_deriv(self, bus):
         r"""
         Calculate partial derivatives of the bus function.
@@ -222,23 +206,24 @@ class Turbomachine(Component):
         if self.inl[0].m.is_var:
             if self.inl[0].m.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m._reference_container, f, bus=bus)
 
         if self.inl[0].h.is_var:
             if self.inl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
+            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h._reference_container, f, bus=bus)
 
         if self.outl[0].h.is_var:
             if self.outl[0].h.J_col not in bus.jacobian:
                 bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h._reference_container, f, bus=bus)
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.P.val = self.inl[0].m.val_SI * (
+        self.P.val_SI = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
 
     def entropy_balance(self):
         r"""

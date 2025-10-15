@@ -20,11 +20,13 @@ include = [
     "tests/",
     "tutorial/",
 ]
-exclude = ["docs/_build"]
+exclude = [
+    "docs/_build",
+]
 
 [project]
 name = "tespy"
-version = "0.7.9"
+version = "0.9.8.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -39,18 +41,19 @@ classifiers = [
     "Operating System :: POSIX",
     "Operating System :: Unix",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "CoolProp>=6.6",
+    "CoolProp>=6.8",
     "jinja2",
     "matplotlib>=3.2.1",
     "numpy>=1.13.3",
     "pandas>=1.3.0",
+    "pint",
     "scipy",
     "tabulate>=0.8.2",
 ]
@@ -69,6 +72,7 @@ dev = [
     "fluprodia",
     "furo",
     "iapws",
+    "isort",
     "pyromat",
     "pytest",
     "sphinx>=7.2.2",
@@ -76,6 +80,7 @@ dev = [
     "sphinx-design",
     "sphinxcontrib.bibtex",
     "tox",
+    "twine"
 ]
 
 [tool.pytest.ini_options]

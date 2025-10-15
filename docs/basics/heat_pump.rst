@@ -66,13 +66,15 @@ compressor would be, in case we measure :code:`T=97.3` at connection 3.
 Typical Errors
 ^^^^^^^^^^^^^^
 If you over or under determine the system by specifying too few or too many
-parameters, you will get an error message. We could set the heat demand and the
-mass flow at the same time.
+parameters, you will get an error message. Below you will find an example,
+where the heat demand and the mass flow is set simultaneously.
 
 .. attention::
 
     The two code examples in this section are not included in the downloadable
-    script!
+    script! Much more detailed information on the debugging capabilities with
+    tespy can be found in the
+    :ref:`debugging section <tespy_networks_debugging_label>`.
 
 .. code-block:: python
 
@@ -109,16 +111,6 @@ obviously does not make any sense.
     c2.set_attr(m=5, T=None)
 
     my_plant.solve('design')
-
-.. error::
-
-    .. code-block:: bash
-
-        ERROR:root:Singularity in jacobian matrix, calculation aborted! Make sure your network does not have any linear dependencies in the parametrisation. Other reasons might be
-        -> given temperature with given pressure in two phase region, try setting enthalpy instead or provide accurate starting value for pressure.
-        -> given logarithmic temperature differences or kA-values for heat exchangers,
-        -> support better starting values.
-        -> bad starting value for fuel mass flow of combustion chamber, provide small (near to zero, but not zero) starting value.
 
 .. seealso::
 

@@ -3,7 +3,9 @@ from tespy.networks import Network
 
 # create a network object with R134a as fluid
 my_plant = Network()
-my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+my_plant.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
+)
 # %%[sec_2]
 from tespy.components import (
     CycleCloser, Pump, Condenser, Turbine, SimpleHeatExchanger, Source, Sink
@@ -114,21 +116,29 @@ plt.tight_layout()
 fig.savefig('rankine_ts_diagram.svg')
 
 # %%[sec_6]
-from tespy.connections import Bus
+from tespy.components import PowerBus, PowerSink, Motor, Generator
+from tespy.connections import PowerConnection
 
-powergen = Bus("electrical power output")
+electricity = PowerBus("electricity bus", num_in=1, num_out=2)
+grid = PowerSink("grid")
+motor = Motor("feed water pump motor")
+generator = Generator("turbine generator")
 
-powergen.add_comps(
-    {"comp": tu, "char": 0.97, "base": "component"},
-    {"comp": fp, "char": 0.97, "base": "bus"},
-)
+e1 = PowerConnection(tu, "power", generator, "power_in", label="e1")
+e2 = PowerConnection(generator, "power_out", electricity, "power_in1", label="e2")
+e3 = PowerConnection(electricity, "power_out1", motor, "power_in", label="e3")
+e4 = PowerConnection(motor, "power_out", fp, "power", label="e4")
+e5 = PowerConnection(electricity, "power_out2", grid, "power", label="e5")
 
-my_plant.add_busses(powergen)
+my_plant.add_conns(e1, e2, e3, e4, e5)
+
+generator.set_attr(eta=0.97)
+motor.set_attr(eta=0.97)
 
 my_plant.solve(mode='design')
 my_plant.print_results()
 # %%[sec_7]
-powergen.set_attr(P=-10e6)
+e5.set_attr(E=10)
 c1.set_attr(m=None)
 
 my_plant.solve(mode='design')
@@ -136,7 +146,7 @@ my_plant.print_results()
 # %%[sec_8]
 my_plant.set_attr(iterinfo=False)
 c1.set_attr(m=20)
-powergen.set_attr(P=None)
+e5.set_attr(E=None)
 
 # make text reasonably sized
 plt.rc('font', **{'size': 18})
@@ -160,8 +170,8 @@ power = {
 for T in data['T_livesteam']:
     c1.set_attr(T=T)
     my_plant.solve('design')
-    eta['T_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
-    power['T_livesteam'] += [abs(powergen.P.val) / 1e6]
+    eta['T_livesteam'] += [e5.E.val / sg.Q.val * 100]
+    power['T_livesteam'] += [e5.E.val]
 
 # reset to base temperature
 c1.set_attr(T=600)
@@ -170,8 +180,8 @@ for T in data['T_cooling']:
     c12.set_attr(T=T)
     c11.set_attr(T=T - 10)
     my_plant.solve('design')
-    eta['T_cooling'] += [abs(powergen.P.val) / sg.Q.val * 100]
-    power['T_cooling'] += [abs(powergen.P.val) / 1e6]
+    eta['T_cooling'] += [e5.E.val / sg.Q.val * 100]
+    power['T_cooling'] += [e5.E.val]
 
 # reset to base temperature
 c12.set_attr(T=30)
@@ -180,8 +190,8 @@ c11.set_attr(T=20)
 for p in data['p_livesteam']:
     c1.set_attr(p=p)
     my_plant.solve('design')
-    eta['p_livesteam'] += [abs(powergen.P.val) / sg.Q.val * 100]
-    power['p_livesteam'] += [abs(powergen.P.val) / 1e6]
+    eta['p_livesteam'] += [e5.E.val / sg.Q.val * 100]
+    power['p_livesteam'] += [e5.E.val]
 
 # reset to base pressure
 c1.set_attr(p=150)
@@ -214,15 +224,15 @@ c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
 # %%[sec_10]
 my_plant.solve("design")
-my_plant.save("rankine_design")
+my_plant.save("rankine_design.json")
 # %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
 for m in partload_m_range:
     c1.set_attr(m=m)
-    my_plant.solve("offdesign", design_path="rankine_design")
-    partload_efficiency += [abs(powergen.P.val) / sg.Q.val * 100]
+    my_plant.solve("offdesign", design_path="rankine_design.json")
+    partload_efficiency += [e5.E.val / sg.Q.val * 100]
 
 
 fig, ax = plt.subplots(1, figsize=(16, 8))

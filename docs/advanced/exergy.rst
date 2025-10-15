@@ -4,6 +4,22 @@
 Exergy analysis
 ~~~~~~~~~~~~~~~
 
+.. note::
+
+    tespy v0.9 will be the last major version supporting the inbuilt exergy
+    analysis feature. All features have moved to the new external library
+    `exerpy <https://github.com/oemof/exerpy>`__. Exerpy is fully compatible to
+    input from a tespy model, meaning, you can build your model in the same way
+    as you are used to it and pass the relevant system boundary crossing
+    streams to exerpy to make the automatic analysis. On top of that, exerpy
+    offers advanced features like exergoecomic methods. You will find a couple
+    of examples on how to integrate tespy models with exerpy in the respective
+    section of the
+    `documentation <https://exerpy.readthedocs.io/en/latest/examples.html>`__.
+    The examples given in the tespy documentation will still be supported, but
+    the implementation will be adjusted to work with exerpy with the next major
+    version.
+
 Performing thermodynamic cycle analyses making use of the second law of
 thermodynamics provides further process information and uncovers potentials for
 improvement in power plant engineering. Therefore, TESPy's analyses module

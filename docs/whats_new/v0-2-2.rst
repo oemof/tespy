@@ -20,7 +20,7 @@ New Features
 - Add a new component evaporator for geothermal organic rankine cycle. The
   component has inlets for geothermal steam brine. On the cold side, the orc
   working fluid is evaporated. Read more about this component in the API
-  documentation: :py:class:`tespy.components.customs.orc_evaporator`
+  documentation: :code:`tespy.components.customs.orc_evaporator`
   (`PR #148 <https://github.com/oemof/tespy/pull/148>`_).
 
 Documentation
@@ -44,17 +44,17 @@ Testing
 Bug fixes
 #########
 - Fix the bugged tests for compressor characteristic maps
-  (:py:meth:`tespy.components.turbomachinery.compressor.char_map_func`). The
+  (:code:`tespy.components.turbomachinery.compressor.char_map_func`). The
   pressure ratio factor of the lowest speedline available in the default data
   ranges from about 0.2 to 0.5. Therefore the design pressure ratio should be
   higher than 5 (`PR #156 <https://github.com/oemof/tespy/pull/156>`_).
 
 Other changes
 #############
-- Use the method :py:meth:`tespy.components.components.component.fluid_deriv`
+- Use the method :code:`tespy.components.components.component.fluid_deriv`
   for all components, that do not change composition between an inlet and the
   respective outlet (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
-- Adjust the method :py:meth:`tespy.components.components.component.zeta_func`
+- Adjust the method :code:`tespy.components.components.component.zeta_func`
   to work with all zeta value specifications
   (`PR #153 <https://github.com/oemof/tespy/pull/153>`_).
 

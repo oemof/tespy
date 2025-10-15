@@ -3,8 +3,10 @@
 Connections
 ===========
 
-This section provides an overview of the parametrisation of connections, the
-usage of references and busses (connections for energy flow).
+This section provides an overview of the parametrisation of connections, how to
+use referencing of variables in different locations of your problem and an
+overview on the :ref:`PowerConnection <tespy_powerconnections_label>`,
+which is a connection to represent non-material energy flows.
 
 Parametrisation
 ---------------
@@ -12,115 +14,209 @@ Parametrisation
 As mentioned in the introduction, for each connection you can specify the
 following parameters:
 
-* mass flow* (m),
-* volumetric flow (v),
-* pressure* (p),
-* enthalpy* (h),
-* temperature* (T),
-* vapor mass fraction for pure fluids (x),
-* a fluid vector (fluid) and
-* a balance closer for the fluid vector (fluid_balance).
+* mass flow :code:`m`,
+* volumetric flow :code:`v`,
+* pressure :code:`p`,
+* enthalpy :code:`h`,
+* temperature :code:`T`,
+* temperature difference to bubble line :code:`td_bubble`
+* vapor mass fraction for pure fluids :code:`x`,
+* a fluid vector :code:`fluid` and
+* a balance closer for the fluid vector :code:`fluid_balance`.
 
-It is possible to specify values, starting values and references. The data
-containers for connections are `dc_prop` for fluid properties (mass flow,
-pressure, enthalpy, temperature, etc.) and `dc_flu` for fluid composition. If
-you want to specify information directly to these do it with caution, data types
-are not enforced.
+Setting and unsetting values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order to create the connections we create the components to connect first.
+A :code:`Connection` always connects two components, we will create a simple
+problem using a :code:`SimpleHeatExchanger` to showcase specification options.
 
 .. code-block:: python
 
-    >>> from tespy.connections import Connection, Ref
-    >>> from tespy.components import Sink, Source
+    >>> from tespy.networks import Network
+    >>> from tespy.connections import Connection
+    >>> from tespy.components import Sink, Source, SimpleHeatExchanger
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="°C", power="kW", pressure="bar", enthalpy="kJ/kg"
+    ... )
+    >>> source = Source('source')
+    >>> heatexchanger = SimpleHeatExchanger('heat exchanger')
+    >>> sink = Sink('sink')
+    >>> c1 = Connection(source, "out1", heatexchanger, "in1", label="c1")
+    >>> c2 = Connection(heatexchanger, "out1", sink, "in1", label="c2")
+    >>> nw.add_conns(c1, c2)
 
-    # create components
-    >>> source1 = Source('source 1')
-    >>> source2 = Source('source 2')
-    >>> sink1 = Sink('sink 1')
-    >>> sink2 = Sink('sink 2')
+It is possible to set simple values and then solve, e.g.:
 
-    # create connections
-    >>> myconn = Connection(source1, 'out1', sink1, 'in1')
-    >>> myotherconn = Connection(source2, 'out1', sink2, 'in1')
+- mass flow, pressure and temperature (and fluid) at inlet
+- enthalpy at outlet
+- (pressure drop in heat exchanger)
 
-    # set pressure and vapor mass fraction by value, temperature and enthalpy
-    # analogously
-    >>> myconn.set_attr(p=7, x=0.5)
-    >>> myconn.p.val, myconn.x.val
-    (7, 0.5)
+.. code-block:: python
 
-    # set starting values for mass flow, pressure and enthalpy (has no effect
-    # on temperature and vapor mass fraction!)
-    >>> myconn.set_attr(m0=10, p0=15, h0=100)
-    >>> myconn.m.val0, myconn.p.val0, myconn.h.val0
-    (10, 15, 100)
+    >>> c1.set_attr(fluid={"R290": 1}, m=5, p=3, T=50)
+    >>> c2.set_attr(h=500)
+    >>> heatexchanger.set_attr(dp=0)
+    >>> nw.solve("design")
 
-    # do the same directly on the data containers
-    >>> myconn.p.set_attr(val=7, is_set=True)
-    >>> myconn.x.set_attr(val=0.5, is_set=True)
+Both connections will have all results available, these can be accessed
 
-    >>> myconn.m.set_attr(val0=10)
-    >>> myconn.p.set_attr(val0=15)
-    >>> myconn.h.set_attr(val0=100)
-    >>> myconn.m.val0, myconn.p.val0, myconn.h.val0
-    (10, 15, 100)
+- as SI value
+- as value in the network's default unit of the respective quantity
+- as value with the corresponding quantity (:code:`pint.Quantity`)
 
-    # specify a referenced value: pressure of myconn is 1.2 times pressure at
-    # myotherconn minus 5 (unit is the network's corresponding unit)
-    >>> myconn.set_attr(p=Ref(myotherconn, 1.2, -5))
+The results include mass flow, pressure, enthalpy, temperature, temperature,
+vapor quality, specific volume :code:`vol` and volumetric flow.
 
-    # specify value and reference at the same time
-    >>> myconn.p_ref.set_attr(ref=Ref(myotherconn, 1.2, -5), is_set=True)
-    >>> myconn.p.set_attr(val=7, is_set=True)
+.. code-block:: python
 
-    # possibilities to unset values
-    >>> myconn.set_attr(p=None)
-    >>> myconn.p.is_set
-    False
+    >>> round(c1.h.val, 1)  # value in kJ/kg but without unit attached
+    668.9
+    >>> round(c1.vol.val_with_unit, 3)  # will be in m3/kg
+    <Quantity(0.195, 'm3 / kilogram')>
+    >>> round(c2.T.val_SI, 1)  # SI value
+    259.0
+    >>> round(c2.T.val_with_unit, 1)  # will be in °C
+    <Quantity(-14.2, 'degree_Celsius')>
 
-    >>> myconn.set_attr(p=10)
-    >>> myconn.p.set_attr(is_set=False)
-    >>> myconn.p.is_set
-    False
+You can also provide quantities to a specific parameter to individually specify
+a unit to a parameter, e.g. inlet mass flow. Note, that units are retained when
+set with individual quantity.
 
-    >>> myconn.p_ref.set_attr(is_set=False)  # for referenced values
-    >>> myconn.p_ref.is_set
-    False
+.. code-block:: python
 
+    >>> Q = nw.units.ureg.Quantity
+    >>> c1.set_attr(m=Q(2, "t/h"))
+    >>> nw.solve("design")
+    >>> c1.m.val_with_unit
+    <Quantity(2, 'metric_ton / hour')>
+    >>> round(c2.m.val_with_unit, 2)
+    <Quantity(0.56, 'kilogram / second')>
 
-If you want to specify the fluid vector you can do it in the following way.
+For pure fluids or CoolProp/REFPROP mixtures we can also specify two-phase
+properties:
+
+- vapor mass fraction/quality :code:`x`
+- dew line temperature difference for superheating :code:`td_dew`
+- bubble line temperature difference for subcooling :code:`td_bubble`
+
+We can replace the inlet temperature specification e.g. with superheating. The
+unit of :code:`temperature_difference` is different from the unit for
+:code:`temperature`. Unsetting a value is simple: Just set it to :code:`None`.
+
+.. code-block:: python
+
+    >>> c1.set_attr(T=None)  # unset the value
+    >>> nw.units.default["temperature"]
+    '°C'
+    >>> nw.units.default["temperature_difference"]
+    'delta_degC'
+    >>> c1.set_attr(td_dew=20)
+    >>> nw.solve("design")
+    >>> round(c1.T.val, 2)
+    5.82
+
+Setting starting values
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Setting starting values for the variables can be helpful in some situations.
+You can do this for the following properties:
+
+- mass flow
+- pressure
+- enthalpy
+
+.. code-block:: python
+
+    >>> c1.set_attr(m0=4)
+    >>> c2.set_attr(h0=300, p0=4)
+
+Linear relationships
+^^^^^^^^^^^^^^^^^^^^
+
+It is also possible to set up linear relationships between different
+specifications in your system in the form of:
+
+.. math::
+
+    x_0 = a * x_1 + b
+
+It is possible to specify these for
+
+- mass flow, pressure and enthalpy as well as
+- temperature and volumetric flow.
+
+For example, instead of h we can specify a reference to the temperature at
+c1. The factor is always based on SI value, the delta is in the default unit of
+the respective property. The starting value for h is required in this context
+because in the previous calculation the fluid was in two-phase state, meaning
+the partial derivative of the temperature of c2 with respect to enthalpy would
+be zero otherwise.
+
+.. code-block:: python
+
+    >>> from tespy.connections import Ref
+    >>> factor = 1
+    >>> delta = 25
+    >>> c2.set_attr(h=None, T=Ref(c1, factor, delta), h0=1000)
+    >>> nw.solve("design")
+    >>> round(c1.T.val_SI * factor + delta - 273.15, 2)
+    30.82
+    >>> round(c2.T.val, 2)
+    30.82
+
+Instead we could reference volumetric flow at outlet to find the temperature at
+outlet.
+
+.. code-block:: python
+
+    >>> c2.set_attr(T=None)
+    >>> factor = 1.2
+    >>> delta = 0
+    >>> c2.set_attr(v=Ref(c1, factor, delta))
+    >>> nw.solve("design")
+    >>> round(c1.v.val_SI * factor + delta, 2)
+    0.11
+    >>> round(c2.v.val_SI, 2)
+    0.11
+    >>> round(c2.T.val, 2)
+    52.91
+
+For more complex (and arbitrary) relationships between variables of the system
+use the :code:`UserDefinedEquation` class. Some examples can be found in
+:ref:`this section <tespy_user_label>`.
+
+Fluid specification
+^^^^^^^^^^^^^^^^^^^
+
+This sections shows some details on the specification of fluids.
 
 .. code-block:: python
 
     # set both elements of the fluid vector
-    >>> myconn.set_attr(fluid={'water': 1})
+    >>> c1.set_attr(fluid={'water': 1})
 
     # same thing, but using data container
-    >>> myconn.fluid.set_attr(val={'water': 1}, is_set={'water'})
-    >>> myconn.fluid.is_set
+    >>> c1.fluid.set_attr(_val={'water': 1}, _is_set={'water'})
+    >>> c1.fluid.is_set
     {'water'}
 
     # set starting values
-    >>> myconn.set_attr(fluid0={'water': 1})
-
-    # same thing, but using data container
-    >>> myconn.fluid.set_attr(val0={'water': 1})
+    >>> c1.set_attr(fluid0={'water': 1})
 
     # unset full fluid vector
-    >>> myconn.set_attr(fluid={'water': None})
-    >>> myconn.fluid.is_set
+    >>> c1.set_attr(fluid={'water': None})
+    >>> c1.fluid.is_set
     set()
 
     # unset part of fluid vector
-    >>> myconn.set_attr(fluid={'water': 1})
-    >>> myconn.fluid.is_set.remove('water')
-    >>> myconn.fluid.is_set
-    set()
+    >>> c1.set_attr(fluid={'N2': 0.7, "O2": 0.3})
+    >>> c1.fluid.is_set.remove('N2')
+    >>> c1.fluid.is_set
+    {'O2'}
 
-.. note::
-
-    References can not be used for fluid composition at the moment!
+CoolProp and REFPROP
+++++++++++++++++++++
 
 It is possible to specify the fluid property back end of the fluids by adding
 the name of the back end in front of the fluid's name. For incompressible binary
@@ -129,10 +225,17 @@ example:
 
 .. code-block:: python
 
-    >>> myconn.set_attr(fluid={'water': 1})  # HEOS back end
-    >>> myconn.set_attr(fluid={'INCOMP::water': 1})  # incompressible fluid
-    >>> myconn.set_attr(fluid={'BICUBIC::air': 1})  # bicubic back end
-    >>> myconn.set_attr(fluid={'INCOMP::MPG[0.5]': 1})  # binary incompressible mixture
+    >>> c1.set_attr(fluid={'water': 1})  # HEOS back end
+    >>> c1.set_attr(fluid={'INCOMP::water': 1})  # incompressible fluid
+    >>> c1.set_attr(fluid={'BICUBIC::air': 1})  # bicubic back end
+    >>> c1.set_attr(fluid={'INCOMP::MPG[0.5]|mass': 1})  # binary incompressible mixture
+
+You can also specify REFPROP based fluids, e.g. R513A, which is a mass based
+mixture of R134a and R1234yf:
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={'REFPROP::R134A[0.44]&R1234yf[0.56]|mass': 1})  # REFPROP back end
 
 .. note::
 
@@ -140,6 +243,9 @@ example:
     database. If you do not specify a back end, the **default back end**
     :code:`HEOS` will be used. For an overview of the back ends available please
     refer to the :ref:`fluid property section <tespy_fluid_properties_label>`.
+
+Other Backends
+++++++++++++++
 
 You can also change the engine, for example to the iapws library. It is even
 possible, that you define your own custom engine, e.g. using polynomial
@@ -149,7 +255,14 @@ do this.
 .. code-block:: python
 
     >>> from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
-    >>> myconn.set_attr(fluid={'H2O': 1}, fluid_engines={"H2O": IAPWSWrapper})
+    >>> c1.set_attr(fluid={'H2O': 1}, fluid_engines={"H2O": IAPWSWrapper})
+
+Please also check out the section on
+:ref:`custom fluid properties <tespy_fluid_properties_label>` for more
+information.
+
+Access from the :code:`Network` object
+--------------------------------------
 
 You may want to access the network's connections other than using the variable
 names, for example in an imported network or connections from a subsystem. It
@@ -165,112 +278,210 @@ is generated by this logic:
 
 .. code-block:: python
 
-    >>> from tespy.networks import Network
-
-    >>> mynetwork = Network()
-    >>> myconn = Connection(source1, 'out1', sink1, 'in1', label='myconnlabel')
-    >>> mynetwork.add_conns(myconn)
-    >>> mynetwork.get_conn('myconnlabel').set_attr(p=1e5)
-    >>> myconn.p.val
-    100000.0
+    >>> conn = nw.get_conn('c1')
+    >>> conn.label
+    'c1'
+    >>> conn.set_attr(p=7)
+    >>> conn.p.val
+    7.0
 
 .. note::
 
     The label can only be specified on creation of the connection. Changing the
     label after might break this access method.
 
-.. _tespy_busses_label:
+.. _tespy_powerconnections_label:
 
-Busses
-------
+PowerConnections
+================
 
-Busses are energy flow connectors. You can sum the energy flow of different
-components and create relations between components regarding mass independent
-energy transport.
+PowerConnections can be used to represent non-material energy flow, like power
+or heat. You can make use of generators, motors and buses.
 
-Different use-cases for busses could be:
+Different use-cases for the implementation of :code:`PowerConnection` with the
+respective power components can be:
 
-- post-processing
-- introduce motor or generator efficiencies
-- create relations of different components
+- apply motor or generator efficiencies
+- connect multiple turbomachines on a single shaft
+- collect all electricity production and own consumption to calculate net
+  power
 
-The handling of busses is very similar to connections and components. You need
-to add components to your busses as a dictionary containing at least the
-instance of your component. Additionally, you may provide a characteristic line,
-linking the ratio of actual value to a referenced value (design case value) to
-an efficiency factor the component value of the bus is multiplied with. For
-instance, you can provide a characteristic line of an electrical generator or
-motor for a variable conversion efficiency. The referenced value is retrieved
-by the design point of your system. Offdesign calculations use the referenced
-value from your system's design point for the characteristic line. In design
-case, the ratio will always be 1.
+The handling of the :code:`PowerConnection` and the respective components is
+identical to standard components. The following components are available:
 
-After a simulation, it is possible to output the efficiency of a component on
-a bus and to output the bus value of the component using
+- :py:class:`tespy.components.power.generator.Generator`: generate electricity from mechanical energy
+- :py:class:`tespy.components.power.motor.Motor`: generate mechanical energy from electricity
+- :py:class:`tespy.components.power.bus.PowerBus`: balance all inflows and outflows of power into a bus
+- :py:class:`tespy.components.power.sink.PowerSink`: e.g. represent power fed into the electricity grid
+- :py:class:`tespy.components.power.source.PowerSource`: e.g. represent power drawn from the electricity grid
 
-- :code:`mycomponent.calc_bus_efficiency(mybus)`
-- :code:`mycomponent.calc_bus_value(mybus)`
+For more details on the components please go to the respective section of the
+:ref:`documentaton <tespy_modules_components_label>` and the respective API
+documentation linked in the list above.
 
-These data are also available in the network's results dictionary and contain
+Parameters
+----------
 
-- the bus value,
-- the component value,
-- the efficiency value and
-- the design value of the bus.
+The :code:`PowerConnection` only holds a single parameter, namely the power
+flow :code:`E` (:math:`\dot E`), which is measured in Watts. You can create a
+:code:`PowerConnection` instance by connecting to a component that has a
+respective inlet or outlet. For example, consider a turbine generating
+electricity. First we can set up a system as we are used to do without any
+:code:`PowerConnections`:
 
 .. code-block:: python
 
-    bus_results = mynetwork.results['power output']
+    >>> from tespy.components import Source, Sink, Turbine
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> so = Source("source")
+    >>> turbine = Turbine("turbine")
+    >>> si = Sink("sink")
+    >>> c1 = Connection(so, "out1", turbine, "in1", label="c1")
+    >>> c2 = Connection(turbine, "out1", si, "in1", label="c2")
+    >>> nw.add_conns(c1, c2)
+
+We can parametrize the model, e.g. consider the turbine part of a gas turbine,
+which expands hot flue gases:
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={"air": 1}, p=10, T=1000, m=1)
+    >>> c2.set_attr(p=1)
+    >>> turbine.set_attr(eta_s=0.9)
+    >>> nw.solve("design")
+    >>> round(turbine.P.val / 1e3)
+    -577
+
+We can add a connection between the turbine and the grid. This will add one
+extra variable to our problem (the energy flow :code:`E`) but also one extra
+equation, namely the turbine energy balance. Therefore, after adding the new
+connection, there is nothing to change to make the model solve.
+
+.. code-block:: python
+
+    >>> from tespy.connections import PowerConnection
+    >>> from tespy.components import PowerSink
+    >>> grid = PowerSink("grid")
+    >>> e1 = PowerConnection(turbine, "power", grid, "power", label="e1")
+    >>> nw.add_conns(e1)
+    >>> nw.solve("design")
+    >>> round(e1.E.val / 1e3)
+    577
 
 .. note::
 
-    The available keywords for the dictionary are:
+    Note that the value of the energy flow of a :code:`PowerConnection` will
+    always be positive in the defined direction (from one component's outlet
+    to another component's inlet).
 
-    - 'comp' for the component instance.
-    - 'param' for the parameter (e.g. the combustion engine has various
-      parameters)
-    - 'char' for the characteristic line
-    - 'base' the base for efficiency definition
-    - 'P_ref' for the reference value of the component
+To learn what power connections are available in each of the component classes
+see the respective API documentation. Below you will find more examples
+utilizing the :code:`PowerConnection`.
 
-    There are different specification possibilities:
+Examples
+--------
 
-    - If you specify the component only, the parameter will be default and the
-      efficiency factor of the characteristic line will be 1 independent of
-      the load.
-    - If you specify a numeric value for char, the efficiency factor will be
-      equal to that value independent of the load.
-    - If you want to specify a characteristic line, provide
-      a :py:class:`CharLine <tespy.tools.characteristics.CharLine>`
-      object.
-    - Specify :code:`'base': 'bus'` if you want to change from the default base
-      to the bus as base. This means, that the definition of the efficiency
-      factor will change according to your specification.
+Single shaft gas turbine
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-      .. math ::
+To make a more elaborate example, we will implement an open gas turbine
+system using air as working fluid and a heater. You can also model gas
+turbines with combustion, for this example, the focus is on modeling the
+single shaft gas turbine system.
 
-          \eta = \begin{cases}
-          \frac{\dot{E}_\mathrm{component}}{\dot{E}_\mathrm{bus}} &
-          \text{'base': 'bus'}\\
-          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{component}} &
-          \text{'base': 'component'}
-          \end{cases}
+First, we import the necessary components and set up the material flow
+system connecting the compressor to the heater and to the turbine.
 
-      This applies to the calculation of the bus value analogously.
+.. code-block:: python
 
-      .. math::
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.components import (
+    ...     Turbine, Source, Sink, Compressor, SimpleHeatExchanger, PowerBus,
+    ...     Generator, PowerSink
+    ... )
+    >>> from tespy.networks import Network
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> so = Source("source")
+    >>> heater = SimpleHeatExchanger("heater")
+    >>> compressor = Compressor("compressor")
+    >>> turbine = Turbine("turbine")
+    >>> si = Sink("sink")
+    >>> c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    >>> c2 = Connection(compressor, "out1", heater, "in1", label="c2")
+    >>> c3 = Connection(heater, "out1", turbine, "in1", label="c3")
+    >>> c4 = Connection(turbine, "out1", si, "in1", label="c4")
 
-          \dot{E}_\mathrm{bus} = \begin{cases}
-          \frac{\dot{E}_\mathrm{component}}{f\left(
-          \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,design}}\right)} &
-          \text{'base': 'bus'}\\
-          \dot{E}_\mathrm{component} \cdot f\left(
-          \frac{\dot{E}_\mathrm{component}}
-          {\dot{E}_\mathrm{component,design}}\right) &
-          \text{'base': 'component'}
-          \end{cases}
+Next, we can set up the energy flows. Since the turbine and the compressor
+are rotating on the same shaft, the turbine powers the compressor and the
+generator at the same time. For this, we can use a PowerBus to represent
+the shaft, which gets powered by the turbine. The turbine's power connector
+is connected to the 'power_in1' connector of the shaft. The shaft
+connects to the compressor's connector 'power' and to the generator's
+connector 'power_in'. The generator then is connected at its outlet
+'power_out' to the grid representation at the connector 'power'.
 
-The examples below show the implementation of busses in your TESPy simulation.
+.. code-block:: python
+
+    >>> shaft = PowerBus("shaft", num_in=1, num_out=2)
+    >>> generator = Generator("generator")
+    >>> grid = PowerSink("grid")
+    >>> e1 = PowerConnection(turbine, "power", shaft, "power_in1", label="e1")
+    >>> e2 = PowerConnection(shaft, "power_out1", compressor, "power", label="e2")
+    >>> e3 = PowerConnection(shaft, "power_out2", generator, "power_in", label="e3")
+    >>> e4 = PowerConnection(generator, "power_out", grid, "power", label="e4")
+    >>> nw.add_conns(c1, c2, c3, c4, e1, e2, e3, e4)
+
+We can parametrize the system, in this example, we fix the ambient air
+temperature, pressure and mass flow, the turbine inlet temperature and the
+turbine outlet pressure (to be equal to the ambient pressure).
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={"air": 1}, m=1, p=1, T=25)
+    >>> c3.set_attr(T=1000)
+    >>> c4.set_attr(p=1)
+
+In the components the turbine's and the compressor's efficiency are set as
+well as the compressor's pressure ratio and the heater's pressure drop.
+
+.. code-block:: python
+
+    >>> turbine.set_attr(eta_s=0.9)
+    >>> compressor.set_attr(eta_s=0.9, pr=15)
+    >>> heater.set_attr(dp=0)
+
+With the four power connections we have four additional variables in our
+system. The compressor, the turbine and the shaft all deliver one equation
+(their energy balance equation), meaning, one parameter is missing to fully
+set up our problem. This could be the generator efficiency. With that, we
+can solve the system, and check what amount of electricity is generated
+through the generator.
+
+.. code-block:: python
+
+    >>> generator.set_attr(eta=0.95)
+    >>> nw.solve("design")
+    >>> round(e4.E.val_SI / 1e3, 1)
+    246.9
+
+Alternatively, we could also fix the electricity output to a specific
+target value and unset the air mass flow. This will calculate the required
+air mass flow to generate the desired amount of electricity.
+
+.. code-block:: python
+
+    >>> e4.set_attr(E=3e5)
+    >>> c1.set_attr(m=None)
+    >>> nw.solve("design")
+    >>> round(c1.m.val, 3)
+    1.215
+
+Single shaft feed water pump powered by a turbine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create a pump that is powered by a turbine. The turbine's :code:`turbine_fwp`
 power output must therefore be equal to the pump's :code:`fwp` power
@@ -279,155 +490,148 @@ consumption.
 .. code-block:: python
 
     >>> from tespy.networks import Network
-    >>> from tespy.components import Pump, Turbine, CombustionEngine
-    >>> from tespy.connections import Bus
+    >>> from tespy.components import Pump, Turbine, Source, Sink
+    >>> from tespy.connections import Connection, PowerConnection
 
-    >>> my_network = Network()
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> cond = Source("condensate")
     >>> fwp = Pump("feed water pump")
+    >>> feedwater = Sink("feedwater")
+    >>> c1 = Connection(cond, "out1", fwp, "in1")
+    >>> c2 = Connection(fwp, "out1", feedwater, "in1")
+    >>> ls = Source("live steam")
     >>> turbine_fwp = Turbine("turbine fwp")
+    >>> ws = Sink("Waste steam")
+    >>> c11 = Connection(ls, "out1", turbine_fwp, "in1")
+    >>> c12 = Connection(turbine_fwp, "out1", ws, "in1")
+    >>> e1 = PowerConnection(turbine_fwp, "power", fwp, "power")
+    >>> nw.add_conns(c1, c2, c11, c12, e1)
 
-    # the total power on this bus must be zero
-    # this way we can make sure the power of the turbine has the same value as
-    # the pump's power but with negative sign
-    >>> fwp_bus = Bus("feed water pump bus", P=0)
-    >>> fwp_bus.add_comps({"comp": turbine_fwp}, {"comp": fwp, "base": "bus"})
-    >>> my_network.add_busses(fwp_bus)
-
-Create two turbines :code:`turbine1` and :code:`turbine2` which have the same
-power output.
-
-.. code-block:: python
-
-    # the total power on this bus must be zero, too
-    # we make sure the two turbines yield the same power output by adding the char
-    # parameter for the second turbine and using -1 as char
-    >>> turbine_1 = Turbine("turbine 1")
-    >>> turbine_2 = Turbine("turbine 2")
-
-    >>> turbine_bus = Bus('turbines', P=0)
-    >>> turbine_bus.add_comps({'comp': turbine_1}, {'comp': turbine_2, 'char': -1})
-    >>> my_network.add_busses(turbine_bus)
-
-Create a bus for post-processing purpose only. Include a characteristic line
-for a generator and add two turbines :code:`turbine_1` and :code:`turbine_2`
-to the bus.
+We can set up the system in a way, that calculates the required mass flow
+of steam through the turbine to power the feed water pump and find the
+power flow by accessing the respective attribute of the power connection.
 
 .. code-block:: python
 
-    >>> import numpy as np
-    >>> from tespy.tools.characteristics import CharLine
+    >>> c1.set_attr(fluid={"water": 1}, p=0.5, x=0, m=10)
+    >>> c2.set_attr(p=50)
+    >>> fwp.set_attr(eta_s=0.75)
+    >>> c11.set_attr(fluid={"water": 1}, p=40, T=500)
+    >>> c12.set_attr(p=0.55)
+    >>> turbine_fwp.set_attr(eta_s=0.9)
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
+    >>> round(e1.E.val_SI / 1e3)
+    68
 
-    # bus for postprocessing, no power (or heat flow) specified but with variable
-    # conversion efficiency
-    >>> power_bus = Bus("power output")
-    >>> x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
-    >>> y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+Logic to force same power of two compressors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # create a characteristic line for a generator
-    >>> gen1 = CharLine(x=x, y=y)
-    >>> gen2 = CharLine(x=x, y=y)
-    >>> power_bus.add_comps(
-    ...     {'comp': turbine_1, 'char': gen1},
-    ...     {'comp': turbine_2, 'char': gen2}
-    ... )
-    >>> my_network.add_busses(power_bus)
+In this example we combine the PowerConnection with a UserDefinedEquation.
+Two air compressors should run in series and at identical power. For this the
+intermediate pressure is variable.
 
-Create a bus for the electrical power output of a combustion engine
-:code:`comb_engine`. Use a generator for power conversion and specify the total
-power output.
-
-.. code-block:: python
-
-    >>> comb_engine = CombustionEngine("engine")
-
-    # bus for combustion engine power
-    >>> el_power_bus = Bus('combustion engine power', P=-10e6)
-    >>> el_power_bus.add_comps({'comp': comb_engine, 'param': 'P', 'char': gen1})
-
-Create a bus for the electrical power input of a pump :code:`pu` with
-:code:`'bus'` and with :code:`'component'` as base. In both cases, the value of
-the component power will be identical. Due to the different efficiency
-definitions the value of the bus power will differ in part load.
-
-.. code-block:: python
-
-    >>> import numpy as np
-    >>> from tespy.components import Pump, Sink, Source
-    >>> from tespy.connections import Bus, Connection
+    >>> from tespy.components import Source, Sink, Compressor, PowerSource
+    >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
-    >>> from tespy.tools.characteristics import CharLine
+    >>> from tespy.tools import UserDefinedEquation
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> so = Source("air source")
+    >>> compressor1 = Compressor("compressor 1")
+    >>> compressor2 = Compressor("compressor 2")
+    >>> si = Sink("compressed air")
+    >>> grid1 = PowerSource("grid compressor 1")
+    >>> grid2 = PowerSource("grid compressor 2")
+    >>> c1 = Connection(so, "out1", compressor1, "in1", label="c1")
+    >>> c2 = Connection(compressor1, "out1", compressor2, "in1", label="c2")
+    >>> c3 = Connection(compressor2, "out1", si, "in1", label="c3")
+    >>> e1 = PowerConnection(grid1, "power", compressor1, "power")
+    >>> e2 = PowerConnection(grid2, "power", compressor2, "power")
+    >>> nw.add_conns(c1, c2, c3, e1, e2)
+    >>> c1.set_attr(fluid={"air": 1}, m=1, p=1, T=25)
+    >>> c3.set_attr(p=5)
+    >>> compressor1.set_attr(eta_s=0.85)
+    >>> compressor2.set_attr(eta_s=0.85)
+    >>> def same_power_ude(ude):
+    ...     e1, e2 = ude.conns
+    ...     return e1.E.val_SI - e2.E.val_SI
+    >>> def same_power_dependents(ude):
+    ...     e1, e2 = ude.conns
+    ...     return [c.E for c in ude.conns]
+    >>> ude = UserDefinedEquation(
+    ...     "power equality ude",
+    ...     func=same_power_ude,
+    ...     dependents=same_power_dependents,
+    ...     conns=[e1, e2]
+    ... )
+    >>> nw.add_ude(ude)
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
+    >>> round(e1.E.val / 1e3) == round(e2.E.val / 1e3)
+    True
+    >>> round(e1.E.val / 1e3)
+    105
 
-    >>> nw = Network(iterinfo=False, p_unit='bar', T_unit='C')
+Including part load model for motor efficiency
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    >>> si = Sink('sink')
-    >>> so = Source('source')
-    >>> pu = Pump('pump')
+This example how a partload efficiency curve can be applied to a motor. For
+this, let's assume the motor powers a refrigeration compressor. We can set up
+the model by connecting the compressor to the refrigerant flows as usual and
+add the :code:`PowerConnection` to the electricity grid via a :code:`Motor`
+instance.
 
-    >>> so_pu = Connection(so, 'out1', pu, 'in1')
-    >>> pu_si = Connection(pu, 'out1', si, 'in1')
+.. code-block:: python
 
-    >>> nw.add_conns(so_pu, pu_si)
+    >>> from tespy.components import Source, Sink, Compressor, PowerSource, Motor
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools import CharLine
 
-    # bus for combustion engine power
-    >>> x = np.array([0.2, 0.4, 0.6, 0.8, 1.0, 1.1])
-    >>> y = np.array([0.85, 0.93, 0.95, 0.96, 0.97, 0.96])
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> so = Source("evaporated refrigerant")
+    >>> compressor = Compressor("compressor")
+    >>> si = Sink("compressed refrigerant")
+    >>> grid = PowerSource("grid")
+    >>> motor = Motor("motor")
+    >>> c1 = Connection(so, "out1", compressor, "in1", label="c1")
+    >>> c2 = Connection(compressor, "out1", si, "in1", label="c2")
+    >>> e1 = PowerConnection(grid, "power", motor, "power_in", label="e1")
+    >>> e2 = PowerConnection(motor, "power_out", compressor, "power", label="e2")
+    >>> nw.add_conns(c1, c2, e1, e2)
 
-    # create a characteristic line for a generator
-    >>> mot_bus_based = CharLine(x=x, y=y)
-    >>> mot_comp_based = CharLine(x=x, y=1 / y)
-    >>> bus1 = Bus('pump power bus based')
-    >>> bus1.add_comps({'comp': pu, 'char': mot_bus_based, 'base': 'bus'})
+The design efficiency is 0.98, the compressor's design efficiency is 0.85. On
+top we fix the inlet state and mass flow as well as the compressor's pressure
+ratio. For the characteristics of the motor's efficiency we can pass data to a
+:code:`CharLine` instance, which is set to be used for the :code:`eta_char`
+method in the model of the motor.
 
-    # the keyword 'base': 'component' is the default value, therefore it does
-    # not need to be passed
-    >>> bus2 = Bus('pump power component based')
-    >>> bus2.add_comps({'comp': pu, 'char': mot_comp_based})
+.. code-block:: python
 
-    >>> nw.add_busses(bus1, bus2)
+    >>> c1.set_attr(fluid={"R290": 1}, m=1, td_dew=10, T=10)
+    >>> compressor.set_attr(pr=3, eta_s=0.85, design=["eta_s"], offdesign=["eta_s_char"])
+    >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
+    >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])
+    >>> nw.solve("design")
+    >>> nw.save("design.json")
+    >>> nw.assert_convergence()
 
-    >>> so_pu.set_attr(fluid={'H2O': 1}, m=10, p=5, T=20)
-    >>> pu_si.set_attr(p=10)
+After performing the design simulation we can change the fluid mass flow and
+observe the change in efficiency of the motor:
 
-    >>> pu.set_attr(eta_s=0.75)
+.. code-block:: python
 
-    >>> nw.solve('design')
-    >>> nw.save('tmp')
-    >>> print('Bus based efficiency:', round(pu.calc_bus_efficiency(bus1), 2))
-    Bus based efficiency: 0.97
-
-    >>> print('Component based efficiency:', round(1 / pu.calc_bus_efficiency(bus2), 2))
-    Component based efficiency: 0.97
-
-    >>> print('Bus based bus power:', round(pu.calc_bus_value(bus1)))
-    Bus based bus power: 6883
-
-    >>> print('Component based bus power:', round(pu.calc_bus_value(bus2)))
-    Component based bus power: 6883
-
-    >>> so_pu.set_attr(m=8)
-    >>> nw.solve('offdesign', design_path='tmp')
-    >>> print('Bus based efficiency:', round(pu.calc_bus_efficiency(bus1), 2))
-    Bus based efficiency: 0.96
-
-    >>> print('Component based efficiency:', round(1 / pu.calc_bus_efficiency(bus2), 2))
-    Component based efficiency: 0.96
-
-    >>> print('Bus based bus power:', round(pu.calc_bus_value(bus1)))
-    Bus based bus power: 5562
-
-    >>> print('Component based bus power:', round(pu.calc_bus_value(bus2)))
-    Component based bus power: 5564
-
-    # get DataFrame with the bus results
-    >>> bus_results = nw.results['pump power bus based']
+    >>> c1.set_attr(m=0.8)
+    >>> nw.solve("offdesign", design_path="design.json", init_path="design.json")
+    >>> nw.assert_convergence()
+    >>> round(motor.eta.val, 3)
+    0.966
 
 .. note::
 
-    The x-values of the characteristic line represent the relative load of the
-    component: actual value of the bus divided by the reference/design point
-    value. In design-calculations the x-value used in the function evaluation
-    will always be at 1.
-
-As mentioned in the component section: It is also possible to import your
-custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
-about this :ref:`here <tespy_modules_characteristics_label>`.
+    As mentioned in the component section: It is also possible to import your
+    custom characteristics from the :code:`HOME/.tespy/data` folder. Read more
+    about this :ref:`here <tespy_modules_characteristics_label>`.

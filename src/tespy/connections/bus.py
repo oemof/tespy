@@ -10,6 +10,8 @@ available from its original location tespy/connections/bus.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -52,8 +54,11 @@ class Bus:
     >>> from tespy.connections import Connection, Ref, Bus
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', p_range=[0.5, 10], iterinfo=False)
+    >>> import os
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -142,7 +147,7 @@ class Bus:
     >>> cw_pu.set_attr(m=None)
     >>> fgc_fg.set_attr(T=120, design=['T'])
     >>> nw.solve(mode=mode)
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
 
     The heat bus characteristic for the combustion engine and the flue gas
     cooler have automatically been transformed into an array. The total heat
@@ -158,24 +163,36 @@ class Bus:
     25819387.0
     >>> round(chp.Q1.val + chp.Q2.val, 0)
     -8899014.0
+    >>> round(comb_fgc.T.val, 5)
+    443.33078
+    >>> round(fgc_fg.T.val, 5)
+    120.0
     >>> round(fgc_cw.m.val_SI * (fgc_cw.h.val_SI - pu_sp.h.val_SI), 0)
-    12477091.0
+    12477089.0
     >>> round(heat_bus.P.val, 0)
-    12477091.0
+    12477089.0
     >>> round(pu.calc_bus_efficiency(power_bus), 2)
     0.98
     >>> power_bus.set_attr(P=-7.5e6)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, design_path='tmp', init_path='tmp')
+    >>> nw.solve(mode=mode, design_path='tmp.json', init_path='tmp.json')
     >>> round(chp.ti.val, 0)
     21192700.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.761
     >>> round(pu.calc_bus_efficiency(power_bus), 3)
     0.968
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
     def __init__(self, label, **kwargs):
+
+        msg = (
+            "The Bus class is deprecated and will be removed from tespy in "
+            "the next major release. Please use the power components instead "
+            "for modeling non-material related heat or power flows. For an "
+            "example check the changelog on the online documentation."
+        )
+        warnings.warn(msg, FutureWarning)
 
         dtypes = {
             "param": str,
@@ -189,7 +206,7 @@ class Bus:
         ).astype(dtypes)
 
         self.label = label
-        self.P = dc_simple(val=np.nan, is_set=False)
+        self.P = dc_simple(_val=np.nan, is_set=False)
         self.char = CharLine(x=np.array([0, 3]), y=np.array([1, 1]))
         self.printout = True
         self.jacobian = {}
@@ -231,7 +248,7 @@ class Bus:
                     if np.isnan(kwargs[key]):
                         self.P.set_attr(is_set=False)
                     else:
-                        self.P.set_attr(val=kwargs[key], is_set=True)
+                        self.P.set_attr(_val=kwargs[key], is_set=True)
                 elif kwargs[key] is None:
                     self.P.set_attr(is_set=False)
                 else:
@@ -426,5 +443,4 @@ class Bus:
             cp.bus_deriv(self)
 
     def clear_jacobian(self):
-        for k in self.jacobian:
-            self.jacobian[k] = 0
+        self.jacobian = {}

@@ -13,9 +13,10 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -28,10 +29,11 @@ class DropletSeparator(NodeBase):
     **Mandatory Equations**
 
     - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_equality_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_func`
+    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
+    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
     - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.outlet_states_func`
+    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
+    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
 
     Inlets/Outlets
 
@@ -84,14 +86,14 @@ class DropletSeparator(NodeBase):
     >>> from tespy.components import Sink, Source, DropletSeparator
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
     >>> sil = Sink('liquid outflow')
     >>> ds = DropletSeparator('droplet separator')
-    >>> ds.component()
-    'droplet separator'
     >>> so_ds = Connection(so, 'out1', ds, 'in1')
     >>> ds_sig = Connection(ds, 'out2', sig, 'in1')
     >>> ds_sil = Connection(ds, 'out1', sil, 'in1')
@@ -138,33 +140,40 @@ class DropletSeparator(NodeBase):
     True
     """
 
-    @staticmethod
-    def component():
-        return 'droplet separator'
-
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': {
-                'func': self.mass_flow_func, 'deriv': self.mass_flow_deriv,
-                'constant_deriv': True, 'latex': self.mass_flow_func_doc,
-                'num_eq': 1},
-            'energy_balance_constraints': {
+            'mass_flow_constraints': dc_cmc(**{
+                'func': self.mass_flow_func,
+                'dependents': self.mass_flow_dependents,
+                'num_eq_sets': 1
+            }),
+            'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
-                'constant_deriv': False, 'latex': self.energy_balance_func_doc,
-                'num_eq': 1},
-            'pressure_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i + self.num_o - 1},
-            'outlet_constraints': {
-                'func': self.outlet_states_func,
-                'deriv': self.outlet_states_deriv,
-                'constant_deriv': False,
-                'latex': self.outlet_states_func_doc,
-                'num_eq': 2}
+                'dependents': self.energy_balance_dependents,
+                'num_eq_sets': 1
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.pressure_structure_matrix,
+                'num_eq_sets': self.num_i + self.num_o - 1
+            }),
+            'outlet_constraint_liquid': dc_cmc(**{
+                'func': self.saturated_outlet_func,
+                'deriv': self.saturated_outlet_deriv,
+                'dependents': self.saturated_outlet_dependents,
+                'num_eq_sets': 1,
+                'func_params': {'outconn': 0, 'quality': 0}
+            }),
+            'outlet_constraint_gas': dc_cmc(**{
+                'func': self.saturated_outlet_func,
+                'deriv': self.saturated_outlet_deriv,
+                'dependents': self.saturated_outlet_dependents,
+                'num_eq_sets': 1,
+                'func_params': {'outconn': 1, 'quality': 1}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.fluid_structure_matrix,
+                'num_eq_sets': self.num_o
+            })
         }
 
     @staticmethod
@@ -198,56 +207,16 @@ class DropletSeparator(NodeBase):
 
         return res
 
-    def energy_balance_func_doc(self, label):
+    def energy_balance_dependents(self):
+        dependents = []
+        for c in self.inl + self.outl:
+            dependents += [c.m, c.h]
+        return dependents
+
+    def saturated_outlet_func(self, outconn=None, quality=None):
         r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0=\sum_i\left(\dot{m}_{\mathrm{in,}i}\cdot h_{\mathrm{in,}i}'
-            r'\right) - \sum_j \left(\dot{m}_{\mathrm{out,}j} \cdot '
-            r'h_{\mathrm{out,}j} \right) \; \forall i \in \text{inlets} \;'
-            r'\forall j \in \text{outlets}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        for i in self.inl:
-            if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = i.h.val_SI
-            if i.h.is_var:
-                self.jacobian[k, i.h.J_col] = i.m.val_SI
-
-        for o in self.outl:
-            if o.m.is_var:
-                self.jacobian[k, o.m.J_col] = -o.h.val_SI
-            if o.h.is_var:
-                self.jacobian[k, o.h.J_col] = -o.m.val_SI
-
-
-    def outlet_states_func(self):
-        r"""
-        Calculate energy balance.
+        Set the outlet quality :math:`x` to be equal to 0 or 1 at the respective
+        outlet.
 
         Returns
         -------
@@ -256,65 +225,32 @@ class DropletSeparator(NodeBase):
 
             .. math::
 
-                0 = h_{out,1} - h\left(p, x=0 \right)\\
-                0 = h_{out,2} - h\left(p, x=1 \right)
+                0 = h_{out} - h\left(p, x=x \right)
         """
-        o0 = self.outl[0]
-        o1 = self.outl[1]
+        o = self.outl[outconn]
+        return h_mix_pQ(o.p.val_SI, quality, o.fluid_data) - o.h.val_SI
+
+    def saturated_outlet_deriv(self, increment_filter, k, dependents=None, outconn=None, quality=None):
+        o = self.outl[outconn]
+        if o.p.is_var:
+            self._partial_derivative(
+                o.p, k, dh_mix_dpQ(o.p.val_SI, quality, o.fluid_data), increment_filter
+            )
+        self._partial_derivative(o.h, k, -1)
+
+    def saturated_outlet_dependents(self, outconn=None, quality=None):
         return [
-            h_mix_pQ(o0.p.val_SI, 0, o0.fluid_data) - o0.h.val_SI,
-            h_mix_pQ(o1.p.val_SI, 1, o1.fluid_data) - o1.h.val_SI
+            self.outl[outconn].p,
+            self.outl[outconn].h
         ]
 
-    def outlet_states_func_doc(self, label):
+    def fluid_structure_matrix(self, k):
         r"""
-        Calculate energy balance.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
+        Set the fluid strucutre matrix to force fluid composition equality.
         """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 =&h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0\right)\\'
-            r'0 =&h_\mathrm{out,2} -h\left(p_\mathrm{out,2}, x=1\right)\\'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def outlet_states_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of outlet states.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        o0 = self.outl[0]
-        o1 = self.outl[1]
-        if o0.p.is_var:
-            self.jacobian[k, o0.p.J_col] = (
-                dh_mix_dpQ(o0.p.val_SI, 0, o0.fluid_data)
-            )
-        if o0.h.is_var and self.it == 0:
-            self.jacobian[k, o0.h.J_col] = -1
-
-        if o1.p.is_var:
-            self.jacobian[k + 1, o1.p.J_col] = (
-                dh_mix_dpQ(o1.p.val_SI, 1, o1.fluid_data)
-            )
-        if o1.h.is_var and self.it == 0:
-            self.jacobian[k + 1, o1.h.J_col] = -1
+        for eq, conn in enumerate(self.outl):
+            self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
+            self._structure_matrix[k + eq, conn.fluid.sm_col] = -1
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
@@ -324,6 +260,15 @@ class DropletSeparator(NodeBase):
             branch["connections"] += [outconn]
             branch["components"] += [self]
             outconn.target.propagate_wrapper_to_target(branch)
+
+    def convergence_check(self):
+        # here all pressures are the same value
+        o = self.outl[0]
+        if o.p.is_var:
+            fluid = single_fluid(o.fluid_data)
+            p_crit = o.fluid.wrapper[fluid]._p_crit
+            if o.p.val_SI > p_crit:
+                o.p.set_reference_val_SI(p_crit * 0.9)
 
     @staticmethod
     def initialise_source(c, key):
@@ -342,17 +287,10 @@ class DropletSeparator(NodeBase):
         -------
         val : float
             Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=1 \right) & \text{key = 'h' at outlet 1}\\
-                h\left(p, x=0 \right) & \text{key = 'h' at outlet 2}
-                \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            return c.fluid.wrapper[fluid]._p_crit / 2
         elif key == 'h':
             if c.source_id == 'out1':
                 return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
@@ -385,7 +323,8 @@ class DropletSeparator(NodeBase):
                 \end{cases}
         """
         if key == 'p':
-            return 10e5
+            fluid = single_fluid(c.fluid_data)
+            return c.fluid.wrapper[fluid]._p_crit / 2
         elif key == 'h':
             return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
 
@@ -409,4 +348,5 @@ class DropletSeparator(NodeBase):
                 'starting_point_value': self.inl[0].vol.val,
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[i].vol.val
-            } for i in range(2)}
+            } for i in range(2)
+        }

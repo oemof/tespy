@@ -3,15 +3,19 @@ from tespy.networks import Network
 
 from tespy.components import (
     Condenser, Compressor, CycleCloser,  HeatExchanger,
-    SimpleHeatExchanger, Pump, Sink, Source, Valve
+    SimpleHeatExchanger, Pump, Sink, Source, Valve, PowerBus, PowerSource,
+    PowerSink
     )
 
-from tespy.connections import Connection, Bus
+from tespy.connections import Connection, PowerConnection
 # %%[sec_2]
 wf = "NH3"
 
 # network
-nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s")
+nw = Network()
+nw.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
+)
 
 # components
 cycle_closer = CycleCloser("Refrigerant Cycle Closer")
@@ -82,7 +86,7 @@ c13.set_attr(T=T_hs_bf, p=1)
 # evaporation to fully saturated gas
 c1.set_attr(x=1, fluid={wf: 1})
 # degree of overheating after internal heat exchanger (evaporation side)
-c2.set_attr(Td_bp=10)
+c2.set_attr(td_dew=10)
 
 # parametrization components
 # isentropic efficiency
@@ -101,13 +105,12 @@ heatsource_evaporator.set_attr(ttd_l=5)
 condenser.set_attr(ttd_u=5)
 
 # consumer heat demand
-cons_heatsink.set_attr(Q=-1e6)
+cons_heatsink.set_attr(Q=-1)
 
 try:
     nw.solve("design")
 except ValueError as e:
     print(e)
-    nw.reset_topology_reduction_specifications()
 
 # %%[sec_4]
 import CoolProp.CoolProp as CP
@@ -124,7 +127,7 @@ condenser.set_attr(ttd_u=None)
 
 # internal heat exchanger to compressor enthalpy
 h_evap = CP.PropsSI("H", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-3
-c2.set_attr(Td_bp=None, h=h_evap * 1.01)
+c2.set_attr(td_dew=None, h=h_evap * 1.01)
 
 # solve the network again
 nw.solve("design")
@@ -138,7 +141,7 @@ c4.set_attr(p=None)
 condenser.set_attr(ttd_u=5)
 
 # internal heat exchanger superheating
-c2.set_attr(Td_bp=5, h=None)
+c2.set_attr(td_dew=5, h=None)
 
 # solve the network again
 nw.solve("design")
@@ -152,9 +155,9 @@ print(cop)
 # %%[sec_6]
 def generate_network_with_starting_values(wf):
     # network
-    nw = Network(
-        T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s",
-        iterinfo=False
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", enthalpy="kJ/kg"
     )
 
     # components
@@ -250,22 +253,23 @@ def generate_network_with_starting_values(wf):
     c2.set_attr(h=h_evap * 1.01)
 
     # consumer heat demand
-    cons_heatsink.set_attr(Q=-1e6)
+    cons_heatsink.set_attr(Q=-1)
 
-    power_bus = Bus("Total power input")
-    heat_bus = Bus("Total heat production")
-    power_bus.add_comps(
-        {"comp": compressor, "base": "bus"},
-        {"comp": cons_pump, "base": "bus"},
-        {"comp": heatsource_pump, "base": "bus"},
-    )
-    heat_bus.add_comps({"comp": cons_heatsink})
+    grid = PowerSource("grid")
+    electricity = PowerBus("electricity distribution", num_in=1, num_out=3)
+    heat = PowerSink("heat production")
+    cons_heatsink.set_attr(power_connector_location="outlet")
+    e1 = PowerConnection(grid, "power", electricity, "power_in1", label="e1")
+    e2 = PowerConnection(electricity, "power_out1", compressor, "power", label="e2")
+    e3 = PowerConnection(electricity, "power_out2", cons_pump, "power", label="e3")
+    e4 = PowerConnection(electricity, "power_out3", heatsource_pump, "power", label="e4")
 
-    nw.add_busses(power_bus, heat_bus)
+    h1 = PowerConnection(cons_heatsink, "heat", heat, "power", label="h1")
+    nw.add_conns(e1, e2, e3, e4, h1)
 
     nw.solve("design")
 
-        # evaporation point
+    # evaporation point
     c1.set_attr(p=None)
     heatsource_evaporator.set_attr(ttd_l=5)
 
@@ -274,7 +278,7 @@ def generate_network_with_starting_values(wf):
     condenser.set_attr(ttd_u=5)
 
     # internal heat exchanger superheating
-    c2.set_attr(Td_bp=5, h=None)
+    c2.set_attr(td_dew=5, h=None)
 
     # solve the network again
     nw.solve("design")
@@ -293,8 +297,8 @@ cop = pd.DataFrame(columns=["COP"])
 for wf in ["NH3", "R22", "R134a", "R152a", "R290", "R718"]:
     nw = generate_network_with_starting_values(wf)
 
-    power = nw.busses["Total power input"].P.val
-    heat = abs(nw.busses["Total heat production"].P.val)
+    power = nw.get_conn("e1").E.val
+    heat = nw.get_conn("h1").E.val
     cop.loc[wf] = heat / power
 
 fig, ax = plt.subplots(1, figsize=(16, 8))

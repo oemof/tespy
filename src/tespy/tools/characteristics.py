@@ -46,9 +46,9 @@ class CharLine:
     This class generates a lookup table from the given input data x and y,
     then performs linear interpolation. The x and y values may be specified by
     the user. There are some default characteristic lines for different
-    components, see the :py:mod:`tespy.data` module. If you neither specify the
-    method to use from the defaults nor specify x and y values, the
-    characteristic line generated will be
+    components, see the :ref:`tespy.data <tespy_data_label>` module. If you
+    neither specify the method to use from the defaults nor specify x and y
+    values, the characteristic line generated will be
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
@@ -142,7 +142,7 @@ class CharLine:
             logger.warning(msg)
         elif x < self.x[0]:
             msg = (
-                "Operating point belpw characteristic line range: X="
+                "Operating point below characteristic line range: X="
                 f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
             )
             logger.warning(msg)

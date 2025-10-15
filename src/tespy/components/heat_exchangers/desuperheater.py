@@ -13,9 +13,10 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -25,6 +26,8 @@ class Desuperheater(HeatExchanger):
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
@@ -35,10 +38,16 @@ class Desuperheater(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
@@ -129,16 +138,17 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.components import Sink, Source, Desuperheater
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
-    ... m_range=[0.001, 10], iterinfo=False)
+    >>> import os
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "volumetric_flow": "l/s"
+    ... })
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
     >>> cw_in = Source('cooling water inlet')
     >>> cw_out = Sink('cooling water outlet')
     >>> desu = Desuperheater('desuperheater')
-    >>> desu.component()
-    'desuperheater'
     >>> et_de = Connection(et_in, 'out1', desu, 'in1')
     >>> de_et = Connection(desu, 'out1', et_out, 'in1')
     >>> cw_de = Connection(cw_in, 'out1', desu, 'in2')
@@ -152,43 +162,40 @@ class Desuperheater(HeatExchanger):
     ethanol. Controlling the ethanol's state at the outlet is only possible,
     if the cooling water flow rate is adjusted accordingly.
 
-    >>> desu.set_attr(pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-    ... offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1,
-    ... design=['v'])
+    >>> desu.set_attr(
+    ...     pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
+    >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)
-    >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
+    >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)
     1.0
     >>> et_de.set_attr(v=12)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', init_path='tmp.json', design_path='tmp.json')
     >>> round(cw_de.v.val, 2)
     0.41
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'desuperheater'
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'saturated_gas_constraints': {
+            'saturated_gas_constraints': dc_cmc(**{
+                'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'constant_deriv': False, 'latex': self.saturated_gas_func_doc,
-                'num_eq': 1
-            }
+                'dependents': self.saturated_gas_dependents
+            })
         })
         return constraints
 
@@ -208,24 +215,7 @@ class Desuperheater(HeatExchanger):
         o = self.outl[0]
         return o.h.val_SI - h_mix_pQ(o.p.val_SI, 1, o.fluid_data)
 
-    def saturated_gas_func_doc(self, label):
-        r"""
-        Calculate hot side outlet state.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=h_\mathrm{out,1}-h\left(p_\mathrm{out,1}, x=1 \right)'
-        return generate_latex_eq(self, latex, label)
-
-    def saturated_gas_deriv(self, increment_filter, k):
+    def saturated_gas_deriv(self, increment_filter, k, dependents=None):
         r"""
         Partial derivatives of saturated gas at hot side outlet function.
 
@@ -238,7 +228,37 @@ class Desuperheater(HeatExchanger):
             Position of derivatives in Jacobian matrix (k-th equation).
         """
         o = self.outl[0]
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 1, o.fluid_data)
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = 1
+        self._partial_derivative(o.h, k, 1, increment_filter)
+        if o.p.is_var:
+            self._partial_derivative(
+                o.p, k, -dh_mix_dpQ(o.p.val_SI, 1, o.fluid_data), increment_filter
+            )
+
+    def saturated_gas_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]
+
+    def initialise_source(self, c, key):
+        r"""
+        Return a starting value for pressure and enthalpy at outlet.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
+
+        Returns
+        -------
+        val : float
+            Starting value for pressure/enthalpy in SI units.
+        """
+        if c.source_id == 'out1':
+            if key == 'h':
+                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+
+        return super().initialise_source(c, key)

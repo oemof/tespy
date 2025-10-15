@@ -10,10 +10,13 @@ from tespy.components import Desuperheater
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Merge
 from tespy.components import Splitter
+from tespy.components import PowerBus
+from tespy.components import PowerSink
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import Turbine
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 
 from tespy.tools.optimization import OptimizationProblem
@@ -22,11 +25,14 @@ from tespy.tools.optimization import OptimizationProblem
 class SamplePlant:
     """Class template for TESPy model usage in optimization module."""
     def __init__(self):
+        self._create_network()
 
-        self.nw = Network()
-        self.nw.set_attr(
-            p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False
-        )
+    def _create_network(self):
+
+        self.nw = Network(iterinfo=False)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
         # components
         # main cycle
         sg = SimpleHeatExchanger("steam generator")
@@ -89,20 +95,24 @@ class SamplePlant:
 
         self.nw.add_conns(c41, c42)
 
-        # busses
-        # power bus
-        self.power = Bus("power")
-        self.power.add_comps(
-            {"comp": hpt, "char": -1}, {"comp": mpt, "char": -1},
-            {"comp": lpt, "char": -1}, {"comp": pu1, "char": -1},
-            {"comp": pu2, "char": -1}, {"comp": pu3, "char": -1}
-        )
+        electricity = PowerBus("electricity bus", num_in=3, num_out=4)
+        grid = PowerSink("grid")
+
+        e1 = PowerConnection(hpt, "power", electricity, "power_in1", label="e1")
+        e2 = PowerConnection(mpt, "power", electricity, "power_in2", label="e2")
+        e3 = PowerConnection(lpt, "power", electricity, "power_in3", label="e3")
+        e4 = PowerConnection(electricity, "power_out1", pu1, "power", label="e4")
+        e5 = PowerConnection(electricity, "power_out2", pu2, "power", label="e5")
+        e6 = PowerConnection(electricity, "power_out3", pu3, "power", label="e6")
+        e7 = PowerConnection(electricity, "power_out4", grid, "power", label="e7")
 
         # heating bus
-        self.heat = Bus("heat")
-        self.heat.add_comps({"comp": sg, "char": 1})
+        sg.set_attr(power_connector_location="inlet")
+        heat_source = PowerSource("heat source")
 
-        self.nw.add_busses(self.power, self.heat)
+        h1 = PowerConnection(heat_source, "power", sg, "heat", label="h1")
+
+        self.nw.add_conns(e1, e2, e3, e4, e5, e6, e7, h1)
 
         hpt.set_attr(eta_s=0.9)
         mpt.set_attr(eta_s=0.9)
@@ -114,7 +124,7 @@ class SamplePlant:
 
         sg.set_attr(pr=0.92)
 
-        con.set_attr(pr1=1, pr2=0.99, ttd_u=5)
+        con.set_attr(pr1=1, pr2=0.99)
         fwh1.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         fwh2.set_attr(pr1=1, pr2=0.99, ttd_u=5)
         dsh.set_attr(pr1=0.99, pr2=0.99)
@@ -122,17 +132,33 @@ class SamplePlant:
         c1.set_attr(m=200, T=650, p=100, fluid={"water": 1})
         c2.set_attr(p=20)
         c4.set_attr(p=3)
+        c6.set_attr(p=0.05)
 
         c41.set_attr(T=20, p=3, fluid={"INCOMP::Water": 1})
-        c42.set_attr(T=28, p0=3, h0=100)
+        c42.set_attr(T=28)
 
         # parametrization
         # components
         self.nw.solve("design")
-        self.stable = "_stable"
+        con.set_attr(ttd_u=5)
+        c6.set_attr(p=None)
+
+        self.nw.solve("design")
+        self.stable = "_stable.json"
         self.nw.save(self.stable)
         self.solved = True
         self.nw.print_results()
+
+    def _reset_component_boundary_conditions(self):
+        self.nw.get_comp("feed water preheater 1").set_attr(ttd_u=5)
+        self.nw.get_comp("feed water preheater 2").set_attr(ttd_u=5)
+        self.nw.get_comp("condenser").set_attr(ttd_u=5)
+        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
+        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
+        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
+        self.nw.get_comp("high pressure turbine").set_attr(eta_s=0.9)
+        self.nw.get_comp("mid pressure turbine").set_attr(eta_s=0.9)
+        self.nw.get_comp("low pressure turbine").set_attr(eta_s=0.9)
 
     # %%[sec_2]
 
@@ -179,22 +205,29 @@ class SamplePlant:
         self.solved = False
         try:
             self.nw.solve("design")
-            if not self.nw.converged:
+            if self.nw.status != 0:
+                self._reset_component_boundary_conditions()
                 self.nw.solve("design", init_only=True, init_path=self.stable)
             else:
-                # might need more checks here!
-                if (
-                        any(self.nw.results["Condenser"]["Q"] > 0)
-                        or any(self.nw.results["Desuperheater"]["Q"] > 0)
-                        or any(self.nw.results["Turbine"]["P"] > 0)
-                        or any(self.nw.results["Pump"]["P"] < 0)
-                    ):
-                    self.solved = False
-                else:
-                    self.solved = True
+                self.solved = True
         except ValueError as e:
-            self.nw.lin_dep = True
+            self._reset_component_boundary_conditions()
             self.nw.solve("design", init_only=True, init_path=self.stable)
+
+    def get_objectives(self, objective_list):
+        """Get the objective values
+
+        Parameters
+        ----------
+        objective_list : list
+            Names of the objectives
+
+        Returns
+        -------
+        list
+            Values of the objectives
+        """
+        return [self.get_objective(obj) for obj in objective_list]
 
     def get_objective(self, objective=None):
         """
@@ -212,9 +245,9 @@ class SamplePlant:
         """
         if self.solved:
             if objective == "efficiency":
-                return 1 / (
-                    self.nw.busses["power"].P.val /
-                    self.nw.busses["heat"].P.val
+                return (
+                    self.nw.get_conn("e7").E.val
+                    / self.nw.get_conn("h1").E.val
                 )
             else:
                 msg = f"Objective {objective} not implemented."
@@ -242,17 +275,17 @@ constraints = {
 }
 
 optimize = OptimizationProblem(
-    plant, variables, constraints, objective="efficiency"
+    plant, variables, constraints, objective=["efficiency"], minimize=[False]
 )
 # %%[sec_4]
-num_ind = 10
-num_gen = 100
+num_ind = 40
+num_gen = 15
 
 # for algorithm selection and parametrization please consider the pygmo
 # documentation! The number of generations indicated in the algorithm is
 # the number of evolutions we undertake within each generation defined in
 # num_gen
-algo = pg.algorithm(pg.ihs(gen=3, seed=42))
+algo = pg.algorithm(pg.ihs(gen=num_gen, seed=42))
 # create starting population
 pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
 
@@ -271,14 +304,14 @@ plt.rc("font", **{"size": 18})
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 
-filter_valid_constraint = optimize.individuals["valid"].values
-filter_valid_result = ~np.isnan(optimize.individuals["efficiency"].values)
-data = optimize.individuals.loc[filter_valid_constraint & filter_valid_result]
+mask_constraint = optimize.individuals["Connections-2-p>=Connections-4-p"] < 0
+mask_objective = ~np.isnan(optimize.individuals["efficiency"].values)
+data = optimize.individuals.loc[mask_constraint & mask_objective]
 
 sc = ax.scatter(
     data["Connections-2-p"],
     data["Connections-4-p"],
-    c=1 / data["efficiency"] * 100,
+    c=data["efficiency"] * 100,
     s=100
 )
 cbar = plt.colorbar(sc)
@@ -290,5 +323,5 @@ ax.set_ylabel("Pressure at connection 4 in bar")
 plt.tight_layout()
 
 fig.savefig("pygmo_optimization.svg")
-print(data.loc[data["efficiency"].values == data["efficiency"].min()])
+print(data.loc[data["efficiency"].values == data["efficiency"].max()])
 # %%[sec_6]

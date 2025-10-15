@@ -1,0 +1,24 @@
+Fixes for v0.8.0
+++++++++++++++++
+
+Bug Fixes
+#########
+- A bug was fixed in CoolProp version 6.8.0
+  `#2447 <https://github.com/CoolProp/CoolProp/issues/2447>`__ for the S800
+  fluid. The tests/examples affected by this in tespy have been updated
+  (`PR #640 <https://github.com/oemof/tespy/pull/640>`__).
+- In case a heat exchanger heats up the same mass flow (e.g. in a recuperator
+  or internal heat exchanger), the derivative to the mass flow was assigned
+  wrong (`PR #646 <https://github.com/oemof/tespy/pull/646>`__).
+
+Other Changes
+#############
+- To improve convergence for offdesign calculation and problems with small
+  initial increment of the variables the heuristics for the convergence check
+  based on the components have been adjusted
+  (`PR #641 <https://github.com/oemof/tespy/pull/641>`__).
+- Update code, which was subject to be changed with the major release of 0.8.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

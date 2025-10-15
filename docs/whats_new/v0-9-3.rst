@@ -1,0 +1,41 @@
+v0.9.3 - Kelvin's Kingdom (July, 30, 2025)
+++++++++++++++++++++++++++++++++++++++++++
+
+Hotfix for Postreleases
+#######################
+- :code:`UserDefinedEquations` now automatically reassign their connection and
+  component objections. This is necessary in context of pygmo base
+  optimization (`PR #726 <https://github.com/oemof/tespy/pull/726>`__).
+- When either :code:`ttd_u` or :code:`ttd_l` on a class :code:`HeatExchanger`
+  component is zero, :code:`kA` will be set to nan to pervent a crash
+  (`PR #728 <https://github.com/oemof/tespy/pull/728>`__).
+- A bug has been fixed, that applied a convergence check based on :code:`Td_bp`
+  value even if it was not a set value
+  (`PR #731 <https://github.com/oemof/tespy/pull/731>`__).
+
+Other Changes
+#############
+- :code:`Td_bp` and :code:`x` are now set to :code:`nan`, if the state of the
+  fluid is supercritical. The :code:`_make_p_subcritical` method has been
+  removed from the :code:`FluidPropertyWrapper` classes, because the
+  convergence helpers will ensure, that no two-phase properties are accessed in
+  supercritical states. Otherwise it was possible, that a simulation converged
+  with a supercritical state and :code:`x` or :code:`Td_bp` set by the user
+  (`PR #722 <https://github.com/oemof/tespy/pull/722>`__).
+
+Bug Fixes
+#########
+- When adding connections to a subsystem in the :code:`create_network` method
+  components were sometimes added multiple times
+  (`PR #718 <https://github.com/oemof/tespy/pull/718>`__).
+- The error message when imposing boundary conditions leading to a cyclic
+  linear dependency was wrong for some instances
+  (`PR #720 <https://github.com/oemof/tespy/pull/720>`__).
+- The starting value guesses for enthalpy of :code:`Turbine` class instances
+  now differentiates between supercritical and non-supercritical pressure
+  (`PR #721 <https://github.com/oemof/tespy/pull/721>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@sertomas <https://github.com/sertomas>`__

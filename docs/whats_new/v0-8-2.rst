@@ -1,0 +1,51 @@
+v0.8.2 - Newton's Nature (June, 12, 2025)
++++++++++++++++++++++++++++++++++++++++++
+
+API changes
+###########
+- The API of the :code:`Subsystem` class has been revised to make it act more
+  like a :code:`Network`. You can get components and connections from the
+  subsystem with respective methods, and the :code:`SubsystemInterface` class
+  is utilized to target the :code:`subsystem.inlet` and
+  :code:`subsystem.outlet` in a :code:`Connection` object. For the required
+  changes please check the respective section
+  :ref:`in the docs <tespy_subsystems_label>`
+  (`PR #652 <https://github.com/oemof/tespy/pull/652>`__).
+- The attribute :code:`progress` of the class :code:`Network` has been removed.
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
+- To raise an :code:`AssertionError` on non-convergence of a simulation you
+  must now use :code:`Network.assert_convergence()` instead of
+  :code:`Network._convergence_check()`
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
+
+New Features
+############
+- The combustion based component classes :code:`CombustionChamber`,
+  :code:`DiabaticCombustionChamber` and :code:`CombustionEngine` can now handle
+  carbonmonoxide as fuel
+  (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+- The :code:`Network`'s :code:`solve` method will now assign status values
+  depending of the outcome of the simulation. Check the section on
+  :ref:`convergence <tespy_module_convergence_label>` for more information
+  (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
+
+Other Changes
+#############
+- The partial derivatives for specified temperature are only calculated towards
+  enthalpy and pressure, not towards the fluid compostion. The reason for this
+  is, that it is not intended, that the composition of a fluid can be
+  determined by specifying temperature. Removing this saves a lot of
+  computational overhead for mixtures
+  (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
+- The calculation of the logarithmic temperature difference in heat exchanger
+  classes was error-prone due to rounding differences in temperature. The
+  calculation is now consistent through all respective classes and can handle
+  temperature differences to a precision of :code:`1e-6`
+  (`PR #679 <https://github.com/oemof/tespy/pull/679>`__).
+- The export method :code:`to_exerpy` now includes the results for components
+  (`PR #680 <https://github.com/oemof/tespy/pull/680>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

@@ -25,7 +25,10 @@ class TestGasMixingRules:
 
     def setup_method(self):
 
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
         self.nwk.set_attr(iterinfo=False)
 
         so1 = Source("air")
@@ -63,7 +66,7 @@ class TestGasMixingRules:
         cp.set_attr(pr=10, eta_s=.8)
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = c2.m.val_SI / (c1.m.val_SI + c2.m.val_SI)
         msg = f"The H2O mass fraction in connection 7 must be {target}"
@@ -74,7 +77,7 @@ class TestGasMixingRules:
             c.mixing_rule = "ideal"
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = h_ideal_cond
         msg = f"The enthalpy at connection 6 must be equal to {target}"
@@ -84,14 +87,14 @@ class TestGasMixingRules:
         c2.set_attr(T=200)
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         h_ideal = c6.h.val_SI
         for c in self.nwk.conns["object"]:
             c.mixing_rule = "ideal-cond"
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         target = h_ideal
         msg = (
@@ -104,7 +107,10 @@ class TestIncompressibleMixingRule:
 
     def setup_method(self):
 
-        self.nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         source = Source('source')
         boiler = SimpleHeatExchanger('boiler')
@@ -124,7 +130,7 @@ class TestIncompressibleMixingRule:
         )
         c2.set_attr(T=60, p=2)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         expected = {
             c.label: sum([
                 c.fluid.wrapper[fl].h_pT(c.p.val_SI, c.T.val_SI) * x
@@ -145,7 +151,7 @@ class TestIncompressibleMixingRule:
         )
         c2.set_attr(T=60, p=2)
         self.nw.solve('design')
-        self.nw._convergence_check()
+        self.nw.assert_convergence()
         expected = {
             c.label: sum([
                 c.fluid.wrapper[fl].h_pT(c.p.val_SI, c.T.val_SI) * x

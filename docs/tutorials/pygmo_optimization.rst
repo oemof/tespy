@@ -96,7 +96,7 @@ simulation. Furthermore, you have to define methods
 - to get component or connection parameters of the plant :code:`get_param`,
 - to run a new simulation for every new input from PyGMO :code:`solve_model`
   and
-- to return the objective value :code:`get_objective`.
+- to return the objective values :code:`get_objectives`.
 
 First, we set up the class with the TESPy network.
 
@@ -109,9 +109,11 @@ First, we set up the class with the TESPy network.
 
 
 Next, we add the methods :code:`get_param`, :code:`solve_model` and
-:code:`get_objective`. On top of that, we add a setter working similarly as the
+:code:`get_objectives`. On top of that, we add a setter working similarly as the
 getter. The objective is to maximize thermal efficiency as defined in the
-equation below.
+equation below. The :code:`get_objectives` method calls a :code:`get_objective`
+method and collects all objectives values. This is useful if you are
+implementing pareto or multi-objective problems.
 
 .. math::
 
@@ -119,9 +121,12 @@ equation below.
 
 .. attention::
 
-    The sense of optimization is always minimization, therefore you need to
-    define your objective functions in the appropriate way: We return the
-    reciprocal value of the efficiency for this reason.
+    The sense of optimization is minimization by default. We can change the
+    sense for each of the objectives we pass to the :code:`OptimizationProblem`
+    class by passing a list with :code:`True` or :code:`False` for each
+    inidivual objective **in identical order as the objectives** using the
+    :code:`minimize` argument. In this example we only use a single objective,
+    so there is not too much, that can go wrong.
 
 We also have to make sure, only the results of physically feasible solutions
 are returned. In case we have infeasible solutions, we can simply return
@@ -143,9 +148,11 @@ instance of our self defined class, which we pass to an instance of the
 OptimizationProblem class. We also have to pass
 
 - the variables to optimize,
-- the constraints to consider and
+- the constraints to consider,
 - the objective function name (you could define multiple in the
-  :code:`get_objective` method if you wanted).
+  :code:`get_objective` method if you wanted) and
+- the optimization sense for each objective, here we pass :code:`[False]` since
+  we want to maximize efficiency.
 
 We set one inequality constraint, namely that the pressure of the first
 extraction has to be higher than the pressure at the second one:
@@ -188,8 +195,8 @@ In our run, we got:
 .. code:: bash
 
     Efficiency: 44.82 %
-    Extraction 1: 25.4756 bar
-    Extraction 2: 2.5428 bar
+    Extraction 1: 26.462 bar
+    Extraction 2: 2.820 bar
 
 .. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
     :align: center

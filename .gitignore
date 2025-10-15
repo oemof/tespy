@@ -1,5 +1,6 @@
 *.py[cod]
 __pycache__
+__pint_cache__
 
 # C extensions
 *.so
@@ -57,3 +58,4 @@ docs/_build
 .bootstrap
 .appveyor.token
 *.bak
+uv.lock

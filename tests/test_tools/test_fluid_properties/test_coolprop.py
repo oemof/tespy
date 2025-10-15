@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_tools/test_fluid_properties.py
+tests/test_tools/test_fluid_properties/test_coolprop.py
 
 SPDX-License-Identifier: MIT
 """
@@ -152,7 +152,9 @@ class TestFluidPropertyBackEnds:
     def setup_clausius_rankine(self, fluid, back_end):
         """Setup a Clausius-Rankine cycle."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=True)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         # %% components
 
@@ -204,7 +206,9 @@ class TestFluidPropertyBackEnds:
     def setup_pipeline_network(self, fluid, back_end):
         """Setup a pipeline network."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         # %% components
 
@@ -237,7 +241,8 @@ class TestFluidPropertyBackEnds:
     @pytest.mark.skipif(
         os.environ.get('GITHUB_ACTIONS') == 'true',
         reason='GitHub actions cannot handle the tabular CoolProp back ends, '
-        'skipping this test. The test should run on your local machine.')
+        'skipping this test. The test should run on your local machine.'
+    )
     def test_clausius_rankine_tabular(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -263,7 +268,6 @@ class TestFluidPropertyBackEnds:
                 str(d_rel) + ' but should not be larger than 1e-4.')
             assert d_rel <= 1e-4, msg
 
-    @pytest.mark.skip
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -294,16 +298,18 @@ class TestFluidPropertyBackEnds:
 
         for fluid, back_end in fluids_back_ends.items():
             self.setup_pipeline_network(fluid, back_end)
-            self.nw._convergence_check()
+            self.nw.assert_convergence()
 
             value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (
                 'The pressure ratio of the pipeline must be at 0.95, but '
-                'is at ' + str(value) + ' for the fluid ' + fluid + '.')
+                f'is at {value} for the fluid {fluid}.'
+            )
             assert value == 0.95, msg
             value = round(self.nw.get_comp('pump').pr.val, 5)
             msg = (
-                'The pressure ratio of the pipeline must be at ' +
-                str(round(1 / 0.95, 5)) + ', but is at ' + str(value) +
-                ' for the fluid ' + fluid + '.')
+                'The pressure ratio of the pipeline must be at '
+                f'{round(1 / 0.95, 5)}, but is at {value} for the fluid '
+                f'{fluid}.'
+            )
             assert value == round(1 / 0.95, 5), msg

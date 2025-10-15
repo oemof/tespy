@@ -83,7 +83,7 @@ following way:
 
 - Heat sink temperature levels (`T` at 23 and 24)
 - Heat source temperature levels (`T` at 11 and 13)
-- Degree of overheating after the internal heat exchanger (`Td_bp` at 2)
+- Degree of overheating after the internal heat exchanger (`td_dew` at 2)
 - Pinch point temperature difference at the evaporator (`ttd_l`) to derive
   evaporation pressure
 - Temperature difference at the condenser (`ttd_u`) to derive condensation

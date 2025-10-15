@@ -10,12 +10,9 @@ tespy/components/heat_exchangers/movingboundary.py
 
 SPDX-License-Identifier: MIT
 """
-import math
-
 import numpy as np
 
-from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.components.heat_exchangers.sectioned import SectionedHeatExchanger
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -23,9 +20,9 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.logger import logger
 
 
-class MovingBoundaryHeatExchanger(HeatExchanger):
+class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     r"""
-    Class for counter current heat exchanger with UA sections.
+    Class for counter flow heat exchanger with UA sections.
 
     The heat exchanger is internally discretized into multiple sections, which
     are defined by phase changes. The component assumes, that no pressure
@@ -33,27 +30,28 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
 
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.td_pinch_func`
+    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-    - hot side :py:meth:`tespy.components.component.Component.dp_func`
-    - cold side :py:meth:`tespy.components.component.Component.dp_func`
-    - hot side :py:meth:`tespy.components.component.Component.UA_func`
-    - cold side :py:meth:`tespy.components.component.Component.td_pinch_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
@@ -124,13 +122,13 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -142,25 +140,34 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         Max value of hot and cold side heat exchanger effectiveness values
         :math:`eff_\text{max}/\text{1}`.
 
-    kA : float, dict
-        Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
-
-    kA_char : dict
-        Area independent heat transfer coefficient characteristic.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for hot side heat transfer coefficient.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for cold side heat transfer coefficient.
-
     UA : float, dict
         Sum of UA in all sections of the heat exchanger.
 
     td_pinch : float, dict
         Value of the lowest delta T between hot side and cold side at the
         different sections.
+
+    UA_cecchinato : dict
+        Group specification for partload UA modification according to
+        :cite:`cecchinato2010`, for usage see details in the
+        :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_cecchinato_func`.
+        This method can only be used in offdesign simulations!
+
+    alpha_ration: float
+        Secondary fluid to refrigerant heat transfer coefficient ratio.
+
+    area_ration: float
+        Secondary fluid to refrigerant heat transfer area ratio.
+
+    re_exp_r: float
+        Reynolds exponent for refrigerant side.
+
+    re_exp_sf: float
+        Reynolds exponent for secondary fluid side.
+
+    refrigerant_index: int
+        Connection index for the refrigerant side, 0 if refrigerant is on hot
+        side, 1 if refrigerant is on cold side.
 
     Note
     ----
@@ -175,7 +182,10 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import numpy as np
-    >>> nw = Network(T_unit="C", p_unit="bar")
+    >>> nw = Network()
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> nw.set_attr(iterinfo=False)
     >>> so1 = Source("vapor source")
     >>> so2 = Source("air source")
@@ -192,10 +202,11 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     pressure on the water side. The water enters at superheated vapor state
     with 15 °C superheating and leaves it with 10 °C subcooling.
 
-    >>> c1.set_attr(fluid={"Water": 1}, p=1, Td_bp=15, m=1)
-    >>> c2.set_attr(p=1, Td_bp=-15)
+    >>> c1.set_attr(fluid={"Water": 1}, p=1, td_dew=15, m=1)
+    >>> c2.set_attr(td_bubble=15)
     >>> c11.set_attr(fluid={"Air": 1}, p=1, T=15)
-    >>> c12.set_attr(p=1, T=25)
+    >>> c12.set_attr(T=25)
+    >>> cd.set_attr(pr1=1, pr2=1)
     >>> nw.solve("design")
 
     Now we can remove the pressure specifications on the air side and impose
@@ -203,24 +214,21 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     condensation pressure.
 
     >>> c1.set_attr(p=None)
-    >>> c2.set_attr(p=None)
-    >>> c12.set_attr(p=None)
-    >>> cd.set_attr(td_pinch=5, pr1=1, pr2=1)
+    >>> cd.set_attr(td_pinch=5)
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.056
+    >>> round(c1.T.val, 1)
+    50.0
 
     We can also see the temperature differences in all sections of the heat
     exchanger. Since the water vapor is cooled, condensed and then subcooled,
     while the air does not change phase, three sections will form:
 
-    >>> Q_sections = cd._assign_sections()
+    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
     >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
-    >>> delta_T_between_sections = [
-    ...     round(T_hot - T_cold, 2)
-    ...     for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-    ... ]
-    >>> delta_T_between_sections
+    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
+    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [5.0, 19.75, 10.11, 25.0]
 
     We can see that the lowest delta T is the first one. This is the delta T
@@ -233,17 +241,14 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     If we change the subcooling degree at the water outlet, the condensation
     pressure and pinch will move.
 
-    >>> c2.set_attr(Td_bp=-5)
+    >>> c2.set_attr(td_bubble=5)
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042
-    >>> Q_sections = cd._assign_sections()
+    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
     >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
-    >>> delta_T_between_sections = [
-    ...     round(T_hot - T_cold, 2)
-    ...     for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-    ... ]
-    >>> delta_T_between_sections
+    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
+    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [9.88, 14.8, 5.0, 19.88]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
@@ -256,39 +261,62 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
     173307
     >>> round(cd.UA.val)
     273449
+
+    It is also possible to apply a partload modification to UA following the
+    implementation of :cite:`cecchinato2010`. For this you have to specify
+    :code:`UA_cecchinato` as offdesign parameter and along with it, values for
+
+    - refrigerant side Reynolds exponent
+    - secondary fluid side Reynolds exponent
+    - secondary fluid to refrigerant area ratio
+    - secondary fluid to refrigerant alpha (heat transfer coefficient) ratio
+    - the refrigerant index (which side of the heat exchanger is passed by the
+      refrigerant)
+
+    >>> import os
+    >>> nw.save("design.json")
+    >>> cd.set_attr(
+    ...     area_ratio=20,        # typical for a finned heat exchanger
+    ...     alpha_ratio=1e-2,     # alpha for water side is higher
+    ...     re_exp_r=0.8,
+    ...     re_exp_sf=0.55,
+    ...     refrigerant_index=0,  # water is refrigerant in this case
+    ...     design=["td_pinch"],
+    ...     offdesign=["UA_cecchinato"]
+    ... )
+    >>> nw.solve("offdesign", design_path="design.json")
+
+    Without modifying any parameter, pinch and UA should be identical to
+    design conditions.
+
+    >>> round(cd.td_pinch.val, 2)
+    5.0
+    >>> round(cd.UA.val)
+    273449
+
+    With change in operating conditions, e.g. reduction of heat transfer
+    we'd typically observe lower pinch, if the heat transfer reduces faster
+    than the UA value does.
+
+    >>> c1.set_attr(m=0.8)
+    >>> nw.solve("offdesign", design_path="design.json")
+    >>> round(cd.Q.val_SI / cd.Q.design, 2)
+    0.8
+    >>> round(cd.UA.val_SI / cd.UA.design, 2)
+    0.88
+    >>> round(cd.td_pinch.val, 2)
+    4.3
+    >>> os.remove("design.json")
     """
-
-    @staticmethod
-    def component():
-        return 'moving boundary heat exchanger'
-
     def get_parameters(self):
         params = super().get_parameters()
-        params.update({
-            'U_gas_gas': dc_cp(min_val=0),
-            'U_gas_twophase': dc_cp(min_val=0),
-            'U_gas_liquid': dc_cp(min_val=0),
-            'U_liquid_gas': dc_cp(min_val=0),
-            'U_liquid_twophase': dc_cp(min_val=0),
-            'U_liquid_liquid': dc_cp(min_val=0),
-            'U_twophase_gas': dc_cp(min_val=0),
-            'U_twophase_twophase': dc_cp(min_val=0),
-            'U_twophase_liquid': dc_cp(min_val=0),
-            'A': dc_cp(min_val=0),
-            'UA': dc_cp(
-                min_val=0, num_eq=1, func=self.UA_func, deriv=self.UA_deriv
-            ),
-            'td_pinch': dc_cp(
-                min_val=0, num_eq=1, func=self.td_pinch_func,
-                deriv=self.td_pinch_deriv, latex=None
-            )
-        })
+        del params["num_sections"]
         return params
 
     @staticmethod
     def _get_h_steps(c1, c2):
-        """Get the steps for enthalpy for a change of state from one connection
-        to another
+        """Get the steps for enthalpy at the boundaries of phases during the
+        change of enthalpy from one state to another
 
         Parameters
         ----------
@@ -303,8 +331,11 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         list
             Steps of enthalpy of the specified connections
         """
-        if c1.fluid_data != c2.fluid_data:
-            msg = "Both connections need to utilize the same fluid data."
+        if c1.fluid.val != c2.fluid.val:
+            msg = (
+                "Both connections need to utilize the same fluid data: "
+                f"{c1.fluid.val}, {c2.fluid.val}"
+            )
             raise ValueError(msg)
 
         if c1.p.val_SI != c2.p.val_SI:
@@ -343,28 +374,6 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
 
         return h_at_steps
 
-    @staticmethod
-    def _get_Q_sections(h_at_steps, mass_flow):
-        """Calculate the heat exchange of every section given steps of
-        enthalpy and mass flow.
-
-        Parameters
-        ----------
-        h_at_steps : list
-            Enthalpy values at sections (inlet, phase change points, outlet)
-        mass_flow : float
-            Mass flow value
-
-        Returns
-        -------
-        float
-            Heat exchanged between defined steps of enthalpy.
-        """
-        return [
-            (h_at_steps[i + 1] - h_at_steps[i]) * mass_flow
-            for i in range(len(h_at_steps) - 1)
-        ]
-
     def _assign_sections(self):
         """Assign the sections of the heat exchanger
 
@@ -376,13 +385,14 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         """
         h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
-        Q_sections_hot = [0.0] + np.cumsum(Q_sections_hot).tolist()[:-1]
+        # do not insert last section, that will come from other side
+        Q_sections_hot = np.insert(np.cumsum(Q_sections_hot)[:-1], 0, 0.0)
 
         h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])
         Q_sections_cold = self._get_Q_sections(h_steps_cold, self.inl[1].m.val_SI)
-        Q_sections_cold = np.cumsum(Q_sections_cold).tolist()
+        Q_sections_cold = np.cumsum(Q_sections_cold)
 
-        return sorted(Q_sections_cold + Q_sections_hot)
+        return np.sort(np.r_[Q_sections_cold, Q_sections_hot])
 
     def _get_T_at_steps(self, Q_sections):
         """Calculate the temperature values for the provided sections.
@@ -401,170 +411,21 @@ class MovingBoundaryHeatExchanger(HeatExchanger):
         # now put the Q_sections back on the h_steps on both sides
         # Since Q_sections is defined increasing we have to start back from the
         # outlet of the hot side
-        h_steps_hot = [self.outl[0].h.val_SI + Q / self.inl[0].m.val_SI for Q in Q_sections]
-        h_steps_cold = [self.inl[1].h.val_SI + Q / self.inl[1].m.val_SI for Q in Q_sections]
-        T_steps_hot = [
+        h_steps_hot = self.outl[0].h.val_SI + Q_sections / self.inl[0].m.val_SI
+        h_steps_cold = self.inl[1].h.val_SI + Q_sections / self.inl[1].m.val_SI
+        T_steps_hot = np.array([
             T_mix_ph(self.inl[0].p.val_SI, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
             for h in h_steps_hot
-        ]
-        T_steps_cold = [
+        ])
+        T_steps_cold = np.array([
             T_mix_ph(self.inl[1].p.val_SI, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
             for h in h_steps_cold
-        ]
+        ])
         return T_steps_hot, T_steps_cold
-
-    @staticmethod
-    def _calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_sections):
-        """Calculate the UA values per section of heat exchanged.
-
-        Parameters
-        ----------
-        T_steps_hot : list
-            Temperature hot side at beginning and end of sections.
-
-        T_steps_cold : list
-            Temperature cold side at beginning and end of sections.
-
-        Q_sections : list
-            Heat transferred in each section.
-
-        Returns
-        -------
-        list
-            Lists of UA values per section of heat exchanged.
-        """
-        # the temperature ranges both come with increasing values
-        td_at_steps = [
-            T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-        ]
-
-        td_at_steps = [abs(td) for td in td_at_steps]
-        td_log_in_sections = [
-            (td_at_steps[i + 1] - td_at_steps[i])
-            / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            # round is required because tiny differences may cause
-            # inconsistencies due to rounding errors
-            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
-            else td_at_steps[i + 1]
-            for i in range(len(Q_sections))
-        ]
-        UA_in_sections = [
-            abs(Q) / td_log
-            for Q, td_log in zip(Q_sections, td_log_in_sections)
-        ]
-        return UA_in_sections
-
-    def calc_UA(self):
-        """Calculate the sum of UA for all sections in the heat exchanger
-
-        Returns
-        -------
-        float
-            Sum of UA values of all heat exchanger sections.
-        """
-        Q_sections = self._assign_sections()
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
-        Q_per_section = np.diff(Q_sections)
-        UA_sections = self._calc_UA_in_sections(T_steps_hot, T_steps_cold, Q_per_section)
-        return sum(UA_sections)
-
-    def UA_func(self, **kwargs):
-        r"""
-        Calculate heat transfer from heat transfer coefficients for
-        desuperheating and condensation as well as total heat exchange area.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-        """
-        return self.UA.val - self.calc_UA()
-
-    def UA_deriv(self, increment_filter, k):
-        r"""
-        Partial derivatives of heat transfer coefficient function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.UA_func
-        for c in self.inl + self.outl:
-            if self.is_variable(c.m):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, "m", c)
-            if self.is_variable(c.p):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
-
-    def calc_td_pinch(self):
-        """Calculate the pinch point temperature difference
-
-        Returns
-        -------
-        float
-            Value of the pinch point temperature difference
-        """
-        Q_sections = self._assign_sections()
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
-
-        td_at_steps = [
-            T_hot - T_cold
-            for T_hot, T_cold in zip(T_steps_hot, T_steps_cold)
-        ]
-        return min(td_at_steps)
-
-    def td_pinch_func(self):
-        r"""
-        Equation for pinch point temperature difference of a condenser.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = td_\text{pinch} - T_\text{sat,in,1}
-                + T_\left(
-                    p_\text{in,2},\left[
-                        h_\text{in,2}
-                        + \frac{\dot Q_\text{cond}}{\dot m_\text{in,2}}
-                    \right]
-                \right)
-        """
-        return self.td_pinch.val - self.calc_td_pinch()
-
-    def td_pinch_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of upper terminal temperature function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.td_pinch_func
-        for c in self.inl + self.outl:
-            if self.is_variable(c.m, increment_filter):
-                self.jacobian[k, c.m.J_col] = self.numeric_deriv(f, 'm', c)
-            if self.is_variable(c.p, increment_filter):
-                self.jacobian[k, c.p.J_col] = self.numeric_deriv(f, 'p', c)
-            if self.is_variable(c.h, increment_filter):
-                self.jacobian[k, c.h.J_col] = self.numeric_deriv(f, 'h', c)
 
     def calc_parameters(self):
         super().calc_parameters()
-        self.UA.val = self.calc_UA()
-        self.td_pinch.val = self.calc_td_pinch()
+
         if round(self.inl[0].p.val_SI) != round(self.outl[0].p.val_SI):
             msg = (
                 f"The {self.__class__.__name__} instance {self.label} is "

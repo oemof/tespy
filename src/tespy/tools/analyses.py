@@ -14,6 +14,8 @@ available from its original location tespy/tools/analyses.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -23,6 +25,7 @@ from tespy.tools import logger
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import combustion_gases
+from tespy.tools.units import SI_UNITS
 
 idx = pd.IndexSlice
 
@@ -177,8 +180,10 @@ class ExergyAnalysis:
         >>> Tamb = 20
         >>> pamb = 1
         >>> nw = Network()
-        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
-        ... iterinfo=False)
+        >>> nw.set_attr(iterinfo=False)
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ... })
 
         In order to show all functionalities available we use a feed water pump
         that is not driven electrically by a motor but instead internally by
@@ -302,6 +307,16 @@ class ExergyAnalysis:
 
         >>> links, nodes = ean.generate_plotly_sankey_input()
         """
+        msg = (
+            "The ExergyAnalysis class of tespy is deprecated and will be "
+            "removed in the next major release of tespy. The functionalities "
+            "and further extensions have been ported to a new external "
+            "library. Please refer to the examples integrating tespy models "
+            "with exerpy in the exerpy github repository and documentation: "
+            "https://github.com/oemof/exerpy"
+        )
+        warnings.warn(msg, FutureWarning)
+
         if len(E_F) == 0:
             msg = ('Missing fuel exergy E_F of network.')
             logger.error(msg)
@@ -342,8 +357,9 @@ class ExergyAnalysis:
             Ambient temperature value for analysis, provide value in network's
             temperature unit.
         """
-        pamb_SI = hlp.convert_to_SI('p', pamb, self.nw.p_unit)
-        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
+        _Q = self.nw.units.ureg.Quantity
+        pamb_SI = _Q(pamb, self.nw.units.default["pressure"]).to(SI_UNITS["pressure"]).magnitude
+        Tamb_SI = _Q(Tamb, self.nw.units.default["temperature"]).to(SI_UNITS["temperature"]).magnitude
 
         # reset data
         dtypes = {
@@ -376,9 +392,10 @@ class ExergyAnalysis:
         self.network_data[:] = 0
 
         # physical exergy of connections
-        for conn in self.nw.conns['object']:
-            conn.get_physical_exergy(pamb_SI, Tamb_SI)
-            conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
+        mask = self.nw.conns['conn_type'] == 'Connection'
+        for conn in self.nw.conns.loc[mask, 'object']:
+            conn._get_physical_exergy(pamb_SI, Tamb_SI)
+            conn._get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech

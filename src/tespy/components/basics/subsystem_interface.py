@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
@@ -23,15 +24,15 @@ class SubsystemInterface(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - :py:meth:`tespy.components.component.Component.pressure_equality_func`
-    - :py:meth:`tespy.components.component.Component.enthalpy_equality_func`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     Inlets/Outlets
 
     - Specify number of inlets and outlets with :code:`num_inter`,
-      predefined value: 1.
+      default value: 1.
 
     Image
 
@@ -92,15 +93,15 @@ class SubsystemInterface(Component):
     >>> from tespy.components import Sink, Source, SubsystemInterface
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> so2 = Source('source 2')
     >>> si2 = Sink('sink 2')
     >>> IF = SubsystemInterface('subsystem interface', num_inter=2)
-    >>> IF.component()
-    'subsystem interface'
     >>> len(IF.inlets())
     2
 
@@ -112,7 +113,8 @@ class SubsystemInterface(Component):
     >>> outg2 = Connection(IF, 'out2', si2, 'in1')
     >>> nw.add_conns(inc1, outg1, inc2, outg2)
     >>> inc1.set_attr(fluid={'H2O': 1}, T=40, p=3, m=100)
-    >>> inc2.set_attr(fluid={'N2': 1}, T=60, p=1, v=10)
+    >>> inc2.set_attr(fluid={'N2': 1}, T=60, p=1)
+    >>> outg2.set_attr(v=10)
     >>> nw.solve('design')
     >>> inc1.m.val_SI == outg1.m.val_SI
     True
@@ -124,25 +126,21 @@ class SubsystemInterface(Component):
     True
     """
 
-    @staticmethod
-    def component():
-        return 'subsystem interface'
-
     def get_mandatory_constraints(self):
-        return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': self.num_i},
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': self.num_i}
-        }
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            })
+        })
+        return constraints
 
     @staticmethod
     def get_parameters():

@@ -28,7 +28,8 @@ Tamb = 2.8  # ambient temperature
 # mean geothermal temperature (mean value of ground feed and return flow)
 Tgeo = 9.5
 
-nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s')
+nw = Network()
+nw.units.set_defaults(temperature="degC", pressure="bar", enthalpy="kJ/kg")
 
 # %% components
 
@@ -76,14 +77,18 @@ nw.add_conns(hs_ret_hsp, hsp_cd, cd_hs_feed)
 # %% component parametrization
 
 # condenser
-cd.set_attr(pr1=0.99, pr2=0.99, ttd_u=5, design=['pr2', 'ttd_u'],
-            offdesign=['zeta2', 'kA_char'])
+cd.set_attr(
+    pr1=0.99, pr2=0.99,# ttd_u=5,
+    design=['pr2', 'ttd_u'], offdesign=['zeta2', 'kA_char']
+)
 # evaporator
-kA_char1 = ldc('heat exchanger', 'kA_char1', 'DEFAULT', CharLine)
-kA_char2 = ldc('heat exchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-ev.set_attr(pr1=0.99, pr2=0.99, ttd_l=5,
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char'])
+kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
+kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
+ev.set_attr(
+    pr1=0.99, pr2=0.99,# ttd_l=5,
+    kA_char1=kA_char1, kA_char2=kA_char2,
+    design=['pr1', 'ttd_l'], offdesign=['zeta1', 'kA_char']
+)
 # compressor
 cp.set_attr(eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
 # heating system pump
@@ -96,11 +101,10 @@ ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 
 # heat pump system
 cc_cd.set_attr(fluid={'NH3': 1})
-ev_cp.set_attr(Td_bp=3)
+ev_cp.set_attr(td_dew=3)
 
 # geothermal heat collector
-gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1},
-                   )
+gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1})
 ev_gh_out.set_attr(T=Tgeo - 1.5, p=1.5)
 
 # heating system
@@ -108,8 +112,8 @@ cd_hs_feed.set_attr(T=40, p=2, fluid={'water': 1})
 hs_ret_hsp.set_attr(T=35, p=2)
 
 # starting values
-ev_cp.set_attr(p0=5)
-cc_cd.set_attr(p0=18)
+ev_cp.set_attr(p=5)
+cd_va.set_attr(p=18)
 
 # %% create busses
 
@@ -142,15 +146,21 @@ nw.add_busses(power, heat_cons, heat_geo)
 cd.set_attr(Q=-4e3)
 
 # %% design calculation
+nw.solve('design')
 
-path = 'NH3'
+cd.set_attr(ttd_u=5)
+ev.set_attr(ttd_l=5)
+ev_cp.set_attr(p=None)
+cd_va.set_attr(p=None)
+
 nw.solve('design')
 # alternatively use:
 # nw.solve('design', init_path=path)
 print("\n##### DESIGN CALCULATION #####\n")
 nw.print_results()
-nw.save(path)
 
+path = 'NH3.json'
+nw.save(path)
 # %% plot h_log(p) diagram
 
 # generate plotting data
@@ -266,7 +276,7 @@ for Tgeo in Tgeo_range:
     # set feed and return flow temperatures around mean value Tgeo
     gh_in_ghp.set_attr(T=Tgeo + 1.5)
     ev_gh_out.set_attr(T=Tgeo - 1.5)
-    nw.solve('offdesign', init_path=path, design_path=path)
+    nw.solve('offdesign', design_path=path)
     ean.analyse(pamb, Tamb_design)
     eps_Tgeo.append(ean.network_data.epsilon)
     print("Case %d: Tgeo = %.1f °C" % (i, Tgeo))

@@ -16,8 +16,8 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -27,12 +27,13 @@ class Valve(Component):
 
     **Mandatory Equations**
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
 
     **Optional Equations**
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.zeta_func`
     - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
 
@@ -98,13 +99,14 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> import os
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> v = Valve('valve')
-    >>> v.component()
-    'valve'
     >>> so_v = Connection(so, 'out1', v, 'in1')
     >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
@@ -112,7 +114,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> nw.save('tmp.json')
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -124,42 +126,75 @@ class Valve(Component):
     we can determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+    >>> os.remove('tmp.json')
     """
-
-    @staticmethod
-    def component():
-        return 'valve'
-
     def get_parameters(self):
         return {
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr'},
+                quantity="ratio"
+            ),
+            'dp': dc_cp(
+                min_val=0,
+                num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure"
+            ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.zeta_func,
+                dependents=self.zeta_dependents,
+                func_params={'zeta': 'zeta'}
+            ),
             'dp_char': dc_cc(
-                param='m', num_eq=1,
-                deriv=self.dp_char_deriv, func=self.dp_char_func,
-                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+                param='m', num_eq_sets=1,
+                dependents=self.dp_char_dependents,
+                func=self.dp_char_func,
+                char_params={'type': 'abs'}
+            )
         }
 
     def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': 1,
+                'func_params': {'variable': 'h'}
+            })
+        })
+        return constraints
+
+    def get_bypass_constraints(self):
         return {
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
         }
 
     @staticmethod
@@ -192,133 +227,27 @@ class Valve(Component):
             raise ValueError(msg)
 
         return (
-            self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-            self.dp_char.char_func.evaluate(expr))
+            self.inl[0].p.val_SI - self.outl[0].p.val_SI
+            - self.dp_char.char_func.evaluate(expr)
+        )
 
-    def dp_char_func_doc(self, label):
-        r"""
-        Equation for characteristic line of difference pressure to mass flow.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        p = self.dp_char.param
-        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        latex = (
-            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-            r'\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def dp_char_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of difference pressure characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.dp_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+    def dp_char_dependents(self):
+        dependents = [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.outl[0].p,
+        ]
         if self.dp_char.param == 'v':
-            if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = self.numeric_deriv(
-                    self.dp_char_func, 'p', i
-                )
-            if self.is_variable(i.h, increment_filter):
-                self.jacobian[k, i.h.J_col] = self.numeric_deriv(
-                    self.dp_char_func, 'h', i
-                )
-        else:
-            if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = 1
-
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
-
-    def initialise_source(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 4e5
-        elif key == 'h':
-            return 5e5
-
-    def initialise_target(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at inlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                5 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
-        """
-        if key == 'p':
-            return 5e5
-        elif key == 'h':
-            return 5e5
+            dependents += [self.inl[0].h]
+        return dependents
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]
         o = self.outl[0]
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = self.calc_zeta(i, o)
+        self.pr.val_SI = o.p.val_SI / i.p.val_SI
+        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        self.zeta.val_SI = self.calc_zeta(i, o)
 
     def entropy_balance(self):
         r"""

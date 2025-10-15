@@ -22,7 +22,6 @@ Other changes
   renamed to :code:`dissipation_ratio`
   (`PR #802 <https://github.com/oemof/tespy/pull/802>`__).
 
-
 Bug Fixes
 #########
 - :code:`td_bubble` and :code:`td_dew` are now calculated in postprocessing if

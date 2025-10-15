@@ -16,6 +16,12 @@ New Features
   API documentation
   (`PR #794 <https://github.com/oemof/tespy/pull/794>`__).
 
+Other changes
+#############
+- :code:`Q_diss_rel` of the :code:`PolynomialCompressor` class has been
+  renamed to :code:`dissipation_ratio`
+  (`PR #802 <https://github.com/oemof/tespy/pull/802>`__).
+
 Bug Fixes
 #########
 - :code:`td_bubble` and :code:`td_dew` are now calculated in postprocessing if

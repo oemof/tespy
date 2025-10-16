@@ -28,6 +28,12 @@ well as the equations.
     drop
   * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
 
+- Displacementmachinery
+
+  * :py:class:`PolynomialCompressor <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor>`:
+    Advanced compressor model to map manufacturer datasheet information
+    according to EN12900
+
 - Heat exchangers
 
   * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.SimpleHeatExchanger>`
@@ -71,9 +77,6 @@ well as the equations.
 - Turbomachinery
 
   * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
-  * :py:class:`PolynomialCompressor <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor>`:
-    Advanced compressor model to map manufacturer datasheet information
-    according to EN12900
   * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
   * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
   * :py:class:`Steam turbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`:
@@ -457,8 +460,8 @@ Characteristics are available for the following components and parameters:
 
 - PolynomialCompressor
 
-  * :py:meth:`<tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
-  * :py:meth:`<tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
 
 - HeatExchanger:
 

@@ -18,10 +18,10 @@ from tespy.components import PolynomialCompressor
 from tespy.components import PowerSource
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.components.turbomachinery.polynomial_compressor import calc_EN12900
-from tespy.components.turbomachinery.polynomial_compressor import fit_EN12900
-from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_data
-from tespy.components.turbomachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
+from tespy.components.displacementmachinery.polynomial_compressor import calc_EN12900
+from tespy.components.displacementmachinery.polynomial_compressor import fit_EN12900
+from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_data
+from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network

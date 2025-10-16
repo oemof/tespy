@@ -78,6 +78,30 @@ tespy.components.combustion.engine module
     :undoc-members:
     :show-inheritance:
 
+tespy.components.displacementmachinery.base module
+--------------------------------------------------
+
+.. automodule:: tespy.components.displacementmachinery.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.displacementmachinery.polynomial_compressor module
+-------------------------------------------------------------------
+
+.. automodule:: tespy.components.displacementmachinery.polynomial_compressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.displacementmachinery.polynomial_compressor_with_cooling module
+--------------------------------------------------------------------------------
+
+.. automodule:: tespy.components.displacementmachinery.polynomial_compressor_with_cooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tespy.components.heat_exchangers.base module
 --------------------------------------------
 
@@ -283,14 +307,6 @@ tespy.components.turbomachinery.compressor module
 -------------------------------------------------
 
 .. automodule:: tespy.components.turbomachinery.compressor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tespy.components.turbomachinery.polynomial_compressor module
-------------------------------------------------------------
-
-.. automodule:: tespy.components.turbomachinery.polynomial_compressor
     :members:
     :undoc-members:
     :show-inheritance:

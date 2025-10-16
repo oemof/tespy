@@ -334,3 +334,11 @@ tespy.components.turbomachinery.turbine module
     :members:
     :undoc-members:
     :show-inheritance:
+
+tespy.components.turbomachinery.turbocompressor module
+------------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.turbocompressor
+    :members:
+    :undoc-members:
+    :show-inheritance:

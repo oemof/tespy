@@ -250,6 +250,13 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     >>> round(compressor.eta_vol.val, 3)
     0.814
 
+    The mass flow of cooling water is a result of the dissipated heat:
+
+    >>> round(compressor.Q_diss.val_SI * compressor.eta_recovery.val_SI)
+    -1727
+    >>> round(b1.m.val, 3)
+    0.021
+
     We can also double check our resulting isentropic and volumetric efficiency
     values with the evaluation of the polynomials.
 

@@ -38,3 +38,4 @@ from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.steam_turbine import SteamTurbine  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401
+from .turbomachinery.turbocompressor import TurboCompressor  # noqa: F401

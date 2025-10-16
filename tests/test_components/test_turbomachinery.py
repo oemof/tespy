@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 from pytest import approx
 
+from tespy.components import Compressor
 from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
@@ -43,7 +44,7 @@ class TestTurbomachinery:
         self.nw.add_conns(self.c1, self.c2)
 
     def test_TurboCompressor(self, tmp_path):
-        """Test component properties of compressors."""
+        """Test component properties of TurboCompressor."""
         tmp_path = f'{tmp_path}.json'
         instance = TurboCompressor('compressor')
         self.setup_network(instance)
@@ -94,11 +95,11 @@ class TestTurbomachinery:
         self.c2.set_attr(p=None)
         instance.set_attr(
             char_map_pr={'char_func': ldc(
-                'Compressor', 'char_map_pr', 'DEFAULT', CharMap),
+                'TurboCompressor', 'char_map_pr', 'DEFAULT', CharMap),
                 'is_set': True
             },
             char_map_eta_s={'char_func': ldc(
-                'Compressor', 'char_map_eta_s', 'DEFAULT', CharMap),
+                'TurboCompressor', 'char_map_eta_s', 'DEFAULT', CharMap),
                 'is_set': True
             },
             eta_s=None, igva=0
@@ -140,9 +141,34 @@ class TestTurbomachinery:
         )
         assert round(eta_s, 4) == round(instance.eta_s.val, 4), msg
 
-        # back to design properties, test eta_s_char
+    def test_Compressor(self, tmp_path):
+        """Test component properties of Compressor."""
+        tmp_path = f'{tmp_path}.json'
+        instance = Compressor('compressor')
+        self.setup_network(instance)
+
+        # compress NH3, other fluids in network are for turbine, pump, ...
+        fl = {'N2': 1}
+        self.c1.set_attr(fluid=fl, v=1, p=1, T=5)
         self.c2.set_attr(p=6)
-        self.c1.set_attr(v=1, T=5, m=None)
+        instance.set_attr(eta_s=0.8, design=["eta_s"])
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert self.nw.status == 0
+        self.nw.save(tmp_path)
+
+        # test isentropic efficiency value
+        eta_s_d = (
+            (
+                isentropic(self.c1.p.val_SI, self.c1.h.val_SI, self.c2.p.val_SI, self.c1.fluid_data, self.c1.mixing_rule)
+                - self.c1.h.val_SI
+            ) / (self.c2.h.val_SI - self.c1.h.val_SI)
+        )
+        msg = (
+            f'Value of isentropic efficiency must be {eta_s_d}, is '
+            f'{instance.eta_s.val}.'
+        )
+        assert round(eta_s_d, 3) == round(instance.eta_s.val, 3), msg
 
         # test parameter specification for eta_s_char with unset char map
         instance.set_attr(
@@ -151,8 +177,6 @@ class TestTurbomachinery:
                 'is_set': True, 'param': 'm'
             }
         )
-        instance.char_map_eta_s.is_set = False
-        instance.char_map_pr.is_set = False
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
         msg = (

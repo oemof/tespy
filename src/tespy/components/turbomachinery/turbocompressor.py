@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 import numpy as np
 
 from tespy.components.component import component_registry
-from tespy.components.turbomachinery.base import Turbomachine
 from tespy.components.turbomachinery.compressor import Compressor
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentProperties as dc_cp

@@ -235,7 +235,9 @@ class Compressor(Turbomachine):
         )
 
     def energy_connector_dependents(self):
-        return [self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
+        return [
+            self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h
+        ]
 
     def eta_s_func(self):
         r"""
@@ -316,8 +318,10 @@ class Compressor(Turbomachine):
         p = self.eta_s_char.param
         expr = self.get_char_expr(p, **self.eta_s_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
+            msg = (
+                'Please choose a valid parameter, you want to link the '
+                f'isentropic efficiency to at component {self.label}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -539,7 +543,13 @@ class Compressor(Turbomachine):
         elif key == 'h':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+                else:
+                    temp = c.fluid.wrapper[fluid]._T_crit
+                    return h_mix_pT(
+                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
+                    )
             else:
                 temp = 350
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)

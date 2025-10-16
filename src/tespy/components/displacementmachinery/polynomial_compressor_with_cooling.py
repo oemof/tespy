@@ -128,7 +128,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
        with the volumetric flow at inlet. The volumetric flow at inlet scales
        linearly with the rpm of the compressor.
 
-    >>> from tespy.components import Source, Sink, PolynomialCompressor
+    >>> from tespy.components import Source, Sink, PolynomialCompressorWithCooling
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import pandas as pd
@@ -139,10 +139,18 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
-    >>> compressor = PolynomialCompressor("compressor")
+    >>> compressor = PolynomialCompressorWithCooling("compressor")
     >>> c1 = Connection(so, "out1", compressor, "in1", label="c1")
     >>> c2 = Connection(compressor, "out1", si, "in1", label="c2")
     >>> nw.add_conns(c1, c2)
+
+    Additionally, we add the cooling fluid connections.
+
+    >>> so_cool = Source("cooling water inlet")
+    >>> si_cool = Sink("cooling water outlet")
+    >>> b1 = Connection(so_cool, "out1", compressor, "in2", label="b1")
+    >>> b2 = Connection(compressor, "out2", si_cool, "in1", label="b2")
+    >>> nw.add_conns(b1, b2)
 
     Now, we can either provide
 
@@ -215,9 +223,12 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 
     We can take these polynomials and set them on the compressor instance
     together with the reference state and the assumption on heat dissipation.
+    On top we need to specify the share of dissipated heat, that can be
+    utilized by the cooling fluid.
 
     >>> compressor.set_attr(
-    ...     eta_s_poly=eta_s_poly, eta_vol_poly=eta_vol_poly, dissipation_ratio=0.05,
+    ...     eta_s_poly=eta_s_poly, eta_vol_poly=eta_vol_poly,
+    ...     dissipation_ratio=0.05, eta_recovery=0.9,
     ...     reference_state=reference_state
     ... )
 
@@ -227,8 +238,10 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 
     >>> c1.set_attr(fluid={"R134a": 1}, T=0, td_dew=10)  # T_evap=-10°C
     >>> compressor.set_attr(rpm=1200)
-    >>> p_sat = PropsSI("P", "Q", 0, "T", 50 + 273.15, "R134a")  # T_cond=50°C
-    >>> c2.set_attr(p=p_sat / 1e5)
+    >>> c2.set_attr(T_dew=50)
+    >>> b1.set_attr(fluid={"water": 1}, T=20, p=1)
+    >>> b2.set_attr(T=40)
+    >>> compressor.set_attr(dp_cooling=0)
     >>> nw.solve("design")
     >>> round(c1.v.val * 3600 / compressor.eta_vol.val, 2)
     214.0
@@ -272,8 +285,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     change:
 
     >>> c1.set_attr(T=20, td_dew=10)  # T_evap=10°C
-    >>> p_sat = PropsSI("P", "Q", 0, "T", 40 + 273.15, "R134a")  # T_cond=40°C
-    >>> c2.set_attr(p=p_sat / 1e5)
+    >>> c2.set_attr(T_dew=40)
     >>> nw.solve("design")
     >>> round(compressor.eta_s.val, 3)
     0.665

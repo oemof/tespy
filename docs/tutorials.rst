@@ -39,10 +39,10 @@ out to us. We are looking forward to hearing from you!
         :link: tespy_tutorial_heat_exchanger
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
+        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
+        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Build complex systems step by step

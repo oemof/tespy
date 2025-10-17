@@ -1,5 +1,7 @@
 import warnings
 
+import numpy as np
+
 from tespy.components.displacementmachinery.polynomial_compressor import calc_EN12900 as cEN12900
 from tespy.components.displacementmachinery.polynomial_compressor import fit_EN12900 as fEN12900
 from tespy.components.displacementmachinery.polynomial_compressor import \

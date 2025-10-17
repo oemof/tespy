@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for testing network properties.
+"""Module for testing Network class.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -33,8 +33,6 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from tespy.networks.network import v07_to_v08_export
-from tespy.networks.network import v07_to_v08_save
 from tespy.tools.helpers import TESPyNetworkError
 
 

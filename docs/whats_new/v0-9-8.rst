@@ -15,6 +15,28 @@ New Features
   and internal pinch calculation. For an example look up the component in the
   API documentation
   (`PR #794 <https://github.com/oemof/tespy/pull/794>`__).
+- A new component :code:`PolynomialCompressorWithCooling` is available. This
+  component is an extension on the :code:`PolynomialCompressor` adding a inflow
+  and an outflow for a cooling fluid. The :code:`eta_recovery` identifies
+  the share of heat transferred from the dissipated heat (based on
+  the :code:`dissipation_ratio`) of the refrigerant. Along with this a
+  restructuring has taken place, and the :code:`PolynomialCompressor` classes
+  now are located in the :code:`tespy.components.displacementmachinery` module.
+
+  .. attention::
+
+    With the components moving you now need to import the compressor specific
+    setup methods for the polynomials calculations from the new module, e.g.:
+
+    >>> from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_data
+
+  (`PR #804 <https://github.com/oemof/tespy/pull/804>`__).
+
+Other changes
+#############
+- :code:`Q_diss_rel` of the :code:`PolynomialCompressor` class has been
+  renamed to :code:`dissipation_ratio`
+  (`PR #802 <https://github.com/oemof/tespy/pull/802>`__).
 
 Bug Fixes
 #########

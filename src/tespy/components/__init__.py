@@ -7,6 +7,8 @@ from .basics.subsystem_interface import SubsystemInterface  # noqa: F401
 from .combustion.base import CombustionChamber  # noqa: F401
 from .combustion.diabatic import DiabaticCombustionChamber  # noqa: F401
 from .combustion.engine import CombustionEngine  # noqa: F401
+from .displacementmachinery.polynomial_compressor import PolynomialCompressor  # noqa: F401
+from .displacementmachinery.polynomial_compressor_with_cooling import PolynomialCompressorWithCooling  # noqa: F401
 from .heat_exchangers.base import HeatExchanger  # noqa: F401
 from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401
@@ -33,7 +35,7 @@ from .reactors.fuel_cell import FuelCell  # noqa: F401
 from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
-from .turbomachinery.polynomial_compressor import PolynomialCompressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401
 from .turbomachinery.steam_turbine import SteamTurbine  # noqa: F401
 from .turbomachinery.turbine import Turbine  # noqa: F401
+from .turbomachinery.turbocompressor import TurboCompressor  # noqa: F401

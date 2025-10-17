@@ -25,6 +25,7 @@ from tespy.components import HeatExchanger
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
+from tespy.components import SectionedHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
@@ -1060,6 +1061,105 @@ class TestHeatExchangers:
         self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
         self.c4.set_attr(T=60)
         instance.set_attr(dp1=0.0, dp2=0.0)
+
+        self.nw.solve("design")
+
+        self.c4.set_attr(T=None)
+        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        self.nw.save(design_path)
+
+        instance.set_attr(design=["td_pinch"], offdesign=["UA"])
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        assert approx(instance.td_pinch.val_SI) == 5
+
+        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
+        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+
+        # reduces heat transfer
+        self.c1.set_attr(m=0.9)
+        self.nw.solve("offdesign", design_path=design_path)
+
+        # reducing heat transfer will reduce pinch at identical pinch
+        assert instance.td_pinch.val_SI < 5
+
+    def test_SectionedHeatExchanger(self):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.1, dp2=0.001)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.dp1.val_SI) == _calc_dp(self.c1, self.c2)
+        assert approx(instance.dp2.val_SI) == _calc_dp(self.c3, self.c4)
+
+        assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
+        assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
+
+        _, T_hot, T_cold, heat_sections, _ = instance.calc_sections()
+        # the sum of heat transfer of all sections must be equal to Q
+        assert approx(sum(heat_sections)) == -instance.Q.val_SI
+        # UA calculated over sections must be larger than kA
+        assert instance.UA.val > instance.kA.val
+        # minimum temperature difference at section borders = pinch
+        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+
+    def test_SectionedHeatExchanger_negative_pinch(self):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=60)
+        self.c4.set_attr(T=70)
+        instance.set_attr(dp1=0.1, dp2=0.001)
+
+        self.nw.solve("design")
+        assert self.nw.status == 1
+        assert np.isnan(instance.UA.val)
+
+    def test_SectionedHeatExchanger_set_pinch(self):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.1, dp2=0.001)
+
+        self.nw.solve("design")
+
+        self.c4.set_attr(T=None)
+        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        _, T_hot, T_cold, _, _ = instance.calc_sections()
+        # minimum temperature difference at section borders = pinch
+        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+
+    def test_SectionedHeatExchanger_offdesign_UA(self, tmp_path):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.1, dp2=0.001)
 
         self.nw.solve("design")
 

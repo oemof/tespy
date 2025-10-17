@@ -3307,7 +3307,7 @@ class Network:
         keeping the temperature at a constant value.
 
         >>> from tespy.components import (
-        ...     Sink, Source, CombustionChamber, Compressor, Turbine,
+        ...     Sink, Source, CombustionChamber, TurboCompressor, Turbine,
         ...     SimpleHeatExchanger, PowerBus, PowerSink, Generator
         ... )
         >>> from tespy.connections import Connection, Ref, PowerConnection
@@ -3320,7 +3320,7 @@ class Network:
         ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
-        >>> compressor = Compressor('compressor')
+        >>> compressor = TurboCompressor('compressor')
         >>> combustion = CombustionChamber('combustion')
         >>> turbine = Turbine('turbine')
         >>> preheater = SimpleHeatExchanger('fuel preheater')

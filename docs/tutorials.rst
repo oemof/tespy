@@ -6,6 +6,10 @@ Advanced Tutorials
 We provide more advanced tutorials for you to better understand how to work
 with more complex systems in TESPy.
 
+The first tutorial highlights the different heat exchanger type classes
+available in the framework and how they differentiate to help you selecting the
+appropriate one.
+
 At the example of different heat pump topologies, you will learn to
 
 - create a more complex model *step by step* and get the idea of designing a
@@ -26,8 +30,20 @@ the results are transferred to the energy system optimization problem.
 If you have any questions, ideas for other tutorials or feedback, please reach
 out to us. We are looking forward to hearing from you!
 
+.. card::  Overview of Heat changer models
+
 .. grid:: 2
     :gutter: 1
+
+    .. grid-item-card:: Overview on available classes for heat exchangers
+        :link: tespy_tutorial_heat_exchanger
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Build complex systems step by step
         :link: tespy_tutorial_heat_pump_label
@@ -39,6 +55,9 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
             :class: only-dark
 
+.. grid:: 2
+    :gutter: 1
+
     .. grid-item-card::  Generate stable starting values
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
@@ -49,8 +68,6 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
             :class: only-dark
 
-.. grid:: 2
-    :gutter: 1
 
     .. grid-item-card::  Exergy analysis of a heat pump
         :link: tespy_tutorial_heat_pump_exergy_label
@@ -62,6 +79,9 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
 
+.. grid:: 2
+    :gutter: 1
+
     .. grid-item-card::  Integration of an air source heat pump in energy system optimization
         :link: https://oemof.github.io/heat-pump-tutorial/
 
@@ -70,10 +90,6 @@ out to us. We are looking forward to hearing from you!
 
         .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
             :class: only-dark
-
-
-.. grid:: 2
-    :gutter: 1
 
     .. grid-item-card::  Optimization of a thermal power plant
         :link: tespy_tutorial_pygmo_optimization_label
@@ -85,16 +101,13 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Gas Turbine with Heat Recovery Steam Generator
-
-        Coming soon!
-
 
 .. toctree::
     :maxdepth: 1
     :glob:
     :hidden:
 
+    tutorials/heat_exchangers.rst
     tutorials/heat_pump_steps.rst
     tutorials/starting_values.rst
     tutorials/heat_pump_exergy.rst

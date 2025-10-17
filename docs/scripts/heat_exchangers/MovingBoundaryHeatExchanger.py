@@ -1,8 +1,9 @@
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
-from tespy.components import HeatExchanger, Source, Sink
+from tespy.components import MovingBoundaryHeatExchanger, Source, Sink
 from tespy.connections import Connection
 from tespy.networks import Network
+from tespy.tools.fluid_properties import h_mix_pQ
 
 
 nw = Network()
@@ -18,7 +19,7 @@ so2 = Source("source 2")
 si1 = Sink("sink 1")
 si2 = Sink("sink 2")
 
-heatex = HeatExchanger("heatexchanger")
+heatex = MovingBoundaryHeatExchanger("heatexchanger")
 
 c1 = Connection(so1, "out1", heatex, "in1", label="c1")
 c2 = Connection(heatex, "out1", si1, "in1", label="c2")
@@ -36,20 +37,20 @@ heatex.set_attr(dp1=0, dp2=0)
 
 nw.solve("design")
 
+heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
+heat /= 1e6
 
-heat = [0, abs(heatex.Q.val)]
-T_hot = [c2.T.val_SI, c1.T.val_SI]
-T_cold = [d1.T.val_SI, d2.T.val_SI]
+fig, ax = plt.subplots(1, figsize=(10, 6))
 
+annotation_color = "black"
 
-fig, ax = plt.subplots(1)
+ax.plot((heat, heat), ([T for T in T_hot], [T for T in T_cold]),color=annotation_color, linestyle = "--")
+ax.text(heat[2] * 1.05, (T_hot[2] + T_cold[2]) / 2, r'$\Delta T_\text{i}$', va='center', color=annotation_color, rotation=0)
 
 ax.plot(heat, T_hot, "o-", color="red")
 ax.plot(heat, T_cold, "o-", color="blue")
 
-annotation_color = "black"
-
-ttd_u_location = (heat[1] * (1 + 1 / 15), T_cold[1]), (heat[1] * (1 + 1 / 15), T_hot[1])
+ttd_u_location = (heat[-1] * (1 + 1 / 15), T_cold[-1]), (heat[-1] * (1 + 1 / 15), T_hot[-1])
 bracket = mpatches.FancyArrowPatch(
     *ttd_u_location,
     connectionstyle=f"bar,angle=0,fraction=0",
@@ -58,12 +59,12 @@ bracket = mpatches.FancyArrowPatch(
 )
 ax.add_patch(bracket)
 
-offset = heat[1] / 15     # absolute horizontal offset from the line
-bar_len = heat[1] / 15    # absolute size of the bracket ends (in data units)
-ax.plot([heat[1] + offset - bar_len/2, heat[1] + offset + bar_len/2], [T_hot[1], T_hot[1]], color=annotation_color, lw=2)
-ax.plot([heat[1] + offset - bar_len/2, heat[1] + offset + bar_len/2], [T_cold[1], T_cold[1]], color=annotation_color, lw=2)
+offset = heat[-1] / 15     # absolute horizontal offset from the line
+bar_len = heat[-1] / 15    # absolute size of the bracket ends (in data units)
 
-ax.text(heat[1] * 1.1, (T_hot[1] + T_cold[1]) / 2, r'$\Delta T = \text{ttd_u}$', va='center', color=annotation_color, rotation=0)
+ax.text(heat[-1] * 1.1, (T_hot[-1] + T_cold[-1]) / 2, r'$\Delta T = \text{ttd_u}$', va='center', color=annotation_color, rotation=0)
+ax.plot([heat[-1] + offset - bar_len/2, heat[-1] + offset + bar_len/2], [T_hot[-1], T_hot[-1]], color=annotation_color, lw=2)
+ax.plot([heat[-1] + offset - bar_len/2, heat[-1] + offset + bar_len/2], [T_cold[-1], T_cold[-1]], color=annotation_color, lw=2)
 
 ttd_l_location = (0 - offset, T_cold[0]), (0 - offset, T_hot[0])
 bracket = mpatches.FancyArrowPatch(
@@ -77,8 +78,8 @@ ax.add_patch(bracket)
 ax.text(heat[0] - offset * 5, (T_hot[0] + T_cold[0]) / 2, r'$\Delta T = \text{ttd_l}$', va='center', color=annotation_color, rotation=0)
 ax.plot([heat[0] - offset - bar_len/2, heat[0] - offset + bar_len/2], [T_hot[0], T_hot[0]], color=annotation_color, lw=2)
 ax.plot([heat[0] - offset - bar_len/2, heat[0] - offset + bar_len/2], [T_cold[0], T_cold[0]], color=annotation_color, lw=2)
-ax.set_xbound([- 6 * offset, heat[1] + 6 * offset])
+ax.set_xbound([- 5.5 * offset, heat[-1] + 4 * offset])
 ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 
-fig.savefig("HeatExchanger.svg", bbox_inches="tight")
+fig.savefig("MovingBoundaryHeatExchanger.svg", bbox_inches="tight")

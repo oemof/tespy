@@ -1,8 +1,8 @@
 # %% [markdown]
 # # MovingBoundaryHeatExchanger (and SectionedHeatExchanger) class
-# 
+#
 # - 3 different categories of HeatExchangers
-# 
+#
 # 1. 0D models without secondary side
 #    - SimpleHeatExchanger
 #    - (ParabolicTrough, SolarCollector, Pipe)
@@ -14,11 +14,11 @@
 # 3. 1D models (discretized internal states)
 #    - SectionedHeatExchanger (cut into specified number of linear sections)
 #    - MovingBoundaryHeatExchanger (cut into sections at phase boundaries)
-# 
+#
 # ## MovingBoundaryHeatExchanger
-# 
+#
 # Workflow
-# 
+#
 # 1. For hot and for cold side:
 #    1. Check if phase changes between inlet and outlet
 #    2. If yes, calculate enthalpy of phase change point (assumes pressure does
@@ -27,16 +27,16 @@
 #       to calculate heat exchanged from start to that point ($Q_i$)
 #    4. Merge both heat exchanged lists from hot and cold side
 #    5. Cut the heat exchanger into sections at each heat exchange step
-# 2. Calculate internal temperatures 
+# 2. Calculate internal temperatures
 #    1. Calculate enthalpies at each step
 #    $h_i = h_\text{in} + \frac{\dot Q_i}{\dot m}$, $h_i = h_\text{out} - \frac{\dot Q_i}{\dot m}$
-#    1. Calculate temperature at each step $T_i=T(p, h_i)$ 
+#    1. Calculate temperature at each step $T_i=T(p, h_i)$
 #    2. Calculate temperature difference at each step $\Delta T_i=T_{\text{hot,}i} - T_{\text{cold,}i}$
 # 3. For UA only:
 #    1. Calculate logarithmic temperature difference per section between adjacent steps $\Delta T_{\text{log,}k}=\frac{\Delta T_i - \Delta T_{i+1}}{\ln\frac{\Delta T_i}{\Delta T_{i+1}}}$
 #    2. Calculate UA per section $UA_k=\frac{\dot Q_k}{\Delta T_{\text{log,}k}}$
 #    3. Sum UA for overall $UA = \sum UA_k$
-# 
+#
 
 # %%
 from tespy.components import MovingBoundaryHeatExchanger, Source, Sink
@@ -232,6 +232,8 @@ ax.set_xlabel(r'$\Delta\dot{H}$ [W]')
 ax.set_ylabel(r'T [K]')
 ax.legend()
 
+plt.show()
+
 
 heatex.set_attr(num_sections=6)
 nw.solve("design")
@@ -247,3 +249,5 @@ ax.plot(heat, T_cold, "o-", color="blue")
 ax.set_xlabel(r'$\Delta\dot{H}$ [W]')
 ax.set_ylabel(r'T [K]')
 ax.legend()
+
+plt.show()

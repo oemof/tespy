@@ -37,6 +37,8 @@ Other changes
 - :code:`Q_diss_rel` of the :code:`PolynomialCompressor` class has been
   renamed to :code:`dissipation_ratio`
   (`PR #802 <https://github.com/oemof/tespy/pull/802>`__).
+- A nice new tutorial on the different types of heat exchangers is available
+  (`PR #798 <https://github.com/oemof/tespy/pull/798>`__).
 
 Bug Fixes
 #########
@@ -47,3 +49,5 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@25Nik <https://github.com/25Nik>`__
+- `@maltefritz <https://github.com/maltefritz>`__

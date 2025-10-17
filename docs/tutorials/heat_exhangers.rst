@@ -12,29 +12,38 @@ the differences in the results.
 Overview table
 ++++++++++++++
 
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| type                           |    | speed      | accuracy*   | pressure loss | internal pinch |
-+================================+====+============+=============+===============+================+
-| SimpleHeatExchanger            | 0D | fastest    | lowest      | ✅            | ❌             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| HeatExchanger                  | 0D | very fast  | lower*      | ✅            | ❌             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| ParallelFlowHeatExchanger      | 0D | very fast  | lower*      | ✅            | ❌             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| Desuperheater                  | 0D | very fast  | lower*      | ✅            | ❌             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| Condenser                      | 0D | very fast  | low*        | ✅            | (✅)           |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| MovingBoundaryHeatExchanger    | 1D | mid        | high        | (✅)          | ✅             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
-| SectionedHeatExchanger         | 1D | slow**     | highest     | ✅            | ✅             |
-+--------------------------------+----+------------+-------------+---------------+----------------+
++-----------------------------+-----+-----------+-----------+----------------+
+|            type             |     |   speed   | accuracy* | internal pinch |
++=============================+=====+===========+===========+================+
+| SimpleHeatExchanger         | 0D  | fastest   | lowest    | ❌              |
++-----------------------------+-----+-----------+-----------+----------------+
+| HeatExchanger               | 0D  | very fast | lower     | ❌              |
++-----------------------------+-----+-----------+-----------+----------------+
+| ParallelFlowHeatExchanger   | 0D  | very fast | lower     | ❌              |
++-----------------------------+-----+-----------+-----------+----------------+
+| Desuperheater               | 0D  | very fast | lower     | ❌              |
++-----------------------------+-----+-----------+-----------+----------------+
+| Condenser                   | 0D  | very fast | low       | (✅)            |
++-----------------------------+-----+-----------+-----------+----------------+
+| MovingBoundaryHeatExchanger | 1D  | mid       | high      | ✅              |
++-----------------------------+-----+-----------+-----------+----------------+
+| SectionedHeatExchanger      | 1D  | slow      | highest   | ✅              |
++-----------------------------+-----+-----------+-----------+----------------+
 
+.. note::
 
-* Precision varies depending on actual operating conditions, see the examples
-below
-** Specifically when imposing :code:`UA` or :code:`td_pinch` as boundary
-condition.
+    - The accuracy depends on the context. In many context, the standard 0D
+      heat exchanger components can be just as accurate as the 1D models.
+    - The calculation speed also depends on context for the
+      SectionedHeatExchanger:
+
+      1. The number of specified sections is influencing the speed.
+      2. If you impose :code:`td_pinch` or :code:`UA` to your model it will
+         be significantly slower compared to other models, especially with a
+         high number of sections.
+      3. If you do not specify :code:`td_pinch` or :code:`UA` the sectioning is
+         only applied once in the postprocessing, this takes more time than
+         other types of heat exchangers but is still relatively fast.
 
 Model comparisons
 +++++++++++++++++

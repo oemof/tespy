@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8
 
 """Module of class PolynomialCompressor.
@@ -7,7 +6,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tespy/components/turbomachinery/polynomial_compressor.py
+tespy/components/displacementmachinery/polynomial_compressor.py
 
 SPDX-License-Identifier: MIT
 """
@@ -15,8 +14,7 @@ import warnings
 
 import numpy as np
 
-from tespy.components.component import Component
-from tespy.components.turbomachinery.base import Turbomachine
+from tespy.components.displacementmachinery.base import DisplacementMachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -29,7 +27,7 @@ from tespy.tools.helpers import TESPyComponentError
 
 # the polynomial compressor is a fundamentally different component, therefore
 # inherits from Turbomachine and not from Compressor
-class PolynomialCompressor(Turbomachine):
+class PolynomialCompressor(DisplacementMachine):
     r"""
     Class for a compressor model following the EN12900 implementation of
     :cite:`cecchinato2010`.
@@ -45,9 +43,9 @@ class PolynomialCompressor(Turbomachine):
 
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func`
-    - :py:meth:`tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func`
-    - :py:meth:`tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func`
+    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func`
+    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func`
+    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func`
 
     Inlets/Outlets
 
@@ -202,11 +200,11 @@ class PolynomialCompressor(Turbomachine):
     We can now use the inbuilt method to determine the isentropic and
     volumetric efficiency polynomials. For that we need to import the
     respective method. Apart from this method, there is also the
-    :py:func:`tespy.components.turbomachinery.polynomial_compressor.generate_eta_polys_from_power_and_cooling_polys`
+    :py:func:`tespy.components.displacementmachinery.polynomial_compressor.generate_eta_polys_from_power_and_cooling_polys`
     method, that can do the same step provided a polynomial for power and one
     for the cooling.
 
-    >>> from tespy.components.turbomachinery.polynomial_compressor import (
+    >>> from tespy.components.displacementmachinery.polynomial_compressor import (
     ...     generate_eta_polys_from_data
     ... )
     >>> eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
@@ -248,7 +246,7 @@ class PolynomialCompressor(Turbomachine):
     We can also double check our resulting isentropic and volumetric efficiency
     values with the evaluation of the polynomials.
 
-    >>> from tespy.components.turbomachinery.polynomial_compressor import (
+    >>> from tespy.components.displacementmachinery.polynomial_compressor import (
     ...     calc_EN12900
     ... )
     >>> round(compressor.eta_s.val, 3) == round(calc_EN12900(eta_s_poly, -10, 50), 3)
@@ -260,7 +258,7 @@ class PolynomialCompressor(Turbomachine):
 
         You can also create polynomials for power and cooling from respective
         data. For that, import the
-        :py:func:`tespy.components.turbomachinery.polynomial_compressor.fit_EN12900`
+        :py:func:`tespy.components.displacementmachinery.polynomial_compressor.fit_EN12900`
         method and pass the respective data.
 
     We can also check the compressor power. It is higher than the power of an

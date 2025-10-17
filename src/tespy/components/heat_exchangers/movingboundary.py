@@ -429,16 +429,18 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         if round(self.inl[0].p.val_SI) != round(self.outl[0].p.val_SI):
             msg = (
                 f"The {self.__class__.__name__} instance {self.label} is "
-                "defined for constant pressure. The identification of the "
-                "heat transfer sections might be wrong in case phase changes "
-                "are involved in the heat transfer process."
+                "discovering the phase changes based on constant pressure "
+                "assumption. The identification of the heat transfer sections "
+                "might be wrong in case phase changes are involved in the "
+                "heat transfer process."
             )
             logger.warning(msg)
         if round(self.inl[1].p.val_SI) != round(self.outl[1].p.val_SI):
             msg = (
                 f"The {self.__class__.__name__} instance {self.label} is "
-                "defined for constant pressure. The identification of the "
-                "heat transfer sections might be wrong in case phase changes "
-                "are involved in the heat transfer process."
+                "discovering the phase changes based on constant pressure "
+                "assumption. The identification of the heat transfer sections "
+                "might be wrong in case phase changes are involved in the "
+                "heat transfer process."
             )
             logger.warning(msg)

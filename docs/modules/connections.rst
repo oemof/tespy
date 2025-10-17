@@ -184,7 +184,7 @@ outlet.
 
 For more complex (and arbitrary) relationships between variables of the system
 use the :code:`UserDefinedEquation` class. Some examples can be found in
-:ref:`this section <tespy_user_label>`.
+:ref:`this section <tespy_ude_label>`.
 
 Fluid specification
 ^^^^^^^^^^^^^^^^^^^

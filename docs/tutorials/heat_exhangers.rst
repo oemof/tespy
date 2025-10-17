@@ -15,19 +15,19 @@ Overview table
 +-----------------------------+-----+-----------+-----------+----------------+
 |            type             |     |   speed   | accuracy* | internal pinch |
 +=============================+=====+===========+===========+================+
-| SimpleHeatExchanger         | 0D  | fastest   | lowest    | ❌              |
+| SimpleHeatExchanger         | 0D  | fastest   | lowest    | no             |
 +-----------------------------+-----+-----------+-----------+----------------+
-| HeatExchanger               | 0D  | very fast | lower     | ❌              |
+| HeatExchanger               | 0D  | very fast | lower     | no             |
 +-----------------------------+-----+-----------+-----------+----------------+
-| ParallelFlowHeatExchanger   | 0D  | very fast | lower     | ❌              |
+| ParallelFlowHeatExchanger   | 0D  | very fast | lower     | no             |
 +-----------------------------+-----+-----------+-----------+----------------+
-| Desuperheater               | 0D  | very fast | lower     | ❌              |
+| Desuperheater               | 0D  | very fast | lower     | no             |
 +-----------------------------+-----+-----------+-----------+----------------+
-| Condenser                   | 0D  | very fast | low       | (✅)            |
+| Condenser                   | 0D  | very fast | low       | (no)           |
 +-----------------------------+-----+-----------+-----------+----------------+
-| MovingBoundaryHeatExchanger | 1D  | mid       | high      | ✅              |
+| MovingBoundaryHeatExchanger | 1D  | mid       | high      | yes            |
 +-----------------------------+-----+-----------+-----------+----------------+
-| SectionedHeatExchanger      | 1D  | slow      | highest   | ✅              |
+| SectionedHeatExchanger      | 1D  | slow      | highest   | yes            |
 +-----------------------------+-----+-----------+-----------+----------------+
 
 .. note::

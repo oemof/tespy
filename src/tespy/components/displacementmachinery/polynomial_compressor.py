@@ -433,7 +433,7 @@ class PolynomialCompressor(DisplacementMachine):
 
         .. math::
 
-            0 = \eta_\text{s} \left(T_\text{evap}, T_\text{cond}\right)\cdot
+            0 = \eta_\text{s} \cdot
             \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
             - \left( h_\text{out,s} - h_\text{in} \right)
 

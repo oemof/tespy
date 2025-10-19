@@ -433,7 +433,7 @@ class PolynomialCompressor(DisplacementMachine):
 
         .. math::
 
-            0 = \eta_\text{s} \left(T_\text{evap}, T_\text{cond}\right)\cdot
+            0 = \eta_\text{s} \cdot
             \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
             - \left( h_\text{out,s} - h_\text{in} \right)
 
@@ -509,7 +509,8 @@ class PolynomialCompressor(DisplacementMachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (o.h.val_SI - i.h.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 

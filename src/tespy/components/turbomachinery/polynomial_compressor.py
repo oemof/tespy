@@ -52,4 +52,4 @@ def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_sta
     )
     logger.warning(msg)
     warnings.warn(msg, FutureWarning)
-    return gen_polys_from_data(df_power, df_cooling, fluid, fluid, reference_state)
+    return gen_polys_from_data(df_power, df_cooling, fluid, reference_state)

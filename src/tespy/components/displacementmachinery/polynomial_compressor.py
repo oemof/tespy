@@ -509,7 +509,8 @@ class PolynomialCompressor(DisplacementMachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (o.h.val_SI - i.h.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 

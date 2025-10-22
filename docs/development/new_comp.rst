@@ -13,7 +13,7 @@ since I don't know the code structure. These instructions on 'how to
 contribute a new component' are intended to simplify the transition from user 
 to a awesome developer.
 
-Implentation of a polynomial compressor with cooling
+Implementation of a polynomial compressor with cooling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The following basic principles should be followed when implementing a 
 component:

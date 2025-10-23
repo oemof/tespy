@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.displacementmachinery.base import DisplacementMachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -25,8 +26,7 @@ from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import TESPyComponentError
 
 
-# the polynomial compressor is a fundamentally different component, therefore
-# inherits from Turbomachine and not from Compressor
+@component_registry
 class PolynomialCompressor(DisplacementMachine):
     r"""
     Class for a compressor model following the EN12900 implementation of

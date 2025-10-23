@@ -444,7 +444,7 @@ class Component:
                 if is_set:
                     if self._mode == "design" and key not in self.offdesign:
                         data.set_attr(is_set=True)
-                elif self._mode == "offdesign" and key not in self.design:
+                    elif self._mode == "offdesign" and key not in self.design:
                         data.set_attr(is_set=True)
 
                 elif data.is_set:

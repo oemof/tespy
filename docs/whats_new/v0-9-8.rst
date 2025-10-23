@@ -39,6 +39,10 @@ Other changes
   (`PR #802 <https://github.com/oemof/tespy/pull/802>`__).
 - A nice new tutorial on the different types of heat exchangers is available
   (`PR #798 <https://github.com/oemof/tespy/pull/798>`__).
+- Parameter groups (e.g. :code:`darcy_group` or :code:`UA_cecchinato`) can now
+  be specified to not be used in design or offdesign even when all elements of
+  the group are set with :code:`offdesign=["UA_cecchinato"]`
+  (`PR #812 <https://github.com/oemof/tespy/pull/812>`__).
 
 Bug Fixes
 #########

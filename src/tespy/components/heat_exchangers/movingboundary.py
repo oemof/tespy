@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.sectioned import SectionedHeatExchanger
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -20,6 +21,7 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.logger import logger
 
 
+@component_registry
 class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     r"""
     Class for counter flow heat exchanger with UA sections.

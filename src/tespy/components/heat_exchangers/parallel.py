@@ -2,9 +2,12 @@ import math
 
 import numpy as np
 
+from tespy.components.component import component_registry
+
 from .base import HeatExchanger
 
 
+@component_registry
 class ParallelFlowHeatExchanger(HeatExchanger):
     r"""
     Class for parallel flow heat exchanger.

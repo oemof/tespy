@@ -1,9 +1,11 @@
+from tespy.components.component import component_registry
 from tespy.components.nodes.merge import Merge
 from tespy.components.nodes.splitter import Splitter
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
+@component_registry
 class Node(Splitter, Merge):
     r"""
     Class for combined merge and splitting points with multiple inflows and

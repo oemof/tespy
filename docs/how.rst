@@ -226,7 +226,13 @@ Examples
 .. card::  How to contribute a new component
     :link: tespy_development_new_comp_label
     :link-type: ref
-
-    .. figure:: /_static/images/basics/modeling_concept.svg
+    
+    .. figure:: /_static/images/tutorials/compressor_with_cooling/drawing_pcwc.svg
         :align: center
-        :alt: TESPy's modeling concept
+        :alt: Blackboard drawing of compressor with cooling
+        :figclass: only-light
+
+    .. figure:: /_static/images/tutorials/compressor_with_cooling/drawing_pcwc_darkmode.svg
+        :align: center
+        :alt: Blackboard drawing of compressor with cooling
+        :figclass: only-dark

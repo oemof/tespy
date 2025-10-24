@@ -29,10 +29,17 @@ component:
 
     New component inherits from existing "parent" component
 
-.. figure:: /_static/images/tutorials/compressor_with_cooling/drawing.svg
+.. figure:: /_static/images/tutorials/compressor_with_cooling/drawing_pcwc.svg
     :align: center
     :alt: Blackboard drawing of compressor with cooling
     :figclass: only-light
+
+    Figure: Blackboard drawing of compressor with cooling
+
+.. figure:: /_static/images/tutorials/compressor_with_cooling/drawing_pcwc_darkmode.svg
+    :align: center
+    :alt: Blackboard drawing of compressor with cooling
+    :figclass: only-dark
 
     Figure: Blackboard drawing of compressor with cooling
 

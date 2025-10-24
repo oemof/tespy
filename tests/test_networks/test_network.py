@@ -175,7 +175,6 @@ class TestNetworks:
 
     def test_Network_from_dict(self):
         """Test state of network if loaded successfully from export."""
-        tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
         a.set_attr(fluid={"H2O": 1})

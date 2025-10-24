@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class MovingBoundaryCondenser.
+"""Module of class MovingBoundaryHeatExchanger.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

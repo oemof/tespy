@@ -49,6 +49,8 @@ Bug Fixes
 - :code:`td_bubble` and :code:`td_dew` are now calculated in postprocessing if
   they are not specified
   (`PR #792 <https://github.com/oemof/tespy/pull/792>`__).
+- The component classes missing the :code:`@component_registry` decorator have
+  been updated (`PR #815 <https://github.com/oemof/tespy/pull/815>`__).
 
 Contributors
 ############

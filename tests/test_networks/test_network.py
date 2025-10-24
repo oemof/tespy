@@ -157,7 +157,7 @@ class TestNetworks:
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
-    def test_Network_reader_checked(self, tmp_path):
+    def test_Network_from_json_checked(self, tmp_path):
         """Test state of network if loaded successfully from export."""
         tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
@@ -166,6 +166,22 @@ class TestNetworks:
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
         imported_nwk = Network.from_json(tmp_path)
+        imported_nwk.solve('design', init_only=True)
+        msg = (
+            'If the network import was successful the network check '
+            'should have been successful, too, but it is not.'
+        )
+        assert imported_nwk.checked, msg
+
+    def test_Network_from_dict(self):
+        """Test state of network if loaded successfully from export."""
+        tmp_path = f"{tmp_path}.json"
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
+        self.nw.solve('design', init_only=True)
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
             'If the network import was successful the network check '

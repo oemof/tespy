@@ -1006,3 +1006,34 @@ def test_offdesign_of_component_parameter_group(tmp_path):
     nw.solve("offdesign", design_path=path)
     nw.assert_convergence()
     assert instance.darcy_group.is_set
+
+
+def test_design_of_component_parameter_group(tmp_path):
+
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = Pipe("pipe")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1, m=1)
+    c2.set_attr(T=19.5, offdesign=["p"])
+    instance.set_attr(D=0.1, ks=0.0001, L=50, design=["darcy_group"])
+    nw.solve("design")
+    nw.assert_convergence()
+    assert instance.darcy_group.is_set
+
+    path = os.path.join(tmp_path, "design.json")
+    nw.save(path)
+    nw.solve("offdesign", design_path=path)
+    nw.assert_convergence()
+    assert not instance.darcy_group.is_set

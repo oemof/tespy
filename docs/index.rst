@@ -43,4 +43,4 @@
     :hidden:
 
     development/what
-    development/how
+    how

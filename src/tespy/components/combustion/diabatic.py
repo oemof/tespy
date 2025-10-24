@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class CombustionChamber.
+"""Module of class DiabaticCombustionChamber.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted

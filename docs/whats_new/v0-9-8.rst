@@ -43,6 +43,21 @@ Other changes
   be specified to not be used in design or offdesign even when all elements of
   the group are set with :code:`offdesign=["UA_cecchinato"]`
   (`PR #812 <https://github.com/oemof/tespy/pull/812>`__).
+- It is now possible to desirialize a :code:`Network` from a dictionary. For
+  this you have to do the following:
+
+  .. code-block:: python
+
+      >>> from tespy.networks import Network
+      >>> from tespy.components import Source, Sink
+      >>> from tespy.connections import Connection
+      >>> nw = Network()
+      >>> c = Connection(Source("source"), "out1", Sink("sink"), "in1", label="c")
+      >>> nw.add_conns(c)
+      >>> serialization = nw.export()  # you can save the serialization in a variable
+      >>> new_nw = Network.from_dict(serialization)
+
+  (`PR #816 <https://github.com/oemof/tespy/pull/816>`__).
 
 Bug Fixes
 #########

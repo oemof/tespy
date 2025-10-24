@@ -10,10 +10,8 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.helpers import TESPyComponentError
 
+
 # %%[sec_3]
-
-
-# %%[sec_6]
 class PolynomialCompressorWithCooling(PolynomialCompressor):
 
     @staticmethod
@@ -23,7 +21,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
-# %%[sec_7]
+# %%[sec_4]
     def get_mandatory_constraints(self) -> dict:
         constraints = super().get_mandatory_constraints()
         # this is a dictionary
@@ -33,7 +31,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             num_eq_sets=1
         )
         return constraints
-# %%[sec_8]
+# %%[sec_5]
     def _preprocess(self, row_idx):
         if not self.eta_recovery.is_set:
             msg = (
@@ -64,7 +62,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             self.inl[0].h, self.inl[1].h,
             self.outl[0].h, self.outl[1].h
         ]
-# %%[sec_9]
+# %%[sec_6]
     def get_parameters(self):
         params = super().get_parameters()
         params["eta_recovery"] = dc_cp(
@@ -81,7 +79,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             quantity="pressure"
         )
         return params
-# %%[sec_10]
+# %%[sec_7]
     def calc_parameters(self):
         super().calc_parameters()
 
@@ -102,9 +100,9 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             T_max_compressor_internal
             - self.outl[1].T.val_SI
         )
-# %%[sec_11]
+# %%[sec_8]
         self.dp_cooling.val_SI = self.inl[1].p.val_SI - self.outl[1].p.val_SI
-
+# %%[sec_9]
 nw = Network()
 nw.units.set_defaults(
     temperature="°C",
@@ -126,7 +124,7 @@ b1 = Connection(water_inlet, "out1", compressor, "in2", label="b1")
 b2 = Connection(compressor, "out2", water_outlet, "in1", label="b2")
 
 nw.add_conns(c1, c2, b1, b2)
-# %%[sec_12]
+# %%[sec_10]
 c1.set_attr(fluid={"R290": 1}, m=1, T_dew=10, td_dew=10)
 c2.set_attr(T_dew=60, td_dew=50)
 
@@ -139,7 +137,7 @@ nw.solve("design")
 nw.print_results()
 
 b1.fluid.val, b2.fluid.val
-# %%[sec_13]
+# %%[sec_11]
 c1.set_attr(fluid={"R290": 1}, m=1, T_dew=10, td_dew=10)
 c2.set_attr(T_dew=60, td_dew=50)
 
@@ -148,10 +146,11 @@ b2.set_attr(T=25, p=1)
 compressor.set_attr(dissipation_ratio=0.1)
 
 nw.solve("design")
-# %%[sec_14]
+# %%[sec_12]
 b1.set_attr(m=None)
 nw.solve("design")
-# %%[sec_15]
+b1.m.val_SI
+# %%[sec_13]
 c1.set_attr(fluid={"R290": 1}, m=1, T_dew=10, td_dew=10)
 c2.set_attr(T_dew=60, td_dew=25)
 
@@ -163,7 +162,7 @@ nw.solve("design")
 compressor.Q_diss.val
 
 b1.m.val_SI * (b2.h.val_SI - b1.h.val_SI)
-# %%[sec_16]
+# %%[sec_14]
 b1.set_attr(m=0.005)
 b2.set_attr(T=None)
 nw.solve("design")
@@ -171,11 +170,10 @@ nw.solve("design")
 b2.T.val, c2.T.val
 h_2 = c1.h.val_SI + (c2.h.val_SI - c1.h.val_SI) / (1 - compressor.dissipation_ratio.val_SI)
 c2.p.val_SI
-
-# %%[sec_17]
+# %%[sec_15]
 T_mix_ph(c2.p.val_SI, h_2, c2.fluid_data) - 273.15
 compressor.eta_s.val
-# %%[sec_18]
+# %%[sec_16]
 c1.set_attr(fluid={"R290": 1}, m=1, T_dew=10, td_dew=10)
 c2.set_attr(T_dew=60, td_dew=25)
 
@@ -184,7 +182,7 @@ b2.set_attr(p=1)
 compressor.set_attr(dissipation_ratio=0.1, eta_recovery=0.9)
 
 nw.solve("design")
-# %%[sec_19]
+# %%[sec_17]
 c1.set_attr(fluid={"R290": 1}, m=1, T_dew=10, td_dew=10)
 c2.set_attr(T_dew=60, td_dew=25)
 
@@ -194,6 +192,6 @@ compressor.set_attr(dissipation_ratio=0.1, eta_recovery=0.9)
 
 nw.solve("design")
 nw.print_results()
-# %%[sec_20]
+# %%[sec_18]
 
 

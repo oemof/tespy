@@ -1,7 +1,7 @@
 .. _tespy_development_new_comp_label:
 
 How to contribute a new component
----------------------------------
+=================================
 
 What should I do if I need a component for a specific simulation that is not 
 available in TESPy? One solution would be to request support on GitHub or to 
@@ -14,15 +14,16 @@ new component** are intended to simplify the transition from user to an
 awesome developer.
 
 Implementation of a polynomial compressor with cooling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------------------------
 The following basic principles should be in your mind when implementing a 
 component:
 
 * Visualize your task with a circuit diagram, equations and/or basic principle
 * Adding the new equations and variables
 * Expand the parameter definitions and derived calculations
+* Perform a lot of tests
 * Write doc strings for the new component
-* Implement tests for checking
+* Implement tests to verify correctness
 
 .. tip::
 
@@ -36,10 +37,10 @@ component:
     Figure: Blackboard drawing of compressor with cooling
 
 1. Implementing inputs and outputs
-++++++++++++++++++++++++++++++++++
+----------------------------------
 
 First, we have to create a new class and name it
-::code::`PolynomialCompressorWithCooling`. Then, we have to implement the 
+:code:`PolynomialCompressorWithCooling`. Then, we have to implement the 
 inputs and outputs. Based on our blackboard drawing we need two inputs as well 
 as two ouputs.
 
@@ -60,8 +61,8 @@ as two ouputs.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
-    :start-after: [sec_6]
-    :end-before: [sec_7]
+    :start-after: [sec_3]
+    :end-before: [sec_4]
 
 After creating the inputs and outputs, a simple model should be built up to 
 test the code. As usual, we will first create a network with the correct unit 
@@ -80,16 +81,16 @@ fluid composition in results.
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_11]
-        :end-before: [sec_12]
+        :start-after: [sec_9]
+        :end-before: [sec_10]
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_12]
-        :end-before: [sec_13]
+        :start-after: [sec_10]
+        :end-before: [sec_11]
 
 2. Get mandatory constraints
-++++++++++++++++++++++++++++
+----------------------------
 
 The next step is to get the mandatory constraints. To do this, a method is 
 created that adds an additional constraint to the dictionary of mandatory 
@@ -101,15 +102,15 @@ constraints.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
-    :start-after: [sec_7]
-    :end-before: [sec_8]
+    :start-after: [sec_4]
+    :end-before: [sec_5]
 
 In this case, it retrieves the basic constraints of the upper class. A new 
 constraint is added to ensure that the energy balance of the cooling system is 
 met. Finally, the complete set of constraints is returned.
 
 3. Define new equations
-+++++++++++++++++++++++
+-----------------------
 
 After getting the mandatory constraint, the cooling energy balance is to be 
 defined. First, the :code:`_preprocess()` method have to be defined. This 
@@ -135,8 +136,8 @@ so, it calls the default preprocessing of the base class.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
-    :start-after: [sec_8]
-    :end-before: [sec_9]
+    :start-after: [sec_5]
+    :end-before: [sec_6]
 
 In contrast, the cooling energy balance function and its dependencies are to 
 be defined. The :code:`cooling_energy_balance_func()` method  describes the 
@@ -160,13 +161,13 @@ As in the first step, it is recommended to test the new code in between.
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_11]
-        :end-before: [sec_12]
+        :start-after: [sec_9]
+        :end-before: [sec_10]
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_13]
-        :end-before: [sec_14]
+        :start-after: [sec_11]
+        :end-before: [sec_12]
 
     .. error::
 
@@ -178,23 +179,23 @@ As in the first step, it is recommended to test the new code in between.
             TESPyNetworkError                                 Traceback (most recent call last):
 
             Cell In[6], line 8
-                  5 b2.set_attr(T=25, p=1)
-                  6 compressor.set_attr(dissipation_ratio=0.1)
-            ----> 8 nw.solve("design")
+             5 b2.set_attr(T=25, p=1)
+             6 compressor.set_attr(dissipation_ratio=0.1)
+             8 nw.solve("design")
 
             File ~/gitprojects/tespy/src/tespy/networks/network.py:2486, in Network.solve(self, mode, init_path,
             design_path, max_iter, min_iter, init_only, init_previous, use_cuda, print_results, robust_relax)
             2483 msg = 'Starting solver.'
             2484 logger.info(msg)
-            -> 2486 self.solve_determination()
+            2486 self.solve_determination()
             2488 try:
             2489     self.solve_loop(print_results=print_results)
 
             File ~/gitprojects/tespy/src/tespy/networks/network.py:2603, in Network.solve_determination(self)
             2601     logger.error(msg)
             2602     self.status = 12
-            -> 2603     raise hlp.TESPyNetworkError(msg)
-            2604 elif n < self.variable_counter:
+            2603     raise hlp.TESPyNetworkError(msg)
+            2604 elif n  self.variable_counter:
             2605     msg = (
             2606         f"You have not provided enough parameters: {self.variable_counter} "
             2607         f"required, {n} supplied. Aborting calculation!"
@@ -209,16 +210,21 @@ As in the first step, it is recommended to test the new code in between.
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_14]
-        :end-before: [sec_15]
-
+        :start-after: [sec_12]
+        :end-before: [sec_13]
 
 4. Expand definitions of the parameters and add derived calculations
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+--------------------------------------------------------------------
 
-Next, the new dimensions of the **polynomial compressor with cooling** are to 
-be defined. To achieve this, a parameter definition for the efficiency of the 
-heat recovery :code:`eta_recovery` and has to be determined.
+Next, the new dimensions of the :code:`polynomial compressor with cooling` are 
+to be defined. To achieve this, a parameter definition for the efficiency of 
+the heat recovery :code:`eta_recovery` has to be determined.
+
+For this, we use a data container :code:`dc_cp()`, which creates an object of 
+the :code:`ComponentProperties class`. These objects describe how TESPy should 
+handle a specific physical parameter, e.g., temperature, pressure loss, 
+efficiency, etc. Accordingly, TESPy uses these objects to automate unit 
+conversion, validation, equation integration and documentation.
 
 .. note::
 
@@ -234,10 +240,24 @@ heat recovery :code:`eta_recovery` and has to be determined.
             params["eta_recovery"] = dc_cp()
             return params
 
-
 Once a again, it is recommended to test the code.
 
 .. dropdown:: Display source code for testing the model
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_1]
+        :end-before: [sec_2]
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_9]
+        :end-before: [sec_10]
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_13]
+        :end-before: [sec_14]
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
@@ -257,8 +277,13 @@ The tests are going well. But with very small mass flows temperature at
 cooling output can be higher than temperature at gas output, as there is no 
 heat exchanger balance equation implemented.
 
-Further expansion of parameter definition:
-Describe the expansion for :code:`td_minimal` and describe what :code:`min_val` is.
+Further expansion of parameter definition
++++++++++++++++++++++++++++++++++++++++++
+
+The next step is to define the parameter for the minimum temperature 
+difference :code:`td_minimal` between the compressor and the cooling medium. 
+In this case, the attribute :code:`min_val=0` means that this value has not to 
+be negative.
 
 .. code-block:: python
 
@@ -282,35 +307,90 @@ compressor.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
-    :start-after: [sec_10]
-    :end-before: [sec_11]
+    :start-after: [sec_7]
+    :end-before: [sec_8]
+
+Further tests are being carried out at this point to examine the further 
+expansion of the parameter definition.
 
 .. dropdown:: Display source code for testing the model
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_18]
-        :end-before: [sec_19]
+        :start-after: [sec_1]
+        :end-before: [sec_2]
 
-Last expansion of parameter definition:
-Describe the expansion for :code:`dp_cooling` and which adjustable or 
-calculated parameters the component has.
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_9]
+        :end-before: [sec_10]
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_16]
+        :end-before: [sec_17]
+
+Final expansion of parameter definition
++++++++++++++++++++++++++++++++++++++++
+
+To take the energy and pressure balance system of the component into account, 
+the parameter definition is extended one last time. For this purpose, the 
+pressure loss in the cooling circuit :code:`dp_cooling` is described. As in 
+the previous step, the value has not to be negative due to the 
+:code:`min_val=0` attribute. The :code:`structure matrix` is then used to 
+determine how the pressure loss is integrated into the equation system. The 
+:code:`func_params` attribute specifies the assignment for the internal 
+calculation. Finally, the :code:`quantity` specified indicates the physical 
+unit.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
-    :start-after: [sec_9]
-    :end-before: [sec_10]
+    :start-after: [sec_6]
+    :end-before: [sec_7]
+
+Subsequent to the simulation, the calculation of the derived thermodynamic 
+variables is also required for the pressure loss :code:`dp_cooling` in the 
+cooling flow.
+
+.. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+    :language: python
+    :start-after: [sec_8]
+    :end-before: [sec_9]
+
+Our extension is also being tested here.
 
 .. dropdown:: Display source code for testing the model
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
-        :start-after: [sec_19]
-        :end-before: [sec_20]
+        :start-after: [sec_1]
+        :end-before: [sec_2]
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_9]
+        :end-before: [sec_10]
+
+    .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+        :language: python
+        :start-after: [sec_17]
+        :end-before: [sec_18]
+
+After checking that everything is correct, it's time to pat ourselves on the 
+back, because we have implemented a :code:`PolynomialCompressorWithCooling` in 
+TESPy.
 
 5. Further tasks
-++++++++++++++++
-* doc strings
-* Tests
-    - After that: tests with assert_convergence()
-    - Additional tests for different input parameter (edge) cases
+----------------
+
+Once implementation is complete, the hard work begins. Docstrings make your 
+code understandable, while tests ensure its reliability.
+
+A **docstring** (documentation string) is a multi-line string directly below a 
+function, class, or module definition that explains what the code does, how it 
+is used, and, if applicable, what parameters and return values it has. (See 
+here what are the principles in TESPy to write a docstring)
+
+On the other hand, **tests** check that the code works correctly and does what 
+it is supposed to do. This helps to identify errors early on and ensure that 
+any necessary changes can be made safely. (See here how to write test)

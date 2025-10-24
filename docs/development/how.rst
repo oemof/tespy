@@ -206,9 +206,27 @@ learn how to write a nice commit message.
 
 
 Documentation
-----------------
+-------------
 
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
 The files can be found in the folder *docs*. For further information on
 restructured text see: https://docutils.sourceforge.io/rst.html.
+
+
+Examples
+--------
+
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    dev_examples/new_comp.rst
+
+.. card::  How to contribute a new component
+    :link: tespy_development_new_comp_label
+    :link-type: ref
+
+    .. figure:: /_static/images/basics/modeling_concept.svg
+        :align: center
+        :alt: TESPy's modeling concept

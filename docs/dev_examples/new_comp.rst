@@ -178,8 +178,8 @@ As in the first step, it is recommended to test the new code in between.
             TESPyNetworkError                                 Traceback (most recent call last):
 
             Cell In[6], line 8
-                5 b2.set_attr(T=25, p=1)
-                6 compressor.set_attr(dissipation_ratio=0.1)
+                  5 b2.set_attr(T=25, p=1)
+                  6 compressor.set_attr(dissipation_ratio=0.1)
             ----> 8 nw.solve("design")
 
             File ~/gitprojects/tespy/src/tespy/networks/network.py:2486, in Network.solve(self, mode, init_path,

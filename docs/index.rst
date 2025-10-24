@@ -44,4 +44,3 @@
 
     development/what
     development/how
-    development/new_comp

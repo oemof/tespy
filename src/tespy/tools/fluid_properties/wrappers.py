@@ -71,7 +71,13 @@ class FluidPropertyWrapper:
     def h_pT(self, p, T):
         self._not_implemented()
 
+    def h_ps(self, p, T):
+        self._not_implemented()
+
     def h_QT(self, Q, T):
+        self._not_implemented()
+
+    def h_pQ(self, p, Q):
         self._not_implemented()
 
     def s_QT(self, Q, T):

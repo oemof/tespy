@@ -1,18 +1,13 @@
 .. _tespy_label:
 
-.. include:: introduction.rst
-
-..  toctree::
-    :maxdepth: 2
-    :hidden:
-
-    introduction
+.. include:: landing.rst
 
 ..  toctree::
     :maxdepth: 2
     :caption: User Guide
     :hidden:
 
+    introduction
     installation
     basics
     tutorials

@@ -365,7 +365,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         )
         params["td_minimal"] = dc_cp(
             min_val=0,
-            quantity="temperature_difference"
+            quantity="temperature_difference",
+            is_result=True
         )
         params["dp_cooling"] = dc_cp(
             min_val=0,

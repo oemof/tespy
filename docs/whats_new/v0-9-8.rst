@@ -66,6 +66,9 @@ Bug Fixes
   (`PR #792 <https://github.com/oemof/tespy/pull/792>`__).
 - The component classes missing the :code:`@component_registry` decorator have
   been updated (`PR #815 <https://github.com/oemof/tespy/pull/815>`__).
+- :code:`h_ps` and :code:`h_pQ` have been added to the
+  :code:`FluidPropertyWrapper` class
+  (`PR #818 <https://github.com/oemof/tespy/pull/818>`__).
 
 Contributors
 ############

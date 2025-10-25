@@ -39,7 +39,7 @@ author = 'Francesco Witte'
 copyright = '{0}, {1}'.format(year, author)
 
 # The short X.Y version.
-version = tespy.__version__.split(' ')[0]
+version = tespy.__version__.split(' - ')[0]
 # The full version, including alpha/beta/rc tags.
 release = tespy.__version__
 
@@ -75,12 +75,7 @@ extlinks = {
 # The theme to use for HTML and HTML Help pages.
 html_theme = 'furo'
 
-# The name for this set of Sphinx documents.  If None, it defaults to
-# "<project> v<release> documentation".
-
-
-# A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = '%s-%s' % (project, version)
+html_title = f"{project} v{version}"
 
 # Some more stuff
 html_use_smartypants = True

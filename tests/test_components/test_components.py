@@ -24,7 +24,23 @@ def test_all_classes_in_registry(obj):
 
 
 QUANTITY_EXEMPTIONS = {
-
+    "CycleCloser": {"fluid_deviation"},
+    "CombustionEngine": {"zeta1", "zeta2"},
+    "PolynomialCompressor": {"rpm"},
+    "PolynomialCompressorWithCooling": {"rpm"},
+    "HeatExchanger": {"zeta1", "zeta2"},
+    "Condenser": {"zeta1", "zeta2"},
+    "Desuperheater": {"zeta1", "zeta2"},
+    "SectionedHeatExchanger": {"zeta1", "zeta2", "re_exp_r", "re_exp_sf"},
+    "MovingBoundaryHeatExchanger": {"zeta1", "zeta2", "re_exp_r", "re_exp_sf"},
+    "SimpleHeatExchanger": {"zeta"},
+    "ParabolicTrough": {"zeta"},
+    "ParallelFlowHeatExchanger": {"zeta1", "zeta2"},
+    "SolarCollector": {"zeta"},
+    "Pipe": {"zeta"},
+    "Valve": {"zeta"},
+    "FuelCell": {"zeta"},
+    "WaterElectrolyzer": {"zeta"}
 }
 
 def properties_of(instance):

@@ -48,6 +48,8 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
+            "frequency": "1/s",
             # None is the default if not quantity is supplied
             None: "1"
         }

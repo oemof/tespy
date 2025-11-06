@@ -234,7 +234,7 @@ class SolarCollector(SimpleHeatExchanger):
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
             - self.A.val_SI * (
                 self.E.val_SI * self.eta_opt.val_SI
-                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val_SI
+                - self.lkf_lin.val_SI * (T_m - self.Tamb.val_SI)
                 - self.lkf_quad.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )

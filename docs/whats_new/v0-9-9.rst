@@ -1,0 +1,11 @@
+v0.9.9 - Under development
+++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- Some component parameters were missing the quantity specification. This has
+  been fixed (`PR #823 <https://github.com/oemof/tespy/pull/823>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

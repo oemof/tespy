@@ -155,6 +155,19 @@ class TurboCompressor(Compressor):
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
     0.77
+    >>> round(comp.igva.val, 2)
+    8.88
+
+    Or, we can fix the inlet guide vane angle and under the given pressure
+    ratio the volumetric flow is a result. Note, that the problem can be very
+    sensitive to changes of :code:`igva`.
+
+    >>> comp.set_attr(igva=10)
+    >>> inc.set_attr(v=None)
+    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.assert_convergence()
+    >>> round(inc.v.val, 2)
+    44.31
     >>> os.remove('tmp.json')
     """
 
@@ -165,7 +178,7 @@ class TurboCompressor(Compressor):
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,

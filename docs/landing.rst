@@ -10,7 +10,7 @@ Navigate to your favorite section below:
 .. grid:: 3
     :gutter: 1
 
-    .. grid-item-card:: Installation and first steps
+    .. grid-item-card::  Installation and Basic Tutorials
         :link: tespy_tutorial_heat_exchanger
         :link-type: ref
 
@@ -20,7 +20,7 @@ Navigate to your favorite section below:
         .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Network, Components and Connections
+    .. grid-item-card::  Network, Components, Connections
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
@@ -51,10 +51,9 @@ Navigate to your favorite section below:
             :class: only-light
 
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
-            :class: only-darknn
+            :class: only-dark
 
-
-    .. grid-item-card::  Advanced Features
+    .. grid-item-card::  Property Plotting, UsedDefinedEquation, Custom Components
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
@@ -64,14 +63,14 @@ Navigate to your favorite section below:
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  API Documentation, Changelog
-        :link: tespy_tutorial_heat_pump_label
+    .. grid-item-card::  Workflow Integration, Optimization API
+        :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
 
 .. grid:: 3
@@ -87,15 +86,14 @@ Navigate to your favorite section below:
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
             :class: only-dark
 
-
-    .. grid-item-card::  GitHub Repository
-        :link: tespy_tutorial_heat_pump_exergy_label
+    .. grid-item-card::  API Documentation, Changelog, GitHub
+        :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Contribute to the development

@@ -351,7 +351,7 @@ class PolynomialCompressor(DisplacementMachine):
             "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
             "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
             "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "rpm": dc_cp(min_val=0, is_result=True, quantity="frequency"),
+            "rpm": dc_cp(min_val=0, is_result=True),
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
             "eta_vol_poly": dc_simple(),

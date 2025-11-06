@@ -14,13 +14,15 @@ import os
 from collections.abc import Mapping
 from copy import deepcopy
 
-import CoolProp.CoolProp as CP
 import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import fluid_property_data
 
 
@@ -48,8 +50,8 @@ def get_chem_ex_lib(name):
 
 
 def fluidalias_in_list(fluid, fluid_list):
-    aliases = [alias.replace(' ', '') for alias in CP.get_aliases(fluid)]
-    return any(alias in fluid_list for alias in aliases)
+    aliases = FLUID_ALIASES.get_fluid(fluid)
+    return set(fluid_list) & aliases
 
 
 def merge_dicts(dict1, dict2):
@@ -195,8 +197,9 @@ class UserDefinedEquation:
         >>> from tespy.tools import UserDefinedEquation
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
-        >>> nw = Network(p_unit='bar', T_unit='C')
+        >>> nw = Network()
         >>> nw.set_attr(iterinfo=False)
+        >>> nw.units.set_defaults(**{"pressure": "bar", "temperature": "degC"})
         >>> so = Source('source')
         >>> si = Sink('sink')
         >>> pipeline = Pipe('pipeline')
@@ -489,9 +492,6 @@ def _is_variable_vecvar(var, dx, increment_filter=None):
             return True
     return False
 
-from tespy.tools.data_containers import ScalarVariable as dc_scavar
-from tespy.tools.data_containers import VectorVariable as dc_vecvar
-
 
 def _partial_derivative(var, value, increment_filter, **kwargs):
     if _is_variable(var, increment_filter):
@@ -638,7 +638,7 @@ def bus_char_derivative(component_value, char_func, reference_value, bus_value, 
 
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
-        tol_rel=ERR, tol_abs=ERR, tol_mode="rel", **function_kwargs
+        tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
 
     # start newton loop

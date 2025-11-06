@@ -16,35 +16,156 @@ variables of your TESPy network are a subset of the following:
 * mass flow,
 * pressure,
 * enthalpy and
-* the mass fractions of the fluids
-
-of every connection.
+* the mass fractions of the fluids of every :code:`Connection` instance as well
+  as
+* energy flow (power or heat) for :code:`PowerConnection` instances and
+* component variables (e.g. compressor rpm) if declared a variable.
 
 The solver will simplify the variable space in a presolving step and then solve
-for the remaining variables. If your **system includes fluid mixtures**, you
-might want to **make use of the value ranges** for the system variables. This
-improves the stability of the algorithm. Try to fit the boundaries as tight as
-possible, for instance, if you know that the maximum pressure in the system will
-be at 10 bar, use it as upper boundary.
+for the remaining variables. In the following, you will find information on the
+:code:`Network` setup, solving and debugging.
 
-.. note::
+.. _tespy_units_label:
 
-    Value ranges for pure fluids are not required as these are dealt with
-    automatically.
+Unit specifications
++++++++++++++++++++
+There are a couple of ways to impose boundary conditions with the respective
+units to your models. The unit can be specified through two different ways:
+
+- as default units per quantity (e.g. temperature, temperature difference,
+  power, ...) for all properties of the components and connections, or
+- as individual units of a specific parameter.
+
+.. tip::
+
+    TESPy implements :code:`pint` in the back-end to handle the units. If you
+    want to learn more on how to work with :code:`pint` units, check out the
+    respective `documentation <https://pint.readthedocs.io>`__.
+
+The example below shows, how you can setup units for your :code:`Network`.
 
 .. code-block:: python
 
     >>> from tespy.networks import Network
+    >>> nw = Network(iterinfo=False)
 
-    >>> my_plant = Network()
-    >>> my_plant.p_unit
-    'Pa'
-    >>> my_plant.set_attr(p_unit='bar', h_unit='kJ / kg')
-    >>> my_plant.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
-    >>> my_plant.p_unit
-    'bar'
-    >>> my_plant.p_range_SI
-    [5000.0, 1000000.0]
+Default units are SI units. We can check, what unit is the default unit like
+this:
+
+.. code-block:: python
+
+    >>> nw.units.get_default("temperature")
+    'kelvin'
+    >>> nw.units.get_default("power")
+    'W'
+    >>> nw.units.get_default("specific_volume")
+    'm3/kg'
+
+We can change the default units as follows:
+
+.. code-block:: python
+
+    >>> nw.units.set_defaults(temperature="degC")  # celsius
+    >>> nw.units.get_default("temperature")
+    'degC'
+    >>> nw.units.set_defaults(power="hp")  # horse power
+    >>> nw.units.get_default("power")
+    'hp'
+    >>> nw.units.set_defaults(efficiency="%")  # percent
+    >>> nw.units.set_defaults(pressure="bar")
+
+The unit specification then applies to all parameters with the same quantity.
+For example, let's set up a model of a compressor.
+
+.. code-block:: python
+
+    >>> from tespy.components import Compressor, Source, Sink
+    >>> from tespy.connections import Connection
+    >>> source = Source("gas inflow")
+    >>> compressor = Compressor("compressor")
+    >>> sink = Sink("gas discharge")
+    >>> c1 = Connection(source, "out1", compressor, "in1", label="c1")
+    >>> c2 = Connection(compressor, "out1", sink, "in1", label="c2")
+    >>> nw.add_conns(c1, c2)
+
+Now we can parametrize our problem. It will utilize the unit specifications we
+created above:
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={"air": 1}, m=1, p=1, T=25)  # p in bar, T in celsius
+    >>> c2.set_attr(p=3)
+    >>> compressor.set_attr(eta_s=80)  # efficiency in %
+    >>> nw.solve("design")
+
+Now we can check results, e.g. the power of the compressor, which is expected
+to be in horse power:
+
+.. code-block:: python
+
+    >>> round(compressor.P.val, 0)
+    185.0
+
+We can also retrieve the value with the respective unit, and then use pint to
+transform it into what ever unit we need:
+
+.. code-block:: python
+
+    >>> round(compressor.P.val_with_unit, 0)
+    <Quantity(185.0, 'horsepower')>
+    >>> round(compressor.P.val_with_unit.to("kW"), 0)
+    <Quantity(138.0, 'kilowatt')>
+
+Alternatively, we can specify an individual unit using the :code:`Quantity`
+class of pint. For that you have to utilize the :code:`UnitRegistry` of
+your :code:`Network.units`: :code:`ureg`.
+
+.. code-block:: python
+
+    >>> ureg = nw.units.ureg
+    >>> c1.set_attr(m=ureg.Quantity(1, "t/h"))
+    >>> c1.m.val_with_unit
+    <Quantity(1, 'metric_ton / hour')>
+
+.. caution::
+
+    If you now modify this number, it will remove the individual unit! On top,
+    by specifying a bare number, you will always remove the unit information.
+    This information is only reconnected once, the :code:`Network` is
+    initialized in context of a simulation!
+
+    .. code-block:: python
+
+        >>> c1.set_attr(m=5)
+        >>> c1.m.val_with_unit
+        5
+
+    .. code-block:: python
+
+        >>> nw.solve("design")
+        >>> c1.m.val_with_unit
+        <Quantity(5, 'kilogram / second')>
+
+To understand, what quantity is associated with a specific parameter, you can
+do the following:
+
+.. code-block:: python
+
+    >>> compressor.dp.quantity
+    'pressure'
+    >>> c1.td_dew.quantity
+    'temperature_difference'
+
+Finally, it is also possible to use your own :code:`UnitRegistry`:
+
+.. code-block:: python
+
+    >>> from pint import UnitRegistry
+    >>> ureg = UnitRegistry()
+    >>> nw.units.set_ureg(ureg)
+
+Changing the ureg will only have effect on future specifications. Existing
+quantities are not changed.
 
 .. _printout_logging_label:
 
@@ -75,16 +196,16 @@ disable convergence progress printouts:
 
 .. code-block:: python
 
-    >>> my_plant.iterinfo
-    True
-
-    # disable iteration information printout
-    >>> my_plant.set_attr(iterinfo=False)
-    >>> my_plant.iterinfo
+    >>> nw.iterinfo
     False
 
     # enable iteration information printout
-    >>> my_plant.set_attr(iterinfo=True)
+    >>> nw.set_attr(iterinfo=True)
+    >>> nw.iterinfo
+    True
+
+    # disable iteration information printout
+    >>> nw.set_attr(iterinfo=False)
 
 Adding connections
 ++++++++++++++++++
@@ -94,8 +215,8 @@ or via subsystems using the corresponding methods:
 
 .. code-block:: python
 
-    >>> my_plant.add_conns()
-    >>> my_plant.add_subsystems()
+    >>> nw.add_conns()
+    >>> nw.add_subsystems()
 
 .. note::
 
@@ -112,7 +233,7 @@ You can start the solution process with the following line:
 
 .. code-block:: python
 
-    my_plant.solve(mode='design')
+    nw.solve(mode='design')
 
 This starts the initialisation of your network and proceeds to its calculation.
 The specification of the **calculation mode is mandatory**, This is the list of
@@ -214,7 +335,7 @@ To solve your offdesign calculation, use:
 
 .. code-block:: python
 
-    my_plant.solve(mode='offdesign', design_path='path/to/designpoint.json')
+    nw.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
 Solving
 -------
@@ -248,7 +369,7 @@ your network's design point information using:
 
 .. code-block:: python
 
-    my_plant.save('path/for/savestate')
+    nw.save('path/for/savestate')
 
 **Simplifying the variable space**
 
@@ -277,12 +398,12 @@ dependency between variables. These are, for example,
 - and many more
 
 These linear dependencies are used to build a graph, which then determines a
-mapping from the phyiscal problem to the mathematical problem indicating which
+mapping from the physical problem to the mathematical problem indicating which
 variables are represented by a single one. I.e.
 
 - which mass flows are the same or directly linear dependent
 - which pressures are the same or directly linear dependent,
-- which enthalpies are the same or directly linear dependen and
+- which enthalpies are the same or directly linear dependent and
 - which fluid compositions are identical.
 
 For example, in a simple Clausius Rankine cycle there will only be a single
@@ -442,7 +563,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid component never exceeds these boundaries.
+  mass fraction of a single fluid component never exceeds oxygenthese boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -462,6 +583,23 @@ check is skipped.
   manipulated. If you want to look up, what exactly the convergence check for a
   specific component does, look out for the :code:`convergence_check` methods
   in the :py:mod:`tespy.components module <tespy.components>`.
+
+.. tip::
+
+    If your **system includes fluid mixtures**, you might want to
+    **make use of the value ranges** for the system variables. This
+    improves the stability of the algorithm. Try to fit the boundaries as tight
+    as possible, for instance, if you know that the maximum pressure in the
+    system will be at 10 bar, use it as upper boundary. Value ranges for pure
+    fluids are not required as these are dealt with automatically.
+
+    .. code-block:: python
+
+        >>> nw.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+        >>> nw.units.default["pressure"]
+        'bar'
+        >>> [float(p) for p in nw.p_range_SI]
+        [5000.0, 1000000.0]
 
 In a lot of different tests the algorithm has found a near enough solution
 after the third iteration, further checks are usually not required.
@@ -531,7 +669,7 @@ can be, for example
   important and how it can be implemented.
 - two parallel flows starting and ending in a common point (e.g. from a
   :code:`Splitter` to a :code:`Merge`) and both having linear specifications
-  for the change of pressure from the start to the end. Then the comming inflow
+  for the change of pressure from the start to the end. Then the common inflow
   and the common outflow pressure would be connected linearly through two
   different ways, which cannot be solved. One of both must be a result. Note:
   the same is of course true for a nonlinear dependency of pressure change, but
@@ -585,7 +723,7 @@ Then you can use the following methods to obtain information on your problem:
   form as tuples, e.g. :code:`("3", "T")` for the temperature equation of the
   connection with label "3".
 - :code:`get_variables`: A dictionary of the actual variables remaining for the
-  sovler to solve for. The keys of the dictionary are again tuples, with an
+  solver to solve for. The keys of the dictionary are again tuples, with an
   index number and the variable type, e.g. :code:`(0, "h")` for a variable
   representing enthalpy. The values corresponding to each key are again a list,
   which show all of the variables the are representing, e.g.
@@ -706,30 +844,43 @@ If you want to prevent all printouts of a subsystem, add something like this:
 Save your results
 ^^^^^^^^^^^^^^^^^
 If you choose to save your results the specified folder will be created
-containing information about the network, all connections, busses, components
-and characteristics.
+containing information about the network, all connections and components.
 
 In order to perform calculations based on your results, you can access all
 components' and connections' parameters:
 
 The easiest way to access the results of one specific component looks like this
+(continuing at the initial example):
 
 .. code:: python
 
-    eff = mycomp.eta_s.val  # isentropic efficiency of mycomp
-    P = mycomp.P.val
+    >>> round(compressor.eta_s.val, 2)  # isentropic efficiency of mycomp in network unit
+    80.0
+    >>> round(compressor.eta_s.val_SI, 2)  # isentropic efficiency of mycomp in SI unit
+    0.8
+    >>> round(compressor.P.val, 1)  # power of mycomp in network unit
+    925.6
+    >>> round(compressor.P.val_SI, 1)  # power of mycomp in SI unit
+    690222.8
+    >>> round(compressor.P.val_with_unit, 1)  # power as pint Quantity with unit and magnitude
+    <Quantity(925.6, 'horsepower')>
 
 and similar for connection parameters:
 
 .. code:: python
 
-    mass_flow = myconn.m.val  # value in specified network unit
-    mass_flow_SI = myconn.m.val_SI  # value in SI unit
-    mass_fraction_oxy = myconn.fluid.val['O2']  # mass fraction of oxygen
-    specific_volume = myconn.vol.val  # value in specified network unit
-    specific_entropy = myconn.s.val  # value in specified network unit
-    volumetric_flow = myconn.v.val  # value in specified network unit
-    specific_exergy = myconn.ex_physical  # SI value only
+    >>> round(c1.m.val, 1)  # value in specified network unit
+    5.0
+    >>> round(c1.m.val_SI, 1)  # value in SI unit
+    5.0
+    >>> round(c1.m.val_with_unit, 1)  # mass flow as pint Quantity with unit and magnitude
+    <Quantity(5, 'kilogram / second')>
+    >>> c1.fluid.val['air']  # mass fraction of air
+    1.0
+
+.. note::
+
+    Mass fractions of the fluid composition are always SI values!
 
 On top of that, you can access pandas DataFrames containing grouped results
 for the components, connections and busses. The instance of class Network

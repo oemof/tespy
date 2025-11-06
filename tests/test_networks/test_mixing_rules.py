@@ -25,7 +25,10 @@ class TestGasMixingRules:
 
     def setup_method(self):
 
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
         self.nwk.set_attr(iterinfo=False)
 
         so1 = Source("air")
@@ -104,7 +107,10 @@ class TestIncompressibleMixingRule:
 
     def setup_method(self):
 
-        self.nw = Network(m_unit='kg / s', p_unit='bar', T_unit='C')
+        self.nw = Network()
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC"
+        })
 
         source = Source('source')
         boiler = SimpleHeatExchanger('boiler')

@@ -26,6 +26,8 @@ class Desuperheater(HeatExchanger):
 
     **Mandatory Equations**
 
+    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func`
 
@@ -36,10 +38,16 @@ class Desuperheater(HeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
+
+    For hot and cold side individually:
+
+    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
+    - :py:meth:`tespy.components.component.Component.zeta_func`
 
     Inlets/Outlets
 
@@ -131,10 +139,11 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network(
-    ...     T_unit='C', p_unit='bar', h_unit='kJ / kg', v_unit='l / s',
-    ...     iterinfo=False
-    ... )
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "volumetric_flow": "l/s"
+    ... })
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
     >>> cw_in = Source('cooling water inlet')
@@ -159,7 +168,7 @@ class Desuperheater(HeatExchanger):
     ... )
     >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)
-    >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
+    >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp.json')

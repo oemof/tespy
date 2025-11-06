@@ -25,6 +25,7 @@ from tespy.tools import logger
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import combustion_gases
+from tespy.tools.units import SI_UNITS
 
 idx = pd.IndexSlice
 
@@ -179,8 +180,10 @@ class ExergyAnalysis:
         >>> Tamb = 20
         >>> pamb = 1
         >>> nw = Network()
-        >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg',
-        ... iterinfo=False)
+        >>> nw.set_attr(iterinfo=False)
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ... })
 
         In order to show all functionalities available we use a feed water pump
         that is not driven electrically by a motor but instead internally by
@@ -354,8 +357,9 @@ class ExergyAnalysis:
             Ambient temperature value for analysis, provide value in network's
             temperature unit.
         """
-        pamb_SI = hlp.convert_to_SI('p', pamb, self.nw.p_unit)
-        Tamb_SI = hlp.convert_to_SI('T', Tamb, self.nw.T_unit)
+        _Q = self.nw.units.ureg.Quantity
+        pamb_SI = _Q(pamb, self.nw.units.default["pressure"]).to(SI_UNITS["pressure"]).magnitude
+        Tamb_SI = _Q(Tamb, self.nw.units.default["temperature"]).to(SI_UNITS["temperature"]).magnitude
 
         # reset data
         dtypes = {

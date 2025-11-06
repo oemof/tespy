@@ -142,7 +142,7 @@ class CharLine:
             logger.warning(msg)
         elif x < self.x[0]:
             msg = (
-                "Operating point belpw characteristic line range: X="
+                "Operating point below characteristic line range: X="
                 f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
             )
             logger.warning(msg)

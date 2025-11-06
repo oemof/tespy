@@ -22,7 +22,10 @@ from tespy.networks import Network
 class TestMerge:
 
     def setup_method(self):
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
         so1 = Source("Source1")
         so2 = Source("Source2")
@@ -72,7 +75,10 @@ class TestCyclicMerging:
 
     def setup_method(self):
 
-        self.nwk = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg")
+        self.nwk = Network()
+        self.nwk.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
         source = Source("source1")
         merge = Merge("merge")

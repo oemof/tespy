@@ -181,8 +181,10 @@ class Pipe(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import os
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source 1')
     >>> si = Sink('sink 1')
     >>> pi = Pipe('pipeline')
@@ -194,7 +196,7 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.solve('design')
     >>> round(pi.D.val, 3)
     0.119
-    >>> outg.p.val / inc.p.val == pi.pr.val
+    >>> round(outg.p.val / inc.p.val, 3) == round(pi.pr.val, 3)
     True
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(pr=None)
@@ -203,11 +205,11 @@ class Pipe(SimpleHeatExchanger):
     >>> round(pi.pr.val, 2)
     0.94
 
-    In the second section the example shows how to calcualte the heat losses of
+    In the second section the example shows how to calculate the heat losses of
     the pipe to the ambient considering insulation. For this, we will look at a
     pipe transporting hot water. Since we change the fluid, we should also give
     a reasonable guess value for the outflow connection of the pipe as the
-    initial guess originates from the previos calculation using ethanol as
+    initial guess originates from the previous calculation using ethanol as
     fluid.
 
     >>> inc.set_attr(fluid={'water': 1, 'ethanol': 0}, T=100)
@@ -233,7 +235,7 @@ class Pipe(SimpleHeatExchanger):
     ... )
     >>> nw.solve('design')
     >>> round(pi.Q.val, 2)
-    -2434.13
+    -2434.12
     """
 
     def _preprocess(self, row_idx):
@@ -271,13 +273,23 @@ class Pipe(SimpleHeatExchanger):
             func=self.ohc_subsurface_group_func,
             dependents=self.ohc_subsurface_group_dependents
         )
-        parameters['insulation_thickness']=dc_cp(min_val=1e-3, max_val=1e1)
-        parameters['insulation_tc']=dc_cp(min_val=1e-3, max_val=1e2)
+        parameters['insulation_thickness']=dc_cp(
+            min_val=1e-3, max_val=1e1, quantity="length"
+        )
+        parameters['insulation_tc']=dc_cp(
+            min_val=1e-3, max_val=1e2, quantity="thermal_conductivity"
+        )
         parameters['material']=dc_simple(val='Steel')
-        parameters['pipe_thickness']=dc_cp(min_val=0, max_val=1)
+        parameters['pipe_thickness']=dc_cp(
+            min_val=0, max_val=1, quantity="length"
+        )
         parameters['environment_media']=dc_simple(val='soil')
-        parameters['wind_velocity']=dc_cp(min_val=1e-6, max_val=20)
-        parameters['pipe_depth']= dc_cp(min_val=1e-2, max_val=1e2)
+        parameters['wind_velocity']=dc_cp(
+            min_val=1e-6, max_val=20, quantity="speed"
+        )
+        parameters['pipe_depth']= dc_cp(
+            min_val=1e-2, max_val=1e2, quantity="length"
+        )
         return parameters
 
     def ohc_surface_group_func(self):
@@ -311,13 +323,13 @@ class Pipe(SimpleHeatExchanger):
         """
 
         diameters= [
-            self.D.val,
-            self.D.val + 2 * self.pipe_thickness.val,
-            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
+            self.D.val_SI,
+            self.D.val_SI + 2 * self.pipe_thickness.val_SI,
+            self.D.val_SI + 2 * self.pipe_thickness.val_SI + 2 * self.insulation_thickness.val_SI
         ]
 
         # outer surface area per definition
-        area = self.L.val * math.pi * diameters[2]
+        area = self.L.val_SI * math.pi * diameters[2]
 
         # heat transfer resistance
         R_sum = []
@@ -344,15 +356,15 @@ class Pipe(SimpleHeatExchanger):
             )
 
         # insulation heat transfer resistance
-        if self.insulation_thickness.val != 0:
+        if self.insulation_thickness.val_SI != 0:
             R_sum.append(
-                diameters[2] / self.insulation_tc.val
+                diameters[2] / self.insulation_tc.val_SI
                 * math.log(diameters[2] / diameters[1]) / 2
             )
         # external heat transfer resistance (to environment)
         Re = (
-            self.wind_velocity.val * math.pi / 2
-            * (diameters[1] + self.insulation_thickness.val * 2)
+            self.wind_velocity.val_SI * math.pi / 2
+            * (diameters[1] + self.insulation_thickness.val_SI * 2)
             / self.air.viscosity_pT(101300, self.Tamb.val_SI)
             * self.air.d_pT(101300, self.Tamb.val_SI)
         )
@@ -365,7 +377,7 @@ class Pipe(SimpleHeatExchanger):
         Nu_ext = 0.3 + (Nu_lam ** 2 + Nu_turb ** 2) ** 0.5
         alpha_ext = (
             Nu_ext
-            / (math.pi / 2 * (diameters[1] + self.insulation_thickness.val *2))
+            / (math.pi / 2 * (diameters[1] + self.insulation_thickness.val_SI *2))
             * self.air.AS.conductivity()
         ) #W/m²/K
         R_sum.append(1 / alpha_ext)
@@ -409,9 +421,9 @@ class Pipe(SimpleHeatExchanger):
         """
 
         diameters= [
-            self.D.val,
-            self.D.val + 2 * self.pipe_thickness.val,
-            self.D.val + 2 * self.pipe_thickness.val + 2 * self.insulation_thickness.val
+            self.D.val_SI,
+            self.D.val_SI + 2 * self.pipe_thickness.val_SI,
+            self.D.val_SI + 2 * self.pipe_thickness.val_SI + 2 * self.insulation_thickness.val_SI
         ]
 
         '''
@@ -427,12 +439,12 @@ class Pipe(SimpleHeatExchanger):
         # conductivity of the pipe neglected according to the original publication
         Beta = (
             ground_conductivity[self.environment_media.val]
-            / self.insulation_tc.val * math.log(diameters[2] / diameters[0])
+            / self.insulation_tc.val_SI * math.log(diameters[2] / diameters[0])
         )
         _h = (
-            math.log(2 * self.pipe_depth.val / diameters[0]) + Beta
+            math.log(2 * self.pipe_depth.val_SI / diameters[0]) + Beta
             + 1 / (
-                1 - (2 * self.pipe_depth.val / diameters[0]) ** 2
+                1 - (2 * self.pipe_depth.val_SI / diameters[0]) ** 2
                 * (1 + Beta) / (1 - Beta)
             )
         )
@@ -446,7 +458,7 @@ class Pipe(SimpleHeatExchanger):
         # we only multiply be length
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            + 1 / R_soil * self._calculate_td_log() * self.L.val
+            + 1 / R_soil * self._calculate_td_log() * self.L.val_SI
         )
 
     def ohc_subsurface_group_dependents(self):

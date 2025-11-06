@@ -1,9 +1,23 @@
+# -*- coding: utf-8
+
+"""Module of class Node.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/nodes/node.py
+
+SPDX-License-Identifier: MIT
+"""
+
+from tespy.components.component import component_registry
 from tespy.components.nodes.merge import Merge
 from tespy.components.nodes.splitter import Splitter
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
+@component_registry
 class Node(Splitter, Merge):
     r"""
     Class for combined merge and splitting points with multiple inflows and
@@ -78,7 +92,10 @@ class Node(Splitter, Merge):
     >>> from tespy.components import Source, Sink, Node
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so1 = Source("source1")
     >>> so2 = Source("source2")
     >>> si1 = Sink("sink1")

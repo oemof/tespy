@@ -23,7 +23,10 @@ from tespy.networks import Network
 
 
 def test_bypass_system():
-    nw = Network(p_unit="bar", T_unit="C", h_unit="kJ / kg")
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    })
 
     source = Source("In")
     sink = Sink("Out")
@@ -54,7 +57,10 @@ def test_bypass_system():
 
 
 def test_bypass_regenerative_preheater():
-    nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg')
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    })
 
     source = Source("In")
     turbine_hp = Turbine("high pressure turbine")

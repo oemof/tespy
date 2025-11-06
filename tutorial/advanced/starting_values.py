@@ -12,7 +12,10 @@ from tespy.connections import Connection, PowerConnection
 wf = "NH3"
 
 # network
-nw = Network(T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s")
+nw = Network()
+nw.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
+)
 
 # components
 cycle_closer = CycleCloser("Refrigerant Cycle Closer")
@@ -83,7 +86,7 @@ c13.set_attr(T=T_hs_bf, p=1)
 # evaporation to fully saturated gas
 c1.set_attr(x=1, fluid={wf: 1})
 # degree of overheating after internal heat exchanger (evaporation side)
-c2.set_attr(Td_bp=10)
+c2.set_attr(td_dew=10)
 
 # parametrization components
 # isentropic efficiency
@@ -102,7 +105,7 @@ heatsource_evaporator.set_attr(ttd_l=5)
 condenser.set_attr(ttd_u=5)
 
 # consumer heat demand
-cons_heatsink.set_attr(Q=-1e6)
+cons_heatsink.set_attr(Q=-1)
 
 try:
     nw.solve("design")
@@ -124,7 +127,7 @@ condenser.set_attr(ttd_u=None)
 
 # internal heat exchanger to compressor enthalpy
 h_evap = CP.PropsSI("H", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-3
-c2.set_attr(Td_bp=None, h=h_evap * 1.01)
+c2.set_attr(td_dew=None, h=h_evap * 1.01)
 
 # solve the network again
 nw.solve("design")
@@ -138,7 +141,7 @@ c4.set_attr(p=None)
 condenser.set_attr(ttd_u=5)
 
 # internal heat exchanger superheating
-c2.set_attr(Td_bp=5, h=None)
+c2.set_attr(td_dew=5, h=None)
 
 # solve the network again
 nw.solve("design")
@@ -152,9 +155,9 @@ print(cop)
 # %%[sec_6]
 def generate_network_with_starting_values(wf):
     # network
-    nw = Network(
-        T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="kg / s",
-        iterinfo=False
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", enthalpy="kJ/kg"
     )
 
     # components
@@ -250,7 +253,7 @@ def generate_network_with_starting_values(wf):
     c2.set_attr(h=h_evap * 1.01)
 
     # consumer heat demand
-    cons_heatsink.set_attr(Q=-1e6)
+    cons_heatsink.set_attr(Q=-1)
 
     grid = PowerSource("grid")
     electricity = PowerBus("electricity distribution", num_in=1, num_out=3)
@@ -275,7 +278,7 @@ def generate_network_with_starting_values(wf):
     condenser.set_attr(ttd_u=5)
 
     # internal heat exchanger superheating
-    c2.set_attr(Td_bp=5, h=None)
+    c2.set_attr(td_dew=5, h=None)
 
     # solve the network again
     nw.solve("design")

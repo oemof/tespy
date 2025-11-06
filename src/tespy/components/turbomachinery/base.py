@@ -16,7 +16,6 @@ from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import convert_to_SI
 
 
 @component_registry
@@ -73,7 +72,7 @@ class Turbomachine(Component):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     Example
@@ -85,33 +84,25 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
     - :class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
     """
-
-    def _preprocess(self, num_nw_vars):
-        if self.dp.is_set:
-            self.dp.val_SI = convert_to_SI('p', self.dp.val, self.inl[0].p.unit)
-
-        super()._preprocess(num_nw_vars)
-
     def get_parameters(self):
         return {
             'P': dc_cp(
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                quantity="power"
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
-                func=self.pr_func,
-                dependents=self.pr_dependents,
                 func_params={'pr': 'pr'},
-                structure_matrix=self.pr_structure_matrix
+                structure_matrix=self.pr_structure_matrix,
+                quantity="ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
-                func=self.dp_func,
-                dependents=self.dp_dependents,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
+                quantity="pressure"
             )
         }
 
@@ -229,11 +220,10 @@ class Turbomachine(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.P.val = self.inl[0].m.val_SI * (
+        self.P.val_SI = self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.pr.val = self.outl[0].p.val_SI / self.inl[0].p.val_SI
+        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.dp.val = self.inl[0].p.val - self.outl[0].p.val
 
     def entropy_balance(self):
         r"""

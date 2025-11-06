@@ -23,6 +23,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
@@ -122,7 +123,10 @@ class CombustionChamber(Component):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
     >>> fg = Sink('flue gas outlet')
@@ -158,14 +162,16 @@ class CombustionChamber(Component):
                 min_val=1,
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                quantity="ratio"
             ),
             'ti': dc_cp(
                 min_val=0,
                 deriv=self.ti_deriv,
                 func=self.ti_func,
                 dependents=self.ti_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                quantity="heat"
             )
         }
 
@@ -256,7 +262,7 @@ class CombustionChamber(Component):
 
         for fluid in ["O2", "CO2", "H2O", "N2"]:
             if not fluidalias_in_list(fluid, all_fluids):
-                aliases = ", ".join(CP.get_aliases(fluid))
+                aliases = ", ".join(FLUID_ALIASES.get_fluid(fluid))
                 msg = (
                     f"The component {self.label} (class "
                     f"{self.__class__.__name__}) requires that the fluid "
@@ -319,9 +325,7 @@ class CombustionChamber(Component):
         # water (gaseous)
         hf[self.h2o] = -241.826
 
-        key = set(list(hf.keys())).intersection(
-            set([a.replace(' ', '') for a in CP.get_aliases(f)])
-        )
+        key = set(list(hf.keys())).intersection(FLUID_ALIASES.get_fluid(f))
 
         val = (
             -(
@@ -561,22 +565,13 @@ class CombustionChamber(Component):
                 )
 
             ###################################################################
-            # calculate excess fuel if lambda is lower than 1
-            if self.lamb.val < 1:
-                n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
-                n_c_exc = (n_oxygen_stoich - n_oxygen)
-            else:
-                n_h_exc = 0
-                n_c_exc = 0
-
-            ###################################################################
             # calculate lambda if not set
             if not self.lamb.is_set:
-                self.lamb.val = n_oxygen / n_oxygen_stoich
+                self.lamb.val_SI = n_oxygen / n_oxygen_stoich
 
             ###################################################################
             # calculate excess fuel if lambda is lower than 1
-            if self.lamb.val < 1:
+            if self.lamb.val_SI < 1:
                 n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
                 n_c_exc = (n_oxygen_stoich - n_oxygen)
             else:
@@ -596,15 +591,15 @@ class CombustionChamber(Component):
         ###################################################################
         # equation for oxygen
         elif fluid == self.o2:
-            if self.lamb.val < 1:
+            if self.lamb.val_SI < 1:
                 dm = -n_oxygen * inl[0].fluid.wrapper[self.o2]._molar_mass
             else:
-                dm = -n_oxygen / self.lamb.val * inl[0].fluid.wrapper[self.o2]._molar_mass
+                dm = -n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass
 
         ###################################################################
         # equation for fuel
         elif fluid in self.fuel_list:
-            if self.lamb.val < 1:
+            if self.lamb.val_SI < 1:
                 n_fuel_exc = (
                     -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
                     / (self.fuels[fluid]['H'] / 4 + self.fuels[fluid]['C'] - self.fuels[fluid]['O'] / 2)
@@ -696,7 +691,7 @@ class CombustionChamber(Component):
         The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the state of the water in the
-        flue gas is fored to gaseous.
+        flue gas is forced to gaseous.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
@@ -747,7 +742,7 @@ class CombustionChamber(Component):
                 \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
                 {M_{fluid}}\\ \forall i \in inlets
         """
-        return self.calc_lambda() - self.lamb.val
+        return self.calc_lambda() - self.lamb.val_SI
 
     def lambda_dependents(self):
         inl, _ = self._get_combustion_connections()
@@ -813,7 +808,7 @@ class CombustionChamber(Component):
 
                 0 = ti - \dot{m}_{fuel} \cdot LHV
         """
-        return self.ti.val - self.calc_ti()
+        return self.ti.val_SI - self.calc_ti()
 
     def ti_deriv(self, increment_filter, k, dependents=None):
         """
@@ -998,7 +993,7 @@ class CombustionChamber(Component):
 
         ######################################################################
         # additional checks for performance improvement
-        if self.lamb.val < 2 and not self.lamb.is_set:
+        if not self.lamb.is_set and self.lamb.val_SI < 2:
             # search fuel and air inlet
             for i in inl:
                 fuel_found = False
@@ -1080,8 +1075,8 @@ class CombustionChamber(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        self.ti.val = self.calc_ti()
-        self.lamb.val = self.calc_lambda()
+        self.ti.val_SI = self.calc_ti()
+        self.lamb.val_SI = self.calc_lambda()
 
     def entropy_balance(self):
         r"""

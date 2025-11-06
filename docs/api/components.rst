@@ -78,18 +78,34 @@ tespy.components.combustion.engine module
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.base module
---------------------------------------------
+tespy.components.displacementmachinery.base module
+--------------------------------------------------
 
-.. automodule:: tespy.components.heat_exchangers.base
+.. automodule:: tespy.components.displacementmachinery.base
     :members:
     :undoc-members:
     :show-inheritance:
 
-tespy.components.heat_exchangers.movingboundary module
-------------------------------------------------------
+tespy.components.displacementmachinery.polynomial_compressor module
+-------------------------------------------------------------------
 
-.. automodule:: tespy.components.heat_exchangers.movingboundary
+.. automodule:: tespy.components.displacementmachinery.polynomial_compressor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.displacementmachinery.polynomial_compressor_with_cooling module
+--------------------------------------------------------------------------------
+
+.. automodule:: tespy.components.displacementmachinery.polynomial_compressor_with_cooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.base module
+--------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.base
     :members:
     :undoc-members:
     :show-inheritance:
@@ -106,6 +122,22 @@ tespy.components.heat_exchangers.desuperheater module
 -----------------------------------------------------
 
 .. automodule:: tespy.components.heat_exchangers.desuperheater
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.sectioned module
+-------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.sectioned
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.heat_exchangers.movingboundary module
+------------------------------------------------------
+
+.. automodule:: tespy.components.heat_exchangers.movingboundary
     :members:
     :undoc-members:
     :show-inheritance:
@@ -299,6 +331,14 @@ tespy.components.turbomachinery.turbine module
 ----------------------------------------------
 
 .. automodule:: tespy.components.turbomachinery.turbine
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tespy.components.turbomachinery.turbocompressor module
+------------------------------------------------------
+
+.. automodule:: tespy.components.turbomachinery.turbocompressor
     :members:
     :undoc-members:
     :show-inheritance:

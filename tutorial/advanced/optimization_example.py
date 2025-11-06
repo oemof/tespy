@@ -29,10 +29,10 @@ class SamplePlant:
 
     def _create_network(self):
 
-        self.nw = Network()
-        self.nw.set_attr(
-            p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False
-        )
+        self.nw = Network(iterinfo=False)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        })
         # components
         # main cycle
         sg = SimpleHeatExchanger("steam generator")

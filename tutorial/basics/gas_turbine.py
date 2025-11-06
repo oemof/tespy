@@ -7,7 +7,8 @@ from tespy.components import (
 from tespy.connections import Connection, Ref, PowerConnection
 
 # define full fluid list for the network"s variable space
-nw = Network(p_unit="bar", T_unit="C")
+nw = Network()
+nw.units.set_defaults(temperature="degC", pressure="bar", heat="MW", power="MW")
 
 cp = Compressor("Compressor")
 cc = DiabaticCombustionChamber("combustion chamber")
@@ -21,7 +22,7 @@ c3 = Connection(cc, "out1", fg, "in1", label="3")
 c5 = Connection(fuel, "out1", cc, "in2", label="5")
 nw.add_conns(c2, c3, c5)
 # %%[sec_3]
-cc.set_attr(pr=1, eta=1, lamb=1.5, ti=10e6)
+cc.set_attr(pr=1, eta=1, lamb=1.5, ti=10)
 
 c2.set_attr(
     p=1, T=20,
@@ -107,7 +108,7 @@ eta = {
 for T in data['T_3']:
     c3.set_attr(T=T)
     nw.solve('design')
-    power['T_3'] += [abs(e4.E.val) / 1e6]
+    power['T_3'] += [abs(e4.E.val)]
     eta['T_3'] += [abs(e4.E.val) / cc.ti.val * 100]
 
 # reset to base value
@@ -116,7 +117,7 @@ c3.set_attr(T=1200)
 for pr in data['pr']:
     cp.set_attr(pr=pr)
     nw.solve('design')
-    power['pr'] += [abs(e4.E.val) / 1e6]
+    power['pr'] += [abs(e4.E.val)]
     eta['pr'] += [abs(e4.E.val) / cc.ti.val * 100]
 
 # reset to base value
@@ -183,7 +184,7 @@ CH4 = []
 H2 = []
 
 for ti in data:
-    cc.set_attr(ti=ti * 1e6)
+    cc.set_attr(ti=ti)
     nw.solve('design')
     CH4 += [c5.fluid.val["CH4"] * 100]
     H2 += [c5.fluid.val["H2"] * 100]

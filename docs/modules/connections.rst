@@ -14,117 +14,209 @@ Parametrisation
 As mentioned in the introduction, for each connection you can specify the
 following parameters:
 
-* mass flow* (m),
-* volumetric flow (v),
-* pressure* (p),
-* enthalpy* (h),
-* temperature* (T),
-* vapor mass fraction for pure fluids (x),
-* a fluid vector (fluid) and
-* a balance closer for the fluid vector (fluid_balance).
+* mass flow :code:`m`,
+* volumetric flow :code:`v`,
+* pressure :code:`p`,
+* enthalpy :code:`h`,
+* temperature :code:`T`,
+* temperature difference to bubble line :code:`td_bubble`
+* vapor mass fraction for pure fluids :code:`x`,
+* a fluid vector :code:`fluid` and
+* a balance closer for the fluid vector :code:`fluid_balance`.
 
-It is possible to specify values, starting values and references. The data
-containers for connections are `dc_prop` for fluid properties (mass flow,
-pressure, enthalpy, temperature, etc.) and `dc_flu` for fluid composition. If
-you want to specify information directly to these do it with caution, data types
-are not enforced.
+Setting and unsetting values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order to create the connections we create the components to connect first.
+A :code:`Connection` always connects two components, we will create a simple
+problem using a :code:`SimpleHeatExchanger` to showcase specification options.
 
 .. code-block:: python
 
-    >>> from tespy.connections import Connection, Ref
-    >>> from tespy.components import Sink, Source
+    >>> from tespy.networks import Network
+    >>> from tespy.connections import Connection
+    >>> from tespy.components import Sink, Source, SimpleHeatExchanger
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="°C", power="kW", pressure="bar", enthalpy="kJ/kg"
+    ... )
+    >>> source = Source('source')
+    >>> heatexchanger = SimpleHeatExchanger('heat exchanger')
+    >>> sink = Sink('sink')
+    >>> c1 = Connection(source, "out1", heatexchanger, "in1", label="c1")
+    >>> c2 = Connection(heatexchanger, "out1", sink, "in1", label="c2")
+    >>> nw.add_conns(c1, c2)
 
-    # create components
-    >>> source1 = Source('source 1')
-    >>> source2 = Source('source 2')
-    >>> sink1 = Sink('sink 1')
-    >>> sink2 = Sink('sink 2')
+It is possible to set simple values and then solve, e.g.:
 
-    # create connections
-    >>> myconn = Connection(source1, 'out1', sink1, 'in1')
-    >>> myotherconn = Connection(source2, 'out1', sink2, 'in1')
+- mass flow, pressure and temperature (and fluid) at inlet
+- enthalpy at outlet
+- (pressure drop in heat exchanger)
 
-    # set pressure and vapor mass fraction by value, temperature and enthalpy
-    # analogously
-    >>> myconn.set_attr(p=7, x=0.5)
-    >>> myconn.p.val, myconn.x.val
-    (7, 0.5)
+.. code-block:: python
 
-    # set starting values for mass flow, pressure and enthalpy (has no effect
-    # on temperature and vapor mass fraction!)
-    >>> myconn.set_attr(m0=10, p0=15, h0=100)
-    >>> myconn.m.val0, myconn.p.val0, myconn.h.val0
-    (10, 15, 100)
+    >>> c1.set_attr(fluid={"R290": 1}, m=5, p=3, T=50)
+    >>> c2.set_attr(h=500)
+    >>> heatexchanger.set_attr(dp=0)
+    >>> nw.solve("design")
 
-    # do the same directly on the data containers
-    >>> myconn.p.set_attr(val=7, is_set=True)
-    >>> myconn.x.set_attr(val=0.5, is_set=True)
+Both connections will have all results available, these can be accessed
 
-    >>> myconn.m.set_attr(val0=10)
-    >>> myconn.p.set_attr(val0=15)
-    >>> myconn.h.set_attr(val0=100)
-    >>> myconn.m.val0, myconn.p.val0, myconn.h.val0
-    (10, 15, 100)
+- as SI value
+- as value in the network's default unit of the respective quantity
+- as value with the corresponding quantity (:code:`pint.Quantity`)
 
-    # specify a referenced value: pressure of myconn is 1.2 times pressure at
-    # myotherconn minus 5 (unit is the network's corresponding unit)
-    >>> myconn.set_attr(p=Ref(myotherconn, 1.2, -5))
+The results include mass flow, pressure, enthalpy, temperature, temperature,
+vapor quality, specific volume :code:`vol` and volumetric flow.
 
-    # specify value and reference at the same time
-    >>> myconn.p_ref.set_attr(ref=Ref(myotherconn, 1.2, -5), is_set=True)
-    >>> myconn.p.set_attr(val=7, is_set=True)
+.. code-block:: python
 
-    # possibilities to unset values
-    >>> myconn.set_attr(p=None)
-    >>> myconn.p.is_set
-    False
+    >>> round(c1.h.val, 1)  # value in kJ/kg but without unit attached
+    668.9
+    >>> round(c1.vol.val_with_unit, 3)  # will be in m3/kg
+    <Quantity(0.195, 'm3 / kilogram')>
+    >>> round(c2.T.val_SI, 1)  # SI value
+    259.0
+    >>> round(c2.T.val_with_unit, 1)  # will be in °C
+    <Quantity(-14.2, 'degree_Celsius')>
 
-    >>> myconn.set_attr(p=10)
-    >>> myconn.p.set_attr(is_set=False)
-    >>> myconn.p.is_set
-    False
+You can also provide quantities to a specific parameter to individually specify
+a unit to a parameter, e.g. inlet mass flow. Note, that units are retained when
+set with individual quantity.
 
-    >>> myconn.p_ref.set_attr(is_set=False)  # for referenced values
-    >>> myconn.p_ref.is_set
-    False
+.. code-block:: python
+
+    >>> Q = nw.units.ureg.Quantity
+    >>> c1.set_attr(m=Q(2, "t/h"))
+    >>> nw.solve("design")
+    >>> c1.m.val_with_unit
+    <Quantity(2, 'metric_ton / hour')>
+    >>> round(c2.m.val_with_unit, 2)
+    <Quantity(0.56, 'kilogram / second')>
+
+For pure fluids or CoolProp/REFPROP mixtures we can also specify two-phase
+properties:
+
+- vapor mass fraction/quality :code:`x`
+- dew line temperature difference for superheating :code:`td_dew`
+- bubble line temperature difference for subcooling :code:`td_bubble`
+
+We can replace the inlet temperature specification e.g. with superheating. The
+unit of :code:`temperature_difference` is different from the unit for
+:code:`temperature`. Unsetting a value is simple: Just set it to :code:`None`.
+
+.. code-block:: python
+
+    >>> c1.set_attr(T=None)  # unset the value
+    >>> nw.units.default["temperature"]
+    '°C'
+    >>> nw.units.default["temperature_difference"]
+    'delta_degC'
+    >>> c1.set_attr(td_dew=20)
+    >>> nw.solve("design")
+    >>> round(c1.T.val, 2)
+    5.82
+
+Setting starting values
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Setting starting values for the variables can be helpful in some situations.
+You can do this for the following properties:
+
+- mass flow
+- pressure
+- enthalpy
+
+.. code-block:: python
+
+    >>> c1.set_attr(m0=4)
+    >>> c2.set_attr(h0=300, p0=4)
+
+Linear relationships
+^^^^^^^^^^^^^^^^^^^^
+
+It is also possible to set up linear relationships between different
+specifications in your system in the form of:
+
+.. math::
+
+    x_0 = a * x_1 + b
+
+It is possible to specify these for
+
+- mass flow, pressure and enthalpy as well as
+- temperature and volumetric flow.
+
+For example, instead of h we can specify a reference to the temperature at
+c1. The factor is always based on SI value, the delta is in the default unit of
+the respective property. The starting value for h is required in this context
+because in the previous calculation the fluid was in two-phase state, meaning
+the partial derivative of the temperature of c2 with respect to enthalpy would
+be zero otherwise.
+
+.. code-block:: python
+
+    >>> from tespy.connections import Ref
+    >>> factor = 1
+    >>> delta = 25
+    >>> c2.set_attr(h=None, T=Ref(c1, factor, delta), h0=1000)
+    >>> nw.solve("design")
+    >>> round(c1.T.val_SI * factor + delta - 273.15, 2)
+    30.82
+    >>> round(c2.T.val, 2)
+    30.82
+
+Instead we could reference volumetric flow at outlet to find the temperature at
+outlet.
+
+.. code-block:: python
+
+    >>> c2.set_attr(T=None)
+    >>> factor = 1.2
+    >>> delta = 0
+    >>> c2.set_attr(v=Ref(c1, factor, delta))
+    >>> nw.solve("design")
+    >>> round(c1.v.val_SI * factor + delta, 2)
+    0.11
+    >>> round(c2.v.val_SI, 2)
+    0.11
+    >>> round(c2.T.val, 2)
+    52.91
+
+For more complex (and arbitrary) relationships between variables of the system
+use the :code:`UserDefinedEquation` class. Some examples can be found in
+:ref:`this section <tespy_ude_label>`.
 
 Fluid specification
--------------------
+^^^^^^^^^^^^^^^^^^^
 
-If you want to specify the fluid vector you can do it in the following way.
+This sections shows some details on the specification of fluids.
 
 .. code-block:: python
 
     # set both elements of the fluid vector
-    >>> myconn.set_attr(fluid={'water': 1})
+    >>> c1.set_attr(fluid={'water': 1})
 
     # same thing, but using data container
-    >>> myconn.fluid.set_attr(_val={'water': 1}, _is_set={'water'})
-    >>> myconn.fluid.is_set
+    >>> c1.fluid.set_attr(_val={'water': 1}, _is_set={'water'})
+    >>> c1.fluid.is_set
     {'water'}
 
     # set starting values
-    >>> myconn.set_attr(fluid0={'water': 1})
-
-    # same thing, but using data container
-    >>> myconn.fluid.set_attr(val0={'water': 1})
+    >>> c1.set_attr(fluid0={'water': 1})
 
     # unset full fluid vector
-    >>> myconn.set_attr(fluid={'water': None})
-    >>> myconn.fluid.is_set
+    >>> c1.set_attr(fluid={'water': None})
+    >>> c1.fluid.is_set
     set()
 
     # unset part of fluid vector
-    >>> myconn.set_attr(fluid={'water': 1})
-    >>> myconn.fluid.is_set.remove('water')
-    >>> myconn.fluid.is_set
-    set()
+    >>> c1.set_attr(fluid={'N2': 0.7, "O2": 0.3})
+    >>> c1.fluid.is_set.remove('N2')
+    >>> c1.fluid.is_set
+    {'O2'}
 
-.. note::
-
-    References can not be used for fluid composition at the moment!
+CoolProp and REFPROP
+++++++++++++++++++++
 
 It is possible to specify the fluid property back end of the fluids by adding
 the name of the back end in front of the fluid's name. For incompressible binary
@@ -133,10 +225,17 @@ example:
 
 .. code-block:: python
 
-    >>> myconn.set_attr(fluid={'water': 1})  # HEOS back end
-    >>> myconn.set_attr(fluid={'INCOMP::water': 1})  # incompressible fluid
-    >>> myconn.set_attr(fluid={'BICUBIC::air': 1})  # bicubic back end
-    >>> myconn.set_attr(fluid={'INCOMP::MPG[0.5]|mass': 1})  # binary incompressible mixture
+    >>> c1.set_attr(fluid={'water': 1})  # HEOS back end
+    >>> c1.set_attr(fluid={'INCOMP::water': 1})  # incompressible fluid
+    >>> c1.set_attr(fluid={'BICUBIC::air': 1})  # bicubic back end
+    >>> c1.set_attr(fluid={'INCOMP::MPG[0.5]|mass': 1})  # binary incompressible mixture
+
+You can also specify REFPROP based fluids, e.g. R513A, which is a mass based
+mixture of R134a and R1234yf:
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={'REFPROP::R134A[0.44]&R1234yf[0.56]|mass': 1})  # REFPROP back end
 
 .. note::
 
@@ -144,6 +243,9 @@ example:
     database. If you do not specify a back end, the **default back end**
     :code:`HEOS` will be used. For an overview of the back ends available please
     refer to the :ref:`fluid property section <tespy_fluid_properties_label>`.
+
+Other Backends
+++++++++++++++
 
 You can also change the engine, for example to the iapws library. It is even
 possible, that you define your own custom engine, e.g. using polynomial
@@ -153,7 +255,11 @@ do this.
 .. code-block:: python
 
     >>> from tespy.tools.fluid_properties.wrappers import IAPWSWrapper
-    >>> myconn.set_attr(fluid={'H2O': 1}, fluid_engines={"H2O": IAPWSWrapper})
+    >>> c1.set_attr(fluid={'H2O': 1}, fluid_engines={"H2O": IAPWSWrapper})
+
+Please also check out the section on
+:ref:`custom fluid properties <tespy_fluid_properties_label>` for more
+information.
 
 Access from the :code:`Network` object
 --------------------------------------
@@ -172,14 +278,12 @@ is generated by this logic:
 
 .. code-block:: python
 
-    >>> from tespy.networks import Network
-
-    >>> mynetwork = Network()
-    >>> myconn = Connection(source1, 'out1', sink1, 'in1', label='myconnlabel')
-    >>> mynetwork.add_conns(myconn)
-    >>> mynetwork.get_conn('myconnlabel').set_attr(p=1e5)
-    >>> myconn.p.val
-    100000.0
+    >>> conn = nw.get_conn('c1')
+    >>> conn.label
+    'c1'
+    >>> conn.set_attr(p=7)
+    >>> conn.p.val
+    7.0
 
 .. note::
 
@@ -194,7 +298,7 @@ PowerConnections
 PowerConnections can be used to represent non-material energy flow, like power
 or heat. You can make use of generators, motors and buses.
 
-Different use-cases for the implementation of powerconnections with the
+Different use-cases for the implementation of :code:`PowerConnection` with the
 respective power components can be:
 
 - apply motor or generator efficiencies
@@ -208,7 +312,7 @@ identical to standard components. The following components are available:
 - :py:class:`tespy.components.power.generator.Generator`: generate electricity from mechanical energy
 - :py:class:`tespy.components.power.motor.Motor`: generate mechanical energy from electricity
 - :py:class:`tespy.components.power.bus.PowerBus`: balance all inflows and outflows of power into a bus
-- :py:class:`tespy.components.power.sink.PowerSink`: e.g. represet power fed into the electricity grid
+- :py:class:`tespy.components.power.sink.PowerSink`: e.g. represent power fed into the electricity grid
 - :py:class:`tespy.components.power.source.PowerSource`: e.g. represent power drawn from the electricity grid
 
 For more details on the components please go to the respective section of the
@@ -230,7 +334,8 @@ electricity. First we can set up a system as we are used to do without any
     >>> from tespy.components import Source, Sink, Turbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("source")
     >>> turbine = Turbine("turbine")
     >>> si = Sink("sink")
@@ -298,7 +403,8 @@ system connecting the compressor to the heater and to the turbine.
     ...     Generator, PowerSink
     ... )
     >>> from tespy.networks import Network
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("source")
     >>> heater = SimpleHeatExchanger("heater")
     >>> compressor = Compressor("compressor")
@@ -387,7 +493,8 @@ consumption.
     >>> from tespy.components import Pump, Turbine, Source, Sink
     >>> from tespy.connections import Connection, PowerConnection
 
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> cond = Source("condensate")
     >>> fwp = Pump("feed water pump")
     >>> feedwater = Sink("feedwater")
@@ -423,13 +530,14 @@ Logic to force same power of two compressors
 
 In this example we combine the PowerConnection with a UserDefinedEquation.
 Two air compressors should run in series and at identical power. For this the
-indermediate pressure is variable.
+intermediate pressure is variable.
 
     >>> from tespy.components import Source, Sink, Compressor, PowerSource
     >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
     >>> from tespy.tools import UserDefinedEquation
-    >>> nw = Network(p_unit="bar", T_unit="C", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("air source")
     >>> compressor1 = Compressor("compressor 1")
     >>> compressor2 = Compressor("compressor 2")
@@ -482,7 +590,8 @@ instance.
     >>> from tespy.networks import Network
     >>> from tespy.tools import CharLine
 
-    >>> nw = Network(T_unit="C", p_unit="bar", iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
     >>> so = Source("evaporated refrigerant")
     >>> compressor = Compressor("compressor")
     >>> si = Sink("compressed refrigerant")
@@ -502,7 +611,7 @@ method in the model of the motor.
 
 .. code-block:: python
 
-    >>> c1.set_attr(fluid={"R290": 1}, m=1, Td_bp=10, T=10)
+    >>> c1.set_attr(fluid={"R290": 1}, m=1, td_dew=10, T=10)
     >>> compressor.set_attr(pr=3, eta_s=0.85, design=["eta_s"], offdesign=["eta_s_char"])
     >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
     >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])

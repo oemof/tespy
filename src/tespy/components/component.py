@@ -15,6 +15,8 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+import pandas as pd
+import pint
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -35,6 +37,8 @@ from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
+from tespy.tools.units import _UNITS
+from tespy.tools.units import SI_UNITS
 
 
 def component_registry(type):
@@ -170,16 +174,23 @@ class Component:
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
                     try:
-                        data.set_attr(_is_var=False)
+                        data.set_attr(is_var=False)
                     except KeyError:
                         pass
                     continue
 
-                try:
-                    float(kwargs[key])
-                    is_numeric = True
-                except (TypeError, ValueError):
-                    is_numeric = False
+
+                is_numeric = False
+                is_quantity = False
+
+                if isinstance(kwargs[key], pint.Quantity):
+                    is_quantity = True
+                else:
+                    try:
+                        float(kwargs[key])
+                        is_numeric = True
+                    except (TypeError, ValueError):
+                        pass
 
                 # dict specification
                 if (isinstance(kwargs[key], dict) and
@@ -188,16 +199,16 @@ class Component:
 
                 # value specification for component properties
                 elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
-                    if is_numeric:
-                        data.set_attr(_val=kwargs[key], is_set=True)
+                    if is_numeric or is_quantity:
+                        data.set_attr(val=kwargs[key], is_set=True)
                         if isinstance(data, dc_cp):
-                            data.set_attr(_is_var=False)
-
-                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, _is_var=True)
+                            data.set_attr(is_var=False)
 
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
+
+                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
+                        data.set_attr(is_set=True, is_var=True)
 
                     # invalid datatype for keyword
                     else:
@@ -304,6 +315,24 @@ class Component:
             "design", "offdesign", "local_design", "local_offdesign",
             "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
+
+    def _get_result_attributes(self):
+        return [
+            key for key, p in self.parameters.items() if isinstance(p, dc_cp)
+        ]
+
+    def collect_results(self):
+        result = {}
+        for key in self._get_result_attributes():
+            p = self.get_attr(key)
+            if (p.func is not None or (p.func is None and p.is_set) or
+                    p.is_result or p.structure_matrix is not None):
+                result[key] = p.val
+            else:
+                result[key] = np.nan
+
+            result[f"{key}_unit"] = p.unit
+        return pd.Series(result)
 
     def propagate_wrapper_to_target(self, branch):
         inconn = branch["connections"][-1]
@@ -413,7 +442,11 @@ class Component:
                         is_set = False
 
                 if is_set:
-                    data.set_attr(is_set=True)
+                    if self._mode == "design" and key not in self.offdesign:
+                        data.set_attr(is_set=True)
+                    elif self._mode == "offdesign" and key not in self.design:
+                        data.set_attr(is_set=True)
+
                 elif data.is_set:
                     msg = (
                         'All parameters of the component group have to be '
@@ -431,12 +464,14 @@ class Component:
             elif type(data) == dc_gcc:
                 self.group_specifications[key] = data.is_set
             # add equations to structure matrix
-            if data.is_set and data.func is not None:
+            structure_matrix = data.structure_matrix is not None
+            func = data.func is not None
+            if data.is_set and (structure_matrix or func):
                 for i in range(sum_eq, sum_eq + data.num_eq_sets):
                     self._rhs[i + row_idx] = 0
                     self._equation_set_lookup[i + row_idx] = key
 
-                if data.structure_matrix is not None:
+                if structure_matrix:
                     data.structure_matrix(row_idx + sum_eq, **data.func_params)
 
                 sum_eq += data.num_eq_sets
@@ -842,6 +877,7 @@ class Component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
+        self._mode = mode
         if mode == 'design' or self.local_design:
             self.new_design = True
 
@@ -852,7 +888,13 @@ class Component:
                         (mode == 'design' and self.local_offdesign)) and
                         (data[key] is not None)
                     ):
-                    self.get_attr(key).design = float(data[key])
+                    if f"{key}_unit" in data:
+                        value = _UNITS.ureg.Quantity(
+                            data[key], data[f"{key}_unit"]
+                        ).to(SI_UNITS[dc.quantity]).magnitude
+                    else:
+                        value = data[key]
+                    self.get_attr(key).design = float(value)
 
                 else:
                     self.get_attr(key).design = np.nan
@@ -867,18 +909,18 @@ class Component:
         for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                if data.val > data.max_val + ERR:
+                if data.val_SI > data.max_val + ERR:
                     msg = (
-                        f"Invalid value for {p}: {p} = {data.val} above "
+                        f"Invalid value for {p}: {p} = {data.val_SI} above "
                         f"maximum value ({data.max_val}) at component "
                         f"{self.label}."
                     )
                     logger.warning(msg)
                     _no_limit_violated = False
 
-                elif data.val < data.min_val - ERR:
+                elif data.val_SI < data.min_val - ERR:
                     msg = (
-                        f"Invalid value for {p}: {p} = {data.val} below "
+                        f"Invalid value for {p}: {p} = {data.val_SI} below "
                         f"minimum value ({data.min_val}) at component "
                         f"{self.label}."
                     )
@@ -932,82 +974,53 @@ class Component:
     def get_plotting_data(self):
         return
 
-    def pr_func(self, pr=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure ratio function.
-
-        Parameters
-        ----------
-        pr : str
-            Component parameter to evaluate the pr_func on, e.g.
-            :code:`pr1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-
-            .. math::
-
-                0 = p_{in} \cdot pr - p_{out}
-        """
-        pr = self.get_attr(pr)
-        return self.inl[inconn].p.val_SI * pr.val - self.outl[outconn].p.val_SI
-
-    def pr_deriv(self, increment_filter, k, pr=None, inconn=0, outconn=0):
-        r"""
-        Calculate residual value of pressure ratio function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-
-        pr : str
-            Component parameter to evaluate the pr_func on, e.g.
-            :code:`pr1`.
-
-        inconn : int
-            Connection index of inlet.
-
-        outconn : int
-            Connection index of outlet.
-        """
-        pr = self.get_attr(pr)
-        i = self.inl[inconn]
-        o = self.outl[outconn]
-
-        self._partial_derivative(i.p, k, pr.val)
-        self._partial_derivative(o.p, k, -1)
-        if pr.is_var:
-            self.jacobian[k, self.pr.J_col] = i.p.val_SI
-
-    def pr_dependents(self, pr=None, inconn=0, outconn=0):
-        return [
-            self.inl[inconn].p,
-            self.outl[outconn].p,
-            self.get_attr(pr)
-        ]
-
     def pr_structure_matrix(self, k, pr=None, inconn=0, outconn=0):
+        r"""
+        Create linear relationship between inflow and outflow pressure
+
+        .. math::
+
+            p_{in} \cdot pr = p_{out}
+
+        Parameters
+        ----------
+        k : int
+            equation number in systems of equations
+
+        pr : str
+            Component parameter, e.g. :code:`pr1`.
+
+        inconn : int
+            Connection index of inlet.
+
+        outconn : int
+            Connection index of outlet.
+        """
         pr = self.get_attr(pr)
         i = self.inl[inconn]
         o = self.outl[outconn]
 
-        if not pr.is_var:
-            self._structure_matrix[k, i.p.sm_col] = pr.val
-            self._structure_matrix[k, o.p.sm_col] = -1
+        self._structure_matrix[k, i.p.sm_col] = pr.val_SI
+        self._structure_matrix[k, o.p.sm_col] = -1
 
     def variable_equality_structure_matrix(self, k, **kwargs):
+        r"""
+        Create pairwise linear relationship between two variables :code:`var`
+        for all inlets and the respective outlets. This usually is applied to
+        mass flow, pressure, enthalpy and fluid composition.
+
+        .. math::
+
+            var_\text{in,i} = var_\text{out,i}
+
+        Parameters
+        ----------
+        k : int
+            equation number in systems of equations
+
+        variable : str
+            Connection variable name, e.g. :code:`h`.
+        """
         variable = kwargs.get("variable")
         for count, (i, o) in enumerate(zip(self.inl, self.outl)):
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
@@ -1075,7 +1088,7 @@ class Component:
             v_i = i.calc_vol(T0=i.T.val_SI)
             v_o = o.calc_vol(T0=o.T.val_SI)
             return (
-                data.val - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
+                data.val_SI - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 
@@ -1089,42 +1102,28 @@ class Component:
             self.get_attr(zeta)
         ]
 
-    def dp_func(self, dp=None, inconn=None, outconn=None):
-        """Calculate residual value of pressure difference function.
+    def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
+        r"""
+        Create linear relationship between inflow and outflow pressure
+
+        .. math::
+
+            p_{in} - dp = p_{out}
 
         Parameters
         ----------
+        k : int
+            equation number in systems of equations
+
         dp : str
-            Component parameter to evaluate the dp_func on, e.g.
-            :code:`dp1`.
+            Component parameter, e.g. :code:`dp1`.
 
         inconn : int
             Connection index of inlet.
 
         outconn : int
             Connection index of outlet.
-
-        Returns
-        -------
-        residual : float
-            Residual value of function.
-
-            .. math::
-
-                0 = p_{in} - p_{out} - dp
         """
-        inlet_conn = self.inl[inconn]
-        outlet_conn = self.outl[outconn]
-        dp_value = self.get_attr(dp).val_SI
-        return inlet_conn.p.val_SI - outlet_conn.p.val_SI - dp_value
-
-    def dp_dependents(self, dp=None, inconn=None, outconn=None):
-        return [
-            self.inl[inconn].p,
-            self.outl[outconn].p
-        ]
-
-    def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):
         inlet_conn = self.inl[inconn]
         outlet_conn = self.outl[outconn]
         self._structure_matrix[k, inlet_conn.p.sm_col] = 1

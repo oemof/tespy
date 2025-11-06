@@ -49,6 +49,10 @@ class Pump(Turbomachine):
     - in1
     - out1
 
+    Optional inlets
+
+    - power
+
     Image
 
     .. image:: /api/_images/Pump.svg
@@ -97,7 +101,7 @@ class Pump(Turbomachine):
         Outlet to inlet pressure ratio, :math:`pr/1`
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p_unit}}`
+        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
@@ -120,8 +124,10 @@ class Pump(Turbomachine):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> import os
-    >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', v_unit='l / s',
-    ... iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
     >>> pu = Pump('pump')
@@ -186,7 +192,8 @@ class Pump(Turbomachine):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
-                deriv=self.eta_s_deriv
+                deriv=self.eta_s_deriv,
+                quantity="efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
@@ -240,7 +247,7 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return (
-            (o.h.val_SI - i.h.val_SI) * self.eta_s.val - (
+            (o.h.val_SI - i.h.val_SI) * self.eta_s.val_SI - (
                 isentropic(
                     i.p.val_SI,
                     i.h.val_SI,
@@ -270,7 +277,7 @@ class Pump(Turbomachine):
         f = self.eta_s_func
 
         if o.h.is_var and not i.h.is_var:
-            self._partial_derivative(o.h, k, self.eta_s.val, increment_filter)
+            self._partial_derivative(o.h, k, self.eta_s.val_SI, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
 
@@ -490,7 +497,7 @@ class Pump(Turbomachine):
 
         i = self.inl[0]
         o = self.outl[0]
-        self.eta_s.val =  (
+        self.eta_s.val_SI =  (
             isentropic(
                 i.p.val_SI,
                 i.h.val_SI,

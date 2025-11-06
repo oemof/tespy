@@ -1,5 +1,125 @@
-v0.9.4 - under development
-++++++++++++++++++++++++++
+v0.9.4 - Kelvin's Kingdom (August, 31, 2025)
+++++++++++++++++++++++++++++++++++++++++++++
+
+API Changes
+###########
+- The specification of units via the :code:`Network` class instance is
+  deprecated and will be removed with the next major release. Use the new
+  :code:`Units` class from the `tespy.units` module instead. It also includes
+  units for all component properties.
+
+  .. code-block::
+
+      >>> from tespy.networks import Network
+      >>> from tespy.components import (
+      ...     Source, Sink, Turbine, SimpleHeatExchanger, PowerSink, Generator
+      ... )
+      >>> from tespy.connections import Connection, PowerConnection
+      >>> nw = Network(iterinfo=False)
+      >>> nw.units.set_defaults(**{
+      ...     "pressure": "bar",
+      ...     "temperature": "degC",
+      ...     "temperature_difference": "delta_degC",
+      ...     "power": "MW",
+      ...     "heat": "hp",
+      ...     "efficiency": "%"
+      ... })
+      >>> source = Source("source")
+      >>> heater = SimpleHeatExchanger("heater")
+      >>> turbine = Turbine("turbine")
+      >>> sink = Sink("sink")
+      >>> generator = Generator("generator")
+      >>> grid = PowerSink("grid")
+      >>> c1 = Connection(source, "out1", heater, "in1", label="c1")
+      >>> c2 = Connection(heater, "out1", turbine, "in1", label="c2")
+      >>> c3 = Connection(turbine, "out1", sink, "in1", label="c3")
+      >>> e1 = PowerConnection(turbine, "power", generator, "power_in", label="e1")
+      >>> e2 = PowerConnection(generator, "power_out", grid, "power", label="e2")
+      >>> nw.add_conns(c1, c2, c3, e1, e2)
+
+  Parameter specifications come with the specified units.
+
+  .. code-block::
+
+      >>> c1.set_attr(fluid={"water": 1}, T=25, p=100)  # degC and bar
+      >>> c2.set_attr(T=600)  # degC
+      >>> c3.set_attr(p=5)  # bar
+      >>> e2.set_attr(E=10)  # MW
+      >>> heater.set_attr(dp=5)  # pressure drop -> bar
+      >>> generator.set_attr(eta=97)  # efficiency
+      >>> turbine.set_attr(eta_s=85)  # efficiency
+      >>> nw.solve("design")
+
+  It is even possible to specify a custom unit for a single parameter:
+
+  .. code-block::
+
+      >>> Q = nw.units.ureg.Quantity
+      >>> heater.set_attr(dp=Q(20, "psi"))  # set pressure drop with in psi
+      >>> nw.solve("design")
+      >>> round(c2.p.val_with_unit, 4)  # retrieve pint.Quantity
+      <Quantity(98.621, 'bar')>
+      >>> round(turbine.P.val, 2)  # val still only retrieves number, but in specified default unit
+      -10.31
+      >>> round(heater.dp.val, 1)  # individually assign units are retained
+      20.0
+
+  If you want to make use of the unit conversion capabilities yourself for
+  custom components and their attributes, then you have to provide the
+  :code:`quantity` information to the respective parameter. For more
+  information on this, please check the
+  :ref:`respective section <tespy_units_label>` in the
+  docs.
+
+- In the back-end of the :code:`tespy.components` you have to adjust the
+  access to internal component property values. Previously, these were accessed
+  through the :code:`val` property of the respective object, e.g.
+
+  - turbine efficiency: :code:`turbine.eta_s.val`
+
+  .. code-block:: python
+
+      return (
+          -(outl.h.val_SI - inl.h.val_SI)
+          + (
+              isentropic(
+                  inl.p.val_SI,
+                  inl.h.val_SI,
+                  outl.p.val_SI,
+                  inl.fluid_data,
+                  inl.mixing_rule,
+                  T0=inl.T.val_SI
+              )
+              - inl.h.val_SI
+          ) * self.eta_s.val_SI
+      )
+
+  With the introduction of units for all component parameters, these should now
+  exclusively be accessed with the :code:`val_SI` property, which also aligns
+  the API with the :code:`Connection` class API, e.g.:
+
+  - turbine efficiency: :code:`turbine.eta_s.val_SI`
+
+  .. code-block:: python
+
+      return (
+          -(outl.h.val_SI - inl.h.val_SI)
+          + (
+              isentropic(
+                  inl.p.val_SI,
+                  inl.h.val_SI,
+                  outl.p.val_SI,
+                  inl.fluid_data,
+                  inl.mixing_rule,
+                  T0=inl.T.val_SI
+              )
+              - inl.h.val_SI
+          ) * self.eta_s.val
+      )
+
+
+  The old way of access may still work if you are exclusively using SI units in
+  your models, but may have unexpected side-effects.
 
 New Features
 ############
@@ -9,11 +129,38 @@ New Features
   is forced equal for all connections, the enthalpy and fluid composition will
   be equal for all of the outlets and based on the incoming fluids' states
   (`PR #733 <https://github.com/oemof/tespy/pull/733>`__).
+- TESPy now integrates `pint <https://pint.readthedocs.io/>`__ for unit
+  conversions. With this change, you can now also specify units for the missing
+  connection parameters
+
+  - quality: :code:`x`,
+  - temperature differences: :code:`Td_bp` and
+  - power/heat :code:`E` for :code:`PowerConnections`
+
+  as well as all component parameters. For an example on how to work with the
+  new units, please check :ref:`this section <tespy_units_label>`
+  (`PR #743 <https://github.com/oemof/tespy/pull/743>`__).
+- A new component :code:`PolynomialCompressor` is available. The component
+  uses `EN 12900` type polynomial coefficients to calculate isentropic and
+  volumetric efficiencies, and can take dissipative heat loss into
+  consideration. Displacement in offdesign conditions can be calculated based
+  on variable rpm of the compressor. For an extensive example please check the
+  docstrings of this component
+  (`PR #741 <https://github.com/oemof/tespy/pull/741>`__).
 
 Other Changes
 #############
 - A few broken internal links have been fixed in the documentation
-  (`PR #735 <https://github.com/oemof/tespy/pull/735>`).
+  (`PR #735 <https://github.com/oemof/tespy/pull/735>`__).
+- An error is raised, when a Subsystem calls its :code:`add_conns` method and
+  the label of the to be added connection is already existing inside the
+  Subsystem (`PR #745 <https://github.com/oemof/tespy/pull/745>`__).
+- For pure fluids in two-phase at the state of :code:`p=p` and :code:`T=T0`
+  the splitting of exergy was broken, because the enthalpy :code:`h(p=p, T=T0)`
+  cannot be calculated. Instead :code:`ex_therm` is assigned :code:`0.0` in
+  this case (`PR #738 <https://github.com/oemof/tespy/pull/738>`__).
+- Clean up some residual code, that was not used anymore
+  (`PR #753 <https://github.com/oemof/tespy/pull/753>`__).
 
 Contributors
 ############

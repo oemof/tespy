@@ -132,8 +132,9 @@ The units used, and the ambient state are defined as follows:
 
 .. code-block:: python
 
-    nw = Network(
-        T_unit='C', p_unit='bar', h_unit='kJ / kg', m_unit='kg / s'
+    nw = Network()
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", enthalpy="kJ/kg"
     )
 
     pamb = 1.013

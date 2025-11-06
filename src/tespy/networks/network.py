@@ -16,6 +16,7 @@ import importlib
 import json
 import math
 import os
+import warnings
 from time import time
 
 import numpy as np
@@ -41,6 +42,8 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
+from tespy.tools.units import SI_UNITS
+from tespy.tools.units import Units
 
 # Only require cupy if Cuda shall be used
 try:
@@ -55,48 +58,22 @@ class Network:
 
     Parameters
     ----------
-    h_range : list
-        List with minimum and maximum values for enthalpy value range.
-
-    h_unit : str
-        Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
     iterinfo : boolean
         Print convergence progress to console.
+
+    h_range : list
+        List with minimum and maximum values for enthalpy value range.
 
     m_range : list
         List with minimum and maximum values for mass flow value range.
 
-    m_unit : str
-        Specify the unit for mass flow: 'kg / s', 't / h'.
-
     p_range : list
         List with minimum and maximum values for pressure value range.
 
-    p_unit : str
-        Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-    s_unit : str
-        Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
-        'MJ / kgK'.
-
-    T_unit : str
-        Specify the unit for temperature: 'K', 'C', 'F', 'R'.
-
-    v_unit : str
-        Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
-        'l / h'.
-
-    vol_unit : str
-        Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
-
-    x_unit : str
-        Specify the unit for steam mass fraction: '-', '%'.
-
     Note
     ----
-    Unit specification is optional: If not specified the SI unit (first
-    element in above lists) will be applied!
+    Units are specified via the :code:`Network.units.set_defaults` interface.
+    The specification is optional and will use SI units by default.
 
     Range specification is optional, too. The value range is used to stabilize
     the newton algorithm. For more information see the "getting started"
@@ -104,16 +81,18 @@ class Network:
 
     Example
     -------
-    Basic example for a setting up a tespy.networks.network.Network object.
-    Specifying the fluids is mandatory! Unit systems, fluid property range and
-    iterinfo are optional.
+    Basic example for a setting up a :code:`tespy.networks.network.Network`
+    object.
 
     Standard value for iterinfo is :code:`True`. This will print out
     convergence progress to the console. You can stop the printouts by setting
     this property to :code:`False`.
 
     >>> from tespy.networks import Network
-    >>> mynetwork = Network(p_unit='bar', T_unit='C')
+    >>> mynetwork = Network()
+    >>> mynetwork.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> mynetwork.set_attr(p_range=[1, 10])
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
@@ -133,7 +112,10 @@ class Network:
     >>> from tespy.networks import Network
     >>> from tespy.components import Source, Sink, Pipe, PowerSink
     >>> from tespy.connections import Connection, PowerConnection
-    >>> nw = Network(T_unit='C', p_unit='bar', v_unit='m3 / s')
+    >>> nw = Network()
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False, power_connector_location="outlet")
@@ -156,16 +138,10 @@ class Network:
 
     def _serialize(self):
         return {
-            "m_unit": self.m_unit,
-            "m_range": list(self.m_range),
-            "p_unit": self.p_unit,
-            "p_range": list(self.p_range),
-            "h_unit": self.h_unit,
-            "h_range": list(self.h_range),
-            "T_unit": self.T_unit,
-            "x_unit": self.x_unit,
-            "v_unit": self.v_unit,
-            "s_unit": self.s_unit,
+            "m_range": list(self.m_range.magnitude),
+            "p_range": list(self.p_range.magnitude),
+            "h_range": list(self.h_range.magnitude),
+            "units": self.units._serialize()
         }
 
     def set_defaults(self):
@@ -202,12 +178,12 @@ class Network:
         self.checked = False
         self.design_path = None
         self.iterinfo = True
+        self.units = Units()
 
         msg = 'Default unit specifications:\n'
-        for prop, data in fpd.items():
+        for prop, unit in self.units.default.items():
             # standard unit set
-            self.__dict__.update({prop + '_unit': data['SI_unit']})
-            msg += data['text'] + ': ' + data['SI_unit'] + '\n'
+            msg += f"{prop}: {unit}" + "\n"
 
         # don't need the last newline
         logger.debug(msg[:-1])
@@ -217,14 +193,23 @@ class Network:
         self.p_range_SI = [2e2, 300e5]
         self.h_range_SI = [1e3, 7e6]
 
-        for prop in ['m', 'p', 'h']:
-            limits = self.get_attr(prop + '_range_SI')
+        property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
+        for prop, name in property_names.items():
+            limits = self.get_attr(f"{prop}_range_SI")
             msg = (
-                f"Default {fpd[prop]['text']} limits\n"
-                f"min: {limits[0]} {self.get_attr(prop + '_unit')}\n"
-                f"max: {limits[1]} {self.get_attr(prop + '_unit')}"
+                f"Default {name} limits\n"
+                f"min: {limits[0]} {self.units._quantities[name]}\n"
+                f"max: {limits[1]} {self.units._quantities[name]}"
             )
             logger.debug(msg)
+
+            unit = self.units.default[name]
+            key = f"{prop}_range"
+            self.__dict__.update({
+                key: self.units.ureg.Quantity(
+                    np.array(self.get_attr(f"{key}_SI")), unit
+                )
+            })
 
     def set_attr(self, **kwargs):
         r"""
@@ -232,70 +217,68 @@ class Network:
 
         Parameters
         ----------
-        h_range : list
-            List with minimum and maximum values for enthalpy value range.
-
-        h_unit : str
-            Specify the unit for enthalpy: 'J / kg', 'kJ / kg', 'MJ / kg'.
-
         iterinfo : boolean
             Print convergence progress to console.
+
+        h_range : list
+            List with minimum and maximum values for enthalpy value range.
 
         m_range : list
             List with minimum and maximum values for mass flow value range.
 
-        m_unit : str
-            Specify the unit for mass flow: 'kg / s', 't / h'.
-
         p_range : list
             List with minimum and maximum values for pressure value range.
-
-        p_unit : str
-            Specify the unit for pressure: 'Pa', 'psi', 'bar', 'MPa'.
-
-        s_unit : str
-            Specify the unit for specific entropy: 'J / kgK', 'kJ / kgK',
-            'MJ / kgK'.
-
-        T_unit : str
-            Specify the unit for temperature: 'K', 'C', 'F', 'R'.
-
-        v_unit : str
-            Specify the unit for volumetric flow: 'm3 / s', 'm3 / h', 'l / s',
-            'l / h'.
-
-        vol_unit : str
-            Specify the unit for specific volume: 'm3 / kg', 'l / kg'.
         """
+        self.units = kwargs.get('units', self.units)
+        unit_replace = {
+            "C": "degC",
+            "J / kgK": "J / (kg * K)",
+            "kJ / kgK": "kJ / (kg * K)",
+            "MJ / kgK": "MJ / (kg * K)",
+        }
         # unit sets
+        msg = None
         for prop in fpd.keys():
             unit = f'{prop}_unit'
             if unit in kwargs:
-                if kwargs[unit] in fpd[prop]['units']:
-                    self.__dict__.update({unit: kwargs[unit]})
-                    msg = f'Setting {fpd[prop]["text"]} unit: {kwargs[unit]}.'
-                    logger.debug(msg)
-                else:
-                    keys = ', '.join(fpd[prop]['units'].keys())
-                    msg = f'Allowed units for {fpd[prop]["text"]} are: {keys}'
-                    logger.error(msg)
-                    raise ValueError(msg)
+                if msg is None:
+                    msg = (
+                        "The API for specification of units in a Network "
+                        "changed. The old variant will be removed in the next "
+                        "major release. Please use the "
+                        "'Network.units.set_defaults' method instead."
+                    )
+                # for backwards compatibility: Update in the default units
+                self.units.set_defaults(**{
+                    fpd[prop]["text"].replace(" ", "_"):
+                    unit_replace.get(kwargs[unit], kwargs[unit])
+                })
+
+        if msg:
+            warnings.warn(msg, FutureWarning)
 
         for prop in ['m', 'p', 'h']:
-            if f'{prop}_range' in kwargs:
-                if isinstance(kwargs[f'{prop}_range'], list):
+            key = f"{prop}_range"
+            if key in kwargs:
+                if isinstance(kwargs[key], list):
+                    quantity = fpd[prop]["text"].replace(" ", "_")
+                    unit = self.units.default[quantity]
                     self.__dict__.update({
-                        f'{prop}_range_SI': [hlp.convert_to_SI(
-                            prop, value,
-                            self.get_attr(f'{prop}_unit')
-                        ) for value in kwargs[f'{prop}_range']]
+                        key: self.units.ureg.Quantity(
+                            np.array(kwargs[key]),
+                            unit
+                        )
+                    })
+                    self.__dict__.update({
+                        f"{key}_SI":
+                        self.get_attr(key).to(SI_UNITS[quantity]).magnitude
                     })
                 else:
                     msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
                     logger.error(msg)
                     raise TypeError(msg)
 
-                limits = self.get_attr(f'{prop}_range_SI')
+                limits = self.get_attr(f'{key}_SI')
                 msg = (
                     f'Setting {fpd[prop]["text"]} limits\n'
                     f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
@@ -303,20 +286,10 @@ class Network:
                 )
                 logger.debug(msg)
 
-        # update non SI value ranges
-        for prop in ['m', 'p', 'h']:
-            SI_range = self.get_attr(f'{prop}_range_SI')
-            self.__dict__.update({
-                f'{prop}_range': [hlp.convert_from_SI(
-                    prop, SI_value,
-                    self.get_attr(f'{prop}_unit')
-                ) for SI_value in SI_range]
-            })
-
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
 
         if not isinstance(self.iterinfo, bool):
-            msg = ('Network parameter iterinfo must be True or False!')
+            msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
             raise TypeError(msg)
 
@@ -818,8 +791,9 @@ class Network:
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
-                    col for col, data in comp.parameters.items()
+                    c for col, data in comp.parameters.items()
                     if isinstance(data, dc_cp)
+                    for c in [col, f"{col}_unit"]
                 ]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
@@ -1681,42 +1655,32 @@ class Network:
                 c.good_starting_values = False
 
             for key in c.property_data:
-                # read unit specifications
-                prop = key.split("_ref")[0]
                 if "fluid" in key:
                     continue
-                elif key == "E":
-                    c.get_attr(key).unit = "W"
-                elif key == 'Td_bp':
-                    c.get_attr(key).unit = self.get_attr('T_unit')
-                else:
-                    c.get_attr(key).unit = self.get_attr(f"{prop}_unit")
-                # set SI value
-                if c.get_attr(key).is_set:
-                    # this could be externalized to either
-                    # the connections class or actually the data containers
+
+                param = c.get_attr(key)
+                if param.is_set:
                     if "ref" in key:
-                        if prop == 'T':
-                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                                'Td_bp', c.get_attr(key).ref.delta,
-                                c.get_attr(prop).unit
-                            )
-                        else:
-                            c.get_attr(key).ref.delta_SI = hlp.convert_to_SI(
-                                prop, c.get_attr(key).ref.delta,
-                                c.get_attr(prop).unit
-                            )
-                    elif key == "E":
-                        c.E.val_SI = c.E.val
+                        unit = self.units.default[param.quantity]
+                        param.ref.delta_SI = self.units.ureg.Quantity(
+                            param.ref.delta,
+                            unit
+                        ).to(SI_UNITS[param.quantity]).magnitude
                     else:
-                        c.get_attr(key).val_SI = hlp.convert_to_SI(
-                            key, c.get_attr(key).val, c.get_attr(key).unit
-                        )
+                        param.set_SI_from_val(self.units)
         msg = (
             "Updated fluid property SI values and fluid mass fraction for user "
             "specified connection parameters."
         )
         logger.debug(msg)
+
+        for cp in self.comps["object"]:
+            for param, value in cp.parameters.items():
+                if isinstance(value, dc_prop) and (value.is_set or value.is_var):
+                    if np.isnan(value._val):
+                        value.val = (value.min_val + value.max_val) / 2
+                    value.set_SI_from_val(self.units)
+
 
     def _init_design(self):
         r"""
@@ -1861,7 +1825,7 @@ class Network:
                     param = c.get_attr(var)
                     param.is_set = True
                     param.val_SI = param.design
-                    param.val = hlp.convert_from_SI(var, param.val_SI, param.unit)
+                    param.set_val_from_SI(self.units)
 
                 c.new_design = False
 
@@ -1884,7 +1848,8 @@ class Network:
 
                     # take nominal values from design point
                     if isinstance(data, dc_cp):
-                        cp.get_attr(var).val = cp.get_attr(var).design
+                        data.val_SI = data.design
+                        data.set_val_from_SI(self.units)
                         switched = True
                         msg += var + ', '
 
@@ -2016,7 +1981,7 @@ class Network:
             raise hlp.TESPyNetworkError(msg)
 
         data = df.loc[c.label]
-        c._set_design_params(data)
+        c._set_design_params(data, self.units)
 
     def _init_conn_params_from_path(self, c, df):
         r"""
@@ -2037,7 +2002,7 @@ class Network:
             return
 
         data = df.loc[c.label]
-        c._set_starting_values(data)
+        c._set_starting_values(data, self.units)
         c.good_starting_values = True
 
     def _init_properties(self):
@@ -2074,19 +2039,23 @@ class Network:
                     logger.warning(msg)
 
             for key, variable in c.get_variables().items():
+                # for connections variables can be presolved and not be var anymore
                 if variable.is_var:
                     if not c.good_starting_values:
                         self.init_val0(c, key)
 
-                    variable.val_SI = hlp.convert_to_SI(
-                        key, variable.val0, variable.unit
-                    )
-                    variable._reference_container.val_SI = variable.get_reference_val_SI()
+                    variable.set_SI_from_val0(self.units)
+                    # variable.set_SI_from_val0()
+                    variable.set_reference_val_SI(variable._val_SI)
 
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
-                if variable.is_var:
-                    variable._reference_container.val_SI = variable.get_reference_val_SI()
+                # for components every variable should be an actual variable
+                # if variable.is_var:
+                if np.isnan(variable.val):
+                    variable.val = 1.0
+                variable.set_SI_from_val(self.units)
+                variable.set_reference_val_SI(variable._val_SI)
 
         for c in self.conns['object']:
             c._precalc_guess_values()
@@ -2110,7 +2079,9 @@ class Network:
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                c.get_attr(key).val0 = float(np.random.random() + 1)
+                seed = abs(hash(c.label)) % (2**32)
+                rng = np.random.default_rng(seed=seed)
+                value = float(rng.random() + 1)
 
             # generic starting values for pressure and enthalpy
             elif key in ['p', 'h']:
@@ -2120,23 +2091,23 @@ class Network:
 
                 if val_s == 0 and val_t == 0:
                     if key == 'p':
-                        c.get_attr(key).val0 = 1e5
+                        value = 1e5
                     elif key == 'h':
-                        c.get_attr(key).val0 = 1e6
+                        value = 1e6
 
                 elif val_s == 0:
-                    c.get_attr(key).val0 = val_t
+                    value = val_t
                 elif val_t == 0:
-                    c.get_attr(key).val0 = val_s
+                    value = val_s
                 else:
-                    c.get_attr(key).val0 = (val_s + val_t) / 2
+                    value = (val_s + val_t) / 2
 
-                # change value according to specified unit system
-                c.get_attr(key).val0 = hlp.convert_from_SI(
-                    key, c.get_attr(key).val0, self.get_attr(key + '_unit')
-                )
             elif key == 'E':
-                c.get_attr(key).val0 = 0.0
+                value = 0.0
+
+            # these values are SI, so they are set to the respective variable
+            c.get_attr(key).set_reference_val_SI(value)
+            c.get_attr(key).set_val0_from_SI(self.units)
 
     @staticmethod
     def _load_network_state(json_path):
@@ -2157,6 +2128,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
+        # TODO: depricate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2583,6 +2555,8 @@ class Network:
             if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
+                    # the increment should also be small
+                    and (abs(self.increment) < ERR ** 0.5).all()
                 ):
                 self.status = 0
                 break
@@ -2918,10 +2892,10 @@ class Network:
                 for fluid in data["obj"].is_var:
                     data["obj"]._val[fluid] /= total_mass_fractions
 
-
-        for c in self.conns['object']:
-            # check the fluid properties for physical ranges
-            c._adjust_to_property_limits(self)
+        if norm(self.increment) > 1e-1:
+            for c in self.conns['object']:
+                # check the fluid properties for physical ranges
+                c._adjust_to_property_limits(self)
 
         # second check based on component heuristics
         # - for first three iterations
@@ -3004,7 +2978,7 @@ class Network:
     def postprocessing(self):
         r"""Calculate connection, bus and component parameters."""
         _converged = self.process_connections()
-        _converged = _converged and self.process_components()
+        _converged = self.process_components() and _converged
         self.process_busses()
 
         if self.status == 0 and not _converged:
@@ -3019,10 +2993,7 @@ class Network:
                 variable_dict = self._variable_lookup[variable_num]
                 variable = variable_dict["object"].get_attr(variable_dict["property"])
                 if variable_dict["property"] != "fluid":
-                    if isinstance(variable, dc_cp):
-                        variable.val = variable.val
-                    else:
-                        variable.val_SI = variable.val_SI
+                    variable.val_SI = variable.val_SI
                 else:
                     variable.val = variable.val
                 variable._reference_container = None
@@ -3032,7 +3003,7 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = _converged and c.calc_results()
+            _converged = c.calc_results(self.units) and _converged
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
@@ -3043,15 +3014,48 @@ class Network:
         for cp in self.comps['object']:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
+            # this thing could be somewhere else
+            for key, value in cp.parameters.items():
+                if isinstance(value, dc_prop):
+                    result = value._get_val_from_SI(self.units)
+                    if (
+                        value.is_set
+                        and not value.is_var
+                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
+                        and not cp.bypass
+                    ):
+                        _converged = False
+                        msg = (
+                            "The simulation converged but the calculated "
+                            f"result {result} for the fixed input parameter "
+                            f"{key} is not equal to the originally specified "
+                            f"value: {value.val}. Usually, this can happen, "
+                            "when a method internally manipulates the "
+                            "associated equation during iteration in order to "
+                            "allow progress in situations, when the equation "
+                            "is otherwise not well defined for the current"
+                            "values of the variables, e.g. in case a negative "
+                            "root would need to be evaluated.  Often, this "
+                            "can happen during the first iterations and then "
+                            "will resolve itself as convergence progresses. "
+                            "In this case it did not, meaning convergence was "
+                            "not actually achieved."
+                        )
+                        logger.warning(msg)
+                        self.status = 2
+                    else:
+                        if not value.is_set or value.is_var:
+                            value.set_val_from_SI(self.units)
 
+        if self.status == 2:
+            return False
+
+        for cp in self.comps['object']:
             key = cp.__class__.__name__
-            for param in self.results[key].columns:
-                p = cp.get_attr(param)
-                if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result):
-                    self.results[key].loc[cp.label, param] = p.val
-                else:
-                    self.results[key].loc[cp.label, param] = np.nan
+            result = cp.collect_results()
+            if len(result) == 0:
+                continue
+            self.results[cp.__class__.__name__].loc[cp.label] = result
 
         return _converged
 
@@ -3121,6 +3125,9 @@ class Network:
         result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
+            for c in df.index:
+                if not self.get_comp(c).printout:
+                    df = df.drop(c)
             # are there any parameters to print?
             if df.size > 0:
                 if subsystem is not None:
@@ -3130,9 +3137,14 @@ class Network:
                     ]
                     df = df.loc[component_labels]
 
-                cols = df.columns
+                c = self.comps.loc[self.comps["comp_type"] == cp, "object"]
+                cols = [
+                    col for col in c.iloc[0]._get_result_attributes()
+                    if not col.endswith("_unit")
+                ]
                 if len(cols) > 0:
-                    for col in cols:
+                    df = df[cols].dropna(axis=1, how="all")
+                    for col in df.columns:
                         df[col] = df.apply(
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
@@ -3237,12 +3249,14 @@ class Network:
         comp = self.get_comp(c.name)
         if comp.printout:
             # select parameter from results DataFrame
-            val = c[param]
+            param_obj = comp.get_attr(param)
+            val = param_obj.val
+            val_SI = param_obj.val_SI
             if not colored:
                 return str(val)
             # else part
-            if (val < comp.get_attr(param).min_val - ERR or
-                    val > comp.get_attr(param).max_val + ERR ):
+            if (val_SI < comp.get_attr(param).min_val - ERR or
+                    val_SI > comp.get_attr(param).max_val + ERR ):
                 return f"{coloring['err']}{val}{coloring['end']}"
             if comp.get_attr(args[0]).is_var:
                 return f"{coloring['var']}{val}{coloring['end']}"
@@ -3251,6 +3265,90 @@ class Network:
             return str(val)
         else:
             return np.nan
+
+
+    @classmethod
+    def from_dict(cls, network_data):
+        # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
+        nw = cls(**network_data["Network"])
+
+        # load components
+        comps = {}
+
+        module_name = "tespy.components"
+        _ = importlib.import_module(module_name)
+
+        for component, data in network_data["Component"].items():
+            if component not in component_registry.items:
+                msg = (
+                    f"A class {component} is not available through the "
+                    "tespy.components.component.component_registry decorator. "
+                    "If you are using a custom component make sure to "
+                    "decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            target_class = component_registry.items[component]
+            comps.update(_construct_components(target_class, data, nw))
+
+        msg = 'Created network components.'
+        logger.info(msg)
+
+        conns = {}
+        # load connections
+        if "Connection" not in network_data["Connection"]:
+            # v0.8 compatibility
+            target_class = connection_registry.items["Connection"]
+            conns.update(_construct_connections(
+                target_class, network_data["Connection"], comps)
+            )
+        else:
+            for connection, data in network_data["Connection"].items():
+                if connection not in connection_registry.items:
+                    msg = (
+                        f"A class {connection} is not available through the "
+                        "tespy.connections.connection.connection_registry "
+                        "decorator. If you are using a custom connection make "
+                        "sure to decorate the class."
+                    )
+                    logger.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                target_class = connection_registry.items[connection]
+                conns.update(_construct_connections(target_class, data, comps))
+
+        # add connections to network
+        for c in conns.values():
+            nw.add_conns(c)
+
+        msg = 'Created connections.'
+        logger.info(msg)
+
+        # load busses
+        data = network_data.get("Bus", {})
+        if len(data) > 0:
+            busses = _construct_busses(data, comps)
+            # add busses to network
+            for b in busses.values():
+                nw.add_busses(b)
+
+            msg = 'Created busses.'
+            logger.info(msg)
+
+        else:
+            msg = 'No bus data found!'
+            logger.debug(msg)
+
+        msg = 'Created network.'
+        logger.info(msg)
+
+        nw.check_topology()
+
+        return nw
 
     @classmethod
     def from_json(cls, json_file_path):
@@ -3293,16 +3391,20 @@ class Network:
         keeping the temperature at a constant value.
 
         >>> from tespy.components import (
-        ...     Sink, Source, CombustionChamber, Compressor, Turbine,
+        ...     Sink, Source, CombustionChamber, TurboCompressor, Turbine,
         ...     SimpleHeatExchanger, PowerBus, PowerSink, Generator
         ... )
         >>> from tespy.connections import Connection, Ref, PowerConnection
         >>> from tespy.networks import Network
         >>> import os
-        >>> nw = Network(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+        >>> nw = Network(iterinfo=False)
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "power": "MW"
+        ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
-        >>> compressor = Compressor('compressor')
+        >>> compressor = TurboCompressor('compressor')
         >>> combustion = CombustionChamber('combustion')
         >>> turbine = Turbine('turbine')
         >>> preheater = SimpleHeatExchanger('fuel preheater')
@@ -3360,7 +3462,7 @@ class Network:
         >>> combustion.set_attr(lamb=None)
         >>> c3.set_attr(T=1100)
         >>> c1.set_attr(m=None)
-        >>> e4.set_attr(E=1e6)
+        >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
         >>> nw.save('design_state.json')
@@ -3370,7 +3472,7 @@ class Network:
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> round(turbine.eta_s.val, 1)
         0.9
-        >>> e4.set_attr(E=0.75e6)
+        >>> e4.set_attr(E=0.75)
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> nw.assert_convergence()
         >>> eta_s_t = round(turbine.eta_s.val, 3)
@@ -3397,7 +3499,7 @@ class Network:
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
-        >>> imported_nwk.get_conn('e4').set_attr(E=0.75e6)
+        >>> imported_nwk.get_conn('e4').set_attr(E=0.75)
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
@@ -3409,86 +3511,10 @@ class Network:
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)
 
-        # load components
-        comps = {}
-
-        module_name = "tespy.components"
-        _ = importlib.import_module(module_name)
-
         with open(json_file_path, "r") as f:
             network_data = json.load(f)
 
-        for component, data in network_data["Component"].items():
-            if component not in component_registry.items:
-                msg = (
-                    f"A class {component} is not available through the "
-                    "tespy.components.component.component_registry decorator. "
-                    "If you are using a custom component make sure to "
-                    "decorate the class."
-                )
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data))
-
-        msg = 'Created network components.'
-        logger.info(msg)
-
-        # create network
-        nw = cls(**network_data["Network"])
-
-        conns = {}
-        # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
-
-        # add connections to network
-        for c in conns.values():
-            nw.add_conns(c)
-
-        msg = 'Created connections.'
-        logger.info(msg)
-
-        # load busses
-        data = network_data.get("Bus", {})
-        if len(data) > 0:
-            busses = _construct_busses(data, comps)
-            # add busses to network
-            for b in busses.values():
-                nw.add_busses(b)
-
-            msg = 'Created busses.'
-            logger.info(msg)
-
-        else:
-            msg = 'No bus data found!'
-            logger.debug(msg)
-
-        msg = 'Created network.'
-        logger.info(msg)
-
-        nw.check_topology()
-
-        return nw
+        return cls.from_dict(network_data)
 
     def export(self, json_file_path=None):
         """Export the parametrization and structure of the Network instance
@@ -3732,7 +3758,7 @@ def v07_to_v08_export(path):
     return data
 
 
-def _construct_components(target_class, data):
+def _construct_components(target_class, data, nw):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -3760,8 +3786,14 @@ def _construct_components(target_class, data):
                         param_data["char_func"] = CharLine(**param_data["char_func"])
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
-                if isinstance(container, dc_prop):
-                    param_data["val0"] = param_data["val"]
+
+                if "val" in param_data:
+                    if "unit" in param_data and param_data["unit"] is not None:
+                        param_data["val"] = nw.units.ureg.Quantity(
+                            param_data["val"], param_data["unit"]
+                        )
+                    if "val0" in param_data:
+                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})

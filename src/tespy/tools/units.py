@@ -48,6 +48,7 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "angle": "degree",
             # None is the default if not quantity is supplied
             None: "1"
         }

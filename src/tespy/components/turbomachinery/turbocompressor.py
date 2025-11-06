@@ -165,7 +165,7 @@ class TurboCompressor(Compressor):
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,

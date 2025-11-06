@@ -5,40 +5,33 @@ Thermal Engineering Systems in Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Welcome to the documentation of Thermal Engineering Systems in Python (TESPy)!
-Navigate to your favorite section below:
+Navigate here to your favorite section:
 
 .. grid:: 3
     :gutter: 1
 
-    .. grid-item-card::  Installation and Basic Tutorials
+    .. grid-item-card::  Getting started
         :link: tespy_tutorial_heat_exchanger
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
-            :class: only-light
+        - Installation Guide
+        - Basic Tutorials
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
-            :class: only-dark
-
-    .. grid-item-card::  Network, Components, Connections
+    .. grid-item-card::  Building Blocks
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
-            :class: only-dark
+        - Network
+        - Components
+        - Connections
 
     .. grid-item-card::  Advanced Tutorials
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
-            :class: only-dark
+        - Build models incrementally
+        - Generate good initial values
+        - Carry out exergy analyses
 
 .. grid:: 3
     :gutter: 1
@@ -47,31 +40,25 @@ Navigate to your favorite section below:
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
-            :class: only-light
+        - Discuss your questions on GitHub
+        - Connect with the community
+        - Reach out for professional support
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
-            :class: only-dark
-
-    .. grid-item-card::  Property Plotting, UsedDefinedEquation, Custom Components
+    .. grid-item-card::  Advanced Features
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
-            :class: only-light
+        - Create fancy fluid property diagrams
+        - Customize your model with user defined equations
+        - Build your own components
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
-            :class: only-dark
-
-    .. grid-item-card::  Workflow Integration, Optimization API
+    .. grid-item-card::  Workflow Integration
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
-            :class: only-dark
+        - Connect your models with other libraries
+        - Run parametric optimizations of your models
+        - Analyse tespy models with exerpy
 
 .. grid:: 3
     :gutter: 1
@@ -80,28 +67,20 @@ Navigate to your favorite section below:
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
-            :class: only-dark
+        - View a list of example applications in research
+        - Check out the quality assurance measures and benchmarks
+        - Literature list
 
     .. grid-item-card::  API Documentation, Changelog, GitHub
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
-            :class: only-dark
+        - Read the API documentation
+        - Discover the changes between Versions
+        - Check out the GitHub repository
 
     .. grid-item-card::  Contribute to the development
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
-            :class: only-light
-
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
-            :class: only-dark
+        - Learn what and how to contribute

@@ -10,14 +10,15 @@ Navigate here to your favorite section:
 .. grid:: 3
     :gutter: 1
 
-    .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-info` Getting started
+    .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-logo-main` Getting started
         :link: tespy_tutorial_heat_exchanger
         :link-type: ref
 
         - Install tespy
         - Build your first models
+        - MIT License
 
-    .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-info` Building Blocks
+    .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-logo-main` Building Blocks
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
@@ -25,7 +26,7 @@ Navigate here to your favorite section:
         - Components
         - Connections
 
-    .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-info` Advanced Tutorials
+    .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
@@ -33,7 +34,7 @@ Navigate here to your favorite section:
         - Generate good initial values
         - Carry out exergy analyses
 
-    .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-info` Community and Support
+    .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community and Support
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
@@ -41,7 +42,7 @@ Navigate here to your favorite section:
         - Connect with the community
         - Reach out for professional support
 
-    .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-info` Advanced Features
+    .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
@@ -49,7 +50,7 @@ Navigate here to your favorite section:
         - Customize with your equations
         - Build your own components
 
-    .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-info` Workflow Integration
+    .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
 
@@ -57,7 +58,7 @@ Navigate here to your favorite section:
         - Run parametric optimization
         - Analyse with exerpy
 
-    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-info` Examples, Benchmarks
+    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples, Benchmarks
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
@@ -65,7 +66,7 @@ Navigate here to your favorite section:
         - Check the benchmarks
         - Literature list
 
-    .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-info` API Documentation
+    .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-logo-main` API Documentation
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
@@ -73,7 +74,7 @@ Navigate here to your favorite section:
         - Discover the changelog
         - Check out GitHub
 
-    .. grid-item-card::  :material-outlined:`merge;2.5em;sd-text-info` Contribute
+    .. grid-item-card::  :material-outlined:`merge;2.5em;sd-text-logo-main` Contribute
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 

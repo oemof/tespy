@@ -25,3 +25,13 @@ figure figcaption p {
   padding: 0.25em;
   overflow: visible;
 }
+
+/* Add the color of the logo */
+
+:root {
+  --color-logo-main: #1f567d;
+}
+
+.sd-text-logo-main {
+  color: var(--color-logo-main);
+}

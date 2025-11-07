@@ -1,10 +1,20 @@
-v0.9.9 - Under development
-++++++++++++++++++++++++++
+v0.9.9 - Kelvin's Kingdom (November, 7, 2025)
++++++++++++++++++++++++++++++++++++++++++++++
+
+Other changes
+#############
+- The parsing/exporting a tespy model to exerpy has been included in the exerpy
+  package in its latest release. Therefore the respective capabilities and
+  methods are removed from tespy
+  (`PR #729 <https://github.com/oemof/tespy/pull/729>`__).
 
 Bug Fixes
 #########
 - Some component parameters were missing the quantity specification. This has
   been fixed (`PR #823 <https://github.com/oemof/tespy/pull/823>`__).
+- Some component equations were utilizing the :code:`.val` property inside
+  some equations, leading to false results when these properties were specified
+  in non-SI units (`PR #832 <https://github.com/oemof/tespy/pull/832>`__).
 
 Contributors
 ############

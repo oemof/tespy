@@ -10,3 +10,18 @@ figure figcaption p {
     text-align: center;
     font-weight: bold;
 }
+
+/* Let the content of the page (usually 46em) use the right sidebar space (15em) */
+
+.page:has(.toc-drawer.no-toc) .content {
+    width: 61em;
+}
+
+/* This is to style the cards on the landing page */
+
+.sd-material-icon {
+  background: var(--color-background-secondary);
+  border-radius: 50%;
+  padding: 0.25em;
+  overflow: visible;
+}

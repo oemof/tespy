@@ -38,9 +38,9 @@ Navigate here to your favorite section:
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
-        - Discuss your questions on GitHub
-        - Connect with the community
+        - Discuss with users and developers
         - Reach out for professional support
+        - Learn how to contribute
 
     .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
         :link: tespy_tutorial_heat_pump_exergy_label
@@ -56,7 +56,7 @@ Navigate here to your favorite section:
 
         - Connect models with other libraries
         - Run parametric optimization
-        - Analyse with exerpy
+        - Analyse cycles with exerpy
 
     .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples & Benchmarks
         :link: tespy_tutorial_starting_values_label
@@ -74,9 +74,9 @@ Navigate here to your favorite section:
         - Discover the changelog
         - Check out GitHub
 
-    .. grid-item-card::  :material-outlined:`merge;2.5em;sd-text-logo-main` Contribute
+    .. grid-item-card::  :material-outlined:`lightbulb;2.5em;sd-text-logo-main` Knowledge Center
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
 
-        - Learn what to contribute
-        - Learn how to contribute
+        - See our best practices
+        - Discover frequently asked questions

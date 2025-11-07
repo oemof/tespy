@@ -57,9 +57,6 @@ meetings as well as a discussion forum on GitHub.
         .. image:: /_static/images/basics/rankine_cycle_darkmode.svg
             :class: only-dark
 
-.. grid:: 2
-    :gutter: 1
-
     .. grid-item-card::  Gas Turbine
         :link: tespy_basics_gas_turbine_label
         :link-type: ref

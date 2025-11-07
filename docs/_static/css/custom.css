@@ -30,8 +30,55 @@ figure figcaption p {
 
 :root {
   --color-logo-main: #1f567d;
+  --color-logo-main-transparent: #1f567d0d;
 }
 
 .sd-text-logo-main {
   color: var(--color-logo-main);
+}
+
+/* This is to change the labels of tabs and make a nice rounded box around them  */
+
+.sd-tab-label {
+    margin-right: 1em;
+    border-radius: 0.75em;
+    background-color: var(--color-background-secondary);
+    color: var(--color-foreground-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    border-bottom-color: var(--color-background-secondary) !important;
+}
+
+.sd-tab-set .sd-tab-label:hover {
+    color: var(--color-foreground-primary) !important;
+    border-color: var(--color-background-secondary);
+}
+
+input[type="radio"]:checked + .sd-tab-label {
+    background-color: var(--color-logo-main);
+    border-color: var(--color-background-secondary);
+    color: var(--color-background-primary) !important;
+}
+
+.sd-tab-content {
+    padding: 1em;
+    margin-top: 1em;
+    background-color: var(--color-background-secondary);
+    box-shadow: none;
+}
+
+.sd-card {
+    background-color: var(--color-logo-main-transparent) !important;
+    border-color: var(--color-logo-main-transparent) !important;
+    margin: 0.25em;
+}
+
+/* This is to change the text on the landing page card grid */
+
+.sd-card.landing-card:hover ul.simple {
+    color: var(--color-foreground-primary);
+}
+
+.sd-card.landing-card ul.simple {
+    color: var(--color-foreground-secondary);
 }

@@ -53,9 +53,6 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
             :class: only-dark
 
-.. grid:: 2
-    :gutter: 1
-
     .. grid-item-card::  Generate stable starting values
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
@@ -76,9 +73,6 @@ out to us. We are looking forward to hearing from you!
 
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
-
-.. grid:: 2
-    :gutter: 1
 
     .. grid-item-card::  Integration of an air source heat pump in energy system optimization
         :link: https://oemof.github.io/heat-pump-tutorial/

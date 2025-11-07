@@ -13,6 +13,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-logo-main` Getting started
         :link: tespy_tutorial_heat_exchanger
         :link-type: ref
+        :class-card: landing-card
 
         - Install tespy
         - Build your first models
@@ -21,6 +22,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-logo-main` Building Blocks
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
+        :class-card: landing-card
 
         - Network
         - Components
@@ -29,6 +31,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
+        :class-card: landing-card
 
         - Build models incrementally
         - Generate good initial values
@@ -37,6 +40,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community & Support
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
+        :class-card: landing-card
 
         - Discuss with users and developers
         - Reach out for professional support
@@ -45,14 +49,16 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
+        :class-card: landing-card
 
-        - Create fancy fluid property diagrams
+        - Create fluid property diagrams
         - Customize with your equations
         - Build your own components
 
     .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
         :link: tespy_tutorial_heat_pump_exergy_label
         :link-type: ref
+        :class-card: landing-card
 
         - Connect models with other libraries
         - Run parametric optimization
@@ -61,6 +67,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples & Benchmarks
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
+        :class-card: landing-card
 
         - View Examples from research
         - Check the benchmarks
@@ -69,6 +76,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-logo-main` API Documentation
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
+        :class-card: landing-card
 
         - Read the API documentation
         - Discover the changelog
@@ -77,6 +85,7 @@ Navigate here to your favorite section:
     .. grid-item-card::  :material-outlined:`lightbulb;2.5em;sd-text-logo-main` Knowledge Center
         :link: tespy_tutorial_heat_pump_label
         :link-type: ref
+        :class-card: landing-card
 
         - See our best practices
-        - Discover frequently asked questions
+        - View frequently asked questions

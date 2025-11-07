@@ -116,6 +116,14 @@ html_theme_options = {
     "announcement": """
     <div oemof-announcement=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
     """,
+    "light_css_variables": {
+        "color-link": "#1f567d",
+        "color-sidebar-link-text--top-level": "#1f567d",
+    },
+    "dark_css_variables": {
+        "color-link": "#4a7ca3",
+        "color-sidebar-link-text--top-level": "#4a7ca3",
+    }
 }
 
 html_js_files = [

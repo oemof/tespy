@@ -34,7 +34,7 @@ Navigate here to your favorite section:
         - Generate good initial values
         - Carry out exergy analyses
 
-    .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community and Support
+    .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community & Support
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 
@@ -58,7 +58,7 @@ Navigate here to your favorite section:
         - Run parametric optimization
         - Analyse with exerpy
 
-    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples, Benchmarks
+    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples & Benchmarks
         :link: tespy_tutorial_starting_values_label
         :link-type: ref
 

@@ -395,7 +395,7 @@ class PolynomialCompressor(DisplacementMachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val)
+            / (1 - self.dissipation_ratio.val_SI)
             - self.power_inl[0].E.val_SI
         )
 

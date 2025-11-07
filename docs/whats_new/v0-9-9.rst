@@ -12,6 +12,9 @@ Bug Fixes
 #########
 - Some component parameters were missing the quantity specification. This has
   been fixed (`PR #823 <https://github.com/oemof/tespy/pull/823>`__).
+- Some component equations were utilizing the :code:`.val` property inside
+  some equations, leading to false results when these properties were specified
+  in non-SI units (`PR #832 <https://github.com/oemof/tespy/pull/832>`__).
 
 Contributors
 ############

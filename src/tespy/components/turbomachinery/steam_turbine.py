@@ -257,7 +257,7 @@ class SteamTurbine(Turbine):
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val_SI * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(

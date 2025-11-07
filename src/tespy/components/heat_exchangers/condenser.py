@@ -362,7 +362,7 @@ class Condenser(HeatExchanger):
         o = self.outl[1]
         T_i1 = i.calc_T_sat()
         T_o2 = o.calc_T()
-        return self.ttd_u.val - T_i1 + T_o2
+        return self.ttd_u.val_SI - T_i1 + T_o2
 
     def ttd_u_dependents(self):
         return [

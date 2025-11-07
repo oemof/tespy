@@ -1,3 +1,5 @@
+.. _introduction_label:
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Thermal Engineering Systems in Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -14,7 +16,6 @@ can be used as a standalone package.
 .. image:: /_static/images/logo_tespy_big.svg
    :align: center
    :class: only-light
-
 
 .. image:: /_static/images/logo_tespy_big_darkmode.svg
    :align: center

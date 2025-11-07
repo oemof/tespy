@@ -7,12 +7,8 @@
     :caption: User Guide
     :hidden:
 
-    introduction
-    installation
-    basics
-    tutorials
-    examples
-    support
+    getting_started
+    building_blocks
 
 ..  toctree::
     :maxdepth: 2

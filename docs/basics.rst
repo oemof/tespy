@@ -15,17 +15,6 @@ you have any questions please reach out to the
 :ref:`TESPy community <tespy_community_label>`. There are regular online
 meetings as well as a discussion forum on GitHub.
 
-.. toctree::
-    :maxdepth: 1
-    :hidden:
-
-    basics/intro.rst
-    basics/heat_pump.rst
-    basics/rankine_cycle.rst
-    basics/gas_turbine.rst
-    basics/district_heating.rst
-
-
 .. card::  Introduction: Learn the basic modeling concept of TESPy
     :link: tespy_basics_intro_label
     :link-type: ref

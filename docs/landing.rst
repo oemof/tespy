@@ -11,7 +11,7 @@ Navigate here to your favorite section:
     :gutter: 1
 
     .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-logo-main` Getting started
-        :link: tespy_tutorial_heat_exchanger
+        :link: getting_started_label
         :link-type: ref
         :class-card: landing-card
 
@@ -20,7 +20,7 @@ Navigate here to your favorite section:
         - MIT License
 
     .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-logo-main` Building Blocks
-        :link: tespy_tutorial_heat_pump_label
+        :link: building_blocks_label
         :link-type: ref
         :class-card: landing-card
 

@@ -3544,62 +3544,6 @@ class Network:
 
         return export
 
-    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
-        """Export the network to exerpy
-
-        Parameters
-        ----------
-        Tamb : float
-            Ambient temperature.
-        pamb : float
-            Ambient pressure.
-        exerpy_mappings : dict
-            Mappings for tespy components to exerpy components
-
-        Returns
-        -------
-        dict
-            exerpy compatible input dictionary
-        """
-        component_results = self._save_components()
-        component_json = {}
-        for comp_type in self.comps["comp_type"].unique():
-            if comp_type not in exerpy_mappings.keys():
-                msg = f"Component class {comp_type} not available in exerpy."
-                logger.warning(msg)
-                continue
-
-            key = exerpy_mappings[comp_type]
-            if key not in component_json:
-                component_json[key] = {}
-
-            result = component_results[comp_type].dropna(axis=1)
-
-            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
-                parameters = {}
-                if c.label in result.index and not result.loc[c.label].dropna().empty:
-                    parameters = result.loc[c.label].dropna().to_dict()
-                component_json[key][c.label] = {
-                    "name": c.label,
-                    "type": comp_type,
-                    "parameters": parameters
-                }
-
-        connection_json = {}
-        for c in self.conns["object"]:
-            connection_json.update(c._to_exerpy(pamb, Tamb))
-
-        return {
-            "components": component_json,
-            "connections": connection_json,
-            "ambient_conditions": {
-                "Tamb": Tamb,
-                "Tamb_unit": "K",
-                "pamb": pamb,
-                "pamb_unit": "Pa"
-            }
-        }
-
     def save(self, json_file_path):
         r"""
         Dump the results to a json style output.

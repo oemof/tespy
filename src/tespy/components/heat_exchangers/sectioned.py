@@ -329,8 +329,8 @@ class SectionedHeatExchanger(HeatExchanger):
             'refrigerant_index': dc_simple(val=0),
             're_exp_r': dc_cp(),
             're_exp_sf': dc_cp(),
-            'alpha_ratio': dc_cp(),
-            'area_ratio': dc_cp(),
+            'alpha_ratio': dc_cp(quantity="ratio", min_val=0),
+            'area_ratio': dc_cp(quantity="ratio", min_val=0),
             'UA_cecchinato': dc_gcp(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,

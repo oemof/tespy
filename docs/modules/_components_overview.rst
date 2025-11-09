@@ -6,6 +6,15 @@
 
         Class documentation and example: :py:class:`Component <tespy.components.component.Component>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
 
 
     .. tab-item:: basics
@@ -13,6 +22,15 @@
         .. rubric:: CycleCloser
 
         Class documentation and example: :py:class:`CycleCloser <tespy.components.basics.cycle_closer.CycleCloser>`
+
+        Table of constraints
+
+        ============================  =============  =======================================================================================================================
+        Parameter                     Description    Method
+        ============================  =============  =======================================================================================================================
+        pressure_equality_constraint  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        enthalpy_equality_constraint  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        ============================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -37,12 +55,32 @@
 
         Class documentation and example: :py:class:`Source <tespy.components.basics.source.Source>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
 
 
 
         .. rubric:: SubsystemInterface
 
         Class documentation and example: :py:class:`SubsystemInterface <tespy.components.basics.subsystem_interface.SubsystemInterface>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        pressure_constraints   :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        enthalpy_constraints   :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -60,6 +98,17 @@
 
         Class documentation and example: :py:class:`CombustionChamber <tespy.components.combustion.base.CombustionChamber>`
 
+        Table of constraints
+
+        ============================  =============  =========================================================================================================================================
+        Parameter                     Description    Method
+        ============================  =============  =========================================================================================================================================
+        mass_flow_constraints         :code:`None`   :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+        reactor_pressure_constraints  :code:`None`   :py:meth:`combustion_pressure_structure_matrix <tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix>`
+        stoichiometry_constraints     :code:`None`   :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+        energy_balance_constraints    :code:`None`   :py:meth:`energy_balance_func <tespy.components.combustion.base.CombustionChamber.energy_balance_func>`
+        ============================  =============  =========================================================================================================================================
+
         Table of parameters
 
         ===========  =============  ==========  =======================================================================================
@@ -75,6 +124,15 @@
         .. rubric:: DiabaticCombustionChamber
 
         Class documentation and example: :py:class:`DiabaticCombustionChamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`
+
+        Table of constraints
+
+        =========================  =============  =====================================================================================================
+        Parameter                  Description    Method
+        =========================  =============  =====================================================================================================
+        mass_flow_constraints      :code:`None`   :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+        stoichiometry_constraints  :code:`None`   :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+        =========================  =============  =====================================================================================================
 
         Table of parameters
 
@@ -95,6 +153,23 @@
         .. rubric:: CombustionEngine
 
         Class documentation and example: :py:class:`CombustionEngine <tespy.components.combustion.engine.CombustionEngine>`
+
+        Table of constraints
+
+        =============================  =============  =========================================================================================================================================
+        Parameter                      Description    Method
+        =============================  =============  =========================================================================================================================================
+        mass_flow_constraints          :code:`None`   :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+        reactor_pressure_constraints   :code:`None`   :py:meth:`combustion_pressure_structure_matrix <tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix>`
+        stoichiometry_constraints      :code:`None`   :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+        energy_balance_constraints     :code:`None`   :py:meth:`energy_balance_func <tespy.components.combustion.engine.CombustionEngine.energy_balance_func>`
+        power_constraints              :code:`None`   :py:meth:`tiP_char_func <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`
+        heat1_constraints              :code:`None`   :py:meth:`Q1_char_func <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`
+        heat2_constraints              :code:`None`   :py:meth:`Q2_char_func <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`
+        heatloss_constraints           :code:`None`   :py:meth:`Qloss_char_func <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`
+        mass_flow_cooling_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
+        fluid_cooling_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
+        =============================  =============  =========================================================================================================================================
 
         Table of parameters
 
@@ -136,6 +211,15 @@
 
         Class documentation and example: :py:class:`DisplacementMachine <tespy.components.displacementmachinery.base.DisplacementMachine>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  ==========  ====================================================================================================================
@@ -152,6 +236,15 @@
         .. rubric:: PolynomialCompressor
 
         Class documentation and example: :py:class:`PolynomialCompressor <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -190,6 +283,16 @@
         .. rubric:: PolynomialCompressorWithCooling
 
         Class documentation and example: :py:class:`PolynomialCompressorWithCooling <tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling>`
+
+        Table of constraints
+
+        ==================================  =============  ==============================================================================================================================================================================
+        Parameter                           Description    Method
+        ==================================  =============  ==============================================================================================================================================================================
+        mass_flow_constraints               :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints                   :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        cooling_energy_balance_constraints  :code:`None`   :py:meth:`cooling_energy_balance_func <tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling.cooling_energy_balance_func>`
+        ==================================  =============  ==============================================================================================================================================================================
 
         Table of parameters
 
@@ -233,6 +336,16 @@
         .. rubric:: HeatExchanger
 
         Class documentation and example: :py:class:`HeatExchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
+
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        ==========================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -279,6 +392,16 @@
         .. rubric:: Condenser
 
         Class documentation and example: :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
+
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        ==========================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -327,6 +450,17 @@
 
         Class documentation and example: :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
 
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        saturated_gas_constraints   :code:`None`   :py:meth:`saturated_gas_func <tespy.components.heat_exchangers.desuperheater.Desuperheater.saturated_gas_func>`
+        ==========================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  =========================  ================================================================================================================
@@ -372,6 +506,16 @@
         .. rubric:: SectionedHeatExchanger
 
         Class documentation and example: :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`
+
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        ==========================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -428,6 +572,16 @@
 
         Class documentation and example: :py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`
 
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        ==========================  =============  =======================================================================================================================
+
         Table of parameters
 
         =================  =============  =========================  ================================================================================================================
@@ -482,6 +636,15 @@
 
         Class documentation and example: :py:class:`SimpleHeatExchanger <tespy.components.heat_exchangers.simple.SimpleHeatExchanger>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ========================  =============  =========================  ================================================================================================================
@@ -526,6 +689,15 @@
         .. rubric:: ParabolicTrough
 
         Class documentation and example: :py:class:`ParabolicTrough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -572,6 +744,16 @@
 
         Class documentation and example: :py:class:`ParallelFlowHeatExchanger <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger>`
 
+        Table of constraints
+
+        ==========================  =============  =======================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =======================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+        ==========================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  =========================  ================================================================================================================
@@ -613,6 +795,15 @@
         .. rubric:: SolarCollector
 
         Class documentation and example: :py:class:`SolarCollector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -656,12 +847,34 @@
 
         Class documentation and example: :py:class:`NodeBase <tespy.components.nodes.base.NodeBase>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
 
 
 
         .. rubric:: DropletSeparator
 
         Class documentation and example: :py:class:`DropletSeparator <tespy.components.nodes.droplet_separator.DropletSeparator>`
+
+        Table of constraints
+
+        ==========================  =============  ====================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  ====================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func>`
+        pressure_constraints        :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        outlet_constraint_liquid    :code:`None`   :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+        outlet_constraint_gas       :code:`None`   :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+        fluid_constraints           :code:`None`   :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
+        ==========================  =============  ====================================================================================================================
 
 
 
@@ -670,12 +883,36 @@
 
         Class documentation and example: :py:class:`Drum <tespy.components.nodes.drum.Drum>`
 
+        Table of constraints
+
+        ==========================  =============  ====================================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  ====================================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func>`
+        pressure_constraints        :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        outlet_constraint_liquid    :code:`None`   :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+        outlet_constraint_gas       :code:`None`   :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+        fluid_constraints           :code:`None`   :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
+        ==========================  =============  ====================================================================================================================
+
 
 
 
         .. rubric:: Merge
 
         Class documentation and example: :py:class:`Merge <tespy.components.nodes.merge.Merge>`
+
+        Table of constraints
+
+        ==========================  =============  =====================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =====================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        fluid_constraints           :code:`None`   :py:meth:`fluid_func <tespy.components.nodes.merge.Merge.fluid_func>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.nodes.merge.Merge.energy_balance_func>`
+        pressure_constraints        :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        ==========================  =============  =====================================================================================================
 
         Table of parameters
 
@@ -692,6 +929,17 @@
 
         Class documentation and example: :py:class:`Splitter <tespy.components.nodes.splitter.Splitter>`
 
+        Table of constraints
+
+        ==========================  =============  =========================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =========================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        energy_balance_constraints  :code:`None`   :py:meth:`enthalpy_structure_matrix <tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix>`
+        pressure_constraints        :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        fluid_constraints           :code:`None`   :py:meth:`fluid_structure_matrix <tespy.components.nodes.splitter.Splitter.fluid_structure_matrix>`
+        ==========================  =============  =========================================================================================================
+
         Table of parameters
 
         ===========  =============  ============  ============
@@ -706,6 +954,19 @@
         .. rubric:: Node
 
         Class documentation and example: :py:class:`Node <tespy.components.nodes.node.Node>`
+
+        Table of constraints
+
+        ===========================  =============  =====================================================================================================
+        Parameter                    Description    Method
+        ===========================  =============  =====================================================================================================
+        mass_flow_constraints        :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        pressure_constraints         :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        outlet_enthalpy_constraints  :code:`None`   :py:meth:`enthalpy_structure_matrix <tespy.components.nodes.node.Node.enthalpy_structure_matrix>`
+        outlet_fluid_constraints     :code:`None`   :py:meth:`fluid_structure_matrix <tespy.components.nodes.node.Node.fluid_structure_matrix>`
+        fluid_constraints            :code:`None`   :py:meth:`fluid_func <tespy.components.nodes.merge.Merge.fluid_func>`
+        energy_balance_constraints   :code:`None`   :py:meth:`energy_balance_func <tespy.components.nodes.merge.Merge.energy_balance_func>`
+        ===========================  =============  =====================================================================================================
 
         Table of parameters
 
@@ -723,6 +984,17 @@
 
         Class documentation and example: :py:class:`Separator <tespy.components.nodes.separator.Separator>`
 
+        Table of constraints
+
+        ==========================  =============  =====================================================================================================
+        Parameter                   Description    Method
+        ==========================  =============  =====================================================================================================
+        mass_flow_constraints       :code:`None`   :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+        fluid_constraints           :code:`None`   :py:meth:`fluid_func <tespy.components.nodes.separator.Separator.fluid_func>`
+        energy_balance_constraints  :code:`None`   :py:meth:`energy_balance_func <tespy.components.nodes.separator.Separator.energy_balance_func>`
+        pressure_constraints        :code:`None`   :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+        ==========================  =============  =====================================================================================================
+
         Table of parameters
 
         ===========  =============  ============  ============
@@ -738,6 +1010,15 @@
         .. rubric:: Pipe
 
         Class documentation and example: :py:class:`Pipe <tespy.components.piping.pipe.Pipe>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -793,6 +1074,16 @@
 
         Class documentation and example: :py:class:`Valve <tespy.components.piping.valve.Valve>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        enthalpy_constraints   :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  ============  =========================================================================================
@@ -819,6 +1110,14 @@
 
         Class documentation and example: :py:class:`PowerBus <tespy.components.power.bus.PowerBus>`
 
+        Table of constraints
+
+        =========================  =============  ========================================================================================
+        Parameter                  Description    Method
+        =========================  =============  ========================================================================================
+        energy_balance_constraint  :code:`None`   :py:meth:`energy_balance_func <tespy.components.power.bus.PowerBus.energy_balance_func>`
+        =========================  =============  ========================================================================================
+
         Table of parameters
 
         ===========  =============  ============  ============
@@ -834,6 +1133,15 @@
         .. rubric:: Generator
 
         Class documentation and example: :py:class:`Generator <tespy.components.power.generator.Generator>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -858,6 +1166,15 @@
         .. rubric:: Motor
 
         Class documentation and example: :py:class:`Motor <tespy.components.power.motor.Motor>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -898,6 +1215,18 @@
 
         Class documentation and example: :py:class:`FuelCell <tespy.components.reactors.fuel_cell.FuelCell>`
 
+        Table of constraints
+
+        =============================  =============  ===============================================================================================================================
+        Parameter                      Description    Method
+        =============================  =============  ===============================================================================================================================
+        mass_flow_constraints          :code:`None`   :py:meth:`reactor_mass_flow_func <tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func>`
+        cooling_mass_flow_constraints  :code:`None`   :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix>`
+        cooling_fluid_constraints      :code:`None`   :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix>`
+        energy_balance_constraints     :code:`None`   :py:meth:`energy_balance_func <tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func>`
+        reactor_pressure_constraints   :code:`None`   :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix>`
+        =============================  =============  ===============================================================================================================================
+
         Table of parameters
 
         ===========  =============  ===============  ===================================================================================================
@@ -918,6 +1247,19 @@
         .. rubric:: WaterElectrolyzer
 
         Class documentation and example: :py:class:`WaterElectrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
+
+        Table of constraints
+
+        =============================  =============  =================================================================================================================================================
+        Parameter                      Description    Method
+        =============================  =============  =================================================================================================================================================
+        mass_flow_constraints          :code:`None`   :py:meth:`reactor_mass_flow_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func>`
+        cooling_mass_flow_constraints  :code:`None`   :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix>`
+        cooling_fluid_constraints      :code:`None`   :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix>`
+        energy_balance_constraints     :code:`None`   :py:meth:`energy_balance_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func>`
+        reactor_pressure_constraints   :code:`None`   :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix>`
+        gas_temperature_constraints    :code:`None`   :py:meth:`gas_temperature_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func>`
+        =============================  =============  =================================================================================================================================================
 
         Table of parameters
 
@@ -949,6 +1291,15 @@
 
         Class documentation and example: :py:class:`Turbomachine <tespy.components.turbomachinery.base.Turbomachine>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  ==========  ======================================================================================================
@@ -965,6 +1316,15 @@
         .. rubric:: Compressor
 
         Class documentation and example: :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -1004,6 +1364,15 @@
 
         Class documentation and example: :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  ==========  ======================================================================================================
@@ -1031,6 +1400,15 @@
 
         Class documentation and example: :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
 
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
+
         Table of parameters
 
         ===========  =============  ============  ======================================================================================================
@@ -1057,6 +1435,15 @@
         .. rubric:: SteamTurbine
 
         Class documentation and example: :py:class:`SteamTurbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 
@@ -1094,6 +1481,15 @@
         .. rubric:: TurboCompressor
 
         Class documentation and example: :py:class:`TurboCompressor <tespy.components.turbomachinery.turbocompressor.TurboCompressor>`
+
+        Table of constraints
+
+        =====================  =============  =======================================================================================================================
+        Parameter              Description    Method
+        =====================  =============  =======================================================================================================================
+        mass_flow_constraints  :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        fluid_constraints      :code:`None`   :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+        =====================  =============  =======================================================================================================================
 
         Table of parameters
 

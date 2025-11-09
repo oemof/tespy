@@ -65,3 +65,9 @@ meetings as well as a discussion forum on GitHub.
 
         .. image:: /_static/images/basics/district_heating_darkmode.svg
             :class: only-dark
+
+..  toctree::
+    :maxdepth: 0
+    :hidden:
+
+    basic_tutorials/*

@@ -1,4 +1,4 @@
-.. _tespy_community_label:
+.. _tespy_support_label:
 
 #####################
 Community and Support

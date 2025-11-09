@@ -47,6 +47,6 @@ Getting started
     :maxdepth: 1
     :hidden:
 
-    installation
-    basics
-    introduction
+    getting_started/installation
+    getting_started/basic_tutorials
+    getting_started/introduction

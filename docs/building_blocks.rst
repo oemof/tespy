@@ -47,7 +47,7 @@ Building Blocks
     :maxdepth: 1
     :hidden:
 
-    modules/networks
-    modules/components
-    modules/connections
-    modules/subsystems
+    building_blocks/networks
+    building_blocks/components
+    building_blocks/connections
+    building_blocks/subsystems

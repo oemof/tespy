@@ -4,33 +4,27 @@
 
 ..  toctree::
     :maxdepth: 2
-    :caption: User Guide
+    :caption:  First steps
     :hidden:
 
     getting_started
     building_blocks
+    examples_benchmarks
 
 ..  toctree::
     :maxdepth: 2
-    :caption: Documentation
+    :caption:  Advanced topics
     :hidden:
 
-    benchmarks
-    api
-    whats_new
-    zliterature
+    advanced_tutorials
+    advanced_features
+    integration
+    documentation
 
 ..  toctree::
     :maxdepth: 2
-    :caption: Advanced Features
+    :caption: Community
     :hidden:
 
-    advanced/exergy
-
-..  toctree::
-    :maxdepth: 2
-    :caption: Contribute to TESPy
-    :hidden:
-
-    development/what
-    development/how
+    community
+    knowledge_center

@@ -17,7 +17,7 @@ Navigate here to your favorite section:
 
         - Install tespy
         - Build your first models
-        - MIT License
+        - Learn what tespy is about
 
     .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-logo-main` Building Blocks
         :link: building_blocks_label
@@ -29,7 +29,7 @@ Navigate here to your favorite section:
         - Connections
 
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
-        :link: tespy_tutorial_heat_pump_label
+        :link: tespy_tutorial_label
         :link-type: ref
         :class-card: landing-card
 
@@ -43,7 +43,7 @@ Navigate here to your favorite section:
         :class-card: landing-card
 
         - Discuss with users and developers
-        - Reach out for professional support
+        - Get professional support
         - Learn how to contribute
 
     .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
@@ -51,9 +51,9 @@ Navigate here to your favorite section:
         :link-type: ref
         :class-card: landing-card
 
-        - Create fluid property diagrams
         - Customize with your equations
         - Build your own components
+        - Use custom fluid property models
 
     .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
         :link: tespy_tutorial_heat_pump_exergy_label
@@ -69,7 +69,7 @@ Navigate here to your favorite section:
         :link-type: ref
         :class-card: landing-card
 
-        - View Examples from research
+        - Explore example applications
         - Check the benchmarks
         - Literature list
 

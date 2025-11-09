@@ -215,18 +215,18 @@ class ComponentCharacteristics(DataContainer):
             values.
         """
         return {
-            'char_func': None,
-            'is_set': False,
-            'param': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'structure_matrix': None,
-            'dependents': None,
-            'constant_deriv': False,
+            "char_func": None,
+            "is_set": False,
+            "param": None,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "char_params": {"type": "rel", "inconn": 0, "outconn": 0},
+            "num_eq_sets": 0,
+            "_num_eq": None,
+            "structure_matrix": None,
+            "dependents": None,
+            "constant_deriv": False,
             "description": None
         }
 

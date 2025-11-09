@@ -17,25 +17,36 @@ def _create_component_instances() -> dict:
     return instances
 
 
+def _get_eq_reference(datacontainer):
+    if datacontainer.func is None and datacontainer.structure_matrix is None:
+        return
+
+    elif datacontainer.func is None:
+            basename = datacontainer.structure_matrix.__qualname__
+            eq_reference = f"{datacontainer.structure_matrix.__module__}.{basename}"
+
+    else:
+        basename = datacontainer.func.__qualname__
+        eq_reference = f"{datacontainer.func.__module__}.{basename}"
+
+    return ":py:meth:`" + basename.split(".")[-1] + " <" + eq_reference + ">`"
+
+
 def collect_component_parameters(instance):
     grouped_parameters = {}
     parameters_with_equation = {}
     characteristic_lines_and_maps = {}
+    constraints = {}
+
+    for key, value in instance.get_mandatory_constraints().items():
+        eq_reference = _get_eq_reference(value)
+        constraints[key] = {
+            "eq_reference": eq_reference,
+            "description": value.description
+        }
+
     for key, value in instance.parameters.items():
-
-        if value.func is None and value.structure_matrix is None:
-            eq_reference = None
-
-        elif value.func is None:
-                basename = value.structure_matrix.__qualname__
-                eq_reference = f"{value.structure_matrix.__module__}.{basename}"
-
-        else:
-            basename = value.func.__qualname__
-            eq_reference = f"{value.func.__module__}.{basename}"
-
-        if eq_reference is not None:
-            eq_reference = ":py:meth:`" + basename.split(".")[-1] + " <" + eq_reference + ">`"
+        eq_reference = _get_eq_reference(value)
 
         if isinstance(value, dc_cp):
             parameters_with_equation[key] = {
@@ -62,7 +73,7 @@ def collect_component_parameters(instance):
                 "elements": ", ".join([f":code:`{element}`" for element in value.elements])
             }
 
-    return parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
+    return constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
 
 
 def collect_component_constraints():
@@ -81,57 +92,52 @@ path = os.path.join(path, "modules", "_components_overview.rst")
 modules = {}
 
 for cls_name, instance in instances.items():
+    # this is required to collect the mandatory constraints
+    # it will keep the power balance equation between the component and the
+    # (optionally) attached PowerConnection out of the list of equations
+    # TODO: Find a better solution
+    instance.power_outl = []
+    instance.power_inl = []
+
     cls_ref = instance.__class__
     cls_module = cls_ref.__module__
     parent_module = ".".join(cls_ref.__module__.split(".")[:-1])
     if parent_module not in modules:
         modules[parent_module] = {}
 
-    parameters_with_eq, grouped_parameters, characteristic_lines = collect_component_parameters(instance)
-    df = pd.DataFrame.from_dict(parameters_with_eq).T
+    constraints, parameters, parameter_groups, characteristic_lines = collect_component_parameters(instance)
 
     modules[parent_module][cls_name] = "\n"
     modules[parent_module][cls_name] += (f".. rubric:: {cls_name}" + "\n" * 2)
     modules[parent_module][cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
 
-    if not df.empty:
-        df = df.fillna(":code:`None`")
+    outputs = {
+        "Table of constraints": constraints,
+        "Table of parameters": parameters,
+        "Table of parameter groups": parameter_groups,
+        "Table of characteristic lines and maps": characteristic_lines,
+    }
+    headers = {
+        "description": "Description",
+        "quantity": "Quantity",
+        "elements": "Required parameters",
+        "eq_reference": "Method"
+    }
 
-        modules[parent_module][cls_name] += ("\n" * 2)
-        modules[parent_module][cls_name] += ("Table of parameters" + "\n" * 2)
-        modules[parent_module][cls_name] += (
-            tabulate(
-                df[["description", "quantity", "eq_reference"]],
-                headers=["Parameter", "Description", "Quantity", "Method"],
-                tablefmt="rst"
-            )
-        )
+    for key, value in outputs.items():
+        df = pd.DataFrame.from_dict(value).T
+        if not df.empty:
+            df = df.fillna(":code:`None`")
 
-    df = pd.DataFrame.from_dict(grouped_parameters).T
-    if not df.empty:
-        df = df.fillna(":code:`None`")
-        modules[parent_module][cls_name] += ("\n" * 2)
-        modules[parent_module][cls_name] += ("Table of parameter groups" + "\n" * 2)
-        modules[parent_module][cls_name] += (
-            tabulate(
-                df[["description", "elements", "eq_reference"]],
-                headers=["Parameter", "Description", "Required parameters", "Method"],
-                tablefmt="rst"
+            modules[parent_module][cls_name] += ("\n" * 2)
+            modules[parent_module][cls_name] += (key + "\n" * 2)
+            modules[parent_module][cls_name] += (
+                tabulate(
+                    df[[c for c in headers if c in df.columns]],
+                    headers=["Parameter"] + [v for c, v in headers.items() if c in df.columns],
+                    tablefmt="rst"
+                )
             )
-        )
-
-    df = pd.DataFrame.from_dict(characteristic_lines).T
-    if not df.empty:
-        df = df.fillna(":code:`None`")
-        modules[parent_module][cls_name] += ("\n" * 2)
-        modules[parent_module][cls_name] += ("Table of characteristic lines and maps" + "\n" * 2)
-        modules[parent_module][cls_name] += (
-            tabulate(
-                df[["description", "eq_reference"]],
-                headers=["Parameter", "Description", "Method"],
-                tablefmt="rst"
-            )
-        )
 
     modules[parent_module][cls_name] += ("\n" * 2)
 

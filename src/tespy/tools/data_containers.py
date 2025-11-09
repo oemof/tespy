@@ -332,14 +332,15 @@ class ComponentMandatoryConstraints(DataContainer):
             values.
         """
         return {
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'constant_deriv': False,
-            'structure_matrix': None,
-            'dependents': None
+            "num_eq_sets": 0,
+            "_num_eq": None,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "constant_deriv": False,
+            "structure_matrix": None,
+            "dependents": None,
+            "description": None
         }
 
     def _serialize(self):

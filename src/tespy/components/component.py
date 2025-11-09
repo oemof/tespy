@@ -142,6 +142,11 @@ class Component:
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
+        self.num_i = len(self.inlets())
+        self.num_o = len(self.outlets())
+        self.num_power_i = len(self.powerinlets())
+        self.num_power_o = len(self.poweroutlets())
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.

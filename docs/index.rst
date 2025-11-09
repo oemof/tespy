@@ -3,7 +3,7 @@
 .. include:: landing.rst
 
 ..  toctree::
-    :maxdepth: 2
+    :maxdepth: 3
     :caption:  First steps
     :hidden:
 

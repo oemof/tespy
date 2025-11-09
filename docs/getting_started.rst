@@ -44,7 +44,7 @@ Getting started
         Learn more about the framework
 
 ..  toctree::
-    :maxdepth: 1
+    :maxdepth: 3
     :hidden:
 
     getting_started/installation

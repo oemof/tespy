@@ -77,7 +77,7 @@ in the following sections. If you have any further questions feel free to
 contact us, we are looking forward to hearing from you!
 
 Install the developer version
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is recommenden to use
 `virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for
@@ -108,13 +108,13 @@ branch. Make your changes, commit them and create a PR on the oemof/tespy dev
 branch.
 
 Collaboration with pull requests
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To collaborate use the pull request functionality of GitHub as described here:
 https://guides.github.com/activities/hello-world/
 
 How to create a pull request
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------
 
 * Fork the oemof repository to your own GitHub account.
 * Change, add or remove code.
@@ -126,8 +126,8 @@ How to create a pull request
 
 .. _coding_requirements_label:
 
-Generally the following steps are required when changing, adding or removing code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changing, adding or removing code
+---------------------------------
 
 * Read the :ref:`style_guidlines_label` and :ref:`naming_conventions_label` and
   follow them
@@ -139,7 +139,7 @@ Generally the following steps are required when changing, adding or removing cod
 .. _tests_label:
 
 Tests
------
+^^^^^
 
 The tests in TESPy are split up in two different parts:
 
@@ -177,7 +177,7 @@ your inquiry.
 .. _style_guidlines_label:
 
 Issue-Management
-----------------
+^^^^^^^^^^^^^^^^
 
 A good way for communication with the developer group are issues. If you
 find a bug, want to contribute an enhancement or have a question on a specific
@@ -195,14 +195,14 @@ existing teams on different subjects and their members.
 Look at the existing issues to get an idea on the usage of issues.
 
 Style guidelines
-----------------
+^^^^^^^^^^^^^^^^
 
 We mostly follow standard guidelines instead of developing own rules. So if
 anything is not defined in this section, search for a
 `PEP rule <https://www.python.org/dev/peps/>`_ and follow it.
 
 Docstrings
-^^^^^^^^^^
+----------
 
 We decided to use the style of the numpydoc docstrings. See the following
 link for more information
@@ -210,7 +210,7 @@ link for more information
 
 
 Code commenting
-^^^^^^^^^^^^^^^^
+---------------
 
 Code comments are block and inline comments in the source code. They can help
 to understand he code and should be utilized "as much as necessary, as little
@@ -219,7 +219,7 @@ as possible". When writing comments follow the
 
 
 PEP8 (Python Style Guide)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 * We adhere to `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ for any code
   produced in the framework.
@@ -234,7 +234,7 @@ PEP8 (Python Style Guide)
 .. _naming_conventions_label:
 
 Naming Conventions
-------------------
+^^^^^^^^^^^^^^^^^^
 
 * We use plural in the code for modules if there is possibly more than one
   child class (e.g. :code:`import heat_exchangers` AND NOT
@@ -253,10 +253,10 @@ Naming Conventions
 
 
 Using git
----------
+^^^^^^^^^
 
 Branching model
-^^^^^^^^^^^^^^^
+---------------
 
 So far we adhere mostly to the git branching model by
 `Vincent Driessen <https://nvie.com/posts/a-successful-git-branching-model/>`_.
@@ -268,14 +268,14 @@ Differences are:
 * release branches are named like ``releases/*``
 
 Commit message
-^^^^^^^^^^^^^^
+--------------
 
 Use this nice little `commit tutorial <https://commit.style/>`_ to
 learn how to write a nice commit message.
 
 
 Documentation
-----------------
+^^^^^^^^^^^^^
 
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).

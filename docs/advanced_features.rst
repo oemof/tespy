@@ -1,8 +1,8 @@
-.. _tespy_tutorial_label:
+.. _tespy_features_label:
 
-~~~~~~~~~~~~~~~~~~
-Advanced Tutorials
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+Advanced Features
+~~~~~~~~~~~~~~~~~
 We provide more advanced tutorials for you to better understand how to work
 with more complex systems in TESPy.
 
@@ -79,7 +79,7 @@ out to us. We are looking forward to hearing from you!
     :glob:
     :hidden:
 
-    advanced_tutorials/heat_exchangers.rst
-    advanced_tutorials/heat_pump_steps.rst
-    advanced_tutorials/starting_values.rst
-    advanced_tutorials/heat_pump_exergy.rst
+    advanced_features/ude.rst
+    advanced_features/fluid_properties.rst
+    advanced_features/characteristics.rst
+    advanced_features/custom_components.rst

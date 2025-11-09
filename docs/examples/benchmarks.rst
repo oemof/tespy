@@ -1,3 +1,5 @@
+.. _tespy_benchmarks_label:
+
 Benchmarks
 ==========
 To ensure credibility as well as reproducibility for the software, several

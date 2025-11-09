@@ -67,7 +67,7 @@ meetings as well as a discussion forum on GitHub.
             :class: only-dark
 
 ..  toctree::
-    :maxdepth: 0
+    :maxdepth: 3
     :hidden:
 
-    basic_tutorials/*
+    basic/*

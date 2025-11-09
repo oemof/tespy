@@ -4,19 +4,44 @@
 Building Blocks
 ###############
 
-.. tab-set::
+.. grid:: 2
+    :gutter: 1
 
-   .. tab-item:: Network
+    .. grid-item-card::  Network
+        :link: tespy_modules_networks_label
+        :link-type: ref
 
-        .. include:: modules/networks.rst
+        .. image:: /_static/images/basics/modeling_concept.svg
 
-   .. tab-item:: Components
+    .. grid-item-card::  Components
+        :link: tespy_modules_components_label
+        :link-type: ref
 
-        .. include:: modules/components.rst
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+            :class: only-light
 
-   .. tab-item:: Connections
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+            :class: only-dark
 
-        .. include:: modules/connections.rst
+    .. grid-item-card::  Connections and PowerConnections
+        :link: tespy_modules_connections_label
+        :link-type: ref
+
+        .. image:: /_static/images/modules/connections.svg
+            :class: only-light
+
+        .. image:: /_static/images/modules/connections_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Subsystems: Component Groups
+        :link: tespy_modules_subsystems_label
+        :link-type: ref
+
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+            :class: only-light
+
+        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+            :class: only-dark
 
 ..  toctree::
     :maxdepth: 1
@@ -25,3 +50,4 @@ Building Blocks
     modules/networks
     modules/components
     modules/connections
+    modules/subsystems

@@ -15,7 +15,6 @@
     :caption: Documentation
     :hidden:
 
-    modules
     benchmarks
     api
     whats_new

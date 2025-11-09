@@ -91,7 +91,7 @@ for cls_name, instance in instances.items():
     df = pd.DataFrame.from_dict(parameters_with_eq).T
 
     modules[parent_module][cls_name] = "\n"
-    modules[parent_module][cls_name] += (f".. rubric:: {cls_name}" + "\n\n")
+    modules[parent_module][cls_name] += (f".. rubric:: {cls_name}" + "\n" * 2)
     modules[parent_module][cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
 
     if not df.empty:

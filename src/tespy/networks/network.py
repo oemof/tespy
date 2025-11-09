@@ -782,6 +782,8 @@ class Network:
 
             comp.power_inl = self.conns.loc[targets, "object"].tolist()
             comp.power_outl = self.conns.loc[sources, "object"].tolist()
+            comp.num_power_i = len(comp.powerinlets())
+            comp.num_power_o = len(comp.poweroutlets())
 
             # set up restults and specification dataframes
             comp_type = comp.__class__.__name__

@@ -346,11 +346,11 @@ class PolynomialCompressor(DisplacementMachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0, val=0, is_result=True),
-            "P": dc_cp(min_val=0, is_result=True),
-            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True),
-            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0),
+            "Q_diss": dc_cp(max_val=0, val=0, is_result=True, quantity="heat"),
+            "P": dc_cp(min_val=0, is_result=True, quantity="power"),
+            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
+            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
+            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
             "rpm": dc_cp(min_val=0, is_result=True),
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
@@ -367,7 +367,7 @@ class PolynomialCompressor(DisplacementMachine):
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1
             ),
-            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True),
+            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
@@ -395,7 +395,7 @@ class PolynomialCompressor(DisplacementMachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val)
+            / (1 - self.dissipation_ratio.val_SI)
             - self.power_inl[0].E.val_SI
         )
 

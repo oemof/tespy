@@ -303,7 +303,7 @@ class DiabaticCombustionChamber(CombustionChamber):
         self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
         for num, i in enumerate(self.inl):
-            if i.p.val < self.outl[0].p.val:
+            if i.p.val_SI < self.outl[0].p.val_SI:
                 msg = (
                     f"The pressure at inlet {num + 1} is lower than the "
                     f"pressure at the outlet of component {self.label}."

@@ -790,7 +790,7 @@ class HeatExchanger(Component):
             (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
             / self.calc_dh_max_cold()
         )
-        return self.eff_max.val - max(eff_hot, eff_cold)
+        return self.eff_max.val_SI - max(eff_hot, eff_cold)
 
     def eff_max_dependents(self):
         return [

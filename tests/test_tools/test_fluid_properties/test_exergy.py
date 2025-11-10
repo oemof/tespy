@@ -1,7 +1,7 @@
-from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.fluid_properties.functions import calc_physical_exergy
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.functions import s_mix_pT
+from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 
 
 def test_physical_exergy_at_T_smaller_T_min():

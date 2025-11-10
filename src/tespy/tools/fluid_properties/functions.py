@@ -51,24 +51,20 @@ def _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data):
     return None
 
 
-def _physical_exergy_at_min_temperature(h, s, pamb, Tamb, fluid_data, mixing_rule=None):
+def _physical_exergy_at_min_temperature(h, s, pamb, Tamb, fluid_data, fluid):
     """Fallback for CoolProp domain errors at ambient conditions."""
-    if get_number_of_fluids(fluid_data) != 1:
-        return None
-
-    pure_fluid = get_pure_fluid(fluid_data)
-    Tmin = getattr(pure_fluid["wrapper"], "_T_min", None)
-    if Tmin is None:
-        return None
-
+    Tmin = fluid["wrapper"]._T_min
+    logger.warning(
+        "Physical exergy at ambient state (p0=%.3f, T0=%.2f) for %s "
+        "is outside the FluidWrapper temperature limits --> evaluating at "
+        f"the fluid's Tmin {Tmin} K as fallback.",
+        pamb, Tamb, fluid["wrapper"].fluid
+    )
     # stay marginally above the hard limit to avoid further CoolProp errors
     Tmin_eval = Tmin + 1e-6
 
-    try:
-        h_min = h_mix_pT(pamb, Tmin_eval, fluid_data, mixing_rule)
-        s_min = s_mix_pT(pamb, Tmin_eval, fluid_data, mixing_rule)
-    except ValueError:
-        return None
+    h_min = h_mix_pT(pamb, Tmin_eval, fluid_data)
+    s_min = s_mix_pT(pamb, Tmin_eval, fluid_data)
 
     ex_ph = (h - h_min) - Tamb * (s - s_min)
     return ex_ph, 0.0
@@ -105,33 +101,24 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
-    if get_number_of_fluids(fluid_data) == 1:
-        ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
-        if ex is not None:
-            return ex[0], ex[1]
-
-    try:
-        h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
-        s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
-        ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)
-        h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
-        s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
-        ex_mech = (h_T0_p - h0) - Tamb * (s_T0_p - s0)
-        return ex_therm, ex_mech
-    except ValueError:
-        fallback = _physical_exergy_at_min_temperature(
-            h, s, pamb, Tamb, fluid_data, mixing_rule
-        )
-        if fallback is not None:
-            pure_fluid = get_pure_fluid(fluid_data)
-            logger.warning(
-                "Physical exergy at ambient state (p0=%.3f, T0=%.2f) for %s "
-                "is outside CoolProp limits --> using Tmin fallback.",
-                pamb, Tamb, pure_fluid["wrapper"].fluid
+    pure_fluid_data = get_pure_fluid(fluid_data)
+    if pure_fluid_data:
+        if pure_fluid_data["wrapper"]._T_min > Tamb:
+            return _physical_exergy_at_min_temperature(
+                h, s, pamb, Tamb, fluid_data, pure_fluid_data
             )
-            # unable to split into thermal/mechanical parts in this regime
-            return fallback
-        raise
+        else:
+            ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
+            if ex is not None:
+                return ex[0], ex[1]
+
+    h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
+    s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)
+    ex_therm = (h - h_T0_p) - Tamb * (s - s_T0_p)
+    h0 = h_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
+    s0 = s_mix_pT(pamb, Tamb, fluid_data, mixing_rule)
+    ex_mech = (h_T0_p - h0) - Tamb * (s_T0_p - s0)
+    return ex_therm, ex_mech
 
 
 def calc_chemical_exergy(pamb, Tamb, fluid_data, Chem_Ex, mixing_rule=None, T0=None):

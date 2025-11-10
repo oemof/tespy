@@ -1,0 +1,12 @@
+v0.9.10 - Under Development
++++++++++++++++++++++++++++
+
+Other changes
+#############
+
+Bug Fixes
+#########
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

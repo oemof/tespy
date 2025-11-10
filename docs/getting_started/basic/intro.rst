@@ -1,4 +1,4 @@
-.. _tespy_basics_intro_label:
+.. _basics_intro_label:
 
 Introduction
 ============
@@ -40,7 +40,7 @@ Set up components
 -----------------
 
 The list of components available can be found
-:ref:`here <tespy_modules_components_label>`. If you set up a component you
+:ref:`here <modules_components_label>`. If you set up a component you
 have to specify a (within one network) unique label. Moreover, it is possible
 to specify parameters for the component, for example power :math:`P` for a pump
 or upper terminal temperature difference :math:`ttd_\mathrm{u}` of a heat
@@ -85,7 +85,7 @@ parameters are set for components. The basic specification options are:
 .. seealso::
 
     There are more specification options available. Please refer to
-    the :ref:`connections section <tespy_modules_connections_label>` in the
+    the :ref:`connections section <modules_connections_label>` in the
     TESPy modules documentation for detailed information. The specification
     options are stated in the connection class documentation, too:
     :py:class:`tespy.connections.connection.Connection`.
@@ -174,4 +174,4 @@ plants step by step, make a design calculation of the plant as well as calculate
 offdesign/part load performance.
 
 In order to get a good overview of the TESPy functionalities, the sections on
-the :ref:`TESPy modules <tespy_modules_label>` will guide you in detail.
+the :ref:`TESPy modules <modules_label>` will guide you in detail.

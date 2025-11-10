@@ -20,7 +20,7 @@ Getting started
         Get the installation instructions for your favorite OS
 
     .. grid-item-card::  Basic Tutorials
-        :link: tespy_basics_label
+        :link: basics_label
         :link-type: ref
 
         .. image:: /_static/images/basics/heat_pump.svg
@@ -44,7 +44,7 @@ Getting started
         Learn more about the framework
 
 ..  toctree::
-    :maxdepth: 3
+    :maxdepth: 1
     :hidden:
 
     getting_started/installation

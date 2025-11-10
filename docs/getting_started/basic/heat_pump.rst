@@ -1,4 +1,4 @@
-.. _tespy_basics_heat_pump_label:
+.. _basics_heat_pump_label:
 
 Heat Pump
 =========
@@ -18,7 +18,7 @@ Heat Pump
     Figure: Topology of the heat pump
 
 This tutorial is the continuation of the tutorial in the
-:ref:`introduction <tespy_basics_intro_label>`. First, we have a look at
+:ref:`introduction <basics_intro_label>`. First, we have a look at
 specification options and modeling flexibility in TESPy as well as some
 typical errors, that might occur when using the software. Then we will make a
 simple analysis of the COP of the heat pump based on several input parameters.
@@ -74,7 +74,7 @@ where the heat demand and the mass flow is set simultaneously.
     The two code examples in this section are not included in the downloadable
     script! Much more detailed information on the debugging capabilities with
     tespy can be found in the
-    :ref:`debugging section <tespy_networks_debugging_label>`.
+    :ref:`debugging section <networks_debugging_label>`.
 
 .. code-block:: python
 
@@ -116,12 +116,12 @@ obviously does not make any sense.
 
     For more detailed information about the number of variables involved and
     ways of parameter specifications, please go to the
-    :ref:`TESPy modules section <tespy_modules_label>` inside the Documentation
+    :ref:`TESPy modules section <modules_label>` inside the Documentation
     chapter.
 
     Another frequent reason for such errors are bad starting values. We have a
     tutorial specifically dedicated to this topic
-    :ref:`here <tespy_tutorial_starting_values_label>`.
+    :ref:`here <tutorial_starting_values_label>`.
 
 Parametric Analysis of COP
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

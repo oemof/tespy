@@ -1,4 +1,4 @@
-.. _tespy_examples_label:
+.. _examples_label:
 
 ~~~~~~~~~~~~~~~~~~~~
 Example Applications
@@ -35,7 +35,7 @@ your project.
     built-in exergy analysis feature. An assessment of the economic
     attractiveness of different heat pump setups is enabled through a
     component-based cost estimation. See the
-    `GitHub repository <https://github.com/jfreissmann/heatpumps>`_ for more 
+    `GitHub repository <https://github.com/jfreissmann/heatpumps>`_ for more
     information and if you would like to contribute.
 
     +++

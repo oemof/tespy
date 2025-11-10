@@ -68,7 +68,7 @@ API Changes
   custom components and their attributes, then you have to provide the
   :code:`quantity` information to the respective parameter. For more
   information on this, please check the
-  :ref:`respective section <tespy_units_label>` in the
+  :ref:`respective section <units_label>` in the
   docs.
 
 - In the back-end of the :code:`tespy.components` you have to adjust the
@@ -138,7 +138,7 @@ New Features
   - power/heat :code:`E` for :code:`PowerConnections`
 
   as well as all component parameters. For an example on how to work with the
-  new units, please check :ref:`this section <tespy_units_label>`
+  new units, please check :ref:`this section <units_label>`
   (`PR #743 <https://github.com/oemof/tespy/pull/743>`__).
 - A new component :code:`PolynomialCompressor` is available. The component
   uses `EN 12900` type polynomial coefficients to calculate isentropic and

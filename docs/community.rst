@@ -1,20 +1,20 @@
-.. _tespy_community_label:
+.. _community_and_support_label:
 
 #####################
 Community and Support
 #####################
 
-.. grid:: 2
+.. grid:: 3
     :gutter: 1
 
-    .. grid-item-card::  Network
-        :link: tespy_modules_networks_label
+    .. grid-item-card::  Get in touch with the community
+        :link: community_label
         :link-type: ref
 
         .. image:: /_static/images/basics/modeling_concept.svg
 
-    .. grid-item-card::  Components
-        :link: tespy_modules_components_label
+    .. grid-item-card::  Contribute to the development
+        :link: developing_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
@@ -23,9 +23,16 @@ Community and Support
         .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Get professional support
+        :link: support_label
+        :link-type: ref
+
+        .. image:: /_static/images/basics/modeling_concept.svg
+
 ..  toctree::
     :maxdepth: 1
     :hidden:
 
-    community/support
+    community/community
     community/contribute
+    community/support

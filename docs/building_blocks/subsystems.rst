@@ -1,4 +1,4 @@
-.. _tespy_modules_subsystems_label:
+.. _modules_subsystems_label:
 
 Subsystems: Reusable Component Groups
 =====================================

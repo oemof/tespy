@@ -1,4 +1,4 @@
-.. _tespy_tutorial_heat_exchanger:
+.. _tutorial_heat_exchanger:
 
 Overview of Heat exchanger models
 ---------------------------------

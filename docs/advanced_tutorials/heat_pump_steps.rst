@@ -1,4 +1,4 @@
-.. _tespy_tutorial_heat_pump_label:
+.. _tutorial_heat_pump_label:
 
 Build a Heat Pump Stepwise
 --------------------------
@@ -104,7 +104,7 @@ originates, the source id is the outlet id of that component. This applies
 analogously to the target. To find all inlet and outlet ids of a component look
 up the class documentation of the respective component. An overview of the
 components available and the class documentations is provided in the
-:ref:`TESPy modules overview <tespy_modules_components_label>`. The
+:ref:`TESPy modules overview <modules_components_label>`. The
 :py:class:`tespy.connections.connection.Ref` class is used specify fluid
 property values by referencing fluid properties of different connections. It
 is used in a later step.
@@ -116,7 +116,7 @@ is used in a later step.
 
 .. seealso::
 
-    As we learned in the :ref:`basic introduction <tespy_basics_intro_label>`
+    As we learned in the :ref:`basic introduction <basics_intro_label>`
     instead of just connecting the consumer's outlet to the pump's inlet, we
     must make use of the CycleCloser. Closing a cycle without further
     adjustments will always result in a linear dependency in the fluid and the
@@ -193,7 +193,7 @@ set up the full system we will run design case calculations.
 
     For general information on the solving process in TESPy and available
     parameters check the corresponding section in the
-    :ref:`TESPy modules introduction <tespy_modules_networks_label>`.
+    :ref:`TESPy modules introduction <modules_networks_label>`.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -454,7 +454,7 @@ On top of that, for the evaporator the characteristic function of the heat
 transfer coefficient should follow different data than the default
 characteristic. The name of that line is 'EVAPORATING FLUID' for the cold
 side. The default line 'DEFAULT' will be kept for the hot side. These lines
-are available in the :ref:`tespy.data <tespy_data_label>` module.
+are available in the :ref:`tespy.data <data_label>` module.
 
 .. attention::
 
@@ -471,7 +471,7 @@ are available in the :ref:`tespy.data <tespy_data_label>` module.
 
     If you want to learn more about handling characteristic functions you
     should have a glance at the
-    :ref:`TESPy components section <tespy_modules_components_label>`.
+    :ref:`TESPy components section <modules_components_label>`.
 
 Finally, we can change the heat demand and run several offdesign calculations
 to calculate the part load COP value.

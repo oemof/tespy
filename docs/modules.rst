@@ -1,4 +1,4 @@
-.. _tespy_modules_label:
+.. _modules_label:
 
 ~~~~~~~~~~~~~
 TESPy modules
@@ -25,13 +25,13 @@ as the underlying functionalities of the software.
     :gutter: 1
 
     .. grid-item-card::  Network
-        :link: tespy_modules_networks_label
+        :link: modules_networks_label
         :link-type: ref
 
         .. image:: /_static/images/basics/modeling_concept.svg
 
     .. grid-item-card::  Components and Component Groups
-        :link: tespy_modules_components_label
+        :link: modules_components_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
@@ -44,7 +44,7 @@ as the underlying functionalities of the software.
     :gutter: 1
 
     .. grid-item-card::  Connections
-        :link: tespy_modules_connections_label
+        :link: modules_connections_label
         :link-type: ref
 
         .. image:: /_static/images/modules/connections.svg
@@ -54,7 +54,7 @@ as the underlying functionalities of the software.
             :class: only-dark
 
     .. grid-item-card::  Characteristics
-        :link: tespy_modules_characteristics_label
+        :link: modules_characteristics_label
         :link-type: ref
 
         .. image:: /_static/images/modules/characteristics.svg
@@ -68,7 +68,7 @@ as the underlying functionalities of the software.
     :gutter: 1
 
     .. grid-item-card::  Fluid Properties
-        :link: tespy_fluid_properties_label
+        :link: fluid_properties_label
         :link-type: ref
 
         .. image:: /_static/images/modules/fluid_properties.svg
@@ -78,7 +78,7 @@ as the underlying functionalities of the software.
             :class: only-dark
 
     .. grid-item-card::  User Defined Equations
-        :link: tespy_ude_label
+        :link: ude_label
         :link-type: ref
 
         .. image:: /_static/images/modules/ude.svg

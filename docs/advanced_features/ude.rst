@@ -1,4 +1,4 @@
-.. _tespy_ude_label:
+.. _ude_label:
 
 User defined equations
 ======================

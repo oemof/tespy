@@ -1,4 +1,4 @@
-.. _tespy_development_what_label:
+.. _developing_label:
 
 ~~~~~~~~~~~~~~~~~~~
 Contribute to TESPy
@@ -6,12 +6,12 @@ Contribute to TESPy
 
 What can I contribute?
 ======================
-TESPy has been developed mainly by Francesco Witte at the University of Applied
-Sciences Flensburg - and since 2021 with a lot of free time. The goal is, that
-many people can make use of this project and that it will be a community driven
-project in the future, as users might demand special components or flexible
-implementations of characteristics, custom equations, basically what ever you
-can think of.
+TESPy has originally been developed mainly by Francesco Witte at the University
+of Applied Sciences Flensburg. Since 2021 with a lot of free time. The goal is,
+that many people can make use of this project and that it will be a community
+driven project in the future, as users might demand special components or
+flexible implementations of characteristics, custom equations, basically what
+ever you can think of.
 
 Therefore, I would like to invite you to contribute in this process, share your
 ideas and experience and maybe start developing the software. Your solutions
@@ -38,7 +38,7 @@ Share your projects
 ^^^^^^^^^^^^^^^^^^^
 You have used the software in your research paper or project, maybe even in a
 real world application? We would love to feature your project on our
-:ref:`Example Applications <tespy_examples_label>` page. Please reach out to
+:ref:`Example Applications <examples_label>` page. Please reach out to
 us by opening a new issue on our GitHub page.
 
 Add new component equations
@@ -67,7 +67,7 @@ specific cases - it will improve the results. Every user can benefit from this
 knowledge, and thus we are very happy to discuss the implementation of new
 characteristics.
 
-.. _tespy_development_how_label:
+.. _development_how_label:
 
 How can I contribute?
 =====================

@@ -28,8 +28,16 @@ Navigate here to your favorite section:
         - Components
         - Connections
 
+    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples & Benchmarks
+        :link: examples_benchmarks_label
+        :link-type: ref
+        :class-card: landing-card
+
+        - Explore example applications
+        - Check the benchmarks
+
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
-        :link: tespy_tutorial_label
+        :link:  advanced_tutorials_label
         :link-type: ref
         :class-card: landing-card
 
@@ -38,7 +46,7 @@ Navigate here to your favorite section:
         - Carry out exergy analyses
 
     .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community & Support
-        :link: tespy_tutorial_starting_values_label
+        :link: community_and_support_label
         :link-type: ref
         :class-card: landing-card
 
@@ -47,7 +55,7 @@ Navigate here to your favorite section:
         - Learn how to contribute
 
     .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
-        :link: tespy_tutorial_heat_pump_exergy_label
+        :link: advanced_features_label
         :link-type: ref
         :class-card: landing-card
 
@@ -56,7 +64,7 @@ Navigate here to your favorite section:
         - Use custom fluid property models
 
     .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
-        :link: tespy_tutorial_heat_pump_exergy_label
+        :link: integration_label
         :link-type: ref
         :class-card: landing-card
 
@@ -64,17 +72,8 @@ Navigate here to your favorite section:
         - Run parametric optimization
         - Analyse cycles with exerpy
 
-    .. grid-item-card::  :material-outlined:`fact_check;2.5em;sd-text-logo-main` Examples & Benchmarks
-        :link: tespy_tutorial_starting_values_label
-        :link-type: ref
-        :class-card: landing-card
-
-        - Explore example applications
-        - Check the benchmarks
-        - Literature list
-
     .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-logo-main` API Documentation
-        :link: tespy_tutorial_heat_pump_label
+        :link: documentation_label
         :link-type: ref
         :class-card: landing-card
 
@@ -83,10 +82,11 @@ Navigate here to your favorite section:
         - Check out GitHub
 
     .. grid-item-card::  :material-outlined:`lightbulb;2.5em;sd-text-logo-main` Knowledge Center
-        :link: tespy_tutorial_heat_pump_label
+        :link: knowledge_center_label
         :link-type: ref
         :class-card: landing-card
 
         - Educational resources
         - See our best practices
         - View frequently asked questions
+        - Literature list

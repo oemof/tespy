@@ -1,4 +1,4 @@
-.. _tespy_components_custom_components_label:
+.. _components_custom_components_label:
 
 Custom components
 -----------------
@@ -28,7 +28,7 @@ non-material flows associated with a :code:`PowerConnection`.
 .. note::
 
   For more information on the :code:`PowerConnection` please check the
-  respective :ref:`section in the docs <tespy_powerconnections_label>`.
+  respective :ref:`section in the docs <powerconnections_label>`.
 
 The starting lines of your file should look like this:
 
@@ -152,7 +152,7 @@ or characteristic maps are loaded automatically by the component initialisation
 method of class
 :py:class:`tespy.components.component.Component`. For more information on the
 default characteristics consider this
-:ref:`chapter <tespy_modules_characteristics_label>`.
+:ref:`chapter <modules_characteristics_label>`.
 
 The structure is very similar to the mandatory constraints, e.g. for the
 class :code:`Valve`:

@@ -1,4 +1,4 @@
-.. _tespy_basics_district_heating_label:
+.. _basics_district_heating_label:
 
 District Heating Network
 ========================
@@ -37,7 +37,7 @@ access speed while preserving high accuracy.
 .. tip::
 
     For more information on the fluid properties in TESPy,
-    :ref:`check out this page <tespy_fluid_properties_label>`.
+    :ref:`check out this page <fluid_properties_label>`.
 
 .. dropdown:: Click to expand to code section
 

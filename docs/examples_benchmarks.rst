@@ -1,4 +1,4 @@
-.. _tespy_exampels_benchmarks_label:
+.. _examples_benchmarks_label:
 
 #######################
 Examples and Benchmarks
@@ -8,13 +8,13 @@ Examples and Benchmarks
     :gutter: 1
 
     .. grid-item-card::  Examples
-        :link: tespy_examples_label
+        :link: examples_label
         :link-type: ref
 
         .. image:: /_static/images/basics/modeling_concept.svg
 
     .. grid-item-card::  Benchmarks
-        :link: tespy_benchmarks_label
+        :link: benchmarks_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg

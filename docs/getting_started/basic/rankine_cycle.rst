@@ -1,4 +1,4 @@
-.. _tespy_basics_rankine_cycle_label:
+.. _basics_rankine_cycle_label:
 
 Rankine Cycle
 =============
@@ -167,7 +167,7 @@ of the cycle, given constant steam mass flow and with varying values for the
 - cooling water temperature level.
 
 To do that, we are using a very similar setup as has been used in the
-:ref:`heat pump tutorial <tespy_basics_heat_pump_label>`. For the feed water
+:ref:`heat pump tutorial <basics_heat_pump_label>`. For the feed water
 temperature level we want to set the change in temperature at the condenser
 to a constant value. Also, we have to unset the power generation specification
 again and use a constant mass flow instead. With :code:`iterinfo=False` we
@@ -201,8 +201,8 @@ plant and calculate the part load performance with some assumptions on the
 component's individual behavior. The table below summarizes the assumptions,
 which we will keep as simple as possible at this moment. For more insights
 have a look at the step by step
-:ref:`heat pump tutorial <tespy_tutorial_heat_pump_label>` or at the
-:ref:`Network documentation <tespy_modules_networks_label>`.
+:ref:`heat pump tutorial <tutorial_heat_pump_label>` or at the
+:ref:`Network documentation <modules_networks_label>`.
 
 +-----------+---------------------------+-------------------------------+
 | Component | Assumptions               | Settings                      |

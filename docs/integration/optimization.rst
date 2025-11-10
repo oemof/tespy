@@ -1,4 +1,4 @@
-.. _tespy_tutorial_pygmo_optimization_label:
+.. _tutorial_pygmo_optimization_label:
 
 Thermal Power Plant Efficiency Optimization
 -------------------------------------------

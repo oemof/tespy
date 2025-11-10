@@ -1,4 +1,4 @@
-.. _tespy_modules_networks_label:
+.. _modules_networks_label:
 
 Networks
 ========
@@ -25,7 +25,7 @@ The solver will simplify the variable space in a presolving step and then solve
 for the remaining variables. In the following, you will find information on the
 :code:`Network` setup, solving and debugging.
 
-.. _tespy_units_label:
+.. _units_label:
 
 Unit specifications
 +++++++++++++++++++
@@ -225,7 +225,7 @@ or via subsystems using the corresponding methods:
     required elements, you can start the calculation.
 
 There are two types of connections, you can learn about them more in
-:ref:`these sections <tespy_modules_connections_label>`.
+:ref:`these sections <modules_connections_label>`.
 
 Start calculation
 ^^^^^^^^^^^^^^^^^
@@ -319,7 +319,7 @@ with zeta values.
     is calculated as function of the actual mass flow to design mass flow
     ratio. You can provide your own (measured) data or use the already existing
     data from TESPy. All standard characteristic functions are available at
-    :ref:`tespy_data_label`.
+    :ref:`data_label`.
 
 For connections it works in the same way, e.g. write
 
@@ -545,7 +545,7 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
     \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
-.. _tespy_module_convergence_label:
+.. _module_convergence_label:
 
 Convergence stability
 +++++++++++++++++++++
@@ -638,7 +638,7 @@ primary variables whenever possible/reasonable. This will not only reduce the
 variable space but also remove the necessity to calculate partial derivatives
 towards them.
 
-.. _tespy_networks_debugging_label:
+.. _networks_debugging_label:
 
 Debugging
 +++++++++
@@ -665,7 +665,7 @@ can be, for example
   Clausius Rankine cylce, you need to make a cut in the cycle using the
   :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
   over-determine the system. Have a look in the
-  :ref:`tutorial section <tespy_basics_label>` to understand why this is
+  :ref:`tutorial section <basics_label>` to understand why this is
   important and how it can be implemented.
 - two parallel flows starting and ending in a common point (e.g. from a
   :code:`Splitter` to a :code:`Merge`) and both having linear specifications

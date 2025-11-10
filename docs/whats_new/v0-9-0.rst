@@ -36,7 +36,7 @@ High-level API changes
   changed and should now be made through the :code:`partial_derivative` method
   of the :code:`UserDefinedEquation` instance.
 
-  See the :ref:`docs <tespy_ude_label>` for the specific implementations.
+  See the :ref:`docs <ude_label>` for the specific implementations.
 
 - The :code:`reset_topology_reduction_specifications` method of the
   :code:`Network` has been depricated and is not required anymore.
@@ -72,7 +72,7 @@ Back-end API changes
   future, this will also simplify the activating or deactivating of specific
   variables for the solver or removing parts of the network.
 - For a couple of examples please refer to the updated documentation section
-  on :ref:`custom components <tespy_components_custom_components_label>`.
+  on :ref:`custom components <components_custom_components_label>`.
 
 New Features
 ############
@@ -84,13 +84,13 @@ New Features
   :code:`SimpleHeatExchanger`. It streamlines the API between connections
   transporting material flows and connections with non-material flows. For more
   information and examples please check
-  :ref:`this section in the docs <tespy_powerconnections_label>`.
+  :ref:`this section in the docs <powerconnections_label>`.
 - The new version of tespy comes with great debugging capabilities, which allow
   you to explore, which variables have been solved in presolving with the help
   of which equations. Also, the variables left for the solver to solve for and
   the corresponding equations can be outputted after the presolving. Read
   more information in the new section on
-  :ref:`debugging <tespy_networks_debugging_label>`.
+  :ref:`debugging <networks_debugging_label>`.
 - With the refactored preprocessing, it linear relationships between pairs of
   variables (e.g. inlet to outlet pressure with specified pressure ratio) will
   be presolved in a way, that fixing any of the pressure values in a branch of

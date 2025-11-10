@@ -80,4 +80,4 @@ installed.
 
            pip install tespy
 
-      follow the instructions on :ref:`this page <tespy_development_how_label>`.
+      follow the instructions on :ref:`this page <development_how_label>`.

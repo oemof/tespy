@@ -1,4 +1,4 @@
-.. _tespy_modules_characteristics_label:
+.. _modules_characteristics_label:
 
 Characteristics
 ===============
@@ -8,7 +8,7 @@ implementation. There two different types of characteristics available in
 TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`)
 and maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`).
 The default characteristics available are to be found in the
-:ref:`tespy_data_label` documentation.
+:ref:`data_label` documentation.
 
 Characteristic lines
 --------------------

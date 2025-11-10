@@ -1,4 +1,4 @@
-.. _tespy_api_label:
+.. _api_label:
 
 ~~~~~~~~~~~~~~~~~
 API Documentation

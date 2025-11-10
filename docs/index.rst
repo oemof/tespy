@@ -1,4 +1,4 @@
-.. _tespy_label:
+.. _label:
 
 .. include:: landing.rst
 

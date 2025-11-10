@@ -1,4 +1,4 @@
-.. _tespy_tutorial_district_heating_label:
+.. _tutorial_district_heating_label:
 
 District heating system
 -----------------------

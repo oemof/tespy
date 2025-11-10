@@ -1,4 +1,4 @@
-.. _tespy_integration_label:
+.. _integration_label:
 
 ~~~~~~~~~~~
 Integration
@@ -8,7 +8,7 @@ Integration
     :gutter: 1
 
     .. grid-item-card::  Optimization of a thermal power plant
-        :link: tespy_tutorial_pygmo_optimization_label
+        :link: tutorial_pygmo_optimization_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
@@ -18,7 +18,7 @@ Integration
             :class: only-dark
 
     .. grid-item-card::  Model coupling
-        :link: tespy_tutorial_pygmo_optimization_label
+        :link: model_coupling_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
@@ -40,5 +40,5 @@ Integration
     :maxdepth: 1
     :hidden:
 
-    integration/model_coupling
     integration/optimization
+    integration/model_coupling

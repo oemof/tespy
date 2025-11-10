@@ -1,4 +1,4 @@
-.. _tespy_tutorial_starting_values_label:
+.. _tutorial_starting_values_label:
 
 How to Generate Stable Starting Values
 --------------------------------------

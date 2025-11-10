@@ -1,4 +1,4 @@
-.. _tespy_knowledge_label:
+.. _knowledge_center_label:
 
 ~~~~~~~~~~~~~~~~
 Knowledge Center
@@ -7,8 +7,9 @@ Knowledge Center
 .. grid:: 2
     :gutter: 1
 
-    .. grid-item-card::  Integration of an air source heat pump in energy system optimization
-        :link: https://oemof.github.io/heat-pump-tutorial/
+    .. grid-item-card::  Frequently Asked Questions
+        :link: faq_label
+        :link-type: ref
 
         .. image:: /_static/images/tutorials/osmses-2023.svg
             :class: only-light
@@ -16,8 +17,8 @@ Knowledge Center
         .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Optimization of a thermal power plant
-        :link: tespy_tutorial_pygmo_optimization_label
+    .. grid-item-card::  Educational Resources
+        :link: education_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
@@ -26,8 +27,8 @@ Knowledge Center
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Optimization of a thermal power plant
-        :link: tespy_tutorial_pygmo_optimization_label
+    .. grid-item-card::  Best Practices
+        :link: best_practices_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
@@ -36,8 +37,8 @@ Knowledge Center
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Optimization of a thermal power plant
-        :link: tespy_tutorial_pygmo_optimization_label
+    .. grid-item-card::  Literature References
+        :link: literature_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg

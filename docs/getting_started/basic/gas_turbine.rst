@@ -1,4 +1,4 @@
-.. _tespy_basics_gas_turbine_label:
+.. _basics_gas_turbine_label:
 
 Gas Turbine
 ===========
@@ -32,7 +32,7 @@ Setting up the Combustion Chamber
 We are setting up our system step by step. Especially for larger systems, it
 is recommended you follow this approach, since TESPy highly relies on a set of
 good starting values for good convergence. You can learn more about it in the
-:ref:`advanced tutorial <tespy_tutorial_label>` section of the online
+:ref:`advanced tutorial <advanced_tutorials_label>` section of the online
 documentation.
 
 .. note::

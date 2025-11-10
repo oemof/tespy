@@ -1,4 +1,4 @@
-.. _tespy_tutorial_label:
+.. _advanced_tutorials_label:
 
 ~~~~~~~~~~~~~~~~~~
 Advanced Tutorials
@@ -34,7 +34,7 @@ out to us. We are looking forward to hearing from you!
     :gutter: 1
 
     .. grid-item-card:: Overview on available classes for heat exchangers
-        :link: tespy_tutorial_heat_exchanger
+        :link: tutorial_heat_exchanger
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
@@ -44,7 +44,7 @@ out to us. We are looking forward to hearing from you!
             :class: only-dark
 
     .. grid-item-card::  Build complex systems step by step
-        :link: tespy_tutorial_heat_pump_label
+        :link: tutorial_heat_pump_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
@@ -54,7 +54,7 @@ out to us. We are looking forward to hearing from you!
             :class: only-dark
 
     .. grid-item-card::  Generate stable starting values
-        :link: tespy_tutorial_starting_values_label
+        :link: tutorial_starting_values_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
@@ -65,7 +65,7 @@ out to us. We are looking forward to hearing from you!
 
 
     .. grid-item-card::  Exergy analysis of a heat pump
-        :link: tespy_tutorial_heat_pump_exergy_label
+        :link: tutorial_heat_pump_exergy_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg

@@ -4,17 +4,17 @@
 Building Blocks
 ###############
 
-.. grid:: 2
+.. grid:: 3
     :gutter: 1
 
     .. grid-item-card::  Network
-        :link: tespy_modules_networks_label
+        :link: modules_networks_label
         :link-type: ref
 
         .. image:: /_static/images/basics/modeling_concept.svg
 
     .. grid-item-card::  Components
-        :link: tespy_modules_components_label
+        :link: modules_components_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
@@ -24,7 +24,7 @@ Building Blocks
             :class: only-dark
 
     .. grid-item-card::  Connections and PowerConnections
-        :link: tespy_modules_connections_label
+        :link: modules_connections_label
         :link-type: ref
 
         .. image:: /_static/images/modules/connections.svg
@@ -34,7 +34,7 @@ Building Blocks
             :class: only-dark
 
     .. grid-item-card::  Subsystems: Component Groups
-        :link: tespy_modules_subsystems_label
+        :link: modules_subsystems_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
@@ -44,7 +44,7 @@ Building Blocks
            :class: only-dark
 
     .. grid-item-card::  Fluid Property Diagrams
-        :link: tespy_modules_subsystems_label
+        :link: fluprodia_label
         :link-type: ref
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg

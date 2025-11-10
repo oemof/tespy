@@ -61,15 +61,15 @@ We provide more detailed
 
 If you want to use the latest features, you might want to install the
 **developer version**. See
-:ref:`this section <tespy_development_how_label>` for more information.
+:ref:`this section <development_how_label>` for more information.
 
 Getting into TESPy
 ==================
 
 For a good start on how TESPy works and how you can use it, we provide some
-:ref:`basic <tespy_basics_label>` and :ref:`advanced <tespy_tutorial_label>`
+:ref:`basic <basics_label>` and :ref:`advanced <advanced_tutorials_label>`
 tutorials in the User Guide section. The
-:ref:`modules <tespy_modules_label>` section provides you with in depth
+:ref:`modules <modules_label>` section provides you with in depth
 information on the different modules of TESPy.
 
 Citation

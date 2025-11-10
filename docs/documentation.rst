@@ -1,18 +1,14 @@
-.. _tespy_documentation_label:
+.. _documentation_label:
 
 ~~~~~~~~~~~~~
 Documentation
 ~~~~~~~~~~~~~
-
-#############
-Documentation
-#############
 
 .. grid:: 3
     :gutter: 1
 
     .. grid-item-card::  API Documentation
-        :link: tespy_api_label
+        :link: api_label
         :link-type: ref
 
         .. image:: /_static/images/logo_tespy_small.svg
@@ -24,7 +20,7 @@ Documentation
         Get the installation instructions for your favorite OS
 
     .. grid-item-card::  Changelog
-        :link: tespy_whats_new_label
+        :link: whats_new_label
         :link-type: ref
 
         .. image:: /_static/images/basics/heat_pump.svg

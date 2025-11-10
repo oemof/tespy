@@ -1,4 +1,4 @@
-.. _tespy_benchmarks_label:
+.. _benchmarks_label:
 
 Benchmarks
 ==========
@@ -61,4 +61,4 @@ ensure, that changes in the code do not break with existing features or
 invalidate results of the existing models.
 
 For more information on how to run the tests please see the
-:ref:`how to develop <tespy_development_how_label>` section.
+:ref:`how to develop <development_how_label>` section.

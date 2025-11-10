@@ -1,4 +1,4 @@
-.. _tespy_tutorial_heat_pump_exergy_label:
+.. _tutorial_heat_pump_exergy_label:
 
 Exergy Analysis of a Ground-Coupled Heat Pump
 ---------------------------------------------
@@ -41,7 +41,7 @@ plotted.
     GitHub.
 
 Since there is an existing tutorial for
-:ref:`creating a heat pump <tespy_tutorial_heat_pump_label>`, this tutorial
+:ref:`creating a heat pump <tutorial_heat_pump_label>`, this tutorial
 starts with the explanations for setting up the exergy analysis. Note however,
 that the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
@@ -205,7 +205,7 @@ visualized.
     :code:`get_plotting_data` method contains the connection id of the state
     change. Make sure you specify the correct id for the components to be
     displayed. A table of the state change and the respective id can be found
-    :ref:`here <FluProDia_label>`.
+    :ref:`here <fluprodia_label>`.
 
 Next, a :code:`FluidPropertyDiagram` instance is created and the units of the
 diagram are specified.
@@ -320,7 +320,7 @@ The product exergy is represented by the bus :code:`power`. The busses
 :code:`heat_cons` and :code:`heat_geo` are passed as fuel exergy.
 In the example of the GCHP, only :code:`E_F` and :code:`E_P` are defined.
 Other examples of exergy analysis setup can be found in the
-:ref:`TESPy analysis <tespy_advanced_exergy_label>` page and in the API
+:ref:`TESPy analysis <advanced_exergy_label>` page and in the API
 documentation of class :py:class:`tespy.tools.analyses.ExergyAnalysis`.
 
 .. code-block:: python
@@ -333,7 +333,7 @@ The :py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse` method will run the
 exergy analysis automatically. This method expects information about the
 ambient pressure and ambient temperature. Additionally, an automatic check of
 consistency is performed by the analysis as further described in
-:ref:`TESPy analysis <tespy_advanced_exergy_label>`.
+:ref:`TESPy analysis <advanced_exergy_label>`.
 
 Results
 +++++++
@@ -346,7 +346,7 @@ The results can be printed by using the
    ean.print_results()
 
 Further descriptions of which tables are printed and how to select what is
-printed can be found in the :ref:`TESPy analysis section <tespy_advanced_exergy_label>`.
+printed can be found in the :ref:`TESPy analysis section <advanced_exergy_label>`.
 There you can also find more detailed descriptions of how to access the
 underlying data for the tabular printouts, which are stored in
 `pandas DataFrames <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html>`_.
@@ -380,7 +380,7 @@ method returns a dictionary containing links and nodes for the sankey diagram.
 In the figure above you can see the sankey diagram which is created by running
 the script of the GCHP with NH3 as refrigerant. Information about, for example,
 the colors used or the node order can be found in the
-:ref:`TESPy analysis section <tespy_advanced_exergy_label>`.
+:ref:`TESPy analysis section <advanced_exergy_label>`.
 
 Post-Processing
 ^^^^^^^^^^^^^^^
@@ -729,7 +729,7 @@ but also in the Python script of the plots, if a plot is created with the
 stand-alone plot script.
 
 More examples of exergy analysis can be found in the
-:ref:`TESPy analysis section <tespy_advanced_exergy_label>` and in the API
+:ref:`TESPy analysis section <advanced_exergy_label>` and in the API
 documentation of the :py:class:`tespy.tools.analyses.ExergyAnalysis` class. If
 you are interested in contributing or have questions and remarks on this
 tutorial, you are welcome to file an issue at our GitHub page.

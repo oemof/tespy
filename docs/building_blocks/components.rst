@@ -1,4 +1,4 @@
-.. _tespy_modules_components_label:
+.. _modules_components_label:
 
 Components
 ==========
@@ -16,7 +16,7 @@ links to the underlying equations, the class documentation and example.
 
 .. include:: _components_overview.rst
 
-.. _tespy_modules_components_parametrisation_label:
+.. _modules_components_parametrisation_label:
 
 Component parametrisation
 -------------------------
@@ -183,7 +183,7 @@ Component characteristics
 
 Several components integrate parameters using a characteristic function. These
 parameters come with default characteristics. The default characteristics
-available can be found in the :ref:`tespy_data_label`. Of course, it is
+available can be found in the :ref:`data_label`. Of course, it is
 possible to specify your own characteristic functions.
 
 .. note::
@@ -341,7 +341,7 @@ Instead of writing your custom characteristic line information directly into
 your Python script, TESPy provides a second method of implementation: It is
 possible to store your data in the :code:`HOME/.tespy/data` folder and import
 from there. For additional information on formatting and usage, look into
-:ref:`this part <tespy_modules_characteristics_label>`.
+:ref:`this part <modules_characteristics_label>`.
 
 .. code-block:: python
 
@@ -414,7 +414,7 @@ Characteristics are available for the following components and parameters:
   * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
 
 For more information on how the characteristic functions work
-:ref:`click here <tespy_modules_characteristics_label>`.
+:ref:`click here <modules_characteristics_label>`.
 
 Extend components with new equations
 ------------------------------------

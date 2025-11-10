@@ -1,4 +1,4 @@
-.. _tespy_advanced_optimization_label:
+.. _advanced_optimization_label:
 
 Optimization with pygmo
 =======================

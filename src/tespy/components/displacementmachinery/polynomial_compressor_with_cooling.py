@@ -1,3 +1,16 @@
+# -*- coding: utf-8
+
+"""Module of class PolynomialCompressorWithCooling.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tespy/components/displacementmachinery/polynomial_compressor_with_cooling.py
+
+SPDX-License-Identifier: MIT
+"""
+from tespy.components.component import component_registry
 from tespy.components.displacementmachinery.polynomial_compressor import PolynomialCompressor
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -5,6 +18,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.helpers import TESPyComponentError
 
 
+@component_registry
 class PolynomialCompressorWithCooling(PolynomialCompressor):
     r"""
     Class for a compressor model following the EN12900 implementation of
@@ -351,7 +365,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         )
         params["td_minimal"] = dc_cp(
             min_val=0,
-            quantity="temperature_difference"
+            quantity="temperature_difference",
+            is_result=True
         )
         params["dp_cooling"] = dc_cp(
             min_val=0,

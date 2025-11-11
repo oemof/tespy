@@ -3266,6 +3266,90 @@ class Network:
         else:
             return np.nan
 
+
+    @classmethod
+    def from_dict(cls, network_data):
+        # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
+        nw = cls(**network_data["Network"])
+
+        # load components
+        comps = {}
+
+        module_name = "tespy.components"
+        _ = importlib.import_module(module_name)
+
+        for component, data in network_data["Component"].items():
+            if component not in component_registry.items:
+                msg = (
+                    f"A class {component} is not available through the "
+                    "tespy.components.component.component_registry decorator. "
+                    "If you are using a custom component make sure to "
+                    "decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            target_class = component_registry.items[component]
+            comps.update(_construct_components(target_class, data, nw))
+
+        msg = 'Created network components.'
+        logger.info(msg)
+
+        conns = {}
+        # load connections
+        if "Connection" not in network_data["Connection"]:
+            # v0.8 compatibility
+            target_class = connection_registry.items["Connection"]
+            conns.update(_construct_connections(
+                target_class, network_data["Connection"], comps)
+            )
+        else:
+            for connection, data in network_data["Connection"].items():
+                if connection not in connection_registry.items:
+                    msg = (
+                        f"A class {connection} is not available through the "
+                        "tespy.connections.connection.connection_registry "
+                        "decorator. If you are using a custom connection make "
+                        "sure to decorate the class."
+                    )
+                    logger.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                target_class = connection_registry.items[connection]
+                conns.update(_construct_connections(target_class, data, comps))
+
+        # add connections to network
+        for c in conns.values():
+            nw.add_conns(c)
+
+        msg = 'Created connections.'
+        logger.info(msg)
+
+        # load busses
+        data = network_data.get("Bus", {})
+        if len(data) > 0:
+            busses = _construct_busses(data, comps)
+            # add busses to network
+            for b in busses.values():
+                nw.add_busses(b)
+
+            msg = 'Created busses.'
+            logger.info(msg)
+
+        else:
+            msg = 'No bus data found!'
+            logger.debug(msg)
+
+        msg = 'Created network.'
+        logger.info(msg)
+
+        nw.check_topology()
+
+        return nw
+
     @classmethod
     def from_json(cls, json_file_path):
         r"""
@@ -3429,86 +3513,8 @@ class Network:
 
         with open(json_file_path, "r") as f:
             network_data = json.load(f)
-        # create network
-        # get method to ensure compatibility with old style export
-        units = Units.from_json(network_data["Network"].get("units", {}))
-        network_data["Network"]["units"] = units
-        nw = cls(**network_data["Network"])
 
-        # load components
-        comps = {}
-
-        module_name = "tespy.components"
-        _ = importlib.import_module(module_name)
-
-        for component, data in network_data["Component"].items():
-            if component not in component_registry.items:
-                msg = (
-                    f"A class {component} is not available through the "
-                    "tespy.components.component.component_registry decorator. "
-                    "If you are using a custom component make sure to "
-                    "decorate the class."
-                )
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data, nw))
-
-        msg = 'Created network components.'
-        logger.info(msg)
-
-        conns = {}
-        # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
-
-        # add connections to network
-        for c in conns.values():
-            nw.add_conns(c)
-
-        msg = 'Created connections.'
-        logger.info(msg)
-
-        # load busses
-        data = network_data.get("Bus", {})
-        if len(data) > 0:
-            busses = _construct_busses(data, comps)
-            # add busses to network
-            for b in busses.values():
-                nw.add_busses(b)
-
-            msg = 'Created busses.'
-            logger.info(msg)
-
-        else:
-            msg = 'No bus data found!'
-            logger.debug(msg)
-
-        msg = 'Created network.'
-        logger.info(msg)
-
-        nw.check_topology()
-
-        return nw
+        return cls.from_dict(network_data)
 
     def export(self, json_file_path=None):
         """Export the parametrization and structure of the Network instance
@@ -3537,62 +3543,6 @@ class Network:
             logger.debug(f'Model information saved to {json_file_path}.')
 
         return export
-
-    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
-        """Export the network to exerpy
-
-        Parameters
-        ----------
-        Tamb : float
-            Ambient temperature.
-        pamb : float
-            Ambient pressure.
-        exerpy_mappings : dict
-            Mappings for tespy components to exerpy components
-
-        Returns
-        -------
-        dict
-            exerpy compatible input dictionary
-        """
-        component_results = self._save_components()
-        component_json = {}
-        for comp_type in self.comps["comp_type"].unique():
-            if comp_type not in exerpy_mappings.keys():
-                msg = f"Component class {comp_type} not available in exerpy."
-                logger.warning(msg)
-                continue
-
-            key = exerpy_mappings[comp_type]
-            if key not in component_json:
-                component_json[key] = {}
-
-            result = component_results[comp_type].dropna(axis=1)
-
-            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
-                parameters = {}
-                if c.label in result.index and not result.loc[c.label].dropna().empty:
-                    parameters = result.loc[c.label].dropna().to_dict()
-                component_json[key][c.label] = {
-                    "name": c.label,
-                    "type": comp_type,
-                    "parameters": parameters
-                }
-
-        connection_json = {}
-        for c in self.conns["object"]:
-            connection_json.update(c._to_exerpy(pamb, Tamb))
-
-        return {
-            "components": component_json,
-            "connections": connection_json,
-            "ambient_conditions": {
-                "Tamb": Tamb,
-                "Tamb_unit": "K",
-                "pamb": pamb,
-                "pamb_unit": "Pa"
-            }
-        }
 
     def save(self, json_file_path):
         r"""

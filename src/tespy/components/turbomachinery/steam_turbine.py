@@ -162,7 +162,7 @@ class SteamTurbine(Turbine):
     def get_parameters(self):
 
         params = super().get_parameters()
-        params["alpha"] = dc_cp(min_val=0.4, max_val=2.5)
+        params["alpha"] = dc_cp(min_val=0.4, max_val=2.5, quantity="ratio")
         params["eta_s_dry"] = dc_cp(
             min_val=0.0, max_val=1.0, quantity="efficiency"
         )
@@ -257,7 +257,7 @@ class SteamTurbine(Turbine):
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val_SI * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(

@@ -1,0 +1,21 @@
+v0.9.10 - Under Development
++++++++++++++++++++++++++++
+
+Other changes
+#############
+- Physical exergy evaluation: Introduced a robust, domain-safe fallback for
+  cases where CoolProp cannot evaluate ambient-state properties
+  :code:`h(p0, T0)` or :code:`s(p0, T0)`. When the ambient temperature
+  :code:`T0` is below the FluidPropertyWrapper's minimum supported temperature,
+  TESPy now evaluates the reference state at the wrapper's :code:`Tmin` (offset
+  by :code:`1e-6 K` to avoid boundary issues) and calculates the physical
+  exergy with respect to that temperature without exergy splitting
+  (`PR #828 <https://github.com/oemof/tespy/pull/828>`__).
+
+Bug Fixes
+#########
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@sertomas <https://github.com/sertomas>`__

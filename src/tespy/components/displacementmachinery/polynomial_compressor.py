@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.displacementmachinery.base import DisplacementMachine
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -25,8 +26,7 @@ from tespy.tools.fluid_properties import isentropic
 from tespy.tools.helpers import TESPyComponentError
 
 
-# the polynomial compressor is a fundamentally different component, therefore
-# inherits from Turbomachine and not from Compressor
+@component_registry
 class PolynomialCompressor(DisplacementMachine):
     r"""
     Class for a compressor model following the EN12900 implementation of
@@ -346,12 +346,12 @@ class PolynomialCompressor(DisplacementMachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0, val=0),
-            "P": dc_cp(min_val=0),
-            "eta_vol": dc_cp(min_val=0, max_val=1),
-            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0),
-            "rpm": dc_cp(min_val=0),
+            "Q_diss": dc_cp(max_val=0, val=0, is_result=True, quantity="heat"),
+            "P": dc_cp(min_val=0, is_result=True, quantity="power"),
+            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
+            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
+            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
+            "rpm": dc_cp(min_val=0, is_result=True),
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
             "eta_vol_poly": dc_simple(),
@@ -367,7 +367,7 @@ class PolynomialCompressor(DisplacementMachine):
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1
             ),
-            "eta_s": dc_cp(min_val=0, max_val=1),
+            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
@@ -395,7 +395,7 @@ class PolynomialCompressor(DisplacementMachine):
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val)
+            / (1 - self.dissipation_ratio.val_SI)
             - self.power_inl[0].E.val_SI
         )
 
@@ -433,7 +433,7 @@ class PolynomialCompressor(DisplacementMachine):
 
         .. math::
 
-            0 = \eta_\text{s} \left(T_\text{evap}, T_\text{cond}\right)\cdot
+            0 = \eta_\text{s} \cdot
             \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
             - \left( h_\text{out,s} - h_\text{in} \right)
 
@@ -509,7 +509,8 @@ class PolynomialCompressor(DisplacementMachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (o.h.val_SI - i.h.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 

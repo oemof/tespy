@@ -80,7 +80,7 @@ class DisplacementMachine(Component):
     For an example please refer to:
 
     - :class:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
-    - :class:`tespy.components.displacementmachinery.pump.Pump`
+    - :class:`tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling`
     """
     def get_parameters(self):
         return {
@@ -151,7 +151,7 @@ class DisplacementMachine(Component):
         """
         return (
             self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val_SI
         )
 
     def energy_balance_dependents(self):

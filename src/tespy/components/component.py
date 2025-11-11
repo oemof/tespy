@@ -442,7 +442,11 @@ class Component:
                         is_set = False
 
                 if is_set:
-                    data.set_attr(is_set=True)
+                    if self._mode == "design" and key not in self.offdesign:
+                        data.set_attr(is_set=True)
+                    elif self._mode == "offdesign" and key not in self.design:
+                        data.set_attr(is_set=True)
+
                 elif data.is_set:
                     msg = (
                         'All parameters of the component group have to be '
@@ -873,6 +877,7 @@ class Component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
+        self._mode = mode
         if mode == 'design' or self.local_design:
             self.new_design = True
 

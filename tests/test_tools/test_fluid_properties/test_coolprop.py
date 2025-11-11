@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_tools/test_fluid_properties.py
+tests/test_tools/test_fluid_properties/test_coolprop.py
 
 SPDX-License-Identifier: MIT
 """
@@ -268,7 +268,6 @@ class TestFluidPropertyBackEnds:
                 str(d_rel) + ' but should not be larger than 1e-4.')
             assert d_rel <= 1e-4, msg
 
-    @pytest.mark.skip
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -304,11 +303,13 @@ class TestFluidPropertyBackEnds:
             value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (
                 'The pressure ratio of the pipeline must be at 0.95, but '
-                'is at ' + str(value) + ' for the fluid ' + fluid + '.')
+                f'is at {value} for the fluid {fluid}.'
+            )
             assert value == 0.95, msg
             value = round(self.nw.get_comp('pump').pr.val, 5)
             msg = (
-                'The pressure ratio of the pipeline must be at ' +
-                str(round(1 / 0.95, 5)) + ', but is at ' + str(value) +
-                ' for the fluid ' + fluid + '.')
+                'The pressure ratio of the pipeline must be at '
+                f'{round(1 / 0.95, 5)}, but is at {value} for the fluid '
+                f'{fluid}.'
+            )
             assert value == round(1 / 0.95, 5), msg

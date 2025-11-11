@@ -11,6 +11,8 @@ tespy/components/turbomachinery/compressor.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 
 from tespy.components.component import component_registry
@@ -31,7 +33,7 @@ from tespy.tools.helpers import _get_dependents
 @component_registry
 class Compressor(Turbomachine):
     r"""
-    Class for axial or radial compressor.
+    Class for a basic compressor.
 
     **Mandatory Equations**
 
@@ -45,8 +47,6 @@ class Compressor(Turbomachine):
     - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
     - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func`
 
     Inlets/Outlets
 
@@ -112,21 +112,10 @@ class Compressor(Turbomachine):
         Characteristic curve for isentropic efficiency, provide CharLine as
         function :code:`func`.
 
-    char_map : tespy.tools.characteristics.CharMap, dict
-        Characteristic map for pressure rise and isentropic efficiency vs.
-        nondimensional mass flow, see
-        :py:class:`tespy.tools.characteristics.CharMap` for further
-        information. Provide a CompressorMap as function :code:`func`.
-
-    igva : float, dict, :code:`"var"`
-        Inlet guide vane angle, :math:`igva/^\circ`.
-
     Example
     -------
     Create an air compressor model and calculate the power required for
-    compression of 50 l/s of ambient air to 5 bars. Using a generic compressor
-    map how does the efficiency change in different operation mode (e.g. 90 %
-    of nominal volumetric flow)?
+    compression of 50 l/s of ambient air to 5 bars.
 
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
@@ -134,7 +123,8 @@ class Compressor(Turbomachine):
     >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
+    ...     "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -144,13 +134,10 @@ class Compressor(Turbomachine):
     >>> nw.add_conns(inc, outg)
 
     Specify the compressor parameters: nominal efficiency and pressure ratio.
-    For offdesign mode the characteristic map is selected instead of the
-    isentropic efficiency. For offdesign, the inlet guide vane angle should be
-    variable in order to maintain the same pressure ratio at a different
-    volumetric flow.
+    For offdesign mode the efficiency characteristic line is selected instead
+    of the isentropic efficiency.
 
-    >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'],
-    ... offdesign=['char_map_pr', 'char_map_eta_s'])
+    >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
     >>> nw.save('tmp.json')
@@ -159,12 +146,25 @@ class Compressor(Turbomachine):
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
-    >>> comp.set_attr(igva='var')
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(comp.eta_s.val, 2)
-    0.77
+    0.79
     >>> os.remove('tmp.json')
     """
+
+    def _preprocess(self, row_idx):
+        if self.char_map_pr.is_set or self.char_map_eta_s.is_set or self.igva.is_set:
+            msg = (
+                "The scope of the component 'Compressor' will change in the "
+                "next major release. The availability of the compressor maps "
+                "in context of offdesign simulations has moved to the new "
+                "component 'TurboCompressor'. If you want to make use of "
+                "these parameters, please use that component class instead."
+            )
+            logger.warning(msg)
+            warnings.warn(msg, FutureWarning)
+
+        return super()._preprocess(row_idx)
 
     @staticmethod
     def powerinlets():
@@ -199,7 +199,7 @@ class Compressor(Turbomachine):
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
             ),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0),
+            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
@@ -235,7 +235,9 @@ class Compressor(Turbomachine):
         )
 
     def energy_connector_dependents(self):
-        return [self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
+        return [
+            self.power_inl[0].E, self.inl[0].m, self.outl[0].h, self.inl[0].h
+        ]
 
     def eta_s_func(self):
         r"""
@@ -316,8 +318,10 @@ class Compressor(Turbomachine):
         p = self.eta_s_char.param
         expr = self.get_char_expr(p, **self.eta_s_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
+            msg = (
+                'Please choose a valid parameter, you want to link the '
+                f'isentropic efficiency to at component {self.label}.'
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -539,7 +543,13 @@ class Compressor(Turbomachine):
         elif key == 'h':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
+                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
+                else:
+                    temp = c.fluid.wrapper[fluid]._T_crit
+                    return h_mix_pT(
+                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
+                    )
             else:
                 temp = 350
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)

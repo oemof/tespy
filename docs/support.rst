@@ -25,6 +25,11 @@ potential follow-up meetings.
 If you are interested, you can simply join the meeting at
 https://meet.jit.si/tespy_user_meeting. We are looking forward to seeing you!
 
+.. attention::
+
+    Please also check the announcement banner at the top of the documentation
+    pages, you will get updates on rescheduled date/time.
+
 Support
 =======
 If you need support on a frequent basis, e.g. to implement custom models,

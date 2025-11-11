@@ -793,8 +793,9 @@ class Network:
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
-                    col for col, data in comp.parameters.items()
+                    c for col, data in comp.parameters.items()
                     if isinstance(data, dc_cp)
+                    for c in [col, f"{col}_unit"]
                 ]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
@@ -2129,6 +2130,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
+        # TODO: depricate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2892,10 +2894,10 @@ class Network:
                 for fluid in data["obj"].is_var:
                     data["obj"]._val[fluid] /= total_mass_fractions
 
-
-        for c in self.conns['object']:
-            # check the fluid properties for physical ranges
-            c._adjust_to_property_limits(self)
+        if norm(self.increment) > 1e-1:
+            for c in self.conns['object']:
+                # check the fluid properties for physical ranges
+                c._adjust_to_property_limits(self)
 
         # second check based on component heuristics
         # - for first three iterations
@@ -3021,7 +3023,7 @@ class Network:
                     if (
                         value.is_set
                         and not value.is_var
-                        and round(result.magnitude, 3) != round(value.val, 3)
+                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
                         and not cp.bypass
                     ):
                         _converged = False
@@ -3052,13 +3054,10 @@ class Network:
 
         for cp in self.comps['object']:
             key = cp.__class__.__name__
-            for param in self.results[key].columns:
-                p = cp.get_attr(param)
-                if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result or p.structure_matrix is not None):
-                    self.results[key].loc[cp.label, param] = p.val
-                else:
-                    self.results[key].loc[cp.label, param] = np.nan
+            result = cp.collect_results()
+            if len(result) == 0:
+                continue
+            self.results[cp.__class__.__name__].loc[cp.label] = result
 
         return _converged
 
@@ -3128,6 +3127,9 @@ class Network:
         result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
+            for c in df.index:
+                if not self.get_comp(c).printout:
+                    df = df.drop(c)
             # are there any parameters to print?
             if df.size > 0:
                 if subsystem is not None:
@@ -3137,9 +3139,14 @@ class Network:
                     ]
                     df = df.loc[component_labels]
 
-                cols = df.columns
+                c = self.comps.loc[self.comps["comp_type"] == cp, "object"]
+                cols = [
+                    col for col in c.iloc[0]._get_result_attributes()
+                    if not col.endswith("_unit")
+                ]
                 if len(cols) > 0:
-                    for col in cols:
+                    df = df[cols].dropna(axis=1, how="all")
+                    for col in df.columns:
                         df[col] = df.apply(
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
@@ -3261,6 +3268,90 @@ class Network:
         else:
             return np.nan
 
+
+    @classmethod
+    def from_dict(cls, network_data):
+        # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
+        nw = cls(**network_data["Network"])
+
+        # load components
+        comps = {}
+
+        module_name = "tespy.components"
+        _ = importlib.import_module(module_name)
+
+        for component, data in network_data["Component"].items():
+            if component not in component_registry.items:
+                msg = (
+                    f"A class {component} is not available through the "
+                    "tespy.components.component.component_registry decorator. "
+                    "If you are using a custom component make sure to "
+                    "decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            target_class = component_registry.items[component]
+            comps.update(_construct_components(target_class, data, nw))
+
+        msg = 'Created network components.'
+        logger.info(msg)
+
+        conns = {}
+        # load connections
+        if "Connection" not in network_data["Connection"]:
+            # v0.8 compatibility
+            target_class = connection_registry.items["Connection"]
+            conns.update(_construct_connections(
+                target_class, network_data["Connection"], comps)
+            )
+        else:
+            for connection, data in network_data["Connection"].items():
+                if connection not in connection_registry.items:
+                    msg = (
+                        f"A class {connection} is not available through the "
+                        "tespy.connections.connection.connection_registry "
+                        "decorator. If you are using a custom connection make "
+                        "sure to decorate the class."
+                    )
+                    logger.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                target_class = connection_registry.items[connection]
+                conns.update(_construct_connections(target_class, data, comps))
+
+        # add connections to network
+        for c in conns.values():
+            nw.add_conns(c)
+
+        msg = 'Created connections.'
+        logger.info(msg)
+
+        # load busses
+        data = network_data.get("Bus", {})
+        if len(data) > 0:
+            busses = _construct_busses(data, comps)
+            # add busses to network
+            for b in busses.values():
+                nw.add_busses(b)
+
+            msg = 'Created busses.'
+            logger.info(msg)
+
+        else:
+            msg = 'No bus data found!'
+            logger.debug(msg)
+
+        msg = 'Created network.'
+        logger.info(msg)
+
+        nw.check_topology()
+
+        return nw
+
     @classmethod
     def from_json(cls, json_file_path):
         r"""
@@ -3302,7 +3393,7 @@ class Network:
         keeping the temperature at a constant value.
 
         >>> from tespy.components import (
-        ...     Sink, Source, CombustionChamber, Compressor, Turbine,
+        ...     Sink, Source, CombustionChamber, TurboCompressor, Turbine,
         ...     SimpleHeatExchanger, PowerBus, PowerSink, Generator
         ... )
         >>> from tespy.connections import Connection, Ref, PowerConnection
@@ -3310,11 +3401,12 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "power": "MW"
         ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
-        >>> compressor = Compressor('compressor')
+        >>> compressor = TurboCompressor('compressor')
         >>> combustion = CombustionChamber('combustion')
         >>> turbine = Turbine('turbine')
         >>> preheater = SimpleHeatExchanger('fuel preheater')
@@ -3372,7 +3464,7 @@ class Network:
         >>> combustion.set_attr(lamb=None)
         >>> c3.set_attr(T=1100)
         >>> c1.set_attr(m=None)
-        >>> e4.set_attr(E=1e6)
+        >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
         >>> nw.save('design_state.json')
@@ -3382,7 +3474,7 @@ class Network:
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> round(turbine.eta_s.val, 1)
         0.9
-        >>> e4.set_attr(E=0.75e6)
+        >>> e4.set_attr(E=0.75)
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> nw.assert_convergence()
         >>> eta_s_t = round(turbine.eta_s.val, 3)
@@ -3409,7 +3501,7 @@ class Network:
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
-        >>> imported_nwk.get_conn('e4').set_attr(E=0.75e6)
+        >>> imported_nwk.get_conn('e4').set_attr(E=0.75)
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
@@ -3421,89 +3513,10 @@ class Network:
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)
 
-        # load components
-        comps = {}
-
-        module_name = "tespy.components"
-        _ = importlib.import_module(module_name)
-
         with open(json_file_path, "r") as f:
             network_data = json.load(f)
 
-        for component, data in network_data["Component"].items():
-            if component not in component_registry.items:
-                msg = (
-                    f"A class {component} is not available through the "
-                    "tespy.components.component.component_registry decorator. "
-                    "If you are using a custom component make sure to "
-                    "decorate the class."
-                )
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data))
-
-        msg = 'Created network components.'
-        logger.info(msg)
-
-        # create network
-        # get method to ensure compatibility with old style export
-        units = Units.from_json(network_data["Network"].get("units", {}))
-        network_data["Network"]["units"] = units
-        nw = cls(**network_data["Network"])
-
-        conns = {}
-        # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
-
-        # add connections to network
-        for c in conns.values():
-            nw.add_conns(c)
-
-        msg = 'Created connections.'
-        logger.info(msg)
-
-        # load busses
-        data = network_data.get("Bus", {})
-        if len(data) > 0:
-            busses = _construct_busses(data, comps)
-            # add busses to network
-            for b in busses.values():
-                nw.add_busses(b)
-
-            msg = 'Created busses.'
-            logger.info(msg)
-
-        else:
-            msg = 'No bus data found!'
-            logger.debug(msg)
-
-        msg = 'Created network.'
-        logger.info(msg)
-
-        nw.check_topology()
-
-        return nw
+        return cls.from_dict(network_data)
 
     def export(self, json_file_path=None):
         """Export the parametrization and structure of the Network instance
@@ -3532,62 +3545,6 @@ class Network:
             logger.debug(f'Model information saved to {json_file_path}.')
 
         return export
-
-    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
-        """Export the network to exerpy
-
-        Parameters
-        ----------
-        Tamb : float
-            Ambient temperature.
-        pamb : float
-            Ambient pressure.
-        exerpy_mappings : dict
-            Mappings for tespy components to exerpy components
-
-        Returns
-        -------
-        dict
-            exerpy compatible input dictionary
-        """
-        component_results = self._save_components()
-        component_json = {}
-        for comp_type in self.comps["comp_type"].unique():
-            if comp_type not in exerpy_mappings.keys():
-                msg = f"Component class {comp_type} not available in exerpy."
-                logger.warning(msg)
-                continue
-
-            key = exerpy_mappings[comp_type]
-            if key not in component_json:
-                component_json[key] = {}
-
-            result = component_results[comp_type].dropna(axis=1)
-
-            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
-                parameters = {}
-                if c.label in result.index and not result.loc[c.label].dropna().empty:
-                    parameters = result.loc[c.label].dropna().to_dict()
-                component_json[key][c.label] = {
-                    "name": c.label,
-                    "type": comp_type,
-                    "parameters": parameters
-                }
-
-        connection_json = {}
-        for c in self.conns["object"]:
-            connection_json.update(c._to_exerpy(pamb, Tamb))
-
-        return {
-            "components": component_json,
-            "connections": connection_json,
-            "ambient_conditions": {
-                "Tamb": Tamb,
-                "Tamb_unit": "K",
-                "pamb": pamb,
-                "pamb_unit": "Pa"
-            }
-        }
 
     def save(self, json_file_path):
         r"""
@@ -3803,7 +3760,7 @@ def v07_to_v08_export(path):
     return data
 
 
-def _construct_components(target_class, data):
+def _construct_components(target_class, data, nw):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -3831,8 +3788,14 @@ def _construct_components(target_class, data):
                         param_data["char_func"] = CharLine(**param_data["char_func"])
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
-                if isinstance(container, dc_prop):
-                    param_data["val0"] = param_data["val"]
+
+                if "val" in param_data:
+                    if "unit" in param_data and param_data["unit"] is not None:
+                        param_data["val"] = nw.units.ureg.Quantity(
+                            param_data["val"], param_data["unit"]
+                        )
+                    if "val0" in param_data:
+                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})

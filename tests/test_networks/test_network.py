@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for testing network properties.
+"""Module for testing Network class.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -33,8 +33,6 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from tespy.networks.network import v07_to_v08_export
-from tespy.networks.network import v07_to_v08_save
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -159,7 +157,7 @@ class TestNetworks:
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
-    def test_Network_reader_checked(self, tmp_path):
+    def test_Network_from_json_checked(self, tmp_path):
         """Test state of network if loaded successfully from export."""
         tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
@@ -168,6 +166,21 @@ class TestNetworks:
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
         imported_nwk = Network.from_json(tmp_path)
+        imported_nwk.solve('design', init_only=True)
+        msg = (
+            'If the network import was successful the network check '
+            'should have been successful, too, but it is not.'
+        )
+        assert imported_nwk.checked, msg
+
+    def test_Network_from_dict(self):
+        """Test state of network if loaded successfully from export."""
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
+        self.nw.solve('design', init_only=True)
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
             'If the network import was successful the network check '
@@ -977,3 +990,65 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
     c2.set_attr(T=20.2)
     nw.solve("design")
     assert nw.status == 0
+
+
+def test_offdesign_of_component_parameter_group(tmp_path):
+
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = Pipe("pipe")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1, m=1)
+    c2.set_attr(T=19.5, p=0.9, design=["p"])
+    instance.set_attr(D=0.1, ks=0.0001, L=50, offdesign=["darcy_group"])
+    nw.solve("design")
+    nw.assert_convergence()
+    assert not instance.darcy_group.is_set
+
+    path = os.path.join(tmp_path, "design.json")
+    nw.save(path)
+    nw.solve("offdesign", design_path=path)
+    nw.assert_convergence()
+    assert instance.darcy_group.is_set
+
+
+def test_design_of_component_parameter_group(tmp_path):
+
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = Pipe("pipe")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1, m=1)
+    c2.set_attr(T=19.5, offdesign=["p"])
+    instance.set_attr(D=0.1, ks=0.0001, L=50, design=["darcy_group"])
+    nw.solve("design")
+    nw.assert_convergence()
+    assert instance.darcy_group.is_set
+
+    path = os.path.join(tmp_path, "design.json")
+    nw.save(path)
+    nw.solve("offdesign", design_path=path)
+    nw.assert_convergence()
+    assert not instance.darcy_group.is_set

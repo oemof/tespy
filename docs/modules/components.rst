@@ -15,35 +15,52 @@ well as the equations.
 
 - Basics
 
-  * :py:class:`Cycle closer<tespy.components.basics.cycle_closer.CycleCloser>`
+  * :py:class:`CycleCloser<tespy.components.basics.cycle_closer.CycleCloser>`
   * :py:class:`Sink <tespy.components.basics.sink.Sink>`
   * :py:class:`Source <tespy.components.basics.source.Source>`
-  * :py:class:`Subsystem interface <tespy.components.basics.subsystem_interface.SubsystemInterface>`
+  * :py:class:`SubsystemInterface <tespy.components.basics.subsystem_interface.SubsystemInterface>`
 
 - Combustion
 
-  * :py:class:`Combustion chamber <tespy.components.combustion.base.CombustionChamber>`
-  * :py:class:`Diabatic combustion chamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`:
+  * :py:class:`CombustionChamber <tespy.components.combustion.base.CombustionChamber>`
+  * :py:class:`DiabaticCombustionChamber <tespy.components.combustion.diabatic.DiabaticCombustionChamber>`:
     Advanced version of combustion chamber, featuring heat losses and pressure
     drop
-  * :py:class:`Combustion engine <tespy.components.combustion.engine.CombustionEngine>`
+  * :py:class:`CombustionEngine <tespy.components.combustion.engine.CombustionEngine>`
+
+- Displacementmachinery
+
+  * :py:class:`PolynomialCompressor <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor>`:
+    Advanced compressor model to map manufacturer datasheet information
+    according to EN12900
+  * :py:class:`PolynomialCompressorWithCooling <tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling>`:
+    Same compressor model as the :code:`PolynomialCompressor` but with added
+    inlet and outlet for a cooling fluid
 
 - Heat exchangers
 
-  * :py:class:`Simplified heat exchanger <tespy.components.heat_exchangers.simple.SimpleHeatExchanger>`
-  * :py:class:`Solar collector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
-  * :py:class:`Parabolic trough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
-  * :py:class:`Heat exchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
+  * :py:class:`SimpleHeatExchanger <tespy.components.heat_exchangers.simple.SimpleHeatExchanger>`
+  * :py:class:`SolarCollector <tespy.components.heat_exchangers.solar_collector.SolarCollector>`
+  * :py:class:`ParabolicTrough <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough>`
+  * :py:class:`HeatExchanger <tespy.components.heat_exchangers.base.HeatExchanger>`
+  * :py:class:`ParallelFlowHeatExchanger <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger>`:
+    Analogue component to the :code:`HeatExchanger` but with flows in parallel.
+    All other types of heat exchangers (below) as well as the
+    :code:`HeatExchanger` base class assume counter current flow!
   * :py:class:`Condenser <tespy.components.heat_exchangers.condenser.Condenser>`
   * :py:class:`Desuperheater <tespy.components.heat_exchangers.desuperheater.Desuperheater>`
-  * :py:class:`Moving Boundary Heat exchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
+  * :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`:
+    Advanced heat exchanger class, discretizes the heat exchange into a
+    specified number of sections (50 by default) and assigns individual pinch
+    and UA values per section of heat transfer
+  * :py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`:
     Advanced heat exchanger class, automatically identifying phase change
-    sections in the heat transfer of both sides and assigning individual UA
-    values per section of heat transfer
+    sections in the heat transfer of both sides and assigning individual pinch
+    and UA values per section of heat transfer
 
 - Nodes
 
-  * :py:class:`Droplet separator <tespy.components.nodes.droplet_separator.DropletSeparator>`
+  * :py:class:`DropletSeparator <tespy.components.nodes.droplet_separator.DropletSeparator>`
   * :py:class:`Drum <tespy.components.nodes.drum.Drum>`
   * :py:class:`Merge <tespy.components.nodes.merge.Merge>`
   * :py:class:`Node <tespy.components.nodes.node.Node>`: This component combines a :code:`Merge` with a :code:`Splitter` in a single component
@@ -57,20 +74,20 @@ well as the equations.
 
 - Reactors
 
-  * :py:class:`Fuel cell <tespy.components.reactors.fuel_cell.FuelCell>`
-  * :py:class:`Water electrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
+  * :py:class:`FuelCell <tespy.components.reactors.fuel_cell.FuelCell>`
+  * :py:class:`WaterElectrolyzer <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer>`
 
 - Turbomachinery
 
   * :py:class:`Compressor <tespy.components.turbomachinery.compressor.Compressor>`
-  * :py:class:`PolynomialCompressor <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor>`:
-    Advanced compressor model to map manufacturer datasheet information
-    according to EN12900
   * :py:class:`Pump <tespy.components.turbomachinery.pump.Pump>`
   * :py:class:`Turbine <tespy.components.turbomachinery.turbine.Turbine>`
-  * :py:class:`Steam turbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`:
+  * :py:class:`SteamTurbine <tespy.components.turbomachinery.steam_turbine.SteamTurbine>`:
     Advanced component for isentropic efficiency correction in wet outlet
     steam conditions implementing the Baumann correlation
+  * :py:class:`TurboCompressor <tespy.components.turbomachinery.turbocompressor.TurboCompressor>`:
+    Component with characteristic maps for isentropic efficiency and pressure
+    ratio over non-dimensional mass flow in offdesign
 
 - Power components
 
@@ -449,8 +466,8 @@ Characteristics are available for the following components and parameters:
 
 - PolynomialCompressor
 
-  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
-  * :py:meth:` <tespy.components.turbomachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
+  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
 
 - HeatExchanger:
 

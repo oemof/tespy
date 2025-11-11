@@ -15,9 +15,9 @@ Navigate here to your favorite section:
         :link-type: ref
         :class-card: landing-card
 
+        - Learn what tespy is about
         - Install tespy
         - Build your first models
-        - Learn what tespy is about
 
     .. grid-item-card::  :material-outlined:`widgets;2.5em;sd-text-logo-main` Building Blocks
         :link: building_blocks_label

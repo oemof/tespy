@@ -620,7 +620,7 @@ class SimpleHeatExchanger(Component):
         Note
         ----
         For standard function of f\ :subscript:`kA` \ see module
-        :ref:`tespy.data <tespy_data_label>`.
+        :ref:`tespy.data <data_label>`.
         """
         i = self.inl[0]
         o = self.outl[0]

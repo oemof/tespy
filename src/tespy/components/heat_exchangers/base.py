@@ -538,7 +538,7 @@ class HeatExchanger(Component):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :ref:`tespy.data <tespy_data_label>`.
+        module :ref:`tespy.data <data_label>`.
         """
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param

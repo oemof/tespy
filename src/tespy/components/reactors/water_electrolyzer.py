@@ -155,7 +155,7 @@ class WaterElectrolyzer(Component):
     compressor isentropic efficiency at 85 %. After designing the plant the
     offdesign electrolysis efficiency is predicted by the characteristic line.
     The default characteristic line can be found here:
-    :ref:`tespy.data <tespy_data_label>`.
+    :ref:`tespy.data <data_label>`.
 
     >>> fw_el = Connection(fw, 'out1', el, 'in2')
     >>> el_o = Connection(el, 'out2', oxy, 'in1')

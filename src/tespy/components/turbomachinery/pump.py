@@ -139,7 +139,7 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calulate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :ref:`tespy.data <tespy_data_label>` module. Of course you are able to
+    :ref:`tespy.data <data_label>` module. Of course you are able to
     specify your own characteristcs, like done for the :code:`flow_char`. More
     information on how to specify characteristic functions are given in the
     corresponding part of the online documentation.

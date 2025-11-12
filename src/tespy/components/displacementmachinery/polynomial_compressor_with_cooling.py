@@ -372,13 +372,15 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             min_val=0,
             structure_matrix=self.dp_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
-            quantity="pressure"
+            quantity="pressure",
+            num_eq_sets=1
         )
         params["pr_cooling"] = dc_cp(
             min_val=0,
             structure_matrix=self.pr_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "pr": "pr_cooling"},
-            quantity="ratio"
+            quantity="ratio",
+            num_eq_sets=1
         )
         return params
 

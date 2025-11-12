@@ -15,6 +15,10 @@ Bug Fixes
 - Some component equations were utilizing the :code:`.val` property inside
   some equations, leading to false results when these properties were specified
   in non-SI units (`PR #832 <https://github.com/oemof/tespy/pull/832>`__).
+- Fix an issue with the :code:`PolynomialCompressorWithCooling` in which the
+  parameters :code:`dp_cooling` and :code:`pr_cooling` where missing the
+  specification of :code:`num_eq_sets`
+  (`PR #836 <https://github.com/oemof/tespy/pull/836>`__).
 
 Contributors
 ############

@@ -7,6 +7,7 @@ from pytest import mark
 from tespy.components import Subsystem
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 ALL_COMPONENT_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.components"])
@@ -50,14 +51,41 @@ def properties_of(instance):
         if isinstance(container, dc_cp)
     ]
 
+
+def properties_with_eq_of(instance):
+    return [
+        prop
+        for prop, container in instance.get_parameters().items()
+        if (
+            not isinstance(container, dc_simple)
+            and container.func is not None or container.structure_matrix is not None
+        )
+    ]
+
+
+def generate_class_property_params(property_fn):
+    params = []
+    for name, cls in component_registry.items.items():
+        instance = cls("")
+        for prop in property_fn(instance):
+            params.append(pytest.param(name, prop, id=f"{cls.__name__}::{prop}"))
+    return params
+
+
 def pytest_generate_tests(metafunc):
-    if "cls_name" in metafunc.fixturenames and "prop" in metafunc.fixturenames:
-        params = []
-        for name, cls in component_registry.items.items():
-            instance = cls("")
-            for prop in properties_of(instance):
-                params.append(pytest.param(name, prop, id=f"{cls.__name__}::{prop}"))
-        metafunc.parametrize("cls_name,prop", params)
+    if {"cls_name", "prop"} <= set(metafunc.fixturenames):
+        if metafunc.function.__name__ == "test_property_value_not_none":
+            metafunc.parametrize(
+                "cls_name,prop",
+                generate_class_property_params(properties_of)
+            )
+
+        elif metafunc.function.__name__ == "test_num_equations_with_func_or_structure_matrix":
+            metafunc.parametrize(
+                "cls_name,prop",
+                generate_class_property_params(properties_with_eq_of)
+            )
+
 
 def test_property_value_not_none(cls_name, prop):
 
@@ -70,3 +98,13 @@ def test_property_value_not_none(cls_name, prop):
     )
 
     assert condition, f"Quantity for {prop} of {cls_name} must not be None"
+
+
+def test_num_equations_with_func_or_structure_matrix(cls_name, prop):
+
+    instance = component_registry.items[cls_name]("")
+    value = instance.get_attr(prop)
+
+    condition = value.num_eq_sets > 0
+
+    assert condition, f"The parameter {prop} of {cls_name} lacks `num_eq_sets` specification"

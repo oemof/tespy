@@ -73,5 +73,5 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
-- `@25Nik <https://github.com/25Nik>`__
+- `@n-arth <https://github.com/n-arth>`__
 - `@maltefritz <https://github.com/maltefritz>`__

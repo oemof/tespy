@@ -9,7 +9,6 @@ from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
-
 ALL_COMPONENT_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.components"])
     # exclude the Subsystem component as it is just a wrapper

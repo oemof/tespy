@@ -3,11 +3,12 @@
 Frequently Asked Questions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. dropdown:: Why is my model unstable or not convering towards a solution?
+.. dropdown:: Why does my simulation model crash with a CoolProp related error or does not converge towards a solution?
 
     - Short introduction into sources of numerical instability
     - Point towards :ref:`Starting Value tutorial <tutorial_starting_values_label>`
     - Discuss things like :code:`init_path`, :code:`design_path` etc. for off-design simulations
+    - Best practices for automatically making small steps towards a changed input
 
 .. dropdown:: How do I create a relation between two unknown variables?
 
@@ -50,28 +51,32 @@ Frequently Asked Questions
         >>> round(c3.m.val / c2.m.val, 1)
         0.9
 
-.. dropdown:: How can I define custom rules or behavior for my model?
+.. dropdown:: How can I add custom constraints or equations to my model?
 
     - Introduce :py:class:`tespy.tools.helpers.UserDefinedEquation`
     - Maybe small example here
     - Point towards full :ref:`UDE Example <ude_label>` in docs
     - One step further is to adjust existing or create new components (:ref:`Custom component tutorial <components_custom_components_label>` and :ref:`Documentation on how to contribute <developing_label>`)
 
-.. dropdown:: How can I visualize my results?
+.. dropdown:: How can I plot logph and Ts diagrams from my simulation?
 
     - Introduce and link to :ref:`FluProDia Example <fluprodia_label>`
 
-.. dropdown:: How can I analyze potentials and improve upon my model?
+.. dropdown:: How can I plot QT diagrams of heat exchangers?
+
+    - Link to API of SecionedHeatExchanger types
+
+.. dropdown:: How can I apply Second Law of thermodynamics analysis methods?
 
     - Introduce exergy analysis and how it can help
-    - Point towards `ExerPy <https://exerpy.readthedocs.io/en/latest/>`__
+    - `exerpy <https://exerpy.readthedocs.io/en/latest/>`__
     - Reference other methods like entropy analysis etc.
 
-.. dropdown:: Can I optimize certain properties of my model?
+.. dropdown:: Is it possible to create an optimization problem with my model?
 
     - Introduce the optimization API :py:class:`tespy.tools.optimization.OptimizationProblem`
     - Point towards full :ref:`Optimization Example <tutorial_pygmo_optimization_label>`
 
-.. dropdown:: Which HeatExchanger model is best-suited for me?
+.. dropdown:: Which of the available HeatExchanger classes should I use?
 
     - Point towards :ref:`Heat Exchanger Overview <tutorial_heat_exchanger>`

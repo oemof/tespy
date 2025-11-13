@@ -15,9 +15,11 @@ Requirements for models in workflows
 - there should be a way to exchange data (input and output) with the model
   in a structured way
 - there might be the need for various tespy models doing similar things
+
   - various topologies
   - various working fluids
   - ...
+
 - model inputs might change a lot (keep in mind: EVERY simulation has side effects!)
 
 (A possible) solution
@@ -26,29 +28,36 @@ disclaimer: This is not universal truth, this is what is working well for me.
 Feedback/suggestions for improvements greatly appreciated!
 
 - Structure
+
   - each model is wrapped in a class (make use of inheritance!)
   - the class has methods
+
     - to set up the Network and create a initial stable solution
     - to input component or connection parameters
     - to solve the model in design mode
     - to retrieve component or connection parameters
+
   - optionally, there are methods
+
     - to automatically generate cycle diagrams, QT diagrams
     - to solve the model in offdesign mode
 
 - Parameter input and output
+
   - via dictionaries/json/yaml
   - keys are mapped to specific parameters in the model, e.g.
     "evaporator_pinch" mapped to the parameter **td_pinch** of the
     **component** **evaporator**
   - there is a second structure in between: nested dictionaries to access
     components and connections
+
     - user specifies {"evaporator_pinch": 10}
     - parameter lookup -> "evaporator_pinch": ["Components", "evaporator", "td_pinch"]
     - nested dict -> {"Components": {"evaporator": {"td_pinch": 10}}}
     - internally this dict is used to set values for model or retrieve results
 
 - Solving methods
+
   - solve the model
   - check the status variable of the model
   - handle issues if status is not 0 or 1

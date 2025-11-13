@@ -583,12 +583,14 @@ class Component:
             'mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'm'}
+                'func_params': {'variable': 'm'},
+                'description': "mass flow equality constraint(s)"
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'fluid'}
+                'func_params': {'variable': 'fluid'},
+                'description': "fluid composition equality constraint(s)"
             })
         }
 

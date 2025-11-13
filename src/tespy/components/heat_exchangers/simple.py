@@ -244,55 +244,82 @@ class SimpleHeatExchanger(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                quantity="heat"
+                quantity="heat",
+                description="heat transfer"
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet ot inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'}
+                func_params={'zeta': 'zeta'},
+                description="non-dimensional friction coefficient for pressure loss calculation"
             ),
-            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
-            'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+            'D': dc_cp(
+                min_val=1e-2, max_val=2, d=1e-4, quantity="length",
+                description="diameter of channel"
+            ),
+            'L': dc_cp(
+                min_val=1e-1, d=1e-3, quantity="length",
+                description="length of channel"
+            ),
             'ks': dc_cp(
-                _val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"
+                _val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8,
+                quantity="length", description="roughness of wall material"
             ),
-            'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3, d=1e-2),
-            'kA': dc_cp(min_val=0, d=1, quantity="heat_transfer_coefficient"),
-            'kA_char': dc_cc(param='m'),
-            'Tamb': dc_cp(quantity="temperature"),
+            'ks_HW': dc_cp(
+                _val=10, min_val=1e-1, max_val=1e3, d=1e-2,
+                description="Hazen-Williams roughness"
+            ),
+            'kA': dc_cp(
+                min_val=0, d=1, quantity="heat_transfer_coefficient",
+                description="heat transfer coefficient considering ambient temperature"
+            ),
+            'kA_char': dc_cc(
+                param='m',
+                description="heat transfer coefficient lookup table for offdesign"
+            ),
+            'Tamb': dc_cp(
+                quantity="temperature",
+                description="ambient temperature"
+            ),
             'dissipative': dc_simple(_val=None),
             'darcy_group': dc_gcp(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
                 func=self.darcy_func,
-                dependents=self.darcy_dependents
+                dependents=self.darcy_dependents,
+                description="Darcy-Weißbach equation for pressure loss"
             ),
             'hw_group': dc_gcp(
                 elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
                 func=self.hazen_williams_func,
-                dependents=self.hazen_williams_dependents
+                dependents=self.hazen_williams_dependents,
+                description="Hazen-Williams equation for pressure loss"
             ),
             'kA_group': dc_gcp(
                 elements=['kA', 'Tamb'], num_eq_sets=1,
                 func=self.kA_group_func,
-                dependents=self.kA_group_dependents
+                dependents=self.kA_group_dependents,
+                description="equation for heat transfer based on ambient temperature and heat transfer coefficient"
             ),
             'kA_char_group': dc_gcp(
                 elements=['kA_char', 'Tamb'], num_eq_sets=1,
                 func=self.kA_char_group_func,
-                dependents=self.kA_char_group_dependents
+                dependents=self.kA_char_group_dependents,
+                description="heat transfer from design heat transfer coefficient, modifier lookup table and ambient temperature"
             )
         }
 

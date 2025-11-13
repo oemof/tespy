@@ -235,72 +235,84 @@ class HeatExchanger(Component):
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
                 dependents=self.energy_balance_hot_dependents,
-                quantity="heat"
+                quantity="heat",
+                description="heat transfer from hot side"
             ),
             'kA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.kA_func,
                 dependents=self.kA_dependents,
                 deriv=self.kA_deriv,
-                quantity="heat_transfer_coefficient"
+                quantity="heat_transfer_coefficient",
+                description="heat transfer coefficient considering terminal temperature differences"
             ),
             'td_log': dc_cp(
-                min_val=0, is_result=True, quantity="temperature_difference"
+                min_val=0, is_result=True, quantity="temperature_difference",
+                description="logarithmic temperature difference"
             ),
             'ttd_u': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_u_func,
                 dependents=self.ttd_u_dependents,
-                quantity="temperature_difference"
+                quantity="temperature_difference",
+                description="terminal temperature difference at hot side inlet to cold side outlet"
             ),
             'ttd_l': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 func=self.ttd_l_func,
                 dependents=self.ttd_l_dependents,
-                quantity="temperature_difference"
+                quantity="temperature_difference",
+                description="terminal temperature difference at hot side outlet to cold side inlet"
             ),
             'ttd_min': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_min_func,
                 dependents=self.ttd_min_dependents,
-                quantity="temperature_difference"
+                quantity="temperature_difference",
+                description="minimum terminal temperature difference"
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
-                quantity="ratio"
+                quantity="ratio",
+                description="hot side outlet to inlet pressure ratio"
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
-                quantity="ratio"
+                quantity="ratio",
+                description="cold side outlet to inlet pressure ratio"
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
-                quantity="pressure"
+                quantity="pressure",
+                description="hot side inlet to outlet absolute pressure change"
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
-                quantity="pressure"
+                quantity="pressure",
+                description="cold side inlet to outlet absolute pressure change"
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta1'}
+                func_params={'zeta': 'zeta1'},
+                description="hot side non-dimensional friction coefficient for pressure loss calculation"
             ),
             'zeta2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}
+                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1},
+                description="cold side hot side non-dimensional friction coefficient for pressure loss calculation"
             ),
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
@@ -317,19 +329,22 @@ class HeatExchanger(Component):
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_cold_func,
                 dependents=self.eff_cold_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="heat exchanger effectiveness for cold side"
             ),
             'eff_hot': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_hot_func,
                 dependents=self.eff_hot_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="heat exchanger effectiveness for hot side"
             ),
             'eff_max': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_max_func,
                 dependents=self.eff_max_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="maximum heat exchanger effectiveness"
             )
         }
 

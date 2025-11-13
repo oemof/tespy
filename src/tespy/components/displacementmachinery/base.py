@@ -100,7 +100,8 @@ class DisplacementMachine(Component):
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change"
             )
         }
 

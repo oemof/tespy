@@ -178,19 +178,24 @@ class TurboCompressor(Compressor):
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
+            'igva': dc_cp(
+                min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle",
+                description="inlet guide vane angle"
+            ),
             'char_map_eta_s': dc_cm(),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
             'char_map_pr': dc_cm(),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
                 num_eq_sets=1,
                 func=self.char_map_pr_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for pressure ratio over speedlines and non-dimensional mass flow"
             )
         })
         del parameters["eta_s_char"]

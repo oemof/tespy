@@ -201,22 +201,25 @@ class Turbine(Turbomachine):
         parameters["pr"].min_val = 0
         parameters["dp"].min_val = 0
         parameters.update({
-            'eta_s': dc_cp(
+            "eta_s": dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="isentropic efficiency"
             ),
-            'eta_s_char': dc_cc(
+            "eta_s_char": dc_cc(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                dependents=self.eta_s_char_dependents
+                dependents=self.eta_s_char_dependents,
+                description="isentropic efficiency lookup table for offdesign"
             ),
-            'cone': dc_simple(
+            "cone": dc_simple(
                 num_eq_sets=1,
                 func=self.cone_func,
-                dependents=self.cone_dependents
+                dependents=self.cone_dependents,
+                description="cone law equation for offdesign"
             )
         })
         return parameters

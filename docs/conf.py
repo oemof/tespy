@@ -3,13 +3,16 @@
 import os
 import sys
 import tespy
+from sphinx.ext import apidoc
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
 
+THIS_PATH = os.path.dirname(__file__)
+API_PATH = os.path.join(THIS_PATH, "api")
+TESPY_PATH = os.path.join(THIS_PATH, "..", "src", "tespy")
 # -- General configuration ------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -29,6 +32,53 @@ extensions = [
     'sphinx_design',
     'sphinxcontrib.bibtex',
 ]
+
+
+def modify_rst_contents():
+    pass
+
+
+def _check_rst_file_empty():
+    return False
+
+
+def _remove_subpackages_list_and_submodules_header(file):
+
+    with open(file, "r") as f:
+        lines = f.readlines()
+
+    new_lines = []
+    in_subpackages_section = False
+    submodules_line = -2  # start somewhere guaranteed outside of range
+    has_submodules = False
+    for i, line in enumerate(lines):
+
+        if line.strip() == "Subpackages":
+            in_subpackages_section = True
+            continue
+
+        elif line.strip() == "Submodules":
+            in_subpackages_section = False
+            submodules_line = i
+            has_submodules = True
+            continue
+
+        if not in_subpackages_section and i != submodules_line + 1:
+            new_lines.append(line)
+
+    if not has_submodules and "data.rst" not in file:
+        os.remove(file)
+    else:
+        with open(file, "w") as f:
+            f.write("".join(new_lines))
+
+
+apidoc.main(["-f", "-M", "-d", "1", "-o", API_PATH, TESPY_PATH])
+
+source_files = [file for file in os.listdir(API_PATH) if file.endswith(".rst")]
+for file in source_files:
+    _remove_subpackages_list_and_submodules_header(os.path.join(API_PATH, file))
+
 
 # landing page
 # master_doc = 'contents'

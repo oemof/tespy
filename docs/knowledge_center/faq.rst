@@ -3,6 +3,12 @@
 Frequently Asked Questions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. dropdown:: Why is my model unstable or not convering towards a solution?
+
+    - Short introduction into sources of numerical instability
+    - Point towards :ref:`Starting Value tutorial <tutorial_starting_values_label>`
+    - Discuss things like :code:`init_path`, :code:`design_path` etc. for off-design simulations
+
 .. dropdown:: How do I create a relation between two unknown variables?
 
     You can use the :code:`Ref` specification on connection properties for
@@ -43,3 +49,29 @@ Frequently Asked Questions
         >>> nw.solve("design")
         >>> round(c3.m.val / c2.m.val, 1)
         0.9
+
+.. dropdown:: How can I define custom rules or behavior for my model?
+
+    - Introduce :py:class:`tespy.tools.helpers.UserDefinedEquation`
+    - Maybe small example here
+    - Point towards full :ref:`UDE Example <ude_label>` in docs
+    - One step further is to adjust existing or create new components (:ref:`Custom component tutorial <components_custom_components_label>` and :ref:`Documentation on how to contribute <developing_label>`)
+
+.. dropdown:: How can I visualize my results?
+
+    - Introduce and link to :ref:`FluProDia Example <fluprodia_label>`
+
+.. dropdown:: How can I analyze potentials and improve upon my model?
+
+    - Introduce exergy analysis and how it can help
+    - Point towards `ExerPy <https://exerpy.readthedocs.io/en/latest/>`__
+    - Reference other methods like entropy analysis etc.
+
+.. dropdown:: Can I optimize certain properties of my model?
+
+    - Introduce the optimization API :py:class:`tespy.tools.optimization.OptimizationProblem`
+    - Point towards full :ref:`Optimization Example <tutorial_pygmo_optimization_label>`
+
+.. dropdown:: Which HeatExchanger model is best-suited for me?
+
+    - Point towards :ref:`Heat Exchanger Overview <tutorial_heat_exchanger>`

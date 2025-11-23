@@ -721,6 +721,34 @@ def extend_basic_path(subfolder):
     return extended_path
 
 
+def _is_numeric(potentially_a_number):
+    """_summary_
+
+    Parameters
+    ----------
+    potentially_a_number : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Example
+    -------
+    >>> from tespy.tools.helpers import _is_numeric
+    >>> _is_numeric(5)
+    True
+    >>> _is_numeric("var")
+    False
+    """
+    try:
+        float(potentially_a_number)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
 def _get_vector_dependents(variable_list):
     if len(variable_list) == 0:
         return []

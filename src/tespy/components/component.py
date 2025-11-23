@@ -32,6 +32,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
@@ -183,11 +184,7 @@ class Component:
                 if isinstance(kwargs[key], pint.Quantity):
                     is_quantity = True
                 else:
-                    try:
-                        float(kwargs[key])
-                        is_numeric = True
-                    except (TypeError, ValueError):
-                        pass
+                    is_numeric = _is_numeric(kwargs[key])
 
                 # dict specification
                 if (isinstance(kwargs[key], dict) and

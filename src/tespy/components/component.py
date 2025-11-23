@@ -173,12 +173,9 @@ class Component:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
-                    try:
+                    if hasattr(data, "is_var"):
                         data.set_attr(is_var=False)
-                    except KeyError:
-                        pass
                     continue
-
 
                 is_numeric = False
                 is_quantity = False

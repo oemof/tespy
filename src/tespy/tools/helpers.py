@@ -722,17 +722,18 @@ def extend_basic_path(subfolder):
 
 
 def _is_numeric(potentially_a_number):
-    """_summary_
+    """Checks if the value provided is a number by trying to convert it to
+    float
 
     Parameters
     ----------
-    potentially_a_number : _type_
-        _description_
+    potentially_a_number : any
+        Value to check
 
     Returns
     -------
-    _type_
-        _description_
+    bool
+        True if the value is a number
 
     Example
     -------

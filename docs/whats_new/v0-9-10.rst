@@ -17,6 +17,9 @@ Bug Fixes
 - Fix a bug which prevented unsetting component characteristics and properties
   stored in `SimpleDataContainer`
   (`PR #847 <https://github.com/oemof/tespy/pull/847>`__).
+- Fix a bug which prevented functions with multiple equations of returning
+  numpy arrays instead of a list `SimpleDataContainer`
+  (`PR #850 <https://github.com/oemof/tespy/pull/850>`__).
 
 Contributors
 ############

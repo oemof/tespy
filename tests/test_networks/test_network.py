@@ -30,10 +30,13 @@ from tespy.components import Splitter
 from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
+from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import _numeric_deriv
 
 
 class TestNetworks:
@@ -1052,3 +1055,109 @@ def test_design_of_component_parameter_group(tmp_path):
     nw.solve("offdesign", design_path=path)
     nw.assert_convergence()
     assert not instance.darcy_group.is_set
+
+
+class WaterElectrolyzer(WaterElectrolyzer):
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        constraints['mass_flow_constraints'] = dc_cmc(**{
+            'func': self.reactor_mass_flow_func,
+            'deriv': self.reactor_mass_flow_deriv,
+            'dependents': self.reactor_mass_flow_dependents,
+            'num_eq_sets': 2
+        })
+        return constraints
+
+    def reactor_mass_flow_func(self):
+        r"""
+        Equations for mass conservation.
+
+        Returns
+        -------
+        residual : list
+            Residual values of equation.
+
+            .. math::
+
+                O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
+                0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}\\
+                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,in,2}-
+                \dot{m}_\mathrm{O_2,out,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,in,2} -
+                \dot{m}_\mathrm{H_2,out,3}
+        """
+        # calculate the ratio of o2 in water
+        M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.outl[2].fluid.wrapper[self.h2]._molar_mass
+
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
+        # equations for mass flow balance electrolyzer
+        residual = []
+        residual += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
+        residual += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
+        return np.array(residual)
+
+    def reactor_mass_flow_deriv(self, increment_filter, k, dependents=None):
+        r"""
+        Calculate the partial derivatives for all mass flow balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the mass flow equations.
+        """
+        deriv_to_m_in = _numeric_deriv(
+            self.inl[1].m._reference_container, self.reactor_mass_flow_func
+        )
+        deriv_to_m_out1 = _numeric_deriv(
+            self.outl[1].m._reference_container, self.reactor_mass_flow_func
+        )
+        deriv_to_m_out2 = _numeric_deriv(
+            self.outl[2].m._reference_container, self.reactor_mass_flow_func
+        )
+
+        self._partial_derivative(self.inl[1].m, k, deriv_to_m_in[0])
+        self._partial_derivative(self.outl[1].m, k, deriv_to_m_out1[0])
+
+        k += 1
+        self._partial_derivative(self.inl[1].m, k, deriv_to_m_in[1])
+        self._partial_derivative(self.outl[2].m, k, deriv_to_m_out2[1])
+
+
+def test_component_with_numpy_array_in_residual():
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar",
+        "temperature": "degC",
+        "power": "MW"
+    })
+    instance = WaterElectrolyzer('electrolyzer')
+
+    fw = Source('feed water')
+    cw_in = Source('cooling water')
+    o2 = Sink('oxygen sink')
+    h2 = Sink('hydrogen sink')
+    cw_out = Sink('cooling water sink')
+
+    instance.set_attr(pr=0.99, eta=1)
+
+    cw_el = Connection(
+        cw_in, 'out1', instance, 'in1', fluid={'H2O': 1}, T=20, p=1
+    )
+    el_cw = Connection(instance, 'out1', cw_out, 'in1', T=45)
+
+    nw.add_conns(cw_el, el_cw)
+
+    fw_el = Connection(fw, 'out1', instance, 'in2', label='h2o')
+    el_o2 = Connection(instance, 'out2', o2, 'in1')
+    el_h2 = Connection(instance, 'out3', h2, 'in1', label='h2')
+
+    nw.add_conns(fw_el, el_o2, el_h2)
+
+    fw_el.set_attr(T=25, p=1)
+    el_h2.set_attr(T=25)
+    instance.set_attr(P=2.5)
+
+    nw.solve('design')
+    nw.assert_convergence()

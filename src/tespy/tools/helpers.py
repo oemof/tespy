@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 
 import json
 import os
+from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
 
@@ -443,7 +444,7 @@ def solve(obj, increment_filter):
 
 def _solve_residual(obj, data, eq_num):
     result = data.func(**data.func_params)
-    if isinstance(result, list):
+    if isinstance(result, Iterable):
         result = {eq_num + k: value for k, value in enumerate(result)}
     else:
         result = {eq_num: result}

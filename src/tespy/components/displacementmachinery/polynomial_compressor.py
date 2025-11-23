@@ -326,6 +326,16 @@ class PolynomialCompressor(DisplacementMachine):
             logger.error(msg)
             raise TESPyComponentError(msg)
 
+        if self.rpm.is_set or self.rpm.is_var:
+            msg = (
+                f"The 'rpm' parameter of component {self.label} of type "
+                f"{self.__class__.__name__} will be deprecated with the next "
+                "major release. Please use 'frequency' instead. Note, to "
+                "specify the rounds per minute use the unit 1/min as 'rpm' "
+                "is '1/min' divided by 2π in the unit conversion framework."
+            )
+            warnings.warn(msg, FutureWarning)
+
         return super()._preprocess(row_idx)
 
     @staticmethod
@@ -352,17 +362,30 @@ class PolynomialCompressor(DisplacementMachine):
             "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
             "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
             "rpm": dc_cp(min_val=0, is_result=True),
+            "frequency": dc_cp(min_val=0, is_result=True, quantity="frequency"),
             "reference_state": dc_simple(),
             "eta_s_poly": dc_simple(),
             "eta_vol_poly": dc_simple(),
-            "eta_vol_poly_group": dc_gcp(
+            "eta_vol_poly_group_rpm": dc_gcp(  # will be deprecated
                 elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
                 num_eq_sets=1
             ),
-            "eta_vol_group": dc_gcp(
+            "eta_vol_poly_group": dc_gcp(
+                elements=["reference_state", "eta_vol_poly", "frequency"],
+                func=self.eta_vol_poly_group_func,
+                dependents=self.eta_vol_poly_group_dependents,
+                num_eq_sets=1
+            ),
+            "eta_vol_group_rpm": dc_gcp(  # will be deprecated
                 elements=["reference_state", "eta_vol", "rpm"],
+                func=self.eta_vol_group_func,
+                dependents=self.eta_vol_group_dependents,
+                num_eq_sets=1
+            ),
+            "eta_vol_group": dc_gcp(
+                elements=["reference_state", "eta_vol", "frequency"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1

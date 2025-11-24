@@ -1042,7 +1042,7 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.c4.set_attr(T=None)
-        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+        instance.set_attr(td_pinch=5)
 
         self.nw.solve("design")
         self.nw.assert_convergence()

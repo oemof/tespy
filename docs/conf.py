@@ -7,10 +7,15 @@ from sphinx.ext import apidoc
 from tabulate import tabulate
 
 import tespy
+from tespy.components import Source, Sink, PowerSource, PowerSink
 from tespy.components.component import component_registry
+from tespy.connections.connection import connection_registry
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import FluidComposition as dc_flu
+from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
@@ -28,13 +33,29 @@ def _create_component_instances() -> dict:
     return instances
 
 
+def _create_connection_instances() -> dict:
+    instances = {}
+    for cls_name, cls_ref in connection_registry.items.items():
+        if cls_name == "Connection":
+            instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
+        elif cls_name == "PowerConnection":
+            instance = cls_ref(PowerSource("source"), "power", PowerSink("sink"), "power")
+        else:
+            # do not add to the dict of not any of both classes
+            continue
+
+        instances[cls_name] = instance
+
+    return instances
+
+
 def _get_eq_reference(datacontainer):
-    if datacontainer.func is None and datacontainer.structure_matrix is None:
+    if not hasattr(datacontainer, "func") or datacontainer.func is None and datacontainer.structure_matrix is None:
         return
 
     elif datacontainer.func is None:
-            basename = datacontainer.structure_matrix.__qualname__
-            eq_reference = f"{datacontainer.structure_matrix.__module__}.{basename}"
+        basename = datacontainer.structure_matrix.__qualname__
+        eq_reference = f"{datacontainer.structure_matrix.__module__}.{basename}"
 
     else:
         basename = datacontainer.func.__qualname__
@@ -87,6 +108,40 @@ def collect_component_parameters(instance):
     return constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
 
 
+def collect_connection_parameters(instance):
+    parameters = {}
+
+    for key, value in instance.property_data.items():
+        eq_reference = _get_eq_reference(value)
+
+        if isinstance(value, dc_prop):
+            parameters[key] = {
+                "eq_reference": eq_reference,
+                "description": value.description,
+                "quantity": value.quantity
+            }
+        elif isinstance(value, dc_flu):
+            parameters[key] = {
+                "eq_reference": eq_reference,
+                "description": value.description,
+                "quantity": value.quantity
+            }
+        elif isinstance(value, dc_ref):
+            parameters[key] = {
+                "eq_reference": eq_reference,
+                "description": value.description,
+                "quantity": value.quantity
+            }
+        elif isinstance(value, dc_simple):
+            parameters[key] = {
+                "eq_reference": eq_reference,
+                "description": value.description,
+                "quantity":  None
+            }
+
+    return parameters
+
+
 def collect_component_constraints():
     return
 
@@ -118,9 +173,11 @@ def create_tabular_component_views():
 
         constraints, parameters, parameter_groups, characteristic_lines = collect_component_parameters(instance)
 
-        modules[parent_module][cls_name] = "\n"
-        modules[parent_module][cls_name] += (f".. rubric:: {cls_name}" + "\n" * 2)
-        modules[parent_module][cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
+        modules[parent_module][cls_name] = _indent_block("\n", 4)
+        modules[parent_module][cls_name] += _indent_block(f".. dropdown:: {cls_name}" + "\n" * 2, 8)
+        modules[parent_module][cls_name] += _indent_block(
+            f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`", 8
+        )
 
         outputs = {
             "Table of constraints": constraints,
@@ -140,14 +197,16 @@ def create_tabular_component_views():
             if not df.empty:
                 df = df.fillna(":code:`None`")
 
-                modules[parent_module][cls_name] += ("\n" * 2)
-                modules[parent_module][cls_name] += (key + "\n" * 2)
-                modules[parent_module][cls_name] += (
+                modules[parent_module][cls_name] += _indent_block("\n" * 2, 8)
+                modules[parent_module][cls_name] += _indent_block(
+                    key + "\n" * 2, 8
+                )
+                modules[parent_module][cls_name] += _indent_block(
                     tabulate(
                         df[[c for c in headers if c in df.columns]],
                         headers=["Parameter"] + [v for c, v in headers.items() if c in df.columns],
                         tablefmt="rst"
-                    )
+                    ), 8
                 )
 
         modules[parent_module][cls_name] += ("\n" * 2)
@@ -155,10 +214,62 @@ def create_tabular_component_views():
     with open(path, "w", encoding="utf-8") as f:
         f.write(".. tab-set::\n\n")
         for module, data in modules.items():
-            f.write(f"    .. tab-item:: {module.split('.')[-1]}\n")
+            f.write(f"    .. tab-item:: {module.split('.')[-1]}" + "\n" * 2)
+            f.write(f"        .. container:: accordion-group" + "\n")
+
             for cls_info in data.values():
                 f.write(_indent_block(cls_info, 8))
                 f.write("\n" * 2)
+
+
+def create_tabular_connection_views():
+    instances = _create_connection_instances()
+    path = os.path.join(DOCS_ROOT_PATH, "building_blocks", "_connections_overview.rst")
+
+    classes = {}
+
+    for cls_name, instance in instances.items():
+
+        cls_ref = instance.__class__
+        cls_module = cls_ref.__module__
+
+        parameters = collect_connection_parameters(instance)
+
+        classes[cls_name] = "\n"
+        classes[cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
+
+        outputs = {
+            "Table of parameters": parameters
+        }
+        headers = {
+            "description": "Description",
+            "quantity": "Quantity",
+            "eq_reference": "Method"
+        }
+
+        for key, value in outputs.items():
+            df = pd.DataFrame.from_dict(value).T
+            if not df.empty:
+                df = df.fillna(":code:`None`")
+
+                classes[cls_name] += ("\n" * 2)
+                classes[cls_name] += (key + "\n" * 2)
+                classes[cls_name] += (
+                    tabulate(
+                        df[[c for c in headers if c in df.columns]],
+                        headers=["Parameter"] + [v for c, v in headers.items() if c in df.columns],
+                        tablefmt="rst"
+                    )
+                )
+
+        classes[cls_name] += ("\n" * 2)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(".. tab-set::\n\n")
+        for cls_name, cls_info in classes.items():
+            f.write(f"    .. tab-item:: {cls_name.split('.')[-1]}\n")
+            f.write(_indent_block(cls_info, 8))
+            f.write("\n" * 2)
 
 
 def _remove_subpackages_list_and_submodules_header(file):
@@ -227,6 +338,7 @@ extensions = [
 def generate_all_sources(app):
     update_api_docs()
     create_tabular_component_views()
+    create_tabular_connection_views()
 
 def setup(app):
     app.connect("builder-inited", generate_all_sources)

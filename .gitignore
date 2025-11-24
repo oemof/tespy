@@ -46,7 +46,7 @@ htmlcov
 # Sphinx
 docs/_build
 docs/api/*.rst
-docs/building_blocks/_components_overview.rst
+docs/building_blocks/_*.rst
 
 .DS_Store
 *~

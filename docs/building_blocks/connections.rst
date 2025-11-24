@@ -3,26 +3,19 @@
 Connections
 ===========
 
-This section provides an overview of the parametrisation of connections, how to
-use referencing of variables in different locations of your problem and an
-overview on the :ref:`PowerConnection <powerconnections_label>`,
-which is a connection to represent non-material energy flows.
+This section provides an overview of the available :code:`Connection` classes
+in the tabs below. Beyond that, it gives an introduction on how to
+parametrize instances. Connections hold the variables that are solved for in
+the system of equations of all your models.
 
-Parametrisation
----------------
+.. include:: _connections_overview.rst
 
-As mentioned in the introduction, for each connection you can specify the
-following parameters:
+Connection Overview
+-------------------
 
-* mass flow :code:`m`,
-* volumetric flow :code:`v`,
-* pressure :code:`p`,
-* enthalpy :code:`h`,
-* temperature :code:`T`,
-* temperature difference to bubble line :code:`td_bubble`
-* vapor mass fraction for pure fluids :code:`x`,
-* a fluid vector :code:`fluid` and
-* a balance closer for the fluid vector :code:`fluid_balance`.
+The tables above indicate, which specification parameters are available for
+each class. To set/unset values the same logic applies as is used in
+components.
 
 Setting and unsetting values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

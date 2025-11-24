@@ -76,7 +76,7 @@ Frequently Asked Questions
 
     .. dropdown:: How can I plot Q-T diagrams of heat exchangers?
 
-        If you want to analyze the heat transfer within a heat exchangerk, e.g.
+        If you want to analyze the heat transfer within a heat exchanger, e.g.
         to investigate the phase change of a working fluid, creating a Q-T
         diagram can be very helpful. While the heat transfer of simple heat
         exchanger models like the

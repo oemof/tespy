@@ -907,8 +907,8 @@ The index of the DataFrames is the connection's or component's label.
 The full list of connection and component parameters can be obtained from the
 respective API documentation.
 
-Network reader
-==============
+Serialization and deserialization
+---------------------------------
 The network reader is a useful tool to import networks from a data structure
 using .csv-files. In order to re-import an exported TESPy network, you must
 save the network first.

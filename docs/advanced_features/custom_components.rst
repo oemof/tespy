@@ -1,7 +1,63 @@
 .. _components_custom_components_label:
 
-Custom components
------------------
+Customize Components
+--------------------
+
+Extend existing ones
+^^^^^^^^^^^^^^^^^^^^
+
+You can easily add custom equations to the existing components. In order to do
+this, you need to implement four changes to the desired component class:
+
+- modify the :code:`get_parameters(self)` method.
+- add a method, that returns the result of your equation.
+- add a method, that returns the variables your equation depends on.
+
+In the :code:`get_parameters(self)` method, add an entry for your new equation.
+If the equation uses a single parameter, use the :code:`ComponentProperties`
+type DataContainer (or the :code:`ComponentCharacteristics` type in case you
+only apply a characteristic curve). If your equations requires multiple
+parameters, add these parameters as :code:`ComponentProperties` or
+:code:`ComponentCharacteristics` respectively and add a
+:code:`GroupedComponentProperties` type DataContainer holding the information,
+e.g. like the :code:`darcy_group` parameter of the
+:py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
+class shown below.
+
+.. code:: python
+
+    # [...]
+    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
+    'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
+    'darcy_group': dc_gcp(
+        elements=['L', 'ks', 'D'], num_eq_sets=1,
+        func=self.darcy_func,
+        dependents=self.darcy_dependents
+    ),
+    # [...]
+
+.. tip::
+
+    With the :code:`quantity` keyword, tespy will automatically understand what
+    unit conversion to apply to the respective parameter. E.g. in case you
+    want to specify the roughness  :code:`ks` in millimeter, you can either
+    set the default unit for length of your :code:`Network` to millimeter, or
+    you can pass the :code:`ks` value as :code:`pint.Quantity` to your
+    component using millimeter as unit. Then the conversion to the SI unit is
+    taken care of automatically in the preprocessing and the respective
+    equation will make use of the SI value.
+
+:code:`func` and :code:`dependents` are pointing to the method that should be
+applied for the corresponding purpose. For more information on defining the
+equations and dependents see the next section on custom components. When
+defining the dependents in a standalone way, the partial derivatives are
+calculated automatically. If you want to insert the partial derivatives
+manually, you can define another function and pass with the :code:`deriv`
+keyword.
+
+Create own ones
+^^^^^^^^^^^^^^^
 
 You can add own components. The class should inherit from the
 :py:class:`component <tespy.components.component.Component>` class or its
@@ -53,7 +109,7 @@ The starting lines of your file should look like this:
             return 'name of your component'
 
 Mandatory Constraints
-^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++
 
 The :code:`get_mandatory_constraints()` method must return a dictionary
 containing the information for the mandatory constraints of your component.
@@ -141,7 +197,7 @@ is actually connected with a :code:`PowerConnection`:
     :pyobject: Turbine.get_mandatory_constraints
 
 Attributes
-^^^^^^^^^^
+++++++++++
 
 This part is very similar to the previous one. The :code:`get_parameters()`
 method must return a dictionary with the attributes you want to use for your
@@ -161,7 +217,7 @@ class :code:`Valve`:
     :pyobject: Valve.get_parameters
 
 Inlets and outlets
-^^^^^^^^^^^^^^^^^^
+++++++++++++++++++
 
 :code:`inlets(self)` and :code:`outlets(self)` respectively must return a list
 of strings. The list may look like this (of class :code:`HeatExchanger`)
@@ -180,7 +236,7 @@ an attribute :code:`'num_in'` your code could look like this (as in class
     :pyobject: Merge.inlets
 
 Inlets and outlets for PowerConnections
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++++++++++++
 
 If your component should incorporate :code:`PowerConnections` you can define
 connctor ids in a similar way, for example power inlet for compressors or
@@ -203,7 +259,7 @@ outlets:
     :pyobject: PowerBus.poweroutlets
 
 Define the required methods
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++
 In the above section the concept of the component mandatory constraints and
 their attributes was introduced. Now we need to fill the respective parts
 with some life, i.e. how to define
@@ -213,8 +269,8 @@ with some life, i.e. how to define
 - the :code:`dependents` and
 - the :code:`deriv` (optional) methods.
 
-Define the structure matrix
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Define a structure matrix
++++++++++++++++++++++++++
 As mentioned, with the structure matrix you can make a mapping, in case two
 variables are linked to each other with a linear relationship. The presolving
 of a model will utilize this information to reduce the number of variables.
@@ -251,7 +307,7 @@ A different equation to simplify with this method could be the delta pressure
     :pyobject: Component.dp_structure_matrix
 
 Define the equations
-^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++
 The definition of an equation is quite straight forward: It must return its
 residual value. For example, the equation of the :code:`dp_char` parameter
 associated with the class :code:`Valve` is the following:
@@ -269,7 +325,7 @@ associated with the class :code:`Valve` is the following:
     associated with connection or component parameters in the back-end .
 
 Define the dependents
-^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++
 Next, you have to define the list of variables the equation depends on, i.e.
 towards which variables the partial derivatives should be calculated. In this
 example, it is the inlet and the outlet pressure, as well as the mass flow and
@@ -310,7 +366,7 @@ subdictionary is created, which is a mapping of the fluid mixture container
     :pyobject: CombustionChamber.energy_balance_dependents
 
 Define the derivatives
-^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++
 The downside of the simple to use approach of defining the equation together
 with its dependents is, that it can be computationally expensive to calculate
 the partial derivatives. In this case, it may be reasonable to implement a

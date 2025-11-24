@@ -56,7 +56,7 @@ at the example of the heat transfer coefficient of an evaporator.
     >>> # specify the value
     >>> he.set_attr(kA=1e5)
     >>> he.kA.val
-    1e5
+    100000.0
     >>> he.kA.is_set
     True
 

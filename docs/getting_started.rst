@@ -11,7 +11,7 @@ Getting started
         :link: introduction_label
         :link-type: ref
 
-        .. image:: /_static/images/logo_tespy_small.svg
+        .. image:: /_static/images/thumbnails/getting_started/about_tespy.svg
             :class: only-light
 
         .. image:: /_static/images/logo_tespy_small_darkmode.svg
@@ -23,7 +23,7 @@ Getting started
         :link: installation_and_setup_label
         :link-type: ref
 
-        .. image:: /_static/images/logo_tespy_small.svg
+        .. image:: /_static/images/thumbnails/getting_started/installation.svg
             :class: only-light
 
         .. image:: /_static/images/logo_tespy_small_darkmode.svg
@@ -35,7 +35,7 @@ Getting started
         :link: basics_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/heat_pump.svg
+        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials.svg
             :class: only-light
 
         .. image:: /_static/images/basics/heat_pump_darkmode.svg
@@ -47,6 +47,6 @@ Getting started
     :maxdepth: 1
     :hidden:
 
+    getting_started/introduction
     getting_started/installation
     getting_started/basic_tutorials
-    getting_started/introduction

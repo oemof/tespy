@@ -19,7 +19,7 @@ meetings as well as a discussion forum on GitHub.
     :link: basics_intro_label
     :link-type: ref
 
-    .. figure:: /_static/images/basics/modeling_concept.svg
+    .. figure:: /_static/images/thumbnails/getting_started/modeling_concept.svg
         :align: center
         :alt: TESPy's modeling concept
 
@@ -30,7 +30,7 @@ meetings as well as a discussion forum on GitHub.
         :link: basics_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/heat_pump.svg
+        .. image:: /_static/images/thumbnails/getting_started/heat_pump.svg
             :class: only-light
 
         .. image:: /_static/images/basics/heat_pump_darkmode.svg
@@ -40,7 +40,7 @@ meetings as well as a discussion forum on GitHub.
         :link: basics_rankine_cycle_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/rankine_cycle.svg
+        .. image:: /_static/images/thumbnails/getting_started/rankine_cycle.svg
             :class: only-light
 
         .. image:: /_static/images/basics/rankine_cycle_darkmode.svg
@@ -50,7 +50,7 @@ meetings as well as a discussion forum on GitHub.
         :link: basics_gas_turbine_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/gas_turbine.svg
+        .. image:: /_static/images/thumbnails/getting_started/gas_turbine.svg
             :class: only-light
 
         .. image:: /_static/images/basics/gas_turbine_darkmode.svg
@@ -60,7 +60,7 @@ meetings as well as a discussion forum on GitHub.
         :link: basics_district_heating_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/district_heating.svg
+        .. image:: /_static/images/thumbnails/getting_started/district_heating.svg
             :class: only-light
 
         .. image:: /_static/images/basics/district_heating_darkmode.svg

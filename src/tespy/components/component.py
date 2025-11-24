@@ -32,6 +32,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
@@ -173,12 +174,9 @@ class Component:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
-                    try:
+                    if hasattr(data, "is_var"):
                         data.set_attr(is_var=False)
-                    except KeyError:
-                        pass
                     continue
-
 
                 is_numeric = False
                 is_quantity = False
@@ -186,11 +184,7 @@ class Component:
                 if isinstance(kwargs[key], pint.Quantity):
                     is_quantity = True
                 else:
-                    try:
-                        float(kwargs[key])
-                        is_numeric = True
-                    except (TypeError, ValueError):
-                        pass
+                    is_numeric = _is_numeric(kwargs[key])
 
                 # dict specification
                 if (isinstance(kwargs[key], dict) and
@@ -442,7 +436,11 @@ class Component:
                         is_set = False
 
                 if is_set:
-                    data.set_attr(is_set=True)
+                    if self._mode == "design" and key not in self.offdesign:
+                        data.set_attr(is_set=True)
+                    elif self._mode == "offdesign" and key not in self.design:
+                        data.set_attr(is_set=True)
+
                 elif data.is_set:
                     msg = (
                         'All parameters of the component group have to be '
@@ -873,6 +871,7 @@ class Component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
+        self._mode = mode
         if mode == 'design' or self.local_design:
             self.new_design = True
 

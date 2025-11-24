@@ -323,7 +323,7 @@ class FuelCell(Component):
 
                 0 = P - \eta \cdot \dot{m}_{H_2,in} \cdot e_0
         """
-        return self.P.val - self.eta.val * self.inl[2].m.val_SI * self.e0
+        return self.P.val_SI - self.eta.val_SI * self.inl[2].m.val_SI * self.e0
 
     def eta_dependents(self):
         return [self.inl[2].m, self.P]
@@ -341,7 +341,7 @@ class FuelCell(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
-        return self.Q.val + self.inl[0].m.val_SI * (
+        return self.Q.val_SI + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
 
@@ -361,7 +361,7 @@ class FuelCell(Component):
 
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
-        return self.P.val - self.inl[2].m.val_SI * self.e.val_SI
+        return self.P.val_SI - self.inl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.inl[2].m, self.P, self.e]

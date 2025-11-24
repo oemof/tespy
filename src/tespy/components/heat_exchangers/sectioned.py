@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class MovingBoundaryCondenser.
+"""Module of class SectionedHeatExchanger.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -14,6 +14,7 @@ import math
 
 import numpy as np
 
+from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
@@ -21,6 +22,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
 
 
+@component_registry
 class SectionedHeatExchanger(HeatExchanger):
     r"""
     Class for counter flow heat exchanger with UA sections.
@@ -327,8 +329,8 @@ class SectionedHeatExchanger(HeatExchanger):
             'refrigerant_index': dc_simple(val=0),
             're_exp_r': dc_cp(),
             're_exp_sf': dc_cp(),
-            'alpha_ratio': dc_cp(),
-            'area_ratio': dc_cp(),
+            'alpha_ratio': dc_cp(quantity="ratio", min_val=0),
+            'area_ratio': dc_cp(quantity="ratio", min_val=0),
             'UA_cecchinato': dc_gcp(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,

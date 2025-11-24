@@ -52,6 +52,7 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
@@ -121,11 +122,7 @@ class ConnectionBase:
         if isinstance(value, pint.Quantity):
             is_quantity = True
         else:
-            try:
-                float(value)
-                is_numeric = True
-            except (TypeError, ValueError):
-                pass
+            is_numeric = _is_numeric(value)
 
         if key == "Td_bp":
             msg = (
@@ -1751,29 +1748,6 @@ class Connection(ConnectionBase):
             f"to {self.get_attr(prop).val_SI} {fpd[prop]['SI_unit']}."
         )
         return msg
-
-    def _to_exerpy(self, pamb, Tamb):
-        connection_json = {}
-
-        self._get_physical_exergy(pamb, Tamb)
-
-        connection_json[self.label] = {
-            "source_component": self.source.label,
-            "source_connector": int(self.source_id.removeprefix("out")) - 1,
-            "target_component": self.target.label,
-            "target_connector": int(self.target_id.removeprefix("in")) - 1
-        }
-        connection_json[self.label].update({f"mass_composition": self.fluid.val})
-        connection_json[self.label].update({"kind": "material"})
-        for param in ["m", "T", "p", "h", "s", "v"]:
-            connection_json[self.label].update({
-                param: self.get_attr(param).val_SI
-            })
-        connection_json[self.label].update(
-            {"e_T": self.ex_therm, "e_M": self.ex_mech, "e_PH": self.ex_physical}
-        )
-
-        return connection_json
 
     def _get_physical_exergy(self, pamb, Tamb):
         r"""

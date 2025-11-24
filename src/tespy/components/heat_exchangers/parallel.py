@@ -1,10 +1,23 @@
+# -*- coding: utf-8
+
+"""Module of class ParallelFlowHeatExchanger.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/heat_exchangers/parallel.py
+
+SPDX-License-Identifier: MIT
+"""
 import math
 
 import numpy as np
 
-from .base import HeatExchanger
+from tespy.components.component import component_registry
+from tespy.components.heat_exchangers.base import HeatExchanger
 
 
+@component_registry
 class ParallelFlowHeatExchanger(HeatExchanger):
     r"""
     Class for parallel flow heat exchanger.

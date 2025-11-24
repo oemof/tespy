@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.tools.global_vars import FLUID_ALIASES
+from tespy.tools.logger import logger
 
 from .helpers import _check_mixing_rule
 from .helpers import get_number_of_fluids
@@ -50,6 +51,25 @@ def _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data):
     return None
 
 
+def _physical_exergy_at_min_temperature(h, s, pamb, Tamb, fluid_data, fluid):
+    """Fallback for CoolProp domain errors at ambient conditions."""
+    Tmin = fluid["wrapper"]._T_min
+    logger.warning(
+        "Physical exergy at ambient state (p0=%.3f, T0=%.2f) for %s "
+        "is outside the FluidWrapper temperature limits --> evaluating at "
+        f"the fluid's Tmin {Tmin} K as fallback.",
+        pamb, Tamb, fluid["wrapper"].fluid
+    )
+    # stay marginally above the hard limit to avoid further CoolProp errors
+    Tmin_eval = Tmin + 1e-6
+
+    h_min = h_mix_pT(pamb, Tmin_eval, fluid_data)
+    s_min = s_mix_pT(pamb, Tmin_eval, fluid_data)
+
+    ex_ph = (h - h_min) - Tamb * (s - s_min)
+    return ex_ph, 0.0
+
+
 def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=None):
     r"""
     Calculate specific physical exergy.
@@ -81,10 +101,16 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
-    if get_number_of_fluids(fluid_data) == 1:
-        ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
-        if ex is not None:
-            return ex[0], ex[1]
+    pure_fluid_data = get_pure_fluid(fluid_data)
+    if pure_fluid_data:
+        if pure_fluid_data["wrapper"]._T_min > Tamb:
+            return _physical_exergy_at_min_temperature(
+                h, s, pamb, Tamb, fluid_data, pure_fluid_data
+            )
+        else:
+            ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)
+            if ex is not None:
+                return ex[0], ex[1]
 
     h_T0_p = h_mix_pT(p, Tamb, fluid_data, mixing_rule)
     s_T0_p = s_mix_pT(p, Tamb, fluid_data, mixing_rule)

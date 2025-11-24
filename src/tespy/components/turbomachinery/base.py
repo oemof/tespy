@@ -153,7 +153,7 @@ class Turbomachine(Component):
         """
         return (
             self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val_SI
         )
 
     def energy_balance_dependents(self):

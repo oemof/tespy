@@ -30,8 +30,6 @@ the results are transferred to the energy system optimization problem.
 If you have any questions, ideas for other tutorials or feedback, please reach
 out to us. We are looking forward to hearing from you!
 
-.. card::  Overview of Heat changer models
-
 .. grid:: 2
     :gutter: 1
 

@@ -91,14 +91,14 @@ class Turbomachine(Component):
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 quantity="power",
-                description="Power input/output of the component"
+                description="power input/output of the component"
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
                 quantity="ratio",
-                description="Outlet to inlet pressure ratio"
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,

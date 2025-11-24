@@ -58,9 +58,18 @@ Frequently Asked Questions
     - Point towards full :ref:`UDE Example <ude_label>` in docs
     - One step further is to adjust existing or create new components (:ref:`Custom component tutorial <components_custom_components_label>` and :ref:`Documentation on how to contribute <developing_label>`)
 
-.. dropdown:: How can I plot logph and Ts diagrams from my simulation?
+.. dropdown:: How can I plot log(p)-h and T-s diagrams from my simulation?
 
-    - Introduce and link to :ref:`FluProDia Example <fluprodia_label>`
+    Fluid property diagrams can help you analyze and improve your thermodynamic
+    processes. CoolProp offers a somewhat unwieldly
+    `inbuilt feature <https://coolprop.org/coolprop/python-plotting.html>`__
+    for creating those, but we recommend using the officially supported
+    companion module fluprodia. It allows for the creation and customization of
+    different types of diagrams for all pure and pseudo-pure fluids available
+    in CoolProp. There is an introductory
+    :ref:`FluProDia Example <fluprodia_label>` that shows its usage as well as
+    TESPy's API to extract the necessary plotting data. A thorough explanation
+    can be found in `fluprodia's online documentation <https://https://fluprodia.readthedocs.io/en/latest/>`__.
 
 .. dropdown:: How can I plot QT diagrams of heat exchangers?
 

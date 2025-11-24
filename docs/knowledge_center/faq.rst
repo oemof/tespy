@@ -86,11 +86,13 @@ Frequently Asked Questions
         variants like the
         :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`
         or :py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`.
-        Fortunately, the latter have the
+        Fortunately, the latter possess the
         :py:meth:`.calc_sections() <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.calc_sections>`
-        method that returns useful information about their heat transfer. Below
-        is an example snippet of how to generate a Q-T diagram from such a heat
-        exchanger.
+        method that returns information about their heat transfer, including
+        the hot and cold side temperatures at different steps. Below is an
+        example snippet of how to generate a Q-T diagram from the results of a
+        :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`
+        /:py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`.
 
         .. code-block:: python
 

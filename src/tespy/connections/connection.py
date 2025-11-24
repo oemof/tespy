@@ -221,7 +221,7 @@ class ConnectionBase:
 
         for parameter in self.parameters:
             container = self.get_attr(parameter)
-            if container.is_set and container.func is not None:
+            if container.is_set and (container.func is not None or container.structure_matrix is not None):
                 num_eq = self.parameters[parameter].num_eq
                 # the row index matches the location in the network's rhs
                 # and matrix
@@ -554,7 +554,10 @@ class Connection(ConnectionBase):
         self.property_data = self.get_parameters()
         self.parameters = {
             k: v for k, v in self.get_parameters().items()
-            if hasattr(v, "func") and v.func is not None
+            if (
+                (hasattr(v, "func") and v.func is not None)
+                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
+            )
         }
         self.state = dc_simple()
         self.phase = dc_simple()
@@ -741,6 +744,10 @@ class Connection(ConnectionBase):
         self._check_fluid_datatypes(key, value)
 
         if key == "fluid":
+            # remove the old values in the fluid vector
+            self.fluid.val = dict()
+            self.fluid.is_set = set()
+            self.fluid.back_end = dict()
             for fluid, fraction in value.items():
                 if "::" in fluid:
                     back_end, fluid = fluid.split("::")

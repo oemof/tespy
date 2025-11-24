@@ -169,6 +169,10 @@ class Motor(Component):
     def poweroutlets(self):
         return ["power_out"]
 
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
     def get_parameters(self):
         return {
             "eta": dc_cp(**{

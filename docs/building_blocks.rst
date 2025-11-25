@@ -11,13 +11,13 @@ Building Blocks
         :link: modules_networks_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/modeling_concept.svg
+        .. image:: /_static/images/thumbnails/building_blocks/network.svg
 
     .. grid-item-card::  Components
         :link: modules_components_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+        .. image:: /_static/images/thumbnails/building_blocks/components.svg
             :class: only-light
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
@@ -27,7 +27,7 @@ Building Blocks
         :link: modules_connections_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/connections.svg
+        .. image:: /_static/images/thumbnails/building_blocks/connections.svg
             :class: only-light
 
         .. image:: /_static/images/modules/connections_darkmode.svg
@@ -37,7 +37,7 @@ Building Blocks
         :link: modules_subsystems_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+        .. image:: /_static/images/thumbnails/building_blocks/subsystem.svg
             :class: only-light
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
@@ -47,7 +47,7 @@ Building Blocks
         :link: fluprodia_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties_neu.svg
             :class: only-light
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg

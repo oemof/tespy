@@ -2,7 +2,7 @@
 <svg
    inkscape:export-ydpi="1012"
    inkscape:export-xdpi="1012"
-   sodipodi:docname="basic_tutorials.svg"
+   sodipodi:docname="network.svg"
    inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
    id="svg8"
    version="1.1"
@@ -50,10 +50,10 @@
   </defs>
   <sodipodi:namedview
      inkscape:window-maximized="1"
-     inkscape:window-y="79"
-     inkscape:window-x="2872"
-     inkscape:window-height="1009"
-     inkscape:window-width="1920"
+     inkscape:window-y="-8"
+     inkscape:window-x="-8"
+     inkscape:window-height="829"
+     inkscape:window-width="1440"
      inkscape:snap-to-guides="false"
      inkscape:guide-bbox="true"
      showguides="true"
@@ -224,7 +224,7 @@
       <path
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="ccccc"
-         style="fill:none;stroke:#000000;stroke-width:0.494428;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.988857, 1.9777;stroke-dashoffset:0;stroke-opacity:1"
+         style="fill:none;stroke:#ec6707;stroke-width:0.62520463;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:1.25041046,2.50080329;stroke-dashoffset:0;stroke-opacity:1"
          d="M 80.048242,74.00328 V 10.368819 H 7.3998169 V 74.00328 H 80.048242"
          id="path984-0-9-9-9-7-0-1-5-0-8-8" />
     </g>

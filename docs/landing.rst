@@ -7,7 +7,7 @@ Thermal Engineering Systems in Python
 Welcome to the documentation of Thermal Engineering Systems in Python (TESPy)!
 Navigate here to your favorite section:
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-logo-main` Getting started

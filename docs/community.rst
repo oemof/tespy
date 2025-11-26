@@ -4,7 +4,7 @@
 Community and Support
 #####################
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  Get in touch with the community

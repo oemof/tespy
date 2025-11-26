@@ -4,7 +4,7 @@
 Documentation
 ~~~~~~~~~~~~~
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  API Documentation

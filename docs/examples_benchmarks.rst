@@ -4,7 +4,7 @@
 Examples and Benchmarks
 #######################
 
-.. grid:: 2
+.. grid:: 1 2 2 2
     :gutter: 1
 
     .. grid-item-card::  Examples

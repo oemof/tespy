@@ -4,7 +4,7 @@
 Integration
 ~~~~~~~~~~~
 
-.. grid:: 3
+.. grid:: 1 3 3 3
     :gutter: 1
 
     .. grid-item-card::  Optimization of a thermal power plant

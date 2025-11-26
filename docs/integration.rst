@@ -11,7 +11,7 @@ Integration
         :link: tutorial_pygmo_optimization_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/integration/pygmo_optimization.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
@@ -21,7 +21,7 @@ Integration
         :link: model_coupling_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/integration/model_coupling.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
@@ -30,7 +30,7 @@ Integration
     .. grid-item-card::  Exergy analysis with exerpy
         :link: https://github.com/oemof/exerpy/
 
-        .. image:: /_static/images/tutorials/osmses-2023.svg
+        .. image:: /_static/images/thumbnails/integration/exerpy.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg

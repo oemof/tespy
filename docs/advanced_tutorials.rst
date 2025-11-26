@@ -37,7 +37,7 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_heat_exchanger
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/SectionedHeatExchanger_vs_HeatExchanger.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
@@ -47,7 +47,7 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_heat_pump_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/heat_pump_stepwise.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
@@ -57,7 +57,7 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_starting_values_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/heat_pump_starting_values.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
@@ -68,7 +68,7 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_heat_pump_exergy_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/heat_pump_exergy.svg
             :class: only-light
 
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg

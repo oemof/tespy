@@ -28,7 +28,7 @@ Advanced Features
             :class: only-dark
 
     .. grid-item-card::  Custom Components
-        :link: components_custom_components_label
+        :link: custom_components_label
         :link-type: ref
 
         .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg

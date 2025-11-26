@@ -326,7 +326,7 @@ For more information on how the characteristic functions work
 Component customization
 -----------------------
 
-Please check the :ref:`advanced features <components_custom_components_label>`
+Please check the :ref:`advanced features <custom_components_label>`
 on how to
 
 - extend existing components with additional parameters and equations or

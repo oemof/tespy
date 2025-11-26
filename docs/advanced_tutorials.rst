@@ -74,6 +74,17 @@ out to us. We are looking forward to hearing from you!
         .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
             :class: only-dark
 
+
+    .. grid-item-card::  Build a new component
+        :link: develop_components_tutorial_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+            :class: only-dark
+
 .. toctree::
     :maxdepth: 1
     :glob:
@@ -83,3 +94,4 @@ out to us. We are looking forward to hearing from you!
     advanced_tutorials/heat_pump_steps.rst
     advanced_tutorials/starting_values.rst
     advanced_tutorials/heat_pump_exergy.rst
+    advanced_tutorials/develop_components.rst

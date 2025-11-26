@@ -1,4 +1,4 @@
-.. _components_custom_components_label:
+.. _custom_components_label:
 
 Customize Components
 --------------------

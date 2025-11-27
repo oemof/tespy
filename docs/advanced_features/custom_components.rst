@@ -403,7 +403,7 @@ method and pass
   change anymore from one iteration to the next. In this case, the calculation
   of the derivative will be skipped.
 
-.. attention::
+.. caution::
 
     We cannot simply put down the derivatives for all variables in the Jacobian
     because we do not necessarily know (prior to solving) which variables will

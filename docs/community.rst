@@ -11,13 +11,13 @@ Community and Support
         :link: community_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/modeling_concept.svg
+        .. image:: /_static/images/thumbnails/community/community.svg
 
     .. grid-item-card::  Contribute to the development
         :link: developing_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+        .. image:: /_static/images/thumbnails/community/contribute.svg
             :class: only-light
 
         .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
@@ -27,7 +27,7 @@ Community and Support
         :link: support_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/modeling_concept.svg
+        .. image:: /_static/images/thumbnails/community/support.svg
 
 ..  toctree::
     :maxdepth: 1

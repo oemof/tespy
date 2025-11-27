@@ -19,9 +19,13 @@ meetings as well as a discussion forum on GitHub.
     :link: basics_intro_label
     :link-type: ref
 
-    .. figure:: /_static/images/thumbnails/getting_started/modeling_concept.svg
+    .. image:: /_static/images/thumbnails/getting_started/modeling_concept.svg
         :align: center
-        :alt: TESPy's modeling concept
+        :class: only-light
+
+    .. image:: /_static/images/thumbnails/getting_started/modeling_concept_darkmode.svg
+        :align: center
+        :class: only-dark
 
 .. grid:: 2
     :gutter: 1
@@ -33,7 +37,7 @@ meetings as well as a discussion forum on GitHub.
         .. image:: /_static/images/thumbnails/getting_started/heat_pump.svg
             :class: only-light
 
-        .. image:: /_static/images/basics/heat_pump_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/heat_pump_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Clausius Rankine Cycle
@@ -43,7 +47,7 @@ meetings as well as a discussion forum on GitHub.
         .. image:: /_static/images/thumbnails/getting_started/rankine_cycle.svg
             :class: only-light
 
-        .. image:: /_static/images/basics/rankine_cycle_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/rankine_cycle_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Gas Turbine
@@ -53,7 +57,7 @@ meetings as well as a discussion forum on GitHub.
         .. image:: /_static/images/thumbnails/getting_started/gas_turbine.svg
             :class: only-light
 
-        .. image:: /_static/images/basics/gas_turbine_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/gas_turbine_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  District Heating System
@@ -63,7 +67,7 @@ meetings as well as a discussion forum on GitHub.
         .. image:: /_static/images/thumbnails/getting_started/district_heating.svg
             :class: only-light
 
-        .. image:: /_static/images/basics/district_heating_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/district_heating_darkmode.svg
             :class: only-dark
 
 ..  toctree::

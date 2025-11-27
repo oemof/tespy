@@ -14,7 +14,7 @@ Integration
         .. image:: /_static/images/thumbnails/integration/pygmo_optimization.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/integration/pygmo_optimization_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Model coupling
@@ -24,7 +24,7 @@ Integration
         .. image:: /_static/images/thumbnails/integration/model_coupling.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/integration/model_coupling_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Exergy analysis with exerpy
@@ -33,7 +33,7 @@ Integration
         .. image:: /_static/images/thumbnails/integration/exerpy.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
+        .. image:: /_static/images/thumbnails/integration/exerpy_darkmode.svg
             :class: only-dark
 
 ..  toctree::

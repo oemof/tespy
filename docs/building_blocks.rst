@@ -12,6 +12,10 @@ Building Blocks
         :link-type: ref
 
         .. image:: /_static/images/thumbnails/building_blocks/network.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/network_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Components
         :link: modules_components_label
@@ -20,7 +24,7 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/components.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+        .. image:: /_static/images/thumbnails/building_blocks/components_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Connections and PowerConnections
@@ -30,7 +34,7 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/connections.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/connections_darkmode.svg
+        .. image:: /_static/images/thumbnails/building_blocks/connections_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Subsystems: Component Groups
@@ -40,17 +44,17 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/subsystem.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+        .. image:: /_static/images/thumbnails/building_blocks/subsystem_darkmode.svg
            :class: only-dark
 
     .. grid-item-card::  Fluid Property Diagrams
         :link: fluprodia_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties_neu.svg
+        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties_darkmode.svg
             :class: only-dark
 
 ..  toctree::

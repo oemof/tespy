@@ -29,6 +29,10 @@ as the underlying functionalities of the software.
         :link-type: ref
 
         .. image:: /_static/images/basics/modeling_concept.svg
+            :class: only-light
+
+        .. image:: /_static/images/basics/modeling_concept_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Components and Component Groups
         :link: modules_components_label

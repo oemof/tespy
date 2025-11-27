@@ -14,7 +14,7 @@ Getting started
         .. image:: /_static/images/thumbnails/getting_started/about_tespy.svg
             :class: only-light
 
-        .. image:: /_static/images/logo_tespy_small_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/about_tespy_darkmode.svg
             :class: only-dark
 
         Learn about the framework
@@ -26,7 +26,7 @@ Getting started
         .. image:: /_static/images/thumbnails/getting_started/installation.svg
             :class: only-light
 
-        .. image:: /_static/images/logo_tespy_small_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/installation_darkmode.svg
             :class: only-dark
 
         Get the installation instructions for your favorite OS
@@ -38,7 +38,7 @@ Getting started
         .. image:: /_static/images/thumbnails/getting_started/basic_tutorials.svg
             :class: only-light
 
-        .. image:: /_static/images/basics/heat_pump_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials_darkmode.svg
             :class: only-dark
 
         Build your first basic models with tespy

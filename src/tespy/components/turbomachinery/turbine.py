@@ -272,7 +272,7 @@ class Turbine(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        if o.h.is_var and not i.h.is_var:
+        if o.h._reference_container != i.h._reference_container:
             self._partial_derivative(o.h, k, -1, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])

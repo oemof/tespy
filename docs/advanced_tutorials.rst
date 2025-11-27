@@ -1,10 +1,10 @@
 .. _advanced_tutorials_label:
 
-~~~~~~~~~~~~~~~~~~
-Advanced Tutorials
-~~~~~~~~~~~~~~~~~~
-We provide more advanced tutorials for you to better understand how to work
-with more complex systems in TESPy.
+~~~~~~~~~
+Tutorials
+~~~~~~~~~
+We provide more tutorials for you to better understand how to work with more
+complex systems in TESPy.
 
 The first tutorial highlights the different heat exchanger type classes
 available in the framework and how they differentiate to help you selecting the

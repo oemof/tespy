@@ -49,4 +49,3 @@ Getting started
 
     getting_started/introduction
     getting_started/installation
-    getting_started/basic_tutorials

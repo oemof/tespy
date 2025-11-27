@@ -8,6 +8,7 @@
     :hidden:
 
     getting_started
+    basic_tutorials
     building_blocks
     examples_benchmarks
 

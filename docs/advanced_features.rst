@@ -11,40 +11,40 @@ Advanced Features
         :link: ude_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
+        .. image:: /_static/images/thumbnails/advanced_features/ude.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_features/ude_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Custom EOS
         :link: fluid_properties_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf.svg
+        .. image:: /_static/images/thumbnails/advanced_features/custom_eos.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_starting_values/COP_by_wf_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_features/custom_eos_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Custom Components
         :link: custom_components_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
+        .. image:: /_static/images/thumbnails/advanced_features/custom_components.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_stepwise/flowsheet_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_features/custom_components_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Component Partload Characteristics
         :link: modules_characteristics_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+        .. image:: /_static/images/thumbnails/advanced_features/characteristics.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_features/characteristics_darkmode.svg
             :class: only-dark
 
 .. toctree::

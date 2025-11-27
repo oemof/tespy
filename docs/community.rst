@@ -11,23 +11,31 @@ Community and Support
         :link: community_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/modeling_concept.svg
+        .. image:: /_static/images/thumbnails/community/community.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/community/community_darkmode.svg
+            :class: only-dark
 
     .. grid-item-card::  Contribute to the development
         :link: developing_label
         :link-type: ref
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator.svg
+        .. image:: /_static/images/thumbnails/community/contribute.svg
             :class: only-light
 
-        .. image:: /_static/images/modules/subsystem_waste_heat_generator_darkmode.svg
+        .. image:: /_static/images/thumbnails/community/contribute_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Get professional support
         :link: support_label
         :link-type: ref
 
-        .. image:: /_static/images/basics/modeling_concept.svg
+        .. image:: /_static/images/thumbnails/community/support.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/community/support_darkmode.svg
+            :class: only-dark
 
 ..  toctree::
     :maxdepth: 1

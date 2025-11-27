@@ -11,40 +11,40 @@ Knowledge Center
         :link: faq_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/osmses-2023.svg
+        .. image:: /_static/images/thumbnails/knowledge/faq.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
+        .. image:: /_static/images/thumbnails/knowledge/faq_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Educational Resources
         :link: education_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/knowledge/education.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/knowledge/education_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Best Practices
         :link: best_practices_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/knowledge/best_practices.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/knowledge/best_practices_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Literature References
         :link: literature_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/knowledge/literature.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/knowledge/literature_darkmode.svg
             :class: only-dark
 
 ..  toctree::

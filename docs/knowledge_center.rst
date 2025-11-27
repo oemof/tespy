@@ -27,16 +27,6 @@ Knowledge Center
         .. image:: /_static/images/thumbnails/knowledge/education_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Best Practices
-        :link: best_practices_label
-        :link-type: ref
-
-        .. image:: /_static/images/thumbnails/knowledge/best_practices.svg
-            :class: only-light
-
-        .. image:: /_static/images/thumbnails/knowledge/best_practices_darkmode.svg
-            :class: only-dark
-
     .. grid-item-card::  Literature References
         :link: literature_label
         :link-type: ref
@@ -53,5 +43,4 @@ Knowledge Center
 
     knowledge_center/faq
     knowledge_center/educational_resources
-    knowledge_center/best_practices
     zliterature

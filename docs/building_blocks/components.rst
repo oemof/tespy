@@ -108,6 +108,8 @@ not be implemented by the solver.
     >>> my_pipe.darcy_group.is_set
     False
 
+.. _component_variables_label:
+
 Custom variables
 ^^^^^^^^^^^^^^^^
 It is possible to use component parameters as variables of your system of

@@ -203,8 +203,8 @@ This sections shows some details on the specification of fluids.
     >>> c1.fluid.is_set
     {'water'}
     >>> c1.set_attr(fluid={'N2': 0.7, "O2": 0.3})
-    >>> c1.fluid.is_set
-    {'N2', 'O2'}
+    >>> c1.fluid.is_set == {'N2', 'O2'}
+    True
 
     # remove a single specification while keeping the other component inside
     >>> c1.fluid.is_set.remove('N2')

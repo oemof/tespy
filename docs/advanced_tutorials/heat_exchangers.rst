@@ -140,14 +140,14 @@ In the condenser the upper terminal temperature differences is assigned to the
 temperature differences between the dew line temperature of the condensing
 fluid and the outlet temperature of the cold fluid.
 
-.. figure:: /_static/images/tutorials/heat_exchangers/HeatExchanger.svg
+.. figure:: /_static/images/tutorials/heat_exchangers/Condenser.svg
     :align: center
     :alt: HeatExchanger
     :figclass: only-light
 
     QT diagram for HeatExchanger class
 
-.. figure:: /_static/images/tutorials/heat_exchangers/HeatExchanger_darkmode.svg
+.. figure:: /_static/images/tutorials/heat_exchangers/Condenser_darkmode.svg
     :align: center
     :alt: HeatExchanger
     :figclass: only-dark

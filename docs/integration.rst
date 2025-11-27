@@ -7,6 +7,16 @@ Integration
 .. grid:: 1 3 3 3
     :gutter: 1
 
+    .. grid-item-card::  Class templates for models
+        :link: integration_model_class_template_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/integration/pygmo_optimization.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/pygmo_optimization_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card::  Optimization of a thermal power plant
         :link: tutorial_pygmo_optimization_label
         :link-type: ref
@@ -40,5 +50,6 @@ Integration
     :maxdepth: 1
     :hidden:
 
+    integration/workflows
     integration/optimization
     integration/model_coupling

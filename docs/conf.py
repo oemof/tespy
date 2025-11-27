@@ -320,6 +320,7 @@ def update_api_docs():
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'myst_nb',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
@@ -466,3 +467,7 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
   r'https://github\.com/oemof/tespy/.*',
   r'https://coolprop\.org/*'
 ]
+
+# Notebook execution
+nb_execution_allow_errors = True
+nb_execution_in_temp = True

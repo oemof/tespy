@@ -64,6 +64,17 @@ out to us. We are looking forward to hearing from you!
             :class: only-dark
 
 
+    .. grid-item-card::  Debug your models efficiently
+        :link: tutorial_debugging_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+            :class: only-dark
+
+
     .. grid-item-card::  Exergy analysis of a heat pump
         :link: tutorial_heat_pump_exergy_label
         :link-type: ref
@@ -93,5 +104,6 @@ out to us. We are looking forward to hearing from you!
     advanced_tutorials/heat_exchangers.rst
     advanced_tutorials/heat_pump_steps.rst
     advanced_tutorials/starting_values.rst
+    advanced_tutorials/debugging.ipynb
     advanced_tutorials/heat_pump_exergy.rst
     advanced_tutorials/develop_components.rst

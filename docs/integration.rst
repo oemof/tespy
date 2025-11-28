@@ -11,10 +11,10 @@ Integration
         :link: integration_model_class_template_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/integration/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/integration/class_template_workflow.svg
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/integration/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/integration/class_template_workflow_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Optimization of a thermal power plant

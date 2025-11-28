@@ -554,7 +554,7 @@
      inkscape:pageopacity="0.0"
      borderopacity="1.0"
      bordercolor="#666666"
-     pagecolor="#ffffff"
+     pagecolor="#cfd0d0"
      id="base"
      fit-margin-top="5"
      fit-margin-left="5"
@@ -596,7 +596,7 @@
      transform="translate(-61.99998,-32.639073)">
     <g
        id="line2d_1"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <defs
          id="defs2-9">
@@ -607,22 +607,22 @@
       </defs>
       <g
          id="g2"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 164.44083,470.41 v 3.5"
            id="use2"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_1"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- NH3 -->
       <g
          transform="matrix(0,-0.18,-0.18,0,169.40771,515.86531)"
          id="g5"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs3">
           <path
@@ -641,41 +641,41 @@
         <use
            xlink:href="#DejaVuSans-4e"
            id="use3"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="74.804688"
            xlink:href="#DejaVuSans-48"
            id="use4"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="150"
            xlink:href="#DejaVuSans-33"
            id="use5"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_2"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g6"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 340.46249,470.41 v 3.5"
            id="use6"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_2"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- R22 -->
       <g
          transform="matrix(0,-0.18,-0.18,0,345.42937,512.82219)"
          id="g9"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs6">
           <path
@@ -690,41 +690,41 @@
         <use
            xlink:href="#DejaVuSans-52"
            id="use7"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="69.482422"
            xlink:href="#DejaVuSans-32"
            id="use8"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="133.10547"
            xlink:href="#DejaVuSans-32"
            id="use9"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_3"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g10"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 516.48419,470.41 v 3.5"
            id="use10"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_3"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- R134a -->
       <g
          transform="matrix(0,-0.18,-0.18,0,521.45104,535.30531)"
          id="g15"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs10">
           <path
@@ -743,51 +743,51 @@
         <use
            xlink:href="#DejaVuSans-52"
            id="use11"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="69.482422"
            xlink:href="#DejaVuSans-31"
            id="use12"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="133.10547"
            xlink:href="#DejaVuSans-33"
            id="use13"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="196.72852"
            xlink:href="#DejaVuSans-34"
            id="use14"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="260.35156"
            xlink:href="#DejaVuSans-61"
            id="use15"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_4"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g16"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 692.50586,470.41 v 3.5"
            id="use16"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_4"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- R152a -->
       <g
          transform="matrix(0,-0.18,-0.18,0,697.47271,535.30531)"
          id="g21"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs16">
           <path
@@ -798,51 +798,51 @@
         <use
            xlink:href="#DejaVuSans-52"
            id="use17"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="69.482422"
            xlink:href="#DejaVuSans-31"
            id="use18"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="133.10547"
            xlink:href="#DejaVuSans-35"
            id="use19"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="196.72852"
            xlink:href="#DejaVuSans-32"
            id="use20"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="260.35156"
            xlink:href="#DejaVuSans-61"
            id="use21"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_5"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g22"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 868.52753,470.41 v 3.5"
            id="use22"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_5"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- R290 -->
       <g
          transform="matrix(0,-0.18,-0.18,0,873.49437,524.27469)"
          id="g26"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs22">
           <path
@@ -857,46 +857,46 @@
         <use
            xlink:href="#DejaVuSans-52"
            id="use23"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="69.482422"
            xlink:href="#DejaVuSans-32"
            id="use24"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="133.10547"
            xlink:href="#DejaVuSans-39"
            id="use25"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="196.72852"
            xlink:href="#DejaVuSans-30"
            id="use26"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_6"
-       style="fill:none;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:none;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g27"
-         style="fill:none;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:none;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <path
            d="m 1044.5492,470.41 v 3.5"
            id="use27"
-           style="fill:none;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:none;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_6"
-       style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- R718 -->
       <g
          transform="matrix(0,-0.18,-0.18,0,1049.516,524.27469)"
          id="g31"
-         style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs27">
           <path
@@ -911,33 +911,33 @@
         <use
            xlink:href="#DejaVuSans-52"
            id="use28"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="69.482422"
            xlink:href="#DejaVuSans-37"
            id="use29"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="133.10547"
            xlink:href="#DejaVuSans-31"
            id="use30"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="196.72852"
            xlink:href="#DejaVuSans-38"
            id="use31"
-           style="fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_7"
-       style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff"
+       style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,52.863197)">
       <!-- Name of working fluid -->
       <g
          transform="matrix(0.18,0,0,-0.18,505.40359,552.9825)"
          id="g52"
-         style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff">
+         style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0">
         <defs
            id="defs31">
           <path
@@ -1000,122 +1000,122 @@
         <use
            xlink:href="#DejaVuSans-4e"
            id="use32"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="74.804688"
            xlink:href="#DejaVuSans-61"
            id="use33"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="136.08398"
            xlink:href="#DejaVuSans-6d"
            id="use34"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="233.49609"
            xlink:href="#DejaVuSans-65"
            id="use35"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="295.01953"
            xlink:href="#DejaVuSans-20"
            id="use36"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="326.80664"
            xlink:href="#DejaVuSans-6f"
            id="use37"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="387.98828"
            xlink:href="#DejaVuSans-66"
            id="use38"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="423.19336"
            xlink:href="#DejaVuSans-20"
            id="use39"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="454.98047"
            xlink:href="#DejaVuSans-77"
            id="use40"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="536.76758"
            xlink:href="#DejaVuSans-6f"
            id="use41"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="597.94922"
            xlink:href="#DejaVuSans-72"
            id="use42"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="639.0625"
            xlink:href="#DejaVuSans-6b"
            id="use43"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="696.97266"
            xlink:href="#DejaVuSans-69"
            id="use44"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="724.75586"
            xlink:href="#DejaVuSans-6e"
            id="use45"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="788.13477"
            xlink:href="#DejaVuSans-67"
            id="use46"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="851.61133"
            xlink:href="#DejaVuSans-20"
            id="use47"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="883.39844"
            xlink:href="#DejaVuSans-66"
            id="use48"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="918.60352"
            xlink:href="#DejaVuSans-6c"
            id="use49"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="946.38672"
            xlink:href="#DejaVuSans-75"
            id="use50"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="1009.7656"
            xlink:href="#DejaVuSans-69"
            id="use51"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
         <use
            x="1037.5488"
            xlink:href="#DejaVuSans-64"
            id="use52"
-           style="stroke-linecap:butt;stroke-linejoin:round;fill:#ffffff;stroke:#ffffff" />
+           style="stroke-linecap:butt;stroke-linejoin:round;fill:#cfd0d0;stroke:#cfd0d0" />
       </g>
     </g>
     <g
        id="line2d_7"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,470.41 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path72" />
     </g>
     <g
        id="line2d_8"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <defs
          id="defs52">
@@ -1126,22 +1126,22 @@
       </defs>
       <g
          id="g53"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,470.41 h -3.5"
            id="use53"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_8"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 0.0 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,477.24859)"
          id="g56"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <defs
            id="defs53">
           <path
@@ -1152,263 +1152,263 @@
         <use
            xlink:href="#DejaVuSans-30"
            id="use54"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use55"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-30"
            id="use56"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_9"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,389.25365 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path75" />
     </g>
     <g
        id="line2d_10"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g57"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,389.25366 h -3.5"
            id="use57"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_9"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 0.5 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,396.09224)"
          id="g60"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <use
            xlink:href="#DejaVuSans-30"
            id="use58"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use59"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-35"
            id="use60"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_11"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,308.0973 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path76" />
     </g>
     <g
        id="line2d_12"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g61"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,308.09729 h -3.5"
            id="use61"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_10"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 1.0 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,314.93589)"
          id="g64"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <use
            xlink:href="#DejaVuSans-31"
            id="use62"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use63"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-30"
            id="use64"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_13"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,226.94095 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path77" />
     </g>
     <g
        id="line2d_14"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g65"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,226.94095 h -3.5"
            id="use65"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_11"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 1.5 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,233.77954)"
          id="g68"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <use
            xlink:href="#DejaVuSans-31"
            id="use66"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use67"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-35"
            id="use68"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_15"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,145.7846 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path78" />
     </g>
     <g
        id="line2d_16"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g69"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,145.78459 h -3.5"
            id="use69"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_12"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 2.0 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,152.62319)"
          id="g72"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <use
            xlink:href="#DejaVuSans-32"
            id="use70"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use71"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-30"
            id="use72"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="line2d_17"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          clip-path="url(#pa5a0f7f769)"
          d="M 76.43,64.628245 H 1132.56"
-         style="fill:#ffffff;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
+         style="fill:#cfd0d0;stroke:#b0b0b0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:2.96, 1.28;stroke-dashoffset:0"
          id="path79" />
     </g>
     <g
        id="line2d_18"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <g
          id="g73"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0">
         <path
            d="m 76.43,64.628242 h -3.5"
            id="use73"
-           style="fill:#ffffff;stroke:#ffffff;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        id="text_13"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round"
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <!-- 2.5 -->
       <g
          transform="matrix(0.18,0,0,-0.18,40.804375,71.466839)"
          id="g76"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
         <use
            xlink:href="#DejaVuSans-32"
            id="use74"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="63.623047"
            xlink:href="#DejaVuSans-2e"
            id="use75"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
         <use
            x="95.410156"
            xlink:href="#DejaVuSans-35"
            id="use76"
-           style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+           style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       </g>
     </g>
     <g
        transform="matrix(0,-0.02586262,-0.02586262,0,63.965136,104.48013)"
        id="g103"
-       style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round">
+       style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round">
       <defs
          id="defs76">
         <path
@@ -1431,137 +1431,137 @@
       <use
          xlink:href="#DejaVuSans-43"
          id="use77"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="69.824219"
          xlink:href="#DejaVuSans-6f"
          id="use78"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="131.00586"
          xlink:href="#DejaVuSans-65"
          id="use79"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="192.5293"
          xlink:href="#DejaVuSans-66"
          id="use80"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="227.73438"
          xlink:href="#DejaVuSans-66"
          id="use81"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="262.93945"
          xlink:href="#DejaVuSans-69"
          id="use82"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="290.72266"
          xlink:href="#DejaVuSans-63"
          id="use83"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="345.70312"
          xlink:href="#DejaVuSans-69"
          id="use84"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="373.48633"
          xlink:href="#DejaVuSans-63"
          id="use85"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="428.4668"
          xlink:href="#DejaVuSans-65"
          id="use86"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="489.99023"
          xlink:href="#DejaVuSans-6e"
          id="use87"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="553.36914"
          xlink:href="#DejaVuSans-74"
          id="use88"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="592.57812"
          xlink:href="#DejaVuSans-20"
          id="use89"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="624.36523"
          xlink:href="#DejaVuSans-6f"
          id="use90"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="685.54688"
          xlink:href="#DejaVuSans-66"
          id="use91"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="720.75195"
          xlink:href="#DejaVuSans-20"
          id="use92"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="752.53906"
          xlink:href="#DejaVuSans-70"
          id="use93"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="816.01562"
          xlink:href="#DejaVuSans-65"
          id="use94"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="877.53906"
          xlink:href="#DejaVuSans-72"
          id="use95"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="918.65234"
          xlink:href="#DejaVuSans-66"
          id="use96"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="953.85742"
          xlink:href="#DejaVuSans-6f"
          id="use97"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1015.0391"
          xlink:href="#DejaVuSans-72"
          id="use98"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1054.4023"
          xlink:href="#DejaVuSans-6d"
          id="use99"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1151.8145"
          xlink:href="#DejaVuSans-61"
          id="use100"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1213.0938"
          xlink:href="#DejaVuSans-6e"
          id="use101"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1276.4727"
          xlink:href="#DejaVuSans-63"
          id="use102"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
       <use
          x="1331.4531"
          xlink:href="#DejaVuSans-65"
          id="use103"
-         style="fill:#ffffff;stroke-linecap:butt;stroke-linejoin:round" />
+         style="fill:#cfd0d0;stroke-linecap:butt;stroke-linejoin:round" />
     </g>
     <g
        id="patch_3"
@@ -1629,7 +1629,7 @@
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          d="M 76.43,470.41 V 19.44"
-         style="fill:none;stroke:#ffffff;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
          id="path109" />
     </g>
     <g
@@ -1638,7 +1638,7 @@
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          d="M 1132.56,470.41 V 19.44"
-         style="fill:none;stroke:#ffffff;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
          id="path110" />
     </g>
     <g
@@ -1647,16 +1647,16 @@
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          d="M 76.43,470.41 H 1132.56"
-         style="fill:none;stroke:#ffffff;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
          id="path111" />
     </g>
     <g
        id="patch_12"
-       style="stroke-linecap:butt;stroke-linejoin:round;stroke:#ffffff"
+       style="stroke-linecap:butt;stroke-linejoin:round;stroke:#cfd0d0"
        transform="matrix(0.14368122,0,0,0.14368122,59.2149,51.275696)">
       <path
          d="M 76.43,19.44 H 1132.56"
-         style="fill:none;stroke:#ffffff;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.8;stroke-linecap:square;stroke-linejoin:miter"
          id="path112" />
     </g>
   </g>

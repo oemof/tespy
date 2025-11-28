@@ -1150,7 +1150,7 @@
      inkscape:pageopacity="0.0"
      borderopacity="1.0"
      bordercolor="#666666"
-     pagecolor="#ffffff"
+     pagecolor="#cfd0d0"
      id="base"
      fit-margin-top="5"
      fit-margin-left="5"
@@ -1193,11 +1193,11 @@
     <path
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc"
-       style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 124.72182,56.059081 h 23.65899"
        id="path984-0-9-9-9-7-6" />
     <ellipse
-       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:0.666667;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:0.666667;fill-rule:nonzero;stroke:#cfd0d0;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
        id="path4405-2-2-3"
        cx="-111.02197"
        cy="-58.063385"
@@ -1205,13 +1205,13 @@
        rx="13.072361"
        ry="13.072272" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 124.72182,59.438938 -23.659,3.379857"
        id="path4585-2-2"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 101.06282,49.299369 23.659,3.379857"
        id="path4587-8-4"
        inkscape:connector-curvature="0"
@@ -1219,32 +1219,32 @@
     <path
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc"
-       style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 75.713897,56.059081 h 23.65899"
        id="path984-0-9-9-9-7-6-8-7" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 148.38083,52.679226 3.37985,3.379855 -3.37985,3.379857 z"
        id="path4652-12-9-60-5-4-2-28"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 72.33404,52.679226 3.379857,3.379855 -3.379857,3.379857 z"
        id="path4652-12-9-60-5-4-2-3-3"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc" />
     <g
        id="g1"
-       style="stroke:#ffffff">
+       style="stroke:#cfd0d0">
       <path
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc"
-         style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 185.17499,122.06583 h 23.57894"
          id="path984-0-9-9-9-7-6-08" />
       <ellipse
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:0.666667;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:none;fill-opacity:0.666667;fill-rule:nonzero;stroke:#cfd0d0;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
          id="path4405-2-2"
          cx="-170.3222"
          cy="-125.14648"
@@ -1252,13 +1252,13 @@
          rx="13.028131"
          ry="13.028043" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 185.17499,125.43425 -23.57895,3.36842"
          id="path4585-2"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 161.59604,115.32898 23.57895,3.36843"
          id="path4587-8"
          inkscape:connector-curvature="0"
@@ -1266,11 +1266,11 @@
       <path
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc"
-         style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 136.33289,122.06583 h 23.57894"
          id="path984-0-9-9-9-7-6-8-4" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 208.75395,118.6974 3.36843,3.36841 -3.36843,3.36842 z"
          id="path4652-12-9-60-5-4-2-7"
          inkscape:connector-curvature="0"
@@ -1278,29 +1278,29 @@
       <path
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="ccc"
-         style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 162.0171,130.48688 h -8.42106 v 8.42105"
          id="path984-0-9-9-9-7-6-5" />
       <path
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="ccc"
-         style="fill:none;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 183.06973,130.48688 h 8.42105 v 8.42105"
          id="path984-0-9-9-9-7-6-5-2" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 194.8592,138.90793 -3.36842,3.36842 -3.36842,-3.36842 z"
          id="path4652-12-9-60-5-4-2-6"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cccc" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 132.96447,118.6974 3.36842,3.36841 -3.36842,3.36842 z"
          id="path4652-12-9-60-5-4-2-3-8"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cccc" />
       <path
-         style="fill:none;fill-rule:evenodd;stroke:#ffffff;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:none;fill-rule:evenodd;stroke:#cfd0d0;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="m 150.22763,142.27635 3.36841,-3.36842 3.36842,3.36842 z"
          id="path4652-12-9-60-5-4-2-3-3-8"
          inkscape:connector-curvature="0"
@@ -1311,456 +1311,456 @@
        cy="81.634911"
        r="1.0583333"
        id="circle3"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="86.499977"
        y="76.343246"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="94.966667"
        y="76.343246"
        width="6.3499999"
        height="2.1166666"
        id="rect4-4"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="86.499977"
        y="89.043251"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <circle
        cx="104.49165"
        cy="81.634911"
        r="1.0583333"
        id="circle1-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <circle
        cx="108.82705"
        cy="81.634911"
        r="1.0583333"
        id="circle2-6"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <circle
        cx="113.06039"
        cy="81.634911"
        r="1.0583333"
        id="circle3-1"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.57098"
        y="76.343246"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="103.62505"
        y="84.809906"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="120.55834"
        y="80.576561"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-4"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="103.57098"
        y="89.043251"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="120.5979"
        y="76.343246"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="128.8"
        y="76.343246"
        width="6.3499999"
        height="2.1166666"
        id="rect4-4-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="128.8"
        y="84.809906"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-99"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="145.62495"
        y="84.809906"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-9-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="137.42288"
        y="89.043251"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="170.91653"
        y="84.809914"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-9-0-4"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="166.54994"
        y="80.576401"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-9-0-4-2-6"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="175.41251"
        y="80.522408"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-9-0-4-2-4"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="80.576576"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-0"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53539"
        y="80.576576"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-0-5"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="90.732979"
        y="80.576576"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="99.385391"
        y="97.509941"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-92"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="99.385391"
        y="101.74329"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-3"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="154.0666"
        y="80.576576"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-1"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="128.8"
        y="89.043251"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-3-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="94.966667"
        y="89.043251"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <circle
        cx="113.06039"
        cy="98.664742"
        r="1.0583333"
        id="circle3-1-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="93.373077"
        width="6.3499999"
        height="2.1166666"
        id="rect4-4-3-7"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="120.46871"
        y="97.702919"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-9-03"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="106.07307"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-0"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <circle
        cx="129.85834"
        cy="98.664742"
        r="1.0583333"
        id="circle3-7-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="120.5979"
        y="93.373077"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-9-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="128.8"
        y="101.83974"
        width="6.3499999"
        height="2.1166666"
        id="rect6-2-99-0"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="137.42288"
        y="106.07307"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-9-1"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="128.8"
        y="97.606407"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-3-4"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="97.606407"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-0-0"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="106.07307"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-0-1-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="94.966667"
        y="110.16199"
        width="6.3499999"
        height="2.1166666"
        id="rect4-4-65-3"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="110.16199"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="122.86198"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-0-7"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="94.966667"
        y="122.86198"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-9-9-6"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="86.499977"
        y="126.66537"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-87-7-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="126.66537"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-0-7-4"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="94.966667"
        y="126.66537"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-9-9-6-1"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="120.5979"
        y="84.809906"
        width="6.3499999"
        height="2.1166666"
        id="rect7-48-0-5-9-3-0-2"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="137.38327"
        y="80.576576"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="153.59714"
        y="84.809914"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-6"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="114.13073"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8-8"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="103.53957"
        y="118.62865"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8-9"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="114.25091"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8-9-2"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="112.00205"
        y="118.62865"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8-9-3"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="137.68745"
        y="84.809906"
        width="6.3499999"
        height="2.1166666"
        id="rect3-8-8-4-8-2"
-       style="stroke-width:0.264583;fill:#ffffff" />
+       style="stroke-width:0.264583;fill:#cfd0d0" />
     <rect
        x="179.88593"
        y="84.809738"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-1-9"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="162.19373"
        y="89.043251"
        width="10.5"
        height="2.1166666"
        id="rect7-48-0-5-9-3-58-1-9-5"
-       style="stroke-width:0.340228;fill:#ffffff" />
+       style="stroke-width:0.340228;fill:#cfd0d0" />
     <rect
        x="111.82713"
        y="89.043236"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="95.056206"
        y="93.276596"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="137.26671"
        y="97.509941"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="111.7459"
        y="102.03276"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4-2"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="137.5041"
        y="101.74329"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-0"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="145.6333"
        y="89.043251"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-5"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="129.19376"
        y="93.276596"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-9"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="86.727097"
        y="105.97665"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4-4"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="111.7459"
        y="110.16199"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4-4-7"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="111.7459"
        y="122.86198"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4-4-75"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
     <rect
        x="120.46453"
        y="105.97655"
        width="14.7"
        height="2.1166666"
        id="rect3-8-8-0-9-0-2-4-28"
-       style="stroke-width:0.402565;fill:#ffffff" />
+       style="stroke-width:0.402565;fill:#cfd0d0" />
   </g>
 </svg>

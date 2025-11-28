@@ -12,10 +12,10 @@ specifically for tespy or using it in the context of the topic
     .. grid-item-card::  Model thermodynamic systems with tespy
         :link: https://github.com/IljaTuschy/tespy-znes-course/
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
+        .. image:: /_static/images/thumbnails/educational/master_course.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
+        .. image:: /_static/images/thumbnails/educational/master_course_darkmode.svg
             :class: only-dark
 
         This is a complete master course with slides, exercises and
@@ -25,10 +25,10 @@ specifically for tespy or using it in the context of the topic
     .. grid-item-card::  Build component based systems at the example of a simple heat pump
         :link: https://fwitte.github.io/intro-to-thermal-engineering/
 
-        .. image:: /_static/images/system.svg
+        .. image:: /_static/images/thumbnails/educational/intro_te.svg
             :class: only-light
 
-        .. image:: /_static/images/system_darkmode.svg
+        .. image:: /_static/images/thumbnails/educational/intro_te_darkmode.svg
             :class: only-dark
 
         This introduces the fundamental concepts of component based
@@ -39,7 +39,11 @@ specifically for tespy or using it in the context of the topic
     .. grid-item-card::  Simulate and analyse concentrating solar power systems
         :link: https://github.com/ddceruti/csp-exercises/
 
-        .. image:: /_static/images/segs.jpeg
+        .. image:: /_static/images/thumbnails/educational/solar.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/educational/solar_darkmode.svg
+            :class: only-dark
 
         This course is a short introduction to modeling concentrating solar
         power systems starting from solar irradiation calculations, considering
@@ -51,10 +55,10 @@ specifically for tespy or using it in the context of the topic
     .. grid-item-card::  Integrate thermodynamic models with economic dispatch assessment
         :link: https://oemof.github.io/heat-pump-tutorial/
 
-        .. image:: /_static/images/tutorials/osmses-2023.svg
+        .. image:: /_static/images/thumbnails/educational/integrate_solph.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
+        .. image:: /_static/images/thumbnails/educational/integrate_solph_darkmode.svg
             :class: only-dark
 
         This workshop is an introduction how to connect thermodynamic modeling
@@ -63,10 +67,10 @@ specifically for tespy or using it in the context of the topic
     .. grid-item-card::  Introduction to exergy analysis
         :link: https://fwitte.github.io/TESPy_teaching_exergy/
 
-        .. image:: /_static/images/tutorials/osmses-2023.svg
+        .. image:: /_static/images/thumbnails/educational/integrate_exergy.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/osmses-2023_darkmode.svg
+        .. image:: /_static/images/thumbnails/educational/integrate_exergy_darkmode.svg
             :class: only-dark
 
         These resources show how exergy analysis works fundamentally and how it

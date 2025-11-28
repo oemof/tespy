@@ -390,14 +390,14 @@ class TestHeatExchangers:
         instance.set_attr(
             pr=0.95,
             Tamb=20,
-            kA=250,
+            kA=200,
             L=1000,
             D='var',
             ks=4.57e-5
         )
         self.nw.solve("design")
         self.nw.assert_convergence()
-        assert round(self.c2.T.val - instance.Tamb.val, 3) == 0.002
+        assert round(self.c2.T.val - instance.Tamb.val, 3) == 0.019
 
     def test_SimpleHeatExchanger_kA_convergence_heating(self):
         instance = SimpleHeatExchanger("heatexchanger")

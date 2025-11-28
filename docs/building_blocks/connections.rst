@@ -338,7 +338,7 @@ connection, there is nothing to change to make the model solve.
 To learn what power connections are available in each of the component classes
 see the respective API documentation. There are a couple of example
 applications available for the :code:`PowerConnection`
-:ref:`in this section <powerconnection_examples_label>`.
+:ref:`in this section <tutorial_powerconnection_label>`.
 
 Access from the :code:`Network` object
 --------------------------------------

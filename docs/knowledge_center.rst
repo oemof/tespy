@@ -4,7 +4,7 @@
 Knowledge Center
 ~~~~~~~~~~~~~~~~
 
-.. grid:: 1 2 2 2
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  Frequently Asked Questions

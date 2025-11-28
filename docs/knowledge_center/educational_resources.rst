@@ -6,7 +6,7 @@ Educational Resources
 The cards below link available university courses and teaching material
 specifically for tespy or using it in the context of the topic
 
-.. grid:: 2
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  Model thermodynamic systems with tespy

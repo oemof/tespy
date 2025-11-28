@@ -68,10 +68,10 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_debugging_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/debugging.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/debugging_darkmode.svg
             :class: only-dark
 
 
@@ -90,10 +90,10 @@ out to us. We are looking forward to hearing from you!
         :link: develop_components_tutorial_label
         :link-type: ref
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/drawing_pcwc.svg
             :class: only-light
 
-        .. image:: /_static/images/tutorials/heat_pump_exergy/diagram_E_D_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/drawing_pcwc_darkmode.svg
             :class: only-dark
 
 .. toctree::

@@ -541,14 +541,15 @@ def _numeric_deriv(variable, func, **kwargs):
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
     d = variable.d
-    variable.val_SI += d
+    tol = max(variable.val_SI * d, d)
+    variable.val_SI += tol
     exp = func(**kwargs)
 
-    variable.val_SI -= 2 * d
+    variable.val_SI -= 2 * tol
     exp -= func(**kwargs)
-    deriv = exp / (2 * d)
+    deriv = exp / (2 * tol)
 
-    variable.val_SI += d
+    variable.val_SI += tol
 
     return deriv
 

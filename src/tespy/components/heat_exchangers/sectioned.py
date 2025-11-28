@@ -325,7 +325,6 @@ class SectionedHeatExchanger(HeatExchanger):
             'UA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
-                deriv=self.UA_deriv,
                 dependents=self.UA_dependents,
                 quantity="heat_transfer_coefficient"
             ),
@@ -338,13 +337,11 @@ class SectionedHeatExchanger(HeatExchanger):
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
-                deriv=self.UA_cecchinato_deriv,
                 dependents=self.UA_dependents,
             ),
             'td_pinch': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
-                deriv=self.td_pinch_deriv,
                 dependents=self.td_pinch_dependents,
                 quantity="temperature_difference"
             )
@@ -747,30 +744,6 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].h
         ]
 
-    def UA_deriv(self, increment_filter, k, dependents=None):
-        dependents = dependents["scalars"][0]
-        f = self.UA_func
-        self._modified_partial_derivative(increment_filter, k, dependents, f)
-
-    def UA_cecchinato_deriv(self, increment_filter, k, dependents=None):
-        dependents = dependents["scalars"][0]
-        f = self.UA_cecchinato_func
-        self._modified_partial_derivative(increment_filter, k, dependents, f)
-
-    def _modified_partial_derivative(self, increment_filter, k, dependents, f):
-        # the recalculation of derivatives is for execution speed
-        if self.it % 4 == 0 or self.it < 3:
-            # this is due to scaling issues with the new implementation
-            # the dh and dp are so small, that due to the sections being
-            # defined from 0 ... 1, the change in p and h of the sections
-            # is so small that the derivatives can get 0 very easily
-            for dependent in dependents:
-                _d = dependent._d
-                if dependent != self.inl[0].m._reference_container:
-                    dependent._d = 5
-                self._partial_derivative(dependent, k, f, increment_filter)
-                dependent._d = _d
-
     def calc_td_pinch(self, T_steps_hot, T_steps_cold):
         """Calculate the pinch point temperature difference
 
@@ -809,11 +782,6 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].p,
             self.outl[1].h
         ]
-
-    def td_pinch_deriv(self, increment_filter, k, dependents=None):
-        dependents = dependents["scalars"][0]
-        f = self.td_pinch_func
-        self._modified_partial_derivative(increment_filter, k, dependents, f)
 
     def calc_parameters(self):
         super().calc_parameters()

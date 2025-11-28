@@ -1074,9 +1074,9 @@ class Connection(ConnectionBase):
 
     def get_parameters(self):
         return {
-            "m": dc_prop(d=1e-4, quantity="mass_flow"),
-            "p": dc_prop(d=1e-3, quantity="pressure"),
-            "h": dc_prop(d=1e-3, quantity="enthalpy"),
+            "m": dc_prop(quantity="mass_flow"),
+            "p": dc_prop(quantity="pressure"),
+            "h": dc_prop(quantity="enthalpy"),
             "T_bubble": dc_prop(quantity="temperature"),
             "T_dew": dc_prop(quantity="temperature"),
             "vol": dc_prop(quantity="specific_volume"),

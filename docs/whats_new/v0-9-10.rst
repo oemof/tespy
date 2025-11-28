@@ -11,6 +11,13 @@ Other changes
   by :code:`1e-6 K` to avoid boundary issues) and calculates the physical
   exergy with respect to that temperature without exergy splitting
   (`PR #828 <https://github.com/oemof/tespy/pull/828>`__).
+- The :code:`MovingBoundaryHeatExchanger` now handles a pressure drop by
+  assuming linear change of pressure with enthalpy. Furthermore, this
+  capability is integrated into the :code:`SectionedHeatExchanger`, which uses
+  the specified number of sections and inserts the phase change boundaries
+  additionally into its sections. With this the :code:`SectionedHeatExchanger`
+  also identifies phase changes correctly
+  (`PR #851 <https://github.com/oemof/tespy/pull/851>`__).
 
 Bug Fixes
 #########

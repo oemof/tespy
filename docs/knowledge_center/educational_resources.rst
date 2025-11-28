@@ -50,8 +50,6 @@ specifically for tespy or using it in the context of the topic
         different types of solar collectors and then using tespy to analyse
         Rankine cycles and supercritical CO<sub>2</sub> power cycles.
 
-        Image Source [#f1]_
-
     .. grid-item-card::  Integrate thermodynamic models with economic dispatch assessment
         :link: https://oemof.github.io/heat-pump-tutorial/
 
@@ -75,7 +73,3 @@ specifically for tespy or using it in the context of the topic
 
         These resources show how exergy analysis works fundamentally and how it
         can be carried out automatically with tespy.
-
-.. rubric:: Footnotes
-
-.. [#f1] By USA.Gov - BLM - BUREAU OF LAND MANAGEMENT - http://www.ca.blm.gov/cdd/alternative_energy.html, Public Domain, https://commons.wikimedia.org/w/index.php?curid=15957890

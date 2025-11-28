@@ -101,11 +101,11 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
 
             e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
     """
-    pure_fluid_data = get_pure_fluid(fluid_data)
-    if pure_fluid_data:
-        if pure_fluid_data["wrapper"]._T_min > Tamb:
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        if pure_fluid["wrapper"]._T_min > Tamb:
             return _physical_exergy_at_min_temperature(
-                h, s, pamb, Tamb, fluid_data, pure_fluid_data
+                h, s, pamb, Tamb, fluid_data, pure_fluid
             )
         else:
             ex = _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data)

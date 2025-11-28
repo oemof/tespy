@@ -15,19 +15,21 @@ you have any questions please reach out to the
 :ref:`TESPy community <community_label>`. There are regular online
 meetings as well as a discussion forum on GitHub.
 
-.. card::  Introduction: Learn the basic modeling concept of TESPy
-    :link: basics_intro_label
-    :link-type: ref
 
-    .. image:: /_static/images/thumbnails/getting_started/modeling_concept.svg
-        :align: center
-        :class: only-light
+.. grid:: 1 2 3 3
+    :gutter: 1
 
-    .. image:: /_static/images/thumbnails/getting_started/modeling_concept_darkmode.svg
-        :align: center
-        :class: only-dark
+    .. grid-item-card::  Introduction: Learn the basic modeling concept of TESPy
+        :link: basics_intro_label
+        :link-type: ref
 
-.. grid:: 1 2 2 2
+        .. image:: /_static/images/thumbnails/getting_started/modeling_concept.svg
+            :align: center
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/getting_started/modeling_concept_darkmode.svg
+            :align: center
+            :class: only-dark
 
     .. grid-item-card::  Heat Pump
         :link: basics_heat_pump_label

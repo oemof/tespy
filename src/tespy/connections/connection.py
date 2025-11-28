@@ -1084,15 +1084,15 @@ class Connection(ConnectionBase):
     def get_parameters(self):
         return {
             "m": dc_prop(
-                d=1e-4, quantity="mass_flow",
+                quantity="mass_flow",
                 description="mass flow of the fluid (system variable)"
             ),
             "p": dc_prop(
-                d=1e-3, quantity="pressure",
+                quantity="pressure",
                 description="absolute pressure of the fluid (system variable)"
             ),
             "h": dc_prop(
-                d=1e-3, quantity="enthalpy",
+                quantity="enthalpy",
                 description="mass specific enthalpy of the fluid (system variable)"
             ),
             "T": dc_prop(

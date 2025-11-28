@@ -6,6 +6,15 @@ from tespy.networks import Network
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
+dark = True
+file_suffix = ""
+annotation_color = "black"
+if dark:
+    plt.style.use("dark_background")
+    file_suffix = "_darkmode"
+    annotation_color = "#cfd0d0"
+
+
 nw = Network()
 nw.units.set_defaults(
     temperature="°C",
@@ -37,7 +46,6 @@ heatex.set_attr(dp1=0, dp2=0, subcooling=True)
 
 nw.solve("design")
 
-
 T_cond = c2.T.val_SI - c2.calc_td_dew()
 heat_to_cond = c1.m.val_SI * (h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data) - c2.h.val_SI) / 1e6
 heat = [0, heat_to_cond, abs(heatex.Q.val)]
@@ -49,8 +57,6 @@ fig, ax = plt.subplots(1, figsize=(10, 6))
 
 ax.plot(heat, T_hot, "o-", color="red")
 ax.plot([heat[0], heat[-1]], [T_cold[0], T_cold[-1]], "o-", color="blue")
-
-annotation_color = "black"
 
 ax.plot([heat[0], heat[-1]], [T_cond, T_cond], "--", color=annotation_color)
 ax.text(heat[0], T_cond + 2.5, r'$T_\text{dew}$', va='center', color=annotation_color, rotation=0)
@@ -87,4 +93,4 @@ ax.set_xbound([- 5.5 * offset, heat[-1] + 4 * offset])
 ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 
-fig.savefig("Condenser.svg", bbox_inches="tight")
+fig.savefig(f"Condenser{file_suffix}.svg", bbox_inches="tight")

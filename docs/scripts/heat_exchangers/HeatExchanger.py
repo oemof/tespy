@@ -5,6 +5,15 @@ from tespy.connections import Connection
 from tespy.networks import Network
 
 
+dark = True
+file_suffix = ""
+annotation_color = "black"
+if dark:
+    plt.style.use("dark_background")
+    file_suffix = "_darkmode"
+    annotation_color = "#cfd0d0"
+
+
 nw = Network()
 nw.units.set_defaults(
     temperature="°C",
@@ -36,18 +45,14 @@ heatex.set_attr(dp1=0, dp2=0)
 
 nw.solve("design")
 
-
 heat = [0, abs(heatex.Q.val)]
 T_hot = [c2.T.val_SI, c1.T.val_SI]
 T_cold = [d1.T.val_SI, d2.T.val_SI]
-
 
 fig, ax = plt.subplots(1, figsize=(10, 6))
 
 ax.plot(heat, T_hot, "o-", color="red")
 ax.plot(heat, T_cold, "o-", color="blue")
-
-annotation_color = "black"
 
 ttd_u_location = (heat[-1] * (1 + 1 / 15), T_cold[-1]), (heat[-1] * (1 + 1 / 15), T_hot[-1])
 bracket = mpatches.FancyArrowPatch(
@@ -81,4 +86,4 @@ ax.set_xbound([- 5.5 * offset, heat[-1] + 4 * offset])
 ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 
-fig.savefig("HeatExchanger.svg", bbox_inches="tight")
+fig.savefig(f"HeatExchanger{file_suffix}.svg", bbox_inches="tight")

@@ -14,11 +14,6 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.sectioned import SectionedHeatExchanger
-from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.global_vars import ERR
-from tespy.tools.logger import logger
 
 
 @component_registry
@@ -27,8 +22,10 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     Class for counter flow heat exchanger with UA sections.
 
     The heat exchanger is internally discretized into multiple sections, which
-    are defined by phase changes. The component assumes, that no pressure
-    losses occur. In principle the implementations follows :cite:`bell2015`.
+    are defined by phase changes. The component assumes, that a pressure drop
+    is linear to the change in enthalpy, meaning the phase boundary
+    identification is done iteratively. In principle the implementations
+    follows :cite:`bell2015`.
 
     **Mandatory Equations**
 
@@ -228,7 +225,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     while the air does not change phase, three sections will form:
 
     >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
     >>> delta_T_between_sections = T_steps_hot - T_steps_cold
     >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [5.0, 19.75, 10.11, 25.0]
@@ -248,7 +244,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> round(c1.p.val, 3)
     0.042
     >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
     >>> delta_T_between_sections = T_steps_hot - T_steps_cold
     >>> [round(float(dT), 2) for dT in delta_T_between_sections]
     [9.88, 14.8, 5.0, 19.88]
@@ -315,68 +310,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         del params["num_sections"]
         return params
 
-    @staticmethod
-    def _get_h_steps(c1, c2):
-        """Get the steps for enthalpy at the boundaries of phases during the
-        change of enthalpy from one state to another
-
-        Parameters
-        ----------
-        c1 : tespy.connections.connection.Connection
-            Inlet connection.
-
-        c2 : tespy.connections.connection.Connection
-            Outlet connection.
-
-        Returns
-        -------
-        list
-            Steps of enthalpy of the specified connections
-        """
-        if c1.fluid.val != c2.fluid.val:
-            msg = (
-                "Both connections need to utilize the same fluid data: "
-                f"{c1.fluid.val}, {c2.fluid.val}"
-            )
-            raise ValueError(msg)
-
-        if c1.p.val_SI != c2.p.val_SI:
-            msg = (
-                "This method assumes equality of pressure for the inlet and "
-                "the outlet connection. The pressure values provided are not "
-                "equal, the results may be incorrect."
-            )
-        # change the order of connections to have c1 as the lower enthalpy
-        # connection (enthalpy will be rising in the list)
-        if c1.h.val_SI > c2.h.val_SI:
-            c1, c2 = c2, c1
-
-        h_at_steps = [c1.h.val_SI, c2.h.val_SI]
-        fluid = single_fluid(c1.fluid_data)
-        # this should be generalized to "supports two-phase" because it does
-        # not work with incompressibles
-        is_pure_fluid = fluid is not None
-
-        if is_pure_fluid:
-            try:
-                h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-            except (ValueError, NotImplementedError):
-                return h_at_steps
-
-            if c1.h.val_SI < h_sat_liquid:
-                if c2.h.val_SI > h_sat_gas + ERR:
-                    h_at_steps = [c1.h.val_SI, h_sat_liquid, h_sat_gas, c2.h.val_SI]
-                elif c2.h.val_SI > h_sat_liquid + ERR:
-                    h_at_steps = [c1.h.val_SI, h_sat_liquid, c2.h.val_SI]
-
-            elif c1.h.val_SI < h_sat_gas - ERR:
-                if c2.h.val_SI > h_sat_gas + ERR:
-                    h_at_steps = [c1.h.val_SI, h_sat_gas, c2.h.val_SI]
-
-        return h_at_steps
-
-    def _assign_sections(self):
+    def _assign_steps(self):
         """Assign the sections of the heat exchanger
 
         Returns
@@ -385,64 +319,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
             List of cumulative sum of heat exchanged defining the heat exchanger
             sections.
         """
-        h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0])
-        Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
-        # do not insert last section, that will come from other side
-        Q_sections_hot = np.insert(np.cumsum(Q_sections_hot)[:-1], 0, 0.0)
+        steps_hot = self._get_moving_steps(self.inl[0], self.outl[0])
+        steps_cold = self._get_moving_steps(self.inl[1], self.outl[1])
 
-        h_steps_cold = self._get_h_steps(self.inl[1], self.outl[1])
-        Q_sections_cold = self._get_Q_sections(h_steps_cold, self.inl[1].m.val_SI)
-        Q_sections_cold = np.cumsum(Q_sections_cold)
-
-        return np.sort(np.r_[Q_sections_cold, Q_sections_hot])
-
-    def _get_T_at_steps(self, Q_sections):
-        """Calculate the temperature values for the provided sections.
-
-        Parameters
-        ----------
-        Q_sections : list
-            Cumulative heat exchanged from the hot side to the colde side
-            defining the sections of the heat exchanger.
-
-        Returns
-        -------
-        tuple
-            Lists of cold side and hot side temperature
-        """
-        # now put the Q_sections back on the h_steps on both sides
-        # Since Q_sections is defined increasing we have to start back from the
-        # outlet of the hot side
-        h_steps_hot = self.outl[0].h.val_SI + Q_sections / self.inl[0].m.val_SI
-        h_steps_cold = self.inl[1].h.val_SI + Q_sections / self.inl[1].m.val_SI
-        T_steps_hot = np.array([
-            T_mix_ph(self.inl[0].p.val_SI, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
-            for h in h_steps_hot
-        ])
-        T_steps_cold = np.array([
-            T_mix_ph(self.inl[1].p.val_SI, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-            for h in h_steps_cold
-        ])
-        return T_steps_hot, T_steps_cold
-
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        if round(self.inl[0].p.val_SI) != round(self.outl[0].p.val_SI):
-            msg = (
-                f"The {self.__class__.__name__} instance {self.label} is "
-                "discovering the phase changes based on constant pressure "
-                "assumption. The identification of the heat transfer sections "
-                "might be wrong in case phase changes are involved in the "
-                "heat transfer process."
-            )
-            logger.warning(msg)
-        if round(self.inl[1].p.val_SI) != round(self.outl[1].p.val_SI):
-            msg = (
-                f"The {self.__class__.__name__} instance {self.label} is "
-                "discovering the phase changes based on constant pressure "
-                "assumption. The identification of the heat transfer sections "
-                "might be wrong in case phase changes are involved in the "
-                "heat transfer process."
-            )
-            logger.warning(msg)
+        # unique throws out duplicates and sorts at the same time
+        steps = np.unique(np.r_[steps_hot, steps_cold])
+        return steps

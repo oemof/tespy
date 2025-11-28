@@ -179,7 +179,7 @@ class TurboCompressor(Compressor):
         parameters = super().get_parameters()
         parameters.update({
             'igva': dc_cp(
-                min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle",
+                min_val=-90, max_val=90, val=0, quantity="angle",
                 description="inlet guide vane angle"
             ),
             'char_map_eta_s': dc_cm(),

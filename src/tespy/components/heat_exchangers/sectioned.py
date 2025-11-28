@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+from scipy.optimize import brentq
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
@@ -20,6 +21,9 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import phase_mix_ph
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -232,11 +236,10 @@ class SectionedHeatExchanger(HeatExchanger):
     while the air does not change phase, three sections will form:
 
     >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
     >>> delta_T_between_sections = T_steps_hot - T_steps_cold
     >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[::10]
-    [5.0, 18.0, 16.0, 14.0, 12.0, 25.0]
+    >>> delta_T_list[:6]
+    [5.0, 16.8, 19.75, 19.6, 19.4, 19.2]
 
     We can see that the lowest delta T is the first one. This is the delta T
     between the hot side outlet and the cold side inlet, which can also be seen
@@ -253,11 +256,10 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(c1.p.val, 3)
     0.042
     >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> T_steps_hot, T_steps_cold = cd._get_T_at_steps(Q_sections)
     >>> delta_T_between_sections = T_steps_hot - T_steps_cold
     >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[::10]
-    [9.8, 12.8, 10.8, 8.8, 6.8, 19.8]
+    >>> delta_T_list[:6]
+    [9.88, 14.8, 14.68, 14.48, 14.28, 14.08]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
     `UA` value takes into account the heat transfer per section and calculates
@@ -266,9 +268,9 @@ class SectionedHeatExchanger(HeatExchanger):
     total heat transfer.
 
     >>> round(cd.kA.val)
-    174399
+    173307
     >>> round(cd.UA.val)
-    274461
+    273456
 
     It is also possible to apply a part-load modification to UA following the
     implementation of :cite:`cecchinato2010`. For this you have to specify
@@ -300,7 +302,7 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(cd.td_pinch.val, 2)
     5.0
     >>> round(cd.UA.val)
-    274461
+    273456
 
     With change in operating conditions, e.g. reduction of heat transfer
     we'd typically observe lower pinch, if the heat transfer reduces faster
@@ -347,7 +349,26 @@ class SectionedHeatExchanger(HeatExchanger):
         return params
 
     @staticmethod
-    def _get_h_steps(c1, c2, num_steps=51):
+    def _get_steps(num_steps=51):
+        """Get the steps as fraction of enthalpy change for either side
+
+        Parameters
+        ----------
+        c1 : tespy.connections.connection.Connection
+            Inlet connection.
+
+        c2 : tespy.connections.connection.Connection
+            Outlet connection.
+
+        Returns
+        -------
+        list
+            Steps of enthalpy of the specified connections
+        """
+        return np.linspace(0, 1, num_steps)
+
+    @staticmethod
+    def _get_moving_steps(c1, c2):
         """Get the steps for enthalpy at the boundaries of phases during the
         change of enthalpy from one state to another
 
@@ -371,12 +392,96 @@ class SectionedHeatExchanger(HeatExchanger):
             )
             raise ValueError(msg)
 
+        if c1.p.val_SI != c2.p.val_SI:
+            msg = (
+                "This method assumes equality of pressure for the inlet and "
+                "the outlet connection. The pressure values provided are not "
+                "equal, the results may be incorrect."
+            )
         # change the order of connections to have c1 as the lower enthalpy
         # connection (enthalpy will be rising in the list)
         if c1.h.val_SI > c2.h.val_SI:
             c1, c2 = c2, c1
 
-        h_at_steps = np.linspace(c1.h.val_SI, c2.h.val_SI, num_steps)
+        h_at_steps = [0, 1]
+        fluid = single_fluid(c1.fluid_data)
+        # this should be generalized to "supports two-phase" because it does
+        # not work with incompressibles
+        is_pure_fluid = fluid is not None
+
+        if is_pure_fluid:
+            try:
+                phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
+                phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
+            except NotImplementedError:
+                return h_at_steps
+
+            delta_h = c2.h.val_SI - c1.h.val_SI
+            # we can round delta p here because we only need it in case it is
+            # not zero, and then it will never be in the magnitude of subdigit
+            # Pascal
+            delta_p = round(c2.p.val_SI - c1.p.val_SI, 3)
+            if phase_h_high == "g" and phase_h_low == "tp":
+                if delta_p == 0:
+                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
+                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
+                    h_at_steps = [0, x_gas, 1]
+                else:
+                    x_gas = brentq(
+                        identify_step_at_saturation,
+                        0, 1,
+                        args=(
+                            c1.p.val_SI, c1.h.val_SI,
+                            delta_p, delta_h,
+                            1, c1.fluid_data#
+                        )
+                    )
+                    h_at_steps = [0, x_gas, 1]
+
+            elif phase_h_high == "g" and phase_h_low == "l":
+                if delta_p == 0:
+                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
+                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
+                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
+                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_at_steps = [0, x_liq, x_gas, 1]
+                else:
+                    x_gas = brentq(
+                        identify_step_at_saturation,
+                        0, 1,
+                        args=(
+                            c1.p.val_SI, c1.h.val_SI,
+                            delta_p, delta_h,
+                            1, c1.fluid_data#
+                        )
+                    )
+                    x_liq = brentq(
+                        identify_step_at_saturation,
+                        0, x_gas,
+                        args=(
+                            c1.p.val_SI, c1.h.val_SI,
+                            delta_p, delta_h,
+                            0, c1.fluid_data#
+                        )
+                    )
+                    h_at_steps = [0, x_liq, x_gas, 1]
+
+            elif phase_h_high == "tp" and phase_h_low == "l":
+                if delta_p == 0:
+                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
+                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_at_steps = [0, x_liq, 1]
+                else:
+                    x_liq = brentq(
+                        identify_step_at_saturation,
+                        0, 1,
+                        args=(
+                            c1.p.val_SI, c1.h.val_SI,
+                            delta_p, delta_h,
+                            0, c1.fluid_data#
+                        )
+                    )
+                    h_at_steps = [0, x_liq, 1]
 
         return h_at_steps
 
@@ -399,7 +504,11 @@ class SectionedHeatExchanger(HeatExchanger):
         """
         return np.diff(h_at_steps) * mass_flow
 
-    def _assign_sections(self):
+    @staticmethod
+    def _assign_to_steps(start, end, steps):
+        return start + steps * (end - start)
+
+    def _get_Q_cumsum_steps(self, steps):
         """Assign the sections of the heat exchanger
 
         Returns
@@ -408,12 +517,32 @@ class SectionedHeatExchanger(HeatExchanger):
             List of cumulative sum of heat exchanged defining the heat exchanger
             sections.
         """
-        steps = self.num_sections.val + 1
-        h_steps_hot = self._get_h_steps(self.inl[0], self.outl[0], steps)
+        start = self.outl[0].h.val_SI
+        end = self.inl[0].h.val_SI
+
+        h_steps_hot = self._assign_to_steps(start, end, steps)
         Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
         return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
 
-    def _get_T_at_steps(self, Q_sections):
+    def _assign_steps(self):
+        """Assign the sections of the heat exchanger
+
+        Returns
+        -------
+        list
+            List of cumulative sum of heat exchanged defining the heat exchanger
+            sections.
+        """
+        num_steps = self.num_sections.val + 1
+        steps = self._get_steps(num_steps)
+        steps_hot = self._get_moving_steps(self.inl[0], self.outl[0])
+        steps_cold = self._get_moving_steps(self.inl[1], self.outl[1])
+
+        # unique throws out duplicates and sorts at the same time
+        steps = np.unique(np.r_[steps, steps_hot, steps_cold])
+        return steps
+
+    def _get_T_at_steps(self, steps):
         """Calculate the temperature values for the provided sections.
 
         Parameters
@@ -427,18 +556,20 @@ class SectionedHeatExchanger(HeatExchanger):
         tuple
             Lists of cold side and hot side temperature
         """
-        # now put the Q_sections back on the h_steps on both sides
-        # Since Q_sections is defined increasing we have to start back from the
-        # outlet of the hot side
-        h_steps_hot = self.outl[0].h.val_SI + Q_sections / self.inl[0].m.val_SI
-        h_steps_cold = self.inl[1].h.val_SI + Q_sections / self.inl[1].m.val_SI
-        steps = self.num_sections.val + 1
-        p_steps_hot = np.linspace(
+        h_steps_hot = self._assign_to_steps(
+            self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
+        )
+        p_steps_hot = self._assign_to_steps(
             self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
         )
-        p_steps_cold = np.linspace(
+
+        h_steps_cold = self._assign_to_steps(
+            self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
+        )
+        p_steps_cold = self._assign_to_steps(
             self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
         )
+
         T_steps_hot = np.array([
             T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
             for p, h in zip(p_steps_hot, h_steps_hot)
@@ -493,10 +624,13 @@ class SectionedHeatExchanger(HeatExchanger):
             Cumulated heat transfer over sections, temperature at steps hot
             side, temperature at steps cold side, heat transfer per section
         """
-        Q_sections = self._assign_sections()
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(Q_sections)
+        steps = self._assign_steps()
+        Q_sections = self._get_Q_cumsum_steps(steps)
+        T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
         Q_per_section = np.diff(Q_sections)
-        td_log_per_section = self._calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess)
+        td_log_per_section = self._calc_td_log_per_section(
+            T_steps_hot, T_steps_cold, postprocess
+        )
         return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
 
     def calc_UA(self, sections):
@@ -601,14 +735,16 @@ class SectionedHeatExchanger(HeatExchanger):
             self.inl[0].m,
             self.inl[0].p,
             self.inl[0].h,
+            self.outl[0].p,
             self.outl[0].h,
             self.inl[1].m,
             self.inl[1].p,
             self.inl[1].h,
+            self.outl[1].p,
             self.outl[1].h
         ]
 
-    def calc_td_pinch(self, sections):
+    def calc_td_pinch(self, T_steps_hot, T_steps_cold):
         """Calculate the pinch point temperature difference
 
         Returns
@@ -616,8 +752,6 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             Value of the pinch point temperature difference
         """
-        _, T_steps_hot, T_steps_cold, _, _ = sections
-
         return min(T_steps_hot - T_steps_cold)
 
     def td_pinch_func(self):
@@ -633,18 +767,19 @@ class SectionedHeatExchanger(HeatExchanger):
 
                 0 = td_\text{pinch} - min(td_\text{i})
         """
-        sections = self.calc_sections(False)
-        return self.td_pinch.val_SI - self.calc_td_pinch(sections)
+        steps = self._assign_steps()
+        T_hot, T_cold = self._get_T_at_steps(steps)
+        return self.td_pinch.val_SI - self.calc_td_pinch(T_hot, T_cold)
 
     def td_pinch_dependents(self):
         return [
-            self.inl[0].m,
             self.inl[0].p,
             self.inl[0].h,
+            self.outl[0].p,
             self.outl[0].h,
-            self.inl[1].m,
             self.inl[1].p,
             self.inl[1].h,
+            self.outl[1].p,
             self.outl[1].h
         ]
 
@@ -653,4 +788,42 @@ class SectionedHeatExchanger(HeatExchanger):
 
         sections = self.calc_sections()
         self.UA.val_SI = self.calc_UA(sections)
-        self.td_pinch.val_SI = self.calc_td_pinch(sections)
+        self.td_pinch.val_SI = self.calc_td_pinch(sections[1], sections[2])
+
+
+def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):
+    r"""Method to identify the step corresponding to a saturation line assuming
+    the change of pressure delta p is linear to the change of enthalpy delta h.
+
+    .. math::
+
+        \Delta h \cdot \left(p_\text{sat} - p_\text{in}\right) =
+        \Delta p \cdot \left(h_\left[p_\text{sat}, Q\right] - h_\text{in}
+        \right)
+
+
+    Parameters
+    ----------
+    x : float
+        Step to solve for
+    p_in : float
+        pressure at inlet
+    h_in : float
+        enthalpy at inlet
+    delta_p : float
+        overall pressure difference
+    delta_h : float
+        overall enthalpy difference
+    Q : float
+        vapor mass fraction (0 for bubble line, 1 for dew line)
+    fluid_data : dict
+        fluid_data dictionary
+
+    Returns
+    -------
+    float
+        residual of equation
+    """
+    p_sat = p_in + delta_p * x
+    h_sat = h_mix_pQ(p_sat, Q, fluid_data)
+    return delta_h * (p_sat - p_in) - (h_sat - h_in) * delta_p

@@ -3,7 +3,15 @@ import matplotlib.patches as mpatches
 from tespy.components import SectionedHeatExchanger, Source, Sink
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.fluid_properties import h_mix_pQ
+
+
+dark = True
+file_suffix = ""
+annotation_color = "black"
+if dark:
+    plt.style.use("dark_background")
+    file_suffix = "_darkmode"
+    annotation_color = "#cfd0d0"
 
 
 nw = Network()
@@ -42,8 +50,6 @@ heat /= 1e6
 
 fig, ax = plt.subplots(1, figsize=(10, 6))
 
-annotation_color = "black"
-
 ax.plot((heat, heat), ([T for T in T_hot], [T for T in T_cold]), color=annotation_color, linestyle = "--")
 
 ax.plot(heat, T_hot, "o-", color="red")
@@ -81,7 +87,7 @@ ax.set_xbound([- 5.5 * offset, heat[-1] + 4 * offset])
 ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 
-fig.savefig("SectionedHeatExchanger.svg", bbox_inches="tight")
+fig.savefig(f"SectionedHeatExchanger{file_suffix}.svg", bbox_inches="tight")
 
 
 heat_defaultsteps = heat # for later comparison
@@ -103,7 +109,7 @@ ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 ax.legend()
 
-fig.savefig("SectionedHeatExchanger_vs_HeatExchanger.svg", bbox_inches="tight")
+fig.savefig(f"SectionedHeatExchanger_vs_HeatExchanger{file_suffix}.svg", bbox_inches="tight")
 
 
 heatex.set_attr(num_sections=6)
@@ -122,4 +128,4 @@ ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 ax.legend()
 
-fig.savefig("SectionedHeatExchanger_sectionscompare.svg", bbox_inches="tight")
+fig.savefig(f"SectionedHeatExchanger_sectionscompare{file_suffix}.svg", bbox_inches="tight")

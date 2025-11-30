@@ -32,6 +32,27 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         )
         return constraints
 # %%[sec_5]
+    def cooling_energy_balance_func(self):
+        eta_recovery = 0.8
+        residual = (
+            self.inl[1].m.val_SI * (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+            + self.inl[0].m.val_SI * (
+                self.outl[0].h.val_SI
+                - self.outl[0].h.val_SI / (1 - self.dissipation_ratio.val_SI)
+                + self.inl[0].h.val_SI * (
+                    self.dissipation_ratio.val_SI / (1 - self.dissipation_ratio.val_SI)
+                )
+            ) * eta_recovery
+        )
+        return residual
+
+    def cooling_energy_balance_dependents(self):
+        return [
+            self.inl[0].m, self.inl[1].m,
+            self.inl[0].h, self.inl[1].h,
+            self.outl[0].h, self.outl[1].h
+        ]
+# %%[sec_6]
     def _preprocess(self, row_idx):
         if not self.eta_recovery.is_set:
             msg = (
@@ -43,26 +64,6 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 
         return super()._preprocess(row_idx)
 
-    def cooling_energy_balance_func(self):
-        residual = (
-            self.inl[1].m.val_SI * (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            + self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI
-                - self.outl[0].h.val_SI / (1 - self.dissipation_ratio.val_SI)
-                + self.inl[0].h.val_SI * (
-                    self.dissipation_ratio.val_SI / (1 - self.dissipation_ratio.val_SI)
-                )
-            ) * self.eta_recovery.val_SI
-        )
-        return residual
-
-    def cooling_energy_balance_dependents(self):
-        return [
-            self.inl[0].m, self.inl[1].m,
-            self.inl[0].h, self.inl[1].h,
-            self.outl[0].h, self.outl[1].h
-        ]
-# %%[sec_6]
     def get_parameters(self):
         params = super().get_parameters()
         params["eta_recovery"] = dc_cp(
@@ -193,5 +194,3 @@ compressor.set_attr(dissipation_ratio=0.1, eta_recovery=0.9)
 nw.solve("design")
 nw.print_results()
 # %%[sec_18]
-
-

@@ -1,7 +1,7 @@
 .. _develop_components_tutorial_label:
 
-How to contribute a new component
-=================================
+How to develop a new component
+==============================
 
 What should I do if I need a component for a specific simulation that is not
 available in TESPy? One solution would be to request support on GitHub or to
@@ -9,7 +9,7 @@ raise the issue at the next online or community meeting. But what good is that
 if I need the new component right now?
 
 I will just implement it myself! The question becomes how to do this, since I
-don't know the code structure. These instructions on **how to contribute a
+don't know the code structure. These instructions on **how to develop a
 new component** are intended to simplify the transition from user to an
 awesome developer.
 
@@ -18,16 +18,13 @@ Implementation of a polynomial compressor with cooling
 The following basic principles should be in your mind when implementing a
 component:
 
-* Visualize your task with a circuit diagram, equations and/or basic principle
+* Visualize your task with a flowsheet, cycle diagram and/or the equations you
+  want to implement
 * Adding the new equations and variables
 * Expand the parameter definitions and derived calculations
 * Perform a lot of tests
-* Write doc strings for the new component
+* Write docstrings for the new component
 * Implement tests to verify correctness
-
-.. tip::
-
-    New component inherits from existing "parent" component
 
 .. figure:: /_static/images/tutorials/compressor_with_cooling/drawing_pcwc.svg
     :align: center
@@ -43,13 +40,12 @@ component:
 
     Figure: Blackboard drawing of compressor with cooling
 
-1. Implementing inputs and outputs
-----------------------------------
+1. Implement the inputs and outputs
+-----------------------------------
 
-First, we have to create a new class and name it
-:code:`PolynomialCompressorWithCooling`. Then, we have to implement the
-inputs and outputs. Based on our blackboard drawing we need two inputs as well
-as two ouputs.
+First, we create a new class named :code:`PolynomialCompressorWithCooling`.
+Then, we have to implement the inputs and outputs. Based on our blackboard
+drawing we need two inputs as well as two outputs.
 
 .. note::
 
@@ -57,7 +53,6 @@ as two ouputs.
     balance:
 
     * in1 matches with out1
-
     * in2 matches with out2
 
     This is automatically expanded with every new pair of ports.
@@ -77,7 +72,9 @@ definitions. Then we will compile the components, including the new polynomial
 compressor with cooling and its connections. Once these have been added to the
 network, we will parameterise the system and solve it in the design mode. The
 correctness of the process can be confirmed by checking the mass flow and
-fluid composition in results.
+fluid composition in results. Since there is no connection between the working
+fluid ports of the compressor and the cooling fluid yet, we have to provide
+pressure, temperature and a mass flow.
 
 .. dropdown:: Display source code for testing the model
 
@@ -96,10 +93,10 @@ fluid composition in results.
         :start-after: [sec_10]
         :end-before: [sec_11]
 
-2. Get mandatory constraints
+2. Add mandatory constraints
 ----------------------------
 
-The next step is to get the mandatory constraints. To do this, a method is
+The next step is to add the mandatory constraints. To do this, a method is
 created that adds an additional constraint to the dictionary of mandatory
 constraints.
 
@@ -119,43 +116,20 @@ met. Finally, the complete set of constraints is returned.
 3. Define new equations
 -----------------------
 
-After getting the mandatory constraint, the cooling energy balance is to be
-defined. First, the :code:`_preprocess()` method have to be defined. This
-performs validation before initiating the actual preprocessing of the
-component. It checks whether a required parameter (:code:`eta_recovery`) is
-set. If not, it throws an explanatory error (:code:`TESPyComponentError`). If
-so, it calls the default preprocessing of the base class.
-
-.. note::
-
-    During the first run, it may be helpful to ensure that the component
-    parameters are initialized. In this case, it could look like this:
-
-    .. code-block:: python
-
-        def _preprocess(self, row_idx):
-            if not self.dissipation_ratio.is_set:
-                self.dissipation_ratio.is_set = True
-                self.dissipation_ratio.val = 0
-                self.dissipation_ratio.val_SI = 0
-            return super()._preprocess(row_idx)
-
+Now we define the methods that are connected to the constraint: The function
+returning the residual value of the equation and the list of variables the
+equation depends on. The :code:`cooling_energy_balance_func()` method describes
+the actual energy balance equation. It calculates the heat dissipated by the
+working fluid side in the compressor through the value of the
+:code:`dissipation_ratio`. On the cold side this heat should be added to the
+cooling fluid, but not in its entirety, only an usable share of it. For now
+we can hardcode that usable share in the equation with the variable
+:code:`eta_recovery`.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
     :start-after: [sec_5]
     :end-before: [sec_6]
-
-In contrast, the cooling energy balance function and its dependencies are to
-be defined. The :code:`cooling_energy_balance_func()` method  describes the
-actual energy balance equation. It calculates the difference between the
-enthalpies of the incoming and outgoing mass flows, taking into account the
-energy loss (:code:`dissipation_ratio`) and a usable portion
-(:code:`usable_share`).
-
-For dependencies, :code:`energy_balance_dependents()` determines which
-variables (mass flows and enthalpies of the inlets and outlets) appear in this
-balance equation and thus depend on the solver.
 
 As in the first step, it is recommended to test the new code in between.
 
@@ -210,9 +184,9 @@ As in the first step, it is recommended to test the new code in between.
             TESPyNetworkError: You have provided too many parameters: 0
             required, 1 supplied. Aborting calculation!
 
-    The test performed results in an error. Since we now have an additional
-    equation, this means that we have to define one less parameter, e.g., the
-    cooling mass flow.
+    With no changes in our original specifications, the model results in an
+    error. Since we now have an additional equation, this means that we have to
+    specify one parameter less than before, e.g., the cooling mass flow.
 
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
@@ -222,29 +196,62 @@ As in the first step, it is recommended to test the new code in between.
 4. Expand definitions of the parameters and add derived calculations
 --------------------------------------------------------------------
 
-Next, the new dimensions of the :code:`polynomial compressor with cooling` are
-to be defined. To achieve this, a parameter definition for the efficiency of
-the heat recovery :code:`eta_recovery` has to be determined.
+Next, we can define parameters for the :code:`PolynomialCompressorWithCooling`.
+We do this similar to the mandatory constraints by calling the
+:code:`get_parameters` method, updating the dictionary and returning it. We
+can start with the definition for the efficiency of the heat recovery
+:code:`eta_recovery`.
 
 For this, we use a data container :code:`dc_cp()`, which creates an object of
-the :code:`ComponentProperties class`. These objects describe how TESPy should
+the :code:`ComponentProperties` class. These objects describe how TESPy should
 handle a specific physical parameter, e.g., temperature, pressure loss,
 efficiency, etc. Accordingly, TESPy uses these objects to automate unit
 conversion, validation, equation integration and documentation.
-
-.. note::
-
-    In the next steps, the parameter definition is expanded.
 
 .. code-block:: python
 
     from tespy.tools.data_containers import ComponentProperties as dc_cp
     from tespy.tools.helpers import TESPyComponentError
 
+
         def get_parameters(self):
             params = super().get_parameters()
             params["eta_recovery"] = dc_cp()
             return params
+
+Along with the introduction of this parameter, we also update the equation.
+
+.. code-block:: python
+
+        def cooling_energy_balance_func(self):
+            residual = (
+                self.inl[1].m.val_SI * (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                + self.inl[0].m.val_SI * (
+                    self.outl[0].h.val_SI
+                    - self.outl[0].h.val_SI / (1 - self.dissipation_ratio.val_SI)
+                    + self.inl[0].h.val_SI * (
+                        self.dissipation_ratio.val_SI / (1 - self.dissipation_ratio.val_SI)
+                    )
+                ) * self.eta_recovery.val_SI
+            )
+            return residual
+
+And, we can make the specification of :code:`eta_recovery` mandatory if we
+want. This can be done by overriding the default :code:`_preprocess` method
+like this:
+
+.. code-block:: python
+
+        def _preprocess(self, row_idx):
+            if not self.eta_recovery.is_set:
+                msg = (
+                    f"The component {self.label} of type {self.__class__.__name__}"
+                    "requires you to specify the share of heat recovery "
+                    "eta_recovery."
+                )
+                raise TESPyComponentError(msg)
+
+            return super()._preprocess(row_idx)
 
 Once a again, it is recommended to test the code.
 
@@ -265,6 +272,9 @@ Once a again, it is recommended to test the code.
         :start-after: [sec_13]
         :end-before: [sec_14]
 
+    We can also check if changing boundary conditions works and if the results
+    seem reasonable:
+
     .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
         :language: python
         :start-after: [sec_14]
@@ -280,16 +290,16 @@ Once a again, it is recommended to test the code.
         :end-before: [sec_16]
 
 The tests are going well. But with very small mass flows temperature at
-cooling output can be higher than temperature at gas output, as there is no
-heat exchanger balance equation implemented.
+cooling output can be higher than the temperature on the gas side, as there is
+no limit implemented.
 
 Further expansion of parameter definition
 +++++++++++++++++++++++++++++++++++++++++
 
-The next step is to define the parameter for the minimum temperature
-difference :code:`td_minimal` between the compressor and the cooling medium.
-In this case, the attribute :code:`min_val=0` means that this value has not to
-be negative.
+The next step is to define the parameter for the minimum temperature difference
+:code:`td_minimal` between the compressor and the cooling medium. In this case,
+the attribute :code:`min_val=0` means that this value must not be negative. If
+it is, a warning is put out in the postprocessing automatically.
 
 .. code-block:: python
 
@@ -305,10 +315,10 @@ be negative.
             return params
 
 In addition, :code:`calc_parameters()` is used to calculate the derived
-thermodynamic variables after the simulation. In this case, the internal
-maximum temperature in the compressor (:code:`T_max_compressor_internal`) and
-the minimum temperature difference between the compressor and the cooling
-medium (:code:`td_minimal`) are calculated using the outlet enthalpy of the
+properties after the simulation. In this case, the internal maximum temperature
+in the compressor (:code:`T_max_compressor_internal`) and the minimum
+temperature difference between the compressor and the cooling fluid
+(:code:`td_minimal`) are calculated using the outlet enthalpy of the
 compressor.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
@@ -343,11 +353,13 @@ To take the energy and pressure balance system of the component into account,
 the parameter definition is extended one last time. For this purpose, the
 pressure loss in the cooling circuit :code:`dp_cooling` is described. As in
 the previous step, the value has not to be negative due to the
-:code:`min_val=0` attribute. The :code:`structure matrix` is then used to
-determine how the pressure loss is integrated into the equation system. The
-:code:`func_params` attribute specifies the assignment for the internal
-calculation. Finally, the :code:`quantity` specified indicates the physical
-unit.
+:code:`min_val=0` attribute. Instead of a :code:`func` we can use the
+:code:`structure matrix` for this parameter. The :code:`structure_matrix` is
+used in the preprocessing to make a linear connection between inlet and outlet
+pressure in a way, that these two variables can then be mapped into a single
+one in the numerical solution finding. The :code:`func_params` attribute
+specifies the assignment for the internal calculation. Finally, the
+:code:`quantity` specified indicates the physical unit.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python

@@ -77,10 +77,10 @@ out to us. We are looking forward to hearing from you!
         :link: tutorial_powerconnection_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/advanced_tutorials/debugging.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/powerconnection.svg
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/advanced_tutorials/debugging_darkmode.svg
+        .. image:: /_static/images/thumbnails/advanced_tutorials/powerconnection_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Exergy analysis of a heat pump

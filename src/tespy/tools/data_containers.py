@@ -482,7 +482,7 @@ class FluidProperties(DataContainer):
             "is_result": False,
             "min_val": -1e12,
             "max_val": 1e12,
-            "d": 1e-1,
+            "d": 1e-4,
             "_unit": None,
             "is_set": False,
             "_potential_var": False,

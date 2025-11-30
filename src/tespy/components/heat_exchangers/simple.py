@@ -264,13 +264,13 @@ class SimpleHeatExchanger(Component):
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'}
             ),
-            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
-            'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
+            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-5, quantity="length"),
+            'L': dc_cp(min_val=1e-1, quantity="length"),
             'ks': dc_cp(
-                _val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"
+                _val=1e-4, min_val=1e-7, max_val=1e-3, quantity="length"
             ),
-            'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3, d=1e-2),
-            'kA': dc_cp(min_val=0, d=1, quantity="heat_transfer_coefficient"),
+            'ks_HW': dc_cp(_val=10, min_val=1e-1, max_val=1e3),
+            'kA': dc_cp(min_val=0, quantity="heat_transfer_coefficient"),
             'kA_char': dc_cc(param='m'),
             'Tamb': dc_cp(quantity="temperature"),
             'dissipative': dc_simple(_val=None),

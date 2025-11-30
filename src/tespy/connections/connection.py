@@ -52,6 +52,7 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
@@ -121,11 +122,7 @@ class ConnectionBase:
         if isinstance(value, pint.Quantity):
             is_quantity = True
         else:
-            try:
-                float(value)
-                is_numeric = True
-            except (TypeError, ValueError):
-                pass
+            is_numeric = _is_numeric(value)
 
         if key == "Td_bp":
             msg = (
@@ -1077,9 +1074,9 @@ class Connection(ConnectionBase):
 
     def get_parameters(self):
         return {
-            "m": dc_prop(d=1e-4, quantity="mass_flow"),
-            "p": dc_prop(d=1e-3, quantity="pressure"),
-            "h": dc_prop(d=1e-3, quantity="enthalpy"),
+            "m": dc_prop(quantity="mass_flow"),
+            "p": dc_prop(quantity="pressure"),
+            "h": dc_prop(quantity="enthalpy"),
             "T_bubble": dc_prop(quantity="temperature"),
             "T_dew": dc_prop(quantity="temperature"),
             "vol": dc_prop(quantity="specific_volume"),

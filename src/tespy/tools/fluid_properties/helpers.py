@@ -76,7 +76,7 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
 
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": f, "parameter": "T" , "delta": 0.01
+        "function": f, "parameter": "T" , "delta": 0.001
     }
     return newton_with_kwargs(
         central_difference,

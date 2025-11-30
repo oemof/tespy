@@ -31,7 +31,7 @@ Getting started
 
         Get the installation instructions for your favorite OS
 
-    .. grid-item-card::  Basic Tutorials
+    .. grid-item-card::  Introductory Tutorials
         :link: basics_label
         :link-type: ref
 
@@ -41,7 +41,7 @@ Getting started
         .. image:: /_static/images/thumbnails/getting_started/basic_tutorials_darkmode.svg
             :class: only-dark
 
-        Build your first basic models with tespy
+        Build your first models with tespy
 
 ..  toctree::
     :maxdepth: 1

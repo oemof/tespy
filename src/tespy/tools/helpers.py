@@ -643,7 +643,6 @@ def newton_with_kwargs(
         tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
 
-    # start newton loop
     iteration = 0
     expr = True
     x = val0
@@ -692,6 +691,7 @@ def newton_with_kwargs(
 
 
 def central_difference(function=None, parameter=None, delta=None, **kwargs):
+    delta = abs(max(kwargs[parameter] * delta, delta))
     upper = kwargs.copy()
     upper[parameter] += delta
     lower = kwargs

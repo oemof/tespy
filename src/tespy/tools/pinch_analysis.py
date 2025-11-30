@@ -3,7 +3,7 @@ from pina import PinchAnalyzer, make_stream
 import matplotlib.pyplot as plt
 
 # Useful literature: 
-# Arpagaus 2019 Hochtemperatur-Wärmepumpen (p.99)
+# Arpagaus 2019 Hochtemperatur-Wärmepumpen (ISBN 978-3-8007-4550-0)
 # Kemp 2006 (p.20)
 # Walden et al. 2023 (https://doi.org/10.1016/j.apenergy.2023.121933)
 

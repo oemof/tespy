@@ -27,9 +27,8 @@ Integration
         .. image:: /_static/images/thumbnails/integration/pygmo_optimization_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Model coupling
-        :link: model_coupling_label
-        :link-type: ref
+    .. grid-item-card::  Combining tespy and oemof-solph
+        :link: https://oemof.github.io/heat-pump-tutorial/
 
         .. image:: /_static/images/thumbnails/integration/model_coupling.svg
             :class: only-light

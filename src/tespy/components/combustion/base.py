@@ -163,7 +163,8 @@ class CombustionChamber(Component):
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
                 num_eq_sets=1,
-                quantity="ratio"
+                quantity="ratio",
+                description="available oxygen to stoichiometric oxygen ratio"
             ),
             'ti': dc_cp(
                 min_val=0,
@@ -171,7 +172,8 @@ class CombustionChamber(Component):
                 func=self.ti_func,
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
-                quantity="heat"
+                quantity="heat",
+                description="thermal input (fuel LHV multiplied with mass flow)"
             )
         }
 

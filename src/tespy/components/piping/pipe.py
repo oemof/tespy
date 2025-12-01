@@ -404,7 +404,7 @@ class Pipe(SimpleHeatExchanger):
         return (
             [self.inl[0].m]
             + [var for c in self.inl + self.outl for var in [c.p, c.h]]
-            + [self.D]
+            + [self.D, self.L]
         )
 
     def ohc_subsurface_group_func(self):
@@ -472,5 +472,5 @@ class Pipe(SimpleHeatExchanger):
         return (
             [self.inl[0].m]
             + [var for c in self.inl + self.outl for var in [c.p, c.h]]
-            + [self.D]
+            + [self.D, self.L]
         )

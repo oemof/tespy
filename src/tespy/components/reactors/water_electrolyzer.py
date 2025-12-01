@@ -192,7 +192,7 @@ class WaterElectrolyzer(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(min_val=0, quantity="power"),
+            'P': dc_cp(min_val=0, quantity="power", _potential_var=True),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
@@ -238,7 +238,8 @@ class WaterElectrolyzer(Component):
                 min_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
-                quantity="specific_energy"
+                quantity="specific_energy",
+                _potential_var=True
             )
         }
 
@@ -324,7 +325,6 @@ class WaterElectrolyzer(Component):
         self.h_refh2o = h_mix_pT(p_ref, T_ref, self.inl[1].fluid_data, self.inl[1].mixing_rule)
         self.h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
         self.h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
-
 
         super()._preprocess(num_nw_vars)
 

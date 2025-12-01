@@ -297,7 +297,7 @@ class ParabolicTrough(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
 
     def convergence_check(self):
         pass

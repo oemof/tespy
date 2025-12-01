@@ -325,12 +325,13 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
         self.AS.update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
-
         if phase == CP.iphase_twophase:
             return "tp"
         elif phase == CP.iphase_liquid:
             return "l"
         elif phase == CP.iphase_gas:
+            return "g"
+        elif phase == CP.iphase_supercritical_gas:
             return "g"
         else:
             return "state not recognised"

@@ -188,8 +188,8 @@ class SolarCollector(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
+            'E': dc_cp(min_val=0, quantity="heat", _potential_var=True),
+            'A': dc_cp(min_val=0, quantity="area", _potential_var=True),
             'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
             'lkf_lin': dc_cp(min_val=0),
             'lkf_quad': dc_cp(min_val=0),
@@ -246,7 +246,7 @@ class SolarCollector(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
 
     def convergence_check(self):
         pass

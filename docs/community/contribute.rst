@@ -276,7 +276,6 @@ learn how to write a nice commit message.
 
 Documentation
 ^^^^^^^^^^^^^
-
 The general implementation-independent documentation such as installation
 guide, flow charts, and mathematical models is done via ReStructuredText (rst).
 The files can be found in the folder *docs*. For further information on

@@ -8,6 +8,7 @@
     :hidden:
 
     getting_started
+    basic_tutorials
     building_blocks
     examples_benchmarks
 
@@ -16,8 +17,8 @@
     :caption:  Advanced topics
     :hidden:
 
-    advanced_tutorials
     advanced_features
+    advanced_tutorials
     integration
     documentation
 

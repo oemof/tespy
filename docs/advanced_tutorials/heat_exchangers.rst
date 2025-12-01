@@ -140,14 +140,14 @@ In the condenser the upper terminal temperature differences is assigned to the
 temperature differences between the dew line temperature of the condensing
 fluid and the outlet temperature of the cold fluid.
 
-.. figure:: /_static/images/tutorials/heat_exchangers/HeatExchanger.svg
+.. figure:: /_static/images/tutorials/heat_exchangers/Condenser.svg
     :align: center
     :alt: HeatExchanger
     :figclass: only-light
 
     QT diagram for HeatExchanger class
 
-.. figure:: /_static/images/tutorials/heat_exchangers/HeatExchanger_darkmode.svg
+.. figure:: /_static/images/tutorials/heat_exchangers/Condenser_darkmode.svg
     :align: center
     :alt: HeatExchanger
     :figclass: only-dark
@@ -177,7 +177,9 @@ sections at the phase change points.
 SectionedHeatExchanger
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The sectioned model sections the heat exchange into 50 sections by default.
+The sectioned model sections the heat exchange into 50 sections by default and
+extra sections are inserted at the moving boundaries (note the smaller
+sections in between).
 
 .. figure:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger.svg
     :align: center
@@ -198,33 +200,36 @@ MovingBoundary and Sectioned models
 
 Comparing these two models, we see almost identical results in the cases
 shown above. However, this is not necessarily the case. There are situations,
-where these models yield different results.
+where these models may yield slightly different results. This is specifically
+the case when there is a curvature in the isobars (e.g. supercritical
+conditions near critical point) or when there is a pressure drop in a pure
+liquid phase nearing the two-phase region.
 
-1. when specifying a different number of sections
-2. with pressure losses along the flow
-3. when there is curvature in the isobars (e.g. supercritical conditions near
-   critical point)
+First, we have a look at different comparisons of the two models, where the
+performance is very similar:
 
 Comparing different number of sections
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For variant 1 the following graph shows the comparison of a 0D model to a
-sectioned one.
+The following graph shows the comparison of a MovingBoundaryHeatExchanger and a
+SectionedHeatExchanger. There is a very small difference in the desuperheating
+section.
 
 .. figure:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger.svg
     :align: center
-    :alt: SectionedHeatExchanger vs. HeatExchanger
+    :alt: SectionedHeatExchanger vs. MovingBoundaryHeatExchanger
     :figclass: only-light
 
-    QT diagram comparison for SectionedHeatExchanger and HeatExchanger classes
+    QT diagram comparison for SectionedHeatExchanger and MovingBoundaryHeatExchanger classes
 
 .. figure:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
     :align: center
-    :alt: SectionedHeatExchanger vs. HeatExchanger
+    :alt: SectionedHeatExchanger vs. MovingBoundaryHeatExchanger
     :figclass: only-dark
 
-    QT diagram comparison for SectionedHeatExchanger and HeatExchanger classes
+    QT diagram comparison for SectionedHeatExchanger and MovingBoundaryHeatExchanger classes
 
-And two sectioned models with different number of sections.
+And two sectioned models with different number of sections, where we can see
+that already with a few sections we can yield quite good results.
 
 .. figure:: /_static/images/tutorials/heat_exchangers/SectionedHeatExchanger_sectionscompare.svg
     :align: center
@@ -244,8 +249,8 @@ And two sectioned models with different number of sections.
 
 Considering pressure drop
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-For the variant 2 we can get differences in the results between the 1D models
-when there is a pressure drop in the two-phase region.
+Since both type of models can consider pressure drop (in the same way), they
+match quite well again.
 
 .. figure:: /_static/images/tutorials/heat_exchangers/Sectioned_vs_Moving_pressure_drop.svg
     :align: center
@@ -263,10 +268,31 @@ when there is a pressure drop in the two-phase region.
     QT diagram comparison for SectionedHeatExchanger with
     MovingBoundaryHeatExchanger considering pressure drop
 
+Comparing the two again in a different situation: We preheat the working fluid
+with a relatively high pressure drop towards saturation. The difference shows
+on the secondary side (blue line).
+
+.. figure:: /_static/images/tutorials/heat_exchangers/Sectioned_vs_Moving_pressure_drop_preheating.svg
+    :align: center
+    :alt: SectionedHeatExchanger vs. MovingBoundaryHeatExchanger with pressure drop
+    :figclass: only-light
+
+    QT diagram comparison for SectionedHeatExchanger with
+    MovingBoundaryHeatExchanger considering high pressure drop
+
+.. figure:: /_static/images/tutorials/heat_exchangers/Sectioned_vs_Moving_pressure_drop_preheating_darkmode.svg
+    :align: center
+    :alt: SectionedHeatExchanger vs. MovingBoundaryHeatExchanger with pressure drop
+    :figclass: only-dark
+
+    QT diagram comparison for SectionedHeatExchanger with
+    MovingBoundaryHeatExchanger considering high pressure drop
+
+
 Curvature of isobars
 ^^^^^^^^^^^^^^^^^^^^
-For variant 3 we yield different results due to the curvature of the isobars
-in the supercritical region.
+Very similar to the previous comparison, in supercritical region the sectioning
+is quite important.
 
 .. figure:: /_static/images/tutorials/heat_exchangers/Sectioned_vs_Moving_near_critical.svg
     :align: center

@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 
 import json
 import os
+from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
 
@@ -443,7 +444,7 @@ def solve(obj, increment_filter):
 
 def _solve_residual(obj, data, eq_num):
     result = data.func(**data.func_params)
-    if isinstance(result, list):
+    if isinstance(result, Iterable):
         result = {eq_num + k: value for k, value in enumerate(result)}
     else:
         result = {eq_num: result}
@@ -540,14 +541,15 @@ def _numeric_deriv(variable, func, **kwargs):
             \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
     """
     d = variable.d
-    variable.val_SI += d
+    tol = max(variable.val_SI * d, d)
+    variable.val_SI += tol
     exp = func(**kwargs)
 
-    variable.val_SI -= 2 * d
+    variable.val_SI -= 2 * tol
     exp -= func(**kwargs)
-    deriv = exp / (2 * d)
+    deriv = exp / (2 * tol)
 
-    variable.val_SI += d
+    variable.val_SI += tol
 
     return deriv
 
@@ -641,7 +643,6 @@ def newton_with_kwargs(
         tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
 
-    # start newton loop
     iteration = 0
     expr = True
     x = val0
@@ -690,6 +691,7 @@ def newton_with_kwargs(
 
 
 def central_difference(function=None, parameter=None, delta=None, **kwargs):
+    delta = abs(max(kwargs[parameter] * delta, delta))
     upper = kwargs.copy()
     upper[parameter] += delta
     lower = kwargs
@@ -719,6 +721,35 @@ def extend_basic_path(subfolder):
     if not os.path.isdir(extended_path):
         os.mkdir(extended_path)
     return extended_path
+
+
+def _is_numeric(potentially_a_number):
+    """Checks if the value provided is a number by trying to convert it to
+    float
+
+    Parameters
+    ----------
+    potentially_a_number : any
+        Value to check
+
+    Returns
+    -------
+    bool
+        True if the value is a number
+
+    Example
+    -------
+    >>> from tespy.tools.helpers import _is_numeric
+    >>> _is_numeric(5)
+    True
+    >>> _is_numeric("var")
+    False
+    """
+    try:
+        float(potentially_a_number)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 def _get_vector_dependents(variable_list):

@@ -3,9 +3,10 @@
 Components
 ==========
 
-In this section we will introduce you to the details of component
-parametrisation and component characteristics. At the end of the section we
-show you how to create custom components.
+This section provides an overview on all available component classes, how to
+specify simple inputs to components, implement custom values in context of
+characteristic lines or maps, and give hints as to how to implement custom
+equations to existing components or create custom components yourself.
 
 List of components
 ------------------
@@ -21,19 +22,28 @@ links to the underlying equations, the class documentation and example.
 Component parametrisation
 -------------------------
 
-All parameters of components are objects of a :code:`DataContainer` class. The
-data container for component parameters is called
-:code:`ComponentProperties`, :code:`ComponentCharacteristics` for component
-characteristics, and :code:`ComponentCharacteristicMaps` for characteristic
-maps. The main purpose of having a data container for the parameters (instead
-of pure numbers), is added flexibility for the user. There are different ways
-for you to specify and access component parameters.
+All parameters of components can be set and unset through the :code:`set_attr`
+method. As seen in the tables above, there are different types of parameters:
+
+- Simple component parameters: If an equation/method is associated with the
+  parameter, setting a value for the parameter will activate that equation.
+- Grouped component parameters: Multiple simple parameters can be part of a
+  parameter group. To activate the equation associated with the parameter
+  group, values for all elements of the group have to be set by the user.
+- Component parameters that serve as variable in the model: Specifically in the
+  context of grouped parameters it is possible to set one of the parameters as
+  a variable. If values for all other parameters of the group are specified as
+  well, then the group equation is activated and the solver will include the
+  one parameter marked as variable in the variables.
+- Component characteristics and characteristic groups: Lookup-tables are
+  implemented here to interpolate over a variable or an expression and modify
+  the outcome of an equation.
 
 Component parameters
 ^^^^^^^^^^^^^^^^^^^^
 
-The example shows different ways to specify the heat transfer coefficient of an
-evaporator and how to unset the parameter again.
+The example shows how to specify a component parameter and how to unset again
+at the example of the heat transfer coefficient of an evaporator.
 
 .. code-block:: python
 
@@ -45,17 +55,13 @@ evaporator and how to unset the parameter again.
 
     >>> # specify the value
     >>> he.set_attr(kA=1e5)
-    >>> # specify via dictionary
-    >>> he.set_attr(kA={'_val': 1e5, 'is_set': True})
-    >>> # set data container parameters
-    >>> he.kA.set_attr(_val=1e5, is_set=True)
+    >>> he.kA.val
+    100000.0
     >>> he.kA.is_set
     True
 
     >>> # possibilities to unset a value
-    >>> he.set_attr(kA=np.nan)
     >>> he.set_attr(kA=None)
-    >>> he.kA.set_attr(is_set=False)
     >>> he.kA.is_set
     False
 
@@ -102,37 +108,10 @@ not be implemented by the solver.
     >>> my_pipe.darcy_group.is_set
     False
 
-There are several components using parameter groups:
+.. _component_variables_label:
 
-- heat_exchanger_simple and pipe
-
-  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
-  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
-  * :code:`kA_group` (:code:`kA`, :code:`Tamb`)
-  * :code:`kA_char_group` (:code:`kA_char`, :code:`Tamb`)
-
-- solar_collector
-
-  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
-  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
-  * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`lkf_lin`,
-    :code:`lkf_quad`, :code:`A`, :code:`Tamb`)
-
-- parabolic_trough
-
-  * :code:`darcy_group` (:code:`D`, :code:`L`, :code:`ks`)
-  * :code:`hw_group` (:code:`D`, :code:`L`, :code:`ks_HW`)
-  * :code:`energy_group` (:code:`E`, :code:`eta_opt`, :code:`aoi`,
-    :code:`doc`, :code:`c_1`, :code:`c_2`, :code:`iam_1`, :code:`iam_2`,
-    :code:`A`, :code:`Tamb`)
-
-- compressor
-
-  * :code:`char_map_eta_s_group` (:code:`char_map_eta_s`, :code:`igva`)
-  * :code:`char_map_pr_group` (:code:`char_map_pr`, :code:`igva`)
-
-Custom variables
-^^^^^^^^^^^^^^^^
+Component variables
+^^^^^^^^^^^^^^^^^^^
 It is possible to use component parameters as variables of your system of
 equations. In the component parameter list, if a parameter can be a string, it
 is possible to specify this parameter as custom variable. For example, given
@@ -150,16 +129,6 @@ diameter the following way.
     >>> my_pipe.darcy_group.is_set
     True
 
-    >>> # a second way of specifying this is similar to the
-    >>> # way used in the component parameters section
-    >>> # val will be used as starting value
-    >>> my_pipe.darcy_group.is_set = False
-    >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002)
-    >>> my_pipe.set_attr(D={'_val': 0.2, 'is_set': True, '_is_var': True})
-    >>> nw.solve("design", init_only=True)
-    >>> my_pipe.darcy_group.is_set
-    True
-
 It is also possible to set value boundaries for you custom variable. You can do
 this, if you expect the result to be within a specific range. But beware: This
 might result in a non converging simulation, if the actual value is out of your
@@ -167,12 +136,7 @@ specified range.
 
 .. code-block:: python
 
-    >>> # data container specification with identical result,
-    >>> # benefit: specification of bounds will increase stability
-    >>> my_pipe.set_attr(D={
-    ...     '_val': 0.2, 'is_set': True, '_is_var': True,
-    ...     'min_val': 0.1, 'max_val': 0.3}
-    ... )
+    >>> my_pipe.D.max_val = 0.3
     >>> round(my_pipe.D.max_val, 1)
     0.3
 
@@ -183,8 +147,8 @@ Component characteristics
 
 Several components integrate parameters using a characteristic function. These
 parameters come with default characteristics. The default characteristics
-available can be found in the :ref:`data_label`. Of course, it is
-possible to specify your own characteristic functions.
+available can be found in the :ref:`this section <data_label>`. Of course, it
+is possible to specify your own data for these characteristic functions.
 
 .. note::
 
@@ -242,8 +206,8 @@ For example, :code:`kA_char` specification for heat exchangers:
     503013
 
     >>> # the characteristic function is made for offdesign calculation.
-    >>> he.set_attr(kA_char={'is_set': True})
-    >>> c4.set_attr(T=None)
+    >>> he.set_attr(offdesign=["kA_char"])
+    >>> c4.set_attr(design=["T"])
     >>> nw.solve("offdesign", design_path="design_case.json")
     >>> # since we did not change any property, the offdesign case yields the
     >>> # same value as the design kA value
@@ -307,7 +271,10 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> # design value specification, cone law and eta_s characteristic as
     >>> # offdesign parameters
     >>> eta_s_design = 0.855
-    >>> t.set_attr(eta_s=eta_s_design, design=['eta_s'], offdesign=['eta_s_char','cone'])
+    >>> t.set_attr(
+    ...     eta_s=eta_s_design,
+    ...     design=['eta_s'], offdesign=['eta_s_char','cone']
+    ... )
 
     >>> # Characteristics x as m/m_design and y as eta_s(m)/eta_s_design
     >>> # make sure to cross the 1/1 point (design point) to yield the same
@@ -337,22 +304,9 @@ Full working example for :code:`eta_s_char` specification of a turbine.
     >>> round(t.eta_s.val, 2)
     0.84
 
-Instead of writing your custom characteristic line information directly into
-your Python script, TESPy provides a second method of implementation: It is
-possible to store your data in the :code:`HOME/.tespy/data` folder and import
-from there. For additional information on formatting and usage, look into
-:ref:`this part <modules_characteristics_label>`.
-
-.. code-block:: python
-
-    from tespy.tools.characteristics import load_custom_char as lcc
-
-    eta_s_char = dc_cc(func=lcc('my_custom_char', CharLine), is_set=True)
-    t.set_attr(eta_s_char=eta_s_char)
-
-It is possible to allow value extrapolation at the lower and upper limit of the
-value range at the creation of characteristic lines. Set the extrapolation
-parameter to :code:`True`.
+Finally, it is possible to allow value extrapolation at the lower and upper
+limit of the value range at the creation of characteristic lines. Set the
+extrapolation parameter to :code:`True`.
 
 .. code-block:: python
 
@@ -368,103 +322,14 @@ parameter to :code:`True`.
     >>> he.kA_char1.char_func.extrapolate
     True
 
-Characteristics are available for the following components and parameters:
-
-- CombustionEngine
-
-  * :py:meth:`tiP_char <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`: thermal input vs. power ratio.
-  * :py:meth:`Q1_char <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`: heat output 1 vs. power ratio.
-  * :py:meth:`Q2_char <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`: heat output 2 vs. power ratio.
-  * :py:meth:`Qloss_char <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`: heat loss vs. power ratio.
-
-- Compressor
-
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func>`: pressure ratio vs. non-dimensional mass flow.
-  * :py:meth:`char_map <tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func>`: isentropic efficiency vs. non-dimensional mass flow.
-  * :py:meth:`eta_s_char <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`: isentropic efficiency.
-
-- PolynomialCompressor
-
-  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`: isentropic efficiency based on EN12900 polynomial
-  * :py:meth:`<tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`: volumetric efficiency based on EN12900 polynomial
-
-- HeatExchanger:
-
-  * :py:meth:`kA1_char, kA2_char <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`: heat transfer coefficient.
-
-- Pump
-
-  * :py:meth:`eta_s_char <tespy.components.turbomachinery.pump.Pump.eta_s_char_func>`: isentropic efficiency.
-  * :py:meth:`flow_char <tespy.components.turbomachinery.pump.Pump.flow_char_func>`: absolute pressure change.
-
-- SimpleHeatExchanger
-
-  * :py:meth:`kA_char <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func>`: heat transfer coefficient.
-
-- Turbine
-
-  * :py:meth:`eta_s_char <tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func>`: isentropic efficiency.
-
-- Valve
-
-  * :py:meth:`dp_char <tespy.components.piping.valve.Valve.dp_char_func>`: absolute pressure change.
-
-- WaterElectrolyzer
-
-  * :py:meth:`eta_char <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`: efficiency vs. load ratio.
-
 For more information on how the characteristic functions work
 :ref:`click here <modules_characteristics_label>`.
 
-Extend components with new equations
-------------------------------------
+Component customization
+-----------------------
 
-You can easily add custom equations to the existing components. In order to do
-this, you need to implement four changes to the desired component class:
+Please check the :ref:`advanced features <custom_components_label>`
+on how to
 
-- modify the :code:`get_parameters(self)` method.
-- add a method, that returns the result of your equation.
-- add a method, that returns the variables your equation depends on.
-
-In the :code:`get_parameters(self)` method, add an entry for your new equation.
-If the equation uses a single parameter, use the :code:`ComponentProperties`
-type DataContainer (or the :code:`ComponentCharacteristics` type in case you
-only apply a characteristic curve). If your equations requires multiple
-parameters, add these parameters as :code:`ComponentProperties` or
-:code:`ComponentCharacteristics` respectively and add a
-:code:`GroupedComponentProperties` type DataContainer holding the information,
-e.g. like the :code:`darcy_group` parameter of the
-:py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
-class shown below.
-
-.. code:: python
-
-    # [...]
-    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
-    'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
-    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
-    'darcy_group': dc_gcp(
-        elements=['L', 'ks', 'D'], num_eq_sets=1,
-        func=self.darcy_func,
-        dependents=self.darcy_dependents
-    ),
-    # [...]
-
-.. tip::
-
-    With the :code:`quantity` keyword, tespy will automatically understand what
-    unit conversion to apply to the respective parameter. E.g. in case you
-    want to specify the roughness  :code:`ks` in millimeter, you can either
-    set the default unit for length of your :code:`Network` to millimeter, or
-    you can pass the :code:`ks` value as :code:`pint.Quantity` to your
-    component using millimeter as unit. Then the conversion to the SI unit is
-    taken care of automatically in the preprocessing and the respective
-    equation will make use of the SI value.
-
-:code:`func` and :code:`dependents` are pointing to the method that should be
-applied for the corresponding purpose. For more information on defining the
-equations and dependents see the next section on custom components. When
-defining the dependents in a standalone way, the partial derivatives are
-calculated automatically. If you want to insert the partial derivatives
-manually, you can define another function and pass with the :code:`deriv`
-keyword.
+- extend existing components with additional parameters and equations or
+- create your own components from scratch

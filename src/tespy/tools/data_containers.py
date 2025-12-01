@@ -486,7 +486,7 @@ class FluidProperties(DataContainer):
             "is_result": False,
             "min_val": -1e12,
             "max_val": 1e12,
-            "d": 1e-1,
+            "d": 1e-4,
             "_unit": None,
             "is_set": False,
             "_potential_var": False,
@@ -794,19 +794,21 @@ class FluidComposition(DataContainer):
             values.
         """
         return {
-            '_val': dict(),
-            'val0': dict(),
-            'd': 1e-5,
-            '_is_set': set(),
-            'design': dict(),
-            'wrapper': dict(),
-            'back_end': dict(),
-            'engine': dict(),
-            '_is_var': set(),
-            '_J_col': dict(),
-            '_reference_container': None,
-            '_offset': None,
-            '_factor': None
+            "_val": dict(),
+            "val0": dict(),
+            "d": 1e-5,
+            "_is_set": set(),
+            "design": dict(),
+            "wrapper": dict(),
+            "back_end": dict(),
+            "engine": dict(),
+            "description": None,
+            "quantity": None,
+            "_is_var": set(),
+            "_J_col": dict(),
+            "_reference_container": None,
+            "_offset": None,
+            "_factor": None
         }
 
     def _serialize(self):
@@ -962,7 +964,7 @@ class ReferencedFluidProperties(DataContainer):
             "func": None,
             "deriv": None,
             "structure_matrix": None,
-            'constant_deriv': False,
+            "constant_deriv": False,
             "num_eq": 0,
             "func_params": {},
             "_solved": False,

@@ -255,7 +255,9 @@ class CombustionEngine(CombustionChamber):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'P': dc_cp(_val=-1e6, d=1, max_val=-1, quantity="power"),
+            'P': dc_cp(
+                _val=-1e6, max_val=-1, quantity="power", _potential_var=True
+            ),
             'Q1': dc_cp(
                 max_val=-1,
                 num_eq_sets=1,
@@ -270,7 +272,9 @@ class CombustionEngine(CombustionChamber):
                 func=self.Q2_func,
                 quantity="heat"
             ),
-            'Qloss': dc_cp(_val=-1e5, d=1, max_val=-1, quantity="heat"),
+            'Qloss': dc_cp(
+                _val=-1e5, max_val=-1, quantity="heat", _potential_var=True
+            ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
@@ -287,13 +291,15 @@ class CombustionEngine(CombustionChamber):
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp1"},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change of cooling 1"
             ),
             'dp2': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 1, "outconn": 1, "dp": "dp2"},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change of cooling 2"
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,

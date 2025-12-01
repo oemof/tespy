@@ -7,7 +7,7 @@ Thermal Engineering Systems in Python
 Welcome to the documentation of Thermal Engineering Systems in Python (TESPy)!
 Navigate here to your favorite section:
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::  :material-outlined:`rocket_launch;2.5em;sd-text-logo-main` Getting started
@@ -36,14 +36,14 @@ Navigate here to your favorite section:
         - Explore example applications
         - Check the benchmarks
 
-    .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
-        :link:  advanced_tutorials_label
+    .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
+        :link: advanced_features_label
         :link-type: ref
         :class-card: landing-card
 
-        - Build models incrementally
-        - Generate good initial values
-        - Carry out exergy analyses
+        - Customize with your equations
+        - Build your own components
+        - Use custom fluid property models
 
     .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community & Support
         :link: community_and_support_label
@@ -54,22 +54,22 @@ Navigate here to your favorite section:
         - Get professional support
         - Learn how to contribute
 
-    .. grid-item-card::  :material-outlined:`settings;2.5em;sd-text-logo-main` Advanced Features
-        :link: advanced_features_label
+    .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
+        :link:  advanced_tutorials_label
         :link-type: ref
         :class-card: landing-card
 
-        - Customize with your equations
-        - Build your own components
-        - Use custom fluid property models
+        - Build models incrementally
+        - Generate good initial values
+        - Carry out exergy analyses
 
     .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
         :link: integration_label
         :link-type: ref
         :class-card: landing-card
 
-        - Connect models with other libraries
         - Run parametric optimization
+        - Connect models with other libraries
         - Analyse cycles with exerpy
 
     .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-logo-main` API Documentation

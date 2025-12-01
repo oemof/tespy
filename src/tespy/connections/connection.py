@@ -52,6 +52,7 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
@@ -121,11 +122,7 @@ class ConnectionBase:
         if isinstance(value, pint.Quantity):
             is_quantity = True
         else:
-            try:
-                float(value)
-                is_numeric = True
-            except (TypeError, ValueError):
-                pass
+            is_numeric = _is_numeric(value)
 
         if key == "Td_bp":
             msg = (
@@ -224,7 +221,7 @@ class ConnectionBase:
 
         for parameter in self.parameters:
             container = self.get_attr(parameter)
-            if container.is_set and container.func is not None:
+            if container.is_set and (container.func is not None or container.structure_matrix is not None):
                 num_eq = self.parameters[parameter].num_eq
                 # the row index matches the location in the network's rhs
                 # and matrix
@@ -557,7 +554,10 @@ class Connection(ConnectionBase):
         self.property_data = self.get_parameters()
         self.parameters = {
             k: v for k, v in self.get_parameters().items()
-            if hasattr(v, "func") and v.func is not None
+            if (
+                (hasattr(v, "func") and v.func is not None)
+                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
+            )
         }
         self.state = dc_simple()
         self.phase = dc_simple()
@@ -744,6 +744,10 @@ class Connection(ConnectionBase):
         self._check_fluid_datatypes(key, value)
 
         if key == "fluid":
+            # remove the old values in the fluid vector
+            self.fluid.val = dict()
+            self.fluid.is_set = set()
+            self.fluid.back_end = dict()
             for fluid, fraction in value.items():
                 if "::" in fluid:
                     back_end, fluid = fluid.split("::")
@@ -1070,86 +1074,130 @@ class Connection(ConnectionBase):
             self.jacobian[eq_num, var.J_col[dx]] = result
 
     def reset_fluid_vector(self):
-        self.fluid = dc_flu()
+        self.fluid = dc_flu(
+            d=1e-5, description="Mass fractions of the fluid composition"
+        )
 
     def get_variables(self):
         return {"m": self.m, "p": self.p, "h": self.h}
 
     def get_parameters(self):
         return {
-            "m": dc_prop(d=1e-4, quantity="mass_flow"),
-            "p": dc_prop(d=1e-3, quantity="pressure"),
-            "h": dc_prop(d=1e-3, quantity="enthalpy"),
-            "T_bubble": dc_prop(quantity="temperature"),
-            "T_dew": dc_prop(quantity="temperature"),
-            "vol": dc_prop(quantity="specific_volume"),
-            "s": dc_prop(quantity="entropy"),
-            "fluid": dc_flu(d=1e-5),
-            "fluid_balance": dc_simple(
-                func=self.fluid_balance_func,
-                deriv=self.fluid_balance_deriv,
-                _val=False, num_eq_sets=1,
-                dependents=self.fluid_balance_dependents
+            "m": dc_prop(
+                quantity="mass_flow",
+                description="mass flow of the fluid (system variable)"
+            ),
+            "p": dc_prop(
+                quantity="pressure",
+                description="absolute pressure of the fluid (system variable)"
+            ),
+            "h": dc_prop(
+                quantity="enthalpy",
+                description="mass specific enthalpy of the fluid (system variable)"
             ),
             "T": dc_prop(
-                func=self.T_func, deriv=self.T_deriv,
-                dependents=self.T_dependents, num_eq=1,
-                quantity="temperature"
+                func=self.T_func,
+                deriv=self.T_deriv,
+                dependents=self.T_dependents,
+                num_eq=1,
+                quantity="temperature",
+                description="temperature of the fluid"
+            ),
+            "T_bubble": dc_prop(
+                quantity="temperature",
+                description="determine pressure based on the provided bubble temperature of the fluid"
+            ),
+            "T_dew": dc_prop(
+                quantity="temperature",
+                description="determine pressure based on the provided dew temperature of the fluid"
             ),
             "v": dc_prop(
                 func=self.v_func, deriv=self.v_deriv,
                 dependents=self.v_dependents, num_eq=1,
-                quantity="volumetric_flow"
+                quantity="volumetric_flow",
+                description="volumetric flow of the fluid"
             ),
             "x": dc_prop(
                 func=self.x_func, deriv=self.x_deriv,
                 dependents=self.x_dependents, num_eq=1,
-                quantity="quality"
+                quantity="quality",
+                description="vapor mass fraction/quality of the two-phase fluid"
+            ),
+            "td_dew": dc_prop(
+                func=self.td_dew_func,
+                dependents=self.td_dew_dependents,
+                num_eq=1,
+                quantity="temperature_difference",
+                description="superheating temperature difference to dew line temperature"
+            ),
+            "td_bubble": dc_prop(
+                func=self.td_bubble_func, #deriv=self.td_bubble_deriv,
+                dependents=self.td_bubble_dependents,
+                num_eq=1,
+                quantity="temperature_difference",
+                description="subcooling temperature difference to bubble line temperature"
+            ),
+            "m_ref": dc_ref(
+                num_eq=1,
+                func_params={"variable": "m"},
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="mass_flow",
+                description="equation for linear relationship between two mass flows"
+            ),
+            "p_ref": dc_ref(
+                num_eq=1,
+                func_params={"variable": "p"},
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="pressure",
+                description="equation for linear relationship between two pressure values"
+            ),
+            "h_ref": dc_ref(
+                num_eq=1,
+                func_params={"variable": "h"},
+                structure_matrix=self.primary_ref_structure_matrix,
+                quantity="enthalpy",
+                description="equation for linear relationship between two enthalpy values"
+            ),
+            "T_ref": dc_ref(
+                func=self.T_ref_func,
+                deriv=self.T_ref_deriv,
+                dependents=self.T_ref_dependents,
+                num_eq=1,
+                quantity="temperature_difference",  # reference has delta T
+                description="equation for linear relationship between two temperature values"
+            ),
+            "v_ref": dc_ref(
+                func=self.v_ref_func,
+                deriv=self.v_ref_deriv,
+                dependents=self.v_ref_dependents,
+                num_eq=1,
+                quantity="volumetric_flow",
+                description="equation for linear relationship between two volumetric flows"
+            ),
+            "vol": dc_prop(
+                quantity="specific_volume",
+                description="specific volume of the fluid (output only)"
+            ),
+            "s": dc_prop(
+                quantity="entropy",
+                description="specific entropy of the fluid (output only)"
+            ),
+            "fluid": dc_flu(
+                d=1e-5, description="mass fractions of the fluid composition (system variable)"
+            ),
+            "fluid_balance": dc_simple(
+                func=self.fluid_balance_func,
+                deriv=self.fluid_balance_deriv,
+                _val=False, num_eq_sets=1,
+                dependents=self.fluid_balance_dependents,
+                description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
             ),
             "Td_bp": dc_prop(
                 func=self.Td_bp_func, deriv=self.Td_bp_deriv,
                 dependents=self.Td_bp_dependents, num_eq=1,
-                quantity="temperature_difference"
-            ),
-            "td_dew": dc_prop(
-                func=self.td_dew_func,
-                dependents=self.td_dew_dependents, num_eq=1,
-                quantity="temperature_difference"
-            ),
-            "td_bubble": dc_prop(
-                func=self.td_bubble_func, #deriv=self.td_bubble_deriv,
-                dependents=self.td_bubble_dependents, num_eq=1,
-                quantity="temperature_difference"
-            ),
-            "m_ref": dc_ref(
-                func=self.primary_ref_func,
-                num_eq=1, func_params={"variable": "m"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="mass_flow"
-            ),
-            "p_ref": dc_ref(
-                func=self.primary_ref_func,
-                num_eq=1, func_params={"variable": "p"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="pressure"
-            ),
-            "h_ref": dc_ref(
-                func=self.primary_ref_func,
-                num_eq=1, func_params={"variable": "h"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="enthalpy"
-            ),
-            "T_ref": dc_ref(
-                func=self.T_ref_func, deriv=self.T_ref_deriv,
-                dependents=self.T_ref_dependents, num_eq=1,
-                quantity="temperature_difference"  # reference has delta T
-            ),
-            "v_ref": dc_ref(
-                func=self.v_ref_func, deriv=self.v_ref_deriv,
-                dependents=self.v_ref_dependents, num_eq=1,
-                quantity="volumetric_flow"
-            ),
-
+                quantity="temperature_difference",
+                description="temperature difference to boiling point (deprecated)"
+            )
         }
 
     def get_fluid_data(self):
@@ -1162,16 +1210,21 @@ class Connection(ConnectionBase):
 
     fluid_data = property(get_fluid_data)
 
-    def primary_ref_func(self, **kwargs):
-        variable = kwargs["variable"]
-        self.get_attr(variable)
-        ref = self.get_attr(f"{variable}_ref").ref
-        return (
-            self.get_attr(variable).val_SI
-            - (ref.obj.get_attr(variable).val_SI * ref.factor + ref.delta_SI)
-        )
-
     def primary_ref_structure_matrix(self, k, **kwargs):
+        r"""Create a linear relationship between two variables
+
+        .. math::
+
+            0 = var - \left(
+            var_\text{ref} \cdot \text{factor} + \text{delta}
+            \right)
+
+        Parameters
+        ----------
+        k : int
+            equation set number to create the structure matrix for Network
+            preprocessing
+        """
         variable = kwargs["variable"]
         ref = self.get_attr(f"{variable}_ref").ref
         self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
@@ -1184,6 +1237,17 @@ class Connection(ConnectionBase):
         return T_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
 
     def T_func(self, **kwargs):
+        r"""Equation for temperature specification
+
+        .. math::
+
+            0 = T\left(p, h\right) - T
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         return self.calc_T() - self.T.val_SI
 
     def T_deriv(self, increment_filter, k, **kwargs):
@@ -1200,6 +1264,19 @@ class Connection(ConnectionBase):
         return [self.p, self.h]
 
     def T_ref_func(self, **kwargs):
+        r"""Equation for reference temperature specification :math:`T`
+
+        .. math::
+
+            0 = T\left(p, h\right) - \left[
+            T\left(p_\text{ref},h_\text{ref}\right) \cdot \text{factor} + \text{delta}
+            \right]
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         ref = self.T_ref.ref
         return self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
 
@@ -1233,6 +1310,17 @@ class Connection(ConnectionBase):
             return np.nan
 
     def v_func(self, **kwargs):
+        r"""Equation for volumetric flow specification :math:`\dot V`
+
+        .. math::
+
+            0 = \dot m \cdot vol\left(p, h\right) - \dot V
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         return self.calc_vol(T0=self.T.val_SI) * self.m.val_SI - self.v.val_SI
 
     def v_deriv(self, increment_filter, k, **kwargs):
@@ -1255,6 +1343,20 @@ class Connection(ConnectionBase):
         return [self.m, self.p, self.h]
 
     def v_ref_func(self, **kwargs):
+        r"""Equation for reference volumetric flow specification
+
+        .. math::
+
+            0 = \dot m \cdot vol\left(p, h\right) - \left[
+            \dot m_\text{ref} \cdot vol\left(p_\text{ref},h_\text{ref}\right)
+            \cdot \text{factor} + \text{delta}
+            \right]
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         ref = self.v_ref.ref
         return (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
@@ -1295,6 +1397,17 @@ class Connection(ConnectionBase):
             return np.nan
 
     def x_func(self, **kwargs):
+        r"""Equation for vapor mass fraction specification :math:`x`
+
+        .. math::
+
+            0 = h - h\left(p,x\right)
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         # saturated steam fraction
         return (
             self.h.val_SI
@@ -1347,18 +1460,51 @@ class Connection(ConnectionBase):
         return [self.p, self.h]
 
     def td_dew_func(self, **kwargs):
+        r"""Equation for fixed bubble temperature subcooling :math:`\Delta T`
+
+        .. math::
+
+            0 = T_\text{dew}\left(p\right) - T\left(p,h\right) - \Delta T
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         return self.calc_td_dew() - self.td_dew.val_SI
 
     def td_dew_dependents(self):
         return [self.p, self.h]
 
     def td_bubble_func(self, **kwargs):
+        r"""Equation for fixed dew temperature superheating :math:`\Delta T`
+
+        .. math::
+
+            0 = T\left(p,h\right) - T_\text{bubble}\left(p\right) - \Delta T
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         return self.calc_td_bubble() - self.td_bubble.val_SI
 
     def td_bubble_dependents(self):
         return [self.p, self.h]
 
     def fluid_balance_func(self, **kwargs):
+        r"""Equation for fluid vector balance
+
+        .. math::
+
+            0 = 1 - \sum x_\text{fluid_i}
+
+        Returns
+        -------
+        float
+            residual value of equation
+        """
         residual = 1 - sum(self.fluid.val[f] for f in self.fluid.is_set)
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
         return residual
@@ -1884,6 +2030,6 @@ class Ref:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Reference has no attribute \"' + key + '\".'
+            msg = f"Reference has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)

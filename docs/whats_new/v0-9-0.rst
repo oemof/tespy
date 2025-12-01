@@ -72,7 +72,7 @@ Back-end API changes
   future, this will also simplify the activating or deactivating of specific
   variables for the solver or removing parts of the network.
 - For a couple of examples please refer to the updated documentation section
-  on :ref:`custom components <components_custom_components_label>`.
+  on :ref:`custom components <custom_components_label>`.
 
 New Features
 ############

@@ -135,7 +135,7 @@ class Separator(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple()}
+        return {'num_out': dc_simple(description="number of outlets")}
 
     def _update_num_eq(self):
         self.variable_fluids = set(
@@ -154,22 +154,26 @@ class Separator(NodeBase):
                 'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
+                'description': 'mass balance constraint'
             }),
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'dependents': self.fluid_dependents
+                'dependents': self.fluid_dependents,
+                'description': 'fluid mass fraction balance constraints'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
-                'dependents': self.energy_balance_dependents
+                'dependents': self.energy_balance_dependents,
+                'description': 'equal temperature at all outlets constraints'
             }),
             'pressure_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'structure_matrix': self.pressure_structure_matrix,
+                'description': 'pressure equality constraints'
             })
         }
 

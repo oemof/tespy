@@ -346,45 +346,77 @@ class PolynomialCompressor(DisplacementMachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0, val=0, is_result=True, quantity="heat"),
-            "P": dc_cp(min_val=0, is_result=True, quantity="power"),
-            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
-            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "rpm": dc_cp(min_val=0, is_result=True),
-            "reference_state": dc_simple(),
-            "eta_s_poly": dc_simple(),
-            "eta_vol_poly": dc_simple(),
+            "Q_diss": dc_cp(
+                max_val=0, val=0, is_result=True, quantity="heat",
+                description="heat dissipation"
+            ),
+            "P": dc_cp(
+                min_val=0, is_result=True, quantity="power",
+                description="power consumption"
+            ),
+            "eta_vol": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="volumetric efficiency"
+            ),
+            "dissipation_ratio": dc_cp(
+                min_val=0, max_val=1, val=0, quantity="ratio",
+                description="heat dissipation ratio relative to power consumption"
+            ),
+            "Q_diss_rel": dc_cp(
+                min_val=0, max_val=1, val=0, quantity="ratio",
+                description="heat dissipation ratio relative to power consumption(deprecated)"
+            ),
+            "rpm": dc_cp(
+                min_val=0, is_result=True, _potential_var=True,
+                description="compressor frequency"
+            ),
+            "reference_state": dc_simple(
+                description="reference state definition for the scaling of displacement with compressor rpm"
+            ),
+            "eta_s_poly": dc_simple(
+                description="polynomial coefficients for isentropic efficiency"
+            ),
+            "eta_vol_poly": dc_simple(
+                description="polynomial coefficients for volumetric efficiency"
+            ),
             "eta_vol_poly_group": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
             ),
             "eta_vol_group": dc_gcp(
                 elements=["reference_state", "eta_vol", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on fixed volumetric efficiency"
             ),
-            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
+            "eta_s": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="isentropic efficiency"
+            ),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation based on polynomial coefficients"
             ),
             "eta_s_group": dc_gcp(
                 elements=["eta_s", "dissipation_ratio"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation with fixed efficiency"
             ),
             "energy_balance_group": dc_gcp(
                 elements=["P", "dissipation_ratio"],
                 func=self.energy_balance_group_func,
                 dependents=self.energy_balance_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="energy balance equation for fixed power and dissipation ratio"
             )
         })
         return params

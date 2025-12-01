@@ -8,11 +8,6 @@ TESPy model. In order to implement this functionality in your model you will
 use the :py:class:`tespy.tools.helpers.UserDefinedEquation`. The API
 documentation provides you with an interesting example application, too.
 
-.. attention::
-
-    The API of the :code:`UserDefinedEquation` has changed with version 0.9.
-    Please consider the information in the changelog and on this page.
-
 Getting started
 ---------------
 
@@ -89,9 +84,10 @@ equation in a function which returns the residual value of the equation.
 
 .. attention::
 
-    It is only possible to use the SI-values of the connection variables as
-    these values are updated in every iteration. The values in the network's
-    specified unit system are only updated after a simulation.
+    When you access :code:`Connection`, :code:`PowerConnection` or
+    :ref:`Component variables <component_variables_label>` it is important
+    that you access the :code:`.val_SI` attribute as these values are pointing
+    to the actual variables the solver solves for.
 
 The second step is to define a function which returns on which variables the
 equation depends. This is used to automatically determine the derivatives of
@@ -103,12 +99,12 @@ the equation to the system's variables.
     ...     c1, c2 = ude.conns
     ...     return [c1.m, c2.m]
 
-In theory, this is already sufficient information to use the equation in your
-model. However, it is possible to additionally provide a function specifying
-the derivatives. This is useful if the derivatives can be calculated
+This is already sufficient information to use the equation in your model.
+However, it is possible to additionally provide a function specifying the
+derivatives manually. This can be useful if the derivatives can be calculated
 analytically. In order to do this, we create a function that updates the values
 inside the Jacobian of the :code:`UserDefinedEquation`. We can use the
-highlevel method :code:`partial_derivative` for this. In this case the partial
+high-level method :code:`partial_derivative` for this. In this case the partial
 derivatives are easy to find:
 
 - The derivative to mass flow of connection :code:`c1` is equal to :math:`1`
@@ -123,16 +119,32 @@ derivatives are easy to find:
     ...     ude.partial_derivative(c1.m, 1)
     ...     ude.partial_derivative(c2.m, -2 * ude.conns[1].m.val_SI)
 
-.. attention::
+.. caution::
 
-    The function arguments have to look exactly as provided in the example!
+    TESPy internally maps the connection and component variables to the solver
+    variables! If two variables are identified to be linearly dependent in the
+    presolving, meaning one variable can be expressed as a linear function of
+    another variable, these two variables are mapped to a single one for the
+    solver. If this happens, then analytical derivatives may be incorrect. You
+    need to be sure, that the variables are not pointing to the same solver
+    variable, for example, see how it is in handled in the :code:`Turbine`
+    component:
+
+    .. literalinclude:: /../src/tespy/components/turbomachinery/turbine.py
+        :pyobject: Turbine.eta_s_deriv
+
+    Here, the derivative towards outlet enthalpy is simple, but only if it is
+    not linearly connected to the inlet enthalpy.
 
 Now we can create our instance of the :code:`UserDefinedEquation` and add it to
-the network. The class requires four mandatory arguments to be passed:
+the network. The class requires three mandatory arguments to be passed:
 
 - :code:`label` of type String.
 - :code:`func` which is the function holding the equation to be applied.
 - :code:`dependents` which is the function returning the dependent variables.
+
+And a couple of optional arguments:
+
 - :code:`deriv` (optional) which is the function holding the calculation of the
   Jacobian.
 - :code:`conns` (optional) which is a list of the connections required by the
@@ -179,14 +191,8 @@ the logarithmic value.
     >>> def my_ude(ude):
     ...     return (
     ...         ude.conns[1].calc_T() ** 0.5
-    ...         - np.log(abs(ude.conns[0].p.val_SI ** 2 / ude.conns[0].m.val_SI))
+    ...         - np.log(ude.conns[0].p.val_SI ** 2 / ude.conns[0].m.val_SI)
     ...     )
-
-.. note::
-
-    We use the absolute value inside the logarithm expression to avoid
-    ValueErrors within the solution process as the mass flow is not restricted
-    to positive values.
 
 .. code-block:: python
 
@@ -195,10 +201,14 @@ the logarithmic value.
     ...     c2 = ude.conns[1]
     ...     return [c1.m, c1.p, c2.p, c2.h]
 
-The derivatives can be determined analytically for the pressure and mass flow
-of the first stream easily. For the temperature value, you can use the
-predefined fluid property functions :code:`dT_mix_dph` and :code:`dT_mix_pdh`
-respectively to calculate the partial derivatives.
+Again, we could make a mixed analytical derivative method, as the partial
+derivatives for the pressure and mass flow of the first stream are available
+analytically and for the other ones they can be determined numerically. For the
+temperature value, you can use the predefined fluid property functions
+:code:`dT_mix_dph` and :code:`dT_mix_pdh` respectively to calculate the partial
+derivatives of the temperature towards either enthalpy or pressure. Just to
+show how that would look like, we have included it here, usually it is
+recommended to just let the solver handle that by itself via the dependents.
 
 .. code-block:: python
 
@@ -248,8 +258,11 @@ respectively to calculate the partial derivatives.
     >>> round(c2.T.val, 1)
     257.0
 
-But, what if the analytical derivative is not available? Then we can just
-not specify the :code:`deriv` keyword to the :code:`UserDefinedEquation`:
+Letting the solver handle the same problem through the dependents is easier:
+Just do not pass the :code:`deriv` method to the :code:`UserDefinedEquation`.
+The downside is a slower performance of the solver, as for every dependent the
+function will be evaluated fully twice (central finite difference), but it is
+guaranteed that the derivatives are calculated correctly.
 
 .. code-block:: python
 
@@ -268,10 +281,6 @@ not specify the :code:`deriv` keyword to the :code:`UserDefinedEquation`:
     >>> nw.solve('design')
     >>> round(c2.T.val, 1)
     257.0
-
-Obviously, the downside is a slower performance of the solver, as for every
-dependent the function will be evaluated fully twice (central finite
-difference).
 
 Last, we want to consider an example using additional parameters in the
 UserDefinedEquation, where :math:`a` might be a factor between 0 and 1 and
@@ -306,18 +315,9 @@ instance must therefore be changed as below.
     ...     c2 = ude.conns[1]
     ...     return [c1.p, c1.h, c2.h]
 
-    >>> def my_ude_deriv(ude):
-    ...     a = ude.params['a']
-    ...     b = ude.params['b']
-    ...     c1 = ude.conns[0]
-    ...     c2 = ude.conns[1]
-    ...     ude.partial_derivative(c1.p, dh_mix_dpQ(c1.p.val_SI, b, c1.fluid_data))
-    ...     ude.partial_derivative(c1.h, -a)
-    ...     ude.partial_derivative(c2.p, a - 1)
-
     >>> ude = UserDefinedEquation(
     ...     'my ude', my_ude, my_ude_dependents,
-    ...     deriv=my_ude_deriv, conns=[c1, c2], params={'a': 0.5, 'b': 1}
+    ...     conns=[c1, c2], params={'a': 0.5, 'b': 1}
     ... )
 
 One more example (using a CharLine for data point interpolation) can be found

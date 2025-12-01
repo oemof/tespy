@@ -163,7 +163,8 @@ class CombustionChamber(Component):
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
                 num_eq_sets=1,
-                quantity="ratio"
+                quantity="ratio",
+                description="available oxygen to stoichiometric oxygen ratio"
             ),
             'ti': dc_cp(
                 min_val=0,
@@ -171,7 +172,8 @@ class CombustionChamber(Component):
                 func=self.ti_func,
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
-                quantity="heat"
+                quantity="heat",
+                description="thermal input (fuel LHV multiplied with mass flow)"
             )
         }
 
@@ -183,29 +185,33 @@ class CombustionChamber(Component):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
-                'func': self.mass_flow_func,
-                'deriv': self.mass_flow_deriv,
-                'dependents': self.mass_flow_dependents,
-                'constant_deriv': True,
-                'num_eq_sets': 1
+            "mass_flow_constraints": dc_cmc(**{
+                "func": self.mass_flow_func,
+                "deriv": self.mass_flow_deriv,
+                "dependents": self.mass_flow_dependents,
+                "constant_deriv": True,
+                "num_eq_sets": 1,
+                "description": "mass flow balance over all inflows and outflows"
             }),
-            'reactor_pressure_constraints': dc_cmc(**{
-                'structure_matrix': self.combustion_pressure_structure_matrix,
-                'num_eq_sets': 2
+            "reactor_pressure_constraints": dc_cmc(**{
+                "structure_matrix": self.combustion_pressure_structure_matrix,
+                "num_eq_sets": 2,
+                "description": "pressure equality constraints"
             }),
-            'stoichiometry_constraints': dc_cmc(**{
-                'func': self.stoichiometry_func,
-                'deriv': self.stoichiometry_deriv,
-                'dependents': self.stoichiometry_dependents,
-                'constant_deriv': False,
-                'num_eq_sets': 1
+            "stoichiometry_constraints": dc_cmc(**{
+                "func": self.stoichiometry_func,
+                "deriv": self.stoichiometry_deriv,
+                "dependents": self.stoichiometry_dependents,
+                "constant_deriv": False,
+                "num_eq_sets": 1,
+                "description": "constraints for stoichiometry of the reaction"
             }),
-            'energy_balance_constraints': dc_cmc(**{
-                'func': self.energy_balance_func,
-                'dependents': self.energy_balance_dependents,
-                'constant_deriv': False,
-                'num_eq_sets': 1
+            "energy_balance_constraints": dc_cmc(**{
+                "func": self.energy_balance_func,
+                "dependents": self.energy_balance_dependents,
+                "constant_deriv": False,
+                "num_eq_sets": 1,
+                "description": "constraint for energy balance"
             })
         }
 

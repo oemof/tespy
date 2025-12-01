@@ -4,6 +4,15 @@ from tespy.connections import Connection
 from tespy.networks import Network
 
 
+dark = True
+file_suffix = ""
+annotation_color = "black"
+if dark:
+    plt.style.use("dark_background")
+    file_suffix = "_darkmode"
+    annotation_color = "#cfd0d0"
+
+
 nw = Network()
 nw.units.set_defaults(
     temperature="°C",
@@ -39,8 +48,6 @@ heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections
 heat /= 1e6
 
 fig, ax = plt.subplots(1, figsize=(10, 6))
-
-annotation_color = "black"
 
 heat_defaultsteps = heat # for later comparison
 T_hot_defaultsteps = T_hot
@@ -91,4 +98,4 @@ ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 ax.legend()
 
-fig.savefig("Sectioned_vs_Moving_near_critical.svg", bbox_inches="tight")
+fig.savefig(f"Sectioned_vs_Moving_near_critical{file_suffix}.svg", bbox_inches="tight")

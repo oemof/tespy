@@ -1,5 +1,15 @@
-v0.9.10 - Under Development
-+++++++++++++++++++++++++++
+v0.9.10 - Kelvin's Kingdom (November, 30, 2025)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- The :code:`MovingBoundaryHeatExchanger` now handles a pressure drop by
+  assuming linear change of pressure with enthalpy. Furthermore, this
+  capability is integrated into the :code:`SectionedHeatExchanger`, which uses
+  the specified number of sections and inserts the phase change boundaries
+  additionally into its sections. With this the :code:`SectionedHeatExchanger`
+  also identifies phase changes correctly
+  (`PR #851 <https://github.com/oemof/tespy/pull/851>`__).
 
 Other changes
 #############
@@ -11,9 +21,20 @@ Other changes
   by :code:`1e-6 K` to avoid boundary issues) and calculates the physical
   exergy with respect to that temperature without exergy splitting
   (`PR #828 <https://github.com/oemof/tespy/pull/828>`__).
+- Numerical derivative calculation is now done with a different delta for the
+  central differences of the variables. Instead of having a fixed absolute
+  delta, the delta is relative to size or absolute for variable values that
+  are very close to zero
+  (`PR #851 <https://github.com/oemof/tespy/pull/851>`__).
 
 Bug Fixes
 #########
+- Fix a bug which prevented unsetting component characteristics and properties
+  stored in `SimpleDataContainer`
+  (`PR #847 <https://github.com/oemof/tespy/pull/847>`__).
+- Fix a bug which prevented functions with multiple equations of returning
+  numpy arrays instead of a list `SimpleDataContainer`
+  (`PR #850 <https://github.com/oemof/tespy/pull/850>`__).
 
 Contributors
 ############

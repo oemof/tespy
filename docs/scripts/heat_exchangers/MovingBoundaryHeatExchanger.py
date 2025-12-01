@@ -3,7 +3,15 @@ import matplotlib.patches as mpatches
 from tespy.components import MovingBoundaryHeatExchanger, Source, Sink
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.fluid_properties import h_mix_pQ
+
+
+dark = True
+file_suffix = ""
+annotation_color = "black"
+if dark:
+    plt.style.use("dark_background")
+    file_suffix = "_darkmode"
+    annotation_color = "#cfd0d0"
 
 
 nw = Network()
@@ -41,8 +49,6 @@ heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections
 heat /= 1e6
 
 fig, ax = plt.subplots(1, figsize=(10, 6))
-
-annotation_color = "black"
 
 ax.plot((heat, heat), ([T for T in T_hot], [T for T in T_cold]),color=annotation_color, linestyle = "--")
 ax.text(heat[2] * 1.05, (T_hot[2] + T_cold[2]) / 2, r'$\Delta T_\text{i}$', va='center', color=annotation_color, rotation=0)
@@ -82,4 +88,4 @@ ax.set_xbound([- 5.5 * offset, heat[-1] + 4 * offset])
 ax.set_ylabel("temperature in K")
 ax.set_xlabel("heat transferred in MW")
 
-fig.savefig("MovingBoundaryHeatExchanger.svg", bbox_inches="tight")
+fig.savefig(f"MovingBoundaryHeatExchanger{file_suffix}.svg", bbox_inches="tight")

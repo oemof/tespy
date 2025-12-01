@@ -139,7 +139,8 @@ class PowerBus(Component):
             "energy_balance_constraint": dc_cmc(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
-                "num_eq_sets": 1
+                "num_eq_sets": 1,
+                "description": "energy balance over all inflows and outflows"
             })
         }
 

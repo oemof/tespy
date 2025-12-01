@@ -146,19 +146,8 @@ class SamplePlant:
         self.nw.solve("design")
         self.stable = "_stable.json"
         self.nw.save(self.stable)
-        self.solved = True
+        self._solved = True
         self.nw.print_results()
-
-    def _reset_component_boundary_conditions(self):
-        self.nw.get_comp("feed water preheater 1").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water preheater 2").set_attr(ttd_u=5)
-        self.nw.get_comp("condenser").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("high pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("mid pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("low pressure turbine").set_attr(eta_s=0.9)
 
     # %%[sec_2]
 
@@ -202,17 +191,19 @@ class SamplePlant:
         """
         self.set_params(**kwargs)
 
-        self.solved = False
-        try:
-            self.nw.solve("design")
-            if self.nw.status != 0:
-                self._reset_component_boundary_conditions()
-                self.nw.solve("design", init_only=True, init_path=self.stable)
-            else:
-                self.solved = True
-        except ValueError as e:
-            self._reset_component_boundary_conditions()
-            self.nw.solve("design", init_only=True, init_path=self.stable)
+        self.nw.solve("design")
+
+        if self.nw.status == 0:
+            self._solved = True
+        # is not required in this example, but could lead to handling some
+        # stuff
+        elif self.nw.status == 1:
+            self._solved = False
+        elif self.nw.status in [2, 3, 99]:
+            # in this case model is very likely corrupted!!
+            # fix it by running a presolve using the stable solution
+            self._solved = False
+            self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
     def get_objectives(self, objective_list):
         """Get the objective values
@@ -243,7 +234,7 @@ class SamplePlant:
         objective_value : float
             Evaluation of the objective function.
         """
-        if self.solved:
+        if self._solved:
             if objective == "efficiency":
                 return (
                     self.nw.get_conn("e7").E.val

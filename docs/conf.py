@@ -81,6 +81,8 @@ def collect_component_parameters(instance):
         eq_reference = _get_eq_reference(value)
 
         if isinstance(value, dc_cp):
+            if value._potential_var:
+                key = key + "*"
             parameters_with_equation[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
@@ -201,6 +203,14 @@ def create_tabular_component_views():
                 modules[parent_module][cls_name] += _indent_block(
                     key + "\n" * 2, 8
                 )
+                if key == "Table of parameters":
+                    modules[parent_module][cls_name] += _indent_block(
+                        "Parameters marked with a star can be made system "
+                        "variables. "":ref:`Get more info here "
+                        "<component_variables_label>`"
+                        + "\n" * 2, 8
+                    )
+
                 modules[parent_module][cls_name] += _indent_block(
                     tabulate(
                         df[[c for c in headers if c in df.columns]],
@@ -343,7 +353,6 @@ def generate_all_sources(app):
 
 def setup(app):
     app.connect("builder-inited", generate_all_sources)
-
 
 
 # landing page

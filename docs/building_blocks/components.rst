@@ -110,8 +110,8 @@ not be implemented by the solver.
 
 .. _component_variables_label:
 
-Custom variables
-^^^^^^^^^^^^^^^^
+Component variables
+^^^^^^^^^^^^^^^^^^^
 It is possible to use component parameters as variables of your system of
 equations. In the component parameter list, if a parameter can be a string, it
 is possible to specify this parameter as custom variable. For example, given

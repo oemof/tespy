@@ -4,7 +4,14 @@ Educational Resources
 ~~~~~~~~~~~~~~~~~~~~~
 
 The cards below link available university courses and teaching material
-specifically for tespy or using it in the context of the topic
+specifically for tespy or using it in the context of the topic.
+
+.. note::
+
+    These resources may not be up to date with the latest version of tespy at
+    all times. If you want to help updating them, please reach out to the
+    respective developers or open an issue on the tespy repository, so we can
+    get things started.
 
 .. grid:: 1 2 3 3
     :gutter: 1
@@ -48,7 +55,7 @@ specifically for tespy or using it in the context of the topic
         This course is a short introduction to modeling concentrating solar
         power systems starting from solar irradiation calculations, considering
         different types of solar collectors and then using tespy to analyse
-        Rankine cycles and supercritical CO<sub>2</sub> power cycles.
+        Rankine cycles and supercritical CO\ :sub:`2` power cycles.
 
     .. grid-item-card::  Integrate thermodynamic models with economic dispatch assessment
         :link: https://oemof.github.io/heat-pump-tutorial/

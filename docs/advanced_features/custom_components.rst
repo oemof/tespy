@@ -3,8 +3,14 @@
 Customize Components
 --------------------
 
-Extend existing ones
-^^^^^^^^^^^^^^^^^^^^
+On this page you will find a general overview on what you have to consider
+when adapting existing components or creating new ones. Furthermore, there is
+tutorial available on how we built the :code:`PolynomialCompressorWithCooling`
+together at the first tespy user meeting
+:ref:`here <develop_components_tutorial_label>`.
+
+Extend existing components
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can easily add custom equations to the existing components. In order to do
 this, you need to implement four changes to the desired component class:
@@ -56,11 +62,11 @@ calculated automatically. If you want to insert the partial derivatives
 manually, you can define another function and pass with the :code:`deriv`
 keyword.
 
-Create own ones
-^^^^^^^^^^^^^^^
+Create own components
+^^^^^^^^^^^^^^^^^^^^^
 
 You can add own components. The class should inherit from the
-:py:class:`component <tespy.components.component.Component>` class or its
+:py:class:`Component <tespy.components.component.Component>` class or its
 children. In order to do that, you can use the customs module or create a
 python file in your working directory and import the base class for your
 custom component. Now create a class for your component and at least add the

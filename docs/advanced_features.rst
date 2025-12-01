@@ -17,7 +17,7 @@ Advanced Features
         .. image:: /_static/images/thumbnails/advanced_features/ude_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Custom EOS
+    .. grid-item-card::  Fluid Property Libraries
         :link: fluid_properties_label
         :link-type: ref
 
@@ -54,5 +54,5 @@ Advanced Features
 
     advanced_features/ude.rst
     advanced_features/fluid_properties.rst
-    advanced_features/characteristics.rst
     advanced_features/custom_components.rst
+    advanced_features/characteristics.rst

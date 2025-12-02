@@ -337,6 +337,8 @@ To solve your offdesign calculation, use:
 
     nw.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
+.. _networks_solving_label:
+
 Solving
 -------
 A TESPy network can be represented as a linear system of nonlinear equations,

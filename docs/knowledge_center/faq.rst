@@ -7,10 +7,34 @@ Frequently Asked Questions
 
     .. dropdown:: Why does my simulation model crash with a CoolProp related error or does not converge towards a solution?
 
-        - Short introduction into sources of numerical instability
-        - Point towards :ref:`Starting Value tutorial <tutorial_starting_values_label>`
-        - Discuss things like :code:`init_path`, :code:`design_path` etc. for off-design simulations
-        - Best practices for automatically making small steps towards a changed input
+        TESPy uses
+        `Newton's Method <https://en.wikipedia.org/wiki/Newton%27s_method>`__
+        in order to numerically solve the system of equations created according
+        to your model design and parametrization. The algorithm iteratively
+        approaches a solution for the unknown variables within your model with
+        the help of the derivatives of the equations. If a CoolProp related
+        error is not caused by unreasonable user specifications, it most likely
+        stems from a non-converging or even diverging solving process.
+
+        There are a multitude of reasons that cause instability, but the most
+        import in the context of TESPy are bad starting values. Oftentimes they
+        are not explicitly specified by the user and depent on general default
+        values. If those do not fit your specific model, instability can be the
+        result.
+
+        The
+        :ref:`tutorial about starting values <tutorial_starting_values_label>`
+        is a good introduction into a systematic approach to prevent
+        non-converging modelling. Furthermore, the networks
+        :py:meth:`.solve() <tespy.networks.Network.solve>` method accepts
+        parameters like :code:`init_path` and :code:`design_path` path, that
+        allow the user to provide previously saved results to be used as
+        starting values for :code:`design` as well as :code:`offdesign`
+        simulations. Find a more thorough description about how the solving
+        process is immplemented and configured in TESPy in the respective
+        chapter in the :ref:`networks documentation <networks_solving_label>`.
+        It also contains a comprehensive section about
+        :ref:`convergence stability <module_convergence_label>`.
 
     .. dropdown:: How do I know, which equations are applied in my model?
 

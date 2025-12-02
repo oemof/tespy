@@ -12,6 +12,14 @@ Frequently Asked Questions
         - Discuss things like :code:`init_path`, :code:`design_path` etc. for off-design simulations
         - Best practices for automatically making small steps towards a changed input
 
+    .. dropdown:: How do I know, which equations are applied in my model?
+
+        You can use the :ref:`debugging <tutorial_debugging_label>` functions
+        to identify the variables and the equations in your model. The
+        equations available are displayed in a compact overview in separate
+        tables for all :ref:`component classes <modules_components_label>` and
+        for :ref:`connections <modules_connections_label>`.
+
     .. dropdown:: How do I create a relation between two unknown variables?
 
         You can use the :code:`Ref` specification on connection properties for
@@ -55,10 +63,62 @@ Frequently Asked Questions
 
     .. dropdown:: How can I add custom constraints or equations to my model?
 
-        - Introduce :py:class:`tespy.tools.helpers.UserDefinedEquation`
-        - Maybe small example here
-        - Point towards full :ref:`UDE Example <ude_label>` in docs
-        - One step further is to adjust existing or create new components (:ref:`Custom component tutorial <components_custom_components_label>` and :ref:`Documentation on how to contribute <developing_label>`)
+        You can make use of the :py:class:`UserDefinedEquation <tespy.tools.helpers.UserDefinedEquation>`.
+        With this class you can create a function that returns the residual
+        value of your equation and define what variables the function depends
+        on. Everything else is cared for by the solver. For a couple of
+        examples you can also check :ref:`this page <ude_label>` in docs. Using
+        it is the simple entry point before customizing existing or developing
+        new components.
+
+    .. dropdown:: I have two compressors in a model, both should have the same isentropic efficiency as a result
+
+        This is possible with the :ref:`UserDefinedEquation <ude_label>`. In a
+        :code:`UserDefinedEquation` you can build arbitrary equations and apply
+        them to your model by the variables registered in the solver. The
+        variables are mostly representing connection properties,
+        :ref:`some component properties <modules_components_label>` can also be
+        variables, the isentropic efficiency of a compressor is not one of
+        these. But, you can still implement an equation for this problem, by
+        writing it as function of the pressure and enthalpy values involved:
+
+        .. code-block::
+
+            >>> from tespy.tools.fluid_properties import isentropic
+
+
+            >>> def equal_efficiency_ude(ude):
+            ...     cp1, cp2 = ude.comps
+            ...
+            ...     cp1_in, cp1_out, cp2_in, cp2_out = cp1.inl[0], cp1.outl[0], cp2.inl[0], cp2.outl[0]
+            ...     return (
+            ...         (
+            ...             isentropic(
+            ...                 cp1_in.p.val_SI,
+            ...                 cp1_in.h.val_SI,
+            ...                 cp1_out.p.val_SI,
+            ...                 cp1_in.fluid_data,
+            ...                 cp1_in.mixing_rule
+            ...             ) - cp1_in.h.val_SI
+            ...         ) * (cp2_out.h.val_SI - cp2_in.h.val_SI)
+            ...         - (
+            ...             isentropic(
+            ...                 cp2_in.p.val_SI,
+            ...                 cp2_in.h.val_SI,
+            ...                 cp2_out.p.val_SI,
+            ...                 cp2_in.fluid_data,
+            ...                 cp2_in.mixing_rule
+            ...             ) - cp2_in.h.val_SI
+            ...         ) * (cp1_out.h.val_SI - cp1_in.h.val_SI)
+            ...     )
+
+            >>> def equal_efficiency_ude_dependents(ude):
+            ...     cp1, cp2 = ude.comps
+            ...     cp1_in, cp1_out, cp2_in, cp2_out = cp1.inl[0], cp1.outl[0], cp2.inl[0], cp2.outl[0]
+            ...     return [
+            ...         var for c in [cp1_in, cp1_out, cp2_in, cp2_out]
+            ...         for var in [c.p, c.h]
+            ...     ]
 
     .. dropdown:: How can I plot log(p)-h and T-s diagrams from my simulation?
 

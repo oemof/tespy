@@ -183,6 +183,8 @@ class TesypPinchAnalysis():
         ax.set_box_aspect(1)
         ax.set_title(f"Grand Composite Curve of \"{self.label}\"",color = "black", fontsize = 10)
         
+        self.gcc_fig, self.gcc_ax = fig, ax
+
         if save_fig:
             fig.savefig(f"Grand_Composite_Curve_{self.label}.svg")
         if show_fig:
@@ -196,14 +198,33 @@ class TesypPinchAnalysis():
 
     # adding components from tespy models
 
-    # add: def show_heat_pump_in_gcc(self):
+    # adding a heat pump in the GCC (by referencing evaporator and condenser)
     
-        # get plot data of heat exchangers at heat sink
-        # as used in e.g. the heat exchanger example plots
+    def show_heat_pump_in_gcc(self, evaporator, condenser):
+        from tespy.components import SimpleHeatExchanger
+        
+        # get the GCC
+        fig = self.gcc_fig
+        ax = self.gcc_ax
+        if isinstance(condenser,SimpleHeatExchanger):
+            # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
+            condenser_Q_vals = [0, abs(condenser.Q.val)]
+            condenser_T_vals = [50,50] # for testing only!
+        if isinstance(condenser,SimpleHeatExchanger):
+            # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
+            evaporator_Q_vals = [0, abs(evaporator.Q.val)]
+            evaporator_T_vals = [10,10] # for testing only!
 
-        # get plot data of heat exchangers at heat source
+        # add: expand these conditions in future for other types
 
-        # show (only display) by adding the plot data to the gcc
+
+        # show (only display) by adding the plot data of the heat exchangers to the GCC
+        ax.plot(condenser_Q_vals, condenser_T_vals, "-",color="red") # as in heat exchanger example
+        ax.plot(evaporator_Q_vals, evaporator_T_vals, "-",color="blue")
+
+        # save figure
+        fig.savefig("GCC_with_heat_pump.svg")
+
 
     # add: check heat pump integration by using the integration rules
     # see e.g. Arpagaus 2019, Walden et al. 2023

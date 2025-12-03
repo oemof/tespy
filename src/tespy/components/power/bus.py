@@ -130,8 +130,8 @@ class PowerBus(Component):
 
     def get_parameters(self):
         return {
-            "num_in": dc_simple(val=0),
-            "num_out": dc_simple(val=0)
+            "num_in": dc_simple(val=0, description="number of inlets"),
+            "num_out": dc_simple(val=0, description="number of outlets")
         }
 
     def get_mandatory_constraints(self):

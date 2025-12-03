@@ -226,16 +226,34 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
-            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
-            'c_1': dc_cp(min_val=0),
-            'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(),
-            'iam_2': dc_cp(),
-            'aoi': dc_cp(min_val=-90, max_val=90, quantity="angle"),
-            'doc': dc_cp(min_val=0, max_val=1, quantity="ratio"),
-            'Q_loss': dc_cp(max_val=0, _val=0, quantity="heat"),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _potential_var=True,
+                description="solar irradiation to the parabolic trough"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _potential_var=True,
+                description="area of the parabolic trough"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'c_1': dc_cp(min_val=0, description="thermal loss coefficient 1"),
+            'c_2': dc_cp(min_val=0, description="thermal loss coefficient 2"),
+            'iam_1': dc_cp(description="incidence angle modifier 1"),
+            'iam_2': dc_cp(description="incidence angle modifier 2"),
+            'aoi': dc_cp(
+                min_val=-90, max_val=90, quantity="angle",
+                description="angle of incidence"
+            ),
+            'doc': dc_cp(
+                min_val=0, max_val=1, quantity="ratio",
+                description="degree of cleanliness"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation"
+            ),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
@@ -243,7 +261,8 @@ class ParabolicTrough(SimpleHeatExchanger):
                 ],
                 num_eq_sets=1,
                 func=self.energy_group_func,
-                dependents=self.energy_group_dependents
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the parabolic trough"
             )
         })
         return data

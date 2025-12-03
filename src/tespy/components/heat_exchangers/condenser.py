@@ -247,6 +247,7 @@ class Condenser(HeatExchanger):
                 _val=False, num_eq_sets=1,
                 func=self.subcooling_func,
                 dependents=self.subcooling_dependents,
+                description="allow subcooling in the condenser"
             )
         })
         return params

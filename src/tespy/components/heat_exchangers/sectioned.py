@@ -321,29 +321,48 @@ class SectionedHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'num_sections': dc_simple(val=50),
+            'num_sections': dc_simple(
+                val=50,
+                description="number of sections of the heat exchanger"
+            ),
             'UA': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
                 dependents=self.UA_dependents,
-                quantity="heat_transfer_coefficient"
+                quantity="heat_transfer_coefficient",
+                description="sum of UA values of all sections of heat exchanger"
             ),
-            'refrigerant_index': dc_simple(val=0),
-            're_exp_r': dc_cp(),
-            're_exp_sf': dc_cp(),
-            'alpha_ratio': dc_cp(quantity="ratio", min_val=0),
-            'area_ratio': dc_cp(quantity="ratio", min_val=0),
+            'refrigerant_index': dc_simple(
+                val=0,
+                description="side on which the refrigerant is flowing (0: hot, 1:cold)"
+            ),
+            're_exp_r': dc_cp(
+                description="Reynolds exponent for UA modification based on refrigerant side mass flow"
+            ),
+            're_exp_sf': dc_cp(
+                description="Reynolds exponent for UA modification based on secondary fluid side mass flow"
+            ),
+            'alpha_ratio': dc_cp(
+                quantity="ratio", min_val=0,
+                description="secondary to refrigerant side convective heat transfer coefficient ratio"
+            ),
+            'area_ratio': dc_cp(
+                quantity="ratio", min_val=0,
+                description="secondary to refrigerant side heat transfer area ratio"
+            ),
             'UA_cecchinato': dc_gcp(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
+                description="equation for UA modification in offdesign"
             ),
             'td_pinch': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
-                quantity="temperature_difference"
+                quantity="temperature_difference",
+                description="equation for minimum pinch"
             )
         })
         return params

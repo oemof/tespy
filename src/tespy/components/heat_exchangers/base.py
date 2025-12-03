@@ -318,16 +318,17 @@ class HeatExchanger(Component):
                 elements=['kA_char1', 'kA_char2'],
                 num_eq_sets=1,
                 func=self.kA_char_func,
-                dependents=self.kA_char_dependents
+                dependents=self.kA_char_dependents,
+                description="equation for heat transfer based on kA and modification factor"
             ),
             'kA_char1': dc_cc(
                 param='m',
-                description="hot side kA adaption lookup table for offdesign"
+                description="hot side kA modification lookup table for offdesign"
             ),
             'kA_char2': dc_cc(
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
-                description="cold side kA adaption lookup table for offdesign"
+                description="cold side kA modification lookup table for offdesign"
             ),
             'eff_cold': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
@@ -359,6 +360,7 @@ class HeatExchanger(Component):
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'num_eq_sets': 1,
+                "description": "hot side to cold side heat transfer equation"
             })
         })
         return constraints

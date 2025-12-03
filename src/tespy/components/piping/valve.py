@@ -170,7 +170,8 @@ class Valve(Component):
             'enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': 1,
-                'func_params': {'variable': 'h'}
+                'func_params': {'variable': 'h'},
+                "description": "equation for enthalpy equality"
             })
         })
         return constraints

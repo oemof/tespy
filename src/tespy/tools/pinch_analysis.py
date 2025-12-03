@@ -99,7 +99,12 @@ class TesypPinchAnalysis():
         [self.gcc_data_enthalpy, self.gcc_data_shifted_temperature] = self.analyzer.grand_composite_curve
 
 
-    # add: def get_pinch_point(self):
+    def _get_pinch_point(self):  
+        # pinch point is at enthalpy flow difference of 0 by definition
+        pinch_index_gcc = self.gcc_data_enthalpy.index(0)
+        self.T_pinch = self.gcc_data_shifted_temperature[pinch_index_gcc]
+
+
         # needed to check e.g. pinch rules for heat pump integration automatically
            
 
@@ -162,11 +167,16 @@ class TesypPinchAnalysis():
 
 
     def plot_gcc_diagram(self, save_fig:bool = True, show_fig:bool = False, return_fig:bool = False):
+        # get pinch temperature
+        self._get_pinch_point()
+        # plot
         fig, ax = plt.subplots()
         # activate minor ticks
         ax.minorticks_on()
         # plot subplots with same axes limits
         ax.plot(self.gcc_data_enthalpy, self.gcc_data_shifted_temperature, color = "black")
+        # add pinch point
+        ax.plot(0, self.T_pinch, "o", color = "black")
         # set x scale on lowest subplot
         ax.tick_params(axis='x', which='major', labelsize=10, rotation = 0)
         # set x label

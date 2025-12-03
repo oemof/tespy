@@ -100,6 +100,7 @@ class TesypPinchAnalysis():
 
 
     def _get_pinch_point(self):  
+        # add: make use of pina functions here and in other plots
         # pinch point is at enthalpy flow difference of 0 by definition
         pinch_index_gcc = self.gcc_data_enthalpy.index(0)
         self.T_pinch = self.gcc_data_shifted_temperature[pinch_index_gcc]

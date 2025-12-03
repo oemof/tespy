@@ -12,27 +12,37 @@ Frequently Asked Questions
         in order to numerically solve the system of equations created according
         to your model design and parametrization. The algorithm iteratively
         approaches a solution for the unknown variables within your model with
-        the help of the derivatives of the equations. If a CoolProp related
-        error is not caused by unreasonable user specifications, it most likely
-        stems from a non-converging or even diverging solving process.
+        the help of the derivatives of the equations. Since the algorithm
+        itself is not aware of the physical boundaries limiting inputs to
+        CoolProp such errors may occur, most of the time due to the following
+        two reasons:
 
-        There are a multitude of reasons that cause instability, but the most
-        import in the context of TESPy are bad starting values. Oftentimes they
-        are not explicitly specified by the user and depent on general default
-        values. If those do not fit your specific model, instability can be the
-        result.
+        - The model inputs or the system design are not reasonable.
+        - The initial guess for the variables is far away from the actual
+          solution.
+
+        While there is little you can do to prevent the first one from the
+        software side (we recommend you reach out in the forum or get into
+        exchange with your friends or colleagues), the initial value issue can
+        be tackled:
+
+        If you set up a model without providing any start values, these are
+        automatically generated. If those do not fit your specific model,
+        instability in the solving process can be the result and lead to
+        CoolProp errors.
 
         The
         :ref:`tutorial about starting values <tutorial_starting_values_label>`
         is a good introduction into a systematic approach to prevent
-        non-converging modelling. Furthermore, the networks
-        :py:meth:`.solve() <tespy.networks.Network.solve>` method accepts
-        parameters like :code:`init_path` and :code:`design_path` path, that
-        allow the user to provide previously saved results to be used as
-        starting values for :code:`design` as well as :code:`offdesign`
-        simulations. Find a more thorough description about how the solving
-        process is immplemented and configured in TESPy in the respective
-        chapter in the :ref:`networks documentation <networks_solving_label>`.
+        non-converging modelling. Furthermore, the network's
+        :py:meth:`.solve() <tespy.networks.Network.solve>` method automatically
+        starts at the previous solution. If your new inputs are far away from
+        that, you can iteratively change the inputs to arrive at the desired
+        destination. Furthermore, it is possible to provide starting values
+        from a saved simulation through the :code:`init_path`. Find a more
+        thorough description about how the solving process is implemented and
+        configured in TESPy in the respective chapter in the
+        :ref:`Network documentation <networks_solving_label>`.
         It also contains a comprehensive section about
         :ref:`convergence stability <module_convergence_label>`.
 
@@ -211,9 +221,24 @@ Frequently Asked Questions
 
     .. dropdown:: Is it possible to create an optimization problem with my model?
 
-        - Introduce the optimization API :py:class:`tespy.tools.optimization.OptimizationProblem`
-        - Point towards full :ref:`Optimization Example <tutorial_pygmo_optimization_label>`
+        You can couple your simulation model with any kind of optimization
+        library for non-linear optimization e.g. scipy, pygmo, pymoo etc.. For
+        the coupling with pygmo there is a dedicated API available. To use it
+        you have to provide your model in the form of a
+        :ref:`model class <integration_model_class_template_label>`. This will
+        let you use the pygmo integration as described in the
+        :ref:`Optimization Example <tutorial_pygmo_optimization_label>`.
 
     .. dropdown:: Which of the available HeatExchanger classes should I use?
 
-        - Point towards :ref:`Heat Exchanger Overview <tutorial_heat_exchanger>`
+        There are multiple different types of :code:`HeatExchanger` available
+        in TESPy. These are
+
+        - Energy balance heat exchangers, which only consider one side of the
+          heat exchange
+        - 0D models which transfer heat from one fluid to the other and
+        - discretized 1D models, which allow the specification of internal
+          pinch.
+
+        We have created an :ref:`overview <tutorial_heat_exchanger>` on the
+        different 0D and 1D types available and when to use which model.

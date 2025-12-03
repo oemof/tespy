@@ -166,7 +166,7 @@ Frequently Asked Questions
         :ref:`FluProDia Example <fluprodia_label>` that shows its usage as well
         as TESPy's API to extract the necessary plotting data. A thorough
         explanation can be found in
-        `fluprodia's online documentation <https://https://fluprodia.readthedocs.io/en/latest/>`__.
+        `fluprodia's online documentation <https://fluprodia.readthedocs.io/en/latest/>`__.
 
     .. dropdown:: How can I plot Q-T diagrams of heat exchangers?
 

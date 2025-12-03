@@ -312,7 +312,7 @@ class HeatExchanger(Component):
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1},
-                description="cold side hot side non-dimensional friction coefficient for pressure loss calculation"
+                description="cold side non-dimensional friction coefficient for pressure loss calculation"
             ),
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
@@ -320,10 +320,14 @@ class HeatExchanger(Component):
                 func=self.kA_char_func,
                 dependents=self.kA_char_dependents
             ),
-            'kA_char1': dc_cc(param='m'),
+            'kA_char1': dc_cc(
+                param='m',
+                description="hot side kA adaption lookup table for offdesign"
+            ),
             'kA_char2': dc_cc(
                 param='m',
-                char_params={'type': 'rel', 'inconn': 1, 'outconn': 1}
+                char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
+                description="cold side kA adaption lookup table for offdesign"
             ),
             'eff_cold': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,

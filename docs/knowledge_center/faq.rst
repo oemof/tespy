@@ -215,9 +215,16 @@ Frequently Asked Questions
 
     .. dropdown:: How can I apply Second Law of thermodynamics analysis methods?
 
-        - Introduce exergy analysis and how it can help
-        - `exerpy <https://exerpy.readthedocs.io/en/latest/>`__
-        - Reference other methods like entropy analysis etc.
+        TESPy has an integrated exergy analysis feature. This was developed
+        originally in two publications: :cite:`Witte2022,Hofmann2022`. The
+        feature automatically calculates the exergy of all streams in your
+        model and applies the exergy balance equations for all components to
+        make the analysis of the complete model. Recently, a new project to
+        extend this work has started. For this, the feature is extracted from
+        tespy and implemented in an own library:
+        `exerpy <https://exerpy.readthedocs.io/en/latest/>`__. exerpy is
+        compatible with TESPy and you can seamlessly pass your TESPy model to
+        the exergy analysis methods.
 
     .. dropdown:: Is it possible to create an optimization problem with my model?
 

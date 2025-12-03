@@ -62,6 +62,7 @@ class TesypPinchAnalysis():
             print("set minimum temperature difference first")
             return
         self.analyzer.add_streams(*self.streams) # add a way to add streams later
+        self._get_analyzer_data()
 
 
     # get datapoints of hot composite curve
@@ -99,12 +100,12 @@ class TesypPinchAnalysis():
         [self.gcc_data_enthalpy, self.gcc_data_shifted_temperature] = self.analyzer.grand_composite_curve
 
 
-    def _get_pinch_point(self):  
-        # add: make use of pina functions here and in other plots
-        # pinch point is at enthalpy flow difference of 0 by definition
-        pinch_index_gcc = self.gcc_data_enthalpy.index(0)
-        self.T_pinch = self.gcc_data_shifted_temperature[pinch_index_gcc]
-
+    def _get_analyzer_data(self):  
+        # get additional analysis data from pina
+        self.T_pinch = self.analyzer.pinch_temps[0]
+        self.cold_utility = self.analyzer.cold_utility_target
+        self.hot_utility = self.analyzer.hot_utility_target
+        self.heat_recovery = self.analyzer.heat_recovery_target
 
         # needed to check e.g. pinch rules for heat pump integration automatically
            
@@ -116,6 +117,11 @@ class TesypPinchAnalysis():
         # plot subplots with same axes limits
         ax.plot(self.hot_cc_data_enthalpy, self.hot_cc_data_temperature, color = "red")
         ax.plot(self.cold_cc_data_enthalpy, self.cold_cc_data_temperature, color = "blue")
+        # add visualization of sections
+        # get minimum temperature
+        T_min_CC = min(min(self.hot_cc_data_temperature), min(self.cold_cc_data_temperature))
+        ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
+                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_CC-5]*4, "o-", color="black")
         # set x scale on lowest subplot
         ax.tick_params(axis='x', which='major', labelsize=10, rotation = 0)
         # set x label
@@ -145,6 +151,11 @@ class TesypPinchAnalysis():
         # plot subplots with same axes limits
         ax.plot(self.shifted_hot_cc_data_enthalpy, self.shifted_hot_cc_data_temperature, color = "red")
         ax.plot(self.shifted_cold_cc_data_enthalpy, self.shifted_cold_cc_data_temperature, color = "blue")
+        # add visualization of sections
+        # get minimum temperature
+        T_min_shifted_CC = min(min(self.shifted_hot_cc_data_temperature), min(self.shifted_cold_cc_data_temperature))
+        ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
+                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_shifted_CC-5]*4, "o-", color="black")
         # set x scale on lowest subplot
         ax.tick_params(axis='x', which='major', labelsize=10, rotation = 0)
         # set x label
@@ -168,8 +179,6 @@ class TesypPinchAnalysis():
 
 
     def plot_gcc_diagram(self, save_fig:bool = True, show_fig:bool = False, return_fig:bool = False):
-        # get pinch temperature
-        self._get_pinch_point()
         # plot
         fig, ax = plt.subplots()
         # activate minor ticks

@@ -37,3 +37,28 @@ Example_Analysis.plot_cc_diagram()
 Example_Analysis.plot_shifted_cc_diagram()
 # the grand composite curve
 Example_Analysis.plot_gcc_diagram()
+
+
+# setting up the heat pump system
+from tespy.networks import network
+from tespy.connections import connection
+from tespy.components import SimpleHeatExchanger, Valve, Compressor
+
+# network
+nw = network("Heat Pump Network")
+
+
+# components
+condenser = SimpleHeatExchanger("Condenser")
+evaporator = SimpleHeatExchanger("Evaporator")
+expansion_valve = Valve("Expansion Valve")
+compressor = Compressor("Compressor")
+
+# connections
+c1 = connection(evaporator, "out1", compressor,"in1", label = "connection 1") 
+c2 = connection()
+c3 = connection()
+c4 = connection()
+nw.add_conns(c1,c2,c3,c4)
+
+# set up parameters of heat pump

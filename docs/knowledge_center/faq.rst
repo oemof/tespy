@@ -108,6 +108,24 @@ Instability, Errors and Debugging
         These errors are explained and handled for an example model in the
         :ref:`debugging tutorial about presolve errors <tutorial_debugging_error_presolve_label>`.
 
+    .. dropdown:: How do I deal with a singularity in the Jacobian matrix?
+
+        If you are seeing an error similar to this:
+
+        .. error::
+
+            .. code-block:: bash
+
+                Detected singularity in Jacobian matrix. This singularity is most likely caused by the parametrization of your problem and NOT a numerical issue. Double check your setup.
+                The following variables of your problem are not in connection with any equation: (2, 'p')
+
+        there is something wrong with the variables you specified in your
+        model or a numerical problem with the partial derivatives of the
+        underlying equations. The
+        :ref:`debugging tutorial about linear dependency <tutorial_debugging_linear_dependency_label>`
+        illustrates how you can inspect your model for reasons that cause
+        linear dependencies resulting in a singularity in the Jacobian matrix.
+
 .. _faq_customization_label:
 
 Customizing model behavior

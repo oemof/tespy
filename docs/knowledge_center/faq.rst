@@ -89,6 +89,25 @@ Instability, Errors and Debugging
         tables for all :ref:`component classes <modules_components_label>` and
         for :ref:`connections <modules_connections_label>`.
 
+    .. dropdown:: How do I handle errors I am seeing about my variable specifications in the presolve phase?
+
+        If you are seeing an error similar to this:
+
+        .. error::
+
+            .. code-block:: bash
+
+                TESPyNetworkError: You specified more than one variable of the linear dependent variables: (e1: E), (e2: E).
+
+        there is something wrong with the variables you specified in your
+        model. The specific error above is caused by setting two individual
+        variables, which are dependent on each other through some linear
+        relation and therefore can not both be variables. Other reasons for
+        similar errors are circular dependency of a number of variables as well
+        as over-determination of a single variable via multiple equations.
+        These errors are explained and handled for an example model in the
+        :ref:`debugging tutorial about presolve errors <tutorial_debugging_error_presolve_label>`.
+
 .. _faq_customization_label:
 
 Customizing model behavior

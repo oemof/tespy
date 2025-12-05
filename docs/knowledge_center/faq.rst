@@ -166,7 +166,7 @@ Customizing model behavior
         it is the simple entry point before customizing existing or developing
         new components.
 
-    .. dropdown:: I have two compressors in a model, both should have the same isentropic efficiency as a result
+    .. dropdown:: I have two compressors in a model, both should have the same isentropic efficiency as a result.
 
         This is possible with the :ref:`UserDefinedEquation <ude_label>`. In a
         :code:`UserDefinedEquation` you can build arbitrary equations and apply

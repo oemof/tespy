@@ -86,7 +86,6 @@ Navigate here to your favorite section:
         :link-type: ref
         :class-card: landing-card
 
-        - Educational resources
-        - See our best practices
         - View frequently asked questions
+        - Educational resources
         - Literature list

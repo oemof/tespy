@@ -284,3 +284,5 @@ Visualization, post-processing and cycle analysis
         :ref:`model class <integration_model_class_template_label>`. This will
         let you use the pygmo integration as described in the
         :ref:`Optimization Example <tutorial_pygmo_optimization_label>`.
+        Furthermore, see the publication by Chen et al. :cite:`Chen2022` for a
+        thorough application example in the scientific context.

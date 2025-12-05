@@ -116,8 +116,7 @@ obviously does not make any sense.
 
     For more detailed information about the number of variables involved and
     ways of parameter specifications, please go to the
-    :ref:`TESPy modules section <modules_label>` inside the Documentation
-    chapter.
+    :ref:`building blocks section <building_blocks_label>`.
 
     Another frequent reason for such errors are bad starting values. We have a
     tutorial specifically dedicated to this topic

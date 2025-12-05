@@ -54,3 +54,7 @@ figure figcaption p {
 .sd-card.landing-card ul.simple {
     color: var(--color-foreground-secondary);
 }
+
+span.backrefs {
+    display: none !important;
+}

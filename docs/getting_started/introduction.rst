@@ -69,7 +69,7 @@ Getting into TESPy
 For a good start on how TESPy works and how you can use it, we provide some
 :ref:`basic <basics_label>` and :ref:`advanced <advanced_tutorials_label>`
 tutorials in the User Guide section. The
-:ref:`modules <modules_label>` section provides you with in depth
+:ref:`modules <building_blocks_label>` section provides you with in depth
 information on the different modules of TESPy.
 
 Citation
@@ -105,4 +105,4 @@ zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 License
 =======
 
-.. include:: ../LICENSE
+.. include:: ../../LICENSE

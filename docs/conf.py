@@ -82,7 +82,7 @@ def collect_component_parameters(instance):
 
         if isinstance(value, dc_cp):
             if value._potential_var:
-                key = key + "*"
+                key = key + " [1]_"
             parameters_with_equation[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
@@ -203,13 +203,6 @@ def create_tabular_component_views():
                 modules[parent_module][cls_name] += _indent_block(
                     key + "\n" * 2, 8
                 )
-                if key == "Table of parameters":
-                    modules[parent_module][cls_name] += _indent_block(
-                        "Parameters marked with a star can be made system "
-                        "variables. "":ref:`Get more info here "
-                        "<component_variables_label>`"
-                        + "\n" * 2, 8
-                    )
 
                 modules[parent_module][cls_name] += _indent_block(
                     tabulate(
@@ -230,6 +223,11 @@ def create_tabular_component_views():
             for cls_info in data.values():
                 f.write(_indent_block(cls_info, 8))
                 f.write("\n" * 2)
+
+        f.write(
+            ".. [1] This parameter can be made a variable, "
+            ":ref:`get more info here <component_variables_label>`."
+        )
 
 
 def create_tabular_connection_views():

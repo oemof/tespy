@@ -174,4 +174,4 @@ plants step by step, make a design calculation of the plant as well as calculate
 offdesign/part load performance.
 
 In order to get a good overview of the TESPy functionalities, the sections on
-the :ref:`TESPy modules <modules_label>` will guide you in detail.
+the :ref:`TESPy modules <building_blocks_label>` will guide you in detail.

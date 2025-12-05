@@ -3,6 +3,15 @@
 Frequently Asked Questions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+This section contains answers to some frequently arising questions, which are
+grouped by theme and can be navigated with the sidebar to the right. If you can
+not find a question that relates to your specific problem, please consult the
+full API documentation or search for existing questions in the
+`discussion tab <https://github.com/oemof/tespy/discussions>`__ on GitHub. You
+can also submit a new question there, if you feel like your specific problem
+could affect more users than yourself. Furthermore, if you encounter a bug,
+please submit an `issue <https://github.com/oemof/tespy/issues>`__ on GitHub.
+
 .. _faq_best_practices_label:
 
 Modeling best practices

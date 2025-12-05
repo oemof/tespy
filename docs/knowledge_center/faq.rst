@@ -3,6 +3,32 @@
 Frequently Asked Questions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _faq_best_practices_label:
+
+Modeling best practices
+-----------------------
+
+.. container:: accordion-group
+
+    .. dropdown:: Which of the available HeatExchanger classes should I use?
+
+        There are multiple different types of :code:`HeatExchanger` available
+        in TESPy. These are
+
+        - Energy balance heat exchangers, which only consider one side of the
+          heat exchange
+        - 0D models which transfer heat from one fluid to the other and
+        - discretized 1D models, which allow the specification of internal
+          pinch.
+
+        We have created an :ref:`overview <tutorial_heat_exchanger>` on the
+        different 0D and 1D types available and when to use which model.
+
+.. _faq_errors_label:
+
+Instability, Errors and Debugging
+---------------------------------
+
 .. container:: accordion-group
 
     .. dropdown:: Why does my simulation model crash with a CoolProp related error or does not converge towards a solution?
@@ -53,6 +79,13 @@ Frequently Asked Questions
         equations available are displayed in a compact overview in separate
         tables for all :ref:`component classes <modules_components_label>` and
         for :ref:`connections <modules_connections_label>`.
+
+.. _faq_customization_label:
+
+Customizing model behavior
+--------------------------
+
+.. container:: accordion-group
 
     .. dropdown:: How do I create a relation between two unknown variables?
 
@@ -154,6 +187,13 @@ Frequently Asked Questions
             ...         for var in [c.p, c.h]
             ...     ]
 
+.. _faq_postprocessing_label:
+
+Visualization, post-processing and cycle analysis
+-------------------------------------------------
+
+.. container:: accordion-group
+
     .. dropdown:: How can I plot log(p)-h and T-s diagrams from my simulation?
 
         Fluid property diagrams can help you analyze and improve your
@@ -235,17 +275,3 @@ Frequently Asked Questions
         :ref:`model class <integration_model_class_template_label>`. This will
         let you use the pygmo integration as described in the
         :ref:`Optimization Example <tutorial_pygmo_optimization_label>`.
-
-    .. dropdown:: Which of the available HeatExchanger classes should I use?
-
-        There are multiple different types of :code:`HeatExchanger` available
-        in TESPy. These are
-
-        - Energy balance heat exchangers, which only consider one side of the
-          heat exchange
-        - 0D models which transfer heat from one fluid to the other and
-        - discretized 1D models, which allow the specification of internal
-          pinch.
-
-        We have created an :ref:`overview <tutorial_heat_exchanger>` on the
-        different 0D and 1D types available and when to use which model.

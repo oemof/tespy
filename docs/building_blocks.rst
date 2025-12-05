@@ -1,0 +1,68 @@
+.. _building_blocks_label:
+
+###############
+Building Blocks
+###############
+
+.. grid:: 1 2 3 3
+    :gutter: 1
+
+    .. grid-item-card::  Network
+        :link: modules_networks_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/network.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/network_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Components
+        :link: modules_components_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/components.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/components_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Connections and PowerConnections
+        :link: modules_connections_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/connections.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/connections_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Subsystems: Component Groups
+        :link: modules_subsystems_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/subsystem.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/subsystem_darkmode.svg
+           :class: only-dark
+
+    .. grid-item-card::  Fluid Property Diagrams
+        :link: fluprodia_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/fluid_properties_darkmode.svg
+            :class: only-dark
+
+..  toctree::
+    :maxdepth: 1
+    :hidden:
+
+    building_blocks/networks
+    building_blocks/components
+    building_blocks/connections
+    building_blocks/subsystems
+    building_blocks/fluprodia

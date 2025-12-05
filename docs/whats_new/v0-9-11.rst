@@ -1,0 +1,17 @@
+v0.9.11 - Under development
++++++++++++++++++++++++++++
+
+Other changes
+#############
+- The documentation has been completely restructured to improve navigation. On
+  top new tutorials on creating custom components and model debugging, a
+  section on frequently asked questions and a more compact overview on the
+  available component classes and the respective specification parameters with
+  their underlying equations have been added
+  (`PR #820 <https://github.com/oemof/tespy/pull/820>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- Malte Fritz (`@maltefritz <https://github.com/maltefritz>`__)
+- Jonas Freißmann (`@jfreissmann <https://github.com/jfreissmann>`__)

@@ -771,8 +771,6 @@ class Network:
             # connections as component attribute
             comp.inl = self.conns.loc[targets, "object"].tolist()
             comp.outl = self.conns.loc[sources, "object"].tolist()
-            comp.num_i = len(comp.inlets())
-            comp.num_o = len(comp.outlets())
 
             required_connectors_mask = self.conns["source_id"].isin(comp.poweroutlets())
             sources = self.conns[source_mask & required_connectors_mask]

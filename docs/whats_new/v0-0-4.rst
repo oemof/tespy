@@ -12,7 +12,7 @@ New Features
 Documentation
 #############
 - improved the online-documentation with new structure and new examples (`fa5e7ca <https://github.com/oemof/tespy/commit/fa5e7caf336f3ad277882bbf18db0e7d8908b3f0>`_, `6ef4d99 <https://github.com/oemof/tespy/commit/6ef4d99dca780a5f5950aacd14466383aa13b394>`_).
-  You will find the new examples in :ref:`this section <tespy_examples_label>`.
+  You will find the new examples in :ref:`this section <examples_label>`.
 - fixed some typos in different modules and the online-documentation
 
 Testing

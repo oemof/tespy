@@ -354,33 +354,38 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         constraints["cooling_energy_balance_constraints"] = dc_cmc(
             func=self.cooling_energy_balance_func,
             dependents=self.cooling_energy_balance_dependents,
-            num_eq_sets=1
+            num_eq_sets=1,
+            description="energy balance for the cooling ports"
         )
         return constraints
 
     def get_parameters(self):
         params = super().get_parameters()
         params["eta_recovery"] = dc_cp(
-            quantity="efficiency"
+            quantity="efficiency",
+            description="share of dissipated heat usable in cooling port"
         )
         params["td_minimal"] = dc_cp(
             min_val=0,
             quantity="temperature_difference",
-            is_result=True
+            is_result=True,
+            description="theoretical minimal temperature difference between working and cooling fluid"
         )
         params["dp_cooling"] = dc_cp(
             min_val=0,
             structure_matrix=self.dp_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
             quantity="pressure",
-            num_eq_sets=1
+            num_eq_sets=1,
+            description="cooling port inlet to outlet absolute pressure change"
         )
         params["pr_cooling"] = dc_cp(
             min_val=0,
             structure_matrix=self.pr_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "pr": "pr_cooling"},
             quantity="ratio",
-            num_eq_sets=1
+            num_eq_sets=1,
+            description="cooling port outlet to inlet pressure ratio"
         )
         return params
 

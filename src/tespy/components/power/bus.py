@@ -130,8 +130,8 @@ class PowerBus(Component):
 
     def get_parameters(self):
         return {
-            "num_in": dc_simple(val=0),
-            "num_out": dc_simple(val=0)
+            "num_in": dc_simple(val=0, description="number of inlets"),
+            "num_out": dc_simple(val=0, description="number of outlets")
         }
 
     def get_mandatory_constraints(self):
@@ -139,7 +139,8 @@ class PowerBus(Component):
             "energy_balance_constraint": dc_cmc(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
-                "num_eq_sets": 1
+                "num_eq_sets": 1,
+                "description": "energy balance over all inflows and outflows"
             })
         }
 

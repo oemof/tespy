@@ -143,6 +143,11 @@ class Component:
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
+        self.num_i = len(self.inlets())
+        self.num_o = len(self.outlets())
+        self.num_power_i = len(self.powerinlets())
+        self.num_power_o = len(self.poweroutlets())
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.
@@ -572,12 +577,14 @@ class Component:
             'mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'm'}
+                'func_params': {'variable': 'm'},
+                'description': "mass flow equality constraint(s)"
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'fluid'}
+                'func_params': {'variable': 'fluid'},
+                'description': "fluid composition equality constraint(s)"
             })
         }
 

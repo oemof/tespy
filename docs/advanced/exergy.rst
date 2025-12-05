@@ -1,4 +1,4 @@
-.. _tespy_advanced_exergy_label:
+.. _advanced_exergy_label:
 
 ~~~~~~~~~~~~~~~
 Exergy analysis

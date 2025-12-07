@@ -329,6 +329,7 @@ def update_api_docs():
 # ones.
 extensions = [
     'myst_nb',
+    'notfound.extension',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',

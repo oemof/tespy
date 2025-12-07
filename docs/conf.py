@@ -329,6 +329,7 @@ def update_api_docs():
 # ones.
 extensions = [
     'myst_nb',
+    'notfound.extension',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
@@ -434,8 +435,8 @@ html_sidebars = {
 }
 
 html_theme_options = {
-    "light_logo": "./images/logo_tespy_mid.svg",
-    "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
+    "light_logo": "./images/logo_tespy_mid_christmas.svg",
+    "dark_logo": "./images/logo_tespy_mid_darkmode_christmas.svg",
     "announcement": """
     <div oemof-announcement=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
     """,
@@ -453,6 +454,14 @@ html_js_files = [
     'js/custom.js',
 ]
 
+notfound_context = {
+    "title": "Page not found",
+    "body": """
+        <h1>This page does not exist under this address.</h1>
+        <p>We have restructured the documentation, your page might still exist but in a different location.</p>
+        <p><a href="/">Find what you are searching for here</a></p>
+    """,
+}
 
 html_favicon = './_static/images/logo_tespy_small.svg'
 

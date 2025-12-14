@@ -226,14 +226,16 @@ class TesypPinchAnalysis():
         # get the GCC
         fig = self.gcc_fig
         ax = self.gcc_ax
+
+        # get the plotting data of the heat exchangers
         if isinstance(condenser,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
             condenser_Q_vals = [0, abs(condenser.Q.val)]
-            condenser_T_vals = [50,50] # for testing only!
+            condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
         if isinstance(condenser,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
-            evaporator_Q_vals = [0, abs(evaporator.Q.val)]
-            evaporator_T_vals = [10,10] # for testing only!
+            evaporator_Q_vals = [0, abs(evaporator.Q.val)]         
+            evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
 
         # add: expand these conditions in future for other types
 

@@ -53,28 +53,33 @@ nw.units.set_defaults(
 # components
 condenser = SimpleHeatExchanger("Condenser")
 evaporator = SimpleHeatExchanger("Evaporator")
+desuperheater = SimpleHeatExchanger("Desuperheater")
 expansion_valve = Valve("Expansion Valve")
 compressor = Compressor("Compressor")
 cycle_closer = CycleCloser("Cycle Closer")
 
 # connections
-c1 = Connection(evaporator, "out1", compressor,"in1", label = "connection 1") 
-c2 = Connection(compressor, "out1", condenser, "in1", label = "connection 2")
-c3 = Connection(condenser, "out1", expansion_valve, "in1", label = "connection3")
-c4 = Connection(expansion_valve, "out1",cycle_closer, "in1", label = "connection4")
-c5 = Connection(cycle_closer, "out1", evaporator, "in1", label = "connection5")
-nw.add_conns(c1,c2,c3,c4,c5)
+c1 = Connection(evaporator, "out1", compressor,"in1", label = "connection 1")
+c2 = Connection(compressor, "out1", desuperheater, "in1", "connection 2") 
+c3 = Connection(desuperheater, "out1", condenser, "in1", label = "connection 3")
+c4 = Connection(condenser, "out1", expansion_valve, "in1", label = "connection 4")
+c5 = Connection(expansion_valve, "out1",cycle_closer, "in1", label = "connection 5")
+c6 = Connection(cycle_closer, "out1", evaporator, "in1", label = "connection 6")
+nw.add_conns(c1,c2,c3,c4,c5,c6)
 
 # set up general parameters of heat pump
 compressor.set_attr(eta_s = 0.7)
 condenser.set_attr(dp=0)
+desuperheater.set_attr(dp=0)
 evaporator.set_attr(dp=0)
 c1.set_attr(fluid={"R290": 1})
 
-# set up parameters to show specific case
+# set up parameters to show specific case, the desuperheater reduces the temperature to the dewline
+# in that case only the condensation is part of the conndenser forming a horizontal line in the GCC as
+# the most simple example case
 c1.set_attr(m=0.1, p=5, x=1)
-c2.set_attr(p=17)
-c3.set_attr(x=0)
+c3.set_attr(p=20, x=1)
+c4.set_attr(x=0)
 
 # solve design
 nw.solve("design")

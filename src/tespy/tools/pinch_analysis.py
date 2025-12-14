@@ -122,6 +122,11 @@ class TesypPinchAnalysis():
         T_min_CC = min(min(self.hot_cc_data_temperature), min(self.cold_cc_data_temperature))
         ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
                  self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_CC-5]*4, "o-", color="black")
+        # adding annotations to the different sections
+        ax.annotate(f'{self.cold_utility:.0f}', xy=(self.cold_utility/2, T_min_CC-4), horizontalalignment='center', fontsize=10)
+        ax.annotate(f'{self.heat_recovery:.0f}', xy=(self.cold_utility + self.heat_recovery/2, T_min_CC-4), horizontalalignment='center', fontsize=10)
+        ax.annotate(f'{self.hot_utility:.0f}', xy=(self.cold_utility + self.heat_recovery + self.hot_utility/2, T_min_CC-4), horizontalalignment='center', fontsize=10)
+
         # set x scale on lowest subplot
         ax.tick_params(axis='x', which='major', labelsize=10, rotation = 0)
         # set x label
@@ -156,6 +161,10 @@ class TesypPinchAnalysis():
         T_min_shifted_CC = min(min(self.shifted_hot_cc_data_temperature), min(self.shifted_cold_cc_data_temperature))
         ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
                  self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_shifted_CC-5]*4, "o-", color="black")
+        # adding annotations to the different sections
+        ax.annotate(f'{self.cold_utility:.0f}', xy=(self.cold_utility/2, T_min_shifted_CC-4), horizontalalignment='center', fontsize=10)
+        ax.annotate(f'{self.heat_recovery:.0f}', xy=(self.cold_utility + self.heat_recovery/2, T_min_shifted_CC-4), horizontalalignment='center', fontsize=10)
+        ax.annotate(f'{self.hot_utility:.0f}', xy=(self.cold_utility + self.heat_recovery + self.hot_utility/2, T_min_shifted_CC-4), horizontalalignment='center', fontsize=10)
         # set x scale on lowest subplot
         ax.tick_params(axis='x', which='major', labelsize=10, rotation = 0)
         # set x label

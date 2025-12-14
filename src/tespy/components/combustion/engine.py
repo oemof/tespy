@@ -474,14 +474,14 @@ class CombustionEngine(CombustionChamber):
                 \begin{split}
                 0 = & \sum_i \dot{m}_{in,i} \cdot
                 \left( h_{in,i} - h_{in,i,ref} \right)\\
-                & - \sum_j \dot{m}_{out,3} \cdot
+                & - \dot{m}_{out,3} \cdot
                 \left( h_{out,3} - h_{out,3,ref} \right)\\
                 & + LHV_{fuel} \cdot
-                \left(\sum_i \left(\dot{m}_{in,i} \cdot x_{fuel,i} \right)-
+                \left(\sum_j \left(\dot{m}_{in,j} \cdot x_{fuel,j} \right)-
                 \dot{m}_{out,3} \cdot x_{fuel,3} \right)\\
                 & - \dot{Q}_1 - \dot{Q}_2 - P - \dot{Q}_{loss}\\
                 \end{split}\\
-                \forall i \in [3,4]
+                \forall i \in [1,2] j \in [3,4]
 
         Note
         ----

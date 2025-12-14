@@ -11,14 +11,14 @@ Example_Analysis = TesypPinchAnalysis("Example_Process_1")
 Example_Analysis.set_minimum_temperature_difference(10)
 
 # add all the streams manually
-# Example: Kemp 2007 p. 20
-Example_Analysis.add_cold_stream_manually(-230, 20, 135)
-Example_Analysis.add_hot_stream_manually(330, 170, 60)
-Example_Analysis.add_cold_stream_manually(-240, 80, 140)
-Example_Analysis.add_hot_stream_manually(180, 150, 30)
+# Example: Kemp 2007 p. 20, reduced temperature by 50 degC to fit the heat pump example
+Example_Analysis.add_cold_stream_manually(-230, 20-50, 135-50)
+Example_Analysis.add_hot_stream_manually(330, 170-50, 60-50)
+Example_Analysis.add_cold_stream_manually(-240, 80-50, 140-50)
+Example_Analysis.add_hot_stream_manually(180, 150-50, 30-50)
 # additional latent streams as shown by Arpagaus 2019 p. 99
-Example_Analysis.add_hot_stream_manually(60,85,85)
-Example_Analysis.add_cold_stream_manually(-40,130,130)
+Example_Analysis.add_hot_stream_manually(60,35,35)
+Example_Analysis.add_cold_stream_manually(-40,80,80)
 
 # with all streams added, get the results as in pina
 cold_cc_data = Example_Analysis.get_cold_cc()

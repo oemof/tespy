@@ -1005,6 +1005,21 @@ class TestHeatExchangers:
 
         self.nw.assert_convergence()
 
+    def test_MovingBoundaryHeatExchanger_boundary_at_cold_side_inlet(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        # T found be trial and error
+        self.c1.set_attr(fluid={"water": 1}, T=20, p=1)
+        self.c2.set_attr(T=10)
+        self.c3.set_attr(fluid={"NH3": 1}, x=1.0)
+        self.c4.set_attr(td_dew=5, T=-19.597989949748744)
+        instance.set_attr(pr1=0.99, zeta2=2000, Q=-1e6)
+
+        self.nw.solve("design")
+
+        self.nw.assert_convergence()
+
     def test_SectionedHeatExchanger(self):
         instance = SectionedHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)

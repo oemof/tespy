@@ -446,16 +446,22 @@ class SectionedHeatExchanger(HeatExchanger):
                     x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_gas, 1]
                 else:
-                    x_gas = brentq(
-                        identify_step_at_saturation,
-                        0, 1,
-                        args=(
-                            c1.p.val_SI, c1.h.val_SI,
-                            delta_p, delta_h,
-                            1, c1.fluid_data#
+                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
+                    if np.isclose(h_sat_gas, c1.h.val_SI):
+                        h_at_steps = [0, 1]
+                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data), c2.h.val_SI):
+                        h_at_steps = [0, 1]
+                    else:
+                        x_gas = brentq(
+                            identify_step_at_saturation,
+                            0, 1,
+                            args=(
+                                c1.p.val_SI, c1.h.val_SI,
+                                delta_p, delta_h,
+                                1, c1.fluid_data#
+                            )
                         )
-                    )
-                    h_at_steps = [0, x_gas, 1]
+                        h_at_steps = [0, x_gas, 1]
 
             elif phase_h_high == "g" and phase_h_low == "l":
                 if delta_p == 0:
@@ -465,24 +471,36 @@ class SectionedHeatExchanger(HeatExchanger):
                     x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_liq, x_gas, 1]
                 else:
-                    x_gas = brentq(
-                        identify_step_at_saturation,
-                        0, 1,
-                        args=(
-                            c1.p.val_SI, c1.h.val_SI,
-                            delta_p, delta_h,
-                            1, c1.fluid_data#
+                    # c2 is the higher enthalpy, we have to check if it is
+                    # at saturated gas
+                    h_sat_gas = h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data)
+                    if np.isclose(h_sat_gas, c2.h.val_SI):
+                        x_gas = 1
+                    else:
+                        x_gas = brentq(
+                            identify_step_at_saturation,
+                            0, 1,
+                            args=(
+                                c1.p.val_SI, c1.h.val_SI,
+                                delta_p, delta_h,
+                                1, c1.fluid_data
+                            )
                         )
-                    )
-                    x_liq = brentq(
-                        identify_step_at_saturation,
-                        0, x_gas,
-                        args=(
-                            c1.p.val_SI, c1.h.val_SI,
-                            delta_p, delta_h,
-                            0, c1.fluid_data#
+                    # c1 is the lower enthalpy, we have to check if it is
+                    # at saturated liquid
+                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
+                    if np.isclose(h_sat_liquid, c1.h.val_SI):
+                        x_liq = 0
+                    else:
+                        x_liq = brentq(
+                            identify_step_at_saturation,
+                            0, x_gas,
+                            args=(
+                                c1.p.val_SI, c1.h.val_SI,
+                                delta_p, delta_h,
+                                0, c1.fluid_data#
+                            )
                         )
-                    )
                     h_at_steps = [0, x_liq, x_gas, 1]
 
             elif phase_h_high == "tp" and phase_h_low == "l":
@@ -491,16 +509,22 @@ class SectionedHeatExchanger(HeatExchanger):
                     x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_liq, 1]
                 else:
-                    x_liq = brentq(
-                        identify_step_at_saturation,
-                        0, 1,
-                        args=(
-                            c1.p.val_SI, c1.h.val_SI,
-                            delta_p, delta_h,
-                            0, c1.fluid_data#
+                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
+                    if np.isclose(h_sat_liquid, c1.h.val_SI):
+                        h_at_steps = [0, 1]
+                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 0, c2.fluid_data), c2.h.val_SI):
+                        h_at_steps = [0, 1]
+                    else:
+                        x_liq = brentq(
+                            identify_step_at_saturation,
+                            0, 1,
+                            args=(
+                                c1.p.val_SI, c1.h.val_SI,
+                                delta_p, delta_h,
+                                0, c1.fluid_data#
+                            )
                         )
-                    )
-                    h_at_steps = [0, x_liq, 1]
+                        h_at_steps = [0, x_liq, 1]
 
         return h_at_steps
 

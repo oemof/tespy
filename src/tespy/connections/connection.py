@@ -1785,10 +1785,9 @@ class Connection(ConnectionBase):
                 self.p.val_SI, self.fluid.wrapper[fluid]._T_min * f
             )
         if self.h.val_SI < hmin:
-            if hmin < 0:
-                self.h.set_reference_val_SI(hmin * 0.9999)
-            else:
-                self.h.set_reference_val_SI(hmin * 1.0001)
+            d = self.h._reference_container._d
+            delta = max(abs(self.h.val_SI * d), d) * 2
+            self.h.set_reference_val_SI(hmin + delta)
             logger.debug(self._property_range_message('h'))
         else:
 
@@ -1804,7 +1803,9 @@ class Connection(ConnectionBase):
                         raise ValueError(e) from e
 
             if self.h.val_SI > hmax:
-                self.h.set_reference_val_SI(hmax * 0.9999)
+                d = self.h._reference_container._d
+                delta = max(abs(self.h.val_SI * d), d) * 2
+                self.h.set_reference_val_SI(hmax - delta)
                 logger.debug(self._property_range_message('h'))
 
     def _adjust_to_two_phase(self, fluid):

@@ -17,6 +17,10 @@ Bug Fixes
   stream in the heat exchanger because brentq was to able to perform the root
   finding in that case
   (`PR #865 <https://github.com/oemof/tespy/pull/865>`__).
+- With the change of the scaling of the variables in context of the calculation
+  of numerical derivatives, the identification of minimum and maximum enthalpy
+  limits is now working as expected again
+  (`PR #867 <https://github.com/oemof/tespy/pull/867>`__).
 
 Contributors
 ############

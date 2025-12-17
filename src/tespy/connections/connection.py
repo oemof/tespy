@@ -1786,7 +1786,7 @@ class Connection(ConnectionBase):
             )
         if self.h.val_SI < hmin:
             d = self.h._reference_container._d
-            delta = max(abs(self.h.val_SI * d), d) * 2
+            delta = max(abs(self.h.val_SI * d), d) * 5
             self.h.set_reference_val_SI(hmin + delta)
             logger.debug(self._property_range_message('h'))
         else:
@@ -1804,7 +1804,7 @@ class Connection(ConnectionBase):
 
             if self.h.val_SI > hmax:
                 d = self.h._reference_container._d
-                delta = max(abs(self.h.val_SI * d), d) * 2
+                delta = max(abs(self.h.val_SI * d), d) * 5
                 self.h.set_reference_val_SI(hmax - delta)
                 logger.debug(self._property_range_message('h'))
 

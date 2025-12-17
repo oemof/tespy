@@ -10,6 +10,14 @@ Other changes
   their underlying equations have been added
   (`PR #820 <https://github.com/oemof/tespy/pull/820>`__).
 
+Bug Fixes
+#########
+- The moving boundary identification failed in some cases, when the phase
+  change boundary was directly at the inlet or the outlet of a respective
+  stream in the heat exchanger because brentq was to able to perform the root
+  finding in that case
+  (`PR #865 <https://github.com/oemof/tespy/pull/865>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -8,17 +8,14 @@ available from its original location tespy/tools/optimization.py
 
 SPDX-License-Identifier: MIT
 """
-try:
-    import pygmo as pg
-except ImportError:
-    pg = None
-
+import numpy as np
 import pandas as pd
+from pymoo.core.problem import ElementwiseProblem
 
 from tespy.tools.helpers import merge_dicts
 
 
-class OptimizationProblem:
+class OptimizationProblem(ElementwiseProblem):
     r"""
     The OptimizationProblem handles the optimization.
 
@@ -70,14 +67,6 @@ class OptimizationProblem:
     """
 
     def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None):
-        if pg is None:
-            msg = (
-                "For this function of TESPy pygmo has to be installed. Either"
-                " use pip (Linux users only) or conda to install the latest"
-                " pygmo version."
-            )
-            raise ImportError(msg)
-
         self.model = model
         default_variables = {"Connections": {}, "Components": {}}
         default_constraints = {
@@ -107,21 +96,21 @@ class OptimizationProblem:
         else:
             self.minimize = minimize
 
-        self.bounds = [[], []]
+        self._bounds = [[], []]
         for obj, data in self.variables.items():
             for label, params in data.items():
                 if obj in ["Connections", "Components"]:
                     for param in params:
-                        self.bounds[0] += [
+                        self._bounds[0] += [
                             self.variables[obj][label][param]['min']
                         ]
-                        self.bounds[1] += [
+                        self._bounds[1] += [
                             self.variables[obj][label][param]['max']
                         ]
                         self.variable_list += [obj + '-' + label + '-' + param]
                 else:
-                    self.bounds[0] += [self.variables[obj][label]['min']]
-                    self.bounds[1] += [self.variables[obj][label]['max']]
+                    self._bounds[0] += [self.variables[obj][label]['min']]
+                    self._bounds[1] += [self.variables[obj][label]['max']]
                     self.variable_list += [obj + '-' + label]
 
         self.input_dict = self.variables.copy()
@@ -129,6 +118,17 @@ class OptimizationProblem:
         self.nic = 0
         self.collect_constraints("upper", build=True)
         self.collect_constraints("lower", build=True)
+
+        self.log = []
+
+        super().__init__(
+            n_var=len(self.variable_list),
+            n_obj=len(self.objective_list),
+            n_ieq_constr=len(self.constraint_list),
+            n_eq_constr=0,
+            xl=self._bounds[0],
+            xu=self._bounds[1]
+        )
 
     def collect_constraints(self, border, build=False):
         """Collect the constraints
@@ -186,6 +186,40 @@ class OptimizationProblem:
         else:
             return evaluation
 
+    def _evaluate(self, x: np.ndarray, out: dict, *args, **kwargs) -> None:
+        i = 0
+        for obj, data in self.variables.items():
+            for label, params in data.items():
+                if obj in ["Connections", "Components"]:
+                    for param in params:
+                        self.input_dict[obj][label][param] = x[i]
+                        i += 1
+                else:
+                    self.input_dict[obj][label] = x[i]
+                    i += 1
+
+        self.model.solve_model(**self.input_dict)
+        fitness = self.model.get_objectives(self.objective_list)
+
+        # negate the fitness function evaluation for minimize = False
+        # parenthesis around the -1 are required!
+        fitness = [
+            (-1) ** (sense + 1) * f for f, sense in zip(fitness, self.minimize)
+        ]
+
+        cu = self.collect_constraints("upper")
+        cl = self.collect_constraints("lower")
+
+        out["F"] = fitness
+        out["G"] = cu + cl
+
+        log_entry = {
+            **{self.variable_list[i]: val for i, val in enumerate(x)},
+            **{self.objective_list[i]: val for i, val in enumerate(fitness)},
+            **{self.constraint_list[i]: val for i, val in enumerate(cu + cl)}
+        }
+        self.log.append(log_entry)
+
     def fitness(self, x):
         """Evaluate the fitness function of an individual.
 
@@ -236,7 +270,7 @@ class OptimizationProblem:
 
     def get_bounds(self):
         """Return bounds of decision variables."""
-        return self.bounds
+        return self._bounds
 
     def _process_generation_data(self, evo, pop):
         """Process the data of the individuals within one evolution.

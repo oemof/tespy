@@ -451,7 +451,7 @@ class CombustionChamber(Component):
             res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
             \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right)\\
             \forall i \in \text{combustion inlets}\\
-            \forall j \in text{flue gas outlet}
+            \forall j \in \text{flue gas outlet}
 
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
             {M_{fluid}}\\

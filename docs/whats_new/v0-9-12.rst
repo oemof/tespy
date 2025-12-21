@@ -1,0 +1,13 @@
+v0.9.12 - Under development
++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- The starting points for fluid wrapper propagation now can handle classes that
+  inherit from the starting point components. Before, they had to have the
+  identical name because a class name comparison was done
+  (`PR #871 <https://github.com/oemof/tespy/pull/871>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -1161,3 +1161,19 @@ def test_component_with_numpy_array_in_residual():
 
     nw.solve('design')
     nw.assert_convergence()
+
+
+def test_generates_fluid_wrapper_branches_with_inherited_component():
+
+    class FakeSource(Source):
+        pass
+
+    nw = Network()
+
+    so = FakeSource('feed water')
+    si = Sink('oxygen sink')
+
+    c1 = Connection(so, 'out1', si, 'in1', fluid={'H2O': 1}, T=20, p=1)
+    nw.add_conns(c1)
+
+    nw.solve("design")

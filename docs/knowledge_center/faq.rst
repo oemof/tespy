@@ -316,10 +316,10 @@ Visualization, post-processing and cycle analysis
 
         You can couple your simulation model with any kind of optimization
         library for non-linear optimization e.g. scipy, pygmo, pymoo etc.. For
-        the coupling with pygmo there is a dedicated API available. To use it
+        the coupling with pymoo there is a dedicated API available. To use it
         you have to provide your model in the form of a
         :ref:`model class <integration_model_class_template_label>`. This will
-        let you use the pygmo integration as described in the
-        :ref:`Optimization Example <tutorial_pygmo_optimization_label>`.
+        let you use the pymoo integration as described in the
+        :ref:`Optimization Example <tutorial_optimization_label>`.
         Furthermore, see the publication by Chen et al. :cite:`Chen2022` for a
         thorough application example in the scientific context.

@@ -29,11 +29,12 @@ https://guides.github.com/activities/hello-world/
 
 Key Features
 ============
-* **Open** Source
-* **Generic** thermal engineering applications
+* **Free** and **Open** Source Software
+* **Flexible** models of thermal engineering applications due to component
+  based architecture
 * **Extendable** framework for the implementation of custom components, fluid
   property formulations and equations
-* **Integration** of optimization capabilities through an API to pygmo
+* **Integration** of optimization capabilities through an API to pymoo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 .. start-badges

@@ -43,7 +43,7 @@ Key Features
   based architecture
 * **Extendable** framework for the implementation of custom components, fluid
   property formulations and equations
-* **Integration** of optimization capabilities through an API to pygmo
+* **Integration** of optimization capabilities through an API to pymoo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 Quick installation

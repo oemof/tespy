@@ -1,4 +1,4 @@
-.. _tutorial_pygmo_optimization_label:
+.. _tutorial_optimization_label:
 
 Thermal Power Plant Efficiency Optimization
 -------------------------------------------
@@ -21,14 +21,14 @@ TESPy to **maximize the cycle efficiency of a power plant with two**
 You can download the code here:
 :download:`optimization_example.py </../tutorial/advanced/optimization_example.py>`
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/flowsheet.svg
+.. figure:: /_static/images/tutorials/optimization/flowsheet.svg
     :align: center
     :alt: Topology of the power plant
     :figclass: only-light
 
     Figure: Topology of the power plant
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/flowsheet_darkmode.svg
+.. figure:: /_static/images/tutorials/optimization/flowsheet_darkmode.svg
     :align: center
     :alt: Topology of the power plant
     :figclass: only-dark
@@ -176,17 +176,17 @@ In our run, we got the following optimal solution:
 .. code:: bash
 
     Efficiency: 44.82 %
-    Extraction 1: 26.462 bar
-    Extraction 2: 2.820 bar
+    Extraction 1: 25.753 bar
+    Extraction 2: 2.685 bar
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/optimization_result.svg
+.. figure:: /_static/images/tutorials/optimization/optimization_result.svg
     :align: center
     :alt: Scatter plot for all individuals during the optimization
     :figclass: only-light
 
     Figure: Scatter plot for all individuals during the optimization
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/optimization_result_darkmode.svg
+.. figure:: /_static/images/tutorials/optimization/optimization_result_darkmode.svg
     :align: center
     :alt: Scatter plot for all individuals during the optimization
     :figclass: only-dark

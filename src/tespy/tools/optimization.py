@@ -51,19 +51,10 @@ class OptimizationProblem(ElementwiseProblem):
         :code:`minimize=[True, False]` if the first objective should be
         minimized and the second one maximized.
 
-    Note
-    ----
-    For the required structure of the input dictionaries see the example in
-    below.
-
-    Installation of pygmo via pip is not available for Windows and OSX users
-    currently. Please use conda instead or refer to their
-    `documentation <https://esa.github.io/pygmo2/>`_.
-
     Example
     -------
-    For an example please go to the tutorials section of TESPy's online
-    documentation.
+    For an example please check out
+    :ref:`this section <tespy_optimization_label>` in the docs.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None):

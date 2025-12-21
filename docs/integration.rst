@@ -18,13 +18,13 @@ Integration
             :class: only-dark
 
     .. grid-item-card::  Optimization of a thermal power plant
-        :link: tutorial_pygmo_optimization_label
+        :link: tutorial_optimization_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/integration/pygmo_optimization.svg
+        .. image:: /_static/images/thumbnails/integration/optimization_result.svg
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/integration/pygmo_optimization_darkmode.svg
+        .. image:: /_static/images/thumbnails/integration/optimization_result_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Combining tespy and oemof-solph

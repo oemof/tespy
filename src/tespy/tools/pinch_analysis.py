@@ -237,6 +237,7 @@ class TesypPinchAnalysis():
         ax = self.gcc_ax
 
         # get the plotting data of the heat exchangers
+        # condensers
         if isinstance(condenser,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
             condenser_Q_vals = [0, abs(condenser.Q.val)]
@@ -244,6 +245,7 @@ class TesypPinchAnalysis():
         else:
             raise ValueError("The component type is not implemented as a condenser.")
        
+        # evaporators
         if isinstance(evaporator,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
             evaporator_Q_vals = [0, abs(evaporator.Q.val)]         

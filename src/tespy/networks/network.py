@@ -24,11 +24,11 @@ import pandas as pd
 from numpy.linalg import norm
 from tabulate import tabulate
 
-from tespy.components.component import component_registry
+from tespy.components import CycleCloser
+from tespy.components import FuelCell
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
-from tespy.components import FuelCell
-from tespy.components import CycleCloser
+from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections.connection import ConnectionBase

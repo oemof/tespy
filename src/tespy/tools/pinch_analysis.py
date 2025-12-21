@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Useful literature: 
 # Arpagaus 2019 Hochtemperatur-Wärmepumpen (ISBN 978-3-8007-4550-0)
-# Kemp 2006 (p.20)
+# Kemp 2006 (p.20) (https://doi.org/10.1016/B978-0-7506-8260-2.X5001-9)
 # Walden et al. 2023 (https://doi.org/10.1016/j.apenergy.2023.121933)
 
 

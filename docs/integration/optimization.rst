@@ -14,7 +14,7 @@ In case of a rather simple power plant topologies the task of finding
 optimized values for e.g. extraction pressures is still manageable without any
 optimization tool. As the topology becomes more complex and boundary
 conditions come into play the usage of additional tools is recommended. The
-following tutorial is intended to show the usage of PyGMO in combination with
+following tutorial is intended to show the usage of pymoo in combination with
 TESPy to **maximize the cycle efficiency of a power plant with two**
 **extractions.**
 
@@ -35,13 +35,14 @@ You can download the code here:
 
     Figure: Topology of the power plant
 
-What is PyGMO?
+What is pymoo?
 ^^^^^^^^^^^^^^
 
-PyGMO (Python Parallel Global Multiobjective Optimizer, :cite:`Biscani2020`)
-is a library that provides numerous evolutionary optimization algorithms. PyGMO
-can be used to solve constrained, unconstrained, single objective and multi
-objective problems.
+`pymoo <https://pymoo.org/>`__ ( Multi-objective Optimization in Python,
+:cite:`pymoo`) is a library that provides numerous optimization algorithms.
+pymoo can be used to solve constrained, unconstrained, single objective and
+multi objective problems. In this example we will use an evolutionary algorithm
+to find the optimal pressure values.
 
 Evolutionary Algorithms
 +++++++++++++++++++++++
@@ -56,45 +57,31 @@ evolves to find better solutions.
 EA will never find an exact solution to your problem. They can only give an
 approximation for the real optimum.
 
-Install PyGMO
+Install pymoo
 +++++++++++++
 
-.. tab-set::
+Installation of pymoo is straight-forward: Just install tespy with the extra
+dependencies "opt", e.g. with pip
 
-   .. tab-item:: conda
+.. code-block:: bash
 
-        With the conda package manager PyGMO is available for Linux, OSX and
-        Windows thanks to the infrastructure of
-        `conda-forge <https://conda-forge.org/>`_:
+    pip install tespy[opt]
 
-        .. code-block:: bash
+of uv
 
-            conda install -c conda-forge pygmo
+.. code-block:: bash
 
-
-        Windows user can perform an installation from source as an alternative
-        to conda. For further information on this process we recommend the
-        `PyGMO installation <https://esa.github.io/pygmo2/install.html#installation-from-source>`__
-        accordingly.
-
-
-   .. tab-item:: pip (Linux only!)
-
-        On Linux you also have the option to use the
-        `pip <https://pip.pypa.io/en/stable/>`_ package installer:
-
-        .. code-block:: bash
-
-            pip install pygmo
+    uv add tespy --extra opt
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-To use the API, you need to define a class holding a TESPy network. The
-initialization of the class should build the network and run an initial
-simulation. Furthermore, you have to define methods
+We have integrated an API in tespy, that automatically couples to pymoo. To
+use it, you need to define a class holding a TESPy network. The initialization
+of the class should build the network and run an initial simulation.
+Furthermore, you have to define methods
 
 - to get component or connection parameters of the plant :code:`get_param`,
-- to run a new simulation for every new input from PyGMO :code:`solve_model`
+- to run a new simulation for every new input from pymoo :code:`solve_model`
   and
 - to return the objective values :code:`get_objectives`.
 
@@ -171,26 +158,20 @@ reference the pressure at connection 4 as seen in the code:
 
 Before we can run the optimization, we only need to select an appropriate
 algorithm. After that we can start the optimization run. For more information
-on algorithms available in the PyGMO framework and their individual
-specifications please refer to the respective section in their online
-documentation:
-`list of algorithms <https://esa.github.io/pagmo2/overview.html#list-of-algorithms>`__.
-Create an initial population and then specify the number of individuals, the
-number of generations and call the
-:py:meth:`tespy.tools.optimization.OptimizationProblem.run` method of your
-:code:`OptimizationProblem` instance passing the algorithm, the population and
-the number of individuals and generations.
+on algorithms available in the pymoo framework and their individual
+specifications please check the respective section of the documentation:
+`list of algorithms <https://pymoo.org/algorithms/index.html>`__.
 
-Run PyGMO-Optimization
+Run pymoo-Optimization
 ^^^^^^^^^^^^^^^^^^^^^^
-The following code then simply runs the PyGMO optimization.
+The following code then simply runs the pymoo optimization.
 
 .. literalinclude:: /../tutorial/advanced/optimization_example.py
     :language: python
-    :start-after: [sec_4]
-    :end-before: [sec_5]
+    :start-after: [sec_5]
+    :end-before: [sec_6]
 
-In our run, we got:
+In our run, we got the following optimal solution:
 
 .. code:: bash
 
@@ -212,11 +193,12 @@ In our run, we got:
 
     Figure: Scatter plot for all individuals during the optimization
 
-Finally, you can access the individuals in each of the generations, and you
-can have a look at you population. For more info on the population API please
-visit the pygmo documentation.
+You can access the data generated by the optimization from the
+:code:`problem.log` attribute, which contains each variable input that was
+evaluated by the optimizer in your tespy model. On top, you can access the
+result attribute, population information etc. as documented by pymoo.
 
 .. literalinclude:: /../tutorial/advanced/optimization_example.py
     :language: python
-    :start-after: [sec_5]
-    :end-before: [sec_6]
+    :start-after: [sec_6]
+    :end-before: [sec_7]

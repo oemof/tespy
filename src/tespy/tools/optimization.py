@@ -203,14 +203,13 @@ class OptimizationProblem(ElementwiseProblem):
 
         # negate the fitness function evaluation for minimize = False
         # parenthesis around the -1 are required!
-        fitness = [
+        out["F"] = [
             (-1) ** (sense + 1) * f for f, sense in zip(fitness, self.minimize)
         ]
 
         cu = self.collect_constraints("upper")
         cl = self.collect_constraints("lower")
 
-        out["F"] = fitness
         out["G"] = cu + cl
 
         log_entry = {

@@ -227,8 +227,7 @@ class TesypPinchAnalysis():
 
     # adding components from tespy models
 
-    # adding a heat pump in the GCC (by referencing evaporator and condenser)
-    
+    # adding a heat pump in the GCC (by referencing evaporator and condenser)  
     def show_heat_pump_in_gcc(self, evaporator, condenser):
         from tespy.components import SimpleHeatExchanger
         
@@ -254,6 +253,7 @@ class TesypPinchAnalysis():
             raise ValueError("The component type is not implemented as an evaporator.")
 
         # add: expand these conditions in future for other types
+        # missing: HeatExchanger, ParallelFlowHeatExchanger, Desuperheater, Condenser, MovingBoundaryHeatExchanger, SectionedHeatExchanger
 
 
         # show (only display) by adding the plot data of the heat exchangers to the GCC
@@ -266,6 +266,7 @@ class TesypPinchAnalysis():
 
     # add: check heat pump integration by using the integration rules
     # see e.g. Arpagaus 2019, Walden et al. 2023
+    # Temperature and heat flux
 
     # add: def add_heat_exchanger_to_streams(self):
         # function to read streams from given heat exchangers, later use to iterate all heat exchangers of network with possibility to exclude streams / heat exchangers

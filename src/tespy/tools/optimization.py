@@ -8,11 +8,14 @@ available from its original location tespy/tools/optimization.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 import pandas as pd
 from pymoo.core.problem import ElementwiseProblem
 
 from tespy.tools.helpers import merge_dicts
+from tespy.tools.logger import logger
 
 
 class OptimizationProblem(ElementwiseProblem):
@@ -297,6 +300,12 @@ class OptimizationProblem(ElementwiseProblem):
         num_evo : int
             Number of evolutions.
         """
+        msg = (
+            "The pygmo API is deprecated and will be removed in the next "
+            "major release. Please use the pymoo API instead in the future."
+        )
+        logger.warning(msg)
+        warnings.warn(msg, FutureWarning)
 
         self.individuals = pd.DataFrame(index=range(num_evo * num_ind))
 

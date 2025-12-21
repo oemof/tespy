@@ -1176,4 +1176,4 @@ def test_generates_fluid_wrapper_branches_with_inherited_component():
     c1 = Connection(so, 'out1', si, 'in1', fluid={'H2O': 1}, T=20 + 273.15, p=1e5)
     nw.add_conns(c1)
 
-    nw.solve("design")
+    nw.solve("design", init_only=True)

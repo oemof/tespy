@@ -179,14 +179,14 @@ In our run, we got the following optimal solution:
     Extraction 1: 26.462 bar
     Extraction 2: 2.820 bar
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization.svg
+.. figure:: /_static/images/tutorials/pygmo_optimization/optimization_result.svg
     :align: center
     :alt: Scatter plot for all individuals during the optimization
     :figclass: only-light
 
     Figure: Scatter plot for all individuals during the optimization
 
-.. figure:: /_static/images/tutorials/pygmo_optimization/pygmo_optimization_darkmode.svg
+.. figure:: /_static/images/tutorials/pygmo_optimization/optimization_result_darkmode.svg
     :align: center
     :alt: Scatter plot for all individuals during the optimization
     :figclass: only-dark

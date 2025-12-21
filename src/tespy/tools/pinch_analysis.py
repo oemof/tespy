@@ -241,10 +241,15 @@ class TesypPinchAnalysis():
             # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
             condenser_Q_vals = [0, abs(condenser.Q.val)]
             condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
-        if isinstance(condenser,SimpleHeatExchanger):
+        else:
+            raise ValueError("The component type is not implemented as a condenser.")
+       
+        if isinstance(evaporator,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
             evaporator_Q_vals = [0, abs(evaporator.Q.val)]         
             evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
+        else:
+            raise ValueError("The component type is not implemented as an evaporator.")
 
         # add: expand these conditions in future for other types
 

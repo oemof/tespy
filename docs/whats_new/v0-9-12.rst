@@ -44,7 +44,7 @@ Other changes
   With the new implementation you also have more control on automatic
   termination of the optimization. For all information see the
   `pymoo docs <https://pymoo.org>`__, and check out the
-  :ref:`tutorial <tespy_optimization_label>` to see, how to use :code:`pymoo`.
+  :ref:`tutorial <tutorial_optimization_label>` to see, how to use :code:`pymoo`.
 
 Bug Fixes
 #########

@@ -57,7 +57,7 @@ class OptimizationProblem(ElementwiseProblem):
     Example
     -------
     For an example please check out
-    :ref:`this section <tespy_optimization_label>` in the docs.
+    :ref:`this section <tutorial_optimization_label>` in the docs.
     """
 
     def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None):

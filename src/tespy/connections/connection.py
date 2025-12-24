@@ -1537,15 +1537,20 @@ class Connection(ConnectionBase):
             return np.nan
 
     def calc_liquid_water_in_mixture(self):
-        water_alias = _water_in_mixture(self.fluid_data)
-        if water_alias:
-            water_alias = next(iter(water_alias))
-            mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(
-                self.p.val_SI, self.calc_T(), self.fluid_data, water_alias
-            )
-            return mass_liquid
+        fluid = single_fluid(self.fluid_data)
+        if fluid is None:
+            water_alias = _water_in_mixture(self.fluid_data)
+            if water_alias:
+                water_alias = next(iter(water_alias))
+                mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(
+                    self.p.val_SI, self.calc_T(), self.fluid_data, water_alias
+                )
+                return mass_liquid
+            else:
+                return 0
         else:
-            return 0
+            # not a mixture
+            return np.nan
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()

@@ -248,9 +248,7 @@ class SamplePlant:
                 raise NotImplementedError(msg)
         else:
             return np.nan
-
-    # %%[sec_3]
-
+# %%[sec_3]
 plant = SamplePlant()
 plant.get_objective("efficiency")
 variables = {
@@ -267,8 +265,13 @@ constraints = {
     },
     "ref1": ["Connections", "4", "p"]
 }
+kpi = {
+    "Components": {
+        "high pressure turbine": {"P", "pr"}
+    }
+}
 problem = OptimizationProblem(
-    plant, variables, constraints, objective=["efficiency"], minimize=[False]
+    plant, variables, constraints, objective=["efficiency"], minimize=[False], kpi=kpi
 )
 num_evo = 20
 # %%[sec_4]

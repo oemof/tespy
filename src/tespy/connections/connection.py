@@ -45,6 +45,8 @@ from tespy.tools.fluid_properties.functions import p_dew_T
 from tespy.tools.fluid_properties.functions import p_sat_T
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
+from tespy.tools.fluid_properties.mixtures import _water_in_mixture
+from tespy.tools.fluid_properties.mixtures import cond_check
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
@@ -1533,6 +1535,17 @@ class Connection(ConnectionBase):
             return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
         except NotImplementedError:
             return np.nan
+
+    def calc_liquid_water_in_mixture(self):
+        water_alias = _water_in_mixture(self.fluid_data)
+        if water_alias:
+            water_alias = next(iter(water_alias))
+            mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(
+                self.p.val_SI, self.calc_T(), self.fluid_data, water_alias
+            )
+            return mass_liquid
+        else:
+            return 0
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()

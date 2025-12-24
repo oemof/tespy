@@ -138,8 +138,19 @@ OptimizationProblem class. We also have to pass
 - the constraints to consider,
 - the objective function name (you could define multiple in the
   :code:`get_objective` method if you wanted) and
-- the optimization sense for each objective, here we pass :code:`[False]` since
-  we want to maximize efficiency.
+
+On top, it is possible to pass two additional keyword arguments:
+
+- :code:`minimize`, which is indicating the sense of optimization for each
+  objective. By default (if nothing is provided) all objectives are to be
+  minimized. In this case we pass :code:`[False]` since we want to maximize
+  efficiency.
+- :code:`kpi`, which allows to automatically include extra model outputs in the
+  log of the optimization. The structure of the data is identical to the
+  connections and components dictionary in the variables. For each connection
+  or component we can simply pass a list or a set of parameters we want to
+  extract. In the example below, we select the power and pressure of the
+  high pressure turbine to showcase the capabilities.
 
 We set one inequality constraint, namely that the pressure of the first
 extraction has to be higher than the pressure at the second one:

@@ -245,7 +245,7 @@ class TesypPinchAnalysis():
         elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger):
             # get the data from calc_sections, a and b are not needed placeholders as a reminder
             a, condenser_T_steps_hot, condenser_T_steps_cold, condenser_Q_per_section, b = condenser.calc_sections()
-            print(condenser_T_steps_hot, condenser_Q_per_section)
+            print(condenser_T_steps_hot)
             raise ValueError("method not completed yet")
         else:
             raise ValueError("The component type is not implemented as a condenser.")
@@ -259,13 +259,13 @@ class TesypPinchAnalysis():
         elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger):
             # get the data from calc_sections, a and b are not needed placeholders as a reminder
             a, evaporator_T_steps_hot, evaporator_T_steps_cold, evaporator_Q_per_section, b = condenser.calc_sections()
-            print(evaporator_T_steps_hot, evaporator_Q_per_section)
+            print(evaporator_T_steps_cold)
             raise ValueError("method not completed yet")
         else:
             raise ValueError("The component type is not implemented as an evaporator.")
 
         # add: expand these conditions in future for other types
-        # missing: HeatExchanger, ParallelFlowHeatExchanger, Desuperheater, Condenser, MovingBoundaryHeatExchanger, SectionedHeatExchanger
+        # missing: HeatExchanger, ParallelFlowHeatExchanger, Desuperheater, Condenser
 
 
         # show (only display) by adding the plot data of the heat exchangers to the GCC

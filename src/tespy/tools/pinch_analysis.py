@@ -229,7 +229,7 @@ class TesypPinchAnalysis():
 
     # adding a heat pump in the GCC (by referencing evaporator and condenser)  
     def show_heat_pump_in_gcc(self, evaporator, condenser):
-        from tespy.components import SimpleHeatExchanger
+        from tespy.components import SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger
         
         # get the GCC
         fig = self.gcc_fig
@@ -241,6 +241,12 @@ class TesypPinchAnalysis():
             # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
             condenser_Q_vals = [0, abs(condenser.Q.val)]
             condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
+            # to do: include a warning, if there is at least one change between to or from a latent stream
+        elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger):
+            # get the data from calc_sections, a and b are not needed placeholders as a reminder
+            a, condenser_T_steps_hot, condenser_T_steps_cold, condenser_Q_per_section, b = condenser.calc_sections()
+            print(condenser_T_steps_hot, condenser_Q_per_section)
+            raise ValueError("method not completed yet")
         else:
             raise ValueError("The component type is not implemented as a condenser.")
        
@@ -249,6 +255,12 @@ class TesypPinchAnalysis():
             # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
             evaporator_Q_vals = [0, abs(evaporator.Q.val)]         
             evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
+            # to do: include a warning, if there is at least one change between to or from a latent stream
+        elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger):
+            # get the data from calc_sections, a and b are not needed placeholders as a reminder
+            a, evaporator_T_steps_hot, evaporator_T_steps_cold, evaporator_Q_per_section, b = condenser.calc_sections()
+            print(evaporator_T_steps_hot, evaporator_Q_per_section)
+            raise ValueError("method not completed yet")
         else:
             raise ValueError("The component type is not implemented as an evaporator.")
 

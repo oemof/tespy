@@ -48,6 +48,10 @@ Other changes
   :code:`pymoo` (`PR #872 <https://github.com/oemof/tespy/pull/872>`__).
 - The logging of the optimization with pymoo now can keep track of additional
   kpi (`PR #873 <https://github.com/oemof/tespy/pull/873>`__).
+- Many methods of the :code:`Network` class, that are supposed to be private
+  are now named appropriately with a leading underscore. On top, some methods
+  have been renamed to clarify what they do
+  (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
 
 Bug Fixes
 #########

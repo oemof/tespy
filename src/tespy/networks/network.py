@@ -2858,19 +2858,24 @@ class Network:
                 container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":
                 container = data["obj"]
-                relax = max(
+                p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI
                 )
-                container._val_SI += increment[container.J_col] / relax
+                container._val_SI += increment[container.J_col] / p_relax
             elif data["variable"] == "fluid":
                 container = data["obj"]
-                container.val[data["fluid"]] += increment[
-                    container.J_col[data["fluid"]]
-                ]
+                inc = increment[container.J_col[data["fluid"]]]
+                value = container.val[data["fluid"]]
+                if value > ERR:
+                    f_relax = max(1, -2 * inc / value)
+                else:
+                    f_relax = 1
 
-                if container.val[data["fluid"]] < ERR :
+                container.val[data["fluid"]] += inc / f_relax
+
+                if container.val[data["fluid"]] < ERR:
                     container.val[data["fluid"]] = 0
-                elif container.val[data["fluid"]] > 1 - ERR :
+                elif container.val[data["fluid"]] > 1 - ERR:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment

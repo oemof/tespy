@@ -1848,7 +1848,6 @@ class Connection(ConnectionBase):
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)
             self.h.set_reference_val_SI(h)
 
-
     def _adjust_to_temperature_limits(self):
         r"""
         Check if temperature is within user specified limits.

@@ -772,6 +772,9 @@ class Connection(ConnectionBase):
         elif key == "fluid_balance":
             self.fluid_balance.is_set = value
 
+        elif key == "fluid_wrapper_kwargs":
+            self.fluid.wrapper_kwargs = value
+
         else:
             msg = f"Connections do not have an attribute named {key}"
             logger.error(msg)
@@ -833,6 +836,7 @@ class Connection(ConnectionBase):
         for fluid in self.fluid.val:
             if fluid in self.fluid.wrapper:
                 continue
+
             if fluid not in self.fluid.engine:
                 self.fluid.engine[fluid] = CoolPropWrapper
 
@@ -844,9 +848,11 @@ class Connection(ConnectionBase):
 
             wrapper_kwargs = {}
             if fluid in self.fluid.wrapper_kwargs:
-                wrapper_kwargs = self.fluid.wrapper_kwargs
+                wrapper_kwargs = self.fluid.wrapper_kwargs[fluid]
 
-            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end, **wrapper_kwargs)
+            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](
+                fluid, back_end, **wrapper_kwargs
+            )
 
     def _precalc_guess_values(self):
         """

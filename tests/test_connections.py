@@ -33,6 +33,7 @@ from tespy.networks import Network
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
+from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.units import SI_UNITS
 
 
@@ -527,12 +528,14 @@ def make_connection(cls):
 
 QUANTITY_EXEMPTIONS = {}
 
+
 def properties_of(instance):
     return [
         prop
         for prop, container in instance.get_parameters().items()
         if isinstance(container, dc_prop)
     ]
+
 
 def pytest_generate_tests(metafunc):
     if "cls_name" in metafunc.fixturenames and "prop" in metafunc.fixturenames:
@@ -542,6 +545,7 @@ def pytest_generate_tests(metafunc):
             for prop in properties_of(instance):
                 params.append(pytest.param(name, prop, id=f"{cls.__name__}::{prop}"))
         metafunc.parametrize("cls_name,prop", params)
+
 
 def test_property_value_not_none(cls_name, prop):
 
@@ -554,3 +558,16 @@ def test_property_value_not_none(cls_name, prop):
     )
 
     assert condition, f"Quantity for {prop} of {cls_name} must not be None"
+
+
+def test_wrapper_kwargs_injection():
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1", label="c")
+    c.set_attr(
+        fluid={"H2O": 1},
+        fluid_wrapper_kwargs={"H2O": {"testkeyword": "data"}},
+        fluid_engines={"H2O": FluidPropertyWrapper}
+    )
+    c._create_fluid_wrapper()
+    assert "testkeyword" in c.fluid.wrapper["H2O"].__dict__

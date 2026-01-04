@@ -842,7 +842,11 @@ class Connection(ConnectionBase):
             else:
                 self.fluid.back_end[fluid] = None
 
-            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
+            wrapper_kwargs = {}
+            if fluid in self.fluid.wrapper_kwargs:
+                wrapper_kwargs = self.fluid.wrapper_kwargs
+
+            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end, **wrapper_kwargs)
 
     def _precalc_guess_values(self):
         """

@@ -37,7 +37,7 @@ class SerializableAbstractState(CP.AbstractState):
 @wrapper_registry
 class FluidPropertyWrapper:
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Base class for fluid property wrappers
 
         Parameters
@@ -50,6 +50,7 @@ class FluidPropertyWrapper:
         self.back_end = back_end
         self.fluid = fluid
         self.mixture_type = None
+        self.__dict__.update(kwargs)
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -132,7 +133,7 @@ class FluidPropertyWrapper:
 @wrapper_registry
 class CoolPropWrapper(FluidPropertyWrapper):
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Wrapper for CoolProp.CoolProp.AbstractState instance calls
 
         Parameters
@@ -369,7 +370,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
 class IAPWSWrapper(FluidPropertyWrapper):
 
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Wrapper for iapws library calls
 
         Parameters
@@ -487,7 +488,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
 @wrapper_registry
 class PyromatWrapper(FluidPropertyWrapper):
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Wrapper for the Pyromat fluid property library
 
         Parameters

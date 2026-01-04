@@ -63,7 +63,6 @@ Bug Fixes
   pressure relaxation factor to overwrite the factors for all other variables
   (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
 
-
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

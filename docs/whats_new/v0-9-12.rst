@@ -48,6 +48,10 @@ Other changes
   :code:`pymoo` (`PR #872 <https://github.com/oemof/tespy/pull/872>`__).
 - The logging of the optimization with pymoo now can keep track of additional
   kpi (`PR #873 <https://github.com/oemof/tespy/pull/873>`__).
+- Many methods of the :code:`Network` class, that are supposed to be private
+  are now named appropriately with a leading underscore. On top, some methods
+  have been renamed to clarify what they do
+  (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
 
 Bug Fixes
 #########
@@ -55,6 +59,10 @@ Bug Fixes
   inherit from the starting point components. Before, they had to have the
   identical name because a class name comparison was done
   (`PR #871 <https://github.com/oemof/tespy/pull/871>`__).
+- Fix a bug in the specification of the relaxation factors that cause the
+  pressure relaxation factor to overwrite the factors for all other variables
+  (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
+
 
 Contributors
 ############

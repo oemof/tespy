@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for testing fluid properties of gas mixtures.
+"""Module for testing fluid properties of incompressibles.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,

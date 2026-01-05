@@ -1208,8 +1208,6 @@ def test_fluid_kwargs_propagation():
         p=1, T=30
     )
     c2.set_attr(p=0.9, T=50)
-
-    # this specification requires viscosity
     pipe.set_attr(Q=1500)
 
     nw.solve("design")

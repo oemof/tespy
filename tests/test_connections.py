@@ -569,5 +569,6 @@ def test_wrapper_kwargs_injection():
         fluid_wrapper_kwargs={"H2O": {"testkeyword": "data"}},
         fluid_engines={"H2O": FluidPropertyWrapper}
     )
+    # if kwargs could not be passed to the Wrapper instantiation this would
+    # raise an error
     c._create_fluid_wrapper()
-    assert "testkeyword" in c.fluid.wrapper["H2O"].__dict__

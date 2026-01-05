@@ -22,7 +22,7 @@ def property_data():
     # https://petrocanadalubricants.com/api/sitecore/lubesapi/downloadresource?docID=IM-7852E&type=TechData&lang=english&name=CALFLO%20AF
     return {
         "temperature_data": np.array([292.647, 310.808, 366.241, 421.673, 477.108, 532.542, 588.826, 618.580]),
-        "heat_capacity_data": np.array([1901.775, 1961.529, 2143.908, 2326.287, 2508.674, 2691.060, 2876.242, 2974.135]),
+        "heat_capacity_data": np.array([1901.775, 1961.529, 2143.908, 2326.287, 2508.674, 2691.060, 2876.242, 2974.135]) * 1000,
         "density_data": np.array([863.811, 852.596, 818.368, 784.139, 749.909, 715.678, 680.924, 662.551]),
         "viscosity_data": np.array([0.050335, 0.028525, 0.007075, 0.002500, 0.00111, 0.000579, 0.000334, 0.000259])
     }

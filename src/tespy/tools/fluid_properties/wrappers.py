@@ -10,9 +10,11 @@ tespy/tools/fluid_properties/wrappers.py
 
 SPDX-License-Identifier: MIT
 """
-
 import CoolProp as CP
+import numpy as np
 
+from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
+from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
 from tespy.tools.global_vars import ERR
 
 
@@ -50,7 +52,6 @@ class FluidPropertyWrapper:
         self.back_end = back_end
         self.fluid = fluid
         self.mixture_type = None
-        self.__dict__.update(kwargs)
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -367,6 +368,107 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
 
 @wrapper_registry
+class IncompressibleFluidWrapper(FluidPropertyWrapper):
+
+    def __init__(self, fluid, back_end=None, **kwargs):
+        super().__init__(fluid, back_end, **kwargs)
+
+        self.temperature_data = kwargs.get("temperature_data", None)
+        self.heat_capacity_data = kwargs.get("heat_capacity_data", None)
+        self.density_data = kwargs.get("density_data", None)
+        self.viscosity_data = kwargs.get("viscosity_data", None)
+
+        if self.temperature_data is None:
+            pass
+        elif self.heat_capacity_data is None:
+            pass
+        elif self.density_data is None:
+            pass
+        elif self.viscosity_data is None:
+            pass
+
+        self._fit_data()
+        self._set_constants()
+
+    def _fit_data(self):
+        A, B = fit_incompressible_linear(
+            self.temperature_data, self.heat_capacity_data
+        )
+        self._heat_capacity = {
+            "A": A,
+            "B": B
+        }
+        A, B = fit_incompressible_linear(
+            self.temperature_data, self.density_data
+        )
+        self._density = {
+            "A": A,
+            "B": B
+        }
+        A, B = fit_incompressible_viscosity(
+            self.temperature_data, self.viscosity_data
+        )
+        self._viscosity = {
+            "A": A,
+            "B": B
+        }
+
+    def _set_constants(self):
+        self._T_ref = min(self.temperature_data)
+        # evaluate at T=T_ref
+        self._h_ref = self._h_pT(None, self._T_ref)
+
+        self._T_min = self._T_ref
+        self._T_max = max(self.temperature_data)
+
+        self._molar_mass = 1
+        self._p_min = 100
+        self._p_max = 10000000
+        self._p_crit = self._p_max
+
+        self._T_crit = None
+
+    def T_ph(self, p, h):
+        # Inverse function of h_pT, using quadratic formula with adding the
+        # root
+        return (
+            (
+                -self._heat_capacity["A"]
+                + (
+                    self._heat_capacity["A"] ** 2
+                    - 4 * 0.5 * self._heat_capacity["B"] * - (h + self._h_ref)
+                ) ** 0.5
+            )
+            / (2 * 0.5 * self._heat_capacity["B"])
+        )
+
+    def h_pT(self, p, T):
+        return self._h_pT(p, T) - self._h_ref
+
+    def _h_pT(self, p, T):
+        # h = integral cp(T) dT
+        return (
+            0.5 * self._heat_capacity["B"] * T ** 2
+            + self._heat_capacity["A"] * T
+        )
+
+    def d_ph(self, p, h):
+        return self.d_pT(p, self.T_ph(p, h))
+
+    def d_pT(self, p, T):
+        return (
+            self._density["B"] * T
+            + self._density["A"]
+        )
+
+    def viscosity_ph(self, p, h):
+        return self.viscosity_pT(p, self.T_ph(p, h))
+
+    def viscosity_pT(self, p, T):
+        return self._viscosity["A"] * np.exp(self._viscosity["B"] /  T)
+
+
+@wrapper_registry
 class IAPWSWrapper(FluidPropertyWrapper):
 
 
@@ -460,8 +562,8 @@ class IAPWSWrapper(FluidPropertyWrapper):
             return "g"
         elif phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
             return "tp"
-        else:  # to ensure consistent behaviour to CoolPropWrapper
-            return "phase not recognised"
+        else:  # to ensure consistent behavior to CoolPropWrapper
+            return "phase not recognized"
 
     def d_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).rho

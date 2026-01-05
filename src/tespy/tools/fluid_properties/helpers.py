@@ -360,3 +360,31 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
             / (3.71 * diameter)
         ) + 1 / darcy_friction_factor ** 0.5
     )
+
+
+def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
+    if len(x) != len(y):
+        msg = ""
+        raise ValueError(msg)
+    elif len(x) < 3:
+        msg = ""
+        raise ValueError(msg)
+
+
+def fit_incompressible_viscosity(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, viscosity)
+
+    x = 1.0 / temperature
+    y = np.log(viscosity)
+
+    intercept, slope = np.polyfit(x, y, 1)
+
+    return np.exp(slope), intercept
+
+
+def fit_incompressible_linear(temperature: np.ndarray, y: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, y)
+
+    intercept, slope = np.polyfit(temperature, y, 1)
+
+    return slope, intercept

@@ -366,7 +366,7 @@ def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
     if len(x) != len(y):
         msg = ""
         raise ValueError(msg)
-    elif len(x) < 3:
+    elif len(x) < 2:
         msg = ""
         raise ValueError(msg)
 

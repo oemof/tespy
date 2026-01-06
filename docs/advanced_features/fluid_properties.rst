@@ -92,6 +92,7 @@ mixture back end is not tested thoroughly. Please reach out if you would like
 to support us in adopting the TESPy implementation.
 
 .. _incompressible_wrapper_label:
+
 IncompressibleFluidWrapper
 --------------------------
 You can use the :code:`IncompressibleFluidWrapper` engine of TESPy to model a
@@ -412,6 +413,7 @@ the previous section:
     306.3
 
 .. _mixture_routines_label:
+
 Mixture routines in TESPy
 -------------------------
 Different types of mixture routines are implemented in TESPy. You can select,

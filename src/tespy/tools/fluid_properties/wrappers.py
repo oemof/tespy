@@ -74,7 +74,7 @@ class FluidPropertyWrapper:
     def h_pT(self, p, T):
         self._not_implemented()
 
-    def h_ps(self, p, T):
+    def h_ps(self, p, s):
         self._not_implemented()
 
     def h_QT(self, Q, T):
@@ -455,6 +455,34 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return (
             0.5 * self._heat_capacity["B"] * T ** 2
             + self._heat_capacity["A"] * T
+        )
+
+    def h_ps(self, p, s):
+        return self.h_pT(p, self.T_ps(p, s))
+
+    def s_ph(self, p, h):
+        return self.s_pT(p, self.T_ph(p, h))
+
+    def s_pT(self, p, T):
+        # s0 = 0
+        return (
+            self._heat_capacity["A"] * np.log(T / self._T_ref)
+            + self._heat_capacity["B"] * (T - self._T_ref)
+            - self.d_pT(p, T) * (p - self._p_ref)
+        )
+
+    def isentropic(self, p_1, h_1, p_2):
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
+
+    def _inverse_s_pT(self, T, s, p):
+        return s - self.s_pT(p, T)
+
+    def T_ps(self, p, s):
+        return brentq(
+            self._inverse_s_pT,
+            self._T_min,
+            self._T_max,
+            args=(s, p)
         )
 
     def d_ph(self, p, h):

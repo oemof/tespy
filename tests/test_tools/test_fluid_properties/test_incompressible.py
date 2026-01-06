@@ -41,10 +41,38 @@ def test_setup_wrapper(wrapper_instance):
     assert wrapper_instance is not None
 
 
-def test_enthalpy_forwards_backwards(wrapper_instance):
-    temperature = 500
-    h = wrapper_instance.h_pT(None, temperature)
-    assert approx(temperature) == wrapper_instance.T_ph(None, h)
+def test_enthalpy_forwards_backwards(property_data, wrapper_instance):
+    temperature_data = property_data["temperature_data"]
+    temperature_check = []
+
+    for temperature in temperature_data:
+        h = wrapper_instance.h_pT(None, temperature)
+        temperature_check.append(wrapper_instance.T_ph(None, h))
+
+    np.testing.assert_allclose(temperature_check, temperature_data)
+
+
+def test_entropy_forwards_backwards(property_data, wrapper_instance):
+    temperature_data = property_data["temperature_data"]
+    temperature_check = []
+
+    for temperature in temperature_data:
+        s = wrapper_instance.s_pT(1e5, temperature)
+        temperature_check.append(wrapper_instance.T_ps(1e5, s))
+
+    np.testing.assert_allclose(temperature_check, temperature_data)
+
+
+def test_entropy_enthalpy_roundtrip(property_data, wrapper_instance):
+    temperature_data = property_data["temperature_data"]
+    temperature_check = []
+
+    for temperature in temperature_data:
+        s = wrapper_instance.s_pT(1e5, temperature)
+        h = wrapper_instance.h_ps(1e5, s)
+        temperature_check.append(wrapper_instance.T_ph(1e5, h))
+
+    np.testing.assert_allclose(temperature_check, temperature_data)
 
 
 def test_density(property_data, wrapper_instance):

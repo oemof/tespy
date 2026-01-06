@@ -16,6 +16,8 @@ class TesypPinchAnalysis():
         self.streams = []
         self.analyzer = None
         self.label = label
+        self.gcc_fig = None
+        self.gcc_data_enthalpy = None
 
     
     # including the general functions of pina to expand them later
@@ -192,6 +194,9 @@ class TesypPinchAnalysis():
         fig, ax = plt.subplots()
         # activate minor ticks
         ax.minorticks_on()
+        # get GCC data from pina, if not done manually before
+        if self.gcc_data_enthalpy is None:
+            self.get_gcc()
         # plot subplots with same axes limits
         ax.plot(self.gcc_data_enthalpy, self.gcc_data_shifted_temperature, color = "black")
         # add pinch point
@@ -231,9 +236,17 @@ class TesypPinchAnalysis():
     def show_heat_pump_in_gcc(self, evaporator, condenser):
         from tespy.components import SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger
         
-        # get the GCC
-        fig = self.gcc_fig
-        ax = self.gcc_ax
+        # create GCC diagram, if not done before
+        try:
+            # get the GCC
+            fig = self.gcc_fig
+            ax = self.gcc_ax
+        except:
+            # create GCC without saving fig
+            self.plot_gcc_diagram(save_fig=False)
+            # get the GCC
+            fig = self.gcc_fig
+            ax = self.gcc_ax
 
         # get the plotting data of the heat exchangers
         # condensers
@@ -243,10 +256,10 @@ class TesypPinchAnalysis():
             condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
             # to do: include a warning, if there is at least one change between to or from a latent stream
         elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger):
-            # get the data from calc_sections, a and b are not needed placeholders as a reminder
-            a, condenser_T_steps_hot, condenser_T_steps_cold, condenser_Q_per_section, b = condenser.calc_sections()
-            print(condenser_T_steps_hot)
-            raise ValueError("method not completed yet")
+            # get the data from calc_sections
+            condenser_Q_sections, condenser_T_steps_hot, condenser_T_steps_cold, condenser_Q_per_section, condenser_td_log_per_section = condenser.calc_sections()
+            condenser_Q_vals = [Q / 1000 for Q in condenser_Q_sections] # convert to kW
+            condenser_T_vals = [T - 273.17 for T in condenser_T_steps_hot] # convert to degC
         else:
             raise ValueError("The component type is not implemented as a condenser.")
        
@@ -257,10 +270,10 @@ class TesypPinchAnalysis():
             evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
             # to do: include a warning, if there is at least one change between to or from a latent stream
         elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger):
-            # get the data from calc_sections, a and b are not needed placeholders as a reminder
-            a, evaporator_T_steps_hot, evaporator_T_steps_cold, evaporator_Q_per_section, b = condenser.calc_sections()
-            print(evaporator_T_steps_cold)
-            raise ValueError("method not completed yet")
+            # get the data from calc_sections
+            evaporator_Q_sections, evaporator_T_steps_hot, evaporator_T_steps_cold, evaporator_Q_per_section, evaporator_td_log_per_section = evaporator.calc_sections()
+            evaporator_Q_vals = [Q / 1000 for Q in evaporator_Q_sections] # convert to kW
+            evaporator_T_vals = [T - 273.17 for T in evaporator_T_steps_cold] # convert to degC
         else:
             raise ValueError("The component type is not implemented as an evaporator.")
 
@@ -273,7 +286,7 @@ class TesypPinchAnalysis():
         ax.plot(evaporator_Q_vals, evaporator_T_vals, "-",color="blue")
 
         # save figure
-        fig.savefig("GCC_with_heat_pump.svg")
+        fig.savefig(f"GCC_with_heat_pump_{self.label}.svg")
 
 
     # add: check heat pump integration by using the integration rules

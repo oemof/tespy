@@ -149,5 +149,23 @@ c4_2.set_attr(x=0)
 # solve design
 nw_2.solve("design")
 
+# integrating a tespy model of a heat pump into a given process
+
+# example Pinch Analysis of a manual workflow without tespy components
+Example_Analysis2 = TesypPinchAnalysis("Example_Process_2")
+
+# setting the minimum temperature difference for the analysis
+Example_Analysis2.set_minimum_temperature_difference(10)
+
+# add all the streams manually
+# Example: Kemp 2007 p. 20, reduced temperature by 50 degC to fit the heat pump example
+Example_Analysis2.add_cold_stream_manually(-230, 20-50, 135-50)
+Example_Analysis2.add_hot_stream_manually(330, 170-50, 60-50)
+Example_Analysis2.add_cold_stream_manually(-240, 80-50, 140-50)
+Example_Analysis2.add_hot_stream_manually(180, 150-50, 30-50)
+# additional latent streams as shown by Arpagaus 2019 p. 99
+Example_Analysis2.add_hot_stream_manually(60,35,35)
+Example_Analysis2.add_cold_stream_manually(-40,80,80)
+
 # reference heat pump components for plotting in the GCC of the same pinch analysis
-Example_Analysis.show_heat_pump_in_gcc(condenser=condenser_2,evaporator=evaporator_2)
+Example_Analysis2.show_heat_pump_in_gcc(condenser=condenser_2,evaporator=evaporator_2)

@@ -75,6 +75,19 @@ def test_entropy_enthalpy_roundtrip(property_data, wrapper_instance):
     np.testing.assert_allclose(temperature_check, temperature_data)
 
 
+def test_isentropic(property_data, wrapper_instance):
+    temperature_data = property_data["temperature_data"]
+
+    enthalpy_inflow = wrapper_instance.h_pT(None, temperature_data)
+    enthalpy_outflow = wrapper_instance.isentropic(1e5, enthalpy_inflow, 2e5)
+    rho = wrapper_instance.d_pT(None, temperature_data)
+
+    np.testing.assert_allclose(
+        enthalpy_outflow - enthalpy_inflow, 1e5 / rho
+    )
+
+
+
 def test_density(property_data, wrapper_instance):
 
     density_data = property_data["density_data"]

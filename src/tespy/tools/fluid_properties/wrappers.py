@@ -472,9 +472,11 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         )
 
     def isentropic(self, p_1, h_1, p_2):
-        return self.h_ps(p_2, self.s_ph(p_1, h_1))
+        # assumption that temperature barely changes
+        T = self.T_ph(p_1, h_1)
+        return h_1 + (p_2 - p_1) / self.d_pT(p_1, T)
 
-    def _inverse_s_pT(self, T, s, p):
+    def _inverse_s_pT(self, T, p, s):
         return s - self.s_pT(p, T)
 
     def T_ps(self, p, s):
@@ -482,7 +484,7 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             self._inverse_s_pT,
             self._T_min,
             self._T_max,
-            args=(s, p)
+            args=(p, s)
         )
 
     def d_ph(self, p, h):

@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 import CoolProp as CP
 import numpy as np
+from scipy.optimize import brentq
 
 from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
 from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
@@ -373,19 +374,24 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     def __init__(self, fluid, back_end=None, **kwargs):
         super().__init__(fluid, back_end, **kwargs)
 
-        self.temperature_data = kwargs.get("temperature_data", None)
-        self.heat_capacity_data = kwargs.get("heat_capacity_data", None)
-        self.density_data = kwargs.get("density_data", None)
-        self.viscosity_data = kwargs.get("viscosity_data", None)
+        self.temperature_data = None
+        self.heat_capacity_data = None
+        self.density_data = None
+        self.viscosity_data = None
 
-        if self.temperature_data is None:
-            pass
-        elif self.heat_capacity_data is None:
-            pass
-        elif self.density_data is None:
-            pass
-        elif self.viscosity_data is None:
-            pass
+        for key in ["temperature", "heat_capacity", "density", "viscosity"]:
+            value = kwargs.get(f"{key}_data")
+            if value is None:
+                msg = (
+                    f"The {self.__class__.__name__} requires specification of "
+                    f"the '{key}_data' keyword in the form of a numpy array."
+                )
+                raise KeyError(msg)
+            else:
+                setattr(self, f"{key}_data", value)
+
+        self._T_ref = kwargs.get("T_ref", min(self.temperature_data))
+        self._p_ref = kwargs.get("p_ref", 1e5)
 
         self._fit_data()
         self._set_constants()
@@ -414,8 +420,7 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         }
 
     def _set_constants(self):
-        self._T_ref = min(self.temperature_data)
-        # evaluate at T=T_ref
+        # evaluate h at T=T_ref
         self._h_ref = self._h_pT(None, self._T_ref)
 
         self._T_min = self._T_ref

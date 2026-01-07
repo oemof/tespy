@@ -390,6 +390,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             else:
                 setattr(self, f"{key}_data", value)
 
+        self.conductivity_data = kwargs.get("conductivity_data")
+
         self._T_ref = kwargs.get("T_ref", min(self.temperature_data))
         self._p_ref = kwargs.get("p_ref", 1e5)
 
@@ -404,6 +406,7 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             "A": A,
             "B": B
         }
+
         A, B = fit_incompressible_linear(
             self.temperature_data, self.density_data
         )
@@ -411,12 +414,27 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             "A": A,
             "B": B
         }
-        A, B = fit_incompressible_viscosity(
+
+        if self.conductivity_data is not None:
+            A, B = fit_incompressible_linear(
+                self.temperature_data, self.conductivity_data
+            )
+        else:
+            A, B = np.nan, np.nan
+
+        self._conductivity = {
+            "A": A,
+            "B": B
+        }
+
+        A, B, C, D = fit_incompressible_viscosity(
             self.temperature_data, self.viscosity_data
         )
         self._viscosity = {
             "A": A,
-            "B": B
+            "B": B,
+            "C": C,
+            "D": D
         }
 
     def _set_constants(self):
@@ -433,18 +451,70 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
 
         self._T_crit = None
 
+    def get_fitting_report(self):
+        import matplotlib.pyplot as plt
+
+        def plot_property(ax, temperature, measurements, evaluation):
+
+            ax.scatter(temperature, measurements, s=1)
+            ax.plot(temperature, evaluation, "-")
+
+            ax_err = ax.twinx()
+
+            ax_err.scatter(temperature, (evaluation - measurements) / measurements * 100)
+
+            ax_err.set_ylabel("Deviation between fit and data in %")
+
+
+        fig, ax = plt.subplots(2, 2, figsize=(10, 10), sharex=True)
+
+
+        ax[0, 0].set_title("Heat capacity")
+        ax[0, 1].set_title("Density")
+        ax[1, 0].set_title("Viscosity")
+        ax[1, 1].set_title("Thermal conductivity")
+
+        temperature_data = self.temperature_data
+        heat_capacity_data = self.heat_capacity_data
+        density_data = self.density_data
+        viscosity_data = self.viscosity_data
+        conductivity_data = self.conductivity_data
+
+        d = 0.001
+        heat_capacity_eval = (
+            self.h_pT(None, temperature_data + d)
+            - self.h_pT(None, temperature_data - d)
+        ) / (2 * d)
+
+        density_eval = self.d_pT(None, temperature_data)
+        viscosity_eval = self.viscosity_pT(None, temperature_data)
+        conductivity_eval = self.conductivity_pT(None, temperature_data)
+
+        plot_property(ax[0, 0], temperature_data, heat_capacity_data, heat_capacity_eval)
+
+        plot_property(ax[0, 1], temperature_data, density_data, density_eval)
+
+        plot_property(ax[1, 0], temperature_data, viscosity_data, viscosity_eval)
+        ax[1, 0].set_yscale("log")
+
+        plot_property(ax[1, 1], temperature_data, conductivity_data, conductivity_eval)
+
+        plt.tight_layout()
+
+        return fig, ax
+
     def T_ph(self, p, h):
         # Inverse function of h_pT, using quadratic formula with adding the
         # root
         return (
             (
-                -self._heat_capacity["A"]
+                -self._heat_capacity["B"]
                 + (
-                    self._heat_capacity["A"] ** 2
-                    - 4 * 0.5 * self._heat_capacity["B"] * - (h + self._h_ref)
+                    self._heat_capacity["B"] ** 2
+                    - 4 * 0.5 * self._heat_capacity["A"] * - (h + self._h_ref)
                 ) ** 0.5
             )
-            / (2 * 0.5 * self._heat_capacity["B"])
+            / (2 * 0.5 * self._heat_capacity["A"])
         )
 
     def h_pT(self, p, T):
@@ -453,8 +523,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     def _h_pT(self, p, T):
         # h = integral cp(T) dT
         return (
-            0.5 * self._heat_capacity["B"] * T ** 2
-            + self._heat_capacity["A"] * T
+            0.5 * self._heat_capacity["A"] * T ** 2
+            + self._heat_capacity["B"] * T
         )
 
     def h_ps(self, p, s):
@@ -466,8 +536,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     def s_pT(self, p, T):
         # s0 = 0
         return (
-            self._heat_capacity["A"] * np.log(T / self._T_ref)
-            + self._heat_capacity["B"] * (T - self._T_ref)
+            self._heat_capacity["B"] * np.log(T / self._T_ref)
+            + self._heat_capacity["A"] * (T - self._T_ref)
             - self.d_pT(p, T) * (p - self._p_ref)
         )
 
@@ -487,20 +557,25 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             args=(p, s)
         )
 
+    def conductivity_pT(self, p, T):
+        return self._conductivity["A"] * T + self._conductivity["B"]
+
     def d_ph(self, p, h):
         return self.d_pT(p, self.T_ph(p, h))
 
     def d_pT(self, p, T):
-        return (
-            self._density["B"] * T
-            + self._density["A"]
-        )
+        return self._density["A"] * T + self._density["B"]
 
     def viscosity_ph(self, p, h):
         return self.viscosity_pT(p, self.T_ph(p, h))
 
     def viscosity_pT(self, p, T):
-        return self._viscosity["A"] * np.exp(self._viscosity["B"] /  T)
+        return np.exp(
+            self._viscosity["A"] /  T ** 3
+            + self._viscosity["B"] /  T ** 2
+            + self._viscosity["C"] /  T
+            + self._viscosity["D"]
+        )
 
 
 @wrapper_registry

@@ -87,7 +87,6 @@ def test_isentropic(property_data, wrapper_instance):
     )
 
 
-
 def test_density(property_data, wrapper_instance):
 
     density_data = property_data["density_data"]

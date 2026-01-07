@@ -121,4 +121,4 @@ def test_viscosity(property_data, wrapper_instance):
 
     viscosity = wrapper_instance.viscosity_pT(None, temperature_data)
     # allow higher tolerance for viscosity
-    np.testing.assert_allclose(viscosity, viscosity_data, rtol=5e-2)
+    np.testing.assert_allclose(viscosity, viscosity_data, rtol=1e-2)

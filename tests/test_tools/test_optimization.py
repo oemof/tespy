@@ -1,9 +1,10 @@
-from pytest import approx
+import pandas as pd
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.soo.nonconvex.de import DE
 from pymoo.optimize import minimize
+from pytest import approx
+
 from tespy.tools import OptimizationProblem
-import pandas as pd
 
 
 class FakeOptimizationModel:

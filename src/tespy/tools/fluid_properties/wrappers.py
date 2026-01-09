@@ -456,15 +456,19 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
 
         def plot_property(ax, temperature, measurements, evaluation):
 
-            ax.scatter(temperature, measurements, s=1)
-            ax.plot(temperature, evaluation, "-")
+            _fit, = ax.plot(temperature, evaluation, "-", color="red")
+            _data = ax.scatter(temperature, measurements, marker="x", c="blue")
 
             ax_err = ax.twinx()
 
-            ax_err.scatter(temperature, (evaluation - measurements) / measurements * 100)
+            _err = ax_err.scatter(
+                temperature, (evaluation - measurements) / measurements * 100,
+                c="#0000ff66"
+            )
 
             ax_err.set_ylabel("Deviation between fit and data in %")
 
+            return [_data, _fit, _err]
 
         fig, ax = plt.subplots(2, 2, figsize=(10, 10), sharex=True)
 
@@ -490,7 +494,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         viscosity_eval = self.viscosity_pT(None, temperature_data)
         conductivity_eval = self.conductivity_pT(None, temperature_data)
 
-        plot_property(ax[0, 0], temperature_data, heat_capacity_data, heat_capacity_eval)
+        lines = plot_property(ax[0, 0], temperature_data, heat_capacity_data, heat_capacity_eval)
+        labels = ["datapoints", "fitted function", "deviation"]
 
         plot_property(ax[0, 1], temperature_data, density_data, density_eval)
 
@@ -498,6 +503,19 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         ax[1, 0].set_yscale("log")
 
         plot_property(ax[1, 1], temperature_data, conductivity_data, conductivity_eval)
+
+
+        ax[0, 0].set_ylabel("Heat capacity in J/kgK")
+        ax[0, 1].set_ylabel("Density in kg/m3")
+        ax[1, 0].set_ylabel("Viscosity in Pas")
+        ax[1, 1].set_ylabel("Thermal conductivity in W/mK")
+
+        ax[1, 0].set_xlabel("Temperature in K")
+        ax[1, 1].set_xlabel("Temperature in K")
+
+        fig.legend(
+            lines, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.05)
+        )
 
         plt.tight_layout()
 

@@ -113,9 +113,31 @@ class HumidAirConnection(Connection):
         return []
 
     def _adjust_to_property_limits(self, nw):
-        fl = fp.single_fluid(self.fluid_data)
-        # if self.h.is_var:
-        #     self._adjust_enthalpy(fl)
+
+        if self.w.is_var:
+            if self.w.val_SI < 0.01:
+                self.w.set_reference_val_SI(0.011)
+
+        if self.p.is_var:
+            if self.p.val_SI < 100:
+                self.p.val_SI = 101
+            elif self.p.val_SI > 100e5:
+                self.p.val_SI = 99e5
+
+        if self.h.is_var:
+            # TODO: check minimum temperature how it matches minimum humidity ratio
+            d = self.h._reference_container._d
+            hmin = HAPropsSI("H", "T", -30 + 273.15, "P", self.p.val_SI, "R", 1)
+            if self.h.val_SI < hmin:
+                delta = max(abs(self.h.val_SI * d), d) * 5
+                self.set_reference_val_SI(hmin + delta)
+
+            else:
+                # TODO: where to get reasonable hmax from?!
+                hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
+                if self.h.val_SI > hmax:
+                    delta = max(abs(self.h.val_SI * d), d) * 5
+                    self.set_reference_val_SI(hmax - delta)
 
     @classmethod
     def _result_attributes(cls):

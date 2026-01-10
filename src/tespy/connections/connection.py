@@ -212,6 +212,9 @@ class ConnectionBase:
     def get_variables(self):
         return {}
 
+    def _guess_starting_values(self, units):
+        pass
+
     def _preprocess(self, row_idx):
         self.num_eq = 0
 
@@ -843,6 +846,73 @@ class Connection(ConnectionBase):
                 self.fluid.back_end[fluid] = None
 
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
+
+    def _guess_starting_values(self, units):
+        # the below part does not work for PowerConnection right now
+        if sum(self.fluid.val.values()) == 0:
+            msg = (
+                'The starting value for the fluid composition of the '
+                f'connection {self.label} is empty. This might lead to issues '
+                'in the initialisation and solving process as fluid '
+                'property functions can not be called. Make sure you '
+                'specified a fluid composition in all parts of the network.'
+            )
+            logger.warning(msg)
+
+        for key, variable in self.get_variables().items():
+            # for connections variables can be presolved and not be var anymore
+            if variable.is_var:
+                if not self.good_starting_values:
+                    self._guess_starting_value_from_connected_components(key, units)
+
+                variable.set_SI_from_val0(units)
+                # variable.set_SI_from_val0()
+                variable.set_reference_val_SI(variable._val_SI)
+
+        self._precalc_guess_values()
+
+    def _guess_starting_value_from_connected_components(self, key, units):
+        r"""
+        Set starting values for fluid properties.
+
+        The component classes provide generic starting values for their inlets
+        and outlets.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to initialise.
+        """
+        if np.isnan(self.get_attr(key).val0):
+            # starting value for mass flow is random between 1 and 2 kg/s
+            # (should be generated based on some hash maybe?)
+            if key == 'm':
+                seed = abs(hash(self.label)) % (2**32)
+                rng = np.random.default_rng(seed=seed)
+                value = float(rng.random() + 1)
+
+            # generic starting values for pressure and enthalpy
+            elif key in ['p', 'h']:
+                # retrieve starting values from component information
+                val_s = self.source.initialise_source(self, key)
+                val_t = self.target.initialise_target(self, key)
+
+                if val_s == 0 and val_t == 0:
+                    if key == 'p':
+                        value = 1e5
+                    elif key == 'h':
+                        value = 1e6
+
+                elif val_s == 0:
+                    value = val_t
+                elif val_t == 0:
+                    value = val_s
+                else:
+                    value = (val_s + val_t) / 2
+
+            # these values are SI, so they are set to the respective variable
+            self.get_attr(key).set_reference_val_SI(value)
+            self.get_attr(key).set_val0_from_SI(units)
 
     def _precalc_guess_values(self):
         """

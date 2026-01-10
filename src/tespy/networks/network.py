@@ -2023,27 +2023,7 @@ class Network:
                 df = dfs[c.__class__.__name__]
                 self._write_starting_values_to_connection(c, df)
 
-            if type(c) == Connection:
-                # the below part does not work for PowerConnection right now
-                if sum(c.fluid.val.values()) == 0:
-                    msg = (
-                        'The starting value for the fluid composition of the '
-                        f'connection {c.label} is empty. This might lead to issues '
-                        'in the initialisation and solving process as fluid '
-                        'property functions can not be called. Make sure you '
-                        'specified a fluid composition in all parts of the network.'
-                    )
-                    logger.warning(msg)
-
-            for key, variable in c.get_variables().items():
-                # for connections variables can be presolved and not be var anymore
-                if variable.is_var:
-                    if not c.good_starting_values:
-                        self._guess_starting_value_from_connected_components(c, key)
-
-                    variable.set_SI_from_val0(self.units)
-                    # variable.set_SI_from_val0()
-                    variable.set_reference_val_SI(variable._val_SI)
+            c._guess_starting_values(self.units)
 
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
@@ -2054,57 +2034,9 @@ class Network:
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
-        for c in self.conns['object']:
-            c._precalc_guess_values()
-
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
 
-    def _guess_starting_value_from_connected_components(self, c, key):
-        r"""
-        Set starting values for fluid properties.
-
-        The component classes provide generic starting values for their inlets
-        and outlets.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to initialise.
-        """
-        if np.isnan(c.get_attr(key).val0):
-            # starting value for mass flow is random between 1 and 2 kg/s
-            # (should be generated based on some hash maybe?)
-            if key == 'm':
-                seed = abs(hash(c.label)) % (2**32)
-                rng = np.random.default_rng(seed=seed)
-                value = float(rng.random() + 1)
-
-            # generic starting values for pressure and enthalpy
-            elif key in ['p', 'h']:
-                # retrieve starting values from component information
-                val_s = c.source.initialise_source(c, key)
-                val_t = c.target.initialise_target(c, key)
-
-                if val_s == 0 and val_t == 0:
-                    if key == 'p':
-                        value = 1e5
-                    elif key == 'h':
-                        value = 1e6
-
-                elif val_s == 0:
-                    value = val_t
-                elif val_t == 0:
-                    value = val_s
-                else:
-                    value = (val_s + val_t) / 2
-
-            elif key == 'E':
-                value = 0.0
-
-            # these values are SI, so they are set to the respective variable
-            c.get_attr(key).set_reference_val_SI(value)
-            c.get_attr(key).set_val0_from_SI(self.units)
 
     @staticmethod
     def _load_network_state(json_path):

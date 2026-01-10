@@ -2788,7 +2788,7 @@ class Network:
             if data["variable"] in ["m", "h", "E"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
-            elif data["variable"] == "p":
+            elif data["variable"] in ["p", "w"]:
                 container = data["obj"]
                 p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI

@@ -60,12 +60,13 @@ class HumidAirConnection(Connection):
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),
-            # "r": dc_prop(
-            #     func=self.r_func,
-            #     dependents=self.r_dependents,
-            #     quantity="ratio",
-            #     description="relative humidity"
-            # )
+            "r": dc_prop(
+                func=self.r_func,
+                dependents=self.r_dependents,
+                num_eq=1,
+                quantity="ratio",
+                description="relative humidity"
+            )
         }
 
     def calc_T(self, T0=None):
@@ -83,6 +84,12 @@ class HumidAirConnection(Connection):
 
     def v_dependents(self):
         return [self.m, self.p, self.h, self.w]
+
+    def r_func(self):
+        return self.w.val_SI / 1e3 - HAPropsSI("W", "P", self.p.val_SI, "H", self.h.val_SI, "R", self.r.val_SI)
+
+    def r_dependents(self):
+        return [self.p, self.h, self.w]
 
     def _guess_starting_values(self, units):
         self.h.set_reference_val_SI(4e5)

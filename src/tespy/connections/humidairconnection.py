@@ -91,6 +91,22 @@ class HumidAirConnection(Connection):
     def r_dependents(self):
         return [self.p, self.h, self.w]
 
+    def get_fluid_data(self):
+        return (
+            {
+                "_HUMID_AIR": True,
+                "w": self.w.val_SI / 1000
+            } |
+            {
+                fluid: {
+                    "wrapper": self.fluid.wrapper[fluid],
+                    "mass_fraction": self.fluid.val[fluid]
+                } for fluid in self.fluid.val
+            }
+        )
+
+    fluid_data = property(get_fluid_data)
+
     def _guess_starting_values(self, units):
         self.h.set_reference_val_SI(4e5)
         self.w.set_reference_val_SI(5)

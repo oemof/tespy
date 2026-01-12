@@ -142,7 +142,7 @@ decides the overall mass flow in the systems.
     In this tutorial we will first build the system with parameters that
     ensure stable starting values for a simulation, which in the end will be
     switched to reasonable values for the individual parts of the system. For
-    example, instead of the evaporation pressure we will use the terminal
+    example, instead of the evaporation pressure we will use the pinch
     temperature difference at the condenser instead.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
@@ -152,11 +152,11 @@ decides the overall mass flow in the systems.
 
 In order to calculate this network further parametrization is necessary, as
 e.g. the fluids are not determined yet: At the hot inlet of the condenser we
-define the temperature, pressure and the fluid informaton. A good guess for
-pressure can be obtained from CoolProp's PropsSI function. We know that the
-condensation temperature must be higher than the consumer's feed flow
-temperature. Therefore, we can set the pressure to a slightly higher value of
-that temperature's corresponding condensation pressure.
+define the temperature and the fluid information. On top we can define the
+pressure level by specifying the dew line temperature. We know, that the
+condensation temperature will be slightly below the heat demand feed flow
+temperature. Therefore, we can set the dew line temperature to a slightly lower
+value of that temperature.
 
 The same needs to be done for the consumer cycle. We suggest setting the
 parameters at the pump's inlet. On top, we assume that the consumer requires a
@@ -240,7 +240,9 @@ Connections
 Since the old connection :code:`1` lead to a sink, we have to replace this
 connection in the network. We can do that by using the method
 :code:`del_conns` passing :code:`c1`. After that, we can create the new
-connections and add them to the network as we did before.
+connections and add them to the network as we did before. Do not forget to add
+the :code:`x=0` specification to make liquid saturated state at the outlet of
+the condenser.
 
 The valve connects to the drum at the inlet :code:`'in1'`. The drum's outlet
 :code:`'out1'` is saturated liquid and connects to the evaporator's cold side
@@ -264,16 +266,16 @@ connections to the model:
 Parametrization
 +++++++++++++++
 Previous parametrization stays untouched. Regarding the evaporator, we specify
-pressure ratios on hot side as well as the evaporation pressure, for which we
-can obtain a good initial guess based on the ambient temperature level using
-CoolProp. From this specification the pinch point layout will be a result,
-similar as in waste heat steam generators. The pressure ratio of the cold side
-*MUST NOT* be specified in this setup as the drum assumes pressure equality
-for all inlets and outlets.
+pressure ratios on hot side. On top, the evaporation pressure is indirectly
+defined through the evaporation temperature and the fact, that we are in
+two-phase region. From this specification the pinch point layout will be a
+result, similar as in waste heat steam generators. The pressure ratio of the
+cold side *MUST NOT* be specified in this setup as the drum assumes pressure
+equality for all inlets and outlets.
 
 The superheater will also use the pressure ratios on hot and cold side.
-Further we set a value for the enthalpy at the working fluid side outlet. This
-determines the degree of overheating and is again based on a good guess.
+Further we set a value for the degree of superheating :code:`td_dew` at the
+working fluid side outlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -308,8 +310,8 @@ Compressor system
 To complete the heat pump, we will add the compressor system to our existing
 network. This requires to change the connections 0, 6 and 17. The connection 6
 has to be changed to include the compressor. After the last compressor stage,
-connection 0 has to redefined, since we need to include the CycleCloser of the
-working fluid's cycle. The connection 17 has to be connected to the heat
+connection 0 has to be redefined, since we need to include the CycleCloser of
+the working fluid's cycle. The connection 17 has to be connected to the heat
 exchanger for intermittent cooling as well as the bypass.
 
 .. figure:: /_static/images/tutorials/heat_pump_stepwise/flowsheet.svg
@@ -375,18 +377,21 @@ pressure losses on both sides.
     :start-after: [sec_14]
     :end-before: [sec_15]
 
-Regarding the connections we set enthalpy values for all working fluid side
-connections. After the superheater and intermittent cooling the value will be
-near saturation (enthalpy value of connection c5), after the compressors it
-will be higher.
+Regarding the connections we set degree of superheating at the outlet of the
+superheater and intermittent cooling, since these values will be near
+saturation. The temperature at both compressor exits will be higher than those,
+we can implicitly define this through the enthalpy fixed to the saturated gas
+enthalpy multiplied by a bit. This specification is for numerical stability, it
+will be changed in the next step.
 
 For the ambient side, we set temperature, pressure and fluid
 at connection 11. On top of that, we can specify the temperature of the
 ambient water after leaving the intermittent cooler.
 
-With re-adding of connection 0 we have to set the fluid and the pressure again,
-but not the temperature value, because this value will be a result of the
-condensation pressure and the given enthalpy at the compressor's outlet.
+With re-adding of connection 0 we have to set the fluid and the dew line
+temperature again, but not the actual temperature value, because this value
+will be a result of the condensation pressure and the given enthalpy at the
+compressor's outlet.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -398,18 +403,16 @@ Solve and Set Final System Parameters
 Now we solve again. After that, we can exchange our good guesses with actual
 useful parameters:
 
-The condensation and evaporation pressure levels will be replaced by terminal
-temperature values of the condenser and the evaporator respectively. The lower
-terminal temperature value of the evaporator :code:`ttd_l` defines the pinch
-point. The upper terminal temperature value :code:`ttd_u` of the condenser
-defines the condensation pressure.
+The condensation dew line temperature and evaporation temperature will be
+replaced by pinch temperature difference of the condenser and terminal
+temperature difference of the evaporator respectively. The lower terminal
+temperature value of the evaporator :code:`ttd_l` is identical to its pinch
+point temperature difference.
 
 The degree of superheating in the superheater will be determined by the upper
-terminal temperature instead of the enthalpy value at connection 6. The outlet
+terminal temperature instead of the superheating specification. The outlet
 enthalpies after both compressors are replaced by the isentropic efficiency
-values. Finally, the enthalpy after the intermittent cooling is replaced by
-the temperature difference to the boiling point. With this we can ensure, the
-working fluid does not start to condensate at the intermittent cooler.
+values.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -439,8 +442,9 @@ The changes we want to apply can be summarized as follows:
 
 - All heat exchangers should be calculated based on their heat transfer
   coefficient with a characteristic for correction of that value depending
-  on the change of mass flow (:code:`kA_char`). Therefore, terminal temperature
-  value specifications need to be added to the design parameters. Also, the
+  on the change of mass flow (:code:`kA_char` and :code:`UA_cecchinato` for the
+  condenser). Therefore, pinch temperature difference and terminal temperature
+  difference value specifications need to be design parameters. Also, the
   temperature at connection 14 cannot be specified anymore, since it will be a
   result of the intermittent cooler's characteristics.
 - Pumps and compressors will have a characteristic function for their
@@ -454,7 +458,8 @@ On top of that, for the evaporator the characteristic function of the heat
 transfer coefficient should follow different data than the default
 characteristic. The name of that line is 'EVAPORATING FLUID' for the cold
 side. The default line 'DEFAULT' will be kept for the hot side. These lines
-are available in the :ref:`tespy.data <data_label>` module.
+are available in the :ref:`tespy.data <data_label>` module. For the condenser
+the specifications are inspired from this paper :cite:`cecchinato2010`.
 
 .. attention::
 

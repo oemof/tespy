@@ -142,7 +142,7 @@ decides the overall mass flow in the systems.
     In this tutorial we will first build the system with parameters that
     ensure stable starting values for a simulation, which in the end will be
     switched to reasonable values for the individual parts of the system. For
-    example, instead of the evaporation pressure we will use the terminal
+    example, instead of the evaporation pressure we will use the pinch
     temperature difference at the condenser instead.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
@@ -152,7 +152,7 @@ decides the overall mass flow in the systems.
 
 In order to calculate this network further parametrization is necessary, as
 e.g. the fluids are not determined yet: At the hot inlet of the condenser we
-define the temperature, pressure and the fluid informaton. A good guess for
+define the temperature, pressure and the fluid information. A good guess for
 pressure can be obtained from CoolProp's PropsSI function. We know that the
 condensation temperature must be higher than the consumer's feed flow
 temperature. Therefore, we can set the pressure to a slightly higher value of
@@ -398,11 +398,11 @@ Solve and Set Final System Parameters
 Now we solve again. After that, we can exchange our good guesses with actual
 useful parameters:
 
-The condensation and evaporation pressure levels will be replaced by terminal
-temperature values of the condenser and the evaporator respectively. The lower
-terminal temperature value of the evaporator :code:`ttd_l` defines the pinch
-point. The upper terminal temperature value :code:`ttd_u` of the condenser
-defines the condensation pressure.
+The condensation and evaporation pressure levels will be replaced by pinch
+temperature difference of the condenser and terminal temperature difference of
+the evaporator respectively. The lower terminal temperature value of the
+evaporator :code:`ttd_l` is identical to the pinch point temperature
+difference.
 
 The degree of superheating in the superheater will be determined by the upper
 terminal temperature instead of the enthalpy value at connection 6. The outlet

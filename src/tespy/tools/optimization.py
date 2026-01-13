@@ -12,7 +12,17 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from pymoo.core.problem import ElementwiseProblem
+
+# this is to make this import possible without the optional dependency
+# available
+try:
+    from pymoo.core.problem import ElementwiseProblem
+
+except ModuleNotFoundError:
+    class ElementwiseProblem:
+
+        def __init__(self, **kwargs):
+            pass
 
 from tespy.tools.helpers import merge_dicts
 from tespy.tools.logger import logger

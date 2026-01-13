@@ -35,6 +35,7 @@ from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _numeric_deriv
@@ -1198,7 +1199,8 @@ def test_fluid_kwargs_propagation():
         "temperature_data": np.array([273.15, 373.15]),
         "density_data": np.array([1000, 1100]),
         "heat_capacity_data": np.array([4000, 4100]),
-        "viscosity_data": np.array([0.05, 0.00025])
+        "viscosity_data": np.array([0.05, 0.00025]),
+        "conductivity_data": np.array([0.1425, 0.135])
     }
 
     c1.set_attr(
@@ -1211,3 +1213,11 @@ def test_fluid_kwargs_propagation():
     pipe.set_attr(Q=1500)
 
     nw.solve("design")
+
+    # 50 °C is exactly half of range
+    # heat capacity is implicitly tested, as it is required to find the
+    # temperature from the enthalpy passed into the function
+    assert approx(1 / c2.calc_vol()) == 1050
+    assert approx(
+        conductivity_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
+    ) == 0.13875

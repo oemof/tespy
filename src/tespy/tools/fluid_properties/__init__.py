@@ -4,6 +4,7 @@ from .functions import Q_mix_ph  # noqa: F401
 from .functions import T_mix_ph  # noqa: F401
 from .functions import T_mix_ps  # noqa: F401
 from .functions import T_sat_p  # noqa: F401
+from .functions import conductivity_mix_ph  # noqa: F401
 from .functions import dh_mix_dpQ  # noqa: F401
 from .functions import dT_mix_dph  # noqa: F401
 from .functions import dT_mix_pdh  # noqa: F401

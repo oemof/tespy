@@ -125,6 +125,12 @@ class FluidPropertyWrapper:
     def viscosity_pT(self, p, T):
         self._not_implemented()
 
+    def conductivity_ph(self, p, h):
+        self._not_implemented()
+
+    def conductivity_pT(self, p, T):
+        self._not_implemented()
+
     def s_ph(self, p, h):
         self._not_implemented()
 
@@ -359,6 +365,14 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PT_INPUTS, p, T)
         return self.AS.viscosity()
 
+    def conductivity_ph(self, p, h):
+        self.AS.update(CP.HmassP_INPUTS, h, p)
+        return self.AS.conductivity()
+
+    def conductivity_pT(self, p, T):
+        self.AS.update(CP.PT_INPUTS, p, T)
+        return self.AS.conductivity()
+
     def s_ph(self, p, h):
         self.AS.update(CP.HmassP_INPUTS, h, p)
         return self.AS.smass()
@@ -574,6 +588,9 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
             self._T_max,
             args=(p, s)
         )
+
+    def conductivity_ph(self, p, h):
+        return self.conductivity_pT(p, self.T_ph(p, h))
 
     def conductivity_pT(self, p, T):
         return self._conductivity["A"] * T + self._conductivity["B"]

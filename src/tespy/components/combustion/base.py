@@ -172,7 +172,6 @@ class CombustionChamber(Component):
                 func=self.ti_func,
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
-<<<<<<< HEAD
                 quantity="heat"
             ),
             'f_nox': dc_cp(
@@ -182,11 +181,6 @@ class CombustionChamber(Component):
                 #num_eq_sets=1,
                 quantity="ratio"
             ),
-=======
-                quantity="heat",
-                description="thermal input (fuel LHV multiplied with mass flow)"
-            )
->>>>>>> dev
         }
 
     def _update_num_eq(self):

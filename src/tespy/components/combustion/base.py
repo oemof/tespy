@@ -172,7 +172,14 @@ class CombustionChamber(Component):
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
                 quantity="heat"
-            )
+            ),
+            'f_nox': dc_cp(
+                min_val=1,
+                func=self.stoichiometry_func,
+                dependents=self.stoichiometry_dependents,
+                #num_eq_sets=1,
+                quantity="ratio"
+            ),
         }
 
     def _update_num_eq(self):
@@ -596,7 +603,9 @@ class CombustionChamber(Component):
             if self.lamb.val_SI < 1:
                 dm = -n_oxygen * inl[0].fluid.wrapper[self.o2]._molar_mass
             else:
-                dm = -n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass
+                dm = (-n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass 
+                      + inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.o2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
+                      )
 
         ###################################################################
         # equation for fuel
@@ -609,7 +618,28 @@ class CombustionChamber(Component):
             else:
                 n_fuel_exc = 0
             dm = -(n_fuel[fluid] - n_fuel_exc) * inl[0].fluid.wrapper[fluid]._molar_mass
+        
+        ###################################################################
+        # equation for nitrogen
+        # TODO consider oxygen limitation
+        elif fluid == self.n2:
 
+            # nitrogen 
+            n_nitrogen = 0
+            for i in inl:
+                n_nitrogen += (
+                    i.m.val_SI
+                    * i.fluid.val.get(self.n2, 0)
+                    / inl[0].fluid.wrapper[self.n2]._molar_mass
+                )
+            if self.lamb.val_SI < 1:
+                dm=0
+            elif n_nitrogen >= inl[1].m.val_SI*self.f_nox.val_SI /0.03001 *0.5:  #molar mass of NO: 0.03001 kg/mol
+                dm = (n_nitrogen * inl[0].fluid.wrapper[self.n2]._molar_mass 
+                      - inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.n2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
+                      ) 
+            else:
+                dm= n_nitrogen * inl[0].fluid.wrapper[self.n2]._molar_mass
         ###################################################################
         # equation for other fluids
         else:

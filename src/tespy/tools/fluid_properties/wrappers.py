@@ -384,8 +384,49 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
 @wrapper_registry
 class IncompressibleFluidWrapper(FluidPropertyWrapper):
+    """Class to represent a fluid in TESPy using tabular data
+
+    Parameters
+    ----------
+    fluid : str
+        Name of fluid
+    back_end : str, optional
+        Name of the back end in context of CoolProp, by default None
+    temperature_data : np.ndarray
+        Array of temperature measurements in SI units (Kelvin)
+    density_data : np.ndarray
+        Array of corresponding density values in SI units (kg/m3)
+    heat_capacity_data : np.ndarray
+        Array of corresponding heat capacity values in SI units (J/kg)
+    viscosity_data : np.ndarray
+        Array of corresponding **dynamic** viscosity values in SI units (Pas)
+    conductivity_data : np.ndarray
+        Array of corresponding thermal conductivity values in SI units
+        (W/mK)
+    """
 
     def __init__(self, fluid, back_end=None, **kwargs):
+        """Class to represent a fluid in TESPy using tabular data
+
+        Parameters
+        ----------
+        fluid : str
+            Name of fluid
+        back_end : str, optional
+            Name of the back end in context of CoolProp, by default None
+        temperature_data : np.ndarray
+            Array of temperature measurements in SI units (Kelvin)
+        density_data : np.ndarray
+            Array of corresponding density values in SI units (kg/m3)
+        heat_capacity_data : np.ndarray
+            Array of corresponding heat capacity values in SI units (J/kg)
+        viscosity_data : np.ndarray
+            Array of corresponding **dynamic** viscosity values in SI units
+            (Pas)
+        conductivity_data : np.ndarray
+            Array of corresponding thermal conductivity values in SI units
+            (W/mK)
+        """
         super().__init__(fluid, back_end, **kwargs)
 
         self.temperature_data = None

@@ -108,8 +108,8 @@ data:
 
 - density and heat capacity through linear interpolation:
   :math:`f\left(T\right) = A + B \cdot T`
-- viscosity through Arrhenius equation
-  :math:`\eta\left(T\right) = A \cdot e ^ \frac{B}{T}`
+- viscosity through an exponential polynomial equation
+  :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
 
 We can make use of the engine as shown in the example below. First, we set up
 a very simple system, just a flow of fluid through a heat exchanger.
@@ -143,6 +143,14 @@ a very simple system, just a flow of fluid through a heat exchanger.
 Next, we have to prepare our data to be utilized by TESPy. The information
 required needs to be passed in SI units and must be gridded with the same
 spacing of temperature for all measurements.
+
+.. attention
+
+    Please note, that this example is purely for showing how to utilize this
+    implementation. In the example only 2 datapoints are available. This works
+    well for density and heat capacity as linear fitting functions are applied.
+    For viscosity this is somewhat sketchy, since you would need at least 4
+    datapoints to fit a function of polynomial 3!
 
 .. code-block:: python
 

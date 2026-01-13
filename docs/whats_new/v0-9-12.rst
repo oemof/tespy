@@ -15,8 +15,8 @@ New Features
 
   - heat capacity and density: linear interpolation
     :math:`f\left(T\right) = A + B \cdot T`.
-  - viscosity: Arrhenius equation
-    :math:`v\left(T\right) = A \cdot e ^ \frac{B}{T}`
+  - viscosity: exponential polynomial equation
+    :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
 
   For an example in a TESPy model see
   :ref:`this section <incompressible_wrapper_label>`

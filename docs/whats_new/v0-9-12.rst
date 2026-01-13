@@ -5,7 +5,9 @@ New Features
 ############
 - Custom fluid property wrappers can now receive arbitrary :code:`kwargs`
   making injection of information for the underlying property models much
-  easier (`PR #877 <https://github.com/oemof/tespy/pull/877>`__).
+  easier. Check the section on the
+  :ref:`incompressible fluid properties <incompressible_wrapper_label>`
+ (`PR #877 <https://github.com/oemof/tespy/pull/877>`__).
 - There is a new :code:`FluidPropertyWrapper` for incompressible fluids such as
   thermo-oils, which you can pass measurement or manufacturer data to. The
   :code:`IncompressibleFluidWrapper` will automatically fit functions to the

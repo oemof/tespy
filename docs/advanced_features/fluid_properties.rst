@@ -259,6 +259,11 @@ enthalpy to the temperature. Lastly, to make the calculation of isentropic
 efficiencies possible, we can add the equation for change in enthalpy on
 isentropic change of pressure for an ideal gas.
 
+.. tip::
+
+    You can also inject :code:`kwargs` from the connection specification to
+    your concrete wrapper instance, see the section on
+    :ref:`incompressible fluids <incompressible_wrapper_label>`.
 
 .. code-block:: python
 
@@ -269,7 +274,7 @@ isentropic change of pressure for an ideal gas.
 
     >>> class KKHWrapper(FluidPropertyWrapper):
     ...
-    ...     def __init__(self, fluid, back_end=None, reference_temperature=298.15) -> None:
+    ...     def __init__(self, fluid, back_end=None, reference_temperature=298.15, **kwargs) -> None:
     ...         super().__init__(fluid, back_end)
     ...
     ...         if self.fluid not in COEF:

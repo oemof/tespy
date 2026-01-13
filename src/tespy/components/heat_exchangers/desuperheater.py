@@ -194,7 +194,8 @@ class Desuperheater(HeatExchanger):
                 'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'dependents': self.saturated_gas_dependents
+                'dependents': self.saturated_gas_dependents,
+                "description": "equation for saturated gas at hot side outlet"
             })
         })
         return constraints

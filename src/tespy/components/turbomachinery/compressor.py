@@ -192,26 +192,37 @@ class Compressor(Turbomachine):
                 func=self.eta_s_func,
                 deriv=self.eta_s_deriv,
                 dependents=self.eta_s_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="isentropic efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
+                description="isentropic efficiency lookup table for offdesign"
             ),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
-            'char_map_eta_s': dc_cm(),
+            'igva': dc_cp(
+                min_val=-90, max_val=90, val=0, quantity="angle",
+                description="inlet guide vane angle", _potential_var=True
+            ),
+            'char_map_eta_s': dc_cm(
+                description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
+            ),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
-            'char_map_pr': dc_cm(),
+            'char_map_pr': dc_cm(
+                description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
+            ),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
                 num_eq_sets=1,
                 func=self.char_map_pr_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for pressure ratio over speedlines and non-dimensional mass flow"
             )
         })
         return parameters

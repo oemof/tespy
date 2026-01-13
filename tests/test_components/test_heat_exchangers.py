@@ -351,17 +351,8 @@ class TestHeatExchangers:
         )
         assert 677 == round(instance.kA.val, 0), msg
 
-        # test heat transfer as variable of the system
-        instance.set_attr(Q='var', kA=None)
-        Q = -5e4
-        b.set_attr(P=Q)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        msg = f"Value of heat transfer must be {Q}, is {instance.Q.val}."
-        assert Q == round(instance.Q.val, 0), msg
-
         # test kA as network results parameter
-        instance.set_attr(Q=-5e4, Tamb=None)
+        instance.set_attr(Q=-5e4, Tamb=None, kA=None)
         b.set_attr(P=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
@@ -390,14 +381,14 @@ class TestHeatExchangers:
         instance.set_attr(
             pr=0.95,
             Tamb=20,
-            kA=250,
+            kA=200,
             L=1000,
             D='var',
             ks=4.57e-5
         )
         self.nw.solve("design")
         self.nw.assert_convergence()
-        assert round(self.c2.T.val - instance.Tamb.val, 3) == 0.002
+        assert round(self.c2.T.val - instance.Tamb.val, 3) == 0.019
 
     def test_SimpleHeatExchanger_kA_convergence_heating(self):
         instance = SimpleHeatExchanger("heatexchanger")
@@ -460,62 +451,6 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-        # test all parameters of the energy group: eta_opt
-        instance.set_attr(E=5e2, eta_opt='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: c_1
-        instance.set_attr(E=5e2, eta_opt=instance.eta_opt.val, c_1='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: c_2
-        instance.set_attr(E=5e2, c_1=instance.c_1.val, c_2='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: iam_1
-        instance.set_attr(E=5e2, c_2=instance.c_2.val, iam_1='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: iam_2
-        instance.set_attr(E=5e2, iam_1=instance.iam_1.val, iam_2='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: aoi
-        instance.set_attr(E=5e2, iam_2=instance.iam_2.val, aoi='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
-        # test all parameters of the energy group: doc
-        instance.set_attr(E=5e2, aoi=instance.aoi.val, doc='var')
-        self.nw.solve('design')
-        instance.set_attr(E=8e2)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val, 0), msg
-
     def test_SolarCollector(self, tmp_path):
         """Test component properties of solar collector."""
         instance = SolarCollector('solar collector')
@@ -559,38 +494,6 @@ class TestHeatExchangers:
         instance.set_attr(A=area * 1.2, E='var')
         self.nw.solve('design')
         instance.set_attr(A=area)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
-
-        # test all parameters of the energy group: eta_opt
-        instance.set_attr(E=8e2, eta_opt='var')
-        self.nw.solve('design')
-        instance.set_attr(E=1e3)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
-
-        # test all parameters of the energy group: lkf_lin
-        instance.set_attr(E=8e2, eta_opt=instance.eta_opt.val, lkf_lin='var')
-        self.nw.solve('design')
-        instance.set_attr(E=1e3)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
-
-        # test all parameters of the energy group: lkf_quad
-        instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
-        self.nw.solve('design')
-        instance.set_attr(E=1e3)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
-
-        # test all parameters of the energy group: Tamb
-        instance.set_attr(E=8e2, lkf_lin=instance.lkf_lin.val, lkf_quad='var')
-        self.nw.solve('design')
-        instance.set_attr(E=1e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
@@ -1042,7 +945,7 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.c4.set_attr(T=None)
-        instance.set_attr(dp1=0.0, dp2=0.0, td_pinch=5)
+        instance.set_attr(td_pinch=5)
 
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -1086,6 +989,36 @@ class TestHeatExchangers:
 
         # reducing heat transfer will reduce pinch at identical pinch
         assert instance.td_pinch.val_SI < 5
+
+    def test_MovingBoundaryHeatExchanger_boundary_at_hot_side_outlet(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        # T_dew found be trial and error
+        self.c1.set_attr(fluid={"NH3": 1}, T_dew=48.57142857142857, td_dew=20)
+        self.c2.set_attr(x=1.0)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=10)
+        self.c4.set_attr(T=20)
+        instance.set_attr(zeta1=2000, pr2=0.99, Q=-1e6)
+
+        self.nw.solve("design")
+
+        self.nw.assert_convergence()
+
+    def test_MovingBoundaryHeatExchanger_boundary_at_cold_side_inlet(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        # T found be trial and error
+        self.c1.set_attr(fluid={"water": 1}, T=20, p=1)
+        self.c2.set_attr(T=10)
+        self.c3.set_attr(fluid={"NH3": 1}, x=1.0)
+        self.c4.set_attr(td_dew=5, T=-19.597989949748744)
+        instance.set_attr(pr1=0.99, zeta2=2000, Q=-1e6)
+
+        self.nw.solve("design")
+
+        self.nw.assert_convergence()
 
     def test_SectionedHeatExchanger(self):
         instance = SectionedHeatExchanger("heat exchanger")

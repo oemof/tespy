@@ -1,0 +1,69 @@
+v0.9.12 - Under development
++++++++++++++++++++++++++++
+
+Other changes
+#############
+- The optimization API has changed to integrate :code:`pymoo` instead of
+  :code:`PyGMO`. This change was done, because :code:`PyGMO` required conda to
+  be installed on Windows, and the latest installable version available with
+  pip for Linux based systems was broken.
+
+  Very few changes have to be made to utilize :code:`pymoo` compared to the
+  original implementation with :code:`PyGMO`, which only concern
+
+  - specifying the population,
+  - selecting the algorithm and
+  - running the optimization.
+
+  Old variant:
+
+  .. code-block:: python
+
+      algo = pg.algorithm(pg.ihs(gen=num_gen, seed=42))
+      # create starting population
+      pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
+
+      optimize.run(algo, pop, num_ind, num_gen)
+
+      results = optimize.individuals
+
+  New variant:
+
+  .. code-block:: python
+
+      algorithm = DE(pop_size=20)
+
+      res = minimize(
+          problem,
+          algorithm,
+          termination=('n_gen', num_evo)
+      )
+
+      results = problem.log
+
+  With the new implementation you also have more control on automatic
+  termination of the optimization. For all information see the
+  `pymoo docs <https://pymoo.org>`__, and check out the
+  :ref:`tutorial <tutorial_optimization_label>` to see, how to use
+  :code:`pymoo` (`PR #872 <https://github.com/oemof/tespy/pull/872>`__).
+- The logging of the optimization with pymoo now can keep track of additional
+  kpi (`PR #873 <https://github.com/oemof/tespy/pull/873>`__).
+- Many methods of the :code:`Network` class, that are supposed to be private
+  are now named appropriately with a leading underscore. On top, some methods
+  have been renamed to clarify what they do
+  (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
+
+Bug Fixes
+#########
+- The starting points for fluid wrapper propagation now can handle classes that
+  inherit from the starting point components. Before, they had to have the
+  identical name because a class name comparison was done
+  (`PR #871 <https://github.com/oemof/tespy/pull/871>`__).
+- Fix a bug in the specification of the relaxation factors that cause the
+  pressure relaxation factor to overwrite the factors for all other variables
+  (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
+
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

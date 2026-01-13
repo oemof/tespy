@@ -247,6 +247,7 @@ class Condenser(HeatExchanger):
                 _val=False, num_eq_sets=1,
                 func=self.subcooling_func,
                 dependents=self.subcooling_dependents,
+                description="allow subcooling in the condenser"
             )
         })
         return params
@@ -336,7 +337,7 @@ class Condenser(HeatExchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :ref:`tespy.data <tespy_data_label>`.
+        module :ref:`tespy.data <data_label>`.
         """
         return super().kA_char_func()
 

@@ -1,0 +1,215 @@
+.. _tutorial_optimization_label:
+
+Thermal Power Plant Efficiency Optimization
+-------------------------------------------
+
+Task
+^^^^
+Designing a power plant meets multiple different tasks, such as finding the
+optimal fresh steam temperature and pressure to reduce exhaust steam water
+content, or the optimization of extraction pressures to maximize cycle
+efficiency and many more.
+
+In case of a rather simple power plant topologies the task of finding
+optimized values for e.g. extraction pressures is still manageable without any
+optimization tool. As the topology becomes more complex and boundary
+conditions come into play the usage of additional tools is recommended. The
+following tutorial is intended to show the usage of pymoo in combination with
+TESPy to **maximize the cycle efficiency of a power plant with two**
+**extractions.**
+
+You can download the code here:
+:download:`optimization_example.py </../tutorial/advanced/optimization_example.py>`
+
+.. figure:: /_static/images/tutorials/optimization/flowsheet.svg
+    :align: center
+    :alt: Topology of the power plant
+    :figclass: only-light
+
+    Figure: Topology of the power plant
+
+.. figure:: /_static/images/tutorials/optimization/flowsheet_darkmode.svg
+    :align: center
+    :alt: Topology of the power plant
+    :figclass: only-dark
+
+    Figure: Topology of the power plant
+
+What is pymoo?
+^^^^^^^^^^^^^^
+
+`pymoo <https://pymoo.org/>`__ ( Multi-objective Optimization in Python,
+:cite:`pymoo`) is a library that provides numerous optimization algorithms.
+pymoo can be used to solve constrained, unconstrained, single objective and
+multi objective problems. In this example we will use an evolutionary algorithm
+to find the optimal pressure values.
+
+Evolutionary Algorithms
++++++++++++++++++++++++
+
+Evolutionary Algorithms (EA) are optimization algorithms inspired by biological
+evolution. In a given population the algorithm uses the so-called fitness
+function to determine the quality of the solutions to each individual (set of
+decision variables) problem. The best possible solution of the population is
+called champion. Via mutation, recombination and selection your population
+evolves to find better solutions.
+
+EA will never find an exact solution to your problem. They can only give an
+approximation for the real optimum.
+
+Install pymoo
++++++++++++++
+
+Installation of pymoo is straight-forward: Just install tespy with the extra
+dependencies "opt", e.g. with pip
+
+.. code-block:: bash
+
+    pip install tespy[opt]
+
+of uv
+
+.. code-block:: bash
+
+    uv add tespy --extra opt
+
+Creating your TESPy-Model
+^^^^^^^^^^^^^^^^^^^^^^^^^
+We have integrated an API in tespy, that automatically couples to pymoo. To
+use it, you need to define a class holding a TESPy network. The initialization
+of the class should build the network and run an initial simulation.
+Furthermore, you have to define methods
+
+- to get component or connection parameters of the plant :code:`get_param`,
+- to run a new simulation for every new input from pymoo :code:`solve_model`
+  and
+- to return the objective values :code:`get_objectives`.
+
+First, we set up the class with the TESPy network.
+
+.. dropdown:: Display source code for the PowerPlant class
+
+    .. literalinclude:: /../tutorial/advanced/optimization_example.py
+        :language: python
+        :start-after: [sec_1]
+        :end-before: [sec_2]
+
+
+Next, we add the methods :code:`get_param`, :code:`solve_model` and
+:code:`get_objectives`. On top of that, we add a setter working similarly as the
+getter. The objective is to maximize thermal efficiency as defined in the
+equation below. The :code:`get_objectives` method calls a :code:`get_objective`
+method and collects all objectives values. This is useful if you are
+implementing pareto or multi-objective problems.
+
+.. math::
+
+    \eta_\mathrm{th}=\frac{|\sum P|}{\dot{Q}_{sg}}
+
+.. attention::
+
+    The sense of optimization is minimization by default. We can change the
+    sense for each of the objectives we pass to the :code:`OptimizationProblem`
+    class by passing a list with :code:`True` or :code:`False` for each
+    inidivual objective **in identical order as the objectives** using the
+    :code:`minimize` argument. In this example we only use a single objective,
+    so there is not too much, that can go wrong.
+
+We also have to make sure, only the results of physically feasible solutions
+are returned. In case we have infeasible solutions, we can simply return
+:code:`np.nan`. An infeasible solution is obtained in case the power of a
+turbine is positive, the power of a pump is negative, or the heat exchanged
+in any of the preheaters is positive. We also check, if the calculation does
+converge.
+
+.. dropdown:: Display source code for the class methods
+
+    .. literalinclude:: /../tutorial/advanced/optimization_example.py
+        :language: python
+        :start-after: [sec_2]
+        :end-before: [sec_3]
+
+After this, we import the
+:py:class:`tespy.tools.optimization.OptimizationProblem` class and create an
+instance of our self defined class, which we pass to an instance of the
+OptimizationProblem class. We also have to pass
+
+- the variables to optimize,
+- the constraints to consider,
+- the objective function name (you could define multiple in the
+  :code:`get_objective` method if you wanted) and
+
+On top, it is possible to pass two additional keyword arguments:
+
+- :code:`minimize`, which is indicating the sense of optimization for each
+  objective. By default (if nothing is provided) all objectives are to be
+  minimized. In this case we pass :code:`[False]` since we want to maximize
+  efficiency.
+- :code:`kpi`, which allows to automatically include extra model outputs in the
+  log of the optimization. The structure of the data is identical to the
+  connections and components dictionary in the variables. For each connection
+  or component we can simply pass a list or a set of parameters we want to
+  extract. In the example below, we select the power and pressure of the
+  high pressure turbine to showcase the capabilities.
+
+We set one inequality constraint, namely that the pressure of the first
+extraction has to be higher than the pressure at the second one:
+
+.. math::
+
+    p_{e,1} > p_{e,2}
+
+To do this, we can set a lower limit for the pressure at connection 2 and
+reference the pressure at connection 4 as seen in the code:
+
+.. literalinclude:: /../tutorial/advanced/optimization_example.py
+    :language: python
+    :start-after: [sec_3]
+    :end-before: [sec_4]
+
+Before we can run the optimization, we only need to select an appropriate
+algorithm. After that we can start the optimization run. For more information
+on algorithms available in the pymoo framework and their individual
+specifications please check the respective section of the documentation:
+`list of algorithms <https://pymoo.org/algorithms/index.html>`__.
+
+Run pymoo-Optimization
+^^^^^^^^^^^^^^^^^^^^^^
+The following code then simply runs the pymoo optimization.
+
+.. literalinclude:: /../tutorial/advanced/optimization_example.py
+    :language: python
+    :start-after: [sec_5]
+    :end-before: [sec_6]
+
+In our run, we got the following optimal solution:
+
+.. code:: bash
+
+    Efficiency: 44.82 %
+    Extraction 1: 25.753 bar
+    Extraction 2: 2.685 bar
+
+.. figure:: /_static/images/tutorials/optimization/optimization_result.svg
+    :align: center
+    :alt: Scatter plot for all individuals during the optimization
+    :figclass: only-light
+
+    Figure: Scatter plot for all individuals during the optimization
+
+.. figure:: /_static/images/tutorials/optimization/optimization_result_darkmode.svg
+    :align: center
+    :alt: Scatter plot for all individuals during the optimization
+    :figclass: only-dark
+
+    Figure: Scatter plot for all individuals during the optimization
+
+You can access the data generated by the optimization from the
+:code:`problem.log` attribute, which contains each variable input that was
+evaluated by the optimizer in your tespy model. On top, you can access the
+result attribute, population information etc. as documented by pymoo.
+
+.. literalinclude:: /../tutorial/advanced/optimization_example.py
+    :language: python
+    :start-after: [sec_6]
+    :end-before: [sec_7]

@@ -169,6 +169,10 @@ class Generator(Component):
     def poweroutlets(self):
         return ["power_out"]
 
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
     def get_parameters(self):
         return {
             "eta": dc_cp(**{
@@ -178,7 +182,8 @@ class Generator(Component):
                 "num_eq_sets": 1,
                 "max_val": 1,
                 "min_val": 0,
-                "quantity": "efficiency"
+                "quantity": "efficiency",
+                "description": "efficiency"
             }),
             "delta_power": dc_cp(**{
                 "structure_matrix": self.delta_power_structure_matrix,
@@ -186,12 +191,14 @@ class Generator(Component):
                 "dependents": self.delta_power_dependents,
                 "num_eq_sets": 1,
                 "min_val": 0,
-                "quantity": "power"
+                "quantity": "power",
+                "description": "inlet to outlet power difference"
             }),
             "eta_char": dc_cc(**{
                 "func": self.eta_char_func,
                 "dependents": self.eta_char_dependents,
-                "num_eq_sets": 1
+                "num_eq_sets": 1,
+                "description": "efficiency lookup table for offdesign"
             })
         }
 

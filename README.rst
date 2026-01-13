@@ -29,11 +29,12 @@ https://guides.github.com/activities/hello-world/
 
 Key Features
 ============
-* **Open** Source
-* **Generic** thermal engineering applications
+* **Free** and **Open** Source Software
+* **Flexible** models of thermal engineering applications due to component
+  based architecture
 * **Extendable** framework for the implementation of custom components, fluid
   property formulations and equations
-* **Integration** of optimization capabilities through an API to pygmo
+* **Integration** of optimization capabilities through an API to pymoo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 .. start-badges
@@ -123,17 +124,16 @@ use.
 Get in touch
 ============
 
-Online "Stammtisch"
--------------------
+Community meetings
+------------------
 
-We have decided to start a reoccurring "Stammtisch" meeting for all interested
-TESPy users and (potential) developers. You are invited to join us on every 3rd
-Monday of a month at 17:00 CE(S)T for a casual get together. The first meeting
-will be held at June, 20, 2022. The intent of this meeting is to establish a
-more active and well-connected network of TESPy users and developers.
+There are online QA meetings every month, please check the
+`oemof calendar <https://oemof.org/calendar/>`__ for date, time and meeting
+link. You are invited to join us with your questions, issues and suggestions!
 
-If you are interested, you can simply join the meeting at
-https://meet.jit.si/tespy_user_meeting. We are looking forward to seeing you!
+Furthermore, there are in-person community meetings. These are held once or
+twice a year. To learn about upcoming meetings, follow the blog over at
+`<https://oemof.org/>`__ for the announcements.
 
 User forum
 ----------

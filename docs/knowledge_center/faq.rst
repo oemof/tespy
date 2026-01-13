@@ -233,6 +233,19 @@ Customizing model behavior
             ...         for var in [c.p, c.h]
             ...     ]
 
+    .. dropdown:: I have custom fluid property data, how can I integrate them into my model?
+
+        In the documentation section
+        :ref:`on fluid property engines <fluid_properties_label>` you will find
+        a lot of helpful information. Specifically for liquids/incompressibles
+        there is already an interface, that takes your datatables and then fits
+        equations to them and integrates them  into your tespy model. Check out
+        the information on that topic in
+        :ref:`this section <incompressible_wrapper_label>`. You can also
+        implement your own class, that handles your fluid property equations.
+        Follow the examples given in the sections mentioned to learn, how that
+        can be accomplished.
+
 .. _faq_postprocessing_label:
 
 Visualization, post-processing and cycle analysis

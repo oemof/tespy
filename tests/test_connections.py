@@ -5,16 +5,34 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_busses.py
+tests/test_connections.py
 
 SPDX-License-Identifier: MIT
 """
+import inspect
+import sys
 
+import pytest
+from CoolProp.CoolProp import get_global_param_string
+from pytest import approx
+from pytest import fixture
+from pytest import mark
+
+from tespy.components import PowerSink
+from tespy.components import PowerSource
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
+from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
+from tespy.connections.connection import ConnectionBase
+from tespy.connections.connection import connection_registry
 from tespy.networks import Network
+from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.fluid_properties.functions import T_bubble_p
+from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.units import SI_UNITS
 
 
@@ -24,7 +42,10 @@ class TestConnections:
         """Set up the model."""
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "C", "volumetric_flow": "l/s",
+            "pressure": "bar",
+            # TODO: replace C with degC in next major version
+            "temperature": "C",
+            "volumetric_flow": "l/s",
             "mass_flow": "t/h"
         })
 
@@ -138,3 +159,398 @@ class TestConnections:
             f'{m_expected} kg/s, but is {m_is} kg/s'
         )
         assert m_is == m_expected, msg
+
+
+@fixture
+def simple_test_network():
+    nw = Network()
+    nw.units.set_defaults(
+        temperature="degC",
+        pressure="bar"
+    )
+
+    so = Source("source")
+    si = Sink("sink")
+
+    heatexchanger = SimpleHeatExchanger("heatexchanger")
+
+    c1 = Connection(so, "out1", heatexchanger, "in1", label="c1")
+    c2 = Connection(heatexchanger, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+    return nw
+
+
+@mark.skipif(
+    get_global_param_string("REFPROP_version") == "n/a",
+    reason='This test requires REFPROP, dependency is missing.'
+)
+def test_td_bubble_and_td_dew_in_iterations(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+    # R513A
+    c1.set_attr(m=1, p=10, fluid={"REFPROP::R134A[0.44]&R1234yf[0.56]|mass": 1})
+    delta_T = 10
+    c2.set_attr(td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+
+    nw.assert_convergence()
+
+    T_with_td_bubble_set = c2.T.val_SI
+
+    c2.set_attr(td_dew=-delta_T, td_bubble=None)
+    nw.solve("design")
+
+    nw.assert_convergence()
+
+    T_with_td_dew_set = c2.T.val_SI
+    T_dew = T_dew_p(c2.p.val_SI, c2.fluid_data)
+    T_bubble = T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+    assert approx(T_with_td_bubble_set) == T_bubble - delta_T
+    # - delta_T because dew line temperature is set negative here!
+    assert approx(T_with_td_dew_set) == T_dew - delta_T
+    assert T_with_td_bubble_set != T_with_td_dew_set
+
+
+def test_td_bubble_larger_0(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 10
+    c2.set_attr(td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_equals_0(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 0
+    c2.set_attr(td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_in_preprocessing1(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 10
+    c2.set_attr(td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_in_preprocessing2(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    delta_T = 10
+    c2.set_attr(T=50, td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_equals_0_in_preprocessing1(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 0
+    c2.set_attr(td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_equals_0_in_preprocessing2(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    delta_T = 0
+    c2.set_attr(T=50, td_bubble=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert approx(c2.T.val_SI + delta_T) == T_bubble_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_bubble_in_postprocessing(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, p=20)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_bubble.val) == 7.26229
+
+
+def test_T_bubble_specified(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, T_bubble=60)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_bubble.val) == 10
+
+
+def test_td_dew_larger_0(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 10.0
+    # setting zeta does not work here, not sure why
+    c2.set_attr(td_dew=delta_T, v=Ref(c1, 1, 0))
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_equals_0(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 0.0
+    # setting zeta does not work here, not sure why
+    c2.set_attr(td_dew=delta_T, v=Ref(c1, 1, 0))
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_in_preprocessing1(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 10
+    c2.set_attr(td_dew=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_in_preprocessing2(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    delta_T = 10
+    c2.set_attr(T=50, td_dew=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_equals_0_in_preprocessing1(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"R290": 1})
+    delta_T = 0
+    c2.set_attr(td_dew=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_equals_0_in_preprocessing2(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    delta_T = 0
+    c2.set_attr(T=50, td_dew=delta_T)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.T.val_SI - delta_T) == T_dew_p(c2.p.val_SI, c2.fluid_data)
+
+
+def test_td_dew_in_postprocessing(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=50, p=10)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_dew.val) == 23.05767
+
+
+def test_T_dew_specified(simple_test_network):
+    nw = simple_test_network
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, fluid={"R290": 1})
+    c2.set_attr(T=70, T_dew=60)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, dp=0)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # minus delta T, because td_dew is higher than T_dew
+    assert approx(c2.td_dew.val) == 10
+
+
+ALL_CONNECTION_CLASSES = [
+    obj for _, obj in inspect.getmembers(sys.modules["tespy.connections"])
+    # exclude the Subsystem component as it is just a wrapper
+    if inspect.isclass(obj)
+    and obj not in {ConnectionBase, Bus, Ref}
+]
+
+@mark.parametrize("obj", ALL_CONNECTION_CLASSES)
+def test_all_classes_in_registry(obj):
+    msg = (
+        f"The class {obj.__name__} is missing in the "
+        "connection_registry"
+    )
+    assert obj in connection_registry.items.values(), msg
+
+
+def make_connection(cls):
+    if cls == Connection:
+        return cls(Source(""), "out1", Sink(""), "in1")
+    elif cls == PowerConnection:
+        return cls(PowerSource(""), "power", PowerSink(""), "power")
+    else:
+        raise NotImplementedError(
+            f"The connection class {cls} is not implemented in testing"
+        )
+
+
+QUANTITY_EXEMPTIONS = {}
+
+def properties_of(instance):
+    return [
+        prop
+        for prop, container in instance.get_parameters().items()
+        if isinstance(container, dc_prop)
+    ]
+
+def pytest_generate_tests(metafunc):
+    if "cls_name" in metafunc.fixturenames and "prop" in metafunc.fixturenames:
+        params = []
+        for name, cls in connection_registry.items.items():
+            instance = make_connection(cls)
+            for prop in properties_of(instance):
+                params.append(pytest.param(name, prop, id=f"{cls.__name__}::{prop}"))
+        metafunc.parametrize("cls_name,prop", params)
+
+def test_property_value_not_none(cls_name, prop):
+
+    instance = make_connection(connection_registry.items[cls_name])
+    value = instance.get_attr(prop)
+
+    condition = (
+        prop in QUANTITY_EXEMPTIONS.get(cls_name, set())
+        or value.quantity is not None
+    )
+
+    assert condition, f"Quantity for {prop} of {cls_name} must not be None"

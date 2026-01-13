@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module of class CombustionChamber.
+"""Module of class DiabaticCombustionChamber.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
@@ -200,23 +200,29 @@ class DiabaticCombustionChamber(CombustionChamber):
                 num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "pr": "pr"},
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet 0 to inlet 0 pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet 0 to outlet 0 absolute pressure change"
             ),
             'eta': dc_cp(
                 max_val=1, min_val=0,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 num_eq_sets=1,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="heat dissipation ratio relative to thermal input"
             ),
-            'Qloss': dc_cp(max_val=0, is_result=True, quantity="heat")
+            'Qloss': dc_cp(
+                max_val=0, is_result=True, quantity="heat",
+                description="heat dissipation"
+            )
         })
         return params
 
@@ -303,7 +309,7 @@ class DiabaticCombustionChamber(CombustionChamber):
         self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
         self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
         for num, i in enumerate(self.inl):
-            if i.p.val < self.outl[0].p.val:
+            if i.p.val_SI < self.outl[0].p.val_SI:
                 msg = (
                     f"The pressure at inlet {num + 1} is lower than the "
                     f"pressure at the outlet of component {self.label}."

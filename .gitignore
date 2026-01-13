@@ -1,5 +1,6 @@
 *.py[cod]
 __pycache__
+__pint_cache__
 
 # C extensions
 *.so
@@ -44,6 +45,9 @@ htmlcov
 
 # Sphinx
 docs/_build
+docs/api/*.rst
+docs/building_blocks/_*.rst
+docs/jupyter_execute
 
 .DS_Store
 *~

@@ -87,8 +87,8 @@ class SubsystemInterface(Component):
     rest of your network. It is necessary to specify the number of interfaces
     of the subsystem interface, if you want any number other than 1. We will
     not go in depth of subsystem usage in this example. Please refer to
-    :ref:`this section <tespy_subsystems_label>` for more information on
-    building your own subsystems.
+    :ref:`this section <modules_subsystems_label>` for more information
+    on building your own subsystems.
 
     >>> from tespy.components import Sink, Source, SubsystemInterface
     >>> from tespy.connections import Connection
@@ -129,22 +129,28 @@ class SubsystemInterface(Component):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'pressure_constraints': dc_cmc(**{
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'p'}
+            "pressure_equality_constraint": dc_cmc(**{
+                "num_eq_sets": self.num_i,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "p"},
+                "description": "pressure equality constraint"
             }),
-            'enthalpy_constraints': dc_cmc(**{
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'h'}
+            "enthalpy_equality_constraint": dc_cmc(**{
+                "num_eq_sets": self.num_i,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "h"},
+                "description": "enthalpy equality constraint"
             })
         })
         return constraints
 
     @staticmethod
     def get_parameters():
-        return {'num_inter': dc_simple()}
+        return {
+            "num_inter": dc_simple(
+                description="number of interfacing connections"
+            )
+        }
 
     def inlets(self):
         if self.num_inter.is_set:

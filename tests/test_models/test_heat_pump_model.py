@@ -255,12 +255,12 @@ class TestHeatPump:
         self.cd_cons.set_attr(T=105)
 
         c_in_cd.set_attr(fluid={'NH3': 1}, p=60)
-        cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), Td_bp=-5, design=['Td_bp'])
+        cd_va.set_attr(p=Ref(c_in_cd, 1, -0.01), td_bubble=5, design=['td_bubble'])
 
         # evaporator system cold side
         pu_ev.set_attr(m=Ref(dr_su, 10, 0))
         dr_su.set_attr(T=5)
-        su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), Td_bp=5, design=['Td_bp', 'p'])
+        su_cp1.set_attr(p=Ref(dr_su, 1, -0.05), td_dew=5, design=['td_dew', 'p'])
 
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})

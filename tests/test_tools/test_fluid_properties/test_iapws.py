@@ -1,3 +1,14 @@
+# -*- coding: utf-8
+
+"""Module for testing fluid properties of gas mixtures.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/test_tools/test_fluid_properties/test_iapws.py
+
+SPDX-License-Identifier: MIT
+"""
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine

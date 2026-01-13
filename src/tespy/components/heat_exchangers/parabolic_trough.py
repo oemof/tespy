@@ -183,9 +183,9 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> aoi = 20
     >>> E = 1000 * math.cos(aoi / 180 * math.pi)
     >>> pt.set_attr(
-    ... pr=1, aoi=aoi, doc=1,
-    ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
-    ... iam_1=-1.59e-3, iam_2=9.77e-5
+    ...     pr=1, aoi=aoi, doc=1,
+    ...     Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
+    ...     iam_1=-1.59e-3, iam_2=9.77e-5
     ... )
     >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=10)
     >>> outg.set_attr(T=260)
@@ -226,16 +226,34 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
-            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
-            'c_1': dc_cp(min_val=0),
-            'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(),
-            'iam_2': dc_cp(),
-            'aoi': dc_cp(min_val=-90, max_val=90),
-            'doc': dc_cp(min_val=0, max_val=1),
-            'Q_loss': dc_cp(max_val=0, _val=0, quantity="heat"),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _potential_var=True,
+                description="solar irradiation to the parabolic trough"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _potential_var=True,
+                description="area of the parabolic trough"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'c_1': dc_cp(min_val=0, description="thermal loss coefficient 1"),
+            'c_2': dc_cp(min_val=0, description="thermal loss coefficient 2"),
+            'iam_1': dc_cp(description="incidence angle modifier 1"),
+            'iam_2': dc_cp(description="incidence angle modifier 2"),
+            'aoi': dc_cp(
+                min_val=-90, max_val=90, quantity="angle",
+                description="angle of incidence"
+            ),
+            'doc': dc_cp(
+                min_val=0, max_val=1, quantity="ratio",
+                description="degree of cleanliness"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation"
+            ),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
@@ -243,7 +261,8 @@ class ParabolicTrough(SimpleHeatExchanger):
                 ],
                 num_eq_sets=1,
                 func=self.energy_group_func,
-                dependents=self.energy_group_dependents
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the parabolic trough"
             )
         })
         return data
@@ -285,7 +304,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val_SI * (
                 self.E.val_SI * self.eta_opt.val_SI * self.doc.val_SI ** 1.5 * iam
-                - (T_m - self.Tamb.val_SI) * self.c_1.val_SI
+                - self.c_1.val_SI * (T_m - self.Tamb.val_SI)
                 - self.c_2.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
@@ -297,7 +316,10 @@ class ParabolicTrough(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
+
+    def convergence_check(self):
+        pass
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

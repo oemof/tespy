@@ -98,22 +98,28 @@ class CycleCloser(Component):
     def get_parameters():
         return {
             'mass_deviation': dc_cp(
-                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow"
+                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
+                description="absolute deviation of mass flow between inlet and outlet"
             ),
-            'fluid_deviation': dc_cp(_val=0, max_val=1e-5, is_result=True)
+            'fluid_deviation': dc_cp(
+                _val=0, max_val=1e-5, is_result=True,
+                description="norm of absolute deviation of fluid composition between inlet and outlet"
+            )
         }
 
     def get_mandatory_constraints(self):
         return {
-            'pressure_equality_constraint': dc_cmc(**{
-                'num_eq_sets': 1,
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'func_params': {'variable': 'p'}
+            "pressure_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "p"},
+                "description": "pressure equality constraint"
             }),
-            'enthalpy_equality_constraint': dc_cmc(**{
-                'num_eq_sets': 1,
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'func_params': {'variable': 'h'}
+            "enthalpy_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "h"},
+                "description": "enthalpy equality constraint"
             })
         }
 

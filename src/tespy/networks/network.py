@@ -24,6 +24,10 @@ import pandas as pd
 from numpy.linalg import norm
 from tabulate import tabulate
 
+from tespy.components import CycleCloser
+from tespy.components import FuelCell
+from tespy.components import Source
+from tespy.components import WaterElectrolyzer
 from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
@@ -134,7 +138,7 @@ class Network:
     """
 
     def __init__(self, **kwargs):
-        self.set_defaults()
+        self._set_defaults()
         self.set_attr(**kwargs)
 
     def _serialize(self):
@@ -145,7 +149,7 @@ class Network:
             "units": self.units._serialize()
         }
 
-    def set_defaults(self):
+    def _set_defaults(self):
         """Set default network properties."""
         # connection dataframe
 
@@ -773,8 +777,6 @@ class Network:
             # connections as component attribute
             comp.inl = self.conns.loc[targets, "object"].tolist()
             comp.outl = self.conns.loc[sources, "object"].tolist()
-            comp.num_i = len(comp.inlets())
-            comp.num_o = len(comp.outlets())
 
             required_connectors_mask = self.conns["source_id"].isin(comp.poweroutlets())
             sources = self.conns[source_mask & required_connectors_mask]
@@ -793,8 +795,9 @@ class Network:
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
-                    col for col, data in comp.parameters.items()
+                    c for col, data in comp.parameters.items()
                     if isinstance(data, dc_cp)
+                    for c in [col, f"{col}_unit"]
                 ]
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
@@ -894,14 +897,14 @@ class Network:
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
-        self._init_set_properties()
+        self._transform_user_input_to_SI()
         self._create_structure_matrix()
 
         self._presolve()
         self._prepare_for_solver()
 
         # generic fluid property initialisation
-        self._init_properties()
+        self._set_starting_values()
 
         msg = 'Network initialised.'
         logger.info(msg)
@@ -1013,13 +1016,13 @@ class Network:
 
             # load design case
             if self.new_design:
-                self._init_offdesign_params()
+                self._load_offdesign_state()
 
-            self._init_offdesign()
+            self._prepare_offdesign()
 
         else:
             # reset any preceding offdesign calculation
-            self._init_design()
+            self._prepare_design()
 
     def _presolve_fluid_vectors(self):
 
@@ -1481,8 +1484,12 @@ class Network:
     def _create_fluid_wrapper_branches(self):
 
         self.fluid_wrapper_branches = {}
-        mask = self.comps["comp_type"].isin(
-            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
+        mask = self.comps["object"].apply(
+            lambda x:
+            isinstance(x, Source)
+            or isinstance(x, CycleCloser)
+            or isinstance(x, WaterElectrolyzer)
+            or isinstance(x, FuelCell)
         )
         start_components = self.comps["object"].loc[mask]
 
@@ -1647,7 +1654,7 @@ class Network:
             }
             self.variable_counter += 1
 
-    def _init_set_properties(self):
+    def _transform_user_input_to_SI(self):
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns['object']:
@@ -1682,8 +1689,7 @@ class Network:
                         value.val = (value.min_val + value.max_val) / 2
                     value.set_SI_from_val(self.units)
 
-
-    def _init_design(self):
+    def _prepare_design(self):
         r"""
         Initialise a design calculation.
 
@@ -1722,7 +1728,7 @@ class Network:
 
                 df = _local_designs[c.design_path][c.__class__.__name__]
                 # write data to connections
-                self._init_conn_design_params(c, df)
+                self._write_design_state_to_connection(c, df)
 
             else:
                 c._reset_design(self.redesign)
@@ -1752,7 +1758,7 @@ class Network:
 
                 data = _local_designs[path][c]
                 # write data
-                self._init_comp_design_params(cp, data)
+                self._write_design_state_to_component(cp, data)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1790,7 +1796,7 @@ class Network:
 
                 cp._set_design_parameters(self.mode, series)
 
-    def _init_offdesign(self):
+    def _prepare_offdesign(self):
         r"""
         Switch components and connections from design to offdesign mode.
 
@@ -1863,21 +1869,13 @@ class Network:
         msg = 'Switched components from design to offdesign.'
         logger.debug(msg)
 
-    def _init_offdesign_params(self):
+    def _load_offdesign_state(self):
         r"""
         Read design point information from specified :code:`design_path`.
 
         If a :code:`design_path` has been specified individually for components
         or connections, the data will be read from the specified individual
         path instead.
-
-        Note
-        ----
-        The methods
-        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
-        (components) and the
-        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
-        (connections) handle the parameter specification.
         """
         # components with offdesign parameters
         components_with_parameters = [
@@ -1903,7 +1901,7 @@ class Network:
                 data = df
 
             # write data to components
-            self._init_comp_design_params(comp, data)
+            self._write_design_state_to_component(comp, data)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
@@ -1927,12 +1925,12 @@ class Network:
             else:
                 data = df
 
-            self._init_conn_design_params(c, data)
+            self._write_design_state_to_connection(c, data)
 
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def _init_comp_design_params(self, c, df):
+    def _write_design_state_to_component(self, c, df):
         r"""
         Write design point information to components.
 
@@ -1957,7 +1955,7 @@ class Network:
         data = df.loc[c.label]
         c._set_design_parameters(self.mode, data)
 
-    def _init_conn_design_params(self, c, df):
+    def _write_design_state_to_connection(self, c, df):
         r"""
         Write design point information to connections.
 
@@ -1984,7 +1982,7 @@ class Network:
         data = df.loc[c.label]
         c._set_design_params(data, self.units)
 
-    def _init_conn_params_from_path(self, c, df):
+    def _write_starting_values_to_connection(self, c, df):
         r"""
         Write parameter information from init_path to connections.
 
@@ -2006,7 +2004,7 @@ class Network:
         c._set_starting_values(data, self.units)
         c.good_starting_values = True
 
-    def _init_properties(self):
+    def _set_starting_values(self):
         """
         Initialise the fluid properties on every connection of the network.
 
@@ -2025,7 +2023,7 @@ class Network:
         for c in self.conns['object']:
             if self.init_path is not None:
                 df = dfs[c.__class__.__name__]
-                self._init_conn_params_from_path(c, df)
+                self._write_starting_values_to_connection(c, df)
 
             if type(c) == Connection:
                 # the below part does not work for PowerConnection right now
@@ -2043,7 +2041,7 @@ class Network:
                 # for connections variables can be presolved and not be var anymore
                 if variable.is_var:
                     if not c.good_starting_values:
-                        self.init_val0(c, key)
+                        self._guess_starting_value_from_connected_components(c, key)
 
                     variable.set_SI_from_val0(self.units)
                     # variable.set_SI_from_val0()
@@ -2064,7 +2062,7 @@ class Network:
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
 
-    def init_val0(self, c, key):
+    def _guess_starting_value_from_connected_components(self, c, key):
         r"""
         Set starting values for fluid properties.
 
@@ -2129,6 +2127,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
+        # TODO: depricate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2483,18 +2482,18 @@ class Network:
         msg = 'Starting solver.'
         logger.info(msg)
 
-        self.solve_determination()
+        self._check_determination()
 
         try:
-            self.solve_loop(print_results=print_results)
+            self._solve_loop(print_results=print_results)
         except ValueError as e:
             self.status = 99
             msg = f"Simulation crashed due to an unexpected error:\n{e}"
             logger.exception(msg)
-            self.unload_variables()
+            self._unload_variables()
             return
 
-        self.unload_variables()
+        self._unload_variables()
 
         if self.status == 3:
             logger.error(self.singularity_msg)
@@ -2511,13 +2510,13 @@ class Network:
             logger.warning(msg)
             return
 
-        self.postprocessing()
+        self._postprocess()
 
         msg = 'Calculation complete.'
         logger.info(msg)
         return
 
-    def solve_loop(self, print_results=True):
+    def _solve_loop(self, print_results=True):
         r"""Loop of the newton algorithm."""
         # parameter definitions
         self.residual_history = np.array([])
@@ -2528,16 +2527,16 @@ class Network:
         self.start_time = time()
 
         if self.iterinfo:
-            self.iterinfo_head(print_results)
+            self._print_iterinfo_head(print_results)
 
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            self.solve_control()
+            self._solve_iteration()
             self.residual_history = np.append(
                 self.residual_history, norm(self.residual)
             )
             if self.iterinfo:
-                self.iterinfo_body(print_results)
+                self._print_iterinfo_body(print_results)
 
             if self.lin_dep:
                 self.status = 3
@@ -2555,6 +2554,8 @@ class Network:
             if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
+                    # the increment should also be small
+                    and (abs(self.increment) < ERR ** 0.5).all()
                 ):
                 self.status = 0
                 break
@@ -2562,7 +2563,7 @@ class Network:
         self.end_time = time()
 
         if self.iterinfo:
-            self.iterinfo_tail(print_results)
+            self._print_iterinfo_tail(print_results)
 
         if self.iter == self.max_iter - 1:
             msg = (
@@ -2574,6 +2575,9 @@ class Network:
             self.status = 2
 
     def solve_determination(self):
+        self._check_determination()
+
+    def _check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
         msg = f'Number of connection equations: {self.num_conn_eq}.'
         logger.debug(msg)
@@ -2608,7 +2612,7 @@ class Network:
             self.status = 11
             raise hlp.TESPyNetworkError(msg)
 
-    def iterinfo_head(self, print_results=True):
+    def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
         # Start with defining the format here
         self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
@@ -2633,7 +2637,7 @@ class Network:
             print('\n' + msg + '\n' + msg2)
         return
 
-    def iterinfo_body(self, print_results=True):
+    def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         m = [k for k, v in self.variables_dict.items() if v["variable"] == "m"]
         p = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
@@ -2697,7 +2701,7 @@ class Network:
             print(msg)
         return
 
-    def iterinfo_tail(self, print_results=True):
+    def _print_iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
         num_iter = self.iter + 1
         clc_time = self.end_time - self.start_time
@@ -2856,19 +2860,24 @@ class Network:
                 container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":
                 container = data["obj"]
-                relax = max(
+                p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI
                 )
-                container._val_SI += increment[container.J_col] / relax
+                container._val_SI += increment[container.J_col] / p_relax
             elif data["variable"] == "fluid":
                 container = data["obj"]
-                container.val[data["fluid"]] += increment[
-                    container.J_col[data["fluid"]]
-                ]
+                inc = increment[container.J_col[data["fluid"]]]
+                value = container.val[data["fluid"]]
+                if value > ERR:
+                    f_relax = max(1, -2 * inc / value)
+                else:
+                    f_relax = 1
 
-                if container.val[data["fluid"]] < ERR :
+                container.val[data["fluid"]] += inc / f_relax
+
+                if container.val[data["fluid"]] < ERR:
                     container.val[data["fluid"]] = 0
-                elif container.val[data["fluid"]] > 1 - ERR :
+                elif container.val[data["fluid"]] > 1 - ERR:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
@@ -2880,7 +2889,7 @@ class Network:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
-    def check_variable_bounds(self):
+    def _adapt_to_variable_bounds(self):
 
         # this could be in a different place, its kind of in between
         # network and connection
@@ -2890,10 +2899,10 @@ class Network:
                 for fluid in data["obj"].is_var:
                     data["obj"]._val[fluid] /= total_mass_fractions
 
-
-        for c in self.conns['object']:
-            # check the fluid properties for physical ranges
-            c._adjust_to_property_limits(self)
+        if norm(self.increment) > 1e-1:
+            for c in self.conns['object']:
+                # check the fluid properties for physical ranges
+                c._adjust_to_property_limits(self)
 
         # second check based on component heuristics
         # - for first three iterations
@@ -2910,7 +2919,7 @@ class Network:
             for c in self.conns['object']:
                 c._adjust_to_property_limits(self)
 
-    def solve_control(self):
+    def _solve_iteration(self):
         r"""
         Control iteration step of the newton algorithm.
 
@@ -2920,8 +2929,8 @@ class Network:
         - Restrict fluid properties to value ranges
         - Check component parameters for consistency
         """
-        self.solve_equations()
-        self.solve_busses()
+        self._solve_equations()
+        self._solve_busses()
         self._invert_jacobian()
 
         # check for linear dependency
@@ -2929,9 +2938,9 @@ class Network:
             return
 
         self._update_variables()
-        self.check_variable_bounds()
+        self._adapt_to_variable_bounds()
 
-    def solve_equations(self):
+    def _solve_equations(self):
         r"""
         Calculate the residual and derivatives of all equations.
         """
@@ -2954,7 +2963,7 @@ class Network:
 
             obj.it += 1
 
-    def solve_busses(self):
+    def _solve_busses(self):
         r"""
         Calculate the equations and the partial derivatives for the busses.
         """
@@ -2973,11 +2982,11 @@ class Network:
                 bus.clear_jacobian()
                 sum_eq += 1
 
-    def postprocessing(self):
+    def _postprocess(self):
         r"""Calculate connection, bus and component parameters."""
-        _converged = self.process_connections()
-        _converged = _converged and self.process_components()
-        self.process_busses()
+        _converged = self._postprocess_connections()
+        _converged = self._postprocess_components() and _converged
+        self._postprocess_busses()
 
         if self.status == 0 and not _converged:
             self.status = 1
@@ -2985,7 +2994,7 @@ class Network:
         msg = 'Postprocessing complete.'
         logger.info(msg)
 
-    def unload_variables(self):
+    def _unload_variables(self):
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
@@ -2996,16 +3005,16 @@ class Network:
                     variable.val = variable.val
                 variable._reference_container = None
 
-    def process_connections(self):
+    def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = _converged and c.calc_results(self.units)
+            _converged = c.calc_results(self.units) and _converged
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
-    def process_components(self):
+    def _postprocess_components(self):
         """Process the component results."""
         # components
         _converged = True
@@ -3013,22 +3022,51 @@ class Network:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
             # this thing could be somewhere else
-            for value in cp.parameters.values():
+            for key, value in cp.parameters.items():
                 if isinstance(value, dc_prop):
-                    value.set_val_from_SI(self.units)
+                    result = value._get_val_from_SI(self.units)
+                    if (
+                        value.is_set
+                        and not value.is_var
+                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
+                        and not cp.bypass
+                    ):
+                        _converged = False
+                        msg = (
+                            "The simulation converged but the calculated "
+                            f"result {result} for the fixed input parameter "
+                            f"{key} is not equal to the originally specified "
+                            f"value: {value.val}. Usually, this can happen, "
+                            "when a method internally manipulates the "
+                            "associated equation during iteration in order to "
+                            "allow progress in situations, when the equation "
+                            "is otherwise not well defined for the current"
+                            "values of the variables, e.g. in case a negative "
+                            "root would need to be evaluated.  Often, this "
+                            "can happen during the first iterations and then "
+                            "will resolve itself as convergence progresses. "
+                            "In this case it did not, meaning convergence was "
+                            "not actually achieved."
+                        )
+                        logger.warning(msg)
+                        self.status = 2
+                    else:
+                        if not value.is_set or value.is_var:
+                            value.set_val_from_SI(self.units)
 
+        if self.status == 2:
+            return False
+
+        for cp in self.comps['object']:
             key = cp.__class__.__name__
-            for param in self.results[key].columns:
-                p = cp.get_attr(param)
-                if (p.func is not None or (p.func is None and p.is_set) or
-                        p.is_result or p.structure_matrix is not None):
-                    self.results[key].loc[cp.label, param] = p.val
-                else:
-                    self.results[key].loc[cp.label, param] = np.nan
+            result = cp.collect_results()
+            if len(result) == 0:
+                continue
+            self.results[cp.__class__.__name__].loc[cp.label] = result
 
         return _converged
 
-    def process_busses(self):
+    def _postprocess_busses(self):
         """Process the bus results."""
         # busses
         for b in self.busses.values():
@@ -3094,6 +3132,9 @@ class Network:
         result = ""
         for cp in self.comps['comp_type'].unique():
             df = self.results[cp].copy()
+            for c in df.index:
+                if not self.get_comp(c).printout:
+                    df = df.drop(c)
             # are there any parameters to print?
             if df.size > 0:
                 if subsystem is not None:
@@ -3103,9 +3144,14 @@ class Network:
                     ]
                     df = df.loc[component_labels]
 
-                cols = df.columns
+                c = self.comps.loc[self.comps["comp_type"] == cp, "object"]
+                cols = [
+                    col for col in c.iloc[0]._get_result_attributes()
+                    if not col.endswith("_unit")
+                ]
                 if len(cols) > 0:
-                    for col in cols:
+                    df = df[cols].dropna(axis=1, how="all")
+                    for col in df.columns:
                         df[col] = df.apply(
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
@@ -3227,6 +3273,90 @@ class Network:
         else:
             return np.nan
 
+
+    @classmethod
+    def from_dict(cls, network_data):
+        # create network
+        # get method to ensure compatibility with old style export
+        units = Units.from_json(network_data["Network"].get("units", {}))
+        network_data["Network"]["units"] = units
+        nw = cls(**network_data["Network"])
+
+        # load components
+        comps = {}
+
+        module_name = "tespy.components"
+        _ = importlib.import_module(module_name)
+
+        for component, data in network_data["Component"].items():
+            if component not in component_registry.items:
+                msg = (
+                    f"A class {component} is not available through the "
+                    "tespy.components.component.component_registry decorator. "
+                    "If you are using a custom component make sure to "
+                    "decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+            target_class = component_registry.items[component]
+            comps.update(_construct_components(target_class, data, nw))
+
+        msg = 'Created network components.'
+        logger.info(msg)
+
+        conns = {}
+        # load connections
+        if "Connection" not in network_data["Connection"]:
+            # v0.8 compatibility
+            target_class = connection_registry.items["Connection"]
+            conns.update(_construct_connections(
+                target_class, network_data["Connection"], comps)
+            )
+        else:
+            for connection, data in network_data["Connection"].items():
+                if connection not in connection_registry.items:
+                    msg = (
+                        f"A class {connection} is not available through the "
+                        "tespy.connections.connection.connection_registry "
+                        "decorator. If you are using a custom connection make "
+                        "sure to decorate the class."
+                    )
+                    logger.error(msg)
+                    raise hlp.TESPyNetworkError(msg)
+
+                target_class = connection_registry.items[connection]
+                conns.update(_construct_connections(target_class, data, comps))
+
+        # add connections to network
+        for c in conns.values():
+            nw.add_conns(c)
+
+        msg = 'Created connections.'
+        logger.info(msg)
+
+        # load busses
+        data = network_data.get("Bus", {})
+        if len(data) > 0:
+            busses = _construct_busses(data, comps)
+            # add busses to network
+            for b in busses.values():
+                nw.add_busses(b)
+
+            msg = 'Created busses.'
+            logger.info(msg)
+
+        else:
+            msg = 'No bus data found!'
+            logger.debug(msg)
+
+        msg = 'Created network.'
+        logger.info(msg)
+
+        nw.check_topology()
+
+        return nw
+
     @classmethod
     def from_json(cls, json_file_path):
         r"""
@@ -3268,7 +3398,7 @@ class Network:
         keeping the temperature at a constant value.
 
         >>> from tespy.components import (
-        ...     Sink, Source, CombustionChamber, Compressor, Turbine,
+        ...     Sink, Source, CombustionChamber, TurboCompressor, Turbine,
         ...     SimpleHeatExchanger, PowerBus, PowerSink, Generator
         ... )
         >>> from tespy.connections import Connection, Ref, PowerConnection
@@ -3276,11 +3406,12 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "power": "MW"
         ... })
         >>> air = Source('air')
         >>> f = Source('fuel')
-        >>> compressor = Compressor('compressor')
+        >>> compressor = TurboCompressor('compressor')
         >>> combustion = CombustionChamber('combustion')
         >>> turbine = Turbine('turbine')
         >>> preheater = SimpleHeatExchanger('fuel preheater')
@@ -3338,7 +3469,7 @@ class Network:
         >>> combustion.set_attr(lamb=None)
         >>> c3.set_attr(T=1100)
         >>> c1.set_attr(m=None)
-        >>> e4.set_attr(E=1e6)
+        >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
         >>> nw.save('design_state.json')
@@ -3348,7 +3479,7 @@ class Network:
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> round(turbine.eta_s.val, 1)
         0.9
-        >>> e4.set_attr(E=0.75e6)
+        >>> e4.set_attr(E=0.75)
         >>> nw.solve('offdesign', design_path='design_state.json')
         >>> nw.assert_convergence()
         >>> eta_s_t = round(turbine.eta_s.val, 3)
@@ -3375,7 +3506,7 @@ class Network:
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
-        >>> imported_nwk.get_conn('e4').set_attr(E=0.75e6)
+        >>> imported_nwk.get_conn('e4').set_attr(E=0.75)
         >>> imported_nwk.solve('offdesign', design_path='design_state.json')
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
@@ -3387,89 +3518,10 @@ class Network:
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)
 
-        # load components
-        comps = {}
-
-        module_name = "tespy.components"
-        _ = importlib.import_module(module_name)
-
         with open(json_file_path, "r") as f:
             network_data = json.load(f)
 
-        for component, data in network_data["Component"].items():
-            if component not in component_registry.items:
-                msg = (
-                    f"A class {component} is not available through the "
-                    "tespy.components.component.component_registry decorator. "
-                    "If you are using a custom component make sure to "
-                    "decorate the class."
-                )
-                logger.error(msg)
-                raise hlp.TESPyNetworkError(msg)
-
-            target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data))
-
-        msg = 'Created network components.'
-        logger.info(msg)
-
-        # create network
-        # get method to ensure compatibility with old style export
-        units = Units.from_json(network_data["Network"].get("units", {}))
-        network_data["Network"]["units"] = units
-        nw = cls(**network_data["Network"])
-
-        conns = {}
-        # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
-
-        # add connections to network
-        for c in conns.values():
-            nw.add_conns(c)
-
-        msg = 'Created connections.'
-        logger.info(msg)
-
-        # load busses
-        data = network_data.get("Bus", {})
-        if len(data) > 0:
-            busses = _construct_busses(data, comps)
-            # add busses to network
-            for b in busses.values():
-                nw.add_busses(b)
-
-            msg = 'Created busses.'
-            logger.info(msg)
-
-        else:
-            msg = 'No bus data found!'
-            logger.debug(msg)
-
-        msg = 'Created network.'
-        logger.info(msg)
-
-        nw.check_topology()
-
-        return nw
+        return cls.from_dict(network_data)
 
     def export(self, json_file_path=None):
         """Export the parametrization and structure of the Network instance
@@ -3498,62 +3550,6 @@ class Network:
             logger.debug(f'Model information saved to {json_file_path}.')
 
         return export
-
-    def to_exerpy(self, Tamb, pamb, exerpy_mappings):
-        """Export the network to exerpy
-
-        Parameters
-        ----------
-        Tamb : float
-            Ambient temperature.
-        pamb : float
-            Ambient pressure.
-        exerpy_mappings : dict
-            Mappings for tespy components to exerpy components
-
-        Returns
-        -------
-        dict
-            exerpy compatible input dictionary
-        """
-        component_results = self._save_components()
-        component_json = {}
-        for comp_type in self.comps["comp_type"].unique():
-            if comp_type not in exerpy_mappings.keys():
-                msg = f"Component class {comp_type} not available in exerpy."
-                logger.warning(msg)
-                continue
-
-            key = exerpy_mappings[comp_type]
-            if key not in component_json:
-                component_json[key] = {}
-
-            result = component_results[comp_type].dropna(axis=1)
-
-            for c in self.comps.loc[self.comps["comp_type"] == comp_type, "object"]:
-                parameters = {}
-                if c.label in result.index and not result.loc[c.label].dropna().empty:
-                    parameters = result.loc[c.label].dropna().to_dict()
-                component_json[key][c.label] = {
-                    "name": c.label,
-                    "type": comp_type,
-                    "parameters": parameters
-                }
-
-        connection_json = {}
-        for c in self.conns["object"]:
-            connection_json.update(c._to_exerpy(pamb, Tamb))
-
-        return {
-            "components": component_json,
-            "connections": connection_json,
-            "ambient_conditions": {
-                "Tamb": Tamb,
-                "Tamb_unit": "K",
-                "pamb": pamb,
-                "pamb_unit": "Pa"
-            }
-        }
 
     def save(self, json_file_path):
         r"""
@@ -3769,7 +3765,7 @@ def v07_to_v08_export(path):
     return data
 
 
-def _construct_components(target_class, data):
+def _construct_components(target_class, data, nw):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -3797,8 +3793,14 @@ def _construct_components(target_class, data):
                         param_data["char_func"] = CharLine(**param_data["char_func"])
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
-                if isinstance(container, dc_prop):
-                    param_data["val0"] = param_data["val"]
+
+                if "val" in param_data:
+                    if "unit" in param_data and param_data["unit"] is not None:
+                        param_data["val"] = nw.units.ureg.Quantity(
+                            param_data["val"], param_data["unit"]
+                        )
+                    if "val0" in param_data:
+                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})

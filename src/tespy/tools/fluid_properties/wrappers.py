@@ -71,7 +71,13 @@ class FluidPropertyWrapper:
     def h_pT(self, p, T):
         self._not_implemented()
 
+    def h_ps(self, p, T):
+        self._not_implemented()
+
     def h_QT(self, Q, T):
+        self._not_implemented()
+
+    def h_pQ(self, p, Q):
         self._not_implemented()
 
     def s_QT(self, Q, T):
@@ -80,8 +86,20 @@ class FluidPropertyWrapper:
     def T_sat(self, p):
         self._not_implemented()
 
+    def T_dew(self, p):
+        return self.T_sat(p)
+
+    def T_bubble(self, p):
+        return self.T_sat(p)
+
     def p_sat(self, T):
         self._not_implemented()
+
+    def p_dew(self, T):
+        return self.p_sat(T)
+
+    def p_bubble(self, T):
+        return self.p_sat(T)
 
     def Q_ph(self, p, h):
         self._not_implemented()
@@ -212,6 +230,8 @@ class CoolPropWrapper(FluidPropertyWrapper):
                 self._T_max *= 1.45
 
             if self.back_end == "REFPROP":
+                if self.mixture_type is not None:
+                    self._T_min += 5
                 self._p_min = 1e1
             else:
                 self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
@@ -264,11 +284,24 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS.update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
-    def p_sat(self, T):
-        if T > self._T_crit:
-            T = self._T_crit * 0.99
+    def T_dew(self, p):
+        self.AS.update(CP.PQ_INPUTS, p, 1)
+        return self.AS.T()
 
+    def T_bubble(self, p):
+        self.AS.update(CP.PQ_INPUTS, p, 0)
+        return self.AS.T()
+
+    def p_sat(self, T):
         self.AS.update(CP.QT_INPUTS, 0.5, T)
+        return self.AS.p()
+
+    def p_dew(self, T):
+        self.AS.update(CP.QT_INPUTS, 1, T)
+        return self.AS.p()
+
+    def p_bubble(self, T):
+        self.AS.update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):
@@ -292,12 +325,13 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
         self.AS.update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
-
         if phase == CP.iphase_twophase:
             return "tp"
         elif phase == CP.iphase_liquid:
             return "l"
         elif phase == CP.iphase_gas:
+            return "g"
+        elif phase == CP.iphase_supercritical_gas:
             return "g"
         else:
             return "state not recognised"

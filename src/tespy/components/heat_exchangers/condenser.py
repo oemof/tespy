@@ -231,7 +231,7 @@ class Condenser(HeatExchanger):
     temperature is specified to 5 K.
 
     >>> cond.set_attr(subcooling=True)
-    >>> he_c.set_attr(Td_bp=-5)
+    >>> he_c.set_attr(td_bubble=5)
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
@@ -247,6 +247,7 @@ class Condenser(HeatExchanger):
                 _val=False, num_eq_sets=1,
                 func=self.subcooling_func,
                 dependents=self.subcooling_dependents,
+                description="allow subcooling in the condenser"
             )
         })
         return params
@@ -336,7 +337,7 @@ class Condenser(HeatExchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :ref:`tespy.data <tespy_data_label>`.
+        module :ref:`tespy.data <data_label>`.
         """
         return super().kA_char_func()
 
@@ -362,7 +363,7 @@ class Condenser(HeatExchanger):
         o = self.outl[1]
         T_i1 = i.calc_T_sat()
         T_o2 = o.calc_T()
-        return self.ttd_u.val - T_i1 + T_o2
+        return self.ttd_u.val_SI - T_i1 + T_o2
 
     def ttd_u_dependents(self):
         return [

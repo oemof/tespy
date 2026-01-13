@@ -101,7 +101,7 @@ ghp.set_attr(eta_s=0.75, design=['eta_s'], offdesign=['eta_s_char'])
 
 # heat pump system
 cc_cd.set_attr(fluid={'NH3': 1})
-ev_cp.set_attr(Td_bp=3)
+ev_cp.set_attr(td_dew=3)
 
 # geothermal heat collector
 gh_in_ghp.set_attr(T=Tgeo + 1.5, p=1.5, fluid={'water': 1})

@@ -31,7 +31,7 @@ def drum_network_setup():
     c1 = Connection(so, "out1", dr, "in1", label="1")
     c2 = Connection(dr, "out2", si, "in1", label="2")
     nw.add_conns(c1, c2)
-    c1.set_attr(fluid={"R290": 1}, m=10, Td_bp=-10, T=50)
+    c1.set_attr(fluid={"R290": 1}, m=10, td_bubble=10, T=50)
     yield nw
 
 

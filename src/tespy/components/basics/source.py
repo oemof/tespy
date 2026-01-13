@@ -62,6 +62,10 @@ class Source(Component):
     def outlets():
         return ['out1']
 
+    @staticmethod
+    def get_mandatory_constraints():
+        return {}
+
     def start_fluid_wrapper_branch(self):
         outconn = self.outl[0]
         branch = {

@@ -139,7 +139,7 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calulate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :ref:`tespy.data <tespy_data_label>` module. Of course you are able to
+    :ref:`tespy.data <data_label>` module. Of course you are able to
     specify your own characteristcs, like done for the :code:`flow_char`. More
     information on how to specify characteristic functions are given in the
     corresponding part of the online documentation.
@@ -193,18 +193,21 @@ class Pump(Turbomachine):
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="isentropic efficiency"
             ),
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                dependents=self.eta_s_char_dependents
+                dependents=self.eta_s_char_dependents,
+                description="isentropic efficiency lookup table for offdesign"
             ),
             'flow_char': dc_cc(
                 param='v', num_eq_sets=1,
                 func=self.flow_char_func,
                 dependents=self.flow_char_dependents,
-                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0}
+                char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
+                description="pressure rise over volumetric flow lookup table"
             )
         })
         return parameters
@@ -309,8 +312,10 @@ class Pump(Turbomachine):
         p = self.eta_s_char.param
         expr = self.get_char_expr(p, **self.eta_s_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'isentropic efficiency to at component ' + self.label + '.')
+            msg = (
+                "Please choose a valid parameter, you want to link the "
+                f"isentropic efficiency to at component {self.label}."
+            )
             logger.error(msg)
             raise ValueError(msg)
 

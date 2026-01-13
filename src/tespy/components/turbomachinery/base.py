@@ -90,19 +90,22 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                quantity="power"
+                quantity="power",
+                description="power input/output of the component"
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change"
             )
         }
 
@@ -153,7 +156,7 @@ class Turbomachine(Component):
         """
         return (
             self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val
+            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val_SI
         )
 
     def energy_balance_dependents(self):

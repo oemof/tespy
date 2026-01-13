@@ -1,6 +1,9 @@
 # %%[sec_1]
 import numpy as np
-import pygmo as pg
+import pandas as pd
+from pymoo.optimize import minimize
+from pymoo.algorithms.soo.nonconvex.de import DE  # https://pymoo.org/algorithms/index.html
+
 
 from tespy.components import CycleCloser
 from tespy.components import Sink
@@ -146,19 +149,8 @@ class SamplePlant:
         self.nw.solve("design")
         self.stable = "_stable.json"
         self.nw.save(self.stable)
-        self.solved = True
+        self._solved = True
         self.nw.print_results()
-
-    def _reset_component_boundary_conditions(self):
-        self.nw.get_comp("feed water preheater 1").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water preheater 2").set_attr(ttd_u=5)
-        self.nw.get_comp("condenser").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("high pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("mid pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("low pressure turbine").set_attr(eta_s=0.9)
 
     # %%[sec_2]
 
@@ -202,17 +194,19 @@ class SamplePlant:
         """
         self.set_params(**kwargs)
 
-        self.solved = False
-        try:
-            self.nw.solve("design")
-            if self.nw.status != 0:
-                self._reset_component_boundary_conditions()
-                self.nw.solve("design", init_only=True, init_path=self.stable)
-            else:
-                self.solved = True
-        except ValueError as e:
-            self._reset_component_boundary_conditions()
-            self.nw.solve("design", init_only=True, init_path=self.stable)
+        self.nw.solve("design")
+
+        if self.nw.status == 0:
+            self._solved = True
+        # is not required in this example, but could lead to handling some
+        # stuff
+        elif self.nw.status == 1:
+            self._solved = False
+        elif self.nw.status in [2, 3, 99]:
+            # in this case model is very likely corrupted!!
+            # fix it by running a presolve using the stable solution
+            self._solved = False
+            self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
     def get_objectives(self, objective_list):
         """Get the objective values
@@ -243,7 +237,7 @@ class SamplePlant:
         objective_value : float
             Evaluation of the objective function.
         """
-        if self.solved:
+        if self._solved:
             if objective == "efficiency":
                 return (
                     self.nw.get_conn("e7").E.val
@@ -254,9 +248,7 @@ class SamplePlant:
                 raise NotImplementedError(msg)
         else:
             return np.nan
-
-    # %%[sec_3]
-
+# %%[sec_3]
 plant = SamplePlant()
 plant.get_objective("efficiency")
 variables = {
@@ -273,28 +265,34 @@ constraints = {
     },
     "ref1": ["Connections", "4", "p"]
 }
-
-optimize = OptimizationProblem(
-    plant, variables, constraints, objective=["efficiency"], minimize=[False]
+kpi = {
+    "Components": {
+        "high pressure turbine": {"P", "pr"}
+    }
+}
+problem = OptimizationProblem(
+    plant, variables, constraints, objective=["efficiency"], minimize=[False], kpi=kpi
 )
+num_evo = 20
 # %%[sec_4]
-num_ind = 40
-num_gen = 15
+import os
 
-# for algorithm selection and parametrization please consider the pygmo
-# documentation! The number of generations indicated in the algorithm is
-# the number of evolutions we undertake within each generation defined in
-# num_gen
-algo = pg.algorithm(pg.ihs(gen=num_gen, seed=42))
-# create starting population
-pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
-
-optimize.run(algo, pop, num_ind, num_gen)
+if os.getenv("GITHUB_ACTIONS") == "true" or "PYTEST_CURRENT_TEST" in os.environ:
+    num_evo = 2
 # %%[sec_5]
-# To access the results
-print(optimize.individuals)
-# check pygmo documentation to see, what you can get from the population
-pop
+algorithm = DE(pop_size=20)
+
+res = minimize(
+    problem,
+    algorithm,
+    termination=('n_gen', num_evo)
+)
+# %%[sec_6]
+# The results are logged in the problem in a list of dictionaries
+# we can transform it into a DataFrame
+result = pd.DataFrame(problem.log)
+print(result)
+
 # plot the results
 import matplotlib.pyplot as plt
 
@@ -304,15 +302,19 @@ plt.rc("font", **{"size": 18})
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 
-mask_constraint = optimize.individuals["Connections-2-p>=Connections-4-p"] < 0
-mask_objective = ~np.isnan(optimize.individuals["efficiency"].values)
-data = optimize.individuals.loc[mask_constraint & mask_objective]
+mask_constraint = result["Connections-2-p>=Connections-4-p"] < 0
+mask_objective = ~np.isnan(result["efficiency"].values)
+data = result.loc[mask_constraint & mask_objective]
 
 sc = ax.scatter(
     data["Connections-2-p"],
     data["Connections-4-p"],
     c=data["efficiency"] * 100,
     s=100
+)
+best = data.loc[data["efficiency"].values == data["efficiency"].max()]
+ax.scatter(
+    x=best["Connections-2-p"], y=best["Connections-4-p"], c="red", marker="x"
 )
 cbar = plt.colorbar(sc)
 cbar.set_label("Thermal efficiency in %")
@@ -322,6 +324,6 @@ ax.set_xlabel("Pressure at connection 2 in bar")
 ax.set_ylabel("Pressure at connection 4 in bar")
 plt.tight_layout()
 
-fig.savefig("pygmo_optimization.svg")
-print(data.loc[data["efficiency"].values == data["efficiency"].max()])
-# %%[sec_6]
+fig.savefig("optimization_result.svg")
+print(best)
+# %%[sec_7]

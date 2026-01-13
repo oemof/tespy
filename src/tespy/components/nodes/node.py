@@ -1,9 +1,23 @@
+# -*- coding: utf-8
+
+"""Module of class Node.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/components/nodes/node.py
+
+SPDX-License-Identifier: MIT
+"""
+
+from tespy.components.component import component_registry
 from tespy.components.nodes.merge import Merge
 from tespy.components.nodes.splitter import Splitter
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
+@component_registry
 class Node(Splitter, Merge):
     r"""
     Class for combined merge and splitting points with multiple inflows and
@@ -116,8 +130,8 @@ class Node(Splitter, Merge):
     @staticmethod
     def get_parameters():
         return {
-            'num_out': dc_simple(),
-            'num_in': dc_simple()
+            'num_out': dc_simple(description="number of outlets"),
+            'num_in': dc_simple(description="number of inlets")
         }
 
     def get_mandatory_constraints(self):
@@ -125,30 +139,36 @@ class Node(Splitter, Merge):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1,
+                'description': 'pressure equality constraints'
             }),
             'outlet_enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
-                'num_eq_sets': self.num_o - 1
+                'num_eq_sets': self.num_o - 1,
+                'description': 'equal enthalpy at all outlets constraint(s)'
             }),
             'outlet_fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq_sets': self.num_o - 1
+                'num_eq_sets': self.num_o - 1,
+                'description': 'equal fluid at all outlets constraint(s)'
             }),
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'dependents': self.fluid_dependents
+                'dependents': self.fluid_dependents,
+                'description': 'fluid mass fraction constraints'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                'description': 'energy balance constraint'
             })
         }
 

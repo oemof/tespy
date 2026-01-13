@@ -8,9 +8,14 @@ available from its original location tespy/tools/units.py
 
 SPDX-License-Identifier: MIT
 """
+import shutil
+import sys
 import warnings
 
 import pint
+import platformdirs
+
+from tespy import __datapath__
 
 
 class Units:
@@ -43,12 +48,29 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
+            "frequency": "1/s",
             # None is the default if not quantity is supplied
             None: "1"
         }
+        # necessary, because pint cannot auto detect environment changes and
+        # pint version changes
+        major = sys.version_info.major
+        minor = sys.version_info.minor
+        path = platformdirs.user_cache_dir(
+            "tespy", False, f"py{major}{minor}pint{pint.__version__}"
+        )
+        try:
+            self._ureg = pint.UnitRegistry(cache_folder=path)
+        except FileNotFoundError:
+            # this is necessary, because inside the cache folder, pint points
+            # to the pint installation inside (any) of the venvs (potentially
+            # the first ever created?). If that venv moves or gets deleted,
+            # then the link cannot be found any more and we have to recreated
+            # the cache
+            shutil.rmtree(path)
+            self._ureg = pint.UnitRegistry(cache_folder=path)
         # cannot use the setter here because we have to define m3 first!
-        self._ureg = pint.UnitRegistry(cache_folder=":auto:")
-        # m3 is not in standard ureg
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")
         self.ureg.define("kgK = kg * K")
@@ -109,7 +131,7 @@ class Units:
                 msg = (
                     "The unit 'C' is used for 'Coulomb' in pint. For "
                     "backwards compatibility it will be parsed as degC for "
-                    "now. Please use degC (or correct pint aliases) instead "
+                    "now. Please use '°C' (or correct pint aliases) instead  "
                     "as it will stop working with the next major release"
                 )
                 warnings.warn(msg, FutureWarning)

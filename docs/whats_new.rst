@@ -1,8 +1,17 @@
+.. _whats_new_label:
+
 What's New
 ~~~~~~~~~~
 
 Discover notable new features and improvements in each release
 
+.. include::  whats_new/v0-9-12.rst
+.. include::  whats_new/v0-9-11.rst
+.. include::  whats_new/v0-9-10.rst
+.. include::  whats_new/v0-9-9.rst
+.. include::  whats_new/v0-9-8.rst
+.. include::  whats_new/v0-9-7.rst
+.. include::  whats_new/v0-9-6.rst
 .. include::  whats_new/v0-9-5.rst
 .. include::  whats_new/v0-9-4.rst
 .. include::  whats_new/v0-9-3.rst

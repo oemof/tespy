@@ -117,26 +117,30 @@ class Splitter(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple()}
+        return {'num_out': dc_simple(description="number of outlets")}
 
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'equal enthalpy at all outlets constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'pressure equality constraints'
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'fluid equality constraints'
             })
         }
 

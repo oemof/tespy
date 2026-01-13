@@ -8,27 +8,29 @@ available from its original location tespy/tools/optimization.py
 
 SPDX-License-Identifier: MIT
 """
-try:
-    import pygmo as pg
-except ImportError:
-    pg = None
+import warnings
 
+import numpy as np
 import pandas as pd
 
+try:
+    # this is to make this import of tespy possible without the optional
+    # dependency pymoo available
+    from pymoo.core.problem import ElementwiseProblem
+
+except ModuleNotFoundError:
+    class ElementwiseProblem:
+
+        def __init__(self, **kwargs):
+            pass
+
 from tespy.tools.helpers import merge_dicts
+from tespy.tools.logger import logger
 
 
-class OptimizationProblem:
+class OptimizationProblem(ElementwiseProblem):
     r"""
     The OptimizationProblem handles the optimization.
-
-    - Set up the optimization problems by specifying constraints, upper and
-      lower bounds for the decision variables and selection of the objective
-      function.
-    - Run the optimization, see
-      :py:meth:`tespy.tools.optimization.OptimizationProblem.run`.
-    - Provide the optimization results DataFrame in the
-      :code:`.individuals` attribute of the :code:`OptimizationProblem` class.
 
     Parameters
     ----------
@@ -54,48 +56,77 @@ class OptimizationProblem:
         :code:`minimize=[True, False]` if the first objective should be
         minimized and the second one maximized.
 
-    Note
-    ----
-    For the required structure of the input dictionaries see the example in
-    below.
+    kpi : dict
+        Dictionary with specification of additional kpi to be logged. The
+        structure of the dictionary is similar to the variable's structure,
+        instead of parameter value combinations a set of outputs has to be
+        give per component, connection or for the customs. The kpi are
+        retrieved with the :code:`get_param` method.
 
-    Installation of pygmo via pip is not available for Windows and OSX users
-    currently. Please use conda instead or refer to their
-    `documentation <https://esa.github.io/pygmo2/>`_.
+    penalty_instead_of_constraints : bool
+        You can modify the fitness of an individual with a penalty function
+        (:code:`True`). The penalty function must be a method of the model,
+        :code:`model.penalize` or maximize an objective (:code:`False`). Must
+        be passed as list in same order as objective. E.g.
+        :code:`minimize=[True, False]` if the first objective should be
+        minimized and the second one maximized, by default False.
 
     Example
     -------
-    For an example please go to the tutorials section of TESPy's online
-    documentation.
+    For an example please check out
+    :ref:`this section <tutorial_optimization_label>` in the docs.
     """
 
-    def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None):
-        if pg is None:
-            msg = (
-                "For this function of TESPy pygmo has to be installed. Either"
-                " use pip (Linux users only) or conda to install the latest"
-                " pygmo version."
-            )
-            raise ImportError(msg)
-
+    def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None, kpi={}, penalty_instead_of_constraints=False):
         self.model = model
         default_variables = {"Connections": {}, "Components": {}}
         default_constraints = {
             "lower limits": {"Connections": {}, "Components": {}},
             "upper limits": {"Connections": {}, "Components": {}}
         }
+        default_kpi = {"Connections": {}, "Components": {}}
         # merge the passed values into the default dictionary structure
         self.variables = merge_dicts(variables, default_variables)
         self.constraints = merge_dicts(constraints, default_constraints)
-        self.variable_list = []
-        self.constraint_list = []
+        self.kpi = merge_dicts(kpi, default_kpi)
 
+        self._build_objective(objective, minimize)
+        self._build_variables()
+        self._build_kpi()
+
+        self.input_dict = self.variables.copy()
+
+        self.nic = 0
+        self.constraint_list = []
+        self._build_constraints("upper")
+        self._build_constraints("lower")
+
+        self.penalty_instead_of_constraints = penalty_instead_of_constraints
+
+        if self.penalty_instead_of_constraints:
+            n_ieq_constr = 0
+        else:
+            n_ieq_constr = len(self.constraint_list)
+
+        self.log = []
+
+        super().__init__(
+            n_var=len(self.variable_list),
+            n_obj=len(self.objective_list),
+            n_ieq_constr=n_ieq_constr,
+            n_eq_constr=0,
+            xl=self._bounds[0],
+            xu=self._bounds[1]
+        )
+
+    def _build_objective(self, objective, minimize) -> None:
         if not isinstance(objective, list):
             msg = "The objective(s) must be passed as a list."
             raise TypeError(msg)
 
         self.objective_list = objective
         self.nobj = len(self.objective_list)
+
         if minimize is None:
             self.minimize = [True for _ in self.objective_list]
         elif len(minimize) != self.nobj:
@@ -107,84 +138,126 @@ class OptimizationProblem:
         else:
             self.minimize = minimize
 
-        self.bounds = [[], []]
+    def _build_variables(self) -> None:
+        self.variable_list = []
+        self._bounds = [[], []]
         for obj, data in self.variables.items():
             for label, params in data.items():
                 if obj in ["Connections", "Components"]:
                     for param in params:
-                        self.bounds[0] += [
+                        self._bounds[0] += [
                             self.variables[obj][label][param]['min']
                         ]
-                        self.bounds[1] += [
+                        self._bounds[1] += [
                             self.variables[obj][label][param]['max']
                         ]
                         self.variable_list += [obj + '-' + label + '-' + param]
                 else:
-                    self.bounds[0] += [self.variables[obj][label]['min']]
-                    self.bounds[1] += [self.variables[obj][label]['max']]
+                    self._bounds[0] += [self.variables[obj][label]['min']]
+                    self._bounds[1] += [self.variables[obj][label]['max']]
                     self.variable_list += [obj + '-' + label]
 
-        self.input_dict = self.variables.copy()
+    def _build_kpi(self) -> None:
+        self.kpi_list = []
+        for obj, data in self.kpi.items():
+            if obj in ["Connections", "Components"]:
+                for label, params in data.items():
+                    for param in params:
+                        self.kpi_list += [obj + '-' + label + '-' + param]
+            else:
+                for param in data:
+                    self.kpi_list += [obj + '-' + param]
 
-        self.nic = 0
-        self.collect_constraints("upper", build=True)
-        self.collect_constraints("lower", build=True)
-
-    def collect_constraints(self, border, build=False):
-        """Collect the constraints
-
-        Parameters
-        ----------
-        border : str
-            "upper" or "lower", determine which constraints to collect.
-        build : bool, optional
-            If True, the constraints are evaluated and returned, by default
-            False
-
-        Returns
-        -------
-        tuple
-            Return the upper and lower constraints evaluation lists.
-        """
-        evaluation = []
-        for obj, data in self.constraints[f'{border} limits'].items():
+    def _build_constraints(self, border: str) -> None:
+        for obj, data in self.constraints[f"{border} limits"].items():
             for label, constraints in data.items():
                 for param, constraint in constraints.items():
-                    # to build the equations
-                    if build:
-                        self.nic += 1
-                        if isinstance(constraint, str):
-                            right_side = '-'.join(self.constraints[constraint])
-                        else:
-                            right_side = str(constraint)
-
-                        direction = '>=' if border == 'lower' else '<='
-                        self.constraint_list += [
-                            obj + '-' + label + '-' + param + direction +
-                            right_side
-                        ]
-                    # to get the constraints evaluation
+                    self.nic += 1
+                    if isinstance(constraint, str):
+                        right_side = "-".join(self.constraints[constraint])
                     else:
-                        if isinstance(constraint, str):
-                            c = (
-                                self.model.get_param(
-                                    *self.constraints[constraint]
-                                ) - self.model.get_param(obj, label, param)
-                            )
-                        else:
-                            c = (
-                                constraint -
-                                self.model.get_param(obj, label, param)
-                            )
-                        if border == 'lower':
-                            evaluation += [c]
-                        else:
-                            evaluation += [-c]
+                        right_side = str(constraint)
 
-        if build:
-            return None
+                    direction = ">=" if border == "lower" else "<="
+                    self.constraint_list += [
+                        f"{obj}-{label}-{param}{direction}{right_side}"
+                    ]
+
+    def _evaluate_constraints(self, border: str):
+        evaluation = []
+        for obj, data in self.constraints[f"{border} limits"].items():
+            for label, constraints in data.items():
+                for param, constraint in constraints.items():
+                    if isinstance(constraint, str):
+                        # this is an internal reference to another attribute in
+                        # the model
+                        c = (
+                            self.model.get_param(
+                                *self.constraints[constraint]
+                            ) - self.model.get_param(obj, label, param)
+                        )
+                    else:
+                        # this is the constraint as an actual numerical vaue
+                        c = (
+                            constraint -
+                            self.model.get_param(obj, label, param)
+                        )
+                    if border == "lower":
+                        evaluation += [c]
+                    else:
+                        evaluation += [-c]
+        return evaluation
+
+    def _evaluate(self, x: np.ndarray, out: dict, *args, **kwargs) -> None:
+        i = 0
+        for obj, data in self.variables.items():
+            for label, params in data.items():
+                if obj in ["Connections", "Components"]:
+                    for param in params:
+                        self.input_dict[obj][label][param] = x[i]
+                        i += 1
+                else:
+                    self.input_dict[obj][label] = x[i]
+                    i += 1
+
+        self.model.solve_model(**self.input_dict)
+        fitness = self.model.get_objectives(self.objective_list)
+
+        kpi = []
+        for obj, data in self.kpi.items():
+            if obj in ["Connections", "Components"]:
+                for label, params in data.items():
+                    for param in params:
+                        kpi += [self.model.get_param(obj, label, param)]
+            else:
+                for param in data:
+                    kpi += [self.model.get_param(obj, param, None)]
+
+        # negate the fitness function evaluation for minimize = False
+        # parenthesis around the -1 are required!
+        _fitness = [
+            (-1) ** (sense + 1) * f for f, sense in zip(fitness, self.minimize)
+        ]
+
+        cu = self._evaluate_constraints("upper")
+        cl = self._evaluate_constraints("lower")
+
+        if self.penalty_instead_of_constraints:
+            _fitness = self.model.penalize(_fitness, cu + cl)
         else:
-            return evaluation
+            out["G"] = cu + cl
+
+        out["F"] = [
+            value if not np.isnan(value) else 1e21 for value in _fitness
+        ]
+
+        log_entry = {
+            **{self.variable_list[i]: val for i, val in enumerate(x)},
+            **{self.objective_list[i]: val for i, val in enumerate(fitness)},
+            **{self.constraint_list[i]: val for i, val in enumerate(cu + cl)},
+            **{self.kpi_list[i]: val for i, val in enumerate(kpi)}
+        }
+        self.log.append(log_entry)
 
     def fitness(self, x):
         """Evaluate the fitness function of an individual.
@@ -236,7 +309,7 @@ class OptimizationProblem:
 
     def get_bounds(self):
         """Return bounds of decision variables."""
-        return self.bounds
+        return self._bounds
 
     def _process_generation_data(self, evo, pop):
         """Process the data of the individuals within one evolution.
@@ -273,6 +346,14 @@ class OptimizationProblem:
         num_evo : int
             Number of evolutions.
         """
+        msg = (
+            "The optimization using pygmo is deprecated and will be  removed "
+            "in the next major release, please use pymoo in the future. To "
+            "get pymoo you can install tespy with extra dependency 'opt': pip "
+            "install tespy[opt]."
+        )
+        logger.warning(msg)
+        warnings.warn(msg, FutureWarning)
 
         self.individuals = pd.DataFrame(index=range(num_evo * num_ind))
 

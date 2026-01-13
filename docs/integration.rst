@@ -1,0 +1,54 @@
+.. _integration_label:
+
+~~~~~~~~~~~
+Integration
+~~~~~~~~~~~
+
+.. grid:: 1 3 3 3
+    :gutter: 1
+
+    .. grid-item-card::  Class templates for models
+        :link: integration_model_class_template_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/integration/class_template_workflow.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/class_template_workflow_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Optimization of a thermal power plant
+        :link: tutorial_optimization_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/integration/optimization_result.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/optimization_result_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Combining tespy and oemof-solph
+        :link: https://oemof.github.io/heat-pump-tutorial/
+
+        .. image:: /_static/images/thumbnails/integration/model_coupling.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/model_coupling_darkmode.svg
+            :class: only-dark
+
+    .. grid-item-card::  Exergy analysis with exerpy
+        :link: https://github.com/oemof/exerpy/
+
+        .. image:: /_static/images/thumbnails/integration/exerpy.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/exerpy_darkmode.svg
+            :class: only-dark
+
+..  toctree::
+    :maxdepth: 1
+    :hidden:
+
+    integration/workflows
+    integration/optimization
+    integration/model_coupling

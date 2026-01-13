@@ -1,6 +1,6 @@
 # -*- coding: utf-8
 
-"""Module for testing network properties.
+"""Module for testing Network class.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -30,12 +30,13 @@ from tespy.components import Splitter
 from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
+from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from tespy.networks.network import v07_to_v08_export
-from tespy.networks.network import v07_to_v08_save
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import _numeric_deriv
 
 
 class TestNetworks:
@@ -159,7 +160,7 @@ class TestNetworks:
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
-    def test_Network_reader_checked(self, tmp_path):
+    def test_Network_from_json_checked(self, tmp_path):
         """Test state of network if loaded successfully from export."""
         tmp_path = f"{tmp_path}.json"
         a = Connection(self.source, 'out1', self.sink, 'in1')
@@ -168,6 +169,21 @@ class TestNetworks:
         self.nw.solve('design', init_only=True)
         self.nw.export(tmp_path)
         imported_nwk = Network.from_json(tmp_path)
+        imported_nwk.solve('design', init_only=True)
+        msg = (
+            'If the network import was successful the network check '
+            'should have been successful, too, but it is not.'
+        )
+        assert imported_nwk.checked, msg
+
+    def test_Network_from_dict(self):
+        """Test state of network if loaded successfully from export."""
+        a = Connection(self.source, 'out1', self.sink, 'in1')
+        self.nw.add_conns(a)
+        a.set_attr(fluid={"H2O": 1})
+        self.nw.solve('design', init_only=True)
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
             'If the network import was successful the network check '
@@ -610,6 +626,7 @@ class TestNetworkPreprocessing:
         self.nwk.solve("design", init_only=True)
         assert c2.fluid.val["R134a"] == 1
 
+
 def test_use_cuda_without_it_being_installed():
     nw = Network()
 
@@ -625,6 +642,7 @@ def test_use_cuda_without_it_being_installed():
     nw.assert_convergence()
     assert not nw.use_cuda
 
+
 def test_component_not_found():
     nw = Network()
 
@@ -636,6 +654,7 @@ def test_component_not_found():
 
     nw.add_conns(c1, c2)
     assert nw.get_comp("Turbine") is None
+
 
 def test_connection_not_found():
     nw = Network()
@@ -649,6 +668,7 @@ def test_connection_not_found():
     nw.add_conns(c1, c2)
     assert nw.get_conn("1") is None
 
+
 def test_missing_source_sink_cycle_closer():
     nw = Network()
 
@@ -661,6 +681,7 @@ def test_missing_source_sink_cycle_closer():
     nw.add_conns(c1, c2)
     with raises(TESPyNetworkError):
         nw.solve("design")
+
 
 def test_dublicated_linear_dependent_variables():
     nw = Network()
@@ -687,6 +708,7 @@ def test_dublicated_linear_dependent_variables():
 
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
+
 
 def test_cyclic_linear_dependent_variables():
     nw = Network()
@@ -724,6 +746,7 @@ def test_cyclic_linear_dependent_variables():
     )
     # checksum for the variable numbers
     assert sum(cycle) == 19
+
 
 def test_cyclic_linear_dependent_with_merge_and_split():
     nw = Network()
@@ -765,6 +788,7 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     # checksum for the variable numbers
     assert sum(cycle) == 45
 
+
 def test_v08_to_v09_import():
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -773,6 +797,7 @@ def test_v08_to_v09_import():
 
     nw = Network.from_json(path)
     assert nw.checked, "The network import was not successful"
+
 
 def test_v08_to_v09_complete():
     network_path = os.path.join(
@@ -792,6 +817,7 @@ def test_v08_to_v09_complete():
     nw.get_comp('compressor').set_attr(igva='var')
     nw.solve("offdesign", init_path=design_path, design_path=design_path)
     nw.assert_convergence()
+
 
 def test_missing_cyclecloser_but_no_missing_source():
     nw = Network()
@@ -881,6 +907,7 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
     nw.solve("design")
     assert nw.status == 99
 
+
 def test_postprocessing_supercritical():
     nw = Network()
     nw.units.set_defaults(**{
@@ -896,5 +923,257 @@ def test_postprocessing_supercritical():
 
     c1.set_attr(fluid={"water": 1}, m=1, p=500, T=400)
     nw.solve("design")
-    assert np.isnan(c1.Td_bp.val)
+    assert np.isnan(c1.td_dew.val)
     assert np.isnan(c1.x.val)
+
+
+def test_nonconverged_simulation_does_not_overwrite_component_specification_1():
+    """This creates a result, that shows as converged but actually it did not
+    because of internal convergence helpers. It tests, that the user specified
+    input is not overwritten by the erroneous result
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("inflow")
+    outflow = Sink("outflow")
+    instance = SimpleHeatExchanger("heat exchanger")
+
+    c1 = Connection(inflow, "out1", instance, "in1")
+    c2 = Connection(instance, "out1", outflow, "in1")
+
+    nw.add_conns(c1, c2)
+    c1.set_attr(m=0.1, fluid={"N2": 0.7, "O2": 0.15, "Water": 0.15})
+    c2.set_attr(p=1, T=20)
+    instance.set_attr(Q=1e4, zeta=1e6)
+
+    nw.solve("design")
+    assert nw.status == 2
+    assert np.isnan(c1.T.val_SI)
+    assert instance.zeta.val == 1e6
+    assert np.isnan(instance.zeta.val_SI)
+
+
+def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
+    """This creates a result, that shows as converged but actually it did not
+    because of internal convergence helpers. It tests, that the user specified
+    input is not overwritten by the erroneous result
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = SimpleHeatExchanger("heatexchanger")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1)
+    c2.set_attr(T=19.5)
+    instance.set_attr(Tamb=20, kA=500, pr=1)
+    nw.solve("design")
+
+    assert nw.residual < 1e-3  # residual shows convergence
+    assert nw.status == 2  # status shows non-convergence
+
+    assert np.isnan(instance.kA.val_SI)  # calculated SI value is not equal to inputted value
+    assert instance.kA.val == 500  # inputted value stays the same
+
+    # recalculation works, because old kA input is correctly retained
+    c2.set_attr(T=20.2)
+    nw.solve("design")
+    assert nw.status == 0
+
+
+def test_offdesign_of_component_parameter_group(tmp_path):
+
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = Pipe("pipe")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1, m=1)
+    c2.set_attr(T=19.5, p=0.9, design=["p"])
+    instance.set_attr(D=0.1, ks=0.0001, L=50, offdesign=["darcy_group"])
+    nw.solve("design")
+    nw.assert_convergence()
+    assert not instance.darcy_group.is_set
+
+    path = os.path.join(tmp_path, "design.json")
+    nw.save(path)
+    nw.solve("offdesign", design_path=path)
+    nw.assert_convergence()
+    assert instance.darcy_group.is_set
+
+
+def test_design_of_component_parameter_group(tmp_path):
+
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar",
+        temperature="degC"
+    )
+
+    inflow = Source("source")
+    outflow = Sink("sink")
+    instance = Pipe("pipe")
+
+    c1 = Connection(inflow, "out1", instance, "in1", label="c1")
+    c2 = Connection(instance, "out1", outflow, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"H2O": 1}, T=30, p=1, m=1)
+    c2.set_attr(T=19.5, offdesign=["p"])
+    instance.set_attr(D=0.1, ks=0.0001, L=50, design=["darcy_group"])
+    nw.solve("design")
+    nw.assert_convergence()
+    assert instance.darcy_group.is_set
+
+    path = os.path.join(tmp_path, "design.json")
+    nw.save(path)
+    nw.solve("offdesign", design_path=path)
+    nw.assert_convergence()
+    assert not instance.darcy_group.is_set
+
+
+class WaterElectrolyzer(WaterElectrolyzer):
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        constraints['mass_flow_constraints'] = dc_cmc(**{
+            'func': self.reactor_mass_flow_func,
+            'deriv': self.reactor_mass_flow_deriv,
+            'dependents': self.reactor_mass_flow_dependents,
+            'num_eq_sets': 2
+        })
+        return constraints
+
+    def reactor_mass_flow_func(self):
+        r"""
+        Equations for mass conservation.
+
+        Returns
+        -------
+        residual : list
+            Residual values of equation.
+
+            .. math::
+
+                O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
+                0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}\\
+                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,in,2}-
+                \dot{m}_\mathrm{O_2,out,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,in,2} -
+                \dot{m}_\mathrm{H_2,out,3}
+        """
+        # calculate the ratio of o2 in water
+        M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
+        M_h2 = self.outl[2].fluid.wrapper[self.h2]._molar_mass
+
+        o2 = M_o2 / (M_o2 + 2 * M_h2)
+        # equations for mass flow balance electrolyzer
+        residual = []
+        residual += [o2 * self.inl[1].m.val_SI - self.outl[1].m.val_SI]
+        residual += [(1 - o2) * self.inl[1].m.val_SI - self.outl[2].m.val_SI]
+        return np.array(residual)
+
+    def reactor_mass_flow_deriv(self, increment_filter, k, dependents=None):
+        r"""
+        Calculate the partial derivatives for all mass flow balance equations.
+
+        Returns
+        -------
+        deriv : ndarray
+            Matrix with partial derivatives for the mass flow equations.
+        """
+        deriv_to_m_in = _numeric_deriv(
+            self.inl[1].m._reference_container, self.reactor_mass_flow_func
+        )
+        deriv_to_m_out1 = _numeric_deriv(
+            self.outl[1].m._reference_container, self.reactor_mass_flow_func
+        )
+        deriv_to_m_out2 = _numeric_deriv(
+            self.outl[2].m._reference_container, self.reactor_mass_flow_func
+        )
+
+        self._partial_derivative(self.inl[1].m, k, deriv_to_m_in[0])
+        self._partial_derivative(self.outl[1].m, k, deriv_to_m_out1[0])
+
+        k += 1
+        self._partial_derivative(self.inl[1].m, k, deriv_to_m_in[1])
+        self._partial_derivative(self.outl[2].m, k, deriv_to_m_out2[1])
+
+
+def test_component_with_numpy_array_in_residual():
+    nw = Network()
+    nw.units.set_defaults(**{
+        "pressure": "bar",
+        "temperature": "degC",
+        "power": "MW"
+    })
+    instance = WaterElectrolyzer('electrolyzer')
+
+    fw = Source('feed water')
+    cw_in = Source('cooling water')
+    o2 = Sink('oxygen sink')
+    h2 = Sink('hydrogen sink')
+    cw_out = Sink('cooling water sink')
+
+    instance.set_attr(pr=0.99, eta=1)
+
+    cw_el = Connection(
+        cw_in, 'out1', instance, 'in1', fluid={'H2O': 1}, T=20, p=1
+    )
+    el_cw = Connection(instance, 'out1', cw_out, 'in1', T=45)
+
+    nw.add_conns(cw_el, el_cw)
+
+    fw_el = Connection(fw, 'out1', instance, 'in2', label='h2o')
+    el_o2 = Connection(instance, 'out2', o2, 'in1')
+    el_h2 = Connection(instance, 'out3', h2, 'in1', label='h2')
+
+    nw.add_conns(fw_el, el_o2, el_h2)
+
+    fw_el.set_attr(T=25, p=1)
+    el_h2.set_attr(T=25)
+    instance.set_attr(P=2.5)
+
+    nw.solve('design')
+    nw.assert_convergence()
+
+
+def test_generates_fluid_wrapper_branches_with_inherited_component():
+
+    class FakeSource(Source):
+        pass
+
+    nw = Network()
+
+    so = FakeSource('feed water')
+    si = Sink('oxygen sink')
+
+    c1 = Connection(so, 'out1', si, 'in1', fluid={'H2O': 1}, T=20 + 273.15, p=1e5)
+    nw.add_conns(c1)
+
+    nw.solve("design", init_only=True)

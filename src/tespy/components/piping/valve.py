@@ -146,7 +146,8 @@ class Valve(Component):
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure",
+                description="inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
@@ -158,7 +159,8 @@ class Valve(Component):
                 param='m', num_eq_sets=1,
                 dependents=self.dp_char_dependents,
                 func=self.dp_char_func,
-                char_params={'type': 'abs'}
+                char_params={'type': 'abs'},
+                description="inlet to outlet absolute pressure change as function of mass flow lookup table"
             )
         }
 
@@ -168,7 +170,8 @@ class Valve(Component):
             'enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': 1,
-                'func_params': {'variable': 'h'}
+                'func_params': {'variable': 'h'},
+                "description": "equation for enthalpy equality"
             })
         })
         return constraints

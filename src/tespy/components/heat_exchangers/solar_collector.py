@@ -188,18 +188,40 @@ class SolarCollector(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
-            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
-            'lkf_lin': dc_cp(min_val=0),
-            'lkf_quad': dc_cp(min_val=0),
-            'Tamb': dc_cp(quantity="temperature"),
-            'Q_loss': dc_cp(max_val=0, _val=0, quantity="temperature"),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _potential_var=True,
+                description="solar irradiation to the solar collector"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _potential_var=True,
+                description="area of the solar collector"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'lkf_lin': dc_cp(
+                min_val=0,
+                description="linear heat loss factor"
+            ),
+            'lkf_quad': dc_cp(
+                min_val=0,
+                description="quadratic heat loss factor"
+            ),
+            'Tamb': dc_cp(
+                quantity="temperature",
+                description="ambient air temperature"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation"
+            ),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq_sets=1,
                 func=self.energy_group_func,
-                dependents=self.energy_group_dependents
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the solar collector"
             )
         })
         return data
@@ -234,7 +256,7 @@ class SolarCollector(SimpleHeatExchanger):
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
             - self.A.val_SI * (
                 self.E.val_SI * self.eta_opt.val_SI
-                - (T_m - self.Tamb.val_SI) * self.lkf_lin.val_SI
+                - self.lkf_lin.val_SI * (T_m - self.Tamb.val_SI)
                 - self.lkf_quad.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
@@ -246,7 +268,10 @@ class SolarCollector(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
+
+    def convergence_check(self):
+        pass
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

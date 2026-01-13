@@ -20,11 +20,13 @@ include = [
     "tests/",
     "tutorial/",
 ]
-exclude = ["docs/_build"]
+exclude = [
+    "docs/_build",
+]
 
 [project]
 name = "tespy"
-version = "0.9.5.dev0"
+version = "0.9.12.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -70,14 +72,21 @@ dev = [
     "fluprodia",
     "furo",
     "iapws",
+    "isort",
+    "myst-nb",
+    "pymoo",
     "pyromat",
     "pytest",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
     "sphinx-design",
+    "sphinx-notfound-page>=1.1.0",
     "sphinxcontrib.bibtex",
     "tox",
     "twine"
+]
+opt = [
+    "pymoo"
 ]
 
 [tool.pytest.ini_options]

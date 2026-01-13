@@ -168,7 +168,7 @@ class Desuperheater(HeatExchanger):
     ... )
     >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)
-    >>> et_de.set_attr(fluid={'ethanol': 1}, Td_bp=100, v=10)
+    >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.save('tmp.json')
@@ -194,7 +194,8 @@ class Desuperheater(HeatExchanger):
                 'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'dependents': self.saturated_gas_dependents
+                'dependents': self.saturated_gas_dependents,
+                "description": "equation for saturated gas at hot side outlet"
             })
         })
         return constraints

@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+import pandas as pd
 import pint
 
 from tespy.tools import logger
@@ -31,11 +32,14 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
 from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
+from tespy.tools.units import _UNITS
+from tespy.tools.units import SI_UNITS
 
 
 def component_registry(type):
@@ -139,6 +143,11 @@ class Component:
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
+        self.num_i = len(self.inlets())
+        self.num_o = len(self.outlets())
+        self.num_power_i = len(self.powerinlets())
+        self.num_power_o = len(self.poweroutlets())
+
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.
@@ -170,12 +179,9 @@ class Component:
                 data = self.get_attr(key)
                 if kwargs[key] is None:
                     data.set_attr(is_set=False)
-                    try:
+                    if hasattr(data, "is_var"):
                         data.set_attr(is_var=False)
-                    except KeyError:
-                        pass
                     continue
-
 
                 is_numeric = False
                 is_quantity = False
@@ -183,11 +189,7 @@ class Component:
                 if isinstance(kwargs[key], pint.Quantity):
                     is_quantity = True
                 else:
-                    try:
-                        float(kwargs[key])
-                        is_numeric = True
-                    except (TypeError, ValueError):
-                        pass
+                    is_numeric = _is_numeric(kwargs[key])
 
                 # dict specification
                 if (isinstance(kwargs[key], dict) and
@@ -313,6 +315,24 @@ class Component:
             "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
+    def _get_result_attributes(self):
+        return [
+            key for key, p in self.parameters.items() if isinstance(p, dc_cp)
+        ]
+
+    def collect_results(self):
+        result = {}
+        for key in self._get_result_attributes():
+            p = self.get_attr(key)
+            if (p.func is not None or (p.func is None and p.is_set) or
+                    p.is_result or p.structure_matrix is not None):
+                result[key] = p.val
+            else:
+                result[key] = np.nan
+
+            result[f"{key}_unit"] = p.unit
+        return pd.Series(result)
+
     def propagate_wrapper_to_target(self, branch):
         inconn = branch["connections"][-1]
         conn_idx = self.inl.index(inconn)
@@ -421,7 +441,11 @@ class Component:
                         is_set = False
 
                 if is_set:
-                    data.set_attr(is_set=True)
+                    if self._mode == "design" and key not in self.offdesign:
+                        data.set_attr(is_set=True)
+                    elif self._mode == "offdesign" and key not in self.design:
+                        data.set_attr(is_set=True)
+
                 elif data.is_set:
                     msg = (
                         'All parameters of the component group have to be '
@@ -553,12 +577,14 @@ class Component:
             'mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'm'}
+                'func_params': {'variable': 'm'},
+                'description': "mass flow equality constraint(s)"
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'fluid'}
+                'func_params': {'variable': 'fluid'},
+                'description': "fluid composition equality constraint(s)"
             })
         }
 
@@ -852,6 +878,7 @@ class Component:
         df : pandas.core.series.Series
             Series containing the component parameters.
         """
+        self._mode = mode
         if mode == 'design' or self.local_design:
             self.new_design = True
 
@@ -862,7 +889,13 @@ class Component:
                         (mode == 'design' and self.local_offdesign)) and
                         (data[key] is not None)
                     ):
-                    self.get_attr(key).design = float(data[key])
+                    if f"{key}_unit" in data:
+                        value = _UNITS.ureg.Quantity(
+                            data[key], data[f"{key}_unit"]
+                        ).to(SI_UNITS[dc.quantity]).magnitude
+                    else:
+                        value = data[key]
+                    self.get_attr(key).design = float(value)
 
                 else:
                     self.get_attr(key).design = np.nan
@@ -973,12 +1006,13 @@ class Component:
 
     def variable_equality_structure_matrix(self, k, **kwargs):
         r"""
-        Create pairwise linear relationship between two variables for all
-        inlets and the respective outlets
+        Create pairwise linear relationship between two variables :code:`var`
+        for all inlets and the respective outlets. This usually is applied to
+        mass flow, pressure, enthalpy and fluid composition.
 
         .. math::
 
-            h_\ŧext{in,i} = h_\text{out,i}
+            var_\text{in,i} = var_\text{out,i}
 
         Parameters
         ----------

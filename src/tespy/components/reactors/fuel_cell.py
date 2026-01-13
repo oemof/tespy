@@ -162,44 +162,54 @@ class FuelCell(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(max_val=0, quantity="power"),
+            'P': dc_cp(
+                max_val=0, quantity="power", _potential_var=True,
+                description="power output of the fuel cell"
+            ),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
                 dependents=self.heat_dependents,
-                quantity="heat"
+                quantity="heat",
+                description="heat output of the cooling port"
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="cooling port outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure",
+                description="cooling inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
-                func_params={'zeta': 'zeta'}
+                func_params={'zeta': 'zeta'},
+                description="cooling port non-dimensional friction coefficient for pressure loss calculation"
             ),
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
                 dependents=self.eta_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="efficiency of the fuel cell"
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
-                quantity="specific_energy"
+                quantity="specific_energy",
+                _potential_var=True,
+                description="equation for specified specific energy consumption of the fuel cell"
             )
         }
 
@@ -210,26 +220,31 @@ class FuelCell(Component):
                 'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
                 'constant_deriv': True,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "equations for oxygen and hydrogen mass flow relation"
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid mass flow equality equation"
             }),
             'cooling_fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_fluid_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid composition equality equation"
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
                 'constant_deriv': False,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "energy balance equation of the reactor"
             }),
             'reactor_pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "reactor pressure equality equations"
             })
         }
 
@@ -323,7 +338,7 @@ class FuelCell(Component):
 
                 0 = P - \eta \cdot \dot{m}_{H_2,in} \cdot e_0
         """
-        return self.P.val - self.eta.val * self.inl[2].m.val_SI * self.e0
+        return self.P.val_SI - self.eta.val_SI * self.inl[2].m.val_SI * self.e0
 
     def eta_dependents(self):
         return [self.inl[2].m, self.P]
@@ -341,7 +356,7 @@ class FuelCell(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
-        return self.Q.val + self.inl[0].m.val_SI * (
+        return self.Q.val_SI + self.inl[0].m.val_SI * (
             self.outl[0].h.val_SI - self.inl[0].h.val_SI
         )
 
@@ -361,7 +376,7 @@ class FuelCell(Component):
 
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
-        return self.P.val - self.inl[2].m.val_SI * self.e.val_SI
+        return self.P.val_SI - self.inl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.inl[2].m, self.P, self.e]

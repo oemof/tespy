@@ -289,7 +289,8 @@ class CombustionChamber(Component):
                 raise TESPyComponentError(msg)
             else:
                 setattr(self, fluid.lower(), fluid)
-
+        setattr(self, "NO".lower(), "NO")
+        
         self.fuels = {}
         for f in self.fuel_list:
             self.fuels[f] = {}

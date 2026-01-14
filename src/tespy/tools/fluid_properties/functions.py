@@ -370,3 +370,15 @@ def viscosity_mix_pT(p, T, fluid_data, mixing_rule=None):
     else:
         _check_mixing_rule(mixing_rule, V_MIX_PT_DIRECT, "viscosity")
         return VISCOSITY_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
+
+
+def conductivity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].conductivity_ph(p, h)
+    else:
+        msg = (
+            "Calculation of thermal conductivity is not implemented for "
+            "TESPy based mixtures. You are happily invited to contribute it!"
+        )
+        raise NotImplementedError(msg)

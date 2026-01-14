@@ -13,9 +13,9 @@ import warnings
 import numpy as np
 import pandas as pd
 
-# this is to make this import possible without the optional dependency
-# available
 try:
+    # this is to make this import of tespy possible without the optional
+    # dependency pymoo available
     from pymoo.core.problem import ElementwiseProblem
 
 except ModuleNotFoundError:
@@ -31,14 +31,6 @@ from tespy.tools.logger import logger
 class OptimizationProblem(ElementwiseProblem):
     r"""
     The OptimizationProblem handles the optimization.
-
-    - Set up the optimization problems by specifying constraints, upper and
-      lower bounds for the decision variables and selection of the objective
-      function.
-    - Run the optimization, see
-      :py:meth:`tespy.tools.optimization.OptimizationProblem.run`.
-    - Provide the optimization results DataFrame in the
-      :code:`.individuals` attribute of the :code:`OptimizationProblem` class.
 
     Parameters
     ----------
@@ -64,13 +56,28 @@ class OptimizationProblem(ElementwiseProblem):
         :code:`minimize=[True, False]` if the first objective should be
         minimized and the second one maximized.
 
+    kpi : dict
+        Dictionary with specification of additional kpi to be logged. The
+        structure of the dictionary is similar to the variable's structure,
+        instead of parameter value combinations a set of outputs has to be
+        give per component, connection or for the customs. The kpi are
+        retrieved with the :code:`get_param` method.
+
+    penalty_instead_of_constraints : bool
+        You can modify the fitness of an individual with a penalty function
+        (:code:`True`). The penalty function must be a method of the model,
+        :code:`model.penalize` or maximize an objective (:code:`False`). Must
+        be passed as list in same order as objective. E.g.
+        :code:`minimize=[True, False]` if the first objective should be
+        minimized and the second one maximized, by default False.
+
     Example
     -------
     For an example please check out
     :ref:`this section <tutorial_optimization_label>` in the docs.
     """
 
-    def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None, kpi={}):
+    def __init__(self, model, variables={}, constraints={}, objective=[], minimize=None, kpi={}, penalty_instead_of_constraints=False):
         self.model = model
         default_variables = {"Connections": {}, "Components": {}}
         default_constraints = {
@@ -94,12 +101,19 @@ class OptimizationProblem(ElementwiseProblem):
         self._build_constraints("upper")
         self._build_constraints("lower")
 
+        self.penalty_instead_of_constraints = penalty_instead_of_constraints
+
+        if self.penalty_instead_of_constraints:
+            n_ieq_constr = 0
+        else:
+            n_ieq_constr = len(self.constraint_list)
+
         self.log = []
 
         super().__init__(
             n_var=len(self.variable_list),
             n_obj=len(self.objective_list),
-            n_ieq_constr=len(self.constraint_list),
+            n_ieq_constr=n_ieq_constr,
             n_eq_constr=0,
             xl=self._bounds[0],
             xu=self._bounds[1]
@@ -146,12 +160,13 @@ class OptimizationProblem(ElementwiseProblem):
     def _build_kpi(self) -> None:
         self.kpi_list = []
         for obj, data in self.kpi.items():
-            for label, params in data.items():
-                if obj in ["Connections", "Components"]:
+            if obj in ["Connections", "Components"]:
+                for label, params in data.items():
                     for param in params:
                         self.kpi_list += [obj + '-' + label + '-' + param]
-                else:
-                    self.kpi_list += [obj + '-' + label]
+            else:
+                for param in data:
+                    self.kpi_list += [obj + '-' + param]
 
     def _build_constraints(self, border: str) -> None:
         for obj, data in self.constraints[f"{border} limits"].items():
@@ -210,23 +225,31 @@ class OptimizationProblem(ElementwiseProblem):
 
         kpi = []
         for obj, data in self.kpi.items():
-            for label, params in data.items():
-                if obj in ["Connections", "Components"]:
+            if obj in ["Connections", "Components"]:
+                for label, params in data.items():
                     for param in params:
                         kpi += [self.model.get_param(obj, label, param)]
-                else:
-                    kpi += [self.model.get_param(obj, label, None)]
+            else:
+                for param in data:
+                    kpi += [self.model.get_param(obj, param, None)]
 
         # negate the fitness function evaluation for minimize = False
         # parenthesis around the -1 are required!
-        out["F"] = [
+        _fitness = [
             (-1) ** (sense + 1) * f for f, sense in zip(fitness, self.minimize)
         ]
 
         cu = self._evaluate_constraints("upper")
         cl = self._evaluate_constraints("lower")
 
-        out["G"] = cu + cl
+        if self.penalty_instead_of_constraints:
+            _fitness = self.model.penalize(_fitness, cu + cl)
+        else:
+            out["G"] = cu + cl
+
+        out["F"] = [
+            value if not np.isnan(value) else 1e21 for value in _fitness
+        ]
 
         log_entry = {
             **{self.variable_list[i]: val for i, val in enumerate(x)},
@@ -324,8 +347,10 @@ class OptimizationProblem(ElementwiseProblem):
             Number of evolutions.
         """
         msg = (
-            "The pygmo API is deprecated and will be removed in the next "
-            "major release. Please use the pymoo API instead in the future."
+            "The optimization using pygmo is deprecated and will be  removed "
+            "in the next major release, please use pymoo in the future. To "
+            "get pymoo you can install tespy with extra dependency 'opt': pip "
+            "install tespy[opt]."
         )
         logger.warning(msg)
         warnings.warn(msg, FutureWarning)

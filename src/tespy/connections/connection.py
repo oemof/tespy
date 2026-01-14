@@ -147,6 +147,23 @@ class ConnectionBase:
         elif is_numeric or is_quantity:
             # value specification
             if key in self.property_data:
+                if f"{key}_ref" in self.property_data:
+                    if self.get_attr(f"{key}_ref" ).is_set:
+                        msg = (
+                            f"You have specified a numerical value for the "
+                            f"parameter '{key}' while having a Ref specified "
+                            f"at the same time at connection {self.label}. In "
+                            "the moment, this does not overwrite setting the "
+                            "Ref. To unset the Ref before setting the "
+                            f"numerical value, run .set_attr({key}=None) "
+                            f"before .set_attr({key}={value}). With the next "
+                            "major release of TESPy setting a numerical value "
+                            "will always replace a previously specified Ref "
+                            "making it impossible to set a numerical value "
+                            "and a Ref for one parameter on one connection "
+                            "simultaneously."
+                        )
+                        warnings.warn(msg, FutureWarning)
                 self.get_attr(key).set_attr(is_set=True, val=value)
             else:
                 self.get_attr(key.replace('0', '')).set_attr(val0=value)
@@ -158,6 +175,22 @@ class ConnectionBase:
                 logger.error(msg)
                 raise NotImplementedError(msg)
             else:
+                if self.get_attr(key).is_set:
+                    msg = (
+                        f"You have specified a Ref for the parameter '{key}' "
+                        "while having a numerical value specified at the same "
+                        f"time at connection {self.label}. In the moment, "
+                        "this does not overwrite setting the numerical value. "
+                        "To unset the specified value before setting the Ref, "
+                        f"run .set_attr({key}=None) before "
+                        f".set_attr({key}=Ref(...)). With the next major "
+                        "release of TESPy setting a Ref will automatically "
+                        "replace a previously specified numerical value "
+                        "making it impossible to set a numerical value and a "
+                        "Ref for one parameter on one connection "
+                        "simultaneously."
+                    )
+                    warnings.warn(msg, FutureWarning)
                 self.get_attr(f"{key}_ref").set_attr(ref=value)
                 self.get_attr(f"{key}_ref").set_attr(is_set=True)
 
@@ -772,6 +805,9 @@ class Connection(ConnectionBase):
         elif key == "fluid_balance":
             self.fluid_balance.is_set = value
 
+        elif key == "fluid_wrapper_kwargs":
+            self.fluid.wrapper_kwargs = value
+
         else:
             msg = f"Connections do not have an attribute named {key}"
             logger.error(msg)
@@ -833,6 +869,7 @@ class Connection(ConnectionBase):
         for fluid in self.fluid.val:
             if fluid in self.fluid.wrapper:
                 continue
+
             if fluid not in self.fluid.engine:
                 self.fluid.engine[fluid] = CoolPropWrapper
 
@@ -842,7 +879,13 @@ class Connection(ConnectionBase):
             else:
                 self.fluid.back_end[fluid] = None
 
-            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](fluid, back_end)
+            wrapper_kwargs = {}
+            if fluid in self.fluid.wrapper_kwargs:
+                wrapper_kwargs = self.fluid.wrapper_kwargs[fluid]
+
+            self.fluid.wrapper[fluid] = self.fluid.engine[fluid](
+                fluid, back_end, **wrapper_kwargs
+            )
 
     def _precalc_guess_values(self):
         """

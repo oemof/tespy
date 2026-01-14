@@ -35,6 +35,8 @@ from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.fluid_properties import conductivity_mix_ph
+from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _numeric_deriv
 
@@ -1177,3 +1179,45 @@ def test_generates_fluid_wrapper_branches_with_inherited_component():
     nw.add_conns(c1)
 
     nw.solve("design", init_only=True)
+
+
+def test_fluid_kwargs_propagation():
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+
+    pipe = SimpleHeatExchanger("pipe")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", pipe, "in1", label="c1")
+    c2 = Connection(pipe, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    fluid_kwargs = {
+        "temperature_data": np.array([273.15, 373.15]),
+        "density_data": np.array([1000, 1100]),
+        "heat_capacity_data": np.array([4000, 4100]),
+        "viscosity_data": np.array([0.05, 0.00025]),
+        "conductivity_data": np.array([0.1425, 0.135])
+    }
+
+    c1.set_attr(
+        fluid={"f": 1},
+        fluid_engines={"f": IncompressibleFluidWrapper},
+        fluid_wrapper_kwargs={"f": fluid_kwargs},
+        p=1, T=30
+    )
+    c2.set_attr(p=0.9, T=50)
+    pipe.set_attr(Q=1500)
+
+    nw.solve("design")
+
+    # 50 °C is exactly half of range
+    # heat capacity is implicitly tested, as it is required to find the
+    # temperature from the enthalpy passed into the function
+    assert approx(1 / c2.calc_vol()) == 1050
+    assert approx(
+        conductivity_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
+    ) == 0.13875

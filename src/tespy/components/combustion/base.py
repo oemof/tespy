@@ -359,7 +359,7 @@ class CombustionChamber(Component):
     def _add_missing_fluids(self, connections):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
-            return ["H2O", "CO2"]
+            return ["H2O", "CO2","NO"]
         else:
             return super()._add_missing_fluids(connections)
 
@@ -609,7 +609,7 @@ class CombustionChamber(Component):
                 dm = -n_oxygen * inl[0].fluid.wrapper[self.o2]._molar_mass
             else:
                 dm = (-n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass 
-                      + inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.o2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
+                      - inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.o2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
                       )
 
         ###################################################################
@@ -733,6 +733,7 @@ class CombustionChamber(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
+        #TODO substract energy for NO formation
         inl, outl = self._get_combustion_connections()
         T_ref = 298.15
         p_ref = 1e5

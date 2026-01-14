@@ -4,8 +4,13 @@ Fluid properties
 ================
 The default fluid property engine `CoolProp <https://coolprop.org/>`_. All
 available fluids can be found on their homepage. Also see :cite:`Bell2014`.
-Since version 0.7 of TESPy it is possible to use other engines. TESPy comes with
-two additional predefined engines, i.e.
+Since version 0.7 of TESPy it is possible to use other engines. TESPy supports
+one additional predefined engine, which can be used to fit functions to simple
+custom fluid property data, the :code:`IncompressibleFluidWrapper`. See
+:ref:`this section <incompressible_wrapper_label>` for more information.
+
+On top, there are two additional predefined engines, which are untested but may
+serve as an inspiration for you to create your onw one, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
 - the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.
@@ -62,19 +67,131 @@ If you are looking for heat transfer fluids, the list of incompressible
 might be interesting for you. In contrast to the pure fluids, the properties
 cover liquid state only.
 
+If you have measurement data or data from manufacturer data sheets and want to
+use these in your TESPy model, TESPy can create fitting functions for these
+with the :code:`IncompressibleFluidWrapper`. See
+:ref:`this section <incompressible_wrapper_label>` for more information.
+
 Fluid mixtures
 ++++++++++++++
 TESPy provides support for three types of mixtures:
 
 - ideal: Mixtures for gases only.
 - ideal-cond: Mixture for gases with condensation calculation for water share.
-- incompressible: Mixtures for incompressible fluids.
+- incompressible: Mixtures for CoolProp-based incompressible fluids.
 
-Furthermore, CoolProp provides a back end for predefined mixtures, which is
-rather instable using HEOS. Using the CoolProp mixture back-end is not tested,
-reach out if you would like to support us in adopting the TESPy implementation.
-In general, to use the mixture feature of CoolProp we recommend using the
-REFPROP back end instead of HEOS.
+These mixtures are handled externally by TESPy by using the pure fluid
+properties of CoolProp and then applying the respective mixing rules, read more
+about it :ref:`here <mixture_routines_label>`.
+
+More accurate formulations are available directly through CoolProp, which
+provides a back end for predefined mixtures. This back end is rather instable
+when using HEOS. In general, to use the mixture feature of CoolProp we
+recommend using the REFPROP back end instead of HEOS. Also note, the CoolProp
+mixture back end is not tested thoroughly. Please reach out if you would like
+to support us in adopting the TESPy implementation.
+
+.. _incompressible_wrapper_label:
+
+IncompressibleFluidWrapper
+--------------------------
+You can use the :code:`IncompressibleFluidWrapper` engine of TESPy to model a
+fluid based on your own data. To do this, you need tabular data as function of
+temperature:
+
+- Mass density
+- Mass specific heat capacity
+- Dynamic viscosity
+
+The :code:`IncompressibleFluidWrapper` will automatically fit functions to your
+data:
+
+- density and heat capacity through linear interpolation:
+  :math:`f\left(T\right) = A + B \cdot T`
+- viscosity through an exponential polynomial equation
+  :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
+
+We can make use of the engine as shown in the example below. First, we set up
+a very simple system, just a flow of fluid through a heat exchanger.
+
+.. code-block:: python
+
+    >>> from tespy.components import Sink
+    >>> from tespy.components import Source
+    >>> from tespy.components import SimpleHeatExchanger
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools.fluid_properties import IncompressibleFluidWrapper
+    >>> import numpy as np
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="°C",
+    ...     pressure="bar",
+    ...     heat="kW"
+    ... )
+
+    >>> heatexchanger = SimpleHeatExchanger("heat exchanger")
+
+    >>> so = Source("source")
+    >>> si = Sink("sink")
+
+    >>> c1 = Connection(so, "out1", heatexchanger, "in1", label="c1")
+    >>> c2 = Connection(heatexchanger, "out1", si, "in1", label="c2")
+
+    >>> nw.add_conns(c1, c2)
+
+Next, we have to prepare our data to be utilized by TESPy. The information
+required needs to be passed in SI units and must be gridded with the same
+spacing of temperature for all measurements.
+
+.. attention
+
+    Please note, that this example is purely for showing how to utilize this
+    implementation. In the example only 2 datapoints are available. This works
+    well for density and heat capacity as linear fitting functions are applied.
+    For viscosity this is somewhat sketchy, since you would need at least 4
+    datapoints to fit a function of polynomial 3!
+
+.. code-block:: python
+
+    >>> fluid_kwargs = {
+    ...     "temperature_data": np.array([273.15, 373.15]),  # K
+    ...     "density_data": np.array([1000, 1100]),  # kg/m3
+    ...     "heat_capacity_data": np.array([4000, 4100]) * 1e3,  # J/kg
+    ...     "viscosity_data": np.array([0.05, 0.00025])  # Pa*s
+    ... }
+
+.. attention::
+
+    The keys of the dictionary must be named :code:`temperature_data`,
+    :code:`density_data`, :code:`heat_capacity_data` and
+    :code:`viscosity_data`!
+
+Then, we can specify the fluid on one of our connections by providing two
+additional keywords:
+
+- :code:`fluid_engines` indicating which fluid uses which wrapper class.
+- :code:`fluid_wrapper_kwargs` providing for each fluid (if applicable) the
+  required data.
+
+.. code-block:: python
+
+    >>> c1.set_attr(
+    ...     fluid={"f": 1},
+    ...     fluid_engines={"f": IncompressibleFluidWrapper},
+    ...     fluid_wrapper_kwargs={"f": fluid_kwargs},
+    ... )
+
+We can specify missing boundary conditions and solve the problem.
+
+.. code-block:: python
+
+    >>> c1.set_attr(v=2, p=1, T=30)
+    >>> c2.set_attr(p=0.9)
+    >>> heatexchanger.set_attr(Q=10)
+
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
 
 Using other engines
 -------------------
@@ -150,6 +267,11 @@ enthalpy to the temperature. Lastly, to make the calculation of isentropic
 efficiencies possible, we can add the equation for change in enthalpy on
 isentropic change of pressure for an ideal gas.
 
+.. tip::
+
+    You can also inject :code:`kwargs` from the connection specification to
+    your concrete wrapper instance, see the section on
+    :ref:`incompressible fluids <incompressible_wrapper_label>`.
 
 .. code-block:: python
 
@@ -160,7 +282,7 @@ isentropic change of pressure for an ideal gas.
 
     >>> class KKHWrapper(FluidPropertyWrapper):
     ...
-    ...     def __init__(self, fluid, back_end=None, reference_temperature=298.15) -> None:
+    ...     def __init__(self, fluid, back_end=None, reference_temperature=298.15, **kwargs) -> None:
     ...         super().__init__(fluid, back_end)
     ...
     ...         if self.fluid not in COEF:
@@ -271,7 +393,6 @@ the previous section:
 
 .. code-block:: python
 
-
     >>> from tespy.components import Sink
     >>> from tespy.components import Source
     >>> from tespy.components import Turbine
@@ -303,6 +424,8 @@ the previous section:
     >>> nwk.solve("design")
     >>> round(c2.T.val, 1)
     306.3
+
+.. _mixture_routines_label:
 
 Mixture routines in TESPy
 -------------------------

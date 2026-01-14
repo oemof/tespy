@@ -919,16 +919,21 @@ class Network:
             any_fluids_set = []
             engines = {}
             back_ends = {}
+            wrapper_kwargs = {}
             any_fluids = []
             any_fluids0 = []
             mixing_rules = []
             for c in all_connections:
                 for f in c.fluid.is_set:
                     any_fluids_set += [f]
+
                     if f in c.fluid.engine:
                         engines[f] = c.fluid.engine[f]
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
+                    if f in c.fluid.wrapper_kwargs:
+                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
+
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
                 if c.mixing_rule is not None:
@@ -959,7 +964,7 @@ class Network:
             num_potential_fluids = len(potential_fluids)
             if num_potential_fluids == 0:
                 msg = (
-                    "The follwing connections of your network are missing any "
+                    "The following connections of your network are missing any "
                     "kind of fluid composition information:"
                     f"{', '.join([c.label for c in all_connections])}."
                 )
@@ -983,6 +988,8 @@ class Network:
                     c.fluid.engine[f] = engine
                 for f, back_end in back_ends.items():
                     c.fluid.back_end[f] = back_end
+                for f, w_kwargs in wrapper_kwargs.items():
+                    c.fluid.wrapper_kwargs[f] = w_kwargs
 
                 c._create_fluid_wrapper()
 

@@ -1267,6 +1267,13 @@ class Connection(ConnectionBase):
                 dependents=self.Td_bp_dependents, num_eq=1,
                 quantity="temperature_difference",
                 description="temperature difference to boiling point (deprecated)"
+            ),
+            "r": dc_prop(
+                func=self.r_func,
+                dependents=self.r_dependents,
+                num_eq=1,
+                quantity="ratio",
+                description="relative humidity"
             )
         }
 
@@ -1459,6 +1466,25 @@ class Connection(ConnectionBase):
     def v_ref_dependents(self):
         ref = self.v_ref.ref
         return self.v_dependents() + ref.obj.v_dependents()
+
+    def calc_r(self):
+        from tespy.tools.fluid_properties.functions import _get_humid_air_humidity_ratio
+        from CoolProp.CoolProp import HAPropsSI
+        w = _get_humid_air_humidity_ratio(self.fluid_data)
+        try:
+            return HAPropsSI("R", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
+        except ValueError as e:
+            value = str(e).split("value (")[1].split(")")[0]
+            return float(value)
+
+    def r_func(self):
+        return self.r.val_SI - self.calc_r()
+
+    def r_dependents(self):
+        return {
+            "scalars": [self.p, self.h],
+            "vectors": [{self.fluid: {"water"}}]
+        }
 
     def calc_x(self):
         try:

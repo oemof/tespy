@@ -29,6 +29,7 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
 from tespy.tools.helpers import fluidalias_in_list
+from tespy.tools.fluid_properties.wrappers import CoolPropWrapper, PyromatWrapper
 
 
 @component_registry
@@ -242,11 +243,14 @@ class CombustionChamber(Component):
     def setup_reaction_parameters(self):
         r"""Setup parameters for reaction (gas name aliases and LHV)."""
         self.fuel_list = []
-        all_fluids = set([f for c in self.inl + self.outl for f in c.fluid.val])
-        for f in all_fluids:
-            if fluidalias_in_list(f, combustion_gases.fluids.keys()):
-                self.fuel_list += [f]
-
+        all_fluids = {f: c.fluid.engine[f] for c in self.inl + self.outl for f in c.fluid.val }
+        for f in all_fluids.keys():
+            if issubclass(all_fluids[f], CoolPropWrapper) or all_fluids[f] is None:
+                if fluidalias_in_list(f, combustion_gases.fluids.keys()):
+                    self.fuel_list += [f]
+            else:
+                if f in combustion_gases.fluids.keys():
+                    self.fuel_list += [f]
         self.fuel_list = set(self.fuel_list)
 
         if len(self.fuel_list) == 0:

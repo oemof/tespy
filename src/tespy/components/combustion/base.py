@@ -176,11 +176,11 @@ class CombustionChamber(Component):
                 quantity="heat"
             ),
             'f_nox': dc_cp(
-                min_val=1,
                 func=self.stoichiometry_func,
                 dependents=self.stoichiometry_dependents,
                 #num_eq_sets=1,
-                quantity="ratio"
+                quantity="ratio",
+                min_val=1e-9, max_val=1,
             ),
         }
 

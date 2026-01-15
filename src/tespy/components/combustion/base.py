@@ -289,7 +289,7 @@ class CombustionChamber(Component):
                 raise TESPyComponentError(msg)
             else:
                 setattr(self, fluid.lower(), fluid)
-        setattr(self, "NO".lower(), "NO")
+        setattr(self, "no", "NO")
         
         self.fuels = {}
         for f in self.fuel_list:
@@ -544,8 +544,9 @@ class CombustionChamber(Component):
         """
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
+        
 
-        if fluid in list(self.fuel_list) + [self.co2, self.o2, self.h2o]:
+        if fluid in list(self.fuel_list) + [self.co2, self.o2, self.h2o, self.n2, self.no]:
             ###################################################################
             # molar mass flow for fuel and oxygen
             n_fuel = {}
@@ -596,6 +597,17 @@ class CombustionChamber(Component):
             else:
                 n_h_exc = 0
                 n_c_exc = 0
+            
+            n_nox_param= inl[1].m.val_SI*self.f_nox.val_SI /inl[0].fluid.wrapper[self.no]._molar_mass
+
+            # nitrogen 
+            n_nitrogen = 0
+            for i in inl:
+                n_nitrogen += (
+                    i.m.val_SI
+                    * i.fluid.val.get(self.n2, 0)
+                    / inl[0].fluid.wrapper[self.n2]._molar_mass
+                )
 
         ###################################################################
         # equation for carbondioxide
@@ -611,12 +623,19 @@ class CombustionChamber(Component):
         # equation for oxygen
         elif fluid == self.o2:
             if self.lamb.val_SI < 1:
-                dm = -n_oxygen * inl[0].fluid.wrapper[self.o2]._molar_mass
-            else:
-                dm = (-n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass 
-                      - inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.o2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
+                dn = -n_oxygen 
+            elif n_nitrogen >= n_nox_param *0.5:  
+                # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
+                # NO formation as defined in parameter f_nox
+                dn = -(n_oxygen / self.lamb.val_SI
+                      + n_nox_param  *0.5 
                       )
-
+            else:
+                # limitation due to nitrogen shortage. All nitrogen is converted to NO
+                dn = (-n_oxygen / self.lamb.val_SI
+                      - n_nitrogen
+                      )
+            dm = dn * inl[0].fluid.wrapper[self.o2]._molar_mass
         ###################################################################
         # equation for fuel
         elif fluid in self.fuel_list:
@@ -631,25 +650,31 @@ class CombustionChamber(Component):
         
         ###################################################################
         # equation for nitrogen
-        # TODO consider oxygen limitation
-        elif fluid == self.n2:
-
-            # nitrogen 
-            n_nitrogen = 0
-            for i in inl:
-                n_nitrogen += (
-                    i.m.val_SI
-                    * i.fluid.val.get(self.n2, 0)
-                    / inl[0].fluid.wrapper[self.n2]._molar_mass
-                )
+        # TODO take into account existing NO in inlets
+        elif fluid == self.n2:           
             if self.lamb.val_SI < 1:
-                dm=0
-            elif n_nitrogen >= inl[1].m.val_SI*self.f_nox.val_SI /0.03001 *0.5:  #molar mass of NO: 0.03001 kg/mol
-                dm = (n_nitrogen * inl[0].fluid.wrapper[self.n2]._molar_mass 
-                      - inl[1].m.val_SI* self.f_nox.val_SI /0.03001 *inl[0].fluid.wrapper[self.n2]._molar_mass *0.5 #molar mass of NO: 0.03001 kg/mol
-                      ) 
+                # oxygen limitation: no formation of NO
+                dn=0
+            elif n_nitrogen >= n_nox_param *0.5:  
+                # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
+                # NO formation as defined in parameter f_nox
+                dn = -(n_nitrogen - n_nox_param *0.5) 
             else:
-                dm= n_nitrogen * inl[0].fluid.wrapper[self.n2]._molar_mass
+                # limitation due to nitrogen shortage. All nitrogen is converted to NO
+                dn= -(n_nitrogen -0)
+            dm= dn * inl[0].fluid.wrapper[self.n2]._molar_mass
+        ###################################################################
+        # equation for nitrogen monoxide
+        elif fluid == self.no:
+    
+            if self.lamb.val_SI < 1:
+                dn=0
+            elif n_nitrogen >= n_nox_param *0.5:  
+                dn = - (0 - n_nox_param)  
+            else:
+                dn = - (0 - n_nitrogen *2)
+
+            dm = dn * (inl[0].fluid.wrapper[self.n2]._molar_mass + inl[0].fluid.wrapper[self.o2]._molar_mass) / 2
         ###################################################################
         # equation for other fluids
         else:

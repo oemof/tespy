@@ -364,7 +364,10 @@ class CombustionChamber(Component):
     def _add_missing_fluids(self, connections):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
-            return ["H2O", "CO2","NO"]
+            if self.f_nox.is_set:
+                return ["H2O", "CO2","NO"]
+            else:
+                return ["H2O", "CO2"]
         else:
             return super()._add_missing_fluids(connections)
 
@@ -597,9 +600,12 @@ class CombustionChamber(Component):
             else:
                 n_h_exc = 0
                 n_c_exc = 0
-            
-            n_nox_param= inl[1].m.val_SI*self.f_nox.val_SI /inl[0].fluid.wrapper[self.no]._molar_mass
 
+            M_no = inl[0].fluid.wrapper[self.n2]._molar_mass + inl[0].fluid.wrapper[self.o2]._molar_mass
+            if self.f_nox.is_set:
+                n_nox_param = inl[1].m.val_SI * self.f_nox.val_SI / M_no
+            else:
+                n_nox_param = 0
             # nitrogen 
             n_nitrogen = 0
             for i in inl:
@@ -628,11 +634,11 @@ class CombustionChamber(Component):
                 # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
                 # NO formation as defined in parameter f_nox
                 dn = -(n_oxygen / self.lamb.val_SI
-                      + n_nox_param  *0.5 
+                      - n_nox_param  *0.5 
                       )
             else:
                 # limitation due to nitrogen shortage. All nitrogen is converted to NO
-                dn = (-n_oxygen / self.lamb.val_SI
+                dn = -(n_oxygen / self.lamb.val_SI
                       - n_nitrogen
                       )
             dm = dn * inl[0].fluid.wrapper[self.o2]._molar_mass
@@ -651,14 +657,14 @@ class CombustionChamber(Component):
         ###################################################################
         # equation for nitrogen
         # TODO take into account existing NO in inlets
-        elif fluid == self.n2:           
+        elif fluid == self.n2:
             if self.lamb.val_SI < 1:
                 # oxygen limitation: no formation of NO
                 dn=0
             elif n_nitrogen >= n_nox_param *0.5:  
                 # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
                 # NO formation as defined in parameter f_nox
-                dn = -(n_nitrogen - n_nox_param *0.5) 
+                dn = -(-n_nox_param *0.5) 
             else:
                 # limitation due to nitrogen shortage. All nitrogen is converted to NO
                 dn= -(n_nitrogen -0)
@@ -674,7 +680,7 @@ class CombustionChamber(Component):
             else:
                 dn = - (0 - n_nitrogen *2)
 
-            dm = dn * (inl[0].fluid.wrapper[self.n2]._molar_mass + inl[0].fluid.wrapper[self.o2]._molar_mass) / 2
+            dm = dn * M_no / 2
         ###################################################################
         # equation for other fluids
         else:

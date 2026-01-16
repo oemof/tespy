@@ -38,7 +38,7 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _fluid_in_mixture("H2O", fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -91,10 +91,10 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
 
 
 def _get_humid_air_humidity_ratio(fluid_data):
-    water_alias = _fluid_in_mixture("H2O", fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     water_alias = next(iter(water_alias))
 
-    air_alias = _fluid_in_mixture("air", fluid_data)
+    air_alias = _get_fluid_alias("air", fluid_data)
     air_alias = next(iter(air_alias))
 
     return (
@@ -123,7 +123,7 @@ def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _fluid_in_mixture("H2O", fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -176,7 +176,7 @@ def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _fluid_in_mixture("H2O", fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         _, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -277,7 +277,7 @@ def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
 def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
 
     molar_fractions = get_molar_fractions(fluid_data)
-    water_alias = _fluid_in_mixture("H2O", fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         _, molar_fractions_gas, _, molar_liquid, _, _ = cond_check(
@@ -312,7 +312,7 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
     return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
 
 
-def _fluid_in_mixture(fluid, fluid_data):
+def _get_fluid_alias(fluid, fluid_data):
     return (
         FLUID_ALIASES.get_fluid(fluid)
         & set([

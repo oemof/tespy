@@ -74,6 +74,8 @@ Other changes
   are now named appropriately with a leading underscore. On top, some methods
   have been renamed to clarify what they do
   (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
+- The logging level of some messages has been changed from warning to debug
+  (`PR #893 <https://github.com/oemof/tespy/pull/893>`__).
 
 Bug Fixes
 #########

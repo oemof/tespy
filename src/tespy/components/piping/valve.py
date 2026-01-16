@@ -18,6 +18,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
 
 @component_registry
@@ -165,6 +166,18 @@ class Valve(Component):
             'Kv': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.Kv_func, dependents=self.Kv_dependents
+            ),
+            'Kv_char': dc_cc(
+
+            ),
+            'opening': dc_cp(
+                min_val=0, max_val=1
+            ),
+            'Kv_char_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_char", "opening"],
+                func=self.Kv_opening_func,
+                dependents=self.Kv_opening_dependents
             )
         }
 
@@ -310,7 +323,7 @@ class Valve(Component):
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
                 -\frac{1}{\rho}\cdot \left(3600 \cdot \dot m \right)
         """
-        Kv = self.Kvs.val_SI * self.Kv_opening.char_func.evaluate(self.opening.val_SI)
+        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
         return self._Kv_eq(Kv)
 
     def Kv_opening_dependents(self):

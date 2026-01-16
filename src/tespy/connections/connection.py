@@ -1311,13 +1311,6 @@ class Connection(ConnectionBase):
                 quantity="temperature_difference",
                 description="temperature difference to boiling point (deprecated)"
             ),
-            "r": dc_prop(
-                func=self.r_func,
-                dependents=self.r_dependents,
-                num_eq=1,
-                quantity="ratio",
-                description="relative humidity"
-            )
         }
 
     def get_fluid_data(self):
@@ -1509,25 +1502,6 @@ class Connection(ConnectionBase):
     def v_ref_dependents(self):
         ref = self.v_ref.ref
         return self.v_dependents() + ref.obj.v_dependents()
-
-    def calc_r(self):
-        from tespy.tools.fluid_properties.functions import _get_humid_air_humidity_ratio
-        from CoolProp.CoolProp import HAPropsSI
-        w = _get_humid_air_humidity_ratio(self.fluid_data)
-        try:
-            return HAPropsSI("R", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
-        except ValueError as e:
-            value = str(e).split("value (")[1].split(")")[0]
-            return float(value)
-
-    def r_func(self):
-        return self.r.val_SI - self.calc_r()
-
-    def r_dependents(self):
-        return {
-            "scalars": [self.p, self.h],
-            "vectors": [{self.fluid: {"water"}}]
-        }
 
     def calc_x(self):
         try:
@@ -1861,30 +1835,6 @@ class Connection(ConnectionBase):
                 if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 10:
                     self._adjust_to_two_phase(fl)
 
-        elif self.mixing_rule == "humidair":
-        # def _adjust_to_property_limits(self, nw):
-            from CoolProp.CoolProp import HAPropsSI
-
-            if self.p.is_var:
-                if self.p.val_SI < 100:
-                    self.p.val_SI = 101
-                elif self.p.val_SI > 100e5:
-                    self.p.val_SI = 99e5
-
-            if self.h.is_var:
-                # TODO: check minimum temperature how it matches minimum humidity ratio
-                d = self.h._reference_container._d
-                hmin = HAPropsSI("H", "T", -30 + 273.15, "P", self.p.val_SI, "R", 1)
-                if self.h.val_SI < hmin:
-                    delta = max(abs(self.h.val_SI * d), d) * 5
-                    self.set_reference_val_SI(hmin + delta)
-
-                else:
-                    # TODO: where to get reasonable hmax from?!
-                    hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
-                    if self.h.val_SI > hmax:
-                        delta = max(abs(self.h.val_SI * d), d) * 5
-                        self.set_reference_val_SI(hmax - delta)
         # mixture
         elif self.it < 5 and not self.good_starting_values:
             # pressure

@@ -1,20 +1,30 @@
+# -*- coding: utf-8
+"""Module of class Connection and class Ref.
+
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location tespy/connections/humidairconnection.py
+
+SPDX-License-Identifier: MIT
+"""
+
+import numpy as np
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties.functions import _get_humid_air_humidity_ratio
+from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 
 from .connection import Connection
 from .connection import connection_registry
 
 
 @connection_registry
-class HumidAirConnection(Connection):
-
-    def get_variables(self):
-        return {
-            "m": self.m, "p": self.p, "h": self.h, "w": self.w
-        }
+class HAConnection(Connection):
 
     def get_parameters(self):
         return {
@@ -24,7 +34,11 @@ class HumidAirConnection(Connection):
             ),
             "m": dc_prop(
                 quantity="mass_flow",
-                description="mass flow of the fluid (system variable)"
+                description="mass flow of dry air (system variable)"
+            ),
+            "mHA": dc_prop(
+                quantity="mass_flow",
+                description="mass flow of humid air"
             ),
             "p": dc_prop(
                 quantity="pressure",
@@ -32,7 +46,7 @@ class HumidAirConnection(Connection):
             ),
             "h": dc_prop(
                 quantity="enthalpy",
-                description="mass specific enthalpy of the fluid (system variable)"
+                description="dry air mass specific enthalpy (system variable)"
             ),
             "w": dc_prop(
                 quantity="ratio",
@@ -66,50 +80,34 @@ class HumidAirConnection(Connection):
                 num_eq=1,
                 quantity="ratio",
                 description="relative humidity"
-            )
+            ),
+            "fluid_balance": dc_simple(
+                func=self.fluid_balance_func,
+                deriv=self.fluid_balance_deriv,
+                _val=False, num_eq_sets=1,
+                dependents=self.fluid_balance_dependents,
+                description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
+            ),
         }
 
-    def calc_T(self, T0=None):
-        return HAPropsSI(
-            "T", "P", self.p.val_SI, "H", self.h.val_SI, "W", self.w.val_SI / 1e3
-        )
+    # for HAConnection mixing rule cannot be modified, is always humidair
+    def _get_mixing_rule(self):
+        return "humidair"
 
-    def T_dependents(self):
-        return [self.p, self.h, self.w]
+    def _set_mixing_rule(self, value):
+        if value is not None and value != self.mixing_rule:
+            print(value)
+            msg = (
+                "You cannot change the mixing rule specification for a "
+                f"Connection of type {self.__class__.__name__}"
+            )
+            raise ValueError(msg)
 
-    def calc_vol(self, T0=None):
-        return HAPropsSI(
-            "V", "P", self.p.val_SI, "H", self.h.val_SI, "W", self.w.val_SI / 1e3
-        )
-
-    def v_dependents(self):
-        return [self.m, self.p, self.h, self.w]
-
-    def r_func(self):
-        return self.w.val_SI / 1e3 - HAPropsSI("W", "P", self.p.val_SI, "H", self.h.val_SI, "R", self.r.val_SI)
-
-    def r_dependents(self):
-        return [self.p, self.h, self.w]
-
-    def get_fluid_data(self):
-        return (
-            {
-                "_HUMID_AIR": True,
-                "w": self.w.val_SI / 1000
-            } |
-            {
-                fluid: {
-                    "wrapper": self.fluid.wrapper[fluid],
-                    "mass_fraction": self.fluid.val[fluid]
-                } for fluid in self.fluid.val
-            }
-        )
-
-    fluid_data = property(get_fluid_data)
+    mixing_rule = property(_get_mixing_rule, _set_mixing_rule)
 
     def _guess_starting_values(self, units):
-        self.h.set_reference_val_SI(4e5)
-        self.w.set_reference_val_SI(5)
+        h = fp.h_mix_pT(1e5, 290, self.fluid_data, self.mixing_rule)
+        self.h.set_reference_val_SI(h)
         self._precalc_guess_values()
 
     def _precalc_guess_values(self):
@@ -119,8 +117,9 @@ class HumidAirConnection(Connection):
         if not self.good_starting_values:
             if self.T.is_set:
                 try:
+                    w = self.calc_w()
                     self.h.set_reference_val_SI(
-                        HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", self.w.val_SI / 1e3)
+                        HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
                     )
                 except ValueError:
                     pass
@@ -129,10 +128,6 @@ class HumidAirConnection(Connection):
         return []
 
     def _adjust_to_property_limits(self, nw):
-
-        if self.w.is_var:
-            if self.w.val_SI < 0.01:
-                self.w.set_reference_val_SI(0.011)
 
         if self.p.is_var:
             if self.p.val_SI < 100:
@@ -143,7 +138,7 @@ class HumidAirConnection(Connection):
         if self.h.is_var:
             # TODO: check minimum temperature how it matches minimum humidity ratio
             d = self.h._reference_container._d
-            hmin = HAPropsSI("H", "T", -30 + 273.15, "P", self.p.val_SI, "R", 1)
+            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
             if self.h.val_SI < hmin:
                 delta = max(abs(self.h.val_SI * d), d) * 5
                 self.set_reference_val_SI(hmin + delta)
@@ -157,16 +152,45 @@ class HumidAirConnection(Connection):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "p", "h", "T", "w", "s", "vol", "v"]
+        return ["m", "mHA", "p", "h", "T", "w", "s", "vol", "v", "r"]
 
     @classmethod
     def _print_attributes(cls):
-        return ["m", "p", "h", "T", "w"]
+        return ["m", "mHA", "p", "h", "T", "w", "r"]
+
+    def calc_r(self):
+        w = self.calc_w()
+        try:
+            return HAPropsSI("R", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
+        except ValueError as e:
+            value = str(e).split("value (")[1].split(")")[0]
+            return float(value)
+
+    def r_func(self):
+        return self.r.val_SI - self.calc_r()
+
+    def r_dependents(self):
+        water_alias = _get_fluid_alias("H2O", self.fluid_data)
+        # water alias is already a set
+        return {
+            "scalars": [self.p, self.h],
+            "vectors": [{self.fluid: water_alias}]
+        }
+
+    def calc_w(self):
+        return _get_humid_air_humidity_ratio(self.fluid_data)
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()
         self.vol.val_SI = self.calc_vol()
         self.v.val_SI = self.vol.val_SI * self.m.val_SI
+        air_alias = list(_get_fluid_alias("air", self.fluid_data))[0]
+        air_mass_fraction = self.fluid.val[air_alias]
+        self.mHA.val_SI = self.m.val_SI / air_mass_fraction
+        self.w.val_SI = self.calc_w()
+        self.r.val_SI = self.calc_r()
+        if self.r.val_SI > 1:
+            self.r.val_SI = np.nan
 
         for prop in self._result_attributes():
             param = self.get_attr(prop)
@@ -176,7 +200,6 @@ class HumidAirConnection(Connection):
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)
-        self.w.set_val0_from_SI(units)
         self.fluid.val0 = self.fluid.val.copy()
 
         return True

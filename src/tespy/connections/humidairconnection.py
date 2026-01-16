@@ -125,6 +125,16 @@ class HAConnection(Connection):
                     pass
 
     def _presolve(self):
+        air_alias = _get_fluid_alias("air", self.fluid_data)
+        water_alias = _get_fluid_alias("water", self.fluid_data)
+        if not air_alias:
+            msg = "air must bre present in fluid composition"
+            raise ValueError(msg)
+
+        elif not water_alias:
+            msg = "water must bre present in fluid composition"
+            raise ValueError(msg)
+
         return []
 
     def _adjust_to_property_limits(self, nw):

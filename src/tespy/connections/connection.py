@@ -760,7 +760,7 @@ class Connection(ConnectionBase):
             # other boolean keywords
             elif key in ['printout', 'local_design', 'local_offdesign']:
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
+                    msg = f"Please provide the {key} as boolean."
                     logger.error(msg)
                     raise TypeError(msg)
                 else:

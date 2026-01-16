@@ -2847,7 +2847,7 @@ class Network:
         # - only in design case
         if (
                 self.iter < 3
-                and norm(self.increment) > 1e3
+                and norm(self.increment) > 1e-1
                 and self.mode == "design"
             ):
             for cp in self.comps['object']:

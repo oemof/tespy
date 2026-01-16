@@ -993,9 +993,17 @@ class CombustionChamber(Component):
         if outl.m.val_SI < 0 and outl.m.is_var:
             outl.m.set_reference_val_SI(10)
 
-        if not outl.good_starting_values:
-            if outl.h.val_SI < 7.5e5 and outl.h.is_var:
-                outl.h.set_reference_val_SI(1e6)
+        if not outl.good_starting_values and outl.h.is_var:
+            if outl.calc_T() < 800:
+                h = h_mix_pT(
+                    outl.p.val_SI, 800, outl.fluid_data, outl.mixing_rule
+                )
+                outl.h.set_reference_val_SI(h)
+            elif outl.calc_T() > 1500:
+                h = h_mix_pT(
+                    outl.p.val_SI, 1500, outl.fluid_data, outl.mixing_rule
+                )
+                outl.h.set_reference_val_SI(h)
 
         ######################################################################
         # additional checks for performance improvement

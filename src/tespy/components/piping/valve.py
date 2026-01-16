@@ -18,6 +18,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 
 
 @component_registry
@@ -161,6 +162,22 @@ class Valve(Component):
                 func=self.dp_char_func,
                 char_params={'type': 'abs'},
                 description="inlet to outlet absolute pressure change as function of mass flow lookup table"
+            ),
+            'Kv': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.Kv_func, dependents=self.Kv_dependents
+            ),
+            'Kv_char': dc_cc(
+
+            ),
+            'opening': dc_cp(
+                min_val=0, max_val=1
+            ),
+            'Kv_char_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_char", "opening"],
+                func=self.Kv_opening_func,
+                dependents=self.Kv_opening_dependents
             )
         }
 
@@ -214,7 +231,7 @@ class Valve(Component):
 
         Returns
         -------
-        residual : ndarray
+        float
             Residual value of equation.
 
             .. math::
@@ -244,6 +261,77 @@ class Valve(Component):
             dependents += [self.inl[0].h]
         return dependents
 
+    def _Kv_eq(self, Kv):
+        # 1000 * delta p (bar) is 1000 * delta p / 100000, simplified to
+        # delta p / 100
+        # (vol * m * 3600) ** 2 / vol simplified to
+        # (m * 3600) ** 2 * vol
+        return (
+            Kv ** 2 * (self.inl[0].p.val_SI - self.outl[0].p.val_SI) / 1e2
+            - self.inl[0].calc_vol() * (self.inl[0].m.val_SI * 3600) ** 2
+        )
+
+    def Kv_func(self):
+        r"""
+        Equation for Kv value of a Valve
+
+        The equation is as follows:
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{1}{\rho}\cdot \left(3600 \cdot \dot m \right)
+        """
+        Kv = self.Kv.val_SI
+        return self._Kv_eq(Kv)
+
+    def Kv_dependents(self):
+        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p]
+
+    def Kv_opening_func(self):
+        r"""
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
+
+        Kv is determined from the degree of opening with a lookup table, the
+        Kv equation is then applied:
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{1}{\rho}\cdot \left(3600 \cdot \dot m \right)
+        """
+        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
+        return self._Kv_eq(Kv)
+
+    def Kv_opening_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]
@@ -251,6 +339,12 @@ class Valve(Component):
         self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
         self.zeta.val_SI = self.calc_zeta(i, o)
+        if i.calc_phase() == "l":
+            self.Kv.val_SI = (
+                i.v.val_SI * 3600 * (
+                    100 / (i.vol.val_SI * self.dp.val_SI)
+                ) ** 0.5
+            )
 
     def entropy_balance(self):
         r"""

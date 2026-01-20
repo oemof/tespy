@@ -241,8 +241,10 @@ class Valve(Component):
         p = self.dp_char.param
         expr = self.get_char_expr(p, **self.dp_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
+            msg = (
+                "Please choose a valid parameter for the usage of the "
+                f"'dp_char_func' of the component {self.label}."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -291,7 +293,7 @@ class Valve(Component):
             .. math::
 
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
-                -\frac{1}{\rho}\cdot \left(3600 \cdot \dot m \right)
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
         Kv = self.Kv.val_SI
         return self._Kv_eq(Kv)
@@ -321,7 +323,7 @@ class Valve(Component):
             .. math::
 
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
-                -\frac{1}{\rho}\cdot \left(3600 \cdot \dot m \right)
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
         Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
         return self._Kv_eq(Kv)

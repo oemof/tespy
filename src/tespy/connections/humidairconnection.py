@@ -182,14 +182,14 @@ class HAConnection(Connection):
             hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
             if self.h.val_SI < hmin:
                 delta = max(abs(self.h.val_SI * d), d) * 5
-                self.set_reference_val_SI(hmin + delta)
+                self.h.set_reference_val_SI(hmin + delta)
 
             else:
                 # TODO: where to get reasonable hmax from?!
                 hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
                 if self.h.val_SI > hmax:
                     delta = max(abs(self.h.val_SI * d), d) * 5
-                    self.set_reference_val_SI(hmax - delta)
+                    self.h.set_reference_val_SI(hmax - delta)
 
     @classmethod
     def _result_attributes(cls):

@@ -119,9 +119,16 @@ class HAConnection(Connection):
     mixing_rule = property(_get_mixing_rule, _set_mixing_rule)
 
     def _guess_starting_values(self, units):
-        h = fp.h_mix_pT(1e5, 290, self.fluid_data, self.mixing_rule)
-        self.h.set_reference_val_SI(h)
-        self._precalc_guess_values()
+        if self.h.is_var and not self.good_starting_values:
+            # make a reproducible random guess on starting value for enthalpy
+            import numpy as np
+            seed = abs(hash(self.label)) % (2**32)
+            rng = np.random.default_rng(seed=seed)
+            value = float(rng.random())
+            T_rand = 280 + value * (300 - 280)
+            h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
+            self.h.set_reference_val_SI(h)
+            self._precalc_guess_values()
 
     def _precalc_guess_values(self):
         if not self.h.is_var:

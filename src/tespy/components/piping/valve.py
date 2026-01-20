@@ -168,7 +168,6 @@ class Valve(Component):
                 func=self.Kv_func, dependents=self.Kv_dependents
             ),
             'Kv_char': dc_cc(
-
             ),
             'opening': dc_cp(
                 min_val=0, max_val=1
@@ -176,9 +175,17 @@ class Valve(Component):
             'Kv_char_group': dc_gcp(
                 num_eq_sets=1,
                 elements=["Kv_char", "opening"],
-                func=self.Kv_opening_func,
-                dependents=self.Kv_opening_dependents
-            )
+                func=self.Kv_char_func,
+                dependents=self.Kv_char_dependents
+            ),
+            'Kv_char_analytical': dc_simple(),
+            'Kv_char_analytical_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_char_analytical", "opening"],
+                func=self.Kv_char_analytical_func,
+                dependents=self.Kv_char_analytical_dependents
+            ),
+
         }
 
     def get_mandatory_constraints(self):
@@ -301,7 +308,7 @@ class Valve(Component):
     def Kv_dependents(self):
         return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p]
 
-    def Kv_opening_func(self):
+    def Kv_char_func(self):
         r"""
         Equation for Kv characteristic of a Valve opening
         :math:`K_v=f\left(opening\right)`
@@ -328,7 +335,55 @@ class Valve(Component):
         Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
         return self._Kv_eq(Kv)
 
-    def Kv_opening_dependents(self):
+    def Kv_char_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
+    def Kv_char_analytical_func(self):
+        r"""
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
+
+        Kv is determined from the degree of opening with a lookup table, the
+        Kv equation is then applied:
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
+        """
+        char_type = self.Kv_char_analytical.val
+        if char_type == "linear":
+            Kv = self.Kvs.val_SI * self.opening.val_SI
+        elif char_type == "equal-percentage":
+            Kv = (
+                self.Kvs.val_SI * np.exp(
+                    self.fitting_parameter.val_SI * (self.opening.val_SI - 1)
+                )
+            )
+        else:
+            msg = (
+                f"The analytical method {char_type} for Kv characteristic of "
+                f"the component {self.label} is not available."
+            )
+            raise NotImplementedError(msg)
+
+        return self._Kv_eq(Kv)
+
+    def Kv_char_analytical_dependents(self):
         return [
             self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
             self.opening

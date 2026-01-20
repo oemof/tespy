@@ -17,6 +17,7 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties.functions import _get_humid_air_humidity_ratio
+from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 
 from .connection import Connection
@@ -148,7 +149,24 @@ class HAConnection(Connection):
             msg = "water must bre present in fluid composition"
             raise ValueError(msg)
 
-        return []
+        if len(self.fluid.is_var) > 0:
+            return []
+
+        presolved_equations = []
+
+        if self.h.is_var and not self.p.is_var:
+            if self.T.is_set:
+                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
+                self.h._potential_var = False
+                if "T" in self._equation_set_lookup.values():
+                    presolved_equations += ["T"]
+
+        presolved_equations = [
+            key for parameter in presolved_equations
+            for key, value in self._equation_set_lookup.items()
+            if value == parameter
+        ]
+        return presolved_equations
 
     def _adjust_to_property_limits(self, nw):
 

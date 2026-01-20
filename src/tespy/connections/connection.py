@@ -1039,6 +1039,7 @@ class Connection(ConnectionBase):
             raise TESPyNetworkError(msg)
 
         presolved_equations = []
+
         if self.p.is_set:
             if self.T_dew.is_set or self.T_bubble.is_set:
                 msg = (

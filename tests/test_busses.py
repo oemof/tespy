@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+from pytest import approx
 
 from tespy.components import CombustionChamber
 from tespy.components import Compressor
@@ -179,9 +180,10 @@ class TestBusses:
 
         eta_gt_tpo = gt.calc_bus_efficiency(tpo)
         msg = (
-            'The efficiency value of the turbine on the bus ' + tpo.label +
-            ' (' + str(eta_gt_tpo) + ') must be equal to 0.975.')
-        assert eta_gt_tpo == 0.975, msg
+            f"The efficiency value of the turbine on the bus {tpo.label} "
+            f" ({eta_gt_tpo}) must be equal to 0.975."
+        )
+        assert approx(eta_gt_tpo) == 0.975, msg
 
         P_cp_tpo = round(
             cp.calc_bus_value(tpo) * cp.calc_bus_efficiency(tpo), 0)

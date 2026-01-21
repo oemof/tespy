@@ -72,6 +72,8 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
     if T0 is None or T0 == 0 or np.isnan(T0):
         T0 = (valmin + valmax) / 2.0
 
+    # this is to prevent evaluation below valmin!
+    valmin *= 1.001
     valmax *= 2
 
     function_kwargs = {

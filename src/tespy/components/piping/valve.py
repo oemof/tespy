@@ -19,6 +19,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry
@@ -140,7 +141,8 @@ class Valve(Component):
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet ot inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -154,7 +156,8 @@ class Valve(Component):
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'}
+                func_params={'zeta': 'zeta'},
+                description="non-dimensional friction coefficient for pressure loss calculation"
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -165,18 +168,23 @@ class Valve(Component):
             ),
             'Kv': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.Kv_func, dependents=self.Kv_dependents
+                func=self.Kv_func,
+                dependents=self.Kv_dependents,
+                description="flow coefficient"
             ),
             'Kv_char': dc_cc(
+                description="lookup-table data for flow coefficient as function of opening"
             ),
             'opening': dc_cp(
-                min_val=0, max_val=1
+                min_val=0, max_val=1,
+                description="opening"
             ),
             'Kv_char_group': dc_gcp(
                 num_eq_sets=1,
                 elements=["Kv_char", "opening"],
                 func=self.Kv_char_func,
-                dependents=self.Kv_char_dependents
+                dependents=self.Kv_char_dependents,
+                description="equation for flow coefficient over opening"
             ),
             'Kv_char_analytical': dc_simple(),
             'Kv_char_analytical_group': dc_gcp(

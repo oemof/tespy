@@ -249,7 +249,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=o.T.val_SI
                 )
                 - inl.h.val_SI
             ) * self.eta_s.val_SI
@@ -364,7 +365,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=o.T.val_SI
                 ) - inl.h.val_SI
             )
         )
@@ -389,7 +391,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=o.T.val_SI
                 ) - inl.h.val_SI
             )
         )

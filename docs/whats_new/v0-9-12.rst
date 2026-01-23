@@ -76,6 +76,9 @@ Other changes
   (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
 - The logging level of some messages has been changed from warning to debug
   (`PR #893 <https://github.com/oemof/tespy/pull/893>`__).
+- `isentropic` method for calculation of isentropic outlet enthalpy can now
+  receive starting values for both inlet and outlet temperature in the context
+  of gas mixtures (`PR #896 <https://github.com/oemof/tespy/pull/896>`__).
 
 Bug Fixes
 #########

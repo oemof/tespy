@@ -33,9 +33,8 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
     else:
         s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule, T0=T0)
-        # TODO: check how to inject T0 for outlet temperature
-        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, T0=T0)
-        return h_mix_pT(p_2, T_2, fluid_data, mixing_rule, T0_out)
+        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, T0=T0_out)
+        return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
 
 
 def _exergy_splitting_in_two_phase(h, s, p, pamb, Tamb, fluid_data):

@@ -65,7 +65,7 @@ installed.
 
          .. code-block:: console
 
-            conda create -n tespy-env python=3.9
+            conda create -n tespy-env python=3.12
             activate tespy-env
 
       4. In the active prompt type: :code:`pip install tespy`

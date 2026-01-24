@@ -17,7 +17,8 @@ Documentation
         .. image:: /_static/images/thumbnails/documentation/api_darkmode.svg
             :class: only-dark
 
-        Get the installation instructions for your favorite OS
+        Check out the API documentation of the modules, classes, methods and
+        functions of TESPy
 
     .. grid-item-card::  Changelog
         :link: whats_new_label
@@ -29,7 +30,7 @@ Documentation
         .. image:: /_static/images/thumbnails/documentation/changelog_darkmode.svg
             :class: only-dark
 
-        Build your first basic models with tespy
+        Discover the most notable changes between versions
 
     .. grid-item-card::  GitHub repository
         :link: https://github.com/oemof/tespy/
@@ -40,7 +41,7 @@ Documentation
         .. image:: /_static/images/thumbnails/documentation/github_darkmode.svg
             :class: only-dark
 
-        Learn more about the framework
+        View the source code on GitHub
 
 ..  toctree::
     :maxdepth: 1

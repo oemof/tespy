@@ -451,7 +451,7 @@ class CombustionChamber(Component):
             res = \sum_i \left(x_{fluid,i} \cdot \dot{m}_{i}\right) -
             \sum_j \left(x_{fluid,j} \cdot \dot{m}_{j}\right)\\
             \forall i \in \text{combustion inlets}\\
-            \forall j \in text{flue gas outlet}
+            \forall j \in \text{flue gas outlet}
 
             \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
             {M_{fluid}}\\
@@ -993,9 +993,17 @@ class CombustionChamber(Component):
         if outl.m.val_SI < 0 and outl.m.is_var:
             outl.m.set_reference_val_SI(10)
 
-        if not outl.good_starting_values:
-            if outl.h.val_SI < 7.5e5 and outl.h.is_var:
-                outl.h.set_reference_val_SI(1e6)
+        if not outl.good_starting_values and outl.h.is_var:
+            if outl.calc_T() < 800:
+                h = h_mix_pT(
+                    outl.p.val_SI, 800, outl.fluid_data, outl.mixing_rule
+                )
+                outl.h.set_reference_val_SI(h)
+            elif outl.calc_T() > 1500:
+                h = h_mix_pT(
+                    outl.p.val_SI, 1500, outl.fluid_data, outl.mixing_rule
+                )
+                outl.h.set_reference_val_SI(h)
 
         ######################################################################
         # additional checks for performance improvement

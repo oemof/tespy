@@ -475,9 +475,10 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
 
         for dependent, dx in data._vector_dependents[0].items():
             f = data.func
-            obj._partial_derivative_fluid(
-                dependent, eq_num, f, dx, increment_filter, **data.func_params
-            )
+            for dx in dx:
+                obj._partial_derivative_fluid(
+                    dependent, eq_num, f, dx, increment_filter, **data.func_params
+                )
 
 
 def _is_variable(var, increment_filter=None):

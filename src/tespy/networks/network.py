@@ -24,6 +24,10 @@ import pandas as pd
 from numpy.linalg import norm
 from tabulate import tabulate
 
+from tespy.components import CycleCloser
+from tespy.components import FuelCell
+from tespy.components import Source
+from tespy.components import WaterElectrolyzer
 from tespy.components.component import component_registry
 from tespy.connections import Bus
 from tespy.connections import Connection
@@ -133,7 +137,7 @@ class Network:
     """
 
     def __init__(self, **kwargs):
-        self.set_defaults()
+        self._set_defaults()
         self.set_attr(**kwargs)
 
     def _serialize(self):
@@ -144,7 +148,7 @@ class Network:
             "units": self.units._serialize()
         }
 
-    def set_defaults(self):
+    def _set_defaults(self):
         """Set default network properties."""
         # connection dataframe
 
@@ -891,14 +895,14 @@ class Network:
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
-        self._init_set_properties()
+        self._transform_user_input_to_SI()
         self._create_structure_matrix()
 
         self._presolve()
         self._prepare_for_solver()
 
         # generic fluid property initialisation
-        self._init_properties()
+        self._set_starting_values()
 
         msg = 'Network initialised.'
         logger.info(msg)
@@ -913,16 +917,21 @@ class Network:
             any_fluids_set = []
             engines = {}
             back_ends = {}
+            wrapper_kwargs = {}
             any_fluids = []
             any_fluids0 = []
             mixing_rules = []
             for c in all_connections:
                 for f in c.fluid.is_set:
                     any_fluids_set += [f]
+
                     if f in c.fluid.engine:
                         engines[f] = c.fluid.engine[f]
                     if f in c.fluid.back_end:
                         back_ends[f] = c.fluid.back_end[f]
+                    if f in c.fluid.wrapper_kwargs:
+                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
+
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
                 if c.mixing_rule is not None:
@@ -953,7 +962,7 @@ class Network:
             num_potential_fluids = len(potential_fluids)
             if num_potential_fluids == 0:
                 msg = (
-                    "The follwing connections of your network are missing any "
+                    "The following connections of your network are missing any "
                     "kind of fluid composition information:"
                     f"{', '.join([c.label for c in all_connections])}."
                 )
@@ -977,6 +986,8 @@ class Network:
                     c.fluid.engine[f] = engine
                 for f, back_end in back_ends.items():
                     c.fluid.back_end[f] = back_end
+                for f, w_kwargs in wrapper_kwargs.items():
+                    c.fluid.wrapper_kwargs[f] = w_kwargs
 
                 c._create_fluid_wrapper()
 
@@ -1010,13 +1021,13 @@ class Network:
 
             # load design case
             if self.new_design:
-                self._init_offdesign_params()
+                self._load_offdesign_state()
 
-            self._init_offdesign()
+            self._prepare_offdesign()
 
         else:
             # reset any preceding offdesign calculation
-            self._init_design()
+            self._prepare_design()
 
     def _presolve_fluid_vectors(self):
 
@@ -1478,8 +1489,12 @@ class Network:
     def _create_fluid_wrapper_branches(self):
 
         self.fluid_wrapper_branches = {}
-        mask = self.comps["comp_type"].isin(
-            ["Source", "CycleCloser", "WaterElectrolyzer", "FuelCell"]
+        mask = self.comps["object"].apply(
+            lambda x:
+            isinstance(x, Source)
+            or isinstance(x, CycleCloser)
+            or isinstance(x, WaterElectrolyzer)
+            or isinstance(x, FuelCell)
         )
         start_components = self.comps["object"].loc[mask]
 
@@ -1644,7 +1659,7 @@ class Network:
             }
             self.variable_counter += 1
 
-    def _init_set_properties(self):
+    def _transform_user_input_to_SI(self):
         """Specification of SI values for user set values."""
         # fluid property values
         for c in self.conns['object']:
@@ -1679,8 +1694,7 @@ class Network:
                         value.val = (value.min_val + value.max_val) / 2
                     value.set_SI_from_val(self.units)
 
-
-    def _init_design(self):
+    def _prepare_design(self):
         r"""
         Initialise a design calculation.
 
@@ -1719,7 +1733,7 @@ class Network:
 
                 df = _local_designs[c.design_path][c.__class__.__name__]
                 # write data to connections
-                self._init_conn_design_params(c, df)
+                self._write_design_state_to_connection(c, df)
 
             else:
                 c._reset_design(self.redesign)
@@ -1749,7 +1763,7 @@ class Network:
 
                 data = _local_designs[path][c]
                 # write data
-                self._init_comp_design_params(cp, data)
+                self._write_design_state_to_component(cp, data)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1787,7 +1801,7 @@ class Network:
 
                 cp._set_design_parameters(self.mode, series)
 
-    def _init_offdesign(self):
+    def _prepare_offdesign(self):
         r"""
         Switch components and connections from design to offdesign mode.
 
@@ -1860,21 +1874,13 @@ class Network:
         msg = 'Switched components from design to offdesign.'
         logger.debug(msg)
 
-    def _init_offdesign_params(self):
+    def _load_offdesign_state(self):
         r"""
         Read design point information from specified :code:`design_path`.
 
         If a :code:`design_path` has been specified individually for components
         or connections, the data will be read from the specified individual
         path instead.
-
-        Note
-        ----
-        The methods
-        :py:meth:`tespy.networks.network.Network.init_comp_design_params`
-        (components) and the
-        :py:meth:`tespy.networks.network.Network.init_conn_design_params`
-        (connections) handle the parameter specification.
         """
         # components with offdesign parameters
         components_with_parameters = [
@@ -1900,7 +1906,7 @@ class Network:
                 data = df
 
             # write data to components
-            self._init_comp_design_params(comp, data)
+            self._write_design_state_to_component(comp, data)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
@@ -1924,12 +1930,12 @@ class Network:
             else:
                 data = df
 
-            self._init_conn_design_params(c, data)
+            self._write_design_state_to_connection(c, data)
 
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def _init_comp_design_params(self, c, df):
+    def _write_design_state_to_component(self, c, df):
         r"""
         Write design point information to components.
 
@@ -1954,7 +1960,7 @@ class Network:
         data = df.loc[c.label]
         c._set_design_parameters(self.mode, data)
 
-    def _init_conn_design_params(self, c, df):
+    def _write_design_state_to_connection(self, c, df):
         r"""
         Write design point information to connections.
 
@@ -1981,7 +1987,7 @@ class Network:
         data = df.loc[c.label]
         c._set_design_params(data, self.units)
 
-    def _init_conn_params_from_path(self, c, df):
+    def _write_starting_values_to_connection(self, c, df):
         r"""
         Write parameter information from init_path to connections.
 
@@ -2003,7 +2009,7 @@ class Network:
         c._set_starting_values(data, self.units)
         c.good_starting_values = True
 
-    def _init_properties(self):
+    def _set_starting_values(self):
         """
         Initialise the fluid properties on every connection of the network.
 
@@ -2022,7 +2028,7 @@ class Network:
         for c in self.conns['object']:
             if self.init_path is not None:
                 df = dfs[c.__class__.__name__]
-                self._init_conn_params_from_path(c, df)
+                self._write_starting_values_to_connection(c, df)
 
             if type(c) == Connection:
                 # the below part does not work for PowerConnection right now
@@ -2040,7 +2046,7 @@ class Network:
                 # for connections variables can be presolved and not be var anymore
                 if variable.is_var:
                     if not c.good_starting_values:
-                        self.init_val0(c, key)
+                        self._guess_starting_value_from_connected_components(c, key)
 
                     variable.set_SI_from_val0(self.units)
                     # variable.set_SI_from_val0()
@@ -2061,7 +2067,7 @@ class Network:
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
 
-    def init_val0(self, c, key):
+    def _guess_starting_value_from_connected_components(self, c, key):
         r"""
         Set starting values for fluid properties.
 
@@ -2481,18 +2487,18 @@ class Network:
         msg = 'Starting solver.'
         logger.info(msg)
 
-        self.solve_determination()
+        self._check_determination()
 
         try:
-            self.solve_loop(print_results=print_results)
+            self._solve_loop(print_results=print_results)
         except ValueError as e:
             self.status = 99
             msg = f"Simulation crashed due to an unexpected error:\n{e}"
             logger.exception(msg)
-            self.unload_variables()
+            self._unload_variables()
             return
 
-        self.unload_variables()
+        self._unload_variables()
 
         if self.status == 3:
             logger.error(self.singularity_msg)
@@ -2509,13 +2515,13 @@ class Network:
             logger.warning(msg)
             return
 
-        self.postprocessing()
+        self._postprocess()
 
         msg = 'Calculation complete.'
         logger.info(msg)
         return
 
-    def solve_loop(self, print_results=True):
+    def _solve_loop(self, print_results=True):
         r"""Loop of the newton algorithm."""
         # parameter definitions
         self.residual_history = np.array([])
@@ -2526,16 +2532,16 @@ class Network:
         self.start_time = time()
 
         if self.iterinfo:
-            self.iterinfo_head(print_results)
+            self._print_iterinfo_head(print_results)
 
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            self.solve_control()
+            self._solve_iteration()
             self.residual_history = np.append(
                 self.residual_history, norm(self.residual)
             )
             if self.iterinfo:
-                self.iterinfo_body(print_results)
+                self._print_iterinfo_body(print_results)
 
             if self.lin_dep:
                 self.status = 3
@@ -2562,7 +2568,7 @@ class Network:
         self.end_time = time()
 
         if self.iterinfo:
-            self.iterinfo_tail(print_results)
+            self._print_iterinfo_tail(print_results)
 
         if self.iter == self.max_iter - 1:
             msg = (
@@ -2574,6 +2580,9 @@ class Network:
             self.status = 2
 
     def solve_determination(self):
+        self._check_determination()
+
+    def _check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
         msg = f'Number of connection equations: {self.num_conn_eq}.'
         logger.debug(msg)
@@ -2608,7 +2617,7 @@ class Network:
             self.status = 11
             raise hlp.TESPyNetworkError(msg)
 
-    def iterinfo_head(self, print_results=True):
+    def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
         # Start with defining the format here
         self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
@@ -2633,7 +2642,7 @@ class Network:
             print('\n' + msg + '\n' + msg2)
         return
 
-    def iterinfo_body(self, print_results=True):
+    def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         m = [k for k, v in self.variables_dict.items() if v["variable"] == "m"]
         p = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
@@ -2697,7 +2706,7 @@ class Network:
             print(msg)
         return
 
-    def iterinfo_tail(self, print_results=True):
+    def _print_iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
         num_iter = self.iter + 1
         clc_time = self.end_time - self.start_time
@@ -2856,19 +2865,24 @@ class Network:
                 container._val_SI += increment[container.J_col] * relax
             elif data["variable"] == "p":
                 container = data["obj"]
-                relax = max(
+                p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI
                 )
-                container._val_SI += increment[container.J_col] / relax
+                container._val_SI += increment[container.J_col] / p_relax
             elif data["variable"] == "fluid":
                 container = data["obj"]
-                container.val[data["fluid"]] += increment[
-                    container.J_col[data["fluid"]]
-                ]
+                inc = increment[container.J_col[data["fluid"]]]
+                value = container.val[data["fluid"]]
+                if value > ERR:
+                    f_relax = max(1, -2 * inc / value)
+                else:
+                    f_relax = 1
 
-                if container.val[data["fluid"]] < ERR :
+                container.val[data["fluid"]] += inc / f_relax
+
+                if container.val[data["fluid"]] < ERR:
                     container.val[data["fluid"]] = 0
-                elif container.val[data["fluid"]] > 1 - ERR :
+                elif container.val[data["fluid"]] > 1 - ERR:
                     container.val[data["fluid"]] = 1
             else:
                 # add increment
@@ -2880,7 +2894,7 @@ class Network:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
-    def check_variable_bounds(self):
+    def _adapt_to_variable_bounds(self):
 
         # this could be in a different place, its kind of in between
         # network and connection
@@ -2901,7 +2915,7 @@ class Network:
         # - only in design case
         if (
                 self.iter < 3
-                and norm(self.increment) > 1e3
+                and norm(self.increment) > 1e-1
                 and self.mode == "design"
             ):
             for cp in self.comps['object']:
@@ -2910,7 +2924,7 @@ class Network:
             for c in self.conns['object']:
                 c._adjust_to_property_limits(self)
 
-    def solve_control(self):
+    def _solve_iteration(self):
         r"""
         Control iteration step of the newton algorithm.
 
@@ -2920,8 +2934,8 @@ class Network:
         - Restrict fluid properties to value ranges
         - Check component parameters for consistency
         """
-        self.solve_equations()
-        self.solve_busses()
+        self._solve_equations()
+        self._solve_busses()
         self._invert_jacobian()
 
         # check for linear dependency
@@ -2929,9 +2943,9 @@ class Network:
             return
 
         self._update_variables()
-        self.check_variable_bounds()
+        self._adapt_to_variable_bounds()
 
-    def solve_equations(self):
+    def _solve_equations(self):
         r"""
         Calculate the residual and derivatives of all equations.
         """
@@ -2954,7 +2968,7 @@ class Network:
 
             obj.it += 1
 
-    def solve_busses(self):
+    def _solve_busses(self):
         r"""
         Calculate the equations and the partial derivatives for the busses.
         """
@@ -2973,11 +2987,11 @@ class Network:
                 bus.clear_jacobian()
                 sum_eq += 1
 
-    def postprocessing(self):
+    def _postprocess(self):
         r"""Calculate connection, bus and component parameters."""
-        _converged = self.process_connections()
-        _converged = self.process_components() and _converged
-        self.process_busses()
+        _converged = self._postprocess_connections()
+        _converged = self._postprocess_components() and _converged
+        self._postprocess_busses()
 
         if self.status == 0 and not _converged:
             self.status = 1
@@ -2985,7 +2999,7 @@ class Network:
         msg = 'Postprocessing complete.'
         logger.info(msg)
 
-    def unload_variables(self):
+    def _unload_variables(self):
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
@@ -2996,7 +3010,7 @@ class Network:
                     variable.val = variable.val
                 variable._reference_container = None
 
-    def process_connections(self):
+    def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
         for c in self.conns['object']:
@@ -3005,7 +3019,7 @@ class Network:
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
-    def process_components(self):
+    def _postprocess_components(self):
         """Process the component results."""
         # components
         _converged = True
@@ -3057,7 +3071,7 @@ class Network:
 
         return _converged
 
-    def process_busses(self):
+    def _postprocess_busses(self):
         """Process the bus results."""
         # busses
         for b in self.busses.values():

@@ -27,13 +27,13 @@ from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
 
 
-def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
+def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None):
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
     else:
-        s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule)
-        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule)
+        s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule, T0=T0)
+        T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, T0=T0_out)
         return h_mix_pT(p_2, T_2, fluid_data, mixing_rule)
 
 
@@ -352,3 +352,15 @@ def viscosity_mix_pT(p, T, fluid_data, mixing_rule=None):
     else:
         _check_mixing_rule(mixing_rule, V_MIX_PT_DIRECT, "viscosity")
         return VISCOSITY_MIX_PT_DIRECT[mixing_rule](p, T, fluid_data)
+
+
+def conductivity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
+    if get_number_of_fluids(fluid_data) == 1:
+        pure_fluid = get_pure_fluid(fluid_data)
+        return pure_fluid["wrapper"].conductivity_ph(p, h)
+    else:
+        msg = (
+            "Calculation of thermal conductivity is not implemented for "
+            "TESPy based mixtures. You are happily invited to contribute it!"
+        )
+        raise NotImplementedError(msg)

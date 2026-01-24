@@ -69,9 +69,11 @@ def get_molar_fractions(fluid_data):
 def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None or T0 == 0 or np.isnan(T0):
+    if T0 is None or T0 == 0 or np.isnan(T0) or T0 < valmin:
         T0 = (valmin + valmax) / 2.0
 
+    # this is to prevent evaluation below valmin!
+    valmin *= 1.001
     valmax *= 2
 
     function_kwargs = {

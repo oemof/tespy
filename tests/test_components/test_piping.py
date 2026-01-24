@@ -10,6 +10,7 @@ tests/test_components/test_piping.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+from pytest import approx
 
 from tespy.components import Pipe
 from tespy.components import Sink
@@ -76,9 +77,37 @@ class TestPiping:
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)
-        msg = ('The pressure drop at the valve should be ' + str(dp) + ' but '
-               'is ' + str(dp_act) + '.')
+        msg = f"The pressure drop at the valve should be {dp} but is {dp_act}."
         assert dp == dp_act, msg
+
+    def test_Valve_Kv(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'H2O': 1}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        self.nw.solve("design")
+
+        # volumetric flow must then be exactly equal to Kv
+        assert approx(self.c1.v.val * 3600) == instance.Kv.val_SI
+
+        # data from online available resource:
+        # https://www.samsongroup.com/document/t80003en.pdf
+        kv_data = np.array([
+            0.09,0.63,1.1,2.1,3.1,4.2,5.2,6.2,7.2,8.2,9.2,10.3,11.3
+        ])
+        opening_data = np.array([0,5,10,20,30,40,50,60,70,80,90,100,110]) / 100
+        Kv_char = {
+            "char_func": CharLine(x=opening_data, y=kv_data) , "is_set": True
+        }
+        # 5 -> 0.4 + (5 - 4.2) / (5.2 - 4.2) * (0.5 - 0.4)
+        instance.set_attr(Kv_char=Kv_char, opening="var")
+        self.nw.solve("design")
+        assert approx(instance.opening.val) == 0.48
 
     def test_Pipe(self):
         """Test component properties of pipe."""

@@ -49,6 +49,9 @@ def get_pure_fluid(fluid_data):
 
 def single_fluid(fluid_data):
     r"""Return the name of the pure fluid in a fluid vector."""
+    if "_HUMID_AIR" in fluid_data:
+        return None
+
     if get_number_of_fluids(fluid_data) > 1:
         return None
     else:

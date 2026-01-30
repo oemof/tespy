@@ -1,0 +1,15 @@
+v0.9.13 - Under development
++++++++++++++++++++++++++++
+
+New Features
+############
+- The :code:`Valve` class now has flow coefficient :code:`Kv` equations
+  implemented. You can either specify the :code:`Kv` value directly, specify a
+  :code:`Kv_char` with an :code:`opening` which does a value lookup of
+  :code:`Kv` as function of the :code:`opening` or you can provide a custom
+  function, which takes the :code:`opening` and a set of custom parameters that
+  will be called by the equation.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -2129,6 +2129,7 @@ class Network:
         dfs = {}
         if "Connection" in data["Connection"]:
             for key, value in data["Connection"].items():
+                # TODO: remove the future warning here and bump minimum pandas version to 3.0
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)

@@ -479,10 +479,10 @@ htmlhelp_basename = 'tespy_doc'
 # -- Options for linkcheck ----------------------------------------------
 
 linkcheck_ignore = [    # DOIs always redirect, we believe they will always work.
-  r"https://doi.org/*",
-  r'https://github\.com/oemof/tespy/.*',
-  r'https://coolprop\.org/*'
-  r'https://docutils\.sourceforge\.io/.*'
+    r"https://doi.org/*",
+    r"https://github\.com/oemof/tespy/.*",
+    r"https://coolprop\.org/*",
+    "https://docutils.sourceforge.io/rst.html",
 ]
 
 # Notebook execution

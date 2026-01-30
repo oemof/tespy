@@ -176,7 +176,8 @@ class Valve(Component):
                 description="lookup-table data for flow coefficient as function of opening"
             ),
             'opening': dc_cp(
-                min_val=0, max_val=1,
+                # opening can be more than 100 % sometimes
+                min_val=0, max_val=1.1,
                 description="opening"
             ),
             'Kv_char_group': dc_gcp(
@@ -186,14 +187,19 @@ class Valve(Component):
                 dependents=self.Kv_char_dependents,
                 description="equation for flow coefficient over opening"
             ),
-            'Kv_char_analytical': dc_simple(),
+            'Kv_analytical': dc_simple(
+                description=(
+                    "fitting parameters and method for the analytical Kv "
+                    "evaluation provided in a dictionary with keys 'method' "
+                    "(callable) and 'params' (list)"
+                )
+            ),
             'Kv_char_analytical_group': dc_gcp(
                 num_eq_sets=1,
-                elements=["Kv_char_analytical", "opening"],
+                elements=["Kv_analytical", "opening"],
                 func=self.Kv_char_analytical_func,
                 dependents=self.Kv_char_analytical_dependents
             ),
-
         }
 
     def get_mandatory_constraints(self):
@@ -354,8 +360,10 @@ class Valve(Component):
         Equation for Kv characteristic of a Valve opening
         :math:`K_v=f\left(opening\right)`
 
-        Kv is determined from the degree of opening with a lookup table, the
-        Kv equation is then applied:
+        Kv is determined from the method supplied by the user in the
+        :code:`Kv_analytical` specification and the additional parameters next
+        to the opening. The method must accept parameters in the following way:
+        :code:`method(opening, *params)`
 
         .. math::
 
@@ -373,22 +381,10 @@ class Valve(Component):
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
                 -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        char_type = self.Kv_char_analytical.val
-        if char_type == "linear":
-            Kv = self.Kvs.val_SI * self.opening.val_SI
-        elif char_type == "equal-percentage":
-            Kv = (
-                self.Kvs.val_SI * np.exp(
-                    self.fitting_parameter.val_SI * (self.opening.val_SI - 1)
-                )
-            )
-        else:
-            msg = (
-                f"The analytical method {char_type} for Kv characteristic of "
-                f"the component {self.label} is not available."
-            )
-            raise NotImplementedError(msg)
-
+        params = self.Kv_analytical.val["params"]
+        method = self.Kv_analytical.val["method"]
+        opening = self.opening.val_SI
+        Kv = method(opening, *params)
         return self._Kv_eq(Kv)
 
     def Kv_char_analytical_dependents(self):

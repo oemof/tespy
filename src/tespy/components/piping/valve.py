@@ -134,6 +134,63 @@ class Valve(Component):
     >>> round(v_si.T.val, 1)
     30.0
     >>> os.remove('tmp.json')
+
+    You can also specify the flow coefficient of the valve :code:`Kv` which is
+    used in context of liquids. For this there are several methods available:
+
+    - direct specification with :code:`Kv`
+    - lookup table specification :math:`Kv=f\left(opening\right)` with
+      :code:`Kv_char` and :code:`opening`
+    - arbitrary function specification :math:`Kv=f\left(opening, params\right)`
+      with :code:`Kv_analytical` and :code:`opening`
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> v = Valve('valve')
+    >>> so_v = Connection(so, 'out1', v, 'in1')
+    >>> v_si = Connection(v, 'out1', si, 'in1')
+    >>> nw.add_conns(so_v, v_si)
+    >>> so_v.set_attr(fluid={'water': 1}, T=50, p=5)
+    >>> v_si.set_attr(p=4)
+
+    First we specify Kv:
+
+    >>> v.set_attr(Kv=10)
+    >>> nw.solve('design')
+    >>> round(so_v.v.val, 4)
+    0.0028
+
+    Then, for example an analytical function:
+
+    >>> def analytical(opening, *params):
+    ...     return params[0] * opening
+    >>> v.set_attr(
+    ...     Kv=None,
+    ...     opening=0.5,
+    ...     Kv_analytical={"method": analytical, "params": [10]}
+    ... )
+    >>> nw.solve("design")
+    >>> round(v.Kv.val_SI, 1)
+    5.0
+
+    Or, use the :code:`Kv_char`, which is a :code:`CharLine` instance:
+
+    >>> from tespy.tools import CharLine
+    >>> kv_data = np.array([
+    ...     0.09,0.63,1.1,2.1,3.1,4.2,5.2,6.2,7.2,8.2,9.2,10.3,11.3
+    ... ])
+    >>> opening_data = np.array([0,5,10,20,30,40,50,60,70,80,90,100,110]) / 100
+    >>> Kv_char = {
+    ...     "char_func": CharLine(x=opening_data, y=kv_data) , "is_set": True
+    ... }
+    >>> v.set_attr(Kv_char=Kv_char, Kv_analytical=None)
+    >>> nw.solve("design")
+    >>> round(v.Kv.val, 1)
+    5.2
     """
     def get_parameters(self):
         return {

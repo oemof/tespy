@@ -109,6 +109,27 @@ class TestPiping:
         self.nw.solve("design")
         assert approx(instance.opening.val) == 0.48
 
+    def test_Valve_Kv_analytical(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        def analytical_Kv(opening, param):
+            return param * opening
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'H2O': 1}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        instance.set_attr(
+            opening="var",
+            Kv_analytical={"method": analytical_Kv, "params": [10]}
+        )
+
+        self.nw.solve("design")
+        assert approx(instance.opening.val_SI) == 0.5
+
     def test_Pipe(self):
         """Test component properties of pipe."""
         instance = Pipe('pipe')

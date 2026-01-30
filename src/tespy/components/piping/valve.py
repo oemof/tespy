@@ -170,7 +170,7 @@ class Valve(Component):
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.Kv_func,
                 dependents=self.Kv_dependents,
-                description="flow coefficient"
+                description="flow coefficient in m3/h",
             ),
             'Kv_char': dc_cc(
                 description="lookup-table data for flow coefficient as function of opening"
@@ -178,7 +178,9 @@ class Valve(Component):
             'opening': dc_cp(
                 # opening can be more than 100 % sometimes
                 min_val=0, max_val=1.1,
-                description="opening"
+                _potential_var=True,
+                description="opening ratio of the valve",
+                quantity="ratio"
             ),
             'Kv_char_group': dc_gcp(
                 num_eq_sets=1,

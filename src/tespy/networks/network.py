@@ -16,6 +16,7 @@ import importlib
 import json
 import math
 import os
+from pathlib import Path
 import warnings
 from time import time
 
@@ -2046,17 +2047,30 @@ class Network:
 
 
     @staticmethod
-    def _load_network_state(json_path):
+    def _load_network_state(json_path: str | bytes | bytearray | Path):
         r"""
         Read network state from given file.
 
         Parameters
         ----------
-        json_path : str
+        json_path : str | bytes | bytearray | Path
             Path to network information.
         """
-        with open(json_path, "r") as f:
-            data = json.load(f)
+        data = None
+        if not isinstance(json_path, Path):
+            try:
+                data = json.loads(json_path)
+            except json.JSONDecodeError as e:
+                msg = (
+                    "The provided json_path could not be decoded. If this is not "
+                    "a valid json string, please provide a valid file path instead of "
+                    "%s"
+                )
+                logger.debug(msg, str(json_path))
+                pass
+        if data is None:
+            with open(json_path, "r") as f:
+                data = json.load(f)
 
         dfs = {}
         if "Connection" in data["Connection"]:

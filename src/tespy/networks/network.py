@@ -16,6 +16,7 @@ import importlib
 import json
 import math
 import os
+from pathlib import Path
 import warnings
 from time import time
 
@@ -2046,17 +2047,30 @@ class Network:
 
 
     @staticmethod
-    def _load_network_state(json_path):
+    def _load_network_state(json_path: str | bytes | bytearray | Path):
         r"""
         Read network state from given file.
 
         Parameters
         ----------
-        json_path : str
+        json_path : str | bytes | bytearray | Path
             Path to network information.
         """
-        with open(json_path, "r") as f:
-            data = json.load(f)
+        data = None
+        if not isinstance(json_path, Path):
+            try:
+                data = json.loads(json_path)
+            except json.JSONDecodeError as e:
+                msg = (
+                    "The provided json_path could not be decoded. If this is not "
+                    "a valid json string, please provide a valid file path instead of "
+                    "%s"
+                )
+                logger.debug(msg, str(json_path))
+                pass
+        if data is None:
+            with open(json_path, "r") as f:
+                data = json.load(f)
 
         dfs = {}
         if "Connection" in data["Connection"]:
@@ -3488,18 +3502,26 @@ class Network:
 
         return export
 
-    def save(self, json_file_path):
+    def save(self, json_file_path: str | Path | None) -> None | str:
         r"""
         Dump the results to a json style output.
 
         Parameters
         ----------
-        json_file_path : str
+        json_file_path : str | Path | None
             Filename to dump results into.
+
+        Returns
+        -------
+        None
+            If a file path is provided, results are saved to file.
+        str
+            If no file path is provided, results are returned as string.
 
         Note
         ----
-        Results will be saved to specified file path
+        Results will be saved to specified file path in json format. If no
+        file path is provided, the results will be returned as string.
         """
         dump = {}
 
@@ -3509,6 +3531,9 @@ class Network:
         dump["Bus"] = self._save_busses()
 
         dump = hlp._nested_dict_of_dataframes_to_dict(dump)
+
+        if json_file_path is None:
+            return json.dumps(dump, indent=2)
 
         with open(json_file_path, "w") as f:
             json.dump(dump, f)

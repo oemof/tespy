@@ -8,8 +8,16 @@ New Features
   :code:`Kv_char` with an :code:`opening` which does a value lookup of
   :code:`Kv` as function of the :code:`opening` or you can provide a custom
   function, which takes the :code:`opening` and a set of custom parameters that
-  will be called by the equation.
+  will be called by the equation
+  (`PR #891 <https://github.com/oemof/tespy/pull/891>`__).
+- It is now possible to dynamically add missing combustion fluids to your model
+  by importing :code:`COMBUSTION_FLUIDS` from the :code:`tespy.tools` module
+  and adding the respective information (fluid name, LHV and/or enthalpy of)
+  formation . For an example check out the docs:
+  :py:class:`tespy.components.combustion.base.CombustionChamber`
+  (`PR #770 <https://github.com/oemof/tespy/pull/770>`__)
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

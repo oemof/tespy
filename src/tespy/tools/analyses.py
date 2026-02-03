@@ -23,8 +23,8 @@ from tabulate import tabulate
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import combustion_gases
 from tespy.tools.units import SI_UNITS
 
 idx = pd.IndexSlice
@@ -37,7 +37,7 @@ def categorize_fluids(conn):
         for f, x in conn.fluid.val.items():
             if x > ERR :
                 try:
-                    if hlp.fluidalias_in_list(f, combustion_gases):
+                    if hlp.fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids):
                         cat = "combustion-gas"
                         break
                 except RuntimeError:
@@ -46,7 +46,9 @@ def categorize_fluids(conn):
     else:
         is_incompressible = False
         try:
-            is_combustion_gas = hlp.fluidalias_in_list(fluid, combustion_gases)
+            is_combustion_gas = hlp.fluidalias_in_list(
+                fluid, COMBUSTION_FLUIDS.fluids
+            )
         except RuntimeError:
             # CoolProp cannot call aliases on incompressibles
             is_incompressible = True

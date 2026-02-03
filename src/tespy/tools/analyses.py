@@ -37,7 +37,7 @@ def categorize_fluids(conn):
         for f, x in conn.fluid.val.items():
             if x > ERR :
                 try:
-                    if hlp.fluidalias_in_list(f, COMBUSTION_FLUIDS):
+                    if hlp.fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids):
                         cat = "combustion-gas"
                         break
                 except RuntimeError:
@@ -46,7 +46,9 @@ def categorize_fluids(conn):
     else:
         is_incompressible = False
         try:
-            is_combustion_gas = hlp.fluidalias_in_list(fluid, COMBUSTION_FLUIDS)
+            is_combustion_gas = hlp.fluidalias_in_list(
+                fluid, COMBUSTION_FLUIDS.fluids
+            )
         except RuntimeError:
             # CoolProp cannot call aliases on incompressibles
             is_incompressible = True

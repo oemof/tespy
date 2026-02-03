@@ -177,6 +177,10 @@ class CombustionChamber(Component):
     >>> nw.solve("design")
     >>> round(comb_fg.T.val, 1)
     1232.3
+    >>> sf_comb.set_attr(fluid={"ethanol": 1})
+    >>> nw.solve("design")
+    >>> round(comb_fg.T.val, 1)
+    1241.7
     """
 
     def get_parameters(self):

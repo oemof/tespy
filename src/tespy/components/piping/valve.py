@@ -18,6 +18,8 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 
 @component_registry
@@ -132,6 +134,63 @@ class Valve(Component):
     >>> round(v_si.T.val, 1)
     30.0
     >>> os.remove('tmp.json')
+
+    You can also specify the flow coefficient of the valve :code:`Kv` which is
+    used in context of liquids. For this there are several methods available:
+
+    - direct specification with :code:`Kv`
+    - lookup table specification :math:`Kv=f\left(opening\right)` with
+      :code:`Kv_char` and :code:`opening`
+    - arbitrary function specification :math:`Kv=f\left(opening, params\right)`
+      with :code:`Kv_analytical` and :code:`opening`
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC"
+    ... })
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> v = Valve('valve')
+    >>> so_v = Connection(so, 'out1', v, 'in1')
+    >>> v_si = Connection(v, 'out1', si, 'in1')
+    >>> nw.add_conns(so_v, v_si)
+    >>> so_v.set_attr(fluid={'water': 1}, T=50, p=5)
+    >>> v_si.set_attr(p=4)
+
+    First we specify Kv:
+
+    >>> v.set_attr(Kv=10)
+    >>> nw.solve('design')
+    >>> round(so_v.v.val, 4)
+    0.0028
+
+    Then, for example an analytical function:
+
+    >>> def analytical(opening, *params):
+    ...     return params[0] * opening
+    >>> v.set_attr(
+    ...     Kv=None,
+    ...     opening=0.5,
+    ...     Kv_analytical={"method": analytical, "params": [10]}
+    ... )
+    >>> nw.solve("design")
+    >>> round(v.Kv.val_SI, 1)
+    5.0
+
+    Or, use the :code:`Kv_char`, which is a :code:`CharLine` instance:
+
+    >>> from tespy.tools import CharLine
+    >>> kv_data = np.array([
+    ...     0.09,0.63,1.1,2.1,3.1,4.2,5.2,6.2,7.2,8.2,9.2,10.3,11.3
+    ... ])
+    >>> opening_data = np.array([0,5,10,20,30,40,50,60,70,80,90,100,110]) / 100
+    >>> Kv_char = {
+    ...     "char_func": CharLine(x=opening_data, y=kv_data) , "is_set": True
+    ... }
+    >>> v.set_attr(Kv_char=Kv_char, Kv_analytical=None)
+    >>> nw.solve("design")
+    >>> round(v.Kv.val, 1)
+    5.2
     """
     def get_parameters(self):
         return {
@@ -139,7 +198,8 @@ class Valve(Component):
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet ot inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -153,7 +213,8 @@ class Valve(Component):
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'}
+                func_params={'zeta': 'zeta'},
+                description="non-dimensional friction coefficient for pressure loss calculation"
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -161,7 +222,43 @@ class Valve(Component):
                 func=self.dp_char_func,
                 char_params={'type': 'abs'},
                 description="inlet to outlet absolute pressure change as function of mass flow lookup table"
-            )
+            ),
+            'Kv': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.Kv_func,
+                dependents=self.Kv_dependents,
+                description="flow coefficient in m3/h",
+            ),
+            'Kv_char': dc_cc(
+                description="lookup-table data for flow coefficient as function of opening"
+            ),
+            'opening': dc_cp(
+                # opening can be more than 100 % sometimes
+                min_val=0, max_val=1.1,
+                _potential_var=True,
+                description="opening ratio of the valve",
+                quantity="ratio"
+            ),
+            'Kv_char_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_char", "opening"],
+                func=self.Kv_char_func,
+                dependents=self.Kv_char_dependents,
+                description="equation for flow coefficient over opening"
+            ),
+            'Kv_analytical': dc_simple(
+                description=(
+                    "fitting parameters and method for the analytical Kv "
+                    "evaluation provided in a dictionary with keys 'method' "
+                    "(callable) and 'params' (list)"
+                )
+            ),
+            'Kv_char_analytical_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_analytical", "opening"],
+                func=self.Kv_char_analytical_func,
+                dependents=self.Kv_char_analytical_dependents
+            ),
         }
 
     def get_mandatory_constraints(self):
@@ -214,7 +311,7 @@ class Valve(Component):
 
         Returns
         -------
-        residual : ndarray
+        float
             Residual value of equation.
 
             .. math::
@@ -224,8 +321,10 @@ class Valve(Component):
         p = self.dp_char.param
         expr = self.get_char_expr(p, **self.dp_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
+            msg = (
+                "Please choose a valid parameter for the usage of the "
+                f"'dp_char_func' of the component {self.label}."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -244,6 +343,115 @@ class Valve(Component):
             dependents += [self.inl[0].h]
         return dependents
 
+    def _Kv_eq(self, Kv):
+        # 1000 * delta p (bar) is 1000 * delta p / 100000, simplified to
+        # delta p / 100
+        # (vol * m * 3600) ** 2 / vol simplified to
+        # (m * 3600) ** 2 * vol
+        return (
+            Kv ** 2 * (self.inl[0].p.val_SI - self.outl[0].p.val_SI) / 1e2
+            - self.inl[0].calc_vol() * (self.inl[0].m.val_SI * 3600) ** 2
+        )
+
+    def Kv_func(self):
+        r"""
+        Equation for Kv value of a Valve
+
+        The equation is as follows:
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
+        """
+        Kv = self.Kv.val_SI
+        return self._Kv_eq(Kv)
+
+    def Kv_dependents(self):
+        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p]
+
+    def Kv_char_func(self):
+        r"""
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
+
+        Kv is determined from the degree of opening with a lookup table, the
+        Kv equation is then applied:
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
+        """
+        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
+        return self._Kv_eq(Kv)
+
+    def Kv_char_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
+    def Kv_char_analytical_func(self):
+        r"""
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
+
+        Kv is determined from the method supplied by the user in the
+        :code:`Kv_analytical` specification and the additional parameters next
+        to the opening. The method must accept parameters in the following way:
+        :code:`method(opening, *params)`
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
+        """
+        params = self.Kv_analytical.val["params"]
+        method = self.Kv_analytical.val["method"]
+        opening = self.opening.val_SI
+        Kv = method(opening, *params)
+        return self._Kv_eq(Kv)
+
+    def Kv_char_analytical_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         i = self.inl[0]
@@ -251,6 +459,12 @@ class Valve(Component):
         self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
         self.zeta.val_SI = self.calc_zeta(i, o)
+        if i.calc_phase() == "l":
+            self.Kv.val_SI = (
+                i.v.val_SI * 3600 * (
+                    100 / (i.vol.val_SI * self.dp.val_SI)
+                ) ** 0.5
+            )
 
     def entropy_balance(self):
         r"""

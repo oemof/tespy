@@ -1,5 +1,26 @@
-v0.9.12 - Under development
-+++++++++++++++++++++++++++
+v0.9.12 - Kelvin's Kingdom (January, 24, 2026)
+++++++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+############
+- Custom fluid property wrappers can now receive arbitrary :code:`kwargs`
+  making injection of information for the underlying property models much
+  easier. Check the section on the
+  :ref:`incompressible fluid properties <incompressible_wrapper_label>`
+  (`PR #877 <https://github.com/oemof/tespy/pull/877>`__).
+- There is a new :code:`FluidPropertyWrapper` for incompressible fluids such as
+  thermo-oils, which you can pass measurement or manufacturer data to. The
+  :code:`IncompressibleFluidWrapper` will automatically fit functions to the
+  data points you provide:
+
+  - heat capacity and density: linear interpolation
+    :math:`f\left(T\right) = A + B \cdot T`.
+  - viscosity: exponential polynomial equation
+    :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
+
+  For an example in a TESPy model see
+  :ref:`this section <incompressible_wrapper_label>`
+  (`PR #878 <https://github.com/oemof/tespy/pull/878>`__).
 
 Other changes
 #############
@@ -52,6 +73,11 @@ Other changes
   are now named appropriately with a leading underscore. On top, some methods
   have been renamed to clarify what they do
   (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
+- The logging level of some messages has been changed from warning to debug
+  (`PR #893 <https://github.com/oemof/tespy/pull/893>`__).
+- `isentropic` method for calculation of isentropic outlet enthalpy can now
+  receive starting values for both inlet and outlet temperature in the context
+  of gas mixtures (`PR #896 <https://github.com/oemof/tespy/pull/896>`__).
 
 Bug Fixes
 #########
@@ -62,7 +88,6 @@ Bug Fixes
 - Fix a bug in the specification of the relaxation factors that cause the
   pressure relaxation factor to overwrite the factors for all other variables
   (`PR #875 <https://github.com/oemof/tespy/pull/875>`__).
-
 
 Contributors
 ############

@@ -69,9 +69,11 @@ def get_molar_fractions(fluid_data):
 def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None or T0 == 0 or np.isnan(T0):
+    if T0 is None or T0 == 0 or np.isnan(T0) or T0 < valmin:
         T0 = (valmin + valmax) / 2.0
 
+    # this is to prevent evaluation below valmin!
+    valmin *= 1.001
     valmax *= 2
 
     function_kwargs = {
@@ -360,3 +362,37 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
             / (3.71 * diameter)
         ) + 1 / darcy_friction_factor ** 0.5
     )
+
+
+def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
+    if len(x) != len(y):
+        msg = ""
+        raise ValueError(msg)
+    elif len(x) < 2:
+        msg = ""
+        raise ValueError(msg)
+
+
+def fit_incompressible_viscosity(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, viscosity)
+
+    x = 1.0 / temperature
+    y = np.log(viscosity)
+
+    return np.polyfit(x, y, 3)
+
+
+def _fit_arrhenius(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, viscosity)
+    x = 1.0 / temperature
+    y = np.log(viscosity)
+
+    intercept, slope = np.polyfit(x, y, 1)
+
+    return intercept, np.exp(slope)
+
+
+def fit_incompressible_linear(temperature: np.ndarray, y: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, y)
+
+    return np.polyfit(temperature, y, 1)

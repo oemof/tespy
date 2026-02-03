@@ -802,6 +802,7 @@ class FluidComposition(DataContainer):
             "wrapper": dict(),
             "back_end": dict(),
             "engine": dict(),
+            "wrapper_kwargs": dict(),
             "description": None,
             "quantity": None,
             "_is_var": set(),

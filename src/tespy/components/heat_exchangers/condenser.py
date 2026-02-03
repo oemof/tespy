@@ -421,7 +421,7 @@ class Condenser(HeatExchanger):
                 "because cold side inlet temperature is out of bounds for hot "
                 "side fluid."
             )
-            logger.warning(msg)
+            logger.debug(msg)
         try:
             self.eff_cold.val_SI = (
                 (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
@@ -434,7 +434,7 @@ class Condenser(HeatExchanger):
                 "because hot side inlet temperature is out of bounds for cold "
                 "side fluid."
             )
-            logger.warning(msg)
+            logger.debug(msg)
         self.eff_max.val_SI = max(self.eff_hot.val_SI, self.eff_cold.val_SI)
 
     def convergence_check(self):

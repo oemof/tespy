@@ -12,8 +12,8 @@ from .data_containers import FluidComposition  # noqa: F401
 from .data_containers import FluidProperties  # noqa: F401
 from .data_containers import GroupedComponentProperties  # noqa: F401
 from .data_containers import SimpleDataContainer  # noqa: F401
+from .global_vars import COMBUSTION_FLUIDS
 from .helpers import UserDefinedEquation  # noqa: F401
 from .optimization import OptimizationProblem  # noqa: F401
 from .plotting import get_plotting_data  # noqa: F401
 from .units import Units  # noqa: F401
-from .global_vars import combustion_gases

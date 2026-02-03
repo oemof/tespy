@@ -23,8 +23,8 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import FLUID_ALIASES
-from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
@@ -244,7 +244,7 @@ class CombustionChamber(Component):
         self.fuel_list = []
         all_fluids = set([f for c in self.inl + self.outl for f in c.fluid.val])
         for f in all_fluids:
-            if fluidalias_in_list(f, combustion_gases.fluids.keys()):
+            if fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids.keys()):
                 self.fuel_list += [f]
 
         self.fuel_list = set(self.fuel_list)
@@ -254,7 +254,7 @@ class CombustionChamber(Component):
                 "Your network's fluids do not contain any fuels, that are "
                 f"available for the component {self.label} of type "
                 f"{self.__class__.__name__}. Available fuels are: "
-                f"{', '.join(combustion_gases.fluids.keys())}."
+                f"{', '.join(COMBUSTION_FLUIDS.fluids.keys())}."
             )
             logger.error(msg)
             raise TESPyComponentError(msg)
@@ -289,16 +289,16 @@ class CombustionChamber(Component):
                     self.fuels[f][el] = structure[el]
                 else:
                     self.fuels[f][el] = 0
-            if f not in combustion_gases.fluids.keys():
+            if f not in COMBUSTION_FLUIDS.fluids.keys():
                 self.fuels[f]['LHV'] = self.calc_lhv(f)
                 continue
 
-            if combustion_gases.fluids[f]['LHV'] is None:
+            if COMBUSTION_FLUIDS.fluids[f]['LHV'] is None:
                 self.fuels[f]['LHV'] = self.calc_lhv(f)
                 continue
-            
-            self.fuels[f]['LHV'] = combustion_gases.fluids[f]['LHV']
-            
+
+            self.fuels[f]['LHV'] = COMBUSTION_FLUIDS.fluids[f]['LHV']
+
     def calc_lhv(self, f):
         r"""
         Calculate the lower heating value of the combustion chamber's fuel.
@@ -333,7 +333,9 @@ class CombustionChamber(Component):
         # water (gaseous)
         hf[self.h2o] = -241.826
 
-        key = set(list(combustion_gases.fluids.keys())).intersection(FLUID_ALIASES.get_fluid(f))
+        key = set(
+            list(COMBUSTION_FLUIDS.fluids.keys())
+        ).intersection(FLUID_ALIASES.get_fluid(f))
 
         val = (
             -(
@@ -343,7 +345,8 @@ class CombustionChamber(Component):
                     (
                         self.fuels[f]['C'] + self.fuels[f]['H'] / 4
                         - self.fuels[f]['O'] / 2
-                    ) * hf[self.o2] + combustion_gases.fluids[list(key)[0]]['hf']
+                    ) * hf[self.o2]
+                    + COMBUSTION_FLUIDS.fluids[list(key)[0]]['hf']
                 )
             ) / inl[0].fluid.wrapper[f]._molar_mass * 1000
         )

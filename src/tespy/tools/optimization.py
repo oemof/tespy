@@ -293,8 +293,8 @@ class OptimizationProblem(ElementwiseProblem):
             (-1) ** (sense + 1) * f for f, sense in zip(fitness, self.minimize)
         ]
 
-        cu = self.collect_constraints("upper")
-        cl = self.collect_constraints("lower")
+        cu = self._evaluate_constraints("upper")
+        cl = self._evaluate_constraints("lower")
 
         return fitness + cu + cl
 

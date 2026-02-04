@@ -293,7 +293,8 @@ class TurboCompressor(Compressor):
                 o.p.val_SI,
                 i.fluid_data,
                 i.mixing_rule,
-                T0=i.T.val_SI
+                T0=i.T.val_SI,
+                T0_out=o.T.val_SI
             ) - i.h.val_SI)
             / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
         )

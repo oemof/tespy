@@ -448,12 +448,13 @@ class Component:
 
                 elif data.is_set:
                     msg = (
-                        'All parameters of the component group have to be '
-                        'specified! This component group uses the following '
-                        f'parameters: {", ".join(data.elements)} at '
-                        f'{self.label}. Group will be set to False.'
+                        f"Not all parameters of the component group {key} "
+                        f"of component {self.label} have to been specified, "
+                        "the group equation will not be applied. This "
+                        "component group uses the following "
+                        f"parameters: {', '.join(data.elements)}."
                     )
-                    logger.warning(msg)
+                    logger.debug(msg)
                     data.set_attr(is_set=False)
                 else:
                     data.set_attr(is_set=False)

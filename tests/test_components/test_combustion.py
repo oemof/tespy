@@ -161,7 +161,7 @@ class TestCombustion:
         fuel = {'CH4': 1}
         self.c1.set_attr(fluid=air, p=1, T=30, m=1)
         self.c2.set_attr(fluid=fuel, T=30)
-        self.c3.set_attr(T=1200, h0=1e6)
+        self.c3.set_attr(T=1200)
         self.nw.solve('design')
         assert self.nw.status == 0
         # a good guess for outlet fluid composition is necessary

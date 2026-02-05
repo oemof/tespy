@@ -14,6 +14,7 @@ import pytest
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
+from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
 from tespy.components import Motor
 from tespy.components import PowerSink
@@ -46,6 +47,15 @@ class TestCombustion:
         self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
         self.c3 = Connection(instance, 'out1', self.fg, 'in1', label="fluegas")
         self.nw.add_conns(self.c1, self.c2, self.c3)
+
+    def setup_CombustionChamber_network_wNO(self, instance):
+        self.cp = Compressor("Compressor")
+        
+        self.c1 = Connection(self.air, 'out1', instance, 'in1', label="air")
+        self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
+        self.c3 = Connection(instance, 'out1', self.cp, 'in1', label="heated air")
+        self.c4 = Connection(self.cp, 'out1', self.fg, 'in1', label="fluegas")
+        self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
     def setup_CombustionEngine_network(self, instance):
 
@@ -151,6 +161,52 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.c3.T.val == pytest.approx(1500)
+
+    def test_CombustionChamber_NO(self):
+        """
+        Test component properties of combustion chamber.
+        """
+        instance = CombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network_wNO(instance)
+
+        # connection parameter specification
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'ig::NO':0.0}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
+        self.c1.set_attr(fluid=air, fluid_engines={"NO": my_PyromatWrapper},
+                          p=1, T=30)
+        self.c2.set_attr(fluid=fuel, T=30)
+        instance.set_attr(lamb=1.5)
+        self.cp.set_attr(eta_s=0.8, pr=10)
+        # test specified bus value on CombustionChamber (must be equal to ti)
+        b = Bus('thermal input', P=1e6)
+        b.add_comps({'comp': instance})
+        self.nw.add_busses(b)
+        self.nw.solve('design')
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
+        self.nw.solve('design')
+        assert self.nw.status == 0
+        self.nw.assert_convergence()
+        msg = f'Value of thermal input must be {b.P.val}, is {instance.ti.val}.'
+        assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
+        b.set_attr(P=None)
+
+        # test specified thermal input for CombustionChamber
+        instance.set_attr(ti=1e6, f_nox=0.005)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        ti = (
+            self.c2.m.val_SI * self.c2.fluid.val['CH4']
+            * instance.fuels['CH4']['LHV']
+        )
+        msg = f'Value of thermal input must be {instance.ti.val}, is {ti}.'
+        assert round(ti, 1) == round(instance.ti.val, 1), msg
+
+        # test specified lamb for CombustionChamber
+        self.c3.set_attr(T=None)
+        instance.set_attr(lamb=1)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
 
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')

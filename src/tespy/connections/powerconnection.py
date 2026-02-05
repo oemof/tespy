@@ -130,6 +130,10 @@ class PowerConnection(ConnectionBase):
                 logger.error(msg)
                 raise KeyError(msg)
 
+    def _guess_starting_values(self, units):
+        if self.E.is_var and not self.good_starting_values:
+            self.E.set_reference_val_SI(0.0)
+
     def _precalc_guess_values(self):
         pass
 

@@ -459,7 +459,7 @@ class Valve(Component):
         self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
         self.zeta.val_SI = self.calc_zeta(i, o)
-        if i.calc_phase() == "l":
+        if self.dp.val_SI > 0 and i.calc_phase() == "l":
             self.Kv.val_SI = (
                 i.v.val_SI * 3600 * (
                     100 / (i.vol.val_SI * self.dp.val_SI)

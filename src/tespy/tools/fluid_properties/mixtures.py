@@ -90,7 +90,7 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
     return h
 
 
-def _get_humid_air_humidity_ratio(fluid_data):
+def w_mix_fluid_data(fluid_data):
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
     water_alias = next(iter(water_alias))
@@ -104,11 +104,10 @@ def _get_humid_air_humidity_ratio(fluid_data):
     )
 
 def w_mix_pTrh_humidair(p, T, rh):
-    # w = _get_humid_air_humidity_ratio(fluid_data)
     return HAPropsSI("W", "P", p, "T", T, "RH", rh)  # kg water/kg dry air
 
 def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
-    w_def = _get_humid_air_humidity_ratio(fluid_data)
+    w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_pTrh_humidair(p, T, 1.0)
     if w_def > w_max:
         _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
@@ -123,7 +122,7 @@ def w_mix_phrh_humidair(p, h, rh):
     return HAPropsSI("W", "P", p, "H", h, "RH", rh)  # kg water/kg dry air
 
 def w_mix_ph_humidair(p, h, fluid_data, **kwargs):
-    w_def = _get_humid_air_humidity_ratio(fluid_data)
+    w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_phrh_humidair(p, h, 1.0)
     if w_def > w_max:
         _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
@@ -134,7 +133,7 @@ def w_mix_psrh_humidair(p, s, rh):
     return HAPropsSI("W", "P", p, "S", s, "RH", rh)  # kg water/kg dry air
 
 def w_mix_ps_humidair(p, s, fluid_data, **kwargs):
-    w_def = _get_humid_air_humidity_ratio(fluid_data)
+    w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_psrh_humidair(p, s, 1.0)
     if w_def > w_max:
         _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
@@ -190,7 +189,7 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def s_mix_pT_humidair(p, T, fluid_data, **kwargs):
-    w = _get_humid_air_humidity_ratio(fluid_data)
+    w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("S", "P", p, "T", T, "W", w)
 
 
@@ -242,7 +241,7 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def v_mix_pT_humidair(p, T, fluid_data, **kwargs):
-    w = _get_humid_air_humidity_ratio(fluid_data)
+    w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("V", "P", p, "T", T, "W", w)
 
 
@@ -303,7 +302,7 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
-    w = _get_humid_air_humidity_ratio(fluid_data)
+    w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("Visc", "P", p, "T", T, "W", w)
 
 

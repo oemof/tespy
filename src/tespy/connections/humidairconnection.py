@@ -18,7 +18,7 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
 from tespy.tools.fluid_properties.functions import h_mix_pT
-from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
+from tespy.tools.fluid_properties.mixtures import _get_fluid_alias, w_mix_fluid_data
 
 from .connection import Connection
 from .connection import connection_registry
@@ -40,6 +40,10 @@ class HAConnection(Connection):
             "mHA": dc_prop(
                 quantity="mass_flow",
                 description="mass flow of humid air"
+            ),
+            "mH2O": dc_prop(
+                quantity="mass_flow",
+                description="mass flow of liquid or solid water not contained in humid air"
             ),
             "p": dc_prop(
                 quantity="pressure",
@@ -200,11 +204,11 @@ class HAConnection(Connection):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "mHA", "p", "h", "T", "w", "s", "vol", "v", "r"]
+        return ["m", "mHA", "mH2O", "p", "h", "T", "w", "s", "vol", "v", "r"]
 
     @classmethod
     def _print_attributes(cls):
-        return ["m", "mHA", "p", "h", "T", "w", "r"]
+        return ["m", "mHA", "mH2O", "p", "h", "T", "w", "r"]
 
     def calc_r(self):
         w = self.calc_w()
@@ -230,15 +234,21 @@ class HAConnection(Connection):
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()
-        self.vol.val_SI = self.calc_vol()
-        self.v.val_SI = self.vol.val_SI * self.m.val_SI
-        air_alias = list(_get_fluid_alias("air", self.fluid_data))[0]
-        air_mass_fraction = self.fluid.val[air_alias]
-        self.mHA.val_SI = self.m.val_SI / air_mass_fraction
+        self.vol.val_SI = self.calc_vol()  # Mixture volume per mass of dry air
+        self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
+        # handle the water fraction
         self.w.val_SI = self.calc_w()
+        # # Convert from kg water/kg dry air to mass fraction of water in humid air
+        # x_h2o = self.w.val_SI / (1 + self.w.val_SI)
+        # x_air = 1 - x_h2o
+        self.mHA.val_SI = self.m.val_SI * (1 + self.w.val_SI)
+        w_mixture = w_mix_fluid_data(self.fluid_data)
+        # Calculate kg water/kg dry air that is not in the humid air
+        delta_w = w_mixture - self.w.val_SI
+        self.mH2O.val_SI = self.m.val_SI * delta_w       
         self.r.val_SI = self.calc_r()
-        if self.r.val_SI > 1:
-            self.r.val_SI = np.nan
+        # if self.r.val_SI > 1:
+        #     self.r.val_SI = np.nan
 
         for prop in self._result_attributes():
             param = self.get_attr(prop)

@@ -320,7 +320,7 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         return 1 / pure_fluid["wrapper"].d_ph(p, h)
     else:
         if mixing_rule == "humidair":
-            w = w = w_mix_ph_humidair(p, h, fluid_data)
+            w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("V", "P", p, "H", h, "W", w)
         else:
             T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)

@@ -26,7 +26,7 @@ from .mixtures import T_MIX_PH_REVERSE
 from .mixtures import T_MIX_PS_REVERSE
 from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
-from .mixtures import _get_humid_air_humidity_ratio
+from .mixtures import w_mix_pT_humidair, w_mix_ph_humidair, w_mix_ps_humidair
 
 
 def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None):
@@ -141,7 +141,7 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
     else:
         _check_mixing_rule(mixing_rule, T_MIX_PH_REVERSE, "temperature (from enthalpy)")
         if mixing_rule == "humidair":
-            w = _get_humid_air_humidity_ratio(fluid_data)
+            w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("T", "P", p, "H", h, "W", w)
         else:
             kwargs = {
@@ -303,7 +303,7 @@ def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
         return pure_fluid["wrapper"].T_ps(p, s)
     else:
         if mixing_rule == "humidair":
-            w = _get_humid_air_humidity_ratio(fluid_data)
+            w = w_mix_ps_humidair(p, s, fluid_data)
             return HAPropsSI("T", "P", p, "S", s, "W", w)
         else:
             _check_mixing_rule(mixing_rule, T_MIX_PS_REVERSE, "temperature (from entropy)")
@@ -320,7 +320,7 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         return 1 / pure_fluid["wrapper"].d_ph(p, h)
     else:
         if mixing_rule == "humidair":
-            w = _get_humid_air_humidity_ratio(fluid_data)
+            w = w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("V", "P", p, "H", h, "W", w)
         else:
             T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
@@ -356,7 +356,7 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         return pure_fluid["wrapper"].viscosity_ph(p, h)
     else:
         if mixing_rule == "humidair":
-            w = _get_humid_air_humidity_ratio(fluid_data)
+            w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("Visc", "P", p, "H", h, "W", w)
         else:
             T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)

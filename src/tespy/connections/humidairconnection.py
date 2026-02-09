@@ -16,7 +16,7 @@ from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties.functions import _get_humid_air_humidity_ratio
+from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 
@@ -226,7 +226,7 @@ class HAConnection(Connection):
         }
 
     def calc_w(self):
-        return _get_humid_air_humidity_ratio(self.fluid_data)
+        return w_mix_pT_humidair(self.p.val_SI, self.T.val_SI, self.fluid_data)
 
     def calc_results(self, units):
         self.T.val_SI = self.calc_T()

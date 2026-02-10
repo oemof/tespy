@@ -156,7 +156,7 @@ class PowerConnection(ConnectionBase):
     def get_parameters(self):
         return {"E": dc_prop(d=1e-4, quantity="power")}
 
-    def calc_results(self, units):
+    def calc_results(self, units, skip_postprocess):
         self.E.set_val_from_SI(units)
         self.E.set_val0_from_SI(units)
         return True

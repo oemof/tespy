@@ -884,7 +884,7 @@ class SimpleHeatExchanger(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 

@@ -150,11 +150,11 @@ class HAConnection(Connection):
         air_alias = _get_fluid_alias("air", self.fluid_data)
         water_alias = _get_fluid_alias("water", self.fluid_data)
         if not air_alias:
-            msg = "air must bre present in fluid composition"
+            msg = "air must be present in fluid composition"
             raise ValueError(msg)
 
         elif not water_alias:
-            msg = "water must bre present in fluid composition"
+            msg = "water must be present in fluid composition"
             raise ValueError(msg)
 
         if len(self.fluid.is_var) > 0:

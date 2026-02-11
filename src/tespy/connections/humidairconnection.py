@@ -126,7 +126,9 @@ class HAConnection(Connection):
         if self.h.is_var and not self.good_starting_values:
             # make a reproducible random guess on starting value for enthalpy
             import numpy as np
-            seed = abs(hash(self.label)) % (2**32)
+            # Ensure reproducible seed from label string
+            label_bytes = self.label.encode("utf-8")
+            seed = int.from_bytes(label_bytes, "little", signed=False) % (2**32)
             rng = np.random.default_rng(seed=seed)
             value = float(rng.random())
             T_rand = 280 + value * (300 - 280)

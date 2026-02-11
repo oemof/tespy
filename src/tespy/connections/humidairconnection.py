@@ -19,6 +19,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias, w_mix_fluid_data
+from tespy.tools.helpers import seeded_random
 
 from .connection import Connection
 from .connection import connection_registry
@@ -124,13 +125,7 @@ class HAConnection(Connection):
 
     def _guess_starting_values(self, units):
         if self.h.is_var and not self.good_starting_values:
-            # make a reproducible random guess on starting value for enthalpy
-            import numpy as np
-            # Ensure reproducible seed from label string
-            label_bytes = self.label.encode("utf-8")
-            seed = int.from_bytes(label_bytes, "little", signed=False) % (2**32)
-            rng = np.random.default_rng(seed=seed)
-            value = float(rng.random())
+            value = seeded_random(self.label)
             T_rand = 280 + value * (300 - 280)
             h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
             self.h.set_reference_val_SI(h)

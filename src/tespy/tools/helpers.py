@@ -16,6 +16,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 import pandas as pd
+import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
@@ -698,6 +699,23 @@ def central_difference(function=None, parameter=None, delta=None, **kwargs):
     lower = kwargs
     lower[parameter] -= delta
     return (function(**upper) - function(**lower)) / (2 * delta)
+
+
+def seeded_random_generator(seed_value: str | bytes | int) -> np.random.Generator:
+    """Generate a reproducible random number generator based on a seed value."""
+    if isinstance(seed_value, str):
+        seed_value = seed_value.encode("utf-8")
+    if isinstance(seed_value, bytes):
+        seed_value = int.from_bytes(seed_value, "little", signed=False) % (2**32)
+    if not isinstance(seed_value, int):
+        raise ValueError("Seed value must be of type str, bytes or int.")
+    return np.random.default_rng(seed=seed_value)
+
+
+def seeded_random(seed_value: str | bytes | int) -> float:
+    """Generate a reproducible random number between 0 and 1 based on a seed value."""
+    rng = seeded_random_generator(seed_value)
+    return rng.random()
 
 
 def get_basic_path():

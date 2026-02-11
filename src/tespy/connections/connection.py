@@ -56,6 +56,7 @@ from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import seeded_random
 from tespy.tools.units import SI_UNITS
 
 
@@ -930,9 +931,8 @@ class Connection(ConnectionBase):
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
-                seed = abs(hash(self.label)) % (2**32)
-                rng = np.random.default_rng(seed=seed)
-                value = float(rng.random() + 1)
+                rndm = seeded_random(self.label)
+                value = float(rndm + 1)
 
             # generic starting values for pressure and enthalpy
             elif key in ['p', 'h']:

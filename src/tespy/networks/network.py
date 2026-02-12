@@ -2311,6 +2311,23 @@ class Network:
         variables = [self._variable_lookup[v] for v in dependents["variables"]]
         variable_list = [(v["object"].label, v["property"]) for v in variables]
         return variable_list
+    
+    def get_sorted_residual_index(self) -> list[int]:
+        """Get the sorted array of residual indices.
+
+        Returns
+        -------
+        list[int]
+            List of variable numbers, the index values.
+        """
+        # vars: dict[tuple[int, str], dict] = self.get_variables()
+        sidx: list[int] = list(np.argsort(np.abs(self.residual))[::-1])
+        # sres = np.array([self.residual[i] for i in sidx])
+        # chis = self.residual_history.shape[1]
+        # for i in range(2, n):
+        #     sres = np.vstack((sres, [self.residual_history[i-2][j] for j in sidx]))
+        #     sres = np.vstack((sres, self.residual_history[-n+1:, :][:, sidx].T))
+        return sidx
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,

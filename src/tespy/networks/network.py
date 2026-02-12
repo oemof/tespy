@@ -2799,11 +2799,13 @@ class Network:
         relax = 1
         if self.robust_relax:
             if self.iter < 3:
-                relax = 0.25
+                relax = 0.05
             elif self.iter < 5:
-                relax = 0.5
+                relax = 0.1
             elif self.iter < 8:
-                relax = 0.75
+                relax = 0.25
+            elif self.iter < 15:
+                relax = 0.5
 
         for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h", "E"]:

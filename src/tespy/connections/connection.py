@@ -1833,7 +1833,7 @@ class Connection(ConnectionBase):
                 self._adjust_enthalpy(fl)
 
                 # two-phase related
-                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 10:
+                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
                     self._adjust_to_two_phase(fl)
 
         # mixture

@@ -759,9 +759,9 @@ class SectionedHeatExchanger(HeatExchanger):
             secondary_index = 0
 
         m_r = self.inl[refrigerant_index].m
-        m_ratio_r = m_r.val_SI / m_r.design
+        m_ratio_r = max(m_r.val_SI / m_r.design, 1e-6)
         m_sf = self.inl[secondary_index].m
-        m_ratio_sf = m_sf.val_SI / m_sf.design
+        m_ratio_sf = max(m_sf.val_SI / m_sf.design, 1e-6)
 
         fUA = (
             (1 + alpha_ratio * area_ratio)

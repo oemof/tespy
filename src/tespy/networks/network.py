@@ -16,6 +16,7 @@ import importlib
 import json
 import math
 import os
+from pathlib import Path
 import warnings
 from time import time
 
@@ -1765,6 +1766,26 @@ class Network:
                 data = _local_designs[path][c]
                 # write data
                 self._write_design_state_to_component(cp, data)
+                # this is a hack to write the connection specifications of the
+                # respective component into the component. In the component
+                # itself, the value from here should be utilized instead of the
+                # .design value of the connection in case local_offdesign is
+                # set to True
+                if cp.inl[0].label in _local_designs[path][cp.inl[0].__class__.__name__].index:
+                    cp._connection_offdesign = {
+                        c.label: _local_designs[path][c.__class__.__name__].loc[c.label]
+                        for c in cp.inl + cp.outl
+                    }
+                else:
+                    # remap to actual inlet and outlet labels
+                    cp._connection_offdesign = {
+                        c.label: _local_designs[path][c.__class__.__name__].loc[f"hx_in{k + 1}"]
+                        for k, c in enumerate(cp.inl)
+                    }
+                    cp._connection_offdesign.update({
+                        c.label: _local_designs[path][c.__class__.__name__].loc[f"hx_out{k + 1}"]
+                        for k, c in enumerate(cp.outl)
+                    })
 
                 # unset design parameters
                 for var in cp.design:
@@ -2031,27 +2052,7 @@ class Network:
                 df = dfs[c.__class__.__name__]
                 self._write_starting_values_to_connection(c, df)
 
-            if type(c) == Connection:
-                # the below part does not work for PowerConnection right now
-                if sum(c.fluid.val.values()) == 0:
-                    msg = (
-                        'The starting value for the fluid composition of the '
-                        f'connection {c.label} is empty. This might lead to issues '
-                        'in the initialisation and solving process as fluid '
-                        'property functions can not be called. Make sure you '
-                        'specified a fluid composition in all parts of the network.'
-                    )
-                    logger.warning(msg)
-
-            for key, variable in c.get_variables().items():
-                # for connections variables can be presolved and not be var anymore
-                if variable.is_var:
-                    if not c.good_starting_values:
-                        self._guess_starting_value_from_connected_components(c, key)
-
-                    variable.set_SI_from_val0(self.units)
-                    # variable.set_SI_from_val0()
-                    variable.set_reference_val_SI(variable._val_SI)
+            c._guess_starting_values(self.units)
 
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
@@ -2062,70 +2063,35 @@ class Network:
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
-        for c in self.conns['object']:
-            c._precalc_guess_values()
-
         msg = 'Generic fluid property specification complete.'
         logger.debug(msg)
 
-    def _guess_starting_value_from_connected_components(self, c, key):
-        r"""
-        Set starting values for fluid properties.
-
-        The component classes provide generic starting values for their inlets
-        and outlets.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to initialise.
-        """
-        if np.isnan(c.get_attr(key).val0):
-            # starting value for mass flow is random between 1 and 2 kg/s
-            # (should be generated based on some hash maybe?)
-            if key == 'm':
-                seed = abs(hash(c.label)) % (2**32)
-                rng = np.random.default_rng(seed=seed)
-                value = float(rng.random() + 1)
-
-            # generic starting values for pressure and enthalpy
-            elif key in ['p', 'h']:
-                # retrieve starting values from component information
-                val_s = c.source.initialise_source(c, key)
-                val_t = c.target.initialise_target(c, key)
-
-                if val_s == 0 and val_t == 0:
-                    if key == 'p':
-                        value = 1e5
-                    elif key == 'h':
-                        value = 1e6
-
-                elif val_s == 0:
-                    value = val_t
-                elif val_t == 0:
-                    value = val_s
-                else:
-                    value = (val_s + val_t) / 2
-
-            elif key == 'E':
-                value = 0.0
-
-            # these values are SI, so they are set to the respective variable
-            c.get_attr(key).set_reference_val_SI(value)
-            c.get_attr(key).set_val0_from_SI(self.units)
 
     @staticmethod
-    def _load_network_state(json_path):
+    def _load_network_state(json_path: str | bytes | bytearray | Path):
         r"""
         Read network state from given file.
 
         Parameters
         ----------
-        json_path : str
+        json_path : str | bytes | bytearray | Path
             Path to network information.
         """
-        with open(json_path, "r") as f:
-            data = json.load(f)
+        data = None
+        if not isinstance(json_path, Path):
+            try:
+                data = json.loads(json_path)
+            except json.JSONDecodeError as e:
+                msg = (
+                    "The provided json_path could not be decoded. If this is not "
+                    "a valid json string, please provide a valid file path instead of "
+                    "%s"
+                )
+                logger.debug(msg, str(json_path))
+                pass
+        if data is None:
+            with open(json_path, "r") as f:
+                data = json.load(f)
 
         dfs = {}
         if "Connection" in data["Connection"]:
@@ -2367,6 +2333,23 @@ class Network:
         variables = [self._variable_lookup[v] for v in dependents["variables"]]
         variable_list = [(v["object"].label, v["property"]) for v in variables]
         return variable_list
+    
+    def get_sorted_residual_index(self) -> list[int]:
+        """Get the sorted array of residual indices.
+
+        Returns
+        -------
+        list[int]
+            List of variable numbers, the index values.
+        """
+        # vars: dict[tuple[int, str], dict] = self.get_variables()
+        sidx: list[int] = list(np.argsort(np.abs(self.residual))[::-1])
+        # sres = np.array([self.residual[i] for i in sidx])
+        # chis = self.residual_history.shape[1]
+        # for i in range(2, n):
+        #     sres = np.vstack((sres, [self.residual_history[i-2][j] for j in sidx]))
+        #     sres = np.vstack((sres, self.residual_history[-n+1:, :][:, sidx].T))
+        return sidx
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
@@ -2854,18 +2837,19 @@ class Network:
         # get_J_col yet
         relax = 1
         if self.robust_relax:
-            if self.iter < 3:
-                relax = 0.25
-            elif self.iter < 5:
-                relax = 0.5
-            elif self.iter < 8:
-                relax = 0.75
+            # relax_values = [
+            #     (0.05, 0.05 * self.max_iter),
+            #     (0.10, 0.10 * self.max_iter),
+            #     (0.25, 0.25 * self.max_iter),
+            #     (0.50, 0.50 * self.max_iter)
+            # ]
+            relax = 0.05 + 0.95 * min(1, self.iter / (0.25 * self.max_iter))
 
         for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h", "E"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
-            elif data["variable"] == "p":
+            elif data["variable"] in ["p", "w"]:
                 container = data["obj"]
                 p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI
@@ -3558,18 +3542,26 @@ class Network:
 
         return export
 
-    def save(self, json_file_path):
+    def save(self, json_file_path: str | Path | None) -> None | str:
         r"""
         Dump the results to a json style output.
 
         Parameters
         ----------
-        json_file_path : str
+        json_file_path : str | Path | None
             Filename to dump results into.
+
+        Returns
+        -------
+        None
+            If a file path is provided, results are saved to file.
+        str
+            If no file path is provided, results are returned as string.
 
         Note
         ----
-        Results will be saved to specified file path
+        Results will be saved to specified file path in json format. If no
+        file path is provided, the results will be returned as string.
         """
         dump = {}
 
@@ -3579,6 +3571,9 @@ class Network:
         dump["Bus"] = self._save_busses()
 
         dump = hlp._nested_dict_of_dataframes_to_dict(dump)
+
+        if json_file_path is None:
+            return json.dumps(dump, indent=2)
 
         with open(json_file_path, "w") as f:
             json.dump(dump, f)

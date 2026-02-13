@@ -10,6 +10,7 @@ tespy/tools/fluid_properties/functions.py
 
 SPDX-License-Identifier: MIT
 """
+from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.logger import logger
@@ -25,6 +26,7 @@ from .mixtures import T_MIX_PH_REVERSE
 from .mixtures import T_MIX_PS_REVERSE
 from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
+from .mixtures import w_mix_pT_humidair, w_mix_ph_humidair, w_mix_ps_humidair
 
 
 def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None):
@@ -138,11 +140,15 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         return pure_fluid["wrapper"].T_ph(p, h)
     else:
         _check_mixing_rule(mixing_rule, T_MIX_PH_REVERSE, "temperature (from enthalpy)")
-        kwargs = {
-            "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
-            "f": T_MIX_PH_REVERSE[mixing_rule]
-        }
-        return inverse_temperature_mixture(**kwargs)
+        if mixing_rule == "humidair":
+            w = w_mix_ph_humidair(p, h, fluid_data)
+            return HAPropsSI("T", "P", p, "H", h, "W", w)
+        else:
+            kwargs = {
+                "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
+                "f": T_MIX_PH_REVERSE[mixing_rule]
+            }
+            return inverse_temperature_mixture(**kwargs)
 
 
 def dT_mix_pdh(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -296,12 +302,16 @@ def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].T_ps(p, s)
     else:
-        _check_mixing_rule(mixing_rule, T_MIX_PS_REVERSE, "temperature (from entropy)")
-        kwargs = {
-            "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,
-            "f": T_MIX_PS_REVERSE[mixing_rule]
-        }
-        return inverse_temperature_mixture(**kwargs)
+        if mixing_rule == "humidair":
+            w = w_mix_ps_humidair(p, s, fluid_data)
+            return HAPropsSI("T", "P", p, "S", s, "W", w)
+        else:
+            _check_mixing_rule(mixing_rule, T_MIX_PS_REVERSE, "temperature (from entropy)")
+            kwargs = {
+                "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,
+                "f": T_MIX_PS_REVERSE[mixing_rule]
+            }
+            return inverse_temperature_mixture(**kwargs)
 
 
 def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -309,8 +319,12 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return 1 / pure_fluid["wrapper"].d_ph(p, h)
     else:
-        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
-        return v_mix_pT(p, T, fluid_data, mixing_rule)
+        if mixing_rule == "humidair":
+            w = w_mix_ph_humidair(p, h, fluid_data)
+            return HAPropsSI("V", "P", p, "H", h, "W", w)
+        else:
+            T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
+            return v_mix_pT(p, T, fluid_data, mixing_rule)
 
 
 def dv_mix_dph(p, h, fluid_data, mixing_rule=None, T0=None):
@@ -341,8 +355,12 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].viscosity_ph(p, h)
     else:
-        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
-        return viscosity_mix_pT(p, T, fluid_data, mixing_rule)
+        if mixing_rule == "humidair":
+            w = w_mix_ph_humidair(p, h, fluid_data)
+            return HAPropsSI("Visc", "P", p, "H", h, "W", w)
+        else:
+            T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
+            return viscosity_mix_pT(p, T, fluid_data, mixing_rule)
 
 
 def viscosity_mix_pT(p, T, fluid_data, mixing_rule=None):

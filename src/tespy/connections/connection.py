@@ -56,6 +56,7 @@ from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import seeded_random
 from tespy.tools.units import SI_UNITS
 
 
@@ -244,6 +245,9 @@ class ConnectionBase:
 
     def get_variables(self):
         return {}
+
+    def _guess_starting_values(self, units):
+        pass
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -757,7 +761,7 @@ class Connection(ConnectionBase):
             # other boolean keywords
             elif key in ['printout', 'local_design', 'local_offdesign']:
                 if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
+                    msg = f"Please provide the {key} as boolean."
                     logger.error(msg)
                     raise TypeError(msg)
                 else:
@@ -887,6 +891,72 @@ class Connection(ConnectionBase):
                 fluid, back_end, **wrapper_kwargs
             )
 
+    def _guess_starting_values(self, units):
+        # the below part does not work for PowerConnection right now
+        if sum(self.fluid.val.values()) == 0:
+            msg = (
+                'The starting value for the fluid composition of the '
+                f'connection {self.label} is empty. This might lead to issues '
+                'in the initialisation and solving process as fluid '
+                'property functions can not be called. Make sure you '
+                'specified a fluid composition in all parts of the network.'
+            )
+            logger.warning(msg)
+
+        for key, variable in self.get_variables().items():
+            # for connections variables can be presolved and not be var anymore
+            if variable.is_var:
+                if not self.good_starting_values:
+                    self._guess_starting_value_from_connected_components(key, units)
+
+                variable.set_SI_from_val0(units)
+                # variable.set_SI_from_val0()
+                variable.set_reference_val_SI(variable._val_SI)
+
+        self._precalc_guess_values()
+
+    def _guess_starting_value_from_connected_components(self, key, units):
+        r"""
+        Set starting values for fluid properties.
+
+        The component classes provide generic starting values for their inlets
+        and outlets.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to initialise.
+        """
+        if np.isnan(self.get_attr(key).val0):
+            # starting value for mass flow is random between 1 and 2 kg/s
+            # (should be generated based on some hash maybe?)
+            if key == 'm':
+                rndm = seeded_random(self.label)
+                value = float(rndm + 1)
+
+            # generic starting values for pressure and enthalpy
+            elif key in ['p', 'h']:
+                # retrieve starting values from component information
+                val_s = self.source.initialise_source(self, key)
+                val_t = self.target.initialise_target(self, key)
+
+                if val_s == 0 and val_t == 0:
+                    if key == 'p':
+                        value = 1e5
+                    elif key == 'h':
+                        value = 1e6
+
+                elif val_s == 0:
+                    value = val_t
+                elif val_t == 0:
+                    value = val_s
+                else:
+                    value = (val_s + val_t) / 2
+
+            # these values are SI, so they are set to the respective variable
+            self.get_attr(key).set_reference_val_SI(value)
+            self.get_attr(key).set_val0_from_SI(units)
+
     def _precalc_guess_values(self):
         """
         Precalculate enthalpy values for connections.
@@ -969,6 +1039,7 @@ class Connection(ConnectionBase):
             raise TESPyNetworkError(msg)
 
         presolved_equations = []
+
         if self.p.is_set:
             if self.T_dew.is_set or self.T_bubble.is_set:
                 msg = (
@@ -1240,7 +1311,7 @@ class Connection(ConnectionBase):
                 dependents=self.Td_bp_dependents, num_eq=1,
                 quantity="temperature_difference",
                 description="temperature difference to boiling point (deprecated)"
-            )
+            ),
         }
 
     def get_fluid_data(self):
@@ -1762,7 +1833,7 @@ class Connection(ConnectionBase):
                 self._adjust_enthalpy(fl)
 
                 # two-phase related
-                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 10:
+                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
                     self._adjust_to_two_phase(fl)
 
         # mixture

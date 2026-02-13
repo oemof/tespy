@@ -1765,6 +1765,26 @@ class Network:
                 data = _local_designs[path][c]
                 # write data
                 self._write_design_state_to_component(cp, data)
+                # this is a hack to write the connection specifications of the
+                # respective component into the component. In the component
+                # itself, the value from here should be utilized instead of the
+                # .design value of the connection in case local_offdesign is
+                # set to True
+                if cp.inl[0].label in _local_designs[path][cp.inl[0].__class__.__name__].index:
+                    cp._connection_offdesign = {
+                        c.label: _local_designs[path][c.__class__.__name__].loc[c.label]
+                        for c in cp.inl + cp.outl
+                    }
+                else:
+                    # remap to actual inlet and outlet labels
+                    cp._connection_offdesign = {
+                        c.label: _local_designs[path][c.__class__.__name__].loc[f"hx_in{k + 1}"]
+                        for k, c in enumerate(cp.inl)
+                    }
+                    cp._connection_offdesign.update({
+                        c.label: _local_designs[path][c.__class__.__name__].loc[f"hx_out{k + 1}"]
+                        for k, c in enumerate(cp.outl)
+                    })
 
                 # unset design parameters
                 for var in cp.design:

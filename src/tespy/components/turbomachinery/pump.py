@@ -15,13 +15,16 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
+from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.global_vars import GRAVITY
 from tespy.tools.helpers import _get_dependents
 
 
@@ -182,12 +185,29 @@ class Pump(Turbomachine):
 
         return constraints
 
+    def _preprocess(self, row_idx):
+        if self.frequency.is_var and self.head_flow_map.is_set:
+            min_frequency = min(self.head_flow_map.char_func.x)
+            max_frequency = max(self.head_flow_map.char_func.x)
+            self.frequency.min_val = min_frequency
+            self.frequency.max_val = max_frequency
+
+        return super()._preprocess(row_idx)
+
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters["P"].min_val = 0
         parameters["pr"].min_val = 1
         parameters["dp"].max_val = 0
         parameters.update({
+            'eta': dc_cp(
+                min_val=0, max_val=1, is_result=True,
+                quantity="efficiency",
+                description=(
+                    "efficiency defined as specific incompressible flow work "
+                    "over increase of enthalpy"
+                )
+            ),
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
@@ -208,6 +228,48 @@ class Pump(Turbomachine):
                 dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
                 description="pressure rise over volumetric flow lookup table"
+            ),
+            "frequency": dc_cp(
+                min_val=0, max_val=10000, _potential_var=True,
+                quantity="frequency"
+            ),
+            "eta_flow_map": dc_cm(
+                description=(
+                    "2D lookup table for pump efficiency over volumetric "
+                    "flow and frequency"
+                )
+            ),
+            "eta_flow_group": dc_gcp(
+                elements=["eta_flow_map", "frequency"],
+                num_eq_sets=1,
+                func=self.eta_flow_frequency_group_func,
+                dependents=self.eta_flow_frequency_group_dependents,
+                description=(
+                    "map function for efficiency over volumetric flow and "
+                    "frequency"
+                )
+            ),
+            "head_flow_map": dc_cm(
+                description=(
+                    "2D lookup table for hydraulic head over volumetric "
+                    "flow and frequency"
+                )
+            ),
+            "head_flow_map_group": dc_gcp(
+                elements=["head_flow_map", "frequency"],
+                num_eq_sets=1,
+                func=self.head_flow_frequency_group_func,
+                dependents=self.head_flow_frequency_group_dependents,
+                description=(
+                    "map function for efficiency over volumetric flow and "
+                    "frequency"
+                )
+            ),
+            "head": dc_cp(
+                min_val=0, max_val=10000, num_eq_sets=1,
+                func=self.hydraulic_head_func,
+                dependents=self.hydraulic_head_dependents,
+                quantity="length"
             )
         })
         return parameters
@@ -219,7 +281,7 @@ class Pump(Turbomachine):
 
         Returns
         -------
-        residual : float
+        float
             Residual value of equation
 
             .. math::
@@ -239,7 +301,7 @@ class Pump(Turbomachine):
 
         Returns
         -------
-        residual : float
+        float
             Residual value of equation.
 
             .. math::
@@ -302,7 +364,7 @@ class Pump(Turbomachine):
 
         Returns
         -------
-        residual : float
+        float
             Residual value of equation.
 
             .. math::
@@ -353,7 +415,7 @@ class Pump(Turbomachine):
 
         Returns
         -------
-        residual : float
+        float
             Residual value of equation.
 
             .. math::
@@ -374,6 +436,103 @@ class Pump(Turbomachine):
             self.inl[0].h,
             self.outl[0].p,
         ]
+
+    def eta_flow_frequency_group_func(self):
+        r"""
+        Equation for efficiency :math:`\eta` over flow and frequency
+        :math:`\omega` map
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \eta \left(\omega,\dot{m}_\text{in}\cdot v_\text{in} \right)
+                \cdot (h_\text{out} - h_\text{in})
+                - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        vol = i.calc_vol()
+        flow = i.m.val_SI * vol
+        frequency = self.frequency.val_SI
+        eta = self.eta_flow_map.char_func.evaluate(frequency, flow)
+        return (
+            eta * (o.h.val_SI - i.h.val_SI) - vol * (o.p.val_SI - i.p.val_SI)
+        )
+
+    def eta_flow_frequency_group_dependents(self):
+        i = self.inl[0]
+        o = self.outl[0]
+        return [i.m, i.p, i.h, o.p, o.h, self.frequency]
+
+    def head_flow_frequency_group_func(self):
+        r"""
+        Equation for hydraulic head :math:`H` over flow and frequency
+        :math:`\omega` map
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0 = H\left(\omega,\dot{m}_\text{in}\right)
+                - \frac{\left( p_\text{out} - p_\text{in} \right) \cdot v}{g}
+        """
+        i = self.inl[0]
+        flow = i.m.val_SI * i.calc_vol()
+        frequency = self.frequency.val_SI
+        head = self.head_flow_map.char_func.evaluate(frequency, flow)
+        return head - self.calc_hydraulic_head()
+
+    def head_flow_frequency_group_dependents(self):
+        i = self.inl[0]
+        o = self.outl[0]
+        return [i.m, i.p, i.h, o.p, self.frequency]
+
+    def hydraulic_head_func(self):
+        r"""
+        Equation for given hydraulic head :math:`H`
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \frac{H \cdot g}{v}
+                - \left( p_\text{out} - p_\text{in} \right)
+        """
+        return self.head.val_SI - self.calc_hydraulic_head()
+
+    def hydraulic_head_dependents(self):
+        i = self.inl[0]
+        o = self.outl[0]
+        return [i.p, i.h, o.p]
+
+    def calc_hydraulic_head(self):
+        r"""
+        Calculate the hydraulic head :math:`H`
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                H = \frac{\left( p_\text{out} - p_\text{in} \right) \cdot v}{g}
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        return (
+            (o.p.val_SI - i.p.val_SI) * i.calc_vol() / GRAVITY
+        )
 
     def convergence_check(self):
         r"""
@@ -515,6 +674,12 @@ class Pump(Turbomachine):
                 T0_out=o.T.val_SI
             ) - self.inl[0].h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
+
+        self.head.val_SI = self.calc_hydraulic_head()
+        self.eta.val_SI = (
+            i.vol.val_SI * (o.p.val_SI - i.p.val_SI)
+            / (o.h.val_SI - i.h.val_SI)
+        )
 
     def exergy_balance(self, T0):
         r"""

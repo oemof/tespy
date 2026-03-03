@@ -117,6 +117,12 @@ class Pump(Turbomachine):
 
     Example
     -------
+    Below you will find two separate examples. First, a simple pump using a
+    pressure difference to volumetric flow characteristic in both design and
+    offdesign mode. Second, a pump implementing a pump characteristic map for
+    hydraulic head over flow at variable frequencies and a characteristic map
+    for the efficiency over flow at variable frequencies.
+
     A pump with a known pump curve (difference pressure as function of
     volumetric flow) pumps 1,5 l/s of water in design conditions. E.g. for a
     given isentropic efficiency it is possible to calculate power consumption
@@ -168,6 +174,126 @@ class Pump(Turbomachine):
     >>> round(inc.v.val, 1)
     0.9
     >>> os.remove('tmp.json')
+
+    In the second example we model a pump with characteristic maps. These can
+    be retrieved from manufacturers, e.g., this one: :cite:`grundfos`. To keep
+    the example simple, the pump maps here are more basic. To make use of the
+    maps, we need the following information:
+
+    - A numpy array of frequency values
+    - Per frequency value a numpy array for volumetric flow
+    - Per frequency value a corresponding numpy array for hydraulic head and
+      for efficiency
+
+    We can use the following data in the example:
+
+    >>> import numpy as np
+    >>> from tespy.tools import CharMap
+    >>> frequencies = np.array([1500, 1750, 2000, 2250]) / 60  # SI units!
+    >>> flows = np.array([
+    ...     [0.   , 0.715, 1.431],  # corresponds to 1500
+    ...     [0.   , 1.141, 2.284],  # corresponds to 1750...
+    ...     [0.   , 1.568, 3.137],
+    ...     [0.   , 1.995, 3.772]
+    ... ])
+
+    .. attention::
+
+        The values need to be in SI units!
+
+    Then we need to have the respective hydraulic head and efficiency for each
+    of those values.
+
+    >>> head = np.array([
+    ...     [ 3.229,  3.023,  1.786],
+    ...     [ 8.239,  7.712,  4.559],
+    ...     [15.554, 14.558,  8.602],
+    ...     [20.   , 20.   , 12.431]
+    ... ])
+
+    >>> efficiency = np.array([
+    ...     [0. , 0.45, 0.4 ],
+    ...     [0. , 0.5 , 0.45],
+    ...     [0. , 0.52, 0.5 ],
+    ...     [0. , 0.5 , 0.45]
+    ... ])
+
+    We can create the maps next:
+
+    >>> pump_H_map = CharMap(
+    ...     x=frequencies,
+    ...     y=flows,
+    ...     z=head
+    ... )
+    >>> pump_eta_map = CharMap(
+    ...     x=frequencies,
+    ...     y=flows,
+    ...     z=efficiency
+    ... )
+
+    Now we create the model and impose the maps
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar",
+    ...     "temperature": "degC",
+    ...     "volumetric_flow": "m3/s",
+    ...     "enthalpy": "kJ/kg",
+    ...     "frequency": "1/min"
+    ... })
+    >>> si = Sink('sink')
+    >>> so = Source('source')
+    >>> pu = Pump('pump')
+    >>> inc = Connection(so, 'out1', pu, 'in1')
+    >>> outg = Connection(pu, 'out1', si, 'in1')
+    >>> nw.add_conns(inc, outg)
+    >>> pu.set_attr(
+    ...     head_flow_map={'char_func': pump_H_map, 'is_set': True},
+    ...     eta_flow_map={'char_func': pump_eta_map, 'is_set': True},
+    ...     frequency=2000
+    ... )
+
+    We can impose the inlet volumetric flow, for example, an actual set point
+    on the map.
+
+    >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.568)
+    >>> nw.solve('design')
+    >>> round(pu.head.val, 3)
+    14.558
+
+    The process can of course be inverted, e.g., find the volumetric flow
+    corresponding to a specific pressure at the outlet.
+
+    >>> inc.set_attr(v=None)
+    >>> outg.set_attr(p=2.2)
+    >>> nw.solve("design")
+    >>> round(inc.v.val, 3)
+    2.174
+
+    .. attention::
+
+        Be aware that if the pump runs outside of the characteristic map it can
+        easily happen that derivatives become zero because the interpolation
+        returns the same values independent of the variables. A good initial
+        guess can (but does not necessarily) help.
+
+    >>> outg.set_attr(p=1.2)
+    >>> nw.solve("design")
+    >>> nw.status == 3  # check if status is linear dependency
+    True
+
+    Finally, it is possible to make the frequency variable to match a certain
+    volumetric flow and pressure increase:
+
+    >>> inc.set_attr(v=1.5)
+    >>> outg.set_attr(p=2)
+    >>> pu.set_attr(frequency="var")
+    >>> nw.solve("design")
+    >>> nw.status == 0  # check if converged
+    True
+    >>> round(pu.frequency.val)
+    1862
+
     """
 
     @staticmethod

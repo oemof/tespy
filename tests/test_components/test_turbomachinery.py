@@ -375,6 +375,14 @@ class TestTurbomachinery:
 
         assert approx(self.c1.v.val) == 1.017723
 
+        instance.set_attr(frequency="var")
+        self.c1.set_attr(v=2)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.frequency.val, rel=1e-3) == 26.07
+
     def test_Turbine(self, tmp_path):
         """Test component properties of turbines."""
         tmp_path = f'{tmp_path}.json'

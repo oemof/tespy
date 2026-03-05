@@ -1691,9 +1691,7 @@ class Network:
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
-                if isinstance(value, dc_prop) and (value.is_set or value.is_var):
-                    if np.isnan(value._val):
-                        value.val = (value.min_val + value.max_val) / 2
+                if isinstance(value, dc_prop) and value.is_set:
                     value.set_SI_from_val(self.units)
 
     def _prepare_design(self):
@@ -2059,7 +2057,7 @@ class Network:
                 # for components every variable should be an actual variable
                 # if variable.is_var:
                 if np.isnan(variable.val):
-                    variable.val = 1.0
+                    variable.val = (variable.min_val + variable.max_val) / 2
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 

@@ -307,17 +307,81 @@ class TestTurbomachinery:
         self.c1.set_attr(m=0, v=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of power must be ' + str(14e5) + ', is ' +
-               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
-        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 14e5, msg
+        delta_p = round(self.c2.p.val_SI - self.c1.p.val_SI, 0)
+        msg = f'Value of power must be {14e5}, is {delta_p}.'
+        assert delta_p == 14e5, msg
 
         # upper boundary
         self.c1.set_attr(v=1.5, m=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of power must be 0, is ' +
-               str(round(self.c2.p.val_SI - self.c1.p.val_SI, 0)) + '.')
-        assert round(self.c2.p.val_SI - self.c1.p.val_SI, 0) == 0, msg
+        delta_p = round(self.c2.p.val_SI - self.c1.p.val_SI, 0)
+        msg = f'Value of power must be 0, is {delta_p}.'
+        assert delta_p == 0, msg
+
+    def test_Pump_maps(self):
+        instance = Pump("pump")
+        self.setup_network(instance)
+        self.c1.set_attr(fluid={"INCOMP::Water": 1}, v=0.715, p=5, T=50)
+        self.c2.set_attr()
+
+        frequencies = np.array([1500, 1750, 2000, 2250]) / 60  # SI units!
+        flows = np.array([
+            [0.   , 0.715, 1.431],  # corresponds to 1500
+            [0.   , 1.141, 2.284],  # corresponds to 1750...
+            [0.   , 1.568, 3.137],
+            [0.   , 1.995, 3.772]
+        ])
+        head = np.array([
+            [ 3.229,  3.023,  1.786],
+            [ 8.239,  7.712,  4.559],
+            [15.554, 14.558,  8.602],
+            [20.   , 20.   , 12.431]
+        ])
+        efficiency = np.array([
+            [0. , 0.45, 0.4 ],
+            [0. , 0.5 , 0.45],
+            [0. , 0.52, 0.5 ],
+            [0. , 0.5 , 0.45]
+        ])
+        pump_H_map = CharMap(
+            x=frequencies,
+            y=flows,
+            z=head
+        )
+        pump_eta_map = CharMap(
+            x=frequencies,
+            y=flows,
+            z=efficiency
+        )
+
+        instance.set_attr(
+            head_flow_map={'char_func': pump_H_map, 'is_set': True},
+            eta_flow_map={'char_func': pump_eta_map, 'is_set': True},
+            frequency=1500 / 60
+        )
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.eta.val) == 0.45
+        assert approx(instance.head.val) == 3.023
+
+        self.c1.set_attr(v=None)
+        instance.set_attr(head=2.5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(self.c1.v.val) == 1.017723
+
+        instance.set_attr(frequency="var")
+        self.c1.set_attr(v=2)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert approx(instance.frequency.val, rel=1e-3) == 26.07
 
     def test_Turbine(self, tmp_path):
         """Test component properties of turbines."""

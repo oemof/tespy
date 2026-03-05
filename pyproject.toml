@@ -26,11 +26,7 @@ exclude = [
 
 [project]
 name = "tespy"
-<<<<<<< HEAD
 version = "0.9.13"
-=======
-version = "0.9.13.dev0"
->>>>>>> dev
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [

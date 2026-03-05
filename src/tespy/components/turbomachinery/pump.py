@@ -591,7 +591,7 @@ class Pump(Turbomachine):
 
             .. math::
 
-                0 = \eta \left(\omega,\dot{m}_\text{in}\cdot v_\text{in} \right)
+                0 = \eta \left(\omega,\dot{V}_\text{in}\cdot v_\text{in} \right)
                 \cdot (h_\text{out} - h_\text{in})
                 - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
         """
@@ -622,7 +622,7 @@ class Pump(Turbomachine):
 
             .. math::
 
-                0 = H\left(\omega,\dot{m}_\text{in}\right)
+                0 = H\left(\omega,\dot{V}_\text{in}\right)
                 - \frac{\left( p_\text{out} - p_\text{in} \right) \cdot v}{g}
         """
         i = self.inl[0]

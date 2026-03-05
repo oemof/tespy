@@ -291,11 +291,35 @@ class Pump(Turbomachine):
         Be aware that if the pump runs outside of the characteristic map it can
         easily happen that derivatives become zero because the interpolation
         returns the same values independent of the variables. A good initial
-        guess can (but does not necessarily) help.
+        guess can (but does not necessarily) help. We can re-create the
+        characteristic maps, this time provide the :code:`extrapolate` keyword.
+        It will extrapolate beyond the component map and thus produce non-zero
+        derivatives.
 
     >>> outg.set_attr(p=1.2)
     >>> nw.solve("design")
     >>> nw.status == 3  # check if status is linear dependency
+    True
+
+    >>> pump_H_map = CharMap(
+    ...     x=frequencies,
+    ...     y=flows,
+    ...     z=head,
+    ...     extrapolate=True
+    ... )
+    >>> pump_eta_map = CharMap(
+    ...     x=frequencies,
+    ...     y=flows,
+    ...     z=efficiency,
+    ...     extrapolate=True
+    ... )
+    >>> pu.set_attr(
+    ...     head_flow_map={'char_func': pump_H_map, 'is_set': True},
+    ...     eta_flow_map={'char_func': pump_eta_map, 'is_set': True},
+    ...     frequency=2000
+    ... )
+    >>> nw.solve("design")
+    >>> nw.status == 0  # check if status is successful simulation
     True
 
     Finally, it is possible to make the frequency variable to match a certain

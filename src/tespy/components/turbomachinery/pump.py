@@ -373,7 +373,8 @@ class Pump(Turbomachine):
             "frequency": dc_cp(
                 min_val=0, max_val=10000,
                 _potential_var=True,
-                quantity="frequency"
+                quantity="frequency",
+                description="frequency of the pump"
             ),
             "eta_flow_map": dc_cm(
                 description=(
@@ -411,7 +412,8 @@ class Pump(Turbomachine):
                 min_val=0, max_val=10000, num_eq_sets=1,
                 func=self.hydraulic_head_func,
                 dependents=self.hydraulic_head_dependents,
-                quantity="length"
+                quantity="length",
+                description="hydraulic head of the pump"
             )
         })
         return parameters

@@ -461,9 +461,8 @@ class Valve(Component):
         self.zeta.val_SI = self.calc_zeta(i, o)
         if self.dp.val_SI > 0 and i.calc_phase() == "l":
             self.Kv.val_SI = (
-                i.v.val_SI * 3600 * (
-                    100 / (i.vol.val_SI * self.dp.val_SI)
-                ) ** 0.5
+                i.v.val_SI * 3600
+                * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
             )
 
     def entropy_balance(self):
@@ -472,7 +471,7 @@ class Valve(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 

@@ -21,6 +21,12 @@ New Features
   example check out the docs:
   :py:class:`tespy.components.turbomachinery.pump.Pump`
   (`PR #911 <https://github.com/oemof/tespy/pull/911>`__)
+- You can skip the complete postprocessing of components and connections after
+  solving a model. This can speed up the calculations quite significantly and
+  might be useful, if you are executing many simulations and you are not
+  interested in all results and internal validations (value checks of the
+  results to identify negative pinches, efficiencies larger than 1 etc.).
+  (`PR #907 <https://github.com/oemof/tespy/pull/907>`__)
 
 Contributors
 ############

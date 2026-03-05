@@ -2445,6 +2445,13 @@ class Network:
         self.robust_relax = robust_relax
         self.skip_postprocess = skip_postprocess
 
+        if self.skip_postprocess:
+            msg = (
+                "Postprocessing will be skipped, violations of "
+                "phyiscal/operational are not reported or logged!"
+            )
+            logger.debug(msg)
+
         if self.use_cuda and cu is None:
             msg = (
                 'Specifying use_cuda=True requires cupy to be installed on '

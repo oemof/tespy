@@ -100,6 +100,18 @@ class Pump(Turbomachine):
     eta_s : float, dict
         Isentropic efficiency, :math:`\eta_s/1`
 
+    eta : float, dict
+        Efficiency based on flow work :math:`v\cdot dp`, :math:`\eta/1`
+
+    frequency : float, dict
+        Frequency of the pump, :math:`\omega/(1/)`
+
+    eta_flow_map : tespy.tools.characteristics.CharMap, dict
+        Characteristic map for efficiency vs. volumetric flow and frequency
+
+    head_flow_map : tespy.tools.characteristics.CharMap, dict
+        Characteristic map for hydraulic head vs. volumetric flow and frequency
+
     pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`
 
@@ -107,13 +119,16 @@ class Pump(Turbomachine):
         Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
         Is specified in the Network's pressure unit
 
+    head : float, dict
+        Hydraulic head, :math:`H/m`
+
     eta_s_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for isentropic efficiency, provide CharLine as
-        function :code:`func`.
+        function :code:`func`
 
     flow_char : tespy.tools.characteristics.CharLine, dict
         Characteristic curve for pressure rise as function of volumetric flow
-        :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`.
+        :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`
 
     Example
     -------
@@ -176,9 +191,10 @@ class Pump(Turbomachine):
     >>> os.remove('tmp.json')
 
     In the second example we model a pump with characteristic maps. These can
-    be retrieved from manufacturers, e.g., this one: :cite:`grundfos`. To keep
-    the example simple, the pump maps here are more basic. To make use of the
-    maps, we need the following information:
+    be retrieved from manufacturers, for example, grundfos :cite:`grundfos`
+    provides datatsheets for their pumps. To keep the example simple, the pump
+    maps used below are kept very. To make use of the maps we need the
+    following information:
 
     - A numpy array of frequency values
     - Per frequency value a numpy array for volumetric flow
@@ -293,7 +309,6 @@ class Pump(Turbomachine):
     True
     >>> round(pu.frequency.val)
     1862
-
     """
 
     @staticmethod
@@ -356,7 +371,8 @@ class Pump(Turbomachine):
                 description="pressure rise over volumetric flow lookup table"
             ),
             "frequency": dc_cp(
-                min_val=0, max_val=10000, _potential_var=True,
+                min_val=0, max_val=10000,
+                _potential_var=True,
                 quantity="frequency"
             ),
             "eta_flow_map": dc_cm(

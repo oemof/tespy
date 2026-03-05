@@ -1577,7 +1577,15 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
-    def calc_results(self, units):
+    def calc_results(self, units, skip_postprocess):
+        self.m.set_val0_from_SI(units)
+        self.p.set_val0_from_SI(units)
+        self.h.set_val0_from_SI(units)
+        self.fluid.val0 = self.fluid.val.copy()
+
+        if skip_postprocess:
+            return True
+
         self.T.val_SI = self.calc_T()
         fluid = single_fluid(self.fluid_data)
         _converged = True
@@ -1673,11 +1681,6 @@ class Connection(ConnectionBase):
             else:
                 if not param.is_set:
                     param.set_val_from_SI(units)
-
-        self.m.set_val0_from_SI(units)
-        self.p.set_val0_from_SI(units)
-        self.h.set_val0_from_SI(units)
-        self.fluid.val0 = self.fluid.val.copy()
 
         return _converged
 

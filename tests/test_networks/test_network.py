@@ -1221,3 +1221,43 @@ def test_fluid_kwargs_propagation():
     assert approx(
         conductivity_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
     ) == 0.13875
+
+
+def test_skip_postprocessing():
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+
+    pipe = SimpleHeatExchanger("pipe")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", pipe, "in1", label="c1")
+    c2 = Connection(pipe, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    fluid_kwargs = {
+        "temperature_data": np.array([273.15, 373.15]),
+        "density_data": np.array([1000, 1100]),
+        "heat_capacity_data": np.array([4000, 4100]),
+        "viscosity_data": np.array([0.05, 0.00025]),
+        "conductivity_data": np.array([0.1425, 0.135])
+    }
+
+    c1.set_attr(
+        fluid={"f": 1},
+        fluid_engines={"f": IncompressibleFluidWrapper},
+        fluid_wrapper_kwargs={"f": fluid_kwargs},
+        p=1, T=30
+    )
+    c2.set_attr(p=0.9, T=50)
+    pipe.set_attr(Q=1500)
+
+    nw.solve("design", skip_postprocess=True)
+    nw.assert_convergence()
+
+    assert np.isnan(pipe.pr.val)
+    assert np.isnan(pipe.dp.val)
+    assert np.isnan(c2.v.val)
+    assert np.isnan(c1.s.val)

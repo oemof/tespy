@@ -44,6 +44,7 @@ from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
@@ -892,6 +893,7 @@ class Network:
 
         self._propagate_fluid_wrappers()
         self._init_connection_result_datastructure()
+
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
@@ -1689,9 +1691,7 @@ class Network:
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
-                if isinstance(value, dc_prop) and (value.is_set or value.is_var):
-                    if np.isnan(value._val):
-                        value.val = (value.min_val + value.max_val) / 2
+                if isinstance(value, dc_prop) and value.is_set:
                     value.set_SI_from_val(self.units)
 
     def _prepare_design(self):
@@ -2057,7 +2057,7 @@ class Network:
                 # for components every variable should be an actual variable
                 # if variable.is_var:
                 if np.isnan(variable.val):
-                    variable.val = 1.0
+                    variable.val = (variable.min_val + variable.max_val) / 2
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
@@ -2129,6 +2129,7 @@ class Network:
         dfs = {}
         if "Connection" in data["Connection"]:
             for key, value in data["Connection"].items():
+                # TODO: remove the future warning here and bump minimum pandas version to 3.0
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
@@ -2368,7 +2369,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, robust_relax=False):
+              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False):
         r"""
         Solve the network.
 
@@ -2442,6 +2443,14 @@ class Network:
         self.iter = 0
         self.use_cuda = use_cuda
         self.robust_relax = robust_relax
+        self.skip_postprocess = skip_postprocess
+
+        if self.skip_postprocess:
+            msg = (
+                "Postprocessing will be skipped, violations of "
+                "phyiscal/operational are not reported or logged!"
+            )
+            logger.debug(msg)
 
         if self.use_cuda and cu is None:
             msg = (
@@ -2504,7 +2513,7 @@ class Network:
             logger.error(self.singularity_msg)
             return
 
-        if self.status == 2:
+        elif self.status == 2:
             msg = (
                 'The solver does not seem to make any progress, aborting '
                 'calculation. Residual value is '
@@ -3015,7 +3024,9 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = c.calc_results(self.units) and _converged
+            _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
+            if self.skip_postprocess:
+                continue
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
@@ -3023,6 +3034,9 @@ class Network:
         """Process the component results."""
         # components
         _converged = True
+        if self.skip_postprocess:
+            return _converged
+
         for cp in self.comps['object']:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
@@ -3073,6 +3087,8 @@ class Network:
 
     def _postprocess_busses(self):
         """Process the bus results."""
+        if self.skip_postprocess:
+            return
         # busses
         for b in self.busses.values():
             for cp in b.comps.index:

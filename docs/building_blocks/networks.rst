@@ -640,6 +640,19 @@ primary variables whenever possible/reasonable. This will not only reduce the
 variable space but also remove the necessity to calculate partial derivatives
 towards them.
 
+Finally, you can skip the postprocessing step.
+
+- It will skip calculating all temperatures, volumetric flows, entropies, etc.
+  of connections. Only the variables (mass flow, pressure, enthalpy and fluid
+  composition will be available).
+- It will skip calculation and evaluation of all component parameters and
+  component parameter bounds. Errors in the results are not reported!
+
+You can make use of this if you only want to extract certain results and if you
+execute multiple simulations. In this case, you have to calculate the
+respective results manually from the variables yourself and you have to make
+sure that physical limitations are not violated.
+
 .. _networks_debugging_label:
 
 Debugging

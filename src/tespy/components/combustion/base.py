@@ -23,8 +23,8 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import FLUID_ALIASES
-from tespy.tools.global_vars import combustion_gases
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
@@ -51,6 +51,12 @@ class CombustionChamber(Component):
     Available fuels
 
     - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
+
+    .. tip::
+
+        You can add more fluids by importing :code:`COMBUSTION_FLUIDS` from
+        the :code:`tespy.tools` module and passing the respective information.
+        See in the example below, how to do that.
 
     Inlets/Outlets
 
@@ -117,7 +123,7 @@ class CombustionChamber(Component):
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. In this example a mixture of methane, hydrogen and
-    carbondioxide is used as fuel.
+    carbon dioxide is used as fuel.
 
     >>> from tespy.components import Sink, Source, CombustionChamber
     >>> from tespy.connections import Connection
@@ -127,13 +133,13 @@ class CombustionChamber(Component):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> amb = Source('ambient air')
-    >>> sf = Source('fuel')
-    >>> fg = Sink('flue gas outlet')
-    >>> comb = CombustionChamber('combustion chamber')
-    >>> amb_comb = Connection(amb, 'out1', comb, 'in1')
-    >>> sf_comb = Connection(sf, 'out1', comb, 'in2')
-    >>> comb_fg = Connection(comb, 'out1', fg, 'in1')
+    >>> amb = Source("ambient air")
+    >>> sf = Source("fuel")
+    >>> fg = Sink("flue gas outlet")
+    >>> comb = CombustionChamber("combustion chamber")
+    >>> amb_comb = Connection(amb, "out1", comb, "in1")
+    >>> sf_comb = Connection(sf, "out1", comb, "in2")
+    >>> comb_fg = Connection(comb, "out1", fg, "in1")
     >>> nw.add_conns(sf_comb, amb_comb, comb_fg)
 
     Specify the thermal input of the combustion chamber. At the given fluid
@@ -142,23 +148,44 @@ class CombustionChamber(Component):
     flow.
 
     >>> comb.set_attr(ti=500000)
-    >>> amb_comb.set_attr(p=1, T=20, fluid={'Ar': 0.0129, 'N2': 0.7553,
-    ... 'CO2': 0.0004, 'O2': 0.2314})
-    >>> sf_comb.set_attr(T=25, fluid={'CO2': 0.03, 'H2': 0.01, 'CH4': 0.96})
+    >>> amb_comb.set_attr(
+    ...     p=1, T=20,
+    ...     fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
+    ... )
+    >>> sf_comb.set_attr(T=25, fluid={"CO2": 0.03, "H2": 0.01, "CH4": 0.96})
     >>> comb_fg.set_attr(T=1200)
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> round(comb.lamb.val, 3)
     2.014
     >>> comb.set_attr(lamb=2)
     >>> comb_fg.set_attr(T=None)
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> round(comb_fg.T.val, 1)
     1206.6
+
+    You can add a custom combustion fluid if you need. The combustion gas must
+    be available in fluid property back-end and you need to provide the name of
+    the fluid as well as its formation enthalpy :code:`hf` **in kJ/mol** or the
+    lower heating value :code:`LHV` in **J/kg**. For example, let's use
+    :code:`ethanol` and :code:`` as examples:
+
+    >>> from tespy.tools import COMBUSTION_FLUIDS
+    >>> COMBUSTION_FLUIDS.add_fluid("ethanol", hf=-234.95)
+    >>> COMBUSTION_FLUIDS.add_fluid("acetone", LHV=28.603e6)
+
+    >>> sf_comb.set_attr(fluid={"acetone": 1})
+    >>> nw.solve("design")
+    >>> round(comb_fg.T.val, 1)
+    1232.3
+    >>> sf_comb.set_attr(fluid={"ethanol": 1})
+    >>> nw.solve("design")
+    >>> round(comb_fg.T.val, 1)
+    1241.7
     """
 
     def get_parameters(self):
         return {
-            'lamb': dc_cp(
+            "lamb": dc_cp(
                 min_val=1,
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
@@ -166,7 +193,7 @@ class CombustionChamber(Component):
                 quantity="ratio",
                 description="available oxygen to stoichiometric oxygen ratio"
             ),
-            'ti': dc_cp(
+            "ti": dc_cp(
                 min_val=0,
                 deriv=self.ti_deriv,
                 func=self.ti_func,
@@ -217,11 +244,11 @@ class CombustionChamber(Component):
 
     @staticmethod
     def inlets():
-        return ['in1', 'in2']
+        return ["in1", "in2"]
 
     @staticmethod
     def outlets():
-        return ['out1']
+        return ["out1"]
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
@@ -244,7 +271,7 @@ class CombustionChamber(Component):
         self.fuel_list = []
         all_fluids = set([f for c in self.inl + self.outl for f in c.fluid.val])
         for f in all_fluids:
-            if fluidalias_in_list(f, combustion_gases):
+            if fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids.keys()):
                 self.fuel_list += [f]
 
         self.fuel_list = set(self.fuel_list)
@@ -254,7 +281,7 @@ class CombustionChamber(Component):
                 "Your network's fluids do not contain any fuels, that are "
                 f"available for the component {self.label} of type "
                 f"{self.__class__.__name__}. Available fuels are: "
-                f"{', '.join(combustion_gases)}."
+                f"{', '.join(COMBUSTION_FLUIDS.fluids.keys())}."
             )
             logger.error(msg)
             raise TESPyComponentError(msg)
@@ -272,8 +299,8 @@ class CombustionChamber(Component):
                 msg = (
                     f"The component {self.label} (class "
                     f"{self.__class__.__name__}) requires that the fluid "
-                    f"{fluid} (aliases: {aliases}) is in the network's list of "
-                    "fluids."
+                    f"{fluid} (aliases: {aliases}) is in the network's list "
+                    "of fluids."
                 )
                 logger.error(msg)
                 raise TESPyComponentError(msg)
@@ -284,12 +311,20 @@ class CombustionChamber(Component):
         for f in self.fuel_list:
             self.fuels[f] = {}
             structure = fluid_structure(f)
-            for el in ['C', 'H', 'O']:
+            for el in ["C", "H", "O"]:
                 if el in structure:
                     self.fuels[f][el] = structure[el]
                 else:
                     self.fuels[f][el] = 0
-            self.fuels[f]['LHV'] = self.calc_lhv(f)
+            if f not in COMBUSTION_FLUIDS.fluids.keys():
+                self.fuels[f]["LHV"] = self.calc_lhv(f)
+                continue
+
+            if COMBUSTION_FLUIDS.fluids[f]["LHV"] is None:
+                self.fuels[f]["LHV"] = self.calc_lhv(f)
+                continue
+
+            self.fuels[f]["LHV"] = COMBUSTION_FLUIDS.fluids[f]["LHV"]
 
     def calc_lhv(self, f):
         r"""
@@ -319,29 +354,26 @@ class CombustionChamber(Component):
         """
         inl, _ = self._get_combustion_connections()
         hf = {}
-        hf['hydrogen'] = 0
-        hf['methane'] = -74.6
-        hf['ethane'] = -84.0
-        hf['propane'] = -103.8
-        hf['butane'] = -125.7
-        hf['nDodecane'] = -289.4
-        hf['CO'] = -110.5
+
         hf[self.o2] = 0
         hf[self.co2] = -393.51
         # water (gaseous)
         hf[self.h2o] = -241.826
 
-        key = set(list(hf.keys())).intersection(FLUID_ALIASES.get_fluid(f))
+        key = set(
+            list(COMBUSTION_FLUIDS.fluids.keys())
+        ).intersection(FLUID_ALIASES.get_fluid(f))
 
         val = (
             -(
-                self.fuels[f]['H'] / 2 * hf[self.h2o]
-                + self.fuels[f]['C'] * hf[self.co2]
+                self.fuels[f]["H"] / 2 * hf[self.h2o]
+                + self.fuels[f]["C"] * hf[self.co2]
                 - (
                     (
-                        self.fuels[f]['C'] + self.fuels[f]['H'] / 4
-                        - self.fuels[f]['O'] / 2
-                    ) * hf[self.o2] + hf[list(key)[0]]
+                        self.fuels[f]["C"] + self.fuels[f]["H"] / 4
+                        - self.fuels[f]["O"] / 2
+                    ) * hf[self.o2]
+                    + COMBUSTION_FLUIDS.fluids[list(key)[0]]["hf"]
                 )
             ) / inl[0].fluid.wrapper[f]._molar_mass * 1000
         )
@@ -548,14 +580,14 @@ class CombustionChamber(Component):
                         / inl[0].fluid.wrapper[f]._molar_mass
                     )
                     n_fuel[f] += n
-                    n_h += n * self.fuels[f]['H']
-                    n_c += n * self.fuels[f]['C']
-                    n_o += n * self.fuels[f]['O']
+                    n_h += n * self.fuels[f]["H"]
+                    n_c += n * self.fuels[f]["C"]
+                    n_o += n * self.fuels[f]["O"]
 
                 # stoichiometric oxygen requirement for each fuel
                 n_oxy_stoich[f] = n_fuel[f] * (
-                    self.fuels[f]['H'] / 4 + self.fuels[f]['C']
-                    - self.fuels[f]['O'] / 2
+                    self.fuels[f]["H"] / 4 + self.fuels[f]["C"]
+                    - self.fuels[f]["O"] / 2
                 )
 
             ###################################################################
@@ -608,7 +640,10 @@ class CombustionChamber(Component):
             if self.lamb.val_SI < 1:
                 n_fuel_exc = (
                     -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
-                    / (self.fuels[fluid]['H'] / 4 + self.fuels[fluid]['C'] - self.fuels[fluid]['O'] / 2)
+                    / (
+                        self.fuels[fluid]["H"] / 4 + self.fuels[fluid]["C"]
+                        - self.fuels[fluid]["O"] / 2
+                    )
                 )
             else:
                 n_fuel_exc = 0
@@ -788,9 +823,9 @@ class CombustionChamber(Component):
                     i.m.val_SI * i.fluid.val.get(f, 0)
                     / inl[0].fluid.wrapper[f]._molar_mass
                 )
-                n_h += n_fuel * self.fuels[f]['H']
-                n_c += n_fuel * self.fuels[f]['C']
-                n_o += n_fuel * self.fuels[f]['O']
+                n_h += n_fuel * self.fuels[f]["H"]
+                n_c += n_fuel * self.fuels[f]["C"]
+                n_o += n_fuel * self.fuels[f]["O"]
 
         n_oxygen = 0
         for i in inl:
@@ -833,19 +868,19 @@ class CombustionChamber(Component):
             if i.m.is_var:
                 deriv = 0
                 for f in self.fuel_list:
-                    deriv -= i.fluid.val.get(f, 0) * self.fuels[f]['LHV']
+                    deriv -= i.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
                 self.jacobian[k, i.m.J_col] = deriv
             for f in (self.fuel_list & i.fluid.is_var):
-                self.jacobian[k, i.fluid.J_col[f]] = -i.m.val_SI * self.fuels[f]['LHV']
+                self.jacobian[k, i.fluid.J_col[f]] = -i.m.val_SI * self.fuels[f]["LHV"]
 
         o = outl[0]
         if o.m.is_var:
             deriv = 0
             for f in self.fuel_list:
-                deriv += o.fluid.val.get(f, 0) * self.fuels[f]['LHV']
+                deriv += o.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
             self.jacobian[k, o.m.J_col] = deriv
         for f in (self.fuel_list & o.fluid.is_var):
-            self.jacobian[k, o.fluid.J_col[f]] = o.m.val_SI * self.fuels[f]['LHV']
+            self.jacobian[k, o.fluid.J_col[f]] = o.m.val_SI * self.fuels[f]["LHV"]
 
     def ti_dependents(self):
         inl, outl = self._get_combustion_connections()
@@ -882,7 +917,7 @@ class CombustionChamber(Component):
             for o in outl:
                 m -= o.m.val_SI * o.fluid.val.get(f, 0)
 
-            ti += m * self.fuels[f]['LHV']
+            ti += m * self.fuels[f]["LHV"]
 
         return ti
 
@@ -1052,9 +1087,9 @@ class CombustionChamber(Component):
                 10^6 & \text{key = 'h'}
                 \end{cases}
         """
-        if key == 'p':
+        if key == "p":
             return 5e5
-        elif key == 'h':
+        elif key == "h":
             return 10e5
 
     @staticmethod
@@ -1082,9 +1117,9 @@ class CombustionChamber(Component):
                 5 \cdot 10^5 & \text{key = 'h'}
                 \end{cases}
         """
-        if key == 'p':
+        if key == "p":
             return 5e5
-        elif key == 'h':
+        elif key == "h":
             return 5e5
 
     def calc_parameters(self):

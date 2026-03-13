@@ -217,11 +217,12 @@ class CharMap:
     """
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z=np.ones((2, 2))):
+                 z=np.ones((2, 2)), extrapolate=False):
 
         self.x = x
         self.y = y
         self.z = z
+        self.extrapolate = extrapolate
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -272,15 +273,20 @@ class CharMap:
         """
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
-            yarr = self.y[xpos - 1]
-            zarr = self.z[xpos - 1]
+            if self.extrapolate:
+                xpos = -1
+            else:
+                return self.y[-1], self.z[-1]
         elif xpos == 0:
-            yarr = self.y[0]
-            zarr = self.z[0]
-        else:
-            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-            zarr = self.z[xpos - 1] + yfrac * (self.z[xpos] - self.z[xpos - 1])
+            # extrapolate from elements 0 and 1 and not 0 and -1!
+            if self.extrapolate:
+                xpos = 1
+            else:
+                return self.y[0], self.z[0]
+
+        yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+        yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+        zarr = self.z[xpos - 1] + yfrac * (self.z[xpos] - self.z[xpos - 1])
 
         return yarr, zarr
 
@@ -301,14 +307,20 @@ class CharMap:
             Output array of CharMap calculated from first dimension input.
         """
         ypos = np.searchsorted(yarr, y)
+
         if ypos == len(yarr):
-            return zarr[ypos - 1]
+            if self.extrapolate:
+                ypos = -1
+            else:
+                return zarr[ypos - 1]
         elif ypos == 0:
-            return zarr[0]
-        else:
-            zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
-            z = zarr[ypos - 1] + zfrac * (zarr[ypos] - zarr[ypos - 1])
-            return z
+            if self.extrapolate:
+                ypos = 1
+            else:
+                return zarr[0]
+
+        zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
+        return zarr[ypos - 1] + zfrac * (zarr[ypos] - zarr[ypos - 1])
 
     def evaluate(self, x, y):
         r"""
@@ -456,6 +468,7 @@ class CharMap:
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["z"] = self.z.tolist()
+        export["extrapolate"] = self.extrapolate
         return export
 
     def plot(self, path, title, xlabel, ylabel):

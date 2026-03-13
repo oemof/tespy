@@ -1,5 +1,5 @@
-v0.9.13 - Under development
-+++++++++++++++++++++++++++
+v0.9.13 - Kelvin's Kingdom (March, 5, 2026)
++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -15,7 +15,7 @@ New Features
   and adding the respective information (fluid name, LHV and/or enthalpy of
   formation). For an example check out the docs:
   :py:class:`tespy.components.combustion.base.CombustionChamber`
-  (`PR #770 <https://github.com/oemof/tespy/pull/770>`__)
+  (`PR #770 <https://github.com/oemof/tespy/pull/770>`__).
 - The :code:`Pump` class now implements hydraulic head over flow and frequency
   as well as efficiency over flow and frequency characteristic maps. For an
   example check out the docs:
@@ -25,8 +25,13 @@ New Features
   solving a model. This can speed up the calculations quite significantly and
   might be useful, if you are executing many simulations and you are not
   interested in all results and internal validations (value checks of the
-  results to identify negative pinches, efficiencies larger than 1 etc.).
-  (`PR #907 <https://github.com/oemof/tespy/pull/907>`__)
+  results to identify negative pinches, efficiencies larger than 1 etc.)
+  (`PR #907 <https://github.com/oemof/tespy/pull/907>`__).
+
+Other Changes
+#############
+- Characteristic map extrapolation is possible by providing the keyword
+  :code:`extrapolate=True` when creating the map.
 
 Contributors
 ############

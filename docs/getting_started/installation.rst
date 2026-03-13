@@ -34,7 +34,7 @@ installed.
 
       1. Install virtualenv using the package management of your Linux distribution,
          pip install or install it from source
-         (`see virtualenv documentation <https://virtualenv.pypa.io/en/stable/installation.html>`_)
+         (`see virtualenv documentation <https://virtualenv.pypa.io/>`_)
       2. Open terminal to create and activate a virtual environment by typing:
 
          .. code-block:: console

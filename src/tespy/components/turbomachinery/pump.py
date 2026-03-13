@@ -352,10 +352,12 @@ class Pump(Turbomachine):
 
     def _preprocess(self, row_idx):
         if self.frequency.is_var and self.head_flow_map.is_set:
-            min_frequency = min(self.head_flow_map.char_func.x)
-            max_frequency = max(self.head_flow_map.char_func.x)
-            self.frequency.min_val = min_frequency
-            self.frequency.max_val = max_frequency
+            # this is to prevent to evaluate the map in the first iteration
+            # outside its bound
+            if np.isnan(self.frequency.val):
+                min_frequency = min(self.head_flow_map.char_func.x)
+                max_frequency = max(self.head_flow_map.char_func.x)
+                self.frequency.val = (max_frequency + min_frequency) / 2
 
         return super()._preprocess(row_idx)
 

@@ -291,10 +291,11 @@ class Pump(Turbomachine):
         Be aware that if the pump runs outside of the characteristic map it can
         easily happen that derivatives become zero because the interpolation
         returns the same values independent of the variables. A good initial
-        guess can (but does not necessarily) help. We can re-create the
-        characteristic maps, this time provide the :code:`extrapolate` keyword.
-        It will extrapolate beyond the component map and thus produce non-zero
-        derivatives.
+        guess can (but does not necessarily) help. Instead, we can also
+        re-create the characteristic maps, and this time provide the
+        :code:`extrapolate` keyword. It will extrapolate beyond the component
+        map and thus produce non-zero derivatives. Typically, this is not only
+        necessary for the head map.
 
     >>> outg.set_attr(p=1.2)
     >>> nw.solve("design")
@@ -311,7 +312,6 @@ class Pump(Turbomachine):
     ...     x=frequencies,
     ...     y=flows,
     ...     z=efficiency,
-    ...     extrapolate=True
     ... )
     >>> pu.set_attr(
     ...     head_flow_map={'char_func': pump_H_map, 'is_set': True},
@@ -368,7 +368,9 @@ class Pump(Turbomachine):
         parameters["dp"].max_val = 0
         parameters.update({
             'eta': dc_cp(
-                min_val=0, max_val=1, is_result=True,
+                # if eta_s == 1, eta can be slighter higher than 1, so
+                # max_val is relaxed a little bit
+                min_val=0, max_val=1.01, is_result=True,
                 quantity="efficiency",
                 description=(
                     "efficiency defined as specific incompressible flow work "

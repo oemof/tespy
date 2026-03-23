@@ -1,0 +1,11 @@
+v0.9.14 - Under Development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- A :code:`CITATION.cff` file is available to reference the GitHub repository
+  (`PR #917 <https://github.com/oemof/tespy/pull/917>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

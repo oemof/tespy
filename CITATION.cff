@@ -1,0 +1,113 @@
+cff-version: 1.2.0
+title: Thermal Engineering Systems in Python (TESPy)
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.2555866
+repository-code: 'https://github.com/oemof/tespy'
+url: 'https://tespy.readthedocs.io'
+abstract: >-
+  TESPy stands for “Thermal Engineering Systems in Python”
+  and provides a powerful simulation toolkit for thermal
+  engineering plants such as various types of power plants
+  (including organic rankine cycles), heat pumps or
+  refrigeration machines. Due to its flexibility it is
+  actually possible to model any kind of thermal energy
+  conversion process, this also includes energy balancing of
+  industrial processes, district heating or HVAC systems. It
+  is part of the Open Energy Modelling Framework oemof and
+  can be used as a standalone package.
+license: MIT
+authors:
+  - given-names: Francesco
+    family-names: Witte
+    alias: "@fwitte"
+
+  - given-names: Chaofan
+    family-names: Chen
+    alias: "@ChaofanChen"
+
+  - given-names: Markus
+    family-names: Brandt
+    alias: "@MarBrandt"
+
+  - given-names: Malte
+    family-names: Fritz
+    alias: "@maltefritz"
+
+  - given-names: Julius
+    family-names: Meier
+    alias: "@juliusmeier"
+
+  - given-names: Jonas
+    family-names: Freißmann
+    alias: "@jfreissmann"
+
+  - alias: "@pjhansen"
+
+  - alias: "@tlmerbecks"
+
+  - alias: "@anmartens"
+
+  - given-names: Jorrit
+    family-names: Wronski
+    alias: "@jowr"
+
+  - alias: "@TimHoener"
+
+  - alias: "@Nzb0731"
+
+  - given-names: Jens
+    family-names: Bücker
+    alias: "@jbueck"
+
+  - alias: "@matbock"
+
+  - alias: "@stianchris"
+
+  - given-names: Sergio
+    family-names: Tomasinelli
+    alias: "@sertomas"
+
+  - alias: "@Vily-ipu"
+
+  - alias: "@ShuangChen88"
+
+  - given-names: Uwe
+    family-names: Krien
+    alias: "@uvchik"
+
+  - alias: "@nkawerau"
+
+  - alias: "@aburabazam"
+
+  - given-names: Benjamin W.
+    family-names: Portner
+    alias: "@BenPortner"
+
+  - given-names: Emil Navntoft
+    family-names: Pedersen
+    alias: "@dk-teknologisk-enp"
+
+  - alias: "@FranziPl"
+
+  - given-names: Govind
+    family-names: Menon
+    alias: "@govind-menon110"
+
+  - given-names: Hannes
+    family-names: Schneider
+    alias: "@HaSchneider"
+
+  - given-names: Nicholas
+    family-names: Fry
+    alias: "@NicholasFry"
+
+  - given-names: Taha
+    family-names: Boussaid
+    alias: "@tboussaid"
+
+  - alias: "@nilsstolze"

@@ -159,6 +159,7 @@ spacing of temperature for all measurements.
     ...     "density_data": np.array([1000, 1100]),  # kg/m3
     ...     "heat_capacity_data": np.array([4000, 4100]) * 1e3,  # J/kg
     ...     "viscosity_data": np.array([0.05, 0.00025])  # Pa*s
+    ...     "conductivity_data": np.array([0.15, 0.13])  # W/m/K
     ... }
 
 .. attention::

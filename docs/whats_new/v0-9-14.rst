@@ -1,6 +1,12 @@
 v0.9.14 - Under Development
 +++++++++++++++++++++++++++
 
+Bug Fixes
+#########
+- When setting a `Ref` for a temperature, the starting value for enthalpy of
+  the connection with the `Ref` specified is updated in preprocessing
+  (`PR #921 <https://github.com/oemof/tespy/pull/921>`__).
+
 Other Changes
 #############
 - A :code:`CITATION.cff` file is available to reference the GitHub repository

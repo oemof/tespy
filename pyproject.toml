@@ -4,9 +4,10 @@ build-backend = "flit_core.buildapi"
 
 [tool.flit.sdist]
 include = [
-    "CHANGELOG.rst",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "CHANGELOG.rst",
+    "CITATION.cff",
     "LICENSE*",
     "PULL_REQUEST_TEMPLATE.md",
     ".coveragerc",

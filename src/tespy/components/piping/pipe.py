@@ -297,6 +297,17 @@ class Pipe(SimpleHeatExchanger):
             min_val=1e-2, max_val=1e2, quantity="length",
             description="depth of buried pipe"
         )
+        parameters["flow_speed"]= dc_cp(
+            min_val=1e-2, max_val=1e2, quantity="speed",
+            description="flow speed at inlet of pipe"
+        )
+        parameters["flow_speed_group"]= dc_gcp(
+            elements=["D", "flow_speed"],
+            num_eq_sets=1,
+            func=self.flow_speed_func,
+            dependents=self.flow_speed_dependents,
+            description="equation connecting volumetric flow, flow speed and diameter of pipe"
+        )
         return parameters
 
     def ohc_surface_group_func(self):
@@ -476,3 +487,32 @@ class Pipe(SimpleHeatExchanger):
             + [var for c in self.inl + self.outl for var in [c.p, c.h]]
             + [self.D, self.L]
         )
+
+    def flow_speed_func(self):
+        rA"""Heat transfer calculation based on pipe material, insulation and
+        surrounding ambient conditions for subsurface pipes.
+
+        Returns
+        -------
+        float
+            Residual value of equation
+
+            .. math::
+
+                0 = c \cdot \pi \cdot D ^ 2 - \dot m \cdot v_\text{in} * 4
+        """
+        return (
+            self.flow_speed.val_SI * math.pi * self.D.val_SI ** 2
+            - self.inl[0].m.val_SI * self.inl[0].calc_vol() * 4
+        )
+
+    def flow_speed_dependents(self):
+        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.D]
+
+    def calc_parameters(self):
+        super().calc_parameters()
+
+        if self.D.is_set or self.D.is_var:
+            self.flow_speed.val_SI = (
+                self.inl[0].v.val_SI * 4 / (math.pi * self.D.val_SI ** 2)
+            )

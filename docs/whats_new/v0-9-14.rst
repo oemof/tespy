@@ -11,6 +11,8 @@ Other Changes
 #############
 - A :code:`CITATION.cff` file is available to reference the GitHub repository
   (`PR #917 <https://github.com/oemof/tespy/pull/917>`__).
+- You can now specify the flow speed at the inlet of pipes
+  (`PR #924 <https://github.com/oemof/tespy/pull/924>`__).
 
 Contributors
 ############

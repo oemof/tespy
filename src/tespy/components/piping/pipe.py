@@ -148,16 +148,16 @@ class Pipe(SimpleHeatExchanger):
         :math:`insulation_tc/\frac{\text{W}}{\text{m}\text{K}}`.
 
     material: str, float
-        material of pipe: 'Steel', 'Carbon Steel', 'Cast Iron',
-        'Stainless Steel', 'PVC', 'CommercialCopper' or user-specified heat
+        material of pipe: "Steel", "Carbon Steel", "Cast Iron",
+        "Stainless Steel", "PVC", "CommercialCopper" or user-specified heat
         conductivity of material: float
 
     pipe_thickness: float
         thickness of pipe, :math:`pipe_thickness/\text{m}`.
 
     environment_media: str
-        environment media around the pipe: 'air', 'gravel', 'stones',
-        'dry soil', 'moist soil'.
+        environment media around the pipe: "air", "gravel", "stones",
+        "dry soil", "moist soil".
 
     wind_velocity: float
         Mean velocity of the wind. Needs to be greater than zero,
@@ -185,15 +185,15 @@ class Pipe(SimpleHeatExchanger):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
-    >>> so = Source('source 1')
-    >>> si = Sink('sink 1')
-    >>> pi = Pipe('pipeline')
-    >>> pi.set_attr(pr=0.975, Q=0, L=100, D='var', ks=5e-5)
-    >>> inc = Connection(so, 'out1', pi, 'in1')
-    >>> outg = Connection(pi, 'out1', si, 'in1')
+    >>> so = Source("source 1")
+    >>> si = Sink("sink 1")
+    >>> pi = Pipe("pipeline")
+    >>> pi.set_attr(pr=0.975, Q=0, L=100, D="var", ks=5e-5)
+    >>> inc = Connection(so, "out1", pi, "in1")
+    >>> outg = Connection(pi, "out1", si, "in1")
     >>> nw.add_conns(inc, outg)
-    >>> inc.set_attr(fluid={'ethanol': 1}, m=10, T=30, p=3)
-    >>> nw.solve('design')
+    >>> inc.set_attr(fluid={"ethanol": 1}, m=10, T=30, p=3)
+    >>> nw.solve("design")
     >>> round(pi.D.val, 3)
     0.119
     >>> round(outg.p.val / inc.p.val, 3) == round(pi.pr.val, 3)
@@ -201,7 +201,7 @@ class Pipe(SimpleHeatExchanger):
     >>> inc.set_attr(m=15)
     >>> pi.set_attr(pr=None)
     >>> pi.set_attr(D=pi.D.val)
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> round(pi.pr.val, 2)
     0.94
 
@@ -212,34 +212,34 @@ class Pipe(SimpleHeatExchanger):
     initial guess originates from the previous calculation using ethanol as
     fluid.
 
-    >>> inc.set_attr(fluid={'water': 1, 'ethanol': 0}, T=100)
+    >>> inc.set_attr(fluid={"water": 1, "ethanol": 0}, T=100)
     >>> outg.set_attr(h0=300)
     >>> pi.set_attr(
-    ...     D='var', Q=None, pr=0.975,
-    ...     Tamb=0, environment_media='dry soil', pipe_depth=5,
+    ...     D="var", Q=None, pr=0.975,
+    ...     Tamb=0, environment_media="dry soil", pipe_depth=5,
     ...     insulation_thickness=0.1, insulation_tc=0.035,
-    ...     pipe_thickness=0.003, material='Steel'
+    ...     pipe_thickness=0.003, material="Steel"
     ... )
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> round(pi.Q.val, 2)
     -1780.74
 
     We can reuse many of the given parameters of the pipe. By unsetting the
-    pipe's depth and setting the environment media and wind velocity instead
+    pipe"s depth and setting the environment media and wind velocity instead
     the analogous method for surface pipes is applied. Observe, how the
     overall heat loss increases.
 
     >>> pi.Q_ohc_group_subsurface.is_set = False
     >>> pi.set_attr(
-    ...     pipe_depth=None, environment_media='air', wind_velocity=2.0
+    ...     pipe_depth=None, environment_media="air", wind_velocity=2.0
     ... )
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> round(pi.Q.val, 2)
     -2434.12
     """
 
     def _preprocess(self, row_idx):
-        self.air = CoolPropWrapper('air')
+        self.air = CoolPropWrapper("air")
         if self.wind_velocity.is_set:
             if self.wind_velocity.val < self.wind_velocity.min_val:
                 msg = (
@@ -255,45 +255,45 @@ class Pipe(SimpleHeatExchanger):
     def get_parameters(self):
         parameters=super().get_parameters()
 
-        parameters['Q_ohc_group_surface']=dc_gcp(
+        parameters["Q_ohc_group_surface"]=dc_gcp(
             elements=[
-                'insulation_thickness', 'insulation_tc', 'Tamb', 'material',
-                'pipe_thickness', 'environment_media', 'wind_velocity'
+                "insulation_thickness", "insulation_tc", "Tamb", "material",
+                "pipe_thickness", "environment_media", "wind_velocity"
             ],
             num_eq_sets=1,
             func=self.ohc_surface_group_func,
             dependents=self.ohc_surface_group_dependents,
             description="equation for heat loss of surface pipes"
         )
-        parameters['Q_ohc_group_subsurface']=dc_gcp(
+        parameters["Q_ohc_group_subsurface"]=dc_gcp(
             elements=[
-                'insulation_thickness', 'insulation_tc', 'Tamb', 'material',
-                'pipe_thickness', 'environment_media','pipe_depth'
+                "insulation_thickness", "insulation_tc", "Tamb", "material",
+                "pipe_thickness", "environment_media","pipe_depth"
             ],
             num_eq_sets=1,
             func=self.ohc_subsurface_group_func,
             dependents=self.ohc_subsurface_group_dependents,
             description="equation for heat loss of buried pipes"
         )
-        parameters['insulation_thickness']=dc_cp(
+        parameters["insulation_thickness"]=dc_cp(
             min_val=1e-3, max_val=1e1, quantity="length",
             description="thickness of pipe insulation"
         )
-        parameters['insulation_tc']=dc_cp(
+        parameters["insulation_tc"]=dc_cp(
             min_val=1e-3, max_val=1e2, quantity="thermal_conductivity",
             description="thermal conductivity of insulation"
         )
-        parameters['material']=dc_simple(val='Steel')
-        parameters['pipe_thickness']=dc_cp(
+        parameters["material"]=dc_simple(val="Steel")
+        parameters["pipe_thickness"]=dc_cp(
             min_val=0, max_val=1, quantity="length",
             description="wall thickness of pipe"
         )
-        parameters['environment_media']=dc_simple(val='soil')
-        parameters['wind_velocity']=dc_cp(
+        parameters["environment_media"]=dc_simple(val="soil")
+        parameters["wind_velocity"]=dc_cp(
             min_val=1e-6, max_val=20, quantity="speed",
             description="velocity of wind at insulation surface"
         )
-        parameters['pipe_depth']= dc_cp(
+        parameters["pipe_depth"]= dc_cp(
             min_val=1e-2, max_val=1e2, quantity="length",
             description="depth of buried pipe"
         )
@@ -314,7 +314,7 @@ class Pipe(SimpleHeatExchanger):
                 0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
                 \Delta T_\text{log} \cdot A \cdot U
 
-                U = R_\text{conductance} + \frac{1}{\alpha_\text{outer}}}
+                U = R_\text{conductance} + \frac{1}{\alpha_\text{outer}}
 
                 \alpha_\text{outer} = \frac{Nu_\text{l} \cdot \lambda}{l}
 
@@ -341,16 +341,16 @@ class Pipe(SimpleHeatExchanger):
         # heat transfer resistance
         R_sum = []
 
-        '''
+        """
         inner heat transfer resistance neglected yet
         R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
         R_sum.append(R_int)
-        '''
+        """
 
         # pipe wall heat transfer resistance
         pipe_tc ={
-            'Steel':46.5, 'Carbon Steel':46, 'Cast Iron':48.8,
-            'Stainless Steel':21, 'PVC':0.23, 'Copper': 380
+            "Steel": 46.5, "Carbon Steel": 46, "Cast Iron": 48.8,
+            "Stainless Steel": 21, "PVC": 0.23, "Copper": 380
         }
         if diameters[1] > diameters[0]:
             if isinstance(self.material.val, str):
@@ -421,7 +421,8 @@ class Pipe(SimpleHeatExchanger):
                 0 = \dot m \cdot \left(h_\text{out}-h_\text{in}\right)-
                 \Delta T_\text{log} \cdot A \cdot U
 
-                First order approximation of multipole method for a single pipe in the ground.
+            First order approximation of multipole method for a single pipe in
+            the ground.
 
 
         Reference: :cite:`wallenten1991`
@@ -430,18 +431,19 @@ class Pipe(SimpleHeatExchanger):
         diameters= [
             self.D.val_SI,
             self.D.val_SI + 2 * self.pipe_thickness.val_SI,
-            self.D.val_SI + 2 * self.pipe_thickness.val_SI + 2 * self.insulation_thickness.val_SI
+            self.D.val_SI + 2 * self.pipe_thickness.val_SI
+            + 2 * self.insulation_thickness.val_SI
         ]
 
-        '''
+        """
         inner heat transfer resistance neglected yet
         R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
         R_sum.append(R_int)
-        '''
+        """
 
         # external heat transfer resistance (to environment)
         ground_conductivity ={
-            'gravel': 1.1, 'stones': 1.95, 'dry soil': 0.5, 'moist soil': 2.2
+            "gravel": 1.1, "stones": 1.95, "dry soil": 0.5, "moist soil": 2.2
         }
         # conductivity of the pipe neglected according to the original publication
         Beta = (

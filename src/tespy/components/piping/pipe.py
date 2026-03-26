@@ -489,7 +489,7 @@ class Pipe(SimpleHeatExchanger):
         )
 
     def flow_speed_func(self):
-        rA"""Heat transfer calculation based on pipe material, insulation and
+        r"""Heat transfer calculation based on pipe material, insulation and
         surrounding ambient conditions for subsurface pipes.
 
         Returns

@@ -383,6 +383,24 @@ class TestTurbomachinery:
 
         assert approx(instance.frequency.val, rel=1e-3) == 26.07
 
+    def test_Pump_eta(self):
+        """Test eta property of pumps."""
+        instance = Pump('pump')
+        self.setup_network(instance)
+        self.c1.set_attr(fluid={'INCOMP::LiBr[0.05]|mass': 1}, v=1, p=5, T=50)
+        self.c2.set_attr(p=7)
+        instance.set_attr(eta=0.75)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+        # test calculated value for efficiencys
+        eta = (
+            self.c1.vol.val_SI * (self.c2.p.val_SI - self.c1.p.val_SI)
+            / (self.c2.h.val_SI - self.c1.h.val_SI)
+        )
+        msg = f"Value of efficiency must be {eta}, is {instance.eta.val}."
+        assert approx(eta) == instance.eta.val, msg
+
     def test_Turbine(self, tmp_path):
         """Test component properties of turbines."""
         tmp_path = f'{tmp_path}.json'

@@ -13,6 +13,9 @@ Other Changes
   (`PR #917 <https://github.com/oemof/tespy/pull/917>`__).
 - You can now specify the flow speed at the inlet of pipes
   (`PR #924 <https://github.com/oemof/tespy/pull/924>`__).
+- It is now possible to specify the efficiency of class :code:`Pump` based on
+  flow work (:math:`v\cdot \int dp`) next to isentropic efficiency
+  (`PR #927 <https://github.com/oemof/tespy/pull/927>`__).
 
 Contributors
 ############

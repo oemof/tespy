@@ -105,6 +105,9 @@ class Pipe(SimpleHeatExchanger):
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
+    flow_speed : float, dict
+        Flow speed at the inlet of the pumpe, :math:`c/\text{m/s}`
+
     D : float, dict, :code:`"var"`
         Diameter of the pipes, :math:`D/\text{m}`.
 

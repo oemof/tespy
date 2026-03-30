@@ -624,7 +624,7 @@ class Pump(Turbomachine):
             .. math::
 
                 0 = \eta \left(\omega,\dot{V}_\text{in}\cdot v_\text{in} \right)
-                \cdot (h_\text{out} - h_\text{in})
+                \cdot \left(h_\text{out} - h_\text{in}\right)
                 - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
         """
         i = self.inl[0]
@@ -643,7 +643,7 @@ class Pump(Turbomachine):
         return [i.m, i.p, i.h, o.p, o.h, self.frequency]
 
     def eta_func(self):
-        """
+        r"""
         Equation for efficiency :math:`\eta` defined from incompressible
         pressure change (instead of isentropic efficiency)
 
@@ -654,7 +654,7 @@ class Pump(Turbomachine):
 
             .. math::
 
-                0 = \eta \cdot (h_\text{out} - h_\text{in})
+                0 = \eta \cdot \left(h_\text{out} - h_\text{in}\right)
                 - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
         """
         i = self.inl[0]

@@ -11,6 +11,9 @@ Other Changes
 #############
 - A :code:`CITATION.cff` file is available to reference the GitHub repository
   (`PR #917 <https://github.com/oemof/tespy/pull/917>`__).
+- It is now possible to specify the efficiency of class :code:`Pump` based on
+  flow work (:math:`v\cdot \int dp`) next to isentropic efficiency
+  (`PR #927 <https://github.com/oemof/tespy/pull/927>`__).
 
 Contributors
 ############

@@ -9,16 +9,19 @@ tests/test_components/test_reactors.py
 
 SPDX-License-Identifier: MIT
 """
+from pytest import approx
 
 from tespy.components import Sink
 from tespy.components import Source
+from tespy.components import PowerSource
 from tespy.components import WaterElectrolyzer
 from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 
 
-class TestReactors:
+class TestWaterElectrolyzer:
 
     def setup_method(self):
         """Set up network for electrolyzer tests."""
@@ -64,15 +67,15 @@ class TestReactors:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        msg = ('Value of power must be ' + str(power.P.val) + ', is ' +
-               str(self.instance.P.val) + '.')
+        msg = (
+            f"Value of power must be {power.P.val}, is {self.instance.P.val}."
+        )
         assert round(power.P.val, 1) == round(self.instance.P.val), msg
 
         # effieciency was set to 100 % with inlet and outlet states of the
         # reaction educts and products beeing identical to reference state
         # therefore Q must be equal to 0
-        msg = ('Value of heat output must be 0.0, is ' +
-               str(self.instance.Q.val) + '.')
+        msg = f"Value of heat must be 0.0, is {self.instance.Q.val}."
         assert round(self.instance.Q.val, 4) == 0.0, msg
 
         # reset power, change efficiency value and specify heat bus value
@@ -89,8 +92,9 @@ class TestReactors:
 
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of heat flow must be ' + str(heat.P.val) +
-               ', is ' + str(self.instance.Q.val) + '.')
+        msg = (
+            f"Value of heat must be {heat.P.val}, is {self.instance.Q.val}."
+        )
         assert round(heat.P.val, 1) == round(self.instance.Q.val), msg
         self.nw.save(tmp_path)
 
@@ -100,8 +104,7 @@ class TestReactors:
         heat.set_attr(P=Q)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of heat flow must be ' + str(Q) +
-               ', is ' + str(self.instance.Q.val) + '.')
+        msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
         assert round(Q, 1) == round(self.instance.Q.val), msg
 
         # delete both busses again
@@ -112,8 +115,10 @@ class TestReactors:
         self.instance.set_attr(eta=0.9, e='var')
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of efficiency must be ' + str(self.instance.eta.val) +
-               ', is ' + str(self.instance.e0 / self.instance.e.val) + '.')
+        msg = (
+            f"Value of efficiency must be {self.instance.eta.val}, is "
+            f"{self.instance.e0 / self.instance.e.val}."
+        )
         eta = round(self.instance.eta.val, 2)
         eta_calc = round(self.instance.e0 / self.instance.e.val, 2)
         assert eta == eta_calc, msg
@@ -125,14 +130,18 @@ class TestReactors:
         self.nw.solve('design')
         self.nw.assert_convergence()
         # test efficiency
-        msg = ('Value of efficiency must be ' + str(self.instance.e0 / e) +
-               ', is ' + str(self.instance.eta.val) + '.')
+        msg = (
+            f"Value of efficiency must be {self.instance.e0 / e}, is "
+            f"{self.instance.eta.val}."
+        )
         eta = round(self.instance.e0 / e, 2)
         eta_calc = round(self.instance.eta.val, 2)
         assert eta == eta_calc, msg
         # test Q
-        msg = ('Value of heat must be larger than zero, is ' +
-               str(self.instance.Q.val) + '.')
+        msg = (
+            f"Value of heat must be larger than zero, is "
+            f"{self.instance.Q.val}."
+        )
         assert self.instance.Q.val > 0, msg
 
         # test specific energy consumption
@@ -141,9 +150,11 @@ class TestReactors:
         self.instance.set_attr(e=e)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = ('Value of specific energy consumption e must be ' + str(e) +
-               ', is ' + str(self.instance.e.val) + '.')
-        assert round(e, 1) == round(self.instance.e.val, 1), msg
+        msg = (
+            f"Value of specific energy consumption e must be {e}, is "
+            f"{self.instance.e.val}."
+        )
+        assert approx(e) == self.instance.e.val, msg
 
         # test cooling loop pressure ratio, zeta as variable value
         pr = 0.95
@@ -152,24 +163,39 @@ class TestReactors:
         self.nw.solve('design')
         self.nw.save(tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
-               str(self.instance.pr.val) + '.')
-        assert round(pr, 2) == round(self.instance.pr.val, 2), msg
+        msg = (
+            f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
+        )
+        assert approx(pr) == self.instance.pr.val, msg
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
         self.instance.set_attr(zeta=None, offdesign=['zeta'])
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of pressure ratio must be ' + str(pr) + ', is ' +
-               str(self.instance.pr.val) + '.')
-        assert round(pr, 2) == round(self.instance.pr.val, 2), msg
+        msg = (
+            f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
+        )
+        assert approx(pr) == self.instance.pr.val, msg
 
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=None)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = ('Value of heat must be ' + str(Q) + ', is ' +
-               str(self.instance.Q.val) + '.')
-        assert round(Q, 0) == round(self.instance.Q.val, 0), msg
+        msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
+        assert approx(Q) == self.instance.Q.val, msg
+
+    def test_WaterElectrolyzer_PowerConnection(self):
+        """test utilization of PowerConnection with WaterElectrolyzer"""
+        self.nw.get_conn('h2o').set_attr(T=25, p=1)
+        self.nw.get_conn('h2').set_attr(T=25)
+
+        power = PowerSource("grid")
+        e1 = PowerConnection(power, "power", self.instance, "power", label="e1")
+        self.nw.add_conns(e1)
+
+        e1.set_attr(E=2.5e6)
+        self.nw.solve('design')
+
+        assert approx(self.instance.P.val_SI) == e1.E.val_SI

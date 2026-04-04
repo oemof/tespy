@@ -206,7 +206,7 @@ class Component:
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
 
-                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
+                    elif kwargs[key] == "var" and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, is_var=True)
 
                     # invalid datatype for keyword
@@ -419,7 +419,7 @@ class Component:
                             self.__class__.__name__, key, 'DEFAULT', CharLine
                         )
                     except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                        data.char_func = CharLine()
 
             # component characteristics
             elif isinstance(data, dc_cm):
@@ -431,7 +431,7 @@ class Component:
                             self.__class__.__name__, key, 'DEFAULT', CharMap
                         )
                     except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                        data.char_func = CharMap()
 
             # grouped component properties
             elif type(data) == dc_gcp:

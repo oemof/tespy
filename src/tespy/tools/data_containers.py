@@ -697,7 +697,10 @@ class FluidProperties(DataContainer):
 
 
 class ComponentProperties(FluidProperties):
-    pass
+
+    def _serialize(self):
+        keys = ["val", "val_SI", "is_set", "unit", "is_var"]
+        return {k: getattr(self, k) for k in keys}
 
 
 class ScalarVariable(DataContainer):

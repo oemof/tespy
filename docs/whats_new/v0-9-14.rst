@@ -14,10 +14,10 @@ Bug Fixes
   silent error because if not used, it did not do any trouble. Only when
   importing a :code:`Network` and reconstructing the component parameters the
   :code:`CharMap` could not be constructed successfully because it was missing
-  dimensions (`PR #934 <https://github.com/oemof/tespy/pull/934>`__).
+  dimensions (`PR #933 <https://github.com/oemof/tespy/pull/933>`__).
 - The reactor classes :code:`FuelCell` and :code:`WaterElectrolyzer` were
   missing the implementation for a :code:`PowerConnection`
-  (`PR #935 <https://github.com/oemof/tespy/pull/935>`__).
+  (`PR #934 <https://github.com/oemof/tespy/pull/934>`__).
 
 Other Changes
 #############

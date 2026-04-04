@@ -15,6 +15,9 @@ Bug Fixes
   importing a :code:`Network` and reconstructing the component parameters the
   :code:`CharMap` could not be constructed successfully because it was missing
   dimensions (`PR #934 <https://github.com/oemof/tespy/pull/934>`__).
+- The reactor classes :code:`FuelCell` and :code:`WaterElectrolyzer` were
+  missing the implementation for a :code:`PowerConnection`
+  (`PR #935 <https://github.com/oemof/tespy/pull/935>`__).
 
 Other Changes
 #############

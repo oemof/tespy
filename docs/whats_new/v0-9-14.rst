@@ -9,6 +9,12 @@ Bug Fixes
 - When loading a :code:`Network` from its serialized form the :code:`is_var`
   information of component properties being a variable was missing
   (`PR #932 <https://github.com/oemof/tespy/pull/932>`__).
+- For component characteristic maps the default if no map is found in the
+  :code:`tespy.data` module was a :code:`CharLine` by accident. This was a
+  silent error because if not used, it did not do any trouble. Only when
+  importing a :code:`Network` and reconstructing the component parameters the
+  :code:`CharMap` could not be constructed successfully because it was missing
+  dimensions (`PR #934 <https://github.com/oemof/tespy/pull/934>`__).
 
 Other Changes
 #############

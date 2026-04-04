@@ -193,6 +193,23 @@ class TestNetworks:
         )
         assert imported_nwk.checked, msg
 
+    def test_Network_import_with_component_parameter_as_variable(self):
+        """Test if component variables are retained after import."""
+        pipe = Pipe("pipe")
+        c1 = Connection(self.source, 'out1', pipe, 'in1', label="c1")
+        c2 = Connection(pipe, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=1.9)
+        pipe.set_attr(Q=0, D="var", ks=0.00005, L=100)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
+        imported_nwk.solve("design")
+        imported_nwk.assert_convergence()
+        assert approx(pipe.D.val) == imported_nwk.get_comp("pipe").D.val
+
     def test_Network_reader_unknown_component_class(self, tmp_path):
         """Test notsupported component."""
         tmp_path = f"{tmp_path}.json"

@@ -206,7 +206,7 @@ class Component:
                     elif isinstance(data, dc_simple):
                         data.set_attr(val=kwargs[key], is_set=True)
 
-                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
+                    elif kwargs[key] == "var" and isinstance(data, dc_cp):
                         data.set_attr(is_set=True, is_var=True)
 
                     # invalid datatype for keyword

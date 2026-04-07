@@ -28,7 +28,15 @@ Other Changes
 - It is now possible to specify the efficiency of class :code:`Pump` based on
   flow work (:math:`v\cdot \int dp`) next to isentropic efficiency
   (`PR #927 <https://github.com/oemof/tespy/pull/927>`__).
+- The :code:`SectionedHeatExchanger` and :code:`MovingBoundaryHeatExchanger`
+  now can utilize the :code:`UA_char` as offdesign parameter. It utilizes the
+  characteristic :code:`kA_char` lines of the standard heat exchangers to
+  evaluate the change of :code:`UA` to :code:`UA_design` as function of mass
+  flow. It is similar to the :code:`UA_cecchinato` method, but does not need
+  the specification of Reynolds exponents, area or alpha ratios
+  (`PR #928 <https://github.com/oemof/tespy/pull/928>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@lennipapa <https://github.com/lennipapa>`__

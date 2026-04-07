@@ -253,7 +253,7 @@ class WaterElectrolyzer(Component):
         }
 
     def get_mandatory_constraints(self):
-        return {
+        constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
@@ -291,6 +291,14 @@ class WaterElectrolyzer(Component):
                 "description": "equation for same temperature of product gases"
             })
         }
+        if len(self.power_inl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     @staticmethod
     def get_bypass_constraints():
@@ -303,6 +311,10 @@ class WaterElectrolyzer(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2', 'out3']
+
+    @staticmethod
+    def powerinlets():
+        return ["power"]
 
     def _add_missing_fluids(self, connections):
         if self.inl[1] in connections:
@@ -368,6 +380,25 @@ class WaterElectrolyzer(Component):
         e0 = -(2 * hf['H2O'] - 2 * hf['H2'] - hf['O2']) / (2 * M)
 
         return e0
+
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E - P
+        """
+        return self.power_inl[0].E.val_SI - self.P.val_SI
+
+    def energy_connector_dependents(self):
+        return [self.power_inl[0].E, self.P]
 
     def gas_temperature_func(self):
         r"""

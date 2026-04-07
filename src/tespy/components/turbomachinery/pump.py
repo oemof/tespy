@@ -370,7 +370,9 @@ class Pump(Turbomachine):
             'eta': dc_cp(
                 # if eta_s == 1, eta can be slighter higher than 1, so
                 # max_val is relaxed a little bit
-                min_val=0, max_val=1.01, is_result=True,
+                min_val=0, max_val=1.01, num_eq_sets=1,
+                func=self.eta_func,
+                dependents=self.eta_dependents,
                 quantity="efficiency",
                 description=(
                     "efficiency defined as specific incompressible flow work "
@@ -622,7 +624,7 @@ class Pump(Turbomachine):
             .. math::
 
                 0 = \eta \left(\omega,\dot{V}_\text{in}\cdot v_\text{in} \right)
-                \cdot (h_\text{out} - h_\text{in})
+                \cdot \left(h_\text{out} - h_\text{in}\right)
                 - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
         """
         i = self.inl[0]
@@ -639,6 +641,33 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         return [i.m, i.p, i.h, o.p, o.h, self.frequency]
+
+    def eta_func(self):
+        r"""
+        Equation for efficiency :math:`\eta` defined from incompressible
+        pressure change (instead of isentropic efficiency)
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \eta \cdot \left(h_\text{out} - h_\text{in}\right)
+                - v_\text{in}\cdot\left(p_\text{out} - p_\text{in}\right)
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        return (
+            self.eta.val_SI * (o.h.val_SI - i.h.val_SI)
+            - i.calc_vol() * (o.p.val_SI - i.p.val_SI)
+        )
+
+    def eta_dependents(self):
+        i = self.inl[0]
+        o = self.outl[0]
+        return [i.p, i.h, o.p, o.h]
 
     def head_flow_frequency_group_func(self):
         r"""

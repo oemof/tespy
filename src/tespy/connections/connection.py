@@ -947,6 +947,12 @@ class Connection(ConnectionBase):
                 if self.h.val_SI > h:
                     self.h.set_reference_val_SI(h - 1e3)
 
+        if self.T_ref.is_set:
+            ref = self.T_ref.ref
+            T_target = ref.obj.calc_T() * ref.factor + ref.delta_SI
+            h = h_mix_pT(self.p.val_SI, T_target, self.fluid_data, self.mixing_rule)
+            self.h.set_reference_val_SI(h)
+
     def _presolve(self):
         if len(self.fluid.is_var) > 0:
             return []

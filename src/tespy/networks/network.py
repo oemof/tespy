@@ -200,7 +200,7 @@ class Network:
 
         property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
         for prop, name in property_names.items():
-            limits = self.get_attr(f"{prop}_range_SI")
+            limits = getattr(self, f"{prop}_range_SI")
             msg = (
                 f"Default {name} limits\n"
                 f"min: {limits[0]} {self.units._quantities[name]}\n"
@@ -265,6 +265,14 @@ class Network:
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"
             if key in kwargs:
+                msg = (
+                    "Setting variable ranges through the Network.set_attr "
+                    f"is deprecated. Please use Network.set_{key} in the "
+                    "future."
+                )
+                warnings.warn(msg, FutureWarning)
+                logger.warning(msg)
+
                 if isinstance(kwargs[key], list):
                     quantity = fpd[prop]["text"].replace(" ", "_")
                     unit = self.units.default[quantity]
@@ -283,20 +291,31 @@ class Network:
                     logger.error(msg)
                     raise TypeError(msg)
 
-                limits = self.get_attr(f'{key}_SI')
-                msg = (
-                    f'Setting {fpd[prop]["text"]} limits\n'
-                    f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
-                    f'max: {limits[1]} {fpd[prop]["SI_unit"]}'
-                )
-                logger.debug(msg)
-
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+        if "iterinfo" in kwargs:
+            msg = (
+                "Setting iterinfo through the Network.set_attr is deprecated. "
+                "Please directly specify Network.iterinfo=True/False in the "
+                "future."
+            )
+            warnings.warn(msg, FutureWarning)
+            logger.warning(msg)
 
-        if not isinstance(self.iterinfo, bool):
+    def _set_iterinfo(self, value):
+        if not isinstance(value, bool):
             msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
             raise TypeError(msg)
+        else:
+            self._iterinfo = value
+
+    def _get_iterinfo(self):
+        return self._iterinfo
+
+    iterinfo = property(_get_iterinfo, _set_iterinfo)
+    # m_range = property(_get_m_range, _set_m_range)
+    # p_range = property(_get_p_range, _set_p_range)
+    # h_range = property(_get_h_range, _set_h_range)
 
     def get_attr(self, key):
         r"""
@@ -312,6 +331,13 @@ class Network:
         out :
             Specified attribute.
         """
+        msg = (
+            "The Network.get_attr method is deprecated and will be removed "
+            "in the next major release."
+        )
+        warnings.warn(msg, FutureWarning)
+        logger.warning(msg)
+
         if key in self.__dict__:
             return self.__dict__[key]
         else:

@@ -1048,13 +1048,22 @@ class Component:
             )
 
     def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
+        zeta_var = self.get_attr(zeta)
+        if zeta_var.is_var:
+            msg = (
+                f"The specification of {zeta} as variable is deprecated and "
+                "will be removed in the next major release."
+            )
+            logger.warning(msg)
+            warnings.warn(msg, FutureWarning)
+
         return [
             self.inl[inconn].m,
             self.inl[inconn].p,
             self.inl[inconn].h,
             self.outl[outconn].p,
             self.outl[outconn].h,
-            self.get_attr(zeta)
+            zeta_var
         ]
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):

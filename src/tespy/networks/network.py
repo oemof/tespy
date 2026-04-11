@@ -198,23 +198,9 @@ class Network:
         self.p_range_SI = [2e2, 300e5]
         self.h_range_SI = [1e3, 7e6]
 
-        property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
-        for prop, name in property_names.items():
-            limits = getattr(self, f"{prop}_range_SI")
-            msg = (
-                f"Default {name} limits\n"
-                f"min: {limits[0]} {self.units._quantities[name]}\n"
-                f"max: {limits[1]} {self.units._quantities[name]}"
-            )
-            logger.debug(msg)
-
-            unit = self.units.default[name]
-            key = f"{prop}_range"
-            self.__dict__.update({
-                key: self.units.ureg.Quantity(
-                    np.array(self.get_attr(f"{key}_SI")), unit
-                )
-            })
+        self.m_range = self.m_range_SI
+        self.p_range = self.p_range_SI
+        self.h_range = self.h_range_SI
 
     def set_attr(self, **kwargs):
         r"""
@@ -272,24 +258,12 @@ class Network:
                 )
                 warnings.warn(msg, FutureWarning)
                 logger.warning(msg)
-
-                if isinstance(kwargs[key], list):
-                    quantity = fpd[prop]["text"].replace(" ", "_")
-                    unit = self.units.default[quantity]
-                    self.__dict__.update({
-                        key: self.units.ureg.Quantity(
-                            np.array(kwargs[key]),
-                            unit
-                        )
-                    })
-                    self.__dict__.update({
-                        f"{key}_SI":
-                        self.get_attr(key).to(SI_UNITS[quantity]).magnitude
-                    })
+                if key == "m_range":
+                    self.m_range = kwargs[key]
+                elif key == "p_range":
+                    self.p_range = kwargs[key]
                 else:
-                    msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
-                    logger.error(msg)
-                    raise TypeError(msg)
+                    self.h_range = kwargs[key]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
         if "iterinfo" in kwargs:
@@ -312,10 +286,66 @@ class Network:
     def _get_iterinfo(self):
         return self._iterinfo
 
+    def _set_units(self, value):
+        if not isinstance(value, Units):
+            msg = (
+                "The units must be an instance of class "
+                "tespy.tools.units.Units."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        else:
+            self._units = value
+
+    def _get_units(self):
+        return self._units
+
+    def _set_m_range(self, value):
+        self._check_range_dtype(value, "mass flow")
+        quantity = "mass_flow"
+        unit = self.units.default[quantity]
+        self._m_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.m_range_SI = self.m_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_m_range(self):
+        return self._m_range
+
+    def _set_p_range(self, value):
+        self._check_range_dtype(value, "pressure")
+        quantity = "pressure"
+        unit = self.units.default[quantity]
+        self._p_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.p_range_SI = self.p_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_p_range(self):
+        return self._p_range
+
+    def _set_h_range(self, value):
+        self._check_range_dtype(value, "enthalpy")
+        quantity = "enthalpy"
+        unit = self.units.default[quantity]
+        self._h_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.h_range_SI = self.h_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_h_range(self):
+        return self._h_range
+
+    @staticmethod
+    def _check_range_dtype(value, property):
+        if isinstance(value, list) or isinstance(value, np.ndarray):
+            return
+        else:
+            msg = (
+                f"Specify the range for {property} as list: [min, max]."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
     iterinfo = property(_get_iterinfo, _set_iterinfo)
-    # m_range = property(_get_m_range, _set_m_range)
-    # p_range = property(_get_p_range, _set_p_range)
-    # h_range = property(_get_h_range, _set_h_range)
+    units = property(_get_units, _set_units)
+    m_range = property(_get_m_range, _set_m_range)
+    p_range = property(_get_p_range, _set_p_range)
+    h_range = property(_get_h_range, _set_h_range)
 
     def get_attr(self, key):
         r"""

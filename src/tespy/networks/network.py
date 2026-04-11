@@ -146,6 +146,8 @@ class Network:
 
         self.set_attr(**kwargs)
 
+        # because the units can still be specified via the deprecated API of
+        # set_attr, ranges need to be updated after set_attr!
         if m_range is not None:
             self.m_range = m_range
         if p_range is not None:
@@ -294,7 +296,7 @@ class Network:
             warnings.warn(msg, FutureWarning)
             logger.warning(msg)
 
-    def _set_iterinfo(self, value):
+    def set_iterinfo(self, value):
         if not isinstance(value, bool):
             msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
@@ -305,7 +307,7 @@ class Network:
     def _get_iterinfo(self):
         return self._iterinfo
 
-    def _set_units(self, value):
+    def set_units(self, value):
         if not isinstance(value, Units):
             msg = (
                 "The units must be an instance of class "
@@ -319,7 +321,7 @@ class Network:
     def _get_units(self):
         return self._units
 
-    def _set_m_range(self, value):
+    def set_m_range(self, value):
         self._check_range_dtype(value, "mass flow")
         quantity = "mass_flow"
         unit = self.units.default[quantity]
@@ -329,7 +331,7 @@ class Network:
     def _get_m_range(self):
         return self._m_range
 
-    def _set_p_range(self, value):
+    def set_p_range(self, value):
         self._check_range_dtype(value, "pressure")
         quantity = "pressure"
         unit = self.units.default[quantity]
@@ -339,7 +341,7 @@ class Network:
     def _get_p_range(self):
         return self._p_range
 
-    def _set_h_range(self, value):
+    def set_h_range(self, value):
         self._check_range_dtype(value, "enthalpy")
         quantity = "enthalpy"
         unit = self.units.default[quantity]
@@ -360,11 +362,11 @@ class Network:
             logger.error(msg)
             raise TypeError(msg)
 
-    iterinfo = property(_get_iterinfo, _set_iterinfo)
-    units = property(_get_units, _set_units)
-    m_range = property(_get_m_range, _set_m_range)
-    p_range = property(_get_p_range, _set_p_range)
-    h_range = property(_get_h_range, _set_h_range)
+    iterinfo = property(_get_iterinfo, set_iterinfo)
+    units = property(_get_units, set_units)
+    m_range = property(_get_m_range, set_m_range)
+    p_range = property(_get_p_range, set_p_range)
+    h_range = property(_get_h_range, set_h_range)
 
     def get_attr(self, key):
         r"""

@@ -20,7 +20,6 @@ import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.helpers import extend_basic_path
 
 
 class CharLine:
@@ -553,6 +552,7 @@ def load_custom_char(name, char_type):
     obj : object
         The characteristics (CharLine, CharMap) object.
     """
+    from tespy.tools.helpers import extend_basic_path
     path = extend_basic_path('data')
 
     if char_type == CharLine:

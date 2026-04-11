@@ -8,17 +8,16 @@ available from its original location tespy/connections/humidairconnection.py
 
 SPDX-License-Identifier: MIT
 """
-
-import numpy as np
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
 from tespy.tools.fluid_properties.functions import h_mix_pT
-from tespy.tools.fluid_properties.mixtures import _get_fluid_alias, w_mix_fluid_data
+from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
+from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
+from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
 from tespy.tools.helpers import seeded_random
 
 from .connection import Connection
@@ -229,7 +228,15 @@ class HAConnection(Connection):
     def calc_w(self):
         return w_mix_pT_humidair(self.p.val_SI, self.T.val_SI, self.fluid_data)
 
-    def calc_results(self, units):
+    def calc_results(self, units, skip_postprocess):
+        self.m.set_val0_from_SI(units)
+        self.p.set_val0_from_SI(units)
+        self.h.set_val0_from_SI(units)
+        self.fluid.val0 = self.fluid.val.copy()
+
+        if skip_postprocess:
+            return True
+
         self.T.val_SI = self.calc_T()
         self.vol.val_SI = self.calc_vol()  # Mixture volume per mass of dry air
         self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
@@ -242,7 +249,7 @@ class HAConnection(Connection):
         w_mixture = w_mix_fluid_data(self.fluid_data)
         # Calculate kg water/kg dry air that is not in the humid air
         delta_w = w_mixture - self.w.val_SI
-        self.mH2O.val_SI = self.m.val_SI * delta_w       
+        self.mH2O.val_SI = self.m.val_SI * delta_w
         self.r.val_SI = self.calc_r()
         # if self.r.val_SI > 1:
         #     self.r.val_SI = np.nan
@@ -251,10 +258,5 @@ class HAConnection(Connection):
             param = self.get_attr(prop)
             if not param.is_set:
                 param.set_val_from_SI(units)
-
-        self.m.set_val0_from_SI(units)
-        self.p.set_val0_from_SI(units)
-        self.h.set_val0_from_SI(units)
-        self.fluid.val0 = self.fluid.val.copy()
 
         return True

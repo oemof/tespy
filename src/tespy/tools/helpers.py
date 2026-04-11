@@ -15,8 +15,8 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger

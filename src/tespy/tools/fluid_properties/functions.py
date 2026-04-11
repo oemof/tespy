@@ -26,7 +26,8 @@ from .mixtures import T_MIX_PH_REVERSE
 from .mixtures import T_MIX_PS_REVERSE
 from .mixtures import V_MIX_PT_DIRECT
 from .mixtures import VISCOSITY_MIX_PT_DIRECT
-from .mixtures import w_mix_pT_humidair, w_mix_ph_humidair, w_mix_ps_humidair
+from .mixtures import w_mix_ph_humidair
+from .mixtures import w_mix_ps_humidair
 
 
 def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None):

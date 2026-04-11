@@ -16,8 +16,39 @@ import numpy as np
 import pint
 
 from tespy.tools import logger
+from tespy.tools.characteristics import CharLine
+from tespy.tools.characteristics import CharMap
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
+
+
+def _is_numeric(potentially_a_number):
+    """Checks if the value provided is a number by trying to convert it to
+    float
+
+    Parameters
+    ----------
+    potentially_a_number : any
+        Value to check
+
+    Returns
+    -------
+    bool
+        True if the value is a number
+
+    Example
+    -------
+    >>> from tespy.tools.data_containers import _is_numeric
+    >>> _is_numeric(5)
+    True
+    >>> _is_numeric("var")
+    False
+    """
+    try:
+        float(potentially_a_number)
+        return True
+    except (TypeError, ValueError):
+        return False
 
 
 class DataContainer:
@@ -184,6 +215,23 @@ class DataContainer:
     def _serialize(self):
         return {}
 
+    def accept(self, value):
+        """
+        Interpret a user-supplied value and update this container's state.
+
+        Each subclass implements this to encapsulate the validation and
+        assignment logic that formerly lived in Component.set_attr /
+        Connection.set_attr.
+
+        Parameters
+        ----------
+        value :
+            The value supplied by the user (numeric, string, dict, None, …).
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement accept()."
+        )
+
 
 class ComponentCharacteristics(DataContainer):
     """
@@ -238,6 +286,19 @@ class ComponentCharacteristics(DataContainer):
         for k in ["is_set", "param", "char_params"]:
             export.update({k: self.get_attr(k)})
         return export
+
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, CharLine):
+            self.char_func = value
+        else:
+            raise TypeError(
+                f"Expected a CharLine, dict, or None for a "
+                f"ComponentCharacteristics parameter, got {type(value).__name__}."
+            )
 
     def get_num_eq(self):
         if self._num_eq is None:
@@ -302,6 +363,19 @@ class ComponentCharacteristicMaps(DataContainer):
         for k in ["is_set", "param"]:
             export.update({k: self.get_attr(k)})
         return export
+
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, CharMap):
+            self.char_func = value
+        else:
+            raise TypeError(
+                f"Expected a CharMap, dict, or None for a "
+                f"ComponentCharacteristicMaps parameter, got {type(value).__name__}."
+            )
 
     def get_num_eq(self):
         if self._num_eq is None:
@@ -410,6 +484,19 @@ class GroupedComponentProperties(DataContainer):
             "description": None
         }
 
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, bool):
+            self.is_set = value
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        else:
+            raise TypeError(
+                f"Expected a bool, dict, or None for a grouped parameter, "
+                f"got {type(value).__name__}."
+            )
+
     def get_num_eq(self):
         if self._num_eq is None:
             return self.num_eq_sets
@@ -508,6 +595,20 @@ class FluidProperties(DataContainer):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
+
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, pint.Quantity) or _is_numeric(value):
+            self.val = value
+            self.is_set = True
+        else:
+            raise TypeError(
+                f"Expected a numeric value, pint.Quantity, dict, or None, "
+                f"got {type(value).__name__}."
+            )
 
     def get_num_eq(self):
         if self._num_eq is None:
@@ -701,6 +802,14 @@ class ComponentProperties(FluidProperties):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit", "is_var"]
         return {k: getattr(self, k) for k in keys}
+
+    def accept(self, value):
+        if value == "var":
+            self.is_set = True
+            self.is_var = True
+        else:
+            super().accept(value)
+            self.is_var = False
 
 
 class ScalarVariable(DataContainer):
@@ -1030,6 +1139,13 @@ class SimpleDataContainer(DataContainer):
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        else:
+            self.val = value
+            self.is_set = True
 
     def get_num_eq(self):
         if self._num_eq is None:

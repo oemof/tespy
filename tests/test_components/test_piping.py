@@ -67,8 +67,10 @@ class TestPiping:
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
         dp_char = CharLine(x, y)
-        instance.set_attr(zeta=None, dp_char={
-            'char_func': dp_char, 'is_set': True})
+        instance.set_attr(
+            zeta=None,
+            dp_char={"char_func": dp_char, "is_set": True}
+        )
         m = 11
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=None)

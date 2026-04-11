@@ -137,6 +137,15 @@ class Separator(NodeBase):
     def get_parameters():
         return {'num_out': dc_simple(description="number of outlets")}
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+        }
+
     def _update_num_eq(self):
         self.variable_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]

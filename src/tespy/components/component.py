@@ -613,6 +613,49 @@ class Component:
     def poweroutlets():
         return []
 
+    @classmethod
+    def port_schema(cls):
+        """
+        Return a description of the component's port topology for UI tooling.
+
+        The default implementation derives fixed-port descriptions from the
+        ``@staticmethod`` ``inlets``/``outlets``/``powerinlets``/
+        ``poweroutlets`` methods.  Subclasses with variable or conditional
+        port counts must override this method.
+
+        Returns
+        -------
+        dict
+            Keys are ``"inlets"``, ``"outlets"``, ``"powerinlets"``,
+            ``"poweroutlets"``.  Each value is a dict with at least a
+            ``"type"`` key:
+
+            ``{"type": "fixed", "ports": [...]}``
+                The port list is static.
+
+            ``{"type": "variable", "parameter": str, "pattern": str, "min": int}``
+                Port count is controlled by *parameter*.  *pattern* is a
+                Python format string where ``{n}`` is replaced by the
+                1-based port index (e.g. ``"in{n}"``).
+
+            ``{"type": "conditional", "parameter": str, "when": str, "ports": [...]}``
+                The listed ports exist only when *parameter* equals *when*.
+        """
+        import inspect
+        result = {}
+        for port_type in ("inlets", "outlets", "powerinlets", "poweroutlets"):
+            attr = inspect.getattr_static(cls, port_type, None)
+            if isinstance(attr, staticmethod):
+                result[port_type] = {
+                    "type": "fixed",
+                    "ports": getattr(cls, port_type)(),
+                }
+            else:
+                # Instance method — subclass should override port_schema()
+                # but provide a safe fallback so schema generation never crashes.
+                result[port_type] = {"type": "unknown"}
+        return result
+
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)
         if result is not None:

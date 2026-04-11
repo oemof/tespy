@@ -119,6 +119,15 @@ class Splitter(NodeBase):
     def get_parameters():
         return {'num_out': dc_simple(description="number of outlets")}
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+        }
+
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{

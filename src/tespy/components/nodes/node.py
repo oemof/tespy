@@ -134,6 +134,15 @@ class Node(Splitter, Merge):
             'num_in': dc_simple(description="number of inlets")
         }
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_in", "pattern": "in{n}", "min": 2},
+            "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+        }
+
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{

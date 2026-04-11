@@ -152,6 +152,15 @@ class SubsystemInterface(Component):
             )
         }
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_inter", "pattern": "in{n}", "min": 1},
+            "outlets": {"type": "variable", "parameter": "num_inter", "pattern": "out{n}", "min": 1},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+        }
+
     def inlets(self):
         if self.num_inter.is_set:
             return ['in' + str(i + 1) for i in range(self.num_inter.val)]

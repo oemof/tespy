@@ -134,6 +134,15 @@ class PowerBus(Component):
             "num_out": dc_simple(val=0, description="number of outlets")
         }
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "variable", "parameter": "num_in", "pattern": "power_in{n}", "min": 1},
+            "poweroutlets": {"type": "variable", "parameter": "num_out", "pattern": "power_out{n}", "min": 1},
+        }
+
     def get_mandatory_constraints(self):
         return {
             "energy_balance_constraint": dc_cmc(**{

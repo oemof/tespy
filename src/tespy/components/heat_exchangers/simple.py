@@ -237,6 +237,25 @@ class SimpleHeatExchanger(Component):
 
         return constraints
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {
+                "type": "conditional",
+                "parameter": "power_connector_location",
+                "when": "inlet",
+                "ports": ["heat"],
+            },
+            "poweroutlets": {
+                "type": "conditional",
+                "parameter": "power_connector_location",
+                "when": "outlet",
+                "ports": ["heat"],
+            },
+        }
+
     def get_parameters(self):
         return {
             'power_connector_location': dc_simple(),

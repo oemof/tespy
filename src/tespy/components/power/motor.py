@@ -169,6 +169,15 @@ class Motor(Component):
     def poweroutlets(self):
         return ["power_out"]
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {"type": "fixed", "ports": ["power_in"]},
+            "poweroutlets": {"type": "fixed", "ports": ["power_out"]},
+        }
+
     @staticmethod
     def get_mandatory_constraints():
         return {}

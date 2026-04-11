@@ -168,6 +168,15 @@ class Merge(NodeBase):
     def get_parameters():
         return {'num_in': dc_simple(description="number of inlets")}
 
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_in", "pattern": "in{n}", "min": 2},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+        }
+
     def _update_num_eq(self):
         self.variable_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]

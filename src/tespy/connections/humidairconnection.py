@@ -15,9 +15,9 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties.functions import h_mix_pT
-from tespy.tools.fluid_properties.functions import w_mix_pT_humidair
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
+from tespy.tools.fluid_properties.mixtures import w_mix_pT_humidair
 from tespy.tools.helpers import seeded_random
 
 from .connection import Connection

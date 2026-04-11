@@ -25,7 +25,7 @@ class TestSeparator:
         self.nwk.units.set_defaults(**{
             "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
         })
-        self.nwk.set_attr(iterinfo=False)
+        self.nwk.iterinfo = False
 
         so = Source("Source")
         sep = Separator("Separator")

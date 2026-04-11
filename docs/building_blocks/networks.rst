@@ -200,12 +200,12 @@ disable convergence progress printouts:
     False
 
     # enable iteration information printout
-    >>> nw.set_attr(iterinfo=True)
+    >>> nw.iterinfo = True
     >>> nw.iterinfo
     True
 
     # disable iteration information printout
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
 
 Adding connections
 ++++++++++++++++++
@@ -597,7 +597,8 @@ check is skipped.
 
     .. code-block:: python
 
-        >>> nw.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+        >>> nw.p_range = [0.05, 10]
+        >>> nw.h_range = [15, 2000]
         >>> nw.units.default["pressure"]
         'bar'
         >>> [float(p) for p in nw.p_range_SI]

@@ -185,7 +185,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> so1 = Source("vapor source")
     >>> so2 = Source("air source")
     >>> cd = MovingBoundaryHeatExchanger("condenser")

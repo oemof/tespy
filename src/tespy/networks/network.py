@@ -98,13 +98,13 @@ class Network:
     >>> mynetwork.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> mynetwork.set_attr(p_range=[1, 10])
+    >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
-    >>> mynetwork.set_attr(iterinfo=False)
+    >>> mynetwork.iterinfo = False
     >>> mynetwork.iterinfo
     False
-    >>> mynetwork.set_attr(iterinfo=True)
+    >>> mynetwork.iterinfo = True
     >>> mynetwork.iterinfo
     True
 
@@ -132,7 +132,7 @@ class Network:
     >>> b.set_attr(printout=False)
     >>> e = PowerConnection(p, 'heat', h, 'power', printout=False)
     >>> nw.add_conns(e)
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> nw.solve('design')
     >>> nw.print_results()
     """
@@ -3592,7 +3592,7 @@ class Network:
         previous calculation in design and offdesign case.
 
         >>> imported_nwk = Network.from_json('exported_nwk.json')
-        >>> imported_nwk.set_attr(iterinfo=False)
+        >>> imported_nwk.iterinfo = False
         >>> imported_nwk.solve('design')
         >>> imported_nwk.lin_dep
         False

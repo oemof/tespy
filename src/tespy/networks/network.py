@@ -2409,7 +2409,7 @@ class Network:
         variables = [self._variable_lookup[v] for v in dependents["variables"]]
         variable_list = [(v["object"].label, v["property"]) for v in variables]
         return variable_list
-    
+
     def get_sorted_residual_index(self) -> list[int]:
         """Get the sorted array of residual indices.
 
@@ -2921,19 +2921,13 @@ class Network:
         # get_J_col yet
         relax = 1
         if self.robust_relax:
-            # relax_values = [
-            #     (0.05, 0.05 * self.max_iter),
-            #     (0.10, 0.10 * self.max_iter),
-            #     (0.25, 0.25 * self.max_iter),
-            #     (0.50, 0.50 * self.max_iter)
-            # ]
             relax = 0.05 + 0.95 * min(1, self.iter / (0.25 * self.max_iter))
 
         for _, data in self.variables_dict.items():
             if data["variable"] in ["m", "h", "E"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
-            elif data["variable"] in ["p", "w"]:
+            elif data["variable"] in ["p"]:
                 container = data["obj"]
                 p_relax = max(
                     1, -2 * increment[container.J_col] / container.val_SI

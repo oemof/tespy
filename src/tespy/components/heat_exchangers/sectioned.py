@@ -392,7 +392,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     >>> c12.set_attr(T=60)
 
-   Configure heat exchanger with fixed pressures and initial pinch point:
+    Configure heat exchanger with fixed pressures and initial pinch point:
 
     >>> hx.set_attr(
     ...     td_pinch=20,

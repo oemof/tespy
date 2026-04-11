@@ -19,7 +19,6 @@ from tespy.tools.schema import _serialize_parameter
 from tespy.tools.schema import generate_component_schema
 from tespy.tools.schema import generate_connection_schema
 
-
 # ---------------------------------------------------------------------------
 # Fixtures - generate schemas once per session for speed
 # ---------------------------------------------------------------------------
@@ -271,13 +270,13 @@ class TestConnectionSchema:
 
 class TestDcTypeName:
     def test_known_container_types(self):
-        from tespy.tools.data_containers import ComponentProperties
-        from tespy.tools.data_containers import ComponentCharacteristics
         from tespy.tools.data_containers import ComponentCharacteristicMaps
-        from tespy.tools.data_containers import GroupedComponentProperties
-        from tespy.tools.data_containers import GroupedComponentCharacteristics
-        from tespy.tools.data_containers import FluidProperties
+        from tespy.tools.data_containers import ComponentCharacteristics
+        from tespy.tools.data_containers import ComponentProperties
         from tespy.tools.data_containers import FluidComposition
+        from tespy.tools.data_containers import FluidProperties
+        from tespy.tools.data_containers import GroupedComponentCharacteristics
+        from tespy.tools.data_containers import GroupedComponentProperties
         from tespy.tools.data_containers import SimpleDataContainer
 
         cases = [

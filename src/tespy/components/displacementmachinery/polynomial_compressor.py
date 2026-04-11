@@ -492,7 +492,8 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
@@ -537,7 +538,8 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
@@ -647,7 +649,8 @@ class PolynomialCompressor(DisplacementMachine):
                 o.p.val_SI,
                 i.fluid_data,
                 i.mixing_rule,
-                T0=None
+                T0=i.T.val_SI,
+                T0_out=o.T.val_SI
             ) - i.h.val_SI
         ) / (
             (h_2 - i.h.val_SI)

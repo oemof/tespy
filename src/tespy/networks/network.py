@@ -45,6 +45,7 @@ from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
@@ -98,13 +99,13 @@ class Network:
     >>> mynetwork.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> mynetwork.set_attr(p_range=[1, 10])
+    >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
-    >>> mynetwork.set_attr(iterinfo=False)
+    >>> mynetwork.iterinfo = False
     >>> mynetwork.iterinfo
     False
-    >>> mynetwork.set_attr(iterinfo=True)
+    >>> mynetwork.iterinfo = True
     >>> mynetwork.iterinfo
     True
 
@@ -132,14 +133,28 @@ class Network:
     >>> b.set_attr(printout=False)
     >>> e = PowerConnection(p, 'heat', h, 'power', printout=False)
     >>> nw.add_conns(e)
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> nw.solve('design')
     >>> nw.print_results()
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, iterinfo=True, units=None, m_range=None, p_range=None, h_range=None, **kwargs):
         self._set_defaults()
+        self.iterinfo = iterinfo
+
+        if units is not None:
+            self.units = units
+
         self.set_attr(**kwargs)
+
+        # because the units can still be specified via the deprecated API of
+        # set_attr, ranges need to be updated after set_attr!
+        if m_range is not None:
+            self.m_range = m_range
+        if p_range is not None:
+            self.p_range = p_range
+        if h_range is not None:
+            self.h_range = h_range
 
     def _serialize(self):
         return {
@@ -198,23 +213,9 @@ class Network:
         self.p_range_SI = [2e2, 300e5]
         self.h_range_SI = [1e3, 7e6]
 
-        property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
-        for prop, name in property_names.items():
-            limits = self.get_attr(f"{prop}_range_SI")
-            msg = (
-                f"Default {name} limits\n"
-                f"min: {limits[0]} {self.units._quantities[name]}\n"
-                f"max: {limits[1]} {self.units._quantities[name]}"
-            )
-            logger.debug(msg)
-
-            unit = self.units.default[name]
-            key = f"{prop}_range"
-            self.__dict__.update({
-                key: self.units.ureg.Quantity(
-                    np.array(self.get_attr(f"{key}_SI")), unit
-                )
-            })
+        self.m_range = self.m_range_SI
+        self.p_range = self.p_range_SI
+        self.h_range = self.h_range_SI
 
     def set_attr(self, **kwargs):
         r"""
@@ -234,6 +235,13 @@ class Network:
         p_range : list
             List with minimum and maximum values for pressure value range.
         """
+        if kwargs:
+            msg = (
+                "The set_attr method of Network is deprecated and will be "
+                "removed in the next major release. Please explicitly call "
+                "the respective set methods for specification of value "
+                "ranges, units or iterinfo."
+            )
         self.units = kwargs.get('units', self.units)
         unit_replace = {
             "C": "degC",
@@ -265,38 +273,101 @@ class Network:
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"
             if key in kwargs:
-                if isinstance(kwargs[key], list):
-                    quantity = fpd[prop]["text"].replace(" ", "_")
-                    unit = self.units.default[quantity]
-                    self.__dict__.update({
-                        key: self.units.ureg.Quantity(
-                            np.array(kwargs[key]),
-                            unit
-                        )
-                    })
-                    self.__dict__.update({
-                        f"{key}_SI":
-                        self.get_attr(key).to(SI_UNITS[quantity]).magnitude
-                    })
-                else:
-                    msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-                limits = self.get_attr(f'{key}_SI')
                 msg = (
-                    f'Setting {fpd[prop]["text"]} limits\n'
-                    f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
-                    f'max: {limits[1]} {fpd[prop]["SI_unit"]}'
+                    "Setting variable ranges through the Network.set_attr "
+                    f"is deprecated. Please use Network.set_{key} in the "
+                    "future."
                 )
-                logger.debug(msg)
+                warnings.warn(msg, FutureWarning)
+                logger.warning(msg)
+                if key == "m_range":
+                    self.m_range = kwargs[key]
+                elif key == "p_range":
+                    self.p_range = kwargs[key]
+                else:
+                    self.h_range = kwargs[key]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+        if "iterinfo" in kwargs:
+            msg = (
+                "Setting iterinfo through the Network.set_attr is deprecated. "
+                "Please directly specify Network.iterinfo=True/False in the "
+                "future."
+            )
+            warnings.warn(msg, FutureWarning)
+            logger.warning(msg)
 
-        if not isinstance(self.iterinfo, bool):
+    def _set_iterinfo(self, value):
+        if not isinstance(value, bool):
             msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
             raise TypeError(msg)
+        else:
+            self._iterinfo = value
+
+    def _get_iterinfo(self):
+        return self._iterinfo
+
+    def _set_units(self, value):
+        if not isinstance(value, Units):
+            msg = (
+                "The units must be an instance of class "
+                "tespy.tools.units.Units."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        else:
+            self._units = value
+
+    def _get_units(self):
+        return self._units
+
+    def _set_m_range(self, value):
+        self._check_range_dtype(value, "mass flow")
+        quantity = "mass_flow"
+        unit = self.units.default[quantity]
+        self._m_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.m_range_SI = self.m_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_m_range(self):
+        return self._m_range
+
+    def _set_p_range(self, value):
+        self._check_range_dtype(value, "pressure")
+        quantity = "pressure"
+        unit = self.units.default[quantity]
+        self._p_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.p_range_SI = self.p_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_p_range(self):
+        return self._p_range
+
+    def _set_h_range(self, value):
+        self._check_range_dtype(value, "enthalpy")
+        quantity = "enthalpy"
+        unit = self.units.default[quantity]
+        self._h_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.h_range_SI = self.h_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_h_range(self):
+        return self._h_range
+
+    @staticmethod
+    def _check_range_dtype(value, property):
+        if isinstance(value, list) or isinstance(value, np.ndarray):
+            return
+        else:
+            msg = (
+                f"Specify the range for {property} as list: [min, max]."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
+    iterinfo = property(_get_iterinfo, _set_iterinfo)
+    units = property(_get_units, _set_units)
+    m_range = property(_get_m_range, _set_m_range)
+    p_range = property(_get_p_range, _set_p_range)
+    h_range = property(_get_h_range, _set_h_range)
 
     def get_attr(self, key):
         r"""
@@ -312,6 +383,13 @@ class Network:
         out :
             Specified attribute.
         """
+        msg = (
+            "The Network.get_attr method is deprecated and will be removed "
+            "in the next major release."
+        )
+        warnings.warn(msg, FutureWarning)
+        logger.warning(msg)
+
         if key in self.__dict__:
             return self.__dict__[key]
         else:
@@ -893,6 +971,7 @@ class Network:
 
         self._propagate_fluid_wrappers()
         self._init_connection_result_datastructure()
+
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
         # and units
@@ -1690,9 +1769,7 @@ class Network:
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
-                if isinstance(value, dc_prop) and (value.is_set or value.is_var):
-                    if np.isnan(value._val):
-                        value.val = (value.min_val + value.max_val) / 2
+                if isinstance(value, dc_prop) and value.is_set:
                     value.set_SI_from_val(self.units)
 
     def _prepare_design(self):
@@ -2058,7 +2135,7 @@ class Network:
                 # for components every variable should be an actual variable
                 # if variable.is_var:
                 if np.isnan(variable.val):
-                    variable.val = 1.0
+                    variable.val = (variable.min_val + variable.max_val) / 2
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
@@ -2095,6 +2172,7 @@ class Network:
         dfs = {}
         if "Connection" in data["Connection"]:
             for key, value in data["Connection"].items():
+                # TODO: remove the future warning here and bump minimum pandas version to 3.0
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
@@ -2351,7 +2429,7 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, robust_relax=False):
+              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False):
         r"""
         Solve the network.
 
@@ -2425,6 +2503,14 @@ class Network:
         self.iter = 0
         self.use_cuda = use_cuda
         self.robust_relax = robust_relax
+        self.skip_postprocess = skip_postprocess
+
+        if self.skip_postprocess:
+            msg = (
+                "Postprocessing will be skipped, violations of "
+                "phyiscal/operational are not reported or logged!"
+            )
+            logger.debug(msg)
 
         if self.use_cuda and cu is None:
             msg = (
@@ -2487,7 +2573,7 @@ class Network:
             logger.error(self.singularity_msg)
             return
 
-        if self.status == 2:
+        elif self.status == 2:
             msg = (
                 'The solver does not seem to make any progress, aborting '
                 'calculation. Residual value is '
@@ -2999,7 +3085,9 @@ class Network:
         _converged = True
         for c in self.conns['object']:
             c.good_starting_values = True
-            _converged = c.calc_results(self.units) and _converged
+            _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
+            if self.skip_postprocess:
+                continue
             self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
         return _converged
 
@@ -3007,6 +3095,9 @@ class Network:
         """Process the component results."""
         # components
         _converged = True
+        if self.skip_postprocess:
+            return _converged
+
         for cp in self.comps['object']:
             cp.calc_parameters()
             _converged = _converged and cp.check_parameter_bounds()
@@ -3057,6 +3148,8 @@ class Network:
 
     def _postprocess_busses(self):
         """Process the bus results."""
+        if self.skip_postprocess:
+            return
         # busses
         for b in self.busses.values():
             for cp in b.comps.index:
@@ -3483,7 +3576,7 @@ class Network:
         previous calculation in design and offdesign case.
 
         >>> imported_nwk = Network.from_json('exported_nwk.json')
-        >>> imported_nwk.set_attr(iterinfo=False)
+        >>> imported_nwk.iterinfo = False
         >>> imported_nwk.solve('design')
         >>> imported_nwk.lin_dep
         False

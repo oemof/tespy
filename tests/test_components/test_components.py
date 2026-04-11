@@ -39,9 +39,9 @@ QUANTITY_EXEMPTIONS = {
     "ParallelFlowHeatExchanger": {"zeta1", "zeta2"},
     "SolarCollector": {"zeta", "lkf_lin", "lkf_quad", "ks_HW"},
     "Pipe": {"zeta", "ks_HW"},
-    "Valve": {"zeta"},
+    "Valve": {"zeta", "Kv"},
     "FuelCell": {"zeta"},
-    "WaterElectrolyzer": {"zeta"}
+    "WaterElectrolyzer": {"zeta"},
 }
 
 def properties_of(instance):

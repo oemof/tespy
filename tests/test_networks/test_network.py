@@ -193,6 +193,42 @@ class TestNetworks:
         )
         assert imported_nwk.checked, msg
 
+    def test_Network_import_with_component_parameter_as_variable(self):
+        """Test if component variables are retained after import."""
+        pipe = Pipe("pipe")
+        c1 = Connection(self.source, 'out1', pipe, 'in1', label="c1")
+        c2 = Connection(pipe, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=1.9)
+        pipe.set_attr(Q=0, D="var", ks=0.00005, L=100)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
+        imported_nwk.solve("design")
+        imported_nwk.assert_convergence()
+        assert approx(pipe.D.val) == imported_nwk.get_comp("pipe").D.val
+
+    def test_Network_deserialze_component_with_default_charmap(self):
+        """Test if component variables are retained after import."""
+        pump = Pump("pump")
+        c1 = Connection(self.source, 'out1', pump, 'in1', label="c1")
+        c2 = Connection(pump, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=3)
+        pump.set_attr(eta=0.7)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        # this deserialization fails if the CharMap is not correctly loaded
+        imported_nwk = Network.from_dict(serialization)
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.x.flatten()) == 2
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.y.flatten()) == 4
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.z.flatten()) == 4
+
+
     def test_Network_reader_unknown_component_class(self, tmp_path):
         """Test notsupported component."""
         tmp_path = f"{tmp_path}.json"
@@ -1221,3 +1257,77 @@ def test_fluid_kwargs_propagation():
     assert approx(
         conductivity_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
     ) == 0.13875
+
+
+def test_skip_postprocessing():
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+
+    pipe = SimpleHeatExchanger("pipe")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", pipe, "in1", label="c1")
+    c2 = Connection(pipe, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    fluid_kwargs = {
+        "temperature_data": np.array([273.15, 373.15]),
+        "density_data": np.array([1000, 1100]),
+        "heat_capacity_data": np.array([4000, 4100]),
+        "viscosity_data": np.array([0.05, 0.00025]),
+        "conductivity_data": np.array([0.1425, 0.135])
+    }
+
+    c1.set_attr(
+        fluid={"f": 1},
+        fluid_engines={"f": IncompressibleFluidWrapper},
+        fluid_wrapper_kwargs={"f": fluid_kwargs},
+        p=1, T=30
+    )
+    c2.set_attr(p=0.9, T=50)
+    pipe.set_attr(Q=1500)
+
+    nw.solve("design", skip_postprocess=True)
+    nw.assert_convergence()
+
+    assert np.isnan(pipe.pr.val)
+    assert np.isnan(pipe.dp.val)
+    assert np.isnan(c2.v.val)
+    assert np.isnan(c1.s.val)
+
+
+def test_setting_ref_on_hex_leads_to_linear_dependency():
+    nw = Network()
+    nw.units.set_defaults(
+        temperature="°C",
+        pressure="bar"
+    )
+
+    so1 = Source("source1")
+    si1 = Sink("sink1")
+    so2 = Source("source2")
+    si2 = Sink("sink2")
+
+    hex = MovingBoundaryHeatExchanger("hex")
+
+    c1 = Connection(so1, "out1", hex, "in1", label="c1")
+    c2 = Connection(hex, "out1", si1, "in1", label="c2")
+    c3 = Connection(so2, "out1", hex, "in2", label="c3")
+    c4 = Connection(hex, "out2", si2, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(fluid={"water": 1}, td_dew=10, T=70, m=1)
+    c2.set_attr(x=0.5)
+
+    c3.set_attr(fluid={"air": 1}, T=40, p=1)
+    c4.set_attr(T=Ref(c3, 1, 5))
+
+    hex.set_attr(dp1=0, dp2=0)
+    nw.solve("design")
+    c3.set_attr(T=c4.T.val)
+    nw.solve("design")
+    assert nw.status == 0

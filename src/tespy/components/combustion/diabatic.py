@@ -42,6 +42,14 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
 
+    .. tip::
+
+        You can add more fluids by importing :code:`COMBUSTION_FLUIDS` from
+        the :code:`tespy.tools` module and passing the respective information.
+        See in the example of
+        :py:class:`tespy.components.combustion.base.CombustionChamber`, how to
+        do that.
+
     Inlets/Outlets
 
     - in1, in2

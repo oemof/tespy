@@ -1,0 +1,17 @@
+v0.9.15 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- The :code:`set_attr` methods of :code:`Component` and :code:`Connection` type
+  classes have  been refactored for improved readability and maintainability.
+  The responsibility for the value checks now lies in separate methods, which
+  are handled by the respective data containers
+  (`PR #936 <https://github.com/oemof/tespy/pull/936>`__).
+- The :code:`set_attr` method of :code:`Network` class has been deprecated, now
+  all the attributes need to be directly assigned in the future
+  (`PR #939 <https://github.com/oemof/tespy/pull/939>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

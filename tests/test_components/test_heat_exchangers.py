@@ -1119,6 +1119,47 @@ class TestHeatExchangers:
         # reducing heat transfer will reduce pinch at identical pinch
         assert instance.td_pinch.val_SI < 5
 
+    def test_SectionedHeatExchanger_offdesign_UA_char(self, tmp_path):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+        design_path = os.path.join(tmp_path, "design.json")
+
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.1, dp2=0.001)
+
+        self.nw.solve("design")
+
+        self.c1.set_attr(T=None)
+        instance.set_attr(td_pinch=5)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        self.nw.save(design_path)
+
+        instance.set_attr(design=["td_pinch"], offdesign=["UA_char"])
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        assert approx(instance.td_pinch.val_SI) == 5
+        assert approx(instance.UA.val_SI) == instance.UA.design
+
+        self.c1.set_attr(m=0.9)
+
+        self.nw.solve("offdesign", design_path=design_path)
+
+        expr1 = 0.9
+        expr2 = self.c3.m.val_SI / self.c3.m.design
+        UA_mod = (
+            2 / (
+                (1 / instance.kA_char1.char_func.evaluate(expr1))
+                + (1 / instance.kA_char2.char_func.evaluate(expr2))
+            )
+        )
+        assert approx(UA_mod * instance.UA.val_SI) == instance.UA.design
+
     @mark.skipif(
         get_global_param_string("REFPROP_version") == "n/a",
         reason='This test requires REFPROP, dependency is missing.'

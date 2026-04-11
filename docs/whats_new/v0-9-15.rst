@@ -1,0 +1,14 @@
+v0.9.15 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- The :code:`set_attr` methods of component and connection type clases has
+  been refactored for much better readability and maintainability. The
+  responsibility for the value checks now lies in separate methods, which are
+  handled by the respective data containers
+  (`PR #936 <https://github.com/oemof/tespy/pull/936>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

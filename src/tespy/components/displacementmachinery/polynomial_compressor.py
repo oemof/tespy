@@ -338,6 +338,7 @@ class PolynomialCompressor(DisplacementMachine):
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "description": "energy balance between for power connector and the power consumption of the compressor."
                 "num_eq_sets": 1
             })
 
@@ -424,6 +425,20 @@ class PolynomialCompressor(DisplacementMachine):
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
+        """Equation for equality of power connector power with component drawn
+        power.
+
+        .. math::
+
+            0 = \dot m \cdot
+            \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
+            - \dot E
+
+        Returns
+        -------
+        float
+            residual
+        """
         return (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)

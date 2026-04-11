@@ -113,7 +113,6 @@ class HAConnection(Connection):
 
     def _set_mixing_rule(self, value):
         if value is not None and value != self.mixing_rule:
-            print(value)
             msg = (
                 "You cannot change the mixing rule specification for a "
                 f"Connection of type {self.__class__.__name__}"

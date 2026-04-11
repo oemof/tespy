@@ -137,9 +137,21 @@ class Network:
     >>> nw.print_results()
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, iterinfo=True, units=None, m_range=None, p_range=None, h_range=None, **kwargs):
         self._set_defaults()
+        self.iterinfo = iterinfo
+
+        if units is not None:
+            self.units = units
+
         self.set_attr(**kwargs)
+
+        if m_range is not None:
+            self.m_range = m_range
+        if p_range is not None:
+            self.p_range = p_range
+        if h_range is not None:
+            self.h_range = h_range
 
     def _serialize(self):
         return {
@@ -220,6 +232,13 @@ class Network:
         p_range : list
             List with minimum and maximum values for pressure value range.
         """
+        if kwargs:
+            msg = (
+                "The set_attr method of Network is deprecated and will be "
+                "removed in the next major release. Please explicitly call "
+                "the respective set methods for specification of value "
+                "ranges, units or iterinfo."
+            )
         self.units = kwargs.get('units', self.units)
         unit_replace = {
             "C": "degC",

@@ -338,7 +338,7 @@ class PolynomialCompressor(DisplacementMachine):
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
-                "description": "energy balance between for power connector and the power consumption of the compressor."
+                "description": "energy balance between for power connector and the power consumption of the compressor.",
                 "num_eq_sets": 1
             })
 

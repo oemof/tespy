@@ -197,7 +197,7 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> so1 = Source("vapor source")
     >>> so2 = Source("air source")
     >>> cd = SectionedHeatExchanger("condenser")
@@ -344,7 +344,7 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "mass_flow": "kg/s"
     ... })
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
 
     Create network components: two sources (CO2 and water inlets), the heat
     exchanger, and two sinks (outlets):

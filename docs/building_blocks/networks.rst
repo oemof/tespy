@@ -47,7 +47,7 @@ The example below shows, how you can setup units for your :code:`Network`.
 .. code-block:: python
 
     >>> from tespy.networks import Network
-    >>> nw = Network(iterinfo=False)
+    >>> nw = Network()
 
 Default units are SI units. We can check, what unit is the default unit like
 this:
@@ -89,13 +89,17 @@ For example, let's set up a model of a compressor.
     >>> nw.add_conns(c1, c2)
 
 Now we can parametrize our problem. It will utilize the unit specifications we
-created above:
+created above.
 
 .. code-block:: python
 
     >>> c1.set_attr(fluid={"air": 1}, m=1, p=1, T=25)  # p in bar, T in celsius
     >>> c2.set_attr(p=3)
     >>> compressor.set_attr(eta_s=80)  # efficiency in %
+
+We can disable the iteration printouts by setting :code:`iterinfo=False`
+
+    >>> nw.iterinfo = False
     >>> nw.solve("design")
 
 Now we can check results, e.g. the power of the compressor, which is expected
@@ -200,12 +204,12 @@ disable convergence progress printouts:
     False
 
     # enable iteration information printout
-    >>> nw.set_attr(iterinfo=True)
+    >>> nw.iterinfo = True
     >>> nw.iterinfo
     True
 
     # disable iteration information printout
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
 
 Adding connections
 ++++++++++++++++++
@@ -597,7 +601,8 @@ check is skipped.
 
     .. code-block:: python
 
-        >>> nw.set_attr(p_range=[0.05, 10], h_range=[15, 2000])
+        >>> nw.p_range = [0.05, 10]
+        >>> nw.h_range = [15, 2000]
         >>> nw.units.default["pressure"]
         'bar'
         >>> [float(p) for p in nw.p_range_SI]

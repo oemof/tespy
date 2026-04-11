@@ -206,7 +206,7 @@ nw.solve("offdesign", design_path="system_design.json")
 nw.print_results()
 # %% [sec_18]
 import numpy as np
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 
 for Q in np.linspace(1, 0.6, 5) * cons.Q.val:
     cons.set_attr(Q=Q)

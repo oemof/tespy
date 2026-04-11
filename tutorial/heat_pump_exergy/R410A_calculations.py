@@ -228,7 +228,7 @@ df_comps.to_csv('R410A_E_D.csv')
 
 print("\n#### FURTHER CALCULATIONS ####\n")
 # switch off iterinfo
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 # offdesign test
 nw.solve('offdesign', design_path=path)
 

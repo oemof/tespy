@@ -182,7 +182,7 @@ class ExergyAnalysis:
         >>> Tamb = 20
         >>> pamb = 1
         >>> nw = Network()
-        >>> nw.set_attr(iterinfo=False)
+        >>> nw.iterinfo = False
         >>> nw.units.set_defaults(**{
         ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
         ... })

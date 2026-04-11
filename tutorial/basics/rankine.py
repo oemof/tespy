@@ -144,7 +144,7 @@ c1.set_attr(m=None)
 my_plant.solve(mode='design')
 my_plant.print_results()
 # %%[sec_8]
-my_plant.set_attr(iterinfo=False)
+my_plant.iterinfo = False
 c1.set_attr(m=20)
 e5.set_attr(E=None)
 

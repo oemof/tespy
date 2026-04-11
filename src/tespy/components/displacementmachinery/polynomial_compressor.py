@@ -425,7 +425,7 @@ class PolynomialCompressor(DisplacementMachine):
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
-        """Equation for equality of power connector power with component drawn
+        r"""Equation for equality of power connector power with component drawn
         power.
 
         .. math::

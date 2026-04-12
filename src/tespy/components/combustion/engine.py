@@ -305,14 +305,14 @@ class CombustionEngine(CombustionChamber):
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp1"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="heating port 1 inlet to outlet absolute pressure change"
             ),
             'dp2': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 1, "outconn": 1, "dp": "dp2"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="heating port 2 inlet to outlet absolute pressure change"
             ),
             'zeta1': dc_cp(

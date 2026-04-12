@@ -172,7 +172,7 @@ result_dict.update({va.label: va.get_plotting_data()[1]})
 
 # create plot
 diagram = FluidPropertyDiagram('NH3')
-diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
+diagram.set_unit_system(units=nw.units)
 
 for key, data in result_dict.items():
     result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)

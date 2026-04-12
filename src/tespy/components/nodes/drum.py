@@ -245,45 +245,45 @@ class Drum(DropletSeparator):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[0].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             },
             2: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[1].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[1].vol.val
             },
             3: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[1].p.val,
                 'isoline_value_end': self.outl[0].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[1].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             },
             4: {
                 'isoline_property': 'p',
                 'isoline_value': self.inl[1].p.val,
                 'isoline_value_end': self.outl[1].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[1].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[1].vol.val
             },
             5: {
                 'isoline_property': 'p',
                 'isoline_value': self.outl[0].p.val,
                 'isoline_value_end': self.outl[1].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.outl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[1].vol.val
             }
         }

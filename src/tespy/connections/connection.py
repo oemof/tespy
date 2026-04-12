@@ -1741,7 +1741,7 @@ class Connection(ConnectionBase):
         return [
             col for prop in cls._result_attributes()
             for col in [prop, f"{prop}_unit"]
-        ] + list(all_fluids) + ['phase']
+        ] + list(all_fluids) + ['phase', 'source', 'source_id', 'target', 'target_id']
 
     @classmethod
     def _print_attributes(cls):
@@ -1755,7 +1755,11 @@ class Connection(ConnectionBase):
             self.fluid.val[fluid] if fluid in self.fluid.val else np.nan
             for fluid in all_fluids
         ] + [
-            self.phase.val
+            self.phase.val,
+            self.source.label,
+            self.source_id,
+            self.target.label,
+            self.target_id,
         ]
 
     def _adjust_to_property_limits(self, nw):

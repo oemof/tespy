@@ -26,7 +26,8 @@ class TestPiping:
     def setup_piping_network(self, instance):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "temperature": "degC",
+            "pressure_difference": "bar"
         })
         self.source = Source('source')
         self.sink = Sink('sink')

@@ -24,7 +24,9 @@ system connecting the compressor to the heater and to the turbine.
     ... )
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> so = Source("source")
     >>> heater = SimpleHeatExchanger("heater")
     >>> compressor = Compressor("compressor")

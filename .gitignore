@@ -62,3 +62,6 @@ docs/jupyter_execute
 .appveyor.token
 *.bak
 uv.lock
+.python-version
+.claude
+.venv

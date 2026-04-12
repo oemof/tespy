@@ -19,6 +19,13 @@ Other Changes
 - The :code:`set_attr` method of :code:`Network` class has been deprecated, now
   all the attributes need to be directly assigned in the future
   (`PR #939 <https://github.com/oemof/tespy/pull/939>`__).
+- TESPy now exports :code:`'vol'` as key for specific volume in context of data
+  transfer to fluprodia for cycle plots. fluprodia version 4.1 will align with
+  the TESPy unit and naming schemes
+  (`PR #941 <https://github.com/oemof/tespy/pull/941>`__).
+- There now is a quantity for :code:`pressure_difference` separate from the
+  :code:`pressure` quantity. You will need to specify them individually in the
+  futur (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
 
 Contributors
 ############

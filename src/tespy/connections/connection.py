@@ -1254,7 +1254,7 @@ class Connection(ConnectionBase):
                 num_eq=1,
                 func_params={"variable": "p"},
                 structure_matrix=self.primary_ref_structure_matrix,
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="equation for linear relationship between two pressure values"
             ),
             "h_ref": dc_ref(

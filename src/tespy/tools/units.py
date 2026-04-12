@@ -34,6 +34,7 @@ class Units:
             "specific_energy": "J/kg",
             "entropy": "J/kg/K",
             "pressure": "Pa",
+            "pressure_difference": "Pa",
             "mass_flow": "kg/s",
             "volumetric_flow": "m3/s",
             "specific_volume": "m3/kg",
@@ -94,6 +95,10 @@ class Units:
         entropy : str
             Default unit: "J/kg/K"
         pressure : str
+            Default unit: "Pa". For backwards compatibility, setting this also
+            sets ``pressure_difference`` to the same unit unless
+            ``pressure_difference`` is explicitly provided as well.
+        pressure_difference : str
             Default unit: "Pa"
         mass_flow : str
             Default unit: "kg/s"
@@ -122,6 +127,17 @@ class Units:
         heat_transfer_coefficient : str
             Default unit: "W/K"
         """
+        if "pressure" in kwargs and "pressure_difference" not in kwargs:
+            msg = (
+                "Setting the 'pressure' unit currently also sets the "
+                "'pressure_difference' unit for backwards compatibility. "
+                "In a future release this will no longer happen. Please "
+                "explicitly set 'pressure_difference' in "
+                "Network.units.set_defaults() to silence this warning."
+            )
+            warnings.warn(msg, FutureWarning)
+            kwargs["pressure_difference"] = kwargs["pressure"]
+
         for key, value in kwargs.items():
             self._check_quantity_exists(key)
             if value == "-":

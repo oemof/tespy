@@ -311,8 +311,8 @@ class Turbine(Turbomachine):
         o = self.outl[0]
         vol = i.calc_vol(T0=i.T.val_SI)
         residual = (
-            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
-            * (i.p.design * i.vol.design / (i.p.val_SI * vol)) ** 0.5
+            - i.m.val_SI + self._conn_design(i, 'm') * i.p.val_SI / self._conn_design(i, 'p')
+            * (self._conn_design(i, 'p') * self._conn_design(i, 'vol') / (i.p.val_SI * vol)) ** 0.5
             * abs(
                     (1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n))
                     / (1 - (self.pr.design) ** ((n + 1) / n))

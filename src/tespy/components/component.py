@@ -136,6 +136,7 @@ class Component:
         self.printout = True
         self.bypass = False
         self.fkt_group = self.label
+        self._local_connection_design_state = {}
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
@@ -607,16 +608,16 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
+                return self.inl[inconn].m.val_SI / self._conn_design(self.inl[inconn], 'm')
             elif param == 'm_out':
-                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
+                return self.outl[outconn].m.val_SI / self._conn_design(self.outl[outconn], 'm')
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
-                return v / self.inl[inconn].v.design
+                return v / self._conn_design(self.inl[inconn], 'v')
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
-                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                    (self.outl[outconn].p.val_SI * self._conn_design(self.inl[inconn], 'p'))
+                    / (self.inl[inconn].p.val_SI * self._conn_design(self.outl[outconn], 'p'))
                 )
             else:
                 msg = (
@@ -636,6 +637,35 @@ class Component:
                 return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
+
+    def _conn_design(self, conn, param):
+        r"""
+        Return the design point value of a connection parameter.
+
+        For components with :code:`local_offdesign=True`, returns the value
+        from the locally stored design state (loaded from the component's own
+        :code:`design_path`) when available. Falls back to the connection's
+        own :code:`.design` attribute otherwise.
+
+        Parameters
+        ----------
+        conn : tespy.connections.connection.Connection
+            Adjacent connection object.
+
+        param : str
+            Connection parameter name, e.g. ``'m'``, ``'p'``, ``'h'``,
+            ``'T'``, ``'v'``, ``'vol'``.
+
+        Returns
+        -------
+        float
+            Design point value in SI units.
+        """
+        if self.local_offdesign:
+            local_state = self._local_connection_design_state.get(conn.label)
+            if local_state is not None and param in local_state:
+                return local_state[param]
+        return getattr(conn, param).design
 
     def bus_func(self, bus):
         r"""

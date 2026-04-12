@@ -1680,8 +1680,8 @@ class Connection(ConnectionBase):
         """Return SI design values for all result attributes from *data*.
 
         Handles the unit-string normalisations that arise from the saved
-        result format (e.g. ``"C"`` for temperatures, ``"kgK"`` entropy
-        units, ``"-"`` dimensionless quantities).
+        result format (e.g. :code:`"C"` for temperatures, :code:`"kgK"` entropy
+        units, :code:`"-"` dimensionless quantities).
 
         Parameters
         ----------

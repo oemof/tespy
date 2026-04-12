@@ -96,8 +96,8 @@ class Units:
             Default unit: "J/kg/K"
         pressure : str
             Default unit: "Pa". For backwards compatibility, setting this also
-            sets ``pressure_difference`` to the same unit unless
-            ``pressure_difference`` is explicitly provided as well.
+            sets :code:`pressure_difference` to the same unit unless
+            :code:`pressure_difference` is explicitly provided as well.
         pressure_difference : str
             Default unit: "Pa"
         mass_flow : str

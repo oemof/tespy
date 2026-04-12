@@ -653,8 +653,8 @@ class Component:
             Adjacent connection object.
 
         param : str
-            Connection parameter name, e.g. ``'m'``, ``'p'``, ``'h'``,
-            ``'T'``, ``'v'``, ``'vol'``.
+            Connection parameter name, e.g. :code:`'m'`, :code:`'p'`, :code:`'h'`,
+            :code:`'T'`, :code:`'v'`, :code:`'vol'`.
 
         Returns
         -------

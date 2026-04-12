@@ -213,7 +213,7 @@ diagram are specified.
 .. code-block:: python
 
     diagram = FluidPropertyDiagram('NH3')
-    diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
+    diagram.set_unit_system(units=nw.units)
 
 Afterwards, the dictionary can be passed to the :code:`calc_individual_isoline`
 method of the :code:`FluidPropertyDiagram` object. In addition, the axis

@@ -290,14 +290,14 @@ class HeatExchanger(Component):
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="hot side inlet to outlet absolute pressure change"
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="cold side inlet to outlet absolute pressure change"
             ),
             'zeta1': dc_cp(

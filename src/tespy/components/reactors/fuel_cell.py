@@ -185,7 +185,7 @@ class FuelCell(Component):
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="cooling inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(

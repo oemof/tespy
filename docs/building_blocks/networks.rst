@@ -156,11 +156,11 @@ do the following:
 .. code-block:: python
 
     >>> compressor.dp.quantity
-    'pressure'
+    'pressure_difference'
     >>> c1.td_dew.quantity
     'temperature_difference'
 
-Finally, it is also possible to use your own :code:`UnitRegistry`:
+It is also possible to use your own :code:`UnitRegistry`:
 
 .. code-block:: python
 
@@ -170,6 +170,12 @@ Finally, it is also possible to use your own :code:`UnitRegistry`:
 
 Changing the ureg will only have effect on future specifications. Existing
 quantities are not changed.
+
+.. attention::
+
+    The quantities :code:`pressure` and :code:`pressure_difference` as well as
+    :code:`temperature` and :code:`temperature_difference` need to be set
+    individually!
 
 .. _printout_logging_label:
 

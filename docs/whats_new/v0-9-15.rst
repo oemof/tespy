@@ -15,6 +15,9 @@ Other Changes
   transfer to fluprodia for cycle plots. fluprodia version 4.1 will align with
   the TESPy unit and naming schemes
   (`PR #941 <https://github.com/oemof/tespy/pull/941>`__).
+- There now is a quantity for :code:`pressure_difference` separate from the
+  :code:`pressure` quantity. You will need to specify them individually in the
+  futur (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
 
 Contributors
 ############

@@ -67,7 +67,7 @@ def test_pressure_unit_propagates_to_pressure_difference(pipe_network):
     """
     nw = pipe_network
     c1, c2 = nw.get_conn(["c1", "c2"])
-    pipe = nw.get_comp(["pipe"])
+    pipe = nw.get_comp("pipe")
 
     nw.units.set_defaults(pressure="bar", temperature="degC")
 
@@ -90,7 +90,7 @@ def test_pressure_difference_unit_independent_from_pressure_unit(pipe_network):
     """
     nw = pipe_network
     c1, c2 = nw.get_conn(["c1", "c2"])
-    pipe = nw.get_comp(["pipe"])
+    pipe = nw.get_comp("pipe")
 
     nw.units.set_defaults(pressure="bar", pressure_difference="Pa", temperature="degC")
 

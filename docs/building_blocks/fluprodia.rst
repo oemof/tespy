@@ -103,7 +103,7 @@ After setting up the model you create the diagram:
     >>> from fluprodia import FluidPropertyDiagram
     >>> import matplotlib.pyplot as plt
     >>> diagram = FluidPropertyDiagram("R290")
-    >>> diagram.set_unit_system(T="°C", p="bar")
+    >>> diagram.set_unit_system(units=nw.units)
     >>> diagram.set_isolines_subcritical(0, 120)
     >>> diagram.calc_isolines()
 

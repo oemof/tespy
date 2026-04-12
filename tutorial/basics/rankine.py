@@ -63,7 +63,7 @@ from fluprodia import FluidPropertyDiagram
 
 # Initial Setup
 diagram = FluidPropertyDiagram('water')
-diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
+diagram.set_unit_system(units=my_plant.units)
 
 # Storing the model result in the dictionary
 result_dict = {}

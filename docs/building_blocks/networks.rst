@@ -156,7 +156,7 @@ do the following:
 .. code-block:: python
 
     >>> compressor.dp.quantity
-    'pressure'
+    'pressure_difference'
     >>> c1.td_dew.quantity
     'temperature_difference'
 

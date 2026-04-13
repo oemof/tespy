@@ -1839,8 +1839,33 @@ class Network:
                     _local_designs[path] = self._load_network_state(path)
 
                 data = _local_designs[path][c]
+                # resolve design label (may differ from cp.label)
+                label = self._find_isolated_comp_label(cp, data)
                 # write data
-                self._write_design_state_to_component(cp, data)
+                self._write_design_state_to_component(cp, data, label)
+
+                # store adjacent connection design values from the component's
+                # own design_path for use in offdesign equations
+                cp._local_connection_design_state = {}
+                for adj_conn in cp.inl + cp.outl:
+                    conn_type = adj_conn.__class__.__name__
+                    if conn_type in _local_designs[path]:
+                        conn_df = _local_designs[path][conn_type]
+                        matched_row = self._find_conn_in_isolated_design(
+                            adj_conn, cp, label, conn_df
+                        )
+                        if matched_row is not None:
+                            cp._local_connection_design_state[adj_conn.label] = (
+                                adj_conn._get_design_state_SI(matched_row, self.units)
+                            )
+                        else:
+                            msg = (
+                                "Could not retrieve connection design point "
+                                "data in local_offdesign of component "
+                                f"{cp.label} for the connections adjacent to "
+                                "the component."
+                            )
+                            raise KeyError(msg)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1969,21 +1994,44 @@ class Network:
         dfs = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         ind_designs = {}
-        for label, row in df_comps.iterrows():
+        for _, row in df_comps.iterrows():
             df = dfs[row["comp_type"]]
             comp = row["object"]
             path = comp.design_path
-            # read data of components with individual design_path
+            # in offdesign mode any individually specified design_path is used
+            # to load this component's design reference, regardless of
+            # local_offdesign
             if path is not None:
                 if path not in ind_designs:
                     ind_designs[path] = self._load_network_state(path)
                 data = ind_designs[path][row["comp_type"]]
-
+                label = self._find_isolated_comp_label(comp, data)
+                self._write_design_state_to_component(comp, data, label)
+                # write adjacent connections design state from individual
+                # design_path to the component
+                comp._local_connection_design_state = {}
+                for adj_conn in comp.inl + comp.outl:
+                    conn_type = adj_conn.__class__.__name__
+                    if conn_type in ind_designs[path]:
+                        conn_df = ind_designs[path][conn_type]
+                        matched_row = self._find_conn_in_isolated_design(
+                            adj_conn, comp, label, conn_df
+                        )
+                        if matched_row is not None:
+                            comp._local_connection_design_state[adj_conn.label] = (
+                                adj_conn._get_design_state_SI(matched_row, self.units)
+                            )
+                        else:
+                            msg = (
+                                "Could not retrieve connection design point "
+                                f"data for component {comp.label}, connection "
+                                f"{adj_conn.label}."
+                            )
+                            raise KeyError(msg)
             else:
                 data = df
-
-            # write data to components
-            self._write_design_state_to_component(comp, data)
+                # write data to components
+                self._write_design_state_to_component(comp, data, comp.label)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
@@ -2012,29 +2060,106 @@ class Network:
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def _write_design_state_to_component(self, c, df):
+    def _find_isolated_comp_label(self, comp, comp_df):
+        """
+        Resolve which label in *comp_df* corresponds to *comp* for isolated
+        design loading.
+
+        - Exact match -> return :code:`comp.label`
+        - Single-type fallback: label not in index but exactly one row ->
+          return that row's label (the isolated design contains exactly one
+          component of that type, so it is unambiguous)
+        - Ambiguous (multiple rows, no exact match) -> raise error
+        """
+        if comp.label in comp_df.index:
+            return comp.label
+        elif len(comp_df) == 1:
+            return comp_df.index[0]
+        return None
+
+    def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_df):
+        """
+        Find the row in connection dataframe that corresponds to adjacent
+        connection when loading an isolated design file.
+
+        Matching strategy (in order):
+
+        1. Direct label match (:code:`adj_conn.label` in :code:`conn_df.index`).
+        2. Port-based topology match using the :code:`source` / :code:`target` /
+           :code:`source_id` / :code:`target_id` columns stored by
+           :py:meth:`tespy.connections.connection.Connection.collect_results`.
+
+        Parameters
+        ----------
+        adj_conn : tespy.connections.connection.BaseConnection
+            BaseConnection type object
+        comp : tespy.components.component.Component
+            Component type object
+        comp_label : str
+            Label of the component to look for inside the connections
+            dataframe
+        conn_df : pandas.core.frame.DataFrame
+            Connection information dataframe
+
+        Returns
+        -------
+        pandas.core.series.Series
+            Respective data of the connection
+        """
+        # --- direct label match ---
+        if adj_conn.label in conn_df.index:
+            return conn_df.loc[adj_conn.label]
+
+        # --- port-based topology match ---
+        if comp_label is None:
+            return None
+        if 'source' not in conn_df.columns or 'target' not in conn_df.columns:
+            return None
+
+        if adj_conn in comp.inl:
+            mask = (
+                (conn_df['target'] == comp_label)
+                & (conn_df['target_id'] == adj_conn.target_id)
+            )
+        else:
+            mask = (
+                (conn_df['source'] == comp_label)
+                & (conn_df['source_id'] == adj_conn.source_id)
+            )
+
+        matches = conn_df[mask]
+        if len(matches) == 1:
+            return matches.iloc[0]
+        return None
+
+    def _write_design_state_to_component(self, c, df, label):
         r"""
         Write design point information to components.
 
         Parameters
         ----------
-        component : tespy.components.component.Component
+        c : tespy.components.component.Component
             Write design point information to this component.
 
-        data : pandas.core.series.Series, pandas.core.frame.DataFrame
+        df : pandas.core.series.Series, pandas.core.frame.DataFrame
             Design point information.
+
+        label : str
+            Label of the component inside the data. It can differ under the
+            condition of an individual design_path speceified for that
+            component.
         """
-        if c.label not in df.index:
+        if label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find component '{c.label}' in design case file. "
+                f"Could not find component '{label}' in design case file. "
                 "This is is critical only to components, which need to load "
                 "design values from this case."
             )
             logger.debug(msg)
             return
         # write component design data
-        data = df.loc[c.label]
+        data = df.loc[label]
         c._set_design_parameters(self.mode, data)
 
     def _write_design_state_to_connection(self, c, df):
@@ -2054,9 +2179,10 @@ class Network:
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find connection '{c.label}' in design case. Please "
-                "make sure no connections have been modified or components "
-                "have been relabeled for your offdesign calculation."
+                f"Could not find connection '{c.label}' in design case. "
+                "Please make sure no connections have been modified or "
+                "components have been relabeled for your offdesign "
+                "calculation."
             )
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)

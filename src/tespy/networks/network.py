@@ -1847,7 +1847,7 @@ class Network:
                 # store adjacent connection design values from the component's
                 # own design_path for use in offdesign equations
                 cp._local_connection_design_state = {}
-                for adj_conn in cp.inl + cp.outl:
+                for adj_conn in cp.inl + cp.outl + cp.power_inl + cp.power_outl:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in _local_designs[path]:
                         conn_df = _local_designs[path][conn_type]
@@ -2010,7 +2010,7 @@ class Network:
                 # write adjacent connections design state from individual
                 # design_path to the component
                 comp._local_connection_design_state = {}
-                for adj_conn in comp.inl + comp.outl:
+                for adj_conn in comp.inl + comp.outl + comp.power_inl + comp.power_outl:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in ind_designs[path]:
                         conn_df = ind_designs[path][conn_type]
@@ -2116,7 +2116,7 @@ class Network:
         if 'source' not in conn_df.columns or 'target' not in conn_df.columns:
             return None
 
-        if adj_conn in comp.inl:
+        if adj_conn in comp.inl + comp.power_inl:
             mask = (
                 (conn_df['target'] == comp_label)
                 & (conn_df['target_id'] == adj_conn.target_id)

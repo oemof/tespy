@@ -119,9 +119,29 @@ class ModelTemplate():
 
         result_rows = []
 
-        # Sensitivity analysis loop
+        # Sensitivity analysis loop:
+        for i in range(len(list(param_dict.values())[0])):
+            try:
+                self.solve_model_design(
+                        {key: value[i] for key, value in param_dict.items()}
+                        )
+            except:
 
-        result_rows.append(result_func())
+                self._intermediate_simulations( 
+                    {key: value[i-1] for key, value in param_dict.items()}, 
+                    {key: value[i] for key, value in param_dict.items()})
+                try:
+                    self.solve_model_design(
+                            {key: value[i] for key, value in param_dict.items()}
+                            )
+                except Exception as e:
+                    raise e
+                else:
+                    result_rows.append(result_func())
+                    continue
+            else:
+                result_rows.append(result_func())
+                continue
         results = pd.DataFrame(result_rows)
 
         return results
@@ -152,7 +172,7 @@ class ModelTemplate():
         return order
 
     # Method for handling large step changes
-    def _handle_step_changes(self, start: dict, end: dict) -> None:
+    def _intermediate_simulations(self, start: dict, end: dict) -> None:
     
         """Run simulation at intermediate design points for more stability."""
         n=0
@@ -168,6 +188,7 @@ class ModelTemplate():
                     self.solve_model_design(
                         {key: value[step] for key, value in intermediate_points.items()}
                         )
+                    
                 except Exception as e:
                     print(f"Error solving model at intermediate point {step}: {e}")
                     for param, value in enumerate(end):
@@ -175,6 +196,12 @@ class ModelTemplate():
                         num_steps*=2
                         n+=1
                     continue 
+                else:
+                    continue
+                
+        else:
+            raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")     
+
 
 
     def plot_Ts_diagram_matplotlib(self, subcycle=None):

@@ -92,3 +92,11 @@ print(model.nw)
 # model.plot_logph_diagram_matplotlib("upper", ".")
 # model.plot_Ts_diagram_matplotlib("upper", ".")
 model.plot_QT_diagram_matplotlib("evaporator low", ".")
+# Sensitivity analysis
+param_dict = {
+    "ihx pinch": [0, 0, 5, 5, 10, 10],
+    "heat": [100, 200, 100, 200, 100, 200],
+    "high stage compressor efficiency": [0.7, 0.7, 0.7, 0.7, 0.7]
+}
+model.sensitivity_analysis(param_dict=param_dict)
+# model.sensitivity_analysis()

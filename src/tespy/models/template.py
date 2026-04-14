@@ -1,11 +1,17 @@
+<<<<<<< HEAD
 import numpy as np
 from fluprodia import FluidPropertyDiagram
 from matplotlib import pyplot as plt
+=======
+import pandas as pd
+>>>>>>> pranay/feature/ModelTemplateClass
 
 from tespy.networks import Network
 from tespy.tools import get_plotting_data
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import merge_dicts
+from scipy.spatial.distance import cdist
+import numpy as np
 
 
 class ModelTemplate():
@@ -94,6 +100,10 @@ class ModelTemplate():
 
         if self.nw.status == 0:
             self._solved = True
+            # path =
+            # self.nw.export("stable_solution")
+            # self._stable_solution = path
+            # save the stable solution for later use in case of model corruption
         # is not required in this example, but could lead to handling some
         # stuff
         elif self.nw.status == 1:
@@ -201,6 +211,152 @@ class ModelTemplate():
         if save_path:
             fig.savefig(f"{save_path}/log_ph_diagram.svg", bbox_inches="tight")
         return fig, ax
+    def solve_model_offdesign(self, **kwargs) -> None:
+        self.set_parameters(**kwargs)
+
+        self._solved = False
+        # Check whether the design path is available
+        self.nw.solve("offdesign", design_path=self._design_path)
+
+        if self.nw.status == 0:
+            self._solved = True
+        elif self.nw.status in [1, 2, 3, 99]:
+            # in this case model is very likely corrupted!!
+            # fix it by running a presolve using the stable solution
+            self._solved = False
+            # check whether the design path and stable solution path are available
+            self.nw.solve("design", init_only=True, design_path=self._design_path, init_path=self._stable_solution)
+
+
+    def sensitivity_analysis(self, param_dict=None, result_func=None) -> None:
+        """
+        1. Check the parameter lengths
+        2. Use the order_min_change method
+        3. Solve design or offdesign
+        4. Deal with the large step changes
+        5. Save the results - What results are needed?
+            - Function needs to be passed - check for this and raise exception
+            - Use the method for the objective function
+
+        Parameters
+        ----------
+        param_dict : dict
+            A dictionary of parameter names and lists of values to be used in the
+            sensitivity analysis. All lists must have the same length, which
+            determines the number of simulations to be run.
+        result_func : function -> dict
+            This function will be called after each simulation step and should
+            return a dictionary. Its contents will be appended to a pandas
+            DataFrame, which is returned after the sensitivity analyses
+            finishes. Therefore, the function should return a dictionary of
+            string column name and (numeric) result value pairs.
+        """
+        if param_dict is None:
+            raise ValueError(
+                "Parameters need to be provided for the sesitivity analysis."
+            )
+
+        if result_func is None:
+            raise ValueError(
+                "No 'result_func' keyword argument was passed. It is necessary"
+                + " to extract results for the sensitivity analysis."
+            )
+
+        self._check_parameter_lengths(param_dict)
+
+        result_rows = []
+
+        # Sensitivity analysis loop:
+        for i in range(len(list(param_dict.values())[0])):
+            try:
+                self.solve_model_design(
+                        **{key: value[i] for key, value in param_dict.items()}
+                        )
+            except:
+
+                self._intermediate_simulations(
+                    {key: value[i-1] for key, value in param_dict.items()},
+                    {key: value[i] for key, value in param_dict.items()})
+                try:
+                    self.solve_model_design(
+                            **{key: value[i] for key, value in param_dict.items()}
+                            )
+                except Exception as e:
+                    raise e
+                else:
+                    result_rows.append(result_func())
+                    continue
+            else:
+                result_rows.append(result_func())
+                continue
+        results = pd.DataFrame(result_rows)
+
+        return results
+
+    # Method for checking the parameter lenghts
+    def _check_parameter_lengths(self, param_dict=None):
+        lengths = [len(v) for v in param_dict.values()]
+        if len(set(lengths)) != 1:
+            raise ValueError(
+                "All parameters in the sensitivity dictionary must have "
+                "the same number of values."
+            )
+
+    # Method for ordering function -
+    def _order_min_change(points: np.ndarray) -> np.ndarray:
+        """Greedy heuristic: always go to the nearest unvisited point."""
+        n = len(points)
+        dist = cdist(points, points)
+        order = [0]
+        visited = set(order)
+        while len(order) < n:
+            last = order[-1]
+            # pick nearest unvisited
+            candidates = [(i, dist[last, i]) for i in range(n) if i not in visited]
+            next_idx = min(candidates, key=lambda x: x[1])[0]
+            order.append(next_idx)
+            visited.add(next_idx)
+        return order
+
+    # Method for handling large step changes
+    def _intermediate_simulations(self, start: dict, end: dict) -> None:
+
+        """Run simulation at intermediate design points for more stability."""
+        n=0
+        num_steps= 2
+        max_n=10
+        while n< max_n:
+            intermediate_points = {
+                param: np.linspace(start[param], end[param], num_steps).tolist()
+                for param in range(len(start))
+                }
+            for step in range(num_steps-1):
+                try:
+                    self.solve_model_design(
+                        {key: value[step] for key, value in intermediate_points.items()}
+                        )
+
+                except Exception as e:
+                    print(f"Error solving model at intermediate point {step}: {e}")
+                    for param, value in enumerate(end):
+                        start[param]= intermediate_points[param][step]
+                        num_steps*=2
+                        n+=1
+                    continue
+                else:
+                    continue
+
+        else:
+            raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")
+
+
+
+    def plot_Ts_diagram_matplotlib(self, subcycle=None):
+        if subcycle is not None:
+            relevant_connection = self._subcycle_mapping[subcycle]
+        else:
+            pass
+        # if no subcycle is provided all of them are plotted in individual figures
 
 
     def plot_Ts_diagram_plotly(self, subcycle=None):

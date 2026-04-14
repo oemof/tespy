@@ -79,17 +79,18 @@ class ModelTemplate():
 
     def sensitivity_analysis(self, **kwargs) -> None:
         """
-        1. Check the parameter lenghts
+        1. Check the parameter lengths
         2. Use the order_min_change method
         3. Deal with the large step changes
         4. Save the results - What results are needed?
             - Function needs to be passed - check for this and raise exception
             - Use the method for the objective function
         """
-        pass
-    # Method for objective function - 
 
-    def order_min_change(points: np.ndarray) -> np.ndarray:
+        pass
+    
+    # Method for objective function - 
+    def _order_min_change(points: np.ndarray) -> np.ndarray:
         """Greedy heuristic: always go to the nearest unvisited point."""
         n = len(points)
         dist = cdist(points, points)
@@ -103,6 +104,18 @@ class ModelTemplate():
             order.append(next_idx)
             visited.add(next_idx)
         return order
+
+    # Method for checking the parameter lenghts
+    def _check_parameter_lengths(self, **kwargs) -> None:
+        pass
+
+    # Method for handling large step changes
+    def _handle_step_changes(self, **kwargs) -> None:
+        pass
+    
+    # Method for checking the objective function/saving the results
+    def _check_objective_function(self, **kwargs) -> None:
+        pass
 
     def plot_Ts_diagram_matplotlib(self, subcycle=None):
         if subcycle is not None:

@@ -6,6 +6,7 @@ import numpy as np
 from tespy.tools import get_plotting_data
 from tespy.tools.fluid_properties import single_fluid
 
+
 class ModelTemplate():
 
     def __init__(self) -> None:
@@ -16,6 +17,32 @@ class ModelTemplate():
         self.nw = Network()
 
     def _parameter_lookup(self) -> dict:
+        """
+        Example
+
+
+        Returns
+        -------
+        dict
+            return a mapping between single labels and their wiring to the
+            internal model, e.g.
+
+            {
+                "evaporator pinch": ["Component", "evaporator", "td_pinch"],
+                "evaporation temperature": ["Connection", "b1", "T"]
+            }
+        """
+        return {}
+
+    def _subcycle_mapping(self) -> dict:
+        """Method to extract subcycles based on a label, which maps to
+        internal connection labels for plotting cycle diagrams
+
+        Returns
+        -------
+        dict
+            mapping of labels to connection labels in the model
+        """
         return {}
 
     def _map_parameter(self, parameter: str) -> tuple:
@@ -80,20 +107,18 @@ class ModelTemplate():
         if connection_label is None:
             raise ValueError("subcycle is unknown")
         fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
-        
+
         if fluid_name is None:
             raise ValueError("Fluid is mixture")
-        
+
         print("FLUID: ", fluid_name)
         print("CONNECTION LABEL: ", connection_label)
-        
+
         diagram = FluidPropertyDiagram(fluid_name)
 
         diagram.set_unit_system(self.nw.units)
         diagram.set_isolines_subcritical(-20, 200)
         diagram.calc_isolines()
-
-        # fig, ax = plt.subplots(1, 2, figsize=(10, 6))
 
         processes, points = get_plotting_data(self.nw, connection_label)
         processes = {
@@ -104,8 +129,11 @@ class ModelTemplate():
 
         fig, ax = plt.subplots(figsize=(10, 6))
 
+        x_min, x_max = self._make_cycle_plot_limits(points, "s", "lin")
+        y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin")
+
         diagram.draw_isolines(
-            fig, ax, "Ts", 1250, 2500, -20, 150,
+            fig, ax, "Ts", x_min, x_max, y_min, y_max,
             isoline_data={
                 "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
             }
@@ -120,7 +148,7 @@ class ModelTemplate():
         if save_path:
             fig.savefig(f"{save_path}/ts_diagram.svg", bbox_inches="tight")
         return fig, ax
-    
+
 
     def plot_logph_diagram_matplotlib(self, subcycle=None, save_path=None):
 
@@ -129,13 +157,13 @@ class ModelTemplate():
         if connection_label is None:
             raise ValueError("subcycle is unknown")
         fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
-        
+
         if fluid_name is None:
             raise ValueError("Fluid is mixture")
-        
+
         print("FLUID: ", fluid_name)
         print("CONNECTION LABEL: ", connection_label)
-        
+
         diagram = FluidPropertyDiagram(fluid_name)
 
         diagram.set_unit_system(self.nw.units)
@@ -153,8 +181,11 @@ class ModelTemplate():
 
         fig, ax = plt.subplots(figsize=(10, 6))
 
+        x_min, x_max = self._make_cycle_plot_limits(points, "h", "lin")
+        y_min, y_max = self._make_cycle_plot_limits(points, "p", "log")
+
         diagram.draw_isolines(
-            fig, ax, "logph", 250000, 750000, 1, 50,
+            fig, ax, "logph", x_min, x_max, y_min, y_max,
             isoline_data={
                 "s": {"values": np.array([])},
                 "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
@@ -183,3 +214,39 @@ class ModelTemplate():
 
     def plot_QT_diagram_plotly(self, heatexchanger_label=None):
         pass
+
+    def _make_cycle_plot_limits(states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
+        """Automatically retrieve the limits for an axes based on the process
+        point limits in one axis
+
+        Parameters
+        ----------
+        states : list
+            List of process states
+        quantity : str
+            Name of the quantity, e.g. :code:`T`, :code:`h`
+        scale : str
+            Scale of the axis to plot on
+        padding_rel : float, optional
+            relative difference to overall distance between min and max value,
+            by default 0.1
+
+        Returns
+        -------
+        tuple
+            minimum and maximum value for axis
+        """
+        all_values = [point[quantity] for point in states.values()]
+        min_val = min(all_values)
+        max_val = max(all_values)
+
+        if scale == 'lin':
+            delta_val = max_val - min_val
+            ax_min_val = min_val - padding_rel * delta_val
+            ax_max_val = max_val + padding_rel * delta_val
+        elif scale == 'log':
+            delta_val = np.log10(max_val) - np.log10(min_val)
+            ax_min_val = 10 ** (np.log10(min_val) - padding_rel * delta_val)
+            ax_max_val = 10 ** (np.log10(max_val) + padding_rel * delta_val)
+
+        return ax_min_val, ax_max_val

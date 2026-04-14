@@ -60,6 +60,10 @@ class ModelTemplate():
 
         if self.nw.status == 0:
             self._solved = True
+            # path =
+            # self.nw.export("stable_solution")
+            # self._stable_solution = path
+            # save the stable solution for later use in case of model corruption
         # is not required in this example, but could lead to handling some
         # stuff
         elif self.nw.status == 1:
@@ -73,8 +77,32 @@ class ModelTemplate():
     def solve_model_offdesign(self, **kwargs) -> None:
         pass
 
-    def sensitivity_analysis(self, ) -> None:
+    def sensitivity_analysis(self, **kwargs) -> None:
+        """
+        1. Check the parameter lenghts
+        2. Use the order_min_change method
+        3. Deal with the large step changes
+        4. Save the results - What results are needed?
+            - Function needs to be passed - check for this and raise exception
+            - Use the method for the objective function
+        """
         pass
+    # Method for objective function - 
+
+    def order_min_change(points: np.ndarray) -> np.ndarray:
+        """Greedy heuristic: always go to the nearest unvisited point."""
+        n = len(points)
+        dist = cdist(points, points)
+        order = [0]
+        visited = set(order)
+        while len(order) < n:
+            last = order[-1]
+            # pick nearest unvisited
+            candidates = [(i, dist[last, i]) for i in range(n) if i not in visited]
+            next_idx = min(candidates, key=lambda x: x[1])[0]
+            order.append(next_idx)
+            visited.add(next_idx)
+        return order
 
     def plot_Ts_diagram_matplotlib(self, subcycle=None):
         if subcycle is not None:

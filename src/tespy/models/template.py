@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 import numpy as np
 from fluprodia import FluidPropertyDiagram
 from matplotlib import pyplot as plt
-=======
 import pandas as pd
->>>>>>> pranay/feature/ModelTemplateClass
 
 from tespy.networks import Network
 from tespy.tools import get_plotting_data

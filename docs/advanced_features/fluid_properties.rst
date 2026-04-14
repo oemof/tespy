@@ -10,7 +10,7 @@ custom fluid property data, the :code:`IncompressibleFluidWrapper`. See
 :ref:`this section <incompressible_wrapper_label>` for more information.
 
 On top, there are two additional predefined engines, which are untested but may
-serve as an inspiration for you to create your onw one, i.e.
+serve as an inspiration for you to create your own one, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
 - the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.

@@ -52,7 +52,7 @@ In literature, exergy is defined as follows:
     two systems is a suitably idealized system called an environment and the
     other is some system of interest, exergy is the maximum theoretical useful
     work (shaft work or electrical work) obtainable as the systems interact to
-    equilibrium, heat transfer occuring with the environment only."*
+    equilibrium, heat transfer occurring with the environment only."*
     :cite:`Bejan1996`
 
 Terminology
@@ -428,7 +428,7 @@ diagram is then easily done:
 
 .. figure:: /_static/images/advanced/exergy/sankey.svg
     :align: center
-    :alt: Sankey diagram of the Soler Energy Generating System (SEGS)
+    :alt: Sankey diagram of the Solar Energy Generating System (SEGS)
 
 The :py:meth:`tespy.tools.analyses.ExergyAnalysis.generate_plotly_sankey_input`
 method provides the links and the corresponding nodes for the diagram. Colors
@@ -459,7 +459,7 @@ colors can be assigned to these types of streams.
 
       - ALL component group labels (you can find the labels in the group data
         results printout),
-      - lables of the busses used in the definitions of the analysis and
+      - labels of the busses used in the definitions of the analysis and
       - :code:`'E_F'`, :code:`'E_P'`, :code:`'E_D'` as well as :code:`'E_L'`
 
     - The colors dictionary works with the following keys:

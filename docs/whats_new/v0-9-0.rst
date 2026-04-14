@@ -12,7 +12,7 @@ For that reason: **We are looking forward for your feedback to the new**
 `GitHub discussion <https://github.com/oemof/tespy/discussions/>`__.
 
 On the high-level API (what users see when working with the standard components
-of tespy) few changes have been made, they are listed below. In constrast, the
+of tespy) few changes have been made, they are listed below. In contrast, the
 back-end has changed quite a bit. The most relevant changes in your custom
 component implementations are listed in that sections. Apart from these
 changes, further API changes will follow in the future. These will be
@@ -39,8 +39,8 @@ High-level API changes
   See the :ref:`docs <ude_label>` for the specific implementations.
 
 - The :code:`reset_topology_reduction_specifications` method of the
-  :code:`Network` has been depricated and is not required anymore.
-- The :code:`Bus` class and the :code:`ExergyAnalysis` class will be depricated
+  :code:`Network` has been deprecated and is not required anymore.
+- The :code:`Bus` class and the :code:`ExergyAnalysis` class will be deprecated
   in the next major version release following v0.9. The :code:`PowerConnection`
   and the respective power components replace the :code:`Bus` class. The
   :code:`ExergyAnalysis` feature moved to an external library:
@@ -53,7 +53,7 @@ Back-end API changes
 - Every mandatory constraint or component parameter associated with an
   equation now requires the specification of the :code:`dependents` keyword,
   which is a method, that returns the variables, the equation depends on,
-  similar to the :code:`UserDefinedEquation`. This allos the solver to
+  similar to the :code:`UserDefinedEquation`. This allows the solver to
   automatically determine the partial derivatives of the corresponding
   equation.
 - The specification of the :code:`deriv` method is now optional for
@@ -61,7 +61,7 @@ Back-end API changes
   automatic derivative calculation using the :code:`dependents` and may be
   useful in context of analytical derivative formulations. For multi-equation
   parameters, the :code:`deriv` method formulation is still mandatory.
-- Instead of providing a :code:`func` and :code:`depdenents` for equations,
+- Instead of providing a :code:`func` and :code:`dependents` for equations,
   that connect pairs of two variables in a linear way, e.g. pressure ratio or
   delta pressure specification, enthalpy or mass flow equality, etc., it is now
   possible to provide a :code:`structure_matrix` method. This method will be
@@ -98,10 +98,10 @@ New Features
   help you with the initial set up of your model: At the example of the
   pressure, there is no difference anymore between fixing one pressure value
   with a number of pressure ratios or pressure differences between connections
-  in a connected branch and fiing individual pressure values for all of
+  in a connected branch and fixing individual pressure values for all of
   those connections (as it was recommended to generate stable starting values
   before version 0.9).
-- You can now customize the orientiation for the optimization by passing
+- You can now customize the orientation for the optimization by passing
   a list of :code:`True` and :code:`False` values in the :code:`minimize`
   argument (`PR #704 <https://github.com/oemof/tespy/pull/704>`__).
 
@@ -113,7 +113,7 @@ Known Issues
   problem formulation. The starting value for the common variable will be taken
   from one of the both original variables. The procedure will be updated in a
   future release.
-- The :code:`Bus` class preprocessing and solving process has not been apdated
+- The :code:`Bus` class preprocessing and solving process has not been updated
   to the same back-end API as it has been done for the components, connections
   and user defined equations as the class is deprecated.
 

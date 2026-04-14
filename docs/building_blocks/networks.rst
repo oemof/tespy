@@ -347,6 +347,63 @@ To solve your offdesign calculation, use:
 
     nw.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
+Component-level design references
+*********************************
+
+In some situations a single component - or a small group of components - has
+been redesigned or replaced, so its individual design point differs from the
+one captured in the network-wide :code:`design_path`. TESPy supports two
+complementary mechanisms to handle this.
+
+**Individual design path in an offdesign simulation**
+
+You can assign a separate :code:`design_path` directly to any component.
+During the offdesign preprocessing TESPy will then load that component's
+design values (e.g. the heat-transfer coefficient :code:`UA` of a heat
+exchanger or the isentropic efficiency of a compressor) from the component's
+own path, while every other component keeps using the global
+:code:`design_path`. The design values of all connections adjacent to that
+component are also read from the component's individual path and stored
+internally; they serve as the reference for characteristic functions that
+scale with mass-flow or similar.
+
+.. code-block:: python
+
+    # Heat exchanger was replaced; new design case is in a separate file.
+    heatex.set_attr(design_path='path/to/new_heatex_design.json')
+    nw.solve(mode='offdesign', design_path='path/to/network_design.json')
+
+Setting :code:`design_path=None` on a component reverts it to the global
+reference on the next solve.
+
+.. note::
+
+    It is possible to use an individual design from an isolated sub-network
+    that contains only the component of interest. Connection labels or even
+    component labels in that file do not need to match the labels in the main
+    network: if no label match is found TESPy tries to identify the correct
+    entry via the port topology (inlet/outlet IDs) stored in the file.
+    This topology information is only available in design files exported with
+    TESPy 0.9.15 or higher. Older exports require matching labels.
+
+**Local offdesign component in a design simulation**
+
+It is also possible to keep most of the network in design mode, while one
+component that has already been built should be treated in offdesign mode.
+Setting :code:`local_offdesign=True` together with a :code:`design_path` on
+that component achieves this. The component's offdesign equations become active
+for that solve, and its design values and adjacent-connection references are
+loaded from its own :code:`design_path`.
+
+.. code-block:: python
+
+    # Existing heat exchanger is frozen in offdesign; rest of network is sized.
+    heatex.set_attr(
+        local_offdesign=True,
+        design_path='path/to/existing_heatex_design.json'
+    )
+    nw.solve(mode='design')
+
 .. _networks_solving_label:
 
 Solving
@@ -401,7 +458,7 @@ First, some of the components' equations return information in pairwise linear
 dependency between variables. These are, for example,
 
 - equality of mass flow or fluid composition at inlet and outlet
-- equality of pressure at inlet and each of the outlets as in a spliiter
+- equality of pressure at inlet and each of the outlets as in a splitter
   component
 - constant ratio of inlet and outlet pressure through a specified pressure
   ratio value
@@ -687,8 +744,8 @@ can be, for example
 
 - a circular linear dependency between a set of variables. Typically, the mass
   flow can be over-determined by not including a :code:`CycleCloser` component
-  in a ciruclar network. For example, ff you are modeling a cycle, e.g. the
-  Clausius Rankine cylce, you need to make a cut in the cycle using the
+  in a circular network. For example, ff you are modeling a cycle, e.g. the
+  Clausius Rankine cycle, you need to make a cut in the cycle using the
   :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
   over-determine the system. Have a look in the
   :ref:`tutorial section <basics_label>` to understand why this is
@@ -786,7 +843,7 @@ The first reason can be eliminated by carefully choosing the parametrisation.
 one variable while under-determinig another, typical reasons for a linear
 dependency are mostly bad starting values in combination with equations that
 require the **calculation of a temperature**, e.g. specifying a temperature at
-some point of the network with unkown pressure, or terminal temperature
+some point of the network with unknown pressure, or terminal temperature
 differences at heat exchangers, etc.. In this case, **the starting enthalpy **
 **and pressure should be adjusted in a way, that the fluid's state is**
 **within the expected region (liquid, two-phase or vapor).** Especially, in

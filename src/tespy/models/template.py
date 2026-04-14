@@ -123,7 +123,7 @@ class ModelTemplate():
         for i in range(len(list(param_dict.values())[0])):
             try:
                 self.solve_model_design(
-                        {key: value[i] for key, value in param_dict.items()}
+                        **{key: value[i] for key, value in param_dict.items()}
                         )
             except:
 
@@ -132,7 +132,7 @@ class ModelTemplate():
                     {key: value[i] for key, value in param_dict.items()})
                 try:
                     self.solve_model_design(
-                            {key: value[i] for key, value in param_dict.items()}
+                            **{key: value[i] for key, value in param_dict.items()}
                             )
                 except Exception as e:
                     raise e

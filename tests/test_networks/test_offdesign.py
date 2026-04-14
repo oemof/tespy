@@ -267,6 +267,29 @@ def test_local_offdesign_adjacent_components_different_paths(tmp_path):
     assert np.isnan(c1.m.design)
 
 
+def test_unset_local_offdesign_clears_data(tmp_path):
+    """
+    After a run with local_offdesign=True a run with local_offdesign=False
+    must not be able to reference values from the old design_path
+    """
+    o = _build_network_and_designs(tmp_path)
+    nw, heatex = o["nw"], o["heatex"]
+    design2 = o["design2"]
+    tmp_path2 = o["tmp_path2"]
+    c1 = o["c1"]
+
+    heatex.set_attr(design_path=tmp_path2, local_offdesign=True)
+    nw.solve("design", init_only=True)
+
+    expected_m = design2["Connection"]["Connection"]["c1"]["m"]
+    assert approx(heatex._conn_design(c1, "m")) == expected_m
+
+    heatex.set_attr(local_offdesign=False)
+    nw.solve("design", init_only=True)
+
+    assert np.isnan(heatex._conn_design(c1, "m"))
+
+
 def test_offdesign_connection_design_stays_global(tmp_path):
     """
     After an offdesign solve the adjacent connections' own .design
@@ -359,7 +382,7 @@ def test_isolated_design_matching_labels(tmp_path):
     # The isolated design has the same UA value as design1 (same conditions),
     # so we confirm the component and connections were loaded by checking the
     # _local_connection_design_state is populated.
-    heatex.set_attr(design_path=iso["save_path"], local_offdesign=True)
+    heatex.set_attr(design_path=iso["save_path"])
     nw.solve("offdesign", design_path=tmp_path1)
     nw.assert_convergence()
 

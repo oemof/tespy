@@ -215,7 +215,7 @@ class ModelTemplate():
     def plot_QT_diagram_plotly(self, heatexchanger_label=None):
         pass
 
-    def _make_cycle_plot_limits(states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
+    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
         """Automatically retrieve the limits for an axes based on the process
         point limits in one axis
 

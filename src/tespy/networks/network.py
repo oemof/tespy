@@ -2330,7 +2330,7 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        if "Connection" in data["Connection"]:
+        if "Connection" in data["Connection"] or "PowerConnection" in data["Connection"]:
             for key, value in data["Connection"].items():
                 # TODO: remove the future warning here and bump minimum pandas version to 3.0
                 with pd.option_context("future.no_silent_downcasting", True):

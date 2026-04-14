@@ -1,6 +1,17 @@
+from tespy.components import Compressor
+from tespy.components import CycleCloser
+from tespy.components import HeatExchanger
+from tespy.components import Motor
+from tespy.components import PowerBus
+from tespy.components import PowerSource
+from tespy.components import SectionedHeatExchanger
+from tespy.components import SimpleHeatExchanger
+from tespy.components import Sink
+from tespy.components import Source
+from tespy.components import Valve
+from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.models import ModelTemplate
-from tespy.components import CycleCloser, Compressor, SectionedHeatExchanger, SimpleHeatExchanger, Valve, Motor, PowerBus, PowerSource
-from tespy.connections import Connection, PowerConnection
 
 
 class MyConcreteModel(ModelTemplate):
@@ -31,7 +42,10 @@ class MyConcreteModel(ModelTemplate):
         compressor_low = Compressor("compressor low")
         condenser_low = SectionedHeatExchanger("internal heat exchanger")
         valve_low = Valve("valve low")
-        evaporator_low = SimpleHeatExchanger("evaporator low")
+        # evaporator_low = SimpleHeatExchanger("evaporator low")
+        evaporator_low = HeatExchanger("evaporator low")
+        he_in = Source("source")
+        he_out = Sink("sink")
 
         cc_high = CycleCloser("cc high")
         compressor_high = Compressor("compressor high")
@@ -50,7 +64,10 @@ class MyConcreteModel(ModelTemplate):
         b4 = Connection(valve_high, "out1", condenser_low, "in2", label="b4")
         b5 = Connection(condenser_low, "out2", cc_high, "in1", label="b5")
 
-        self.nw.add_conns(a1, a2, a3, a4, a5, b1, b2, b3, b4, b5)
+        c1 = Connection(he_in, "out1", evaporator_low, "in2", label="c1")
+        c2 = Connection(evaporator_low, "out2", he_out, "in1", label="c2")
+
+        self.nw.add_conns(a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, c1, c2)
 
         a1.set_attr(fluid={"R600a": 1}, T_dew=0, td_dew=10, m=1)
         a3.set_attr(T_bubble=55, td_bubble=5)
@@ -59,7 +76,9 @@ class MyConcreteModel(ModelTemplate):
 
         condenser_high.set_attr(dp=0)
         condenser_low.set_attr(dp1=0, dp2=0, td_pinch=5)
-        evaporator_low.set_attr(dp=0)
+        # evaporator_low.set_attr(dp=0)
+        evaporator_low.set_attr(dp1=0, dp2=0)
+        c1.set_attr(p=1, m=1, T=20, fluid={"air": 1})
 
         compressor_low.set_attr(eta_s=0.8)
         compressor_high.set_attr(eta_s=0.8)
@@ -70,5 +89,6 @@ class MyConcreteModel(ModelTemplate):
 model = MyConcreteModel()
 print(model.nw)
 
-model.plot_logph_diagram_matplotlib("upper", ".")
-model.plot_Ts_diagram_matplotlib("upper", ".")
+# model.plot_logph_diagram_matplotlib("upper", ".")
+# model.plot_Ts_diagram_matplotlib("upper", ".")
+model.plot_QT_diagram_matplotlib("evaporator low", ".")

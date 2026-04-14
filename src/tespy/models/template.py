@@ -1,10 +1,11 @@
-from tespy.networks import Network
-from tespy.tools.helpers import merge_dicts
+import numpy as np
 from fluprodia import FluidPropertyDiagram
 from matplotlib import pyplot as plt
-import numpy as np
+
+from tespy.networks import Network
 from tespy.tools import get_plotting_data
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.helpers import merge_dicts
 
 
 class ModelTemplate():
@@ -208,8 +209,16 @@ class ModelTemplate():
     def plot_logph_diagram_plotly(self, subcycle=None):
         pass
 
-    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None):
-        pass
+    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None, save_path=None):
+        heatex = self.nw.get_comp(heatexchanger_label)
+        heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
+        fig, ax = plt.subplots(1)
+
+        ax.plot(heat, T_hot, "o-", color="red")
+        ax.plot(heat, T_cold, "o-", color="blue")
+        if save_path:
+            fig.savefig(f"{save_path}/qt_diagram.svg", bbox_inches="tight")
+        return fig, ax
 
     def plot_QT_diagram_plotly(self, heatexchanger_label=None):
         pass

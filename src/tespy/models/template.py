@@ -40,6 +40,20 @@ class ModelTemplate():
         """
         return {}
 
+    def _result_lookup(self):
+        return {}
+
+    def get_results(self, labels):
+        result_lookup = self._result_lookup()
+        result_lookup.update(self._parameter_lookup())
+        results = {}
+        for label in labels:
+            if type(result_lookup[label]) == list:
+                results[label] = self.get_parameter(label)
+            else:
+                results[label] = result_lookup[label]()
+        return results
+
     def _subcycle_mapping(self) -> dict:
         """Method to extract subcycles based on a label, which maps to
         internal connection labels for plotting cycle diagrams
@@ -72,7 +86,14 @@ class ModelTemplate():
         return input_dict
 
     def get_parameter(self, parameter: str) -> float:
-        mapped = self._map_parameter(parameter)
+        result_lookup = self._result_lookup()
+        if parameter in result_lookup:
+            mapped = result_lookup[parameter]
+            if callable(mapped):
+                return mapped()
+        else:
+            mapped = self._map_parameter(parameter)
+
         if mapped[0] == "Connections":
             return self.nw.get_conn(mapped[1]).get_attr(mapped[2]).val
 
@@ -281,7 +302,7 @@ class ModelTemplate():
 
         return ax_min_val, ax_max_val
 
-    def sensitivity_analysis(self, param_dict=None, result_func=None) -> None:
+    def sensitivity_analysis(self, param_dict=None, result_param_list=None) -> pd.DataFrame:
         """
         1. Check the parameter lengths
         2. Use the order_min_change method
@@ -297,54 +318,65 @@ class ModelTemplate():
             A dictionary of parameter names and lists of values to be used in the
             sensitivity analysis. All lists must have the same length, which
             determines the number of simulations to be run.
+
         result_func : function -> dict
             This function will be called after each simulation step and should
             return a dictionary. Its contents will be appended to a pandas
             DataFrame, which is returned after the sensitivity analyses
             finishes. Therefore, the function should return a dictionary of
             string column name and (numeric) result value pairs.
+
+        Returns
+        -------
+        pandas.core.frame.DataFrame
+            DataFrame with input and specified output values of the model
         """
         if param_dict is None:
             raise ValueError(
-                "Parameters need to be provided for the sesitivity analysis."
+                "Parameters need to be provided for the sensitivity analysis."
             )
-
-        if result_func is None:
-            raise ValueError(
-                "No 'result_func' keyword argument was passed. It is necessary"
-                + " to extract results for the sensitivity analysis."
-            )
+        # never enter kwarg=[] in function signature!
+        if result_param_list is None:
+            result_param_list = []
 
         self._check_parameter_lengths(param_dict)
 
         result_rows = []
+        keys = list(param_dict.keys())
+        input_values = np.array(list(param_dict.values())).T
+
+        order = self._order_min_change(input_values)
+        sorted_input = input_values[order]
 
         # Sensitivity analysis loop:
-        for i in range(len(list(param_dict.values())[0])):
-            try:
-                self.solve_model_design(
-                        **{key: value[i] for key, value in param_dict.items()}
-                        )
-            except:
+        for row_num, row in enumerate(sorted_input):
+            input_dict = {keys[i]: row[i] for i in range(len(keys))}
+            self.solve_model_design(**input_dict)
 
-                self._intermediate_simulations(
-                    {key: value[i-1] for key, value in param_dict.items()},
-                    {key: value[i] for key, value in param_dict.items()})
-                try:
-                    self.solve_model_design(
-                            **{key: value[i] for key, value in param_dict.items()}
-                            )
-                except Exception as e:
-                    raise e
-                else:
-                    result_rows.append(result_func())
-                    continue
-            else:
-                result_rows.append(result_func())
+            if self.nw.status > 1:
+                # TODO: get an example, which actually would trigger this
+                # and then implement a respective logic
+                # previous_input = {
+                #     keys[i]: sorted_input[row_num - 1][i]
+                #     for i in range(len(keys))
+                # }
+                # self._intermediate_simulations(previous_input, input_dict)
+
+                # if self.nw.status > 1:
+                result_rows.append({
+                    **input_dict,
+                    **{param: None for param in result_param_list}
+                })
                 continue
-        results = pd.DataFrame(result_rows)
 
-        return results
+            result_rows.append({
+                **input_dict,
+                **self.get_results(result_param_list)
+            })
+
+        results = pd.DataFrame(result_rows)
+        results["_idx"] = order
+        return results.sort_values(by="_idx").drop(columns="_idx").reset_index(drop=True)
 
     # Method for checking the parameter lenghts
     def _check_parameter_lengths(self, param_dict=None):
@@ -356,6 +388,7 @@ class ModelTemplate():
             )
 
     # Method for ordering function -
+    @staticmethod
     def _order_min_change(points: np.ndarray) -> np.ndarray:
         """Greedy heuristic: always go to the nearest unvisited point."""
         n = len(points)

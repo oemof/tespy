@@ -129,7 +129,7 @@ class ConnectionBase:
             )
             warnings.warn(msg, FutureWarning)
 
-        # Starting-value key (e.g. 'm0') — route to the base container's val0
+        # Starting-value key (e.g. 'm0') - route to the base container's val0
         if key in self.property_data0:
             if _is_numeric(value) or value is None:
                 self.get_attr(key.replace('0', '')).set_attr(val0=value)

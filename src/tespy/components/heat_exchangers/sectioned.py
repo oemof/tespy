@@ -882,7 +882,6 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA_\text{design} * f_\text{UA} - \sum\left(UA_{i}\right)
 
         """
-
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param
 

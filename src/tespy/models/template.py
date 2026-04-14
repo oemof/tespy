@@ -10,9 +10,6 @@ class ModelTemplate():
 
     def _create_network(self) -> None:
         self.nw = Network()
-        self.nw.units.set_defaults(
-            **{"temperature": "°C", "pressure": "bar"}
-        )
 
     def _parameter_lookup(self) -> dict:
         return {}

@@ -1,6 +1,10 @@
+import pandas as pd
+
 from tespy.networks import Network
 from tespy.tools.helpers import merge_dicts
+from scipy.spatial.distance import cdist
 import numpy as np
+
 
 class ModelTemplate():
 
@@ -77,19 +81,58 @@ class ModelTemplate():
     def solve_model_offdesign(self, **kwargs) -> None:
         pass
 
-    def sensitivity_analysis(self, **kwargs) -> None:
+    def sensitivity_analysis(self, param_dict=None, result_func=None) -> None:
         """
         1. Check the parameter lengths
         2. Use the order_min_change method
-        3. Deal with the large step changes
-        4. Save the results - What results are needed?
+        3. Solve design or offdesign
+        4. Deal with the large step changes
+        5. Save the results - What results are needed?
             - Function needs to be passed - check for this and raise exception
             - Use the method for the objective function
-        """
 
-        pass
-    
+        Parameters
+        ----------
+
+        result_func : function -> dict
+            This function will be called after each simulation step and should
+            return a dictionary. Its contents will be appended to a pandas
+            DataFrame, which is returned after the sensitivity analyses
+            finishes. Therefore, the function should return a dictionary of
+            string column name and (numeric) result value pairs.
+        """
+        if result_func is None:
+            raise ValueError(
+                "No 'result_func' keyword argument was passed. It is necessary"
+                + " to extract results for the sensitivity analysis."
+            )
+
+        result_rows = []
+
+        # Sensitivity analysis loop
+
+        result_rows.append(result_func())
+        results = pd.DataFrame(result_rows)
+
+        return results
+
     # Method for objective function - 
+        self._check_parameter_lengths(param_dict)
+
+    # Method for checking the parameter lenghts
+    def _check_parameter_lengths(self, param_dict=None):
+        if param_dict is None:
+            raise ValueError(
+                "Parameters need to be provided for the sesitivity analysis."
+            )
+        lengths = [len(v) for v in param_dict.values()]
+        if len(set(lengths)) != 1:
+            raise ValueError(
+                "All parameters in the sensitivity dictionary must have "
+                "the same number of values."
+            )
+
+    # Method for ordering function - 
     def _order_min_change(points: np.ndarray) -> np.ndarray:
         """Greedy heuristic: always go to the nearest unvisited point."""
         n = len(points)
@@ -104,10 +147,6 @@ class ModelTemplate():
             order.append(next_idx)
             visited.add(next_idx)
         return order
-
-    # Method for checking the parameter lenghts
-    def _check_parameter_lengths(self, **kwargs) -> None:
-        pass
 
     # Method for handling large step changes
     def _handle_step_changes(self, start: dict, end: dict) -> None:

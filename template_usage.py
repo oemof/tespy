@@ -69,3 +69,6 @@ class MyConcreteModel(ModelTemplate):
 
 model = MyConcreteModel()
 print(model.nw)
+
+model.plot_logph_diagram_matplotlib("upper", "/home/papa_ko/Windows/Desktop/Repositories/Pinch-Repositories/tespy")
+model.plot_Ts_diagram_matplotlib("upper", "/home/papa_ko/Windows/Desktop/Repositories/Pinch-Repositories/tespy")

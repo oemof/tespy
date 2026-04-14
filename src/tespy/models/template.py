@@ -1,6 +1,6 @@
 from tespy.networks import Network
 from tespy.tools.helpers import merge_dicts
-
+import numpy as np
 
 class ModelTemplate():
 
@@ -110,8 +110,31 @@ class ModelTemplate():
         pass
 
     # Method for handling large step changes
-    def _handle_step_changes(self, **kwargs) -> None:
-        pass
+    def _handle_step_changes(self, start: dict, end: dict) -> None:
+    
+        """Run simulation at intermediate design points for more stability."""
+        n=0
+        num_steps= 2
+        max_n=10
+        while n< max_n:
+            intermediate_points = {
+                param: np.linspace(start[param], end[param], num_steps).tolist()
+                for param in range(len(start))
+                }
+            for step in range(num_steps-1):
+                try:
+                    self.solve_model_design(
+                        {key: value[step] for key, value in intermediate_points.items()}
+                        )
+                except Exception as e:
+                    print(f"Error solving model at intermediate point {step}: {e}")
+                    for param, value in enumerate(end):
+                        start[param]= intermediate_points[param][step]
+                        num_steps*=2
+                        n+=1
+                    continue 
+
+                
     
     # Method for checking the objective function/saving the results
     def _check_objective_function(self, **kwargs) -> None:

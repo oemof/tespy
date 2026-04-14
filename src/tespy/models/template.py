@@ -1,3 +1,5 @@
+import pandas as pd
+
 from tespy.networks import Network
 from tespy.tools.helpers import merge_dicts
 from scipy.spatial.distance import cdist
@@ -88,7 +90,33 @@ class ModelTemplate():
         5. Save the results - What results are needed?
             - Function needs to be passed - check for this and raise exception
             - Use the method for the objective function
+
+        Parameters
+        ----------
+
+        result_func : function -> dict
+            This function will be called after each simulation step and should
+            return a dictionary. Its contents will be appended to a pandas
+            DataFrame, which is returned after the sensitivity analyses
+            finishes. Therefore, the function should return a dictionary of
+            string column name and (numeric) result value pairs.
         """
+        if result_func is None:
+            raise ValueError(
+                "No 'result_func' keyword argument was passed. It is necessary"
+                + " to extract results for the sensitivity analysis."
+            )
+
+        result_rows = []
+
+        # Sensitivity analysis loop
+
+        result_rows.append(result_func())
+        results = pd.DataFrame(result_rows)
+
+        return results
+
+    # Method for objective function - 
         self._check_parameter_lengths(param_dict)
 
     # Method for checking the parameter lenghts

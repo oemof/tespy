@@ -93,7 +93,10 @@ class ModelTemplate():
 
         Parameters
         ----------
-
+        param_dict : dict
+            A dictionary of parameter names and lists of values to be used in the
+            sensitivity analysis. All lists must have the same length, which
+            determines the number of simulations to be run.
         result_func : function -> dict
             This function will be called after each simulation step and should
             return a dictionary. Its contents will be appended to a pandas
@@ -101,11 +104,18 @@ class ModelTemplate():
             finishes. Therefore, the function should return a dictionary of
             string column name and (numeric) result value pairs.
         """
+        if param_dict is None:
+            raise ValueError(
+                "Parameters need to be provided for the sesitivity analysis."
+            )
+
         if result_func is None:
             raise ValueError(
                 "No 'result_func' keyword argument was passed. It is necessary"
                 + " to extract results for the sensitivity analysis."
             )
+
+        self._check_parameter_lengths(param_dict)
 
         result_rows = []
 
@@ -116,15 +126,8 @@ class ModelTemplate():
 
         return results
 
-    # Method for objective function - 
-        self._check_parameter_lengths(param_dict)
-
     # Method for checking the parameter lenghts
     def _check_parameter_lengths(self, param_dict=None):
-        if param_dict is None:
-            raise ValueError(
-                "Parameters need to be provided for the sesitivity analysis."
-            )
         lengths = [len(v) for v in param_dict.values()]
         if len(set(lengths)) != 1:
             raise ValueError(
@@ -150,10 +153,6 @@ class ModelTemplate():
 
     # Method for handling large step changes
     def _handle_step_changes(self, **kwargs) -> None:
-        pass
-    
-    # Method for checking the objective function/saving the results
-    def _check_objective_function(self, **kwargs) -> None:
         pass
 
     def plot_Ts_diagram_matplotlib(self, subcycle=None):

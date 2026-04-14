@@ -70,6 +70,12 @@ class ModelTemplate():
             self._solved = False
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
+    def solve_model_offdesign(self, **kwargs) -> None:
+        pass
+
+    def sensitivity_analysis(self, ) -> None:
+        pass
+
     def plot_Ts_diagram_matplotlib(self, subcycle=None):
         if subcycle is not None:
             relevant_connection = self._subcycle_mapping[subcycle]

@@ -43,7 +43,7 @@ class MyConcreteModel(ModelTemplate):
         condenser_low = SectionedHeatExchanger("internal heat exchanger")
         valve_low = Valve("valve low")
         # evaporator_low = SimpleHeatExchanger("evaporator low")
-        evaporator_low = HeatExchanger("evaporator low")
+        evaporator_low = SectionedHeatExchanger("evaporator low")
         he_in = Source("source")
         he_out = Sink("sink")
 
@@ -55,8 +55,8 @@ class MyConcreteModel(ModelTemplate):
         a1 = Connection(cc_low, "out1", compressor_low, "in1", label="a1")
         a2 = Connection(compressor_low, "out1", condenser_low, "in1", label="a2")
         a3 = Connection(condenser_low, "out1", valve_low, "in1", label="a3")
-        a4 = Connection(valve_low, "out1", evaporator_low, "in1", label="a4")
-        a5 = Connection(evaporator_low, "out1", cc_low, "in1", label="a5")
+        a4 = Connection(valve_low, "out1", evaporator_low, "in2", label="a4")
+        a5 = Connection(evaporator_low, "out2", cc_low, "in1", label="a5")
 
         b1 = Connection(cc_high, "out1", compressor_high, "in1", label="b1")
         b2 = Connection(compressor_high, "out1", condenser_high, "in1", label="b2")
@@ -64,8 +64,8 @@ class MyConcreteModel(ModelTemplate):
         b4 = Connection(valve_high, "out1", condenser_low, "in2", label="b4")
         b5 = Connection(condenser_low, "out2", cc_high, "in1", label="b5")
 
-        c1 = Connection(he_in, "out1", evaporator_low, "in2", label="c1")
-        c2 = Connection(evaporator_low, "out2", he_out, "in1", label="c2")
+        c1 = Connection(he_in, "out1", evaporator_low, "in1", label="c1")
+        c2 = Connection(evaporator_low, "out1", he_out, "in1", label="c2")
 
         self.nw.add_conns(a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, c1, c2)
 
@@ -78,7 +78,8 @@ class MyConcreteModel(ModelTemplate):
         condenser_low.set_attr(dp1=0, dp2=0, td_pinch=5)
         # evaporator_low.set_attr(dp=0)
         evaporator_low.set_attr(dp1=0, dp2=0)
-        c1.set_attr(p=1, m=1, T=20, fluid={"air": 1})
+        c1.set_attr(p=1, T=20, fluid={"air": 1})
+        c2.set_attr(T=10)
 
         compressor_low.set_attr(eta_s=0.8)
         compressor_high.set_attr(eta_s=0.8)
@@ -89,8 +90,9 @@ class MyConcreteModel(ModelTemplate):
 model = MyConcreteModel()
 print(model.nw)
 
-# model.plot_logph_diagram_matplotlib("upper", ".")
-# model.plot_Ts_diagram_matplotlib("upper", ".")
+model.plot_logph_diagram_matplotlib("upper", ".")
+model.plot_Ts_diagram_matplotlib("upper", ".")
+model.plot_QT_diagram_matplotlib("internal heat exchanger", ".")
 model.plot_QT_diagram_matplotlib("evaporator low", ".")
 # Sensitivity analysis
 param_dict = {

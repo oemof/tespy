@@ -208,6 +208,7 @@ class ModelTemplate():
         if save_path:
             fig.savefig(f"{save_path}/log_ph_diagram.svg", bbox_inches="tight")
         return fig, ax
+
     def solve_model_offdesign(self, **kwargs) -> None:
         self.set_parameters(**kwargs)
 
@@ -224,6 +225,61 @@ class ModelTemplate():
             # check whether the design path and stable solution path are available
             self.nw.solve("design", init_only=True, design_path=self._design_path, init_path=self._stable_solution)
 
+    def plot_Ts_diagram_plotly(self, subcycle=None):
+        pass
+
+    def plot_logph_diagram_plotly(self, subcycle=None):
+        pass
+
+    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None, save_path=None):
+        heatex = self.nw.get_comp(heatexchanger_label)
+        heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
+        fig, ax = plt.subplots(1)
+
+        ax.plot(heat, T_hot, "o-", color="red")
+        ax.plot(heat, T_cold, "o-", color="blue")
+        if save_path:
+            fig.savefig(f"{save_path}/qt_diagram.svg", bbox_inches="tight")
+        return fig, ax
+
+    def plot_QT_diagram_plotly(self, heatexchanger_label=None):
+        pass
+
+    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
+        """Automatically retrieve the limits for an axes based on the process
+        point limits in one axis
+
+        Parameters
+        ----------
+        states : list
+            List of process states
+        quantity : str
+            Name of the quantity, e.g. :code:`T`, :code:`h`
+        scale : str
+            Scale of the axis to plot on
+        padding_rel : float, optional
+            relative difference to overall distance between min and max value,
+            by default 0.1
+
+        Returns
+        -------
+        tuple
+            minimum and maximum value for axis
+        """
+        all_values = [point[quantity] for point in states.values()]
+        min_val = min(all_values)
+        max_val = max(all_values)
+
+        if scale == 'lin':
+            delta_val = max_val - min_val
+            ax_min_val = min_val - padding_rel * delta_val
+            ax_max_val = max_val + padding_rel * delta_val
+        elif scale == 'log':
+            delta_val = np.log10(max_val) - np.log10(min_val)
+            ax_min_val = 10 ** (np.log10(min_val) - padding_rel * delta_val)
+            ax_max_val = 10 ** (np.log10(max_val) + padding_rel * delta_val)
+
+        return ax_min_val, ax_max_val
 
     def sensitivity_analysis(self, param_dict=None, result_func=None) -> None:
         """
@@ -345,69 +401,3 @@ class ModelTemplate():
 
         else:
             raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")
-
-
-
-    def plot_Ts_diagram_matplotlib(self, subcycle=None):
-        if subcycle is not None:
-            relevant_connection = self._subcycle_mapping[subcycle]
-        else:
-            pass
-        # if no subcycle is provided all of them are plotted in individual figures
-
-
-    def plot_Ts_diagram_plotly(self, subcycle=None):
-        pass
-
-    def plot_logph_diagram_plotly(self, subcycle=None):
-        pass
-
-    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None, save_path=None):
-        heatex = self.nw.get_comp(heatexchanger_label)
-        heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
-        fig, ax = plt.subplots(1)
-
-        ax.plot(heat, T_hot, "o-", color="red")
-        ax.plot(heat, T_cold, "o-", color="blue")
-        if save_path:
-            fig.savefig(f"{save_path}/qt_diagram.svg", bbox_inches="tight")
-        return fig, ax
-
-    def plot_QT_diagram_plotly(self, heatexchanger_label=None):
-        pass
-
-    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
-        """Automatically retrieve the limits for an axes based on the process
-        point limits in one axis
-
-        Parameters
-        ----------
-        states : list
-            List of process states
-        quantity : str
-            Name of the quantity, e.g. :code:`T`, :code:`h`
-        scale : str
-            Scale of the axis to plot on
-        padding_rel : float, optional
-            relative difference to overall distance between min and max value,
-            by default 0.1
-
-        Returns
-        -------
-        tuple
-            minimum and maximum value for axis
-        """
-        all_values = [point[quantity] for point in states.values()]
-        min_val = min(all_values)
-        max_val = max(all_values)
-
-        if scale == 'lin':
-            delta_val = max_val - min_val
-            ax_min_val = min_val - padding_rel * delta_val
-            ax_max_val = max_val + padding_rel * delta_val
-        elif scale == 'log':
-            delta_val = np.log10(max_val) - np.log10(min_val)
-            ax_min_val = 10 ** (np.log10(min_val) - padding_rel * delta_val)
-            ax_max_val = 10 ** (np.log10(max_val) + padding_rel * delta_val)
-
-        return ax_min_val, ax_max_val

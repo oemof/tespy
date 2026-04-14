@@ -254,7 +254,8 @@ class ModelTemplate():
 
     def plot_QT_diagram_matplotlib(self, heatexchanger_label=None, save_path=None):
         heatex = self.nw.get_comp(heatexchanger_label)
-        heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
+        heat, T_hot, T_cold, _, _ = heatex.calc_sections()
+
         fig, ax = plt.subplots(1)
 
         ax.plot(heat, T_hot, "o-", color="red")

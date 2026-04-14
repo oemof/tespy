@@ -20,7 +20,14 @@ class MyConcreteModel(ModelTemplate):
         return {
             "ihx pinch": ["Components", "internal heat exchanger", "td_pinch"],
             "heat": ["Components", "condenser high", "Q"],
-            "high stage compressor efficiency": ["Components", "compressor high", "eta_s"],
+            "higher cycle compressor efficiency": ["Components", "compressor high", "eta_s"],
+            "lower cycle mass flow": ["Connections", "a1", "m"],
+        }
+
+    def _result_lookup(self):
+        return {
+            "cop": self.calc_cop,
+            "condensation temperature": ["Connections", "a3", "T"]
         }
 
     def _subcycle_mapping(self):
@@ -28,6 +35,15 @@ class MyConcreteModel(ModelTemplate):
             "lower": "a1",
             "upper": "b1"
         }
+
+    def calc_cop(self):
+        return (
+            abs(self.nw.get_comp("condenser high").Q.val_SI)
+            / (
+                self.nw.get_comp("compressor high").P.val_SI
+                + self.nw.get_comp("compressor low").P.val_SI
+            )
+        )
 
     def _create_network(self):
         super()._create_network()
@@ -96,9 +112,10 @@ model.plot_QT_diagram_matplotlib("internal heat exchanger", ".")
 model.plot_QT_diagram_matplotlib("evaporator low", ".")
 # Sensitivity analysis
 param_dict = {
-    "ihx pinch": [3, 3, 5, 5, 10, 10],
-    "heat": [-100, -200, -100, -200, -100, -200],
-    "high stage compressor efficiency": [0.7, 0.7, 0.7, 0.7, 0.7]
+    "ihx pinch": [3, 3, 20, 5, 0.2, 10],
+    "heat": [-100, -200, -100, -800, -100, -200],
+    "higher cycle compressor efficiency": [0.7, 0.7, 0.4, 0.9, 0.9, 0.7]
 }
-model.sensitivity_analysis(param_dict=param_dict)
-# model.sensitivity_analysis()
+model.set_parameters(**{"lower cycle mass flow": None})
+result = model.sensitivity_analysis(param_dict=param_dict, result_param_list=["cop", "condensation temperature"])
+print(result)

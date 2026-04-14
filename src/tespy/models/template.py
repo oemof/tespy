@@ -9,6 +9,8 @@ from tespy.tools.fluid_properties import single_fluid
 
 class ModelTemplate():
 
+    _DIAGRAM_CACHE = {}
+
     def __init__(self) -> None:
         self.parameter_lookup = self._parameter_lookup()
         self._create_network()
@@ -101,24 +103,32 @@ class ModelTemplate():
             self._solved = False
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
-    def plot_Ts_diagram_matplotlib(self, subcycle=None, save_path=None):
+    def _get_diagram(self, fluid_name):
+        if fluid_name in self._DIAGRAM_CACHE:
+            return self._DIAGRAM_CACHE[fluid_name]
 
+        else:
+            diagram = FluidPropertyDiagram(fluid_name)
+            diagram.set_unit_system(self.nw.units)
+            diagram.set_isolines_subcritical(-20, 200)
+            diagram.calc_isolines()
+            self._DIAGRAM_CACHE[fluid_name] = diagram
+
+            return diagram
+
+
+    def _prepare_diagram_and_proccess_data(self, subcycle, fig, ax, figsize):
         connection_label = self._subcycle_mapping().get(subcycle)
+
         if connection_label is None:
             raise ValueError("subcycle is unknown")
+
         fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
 
         if fluid_name is None:
             raise ValueError("Fluid is mixture")
 
-        print("FLUID: ", fluid_name)
-        print("CONNECTION LABEL: ", connection_label)
-
-        diagram = FluidPropertyDiagram(fluid_name)
-
-        diagram.set_unit_system(self.nw.units)
-        diagram.set_isolines_subcritical(-20, 200)
-        diagram.calc_isolines()
+        diagram = self._get_diagram(fluid_name)
 
         processes, points = get_plotting_data(self.nw, connection_label)
         processes = {
@@ -127,10 +137,32 @@ class ModelTemplate():
             if value is not None
         }
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        if fig is None or ax is None:
+            if figsize is None:
+                figsize = (10, 6)
+            fig, ax = plt.subplots(figsize=figsize)
 
-        x_min, x_max = self._make_cycle_plot_limits(points, "s", "lin")
-        y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin")
+        return fig, ax, processes, points, diagram
+
+    def _plot_processes_and_states(self, ax, processes, points, x_property, y_property):
+
+        for label, values in processes.items():
+            _ = ax.plot(values[x_property], values[y_property], label=label, color="tab:red", zorder=10000)
+
+        for label, point in points.items():
+            _ = ax.scatter(point[x_property], point[y_property], label=label, color="tab:red", zorder=10000)
+
+
+    def plot_Ts_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
+
+        fig, ax, processes, points, diagram = self._prepare_diagram_and_proccess_data(
+            subcycle, fig, ax, figsize
+        )
+
+        if x_min is None or x_max is None:
+            x_min, x_max = self._make_cycle_plot_limits(points, "s", "lin")
+        if y_min is None or y_max is None:
+            y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin")
 
         diagram.draw_isolines(
             fig, ax, "Ts", x_min, x_max, y_min, y_max,
@@ -138,51 +170,23 @@ class ModelTemplate():
                 "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
             }
         )
-
-        for label, values in processes.items():
-            _ = ax.plot(values["s"], values["T"], label=label, color="tab:red", zorder=10000)
-
-        for label, point in points.items():
-            _ = ax.scatter(point["s"], point["T"], label=label, color="tab:red", zorder=10000)
+        self._plot_processes_and_states(ax, processes, points, "s", "T")
 
         if save_path:
             fig.savefig(f"{save_path}/ts_diagram.svg", bbox_inches="tight")
+
         return fig, ax
 
+    def plot_logph_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
 
-    def plot_logph_diagram_matplotlib(self, subcycle=None, save_path=None):
+        fig, ax, processes, points, diagram = self._prepare_diagram_and_proccess_data(
+            subcycle, fig, ax, figsize
+        )
 
-
-        connection_label = self._subcycle_mapping().get(subcycle)
-        if connection_label is None:
-            raise ValueError("subcycle is unknown")
-        fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
-
-        if fluid_name is None:
-            raise ValueError("Fluid is mixture")
-
-        print("FLUID: ", fluid_name)
-        print("CONNECTION LABEL: ", connection_label)
-
-        diagram = FluidPropertyDiagram(fluid_name)
-
-        diagram.set_unit_system(self.nw.units)
-        diagram.set_isolines_subcritical(-20, 200)
-        diagram.calc_isolines()
-
-        # fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-
-        processes, points = get_plotting_data(self.nw, connection_label)
-        processes = {
-            key: diagram.calc_individual_isoline(**value)
-            for key, value in processes.items()
-            if value is not None
-        }
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        x_min, x_max = self._make_cycle_plot_limits(points, "h", "lin")
-        y_min, y_max = self._make_cycle_plot_limits(points, "p", "log")
+        if x_min is None or x_max is None:
+            x_min, x_max = self._make_cycle_plot_limits(points, "h", "lin")
+        if y_min is None or y_max is None:
+            y_min, y_max = self._make_cycle_plot_limits(points, "p", "log")
 
         diagram.draw_isolines(
             fig, ax, "logph", x_min, x_max, y_min, y_max,
@@ -191,12 +195,7 @@ class ModelTemplate():
                 "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
             }
         )
-
-        for label, values in processes.items():
-            _ = ax.plot(values["h"], values["p"], label=label, color="tab:red", zorder=10000)
-
-        for label, point in points.items():
-            _ = ax.scatter(point["h"], point["p"], label=label, color="tab:red", zorder=10000)
+        self._plot_processes_and_states(ax, processes, points, "h", "p")
 
         if save_path:
             fig.savefig(f"{save_path}/log_ph_diagram.svg", bbox_inches="tight")

@@ -69,3 +69,25 @@ class ModelTemplate():
             # fix it by running a presolve using the stable solution
             self._solved = False
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
+
+    def plot_Ts_diagram_matplotlib(self, subcycle=None):
+        if subcycle is not None:
+            relevant_connection = self._subcycle_mapping[subcycle]
+        else:
+            pass
+        # if no subcycle is provided all of them are plotted in individual figures
+
+    def plot_logph_diagram_matplotlib(self, subcycle=None):
+        pass
+
+    def plot_Ts_diagram_plotly(self, subcycle=None):
+        pass
+
+    def plot_logph_diagram_plotly(self, subcycle=None):
+        pass
+
+    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None):
+        pass
+
+    def plot_QT_diagram_plotly(self, heatexchanger_label=None):
+        pass

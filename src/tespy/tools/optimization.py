@@ -197,7 +197,7 @@ class OptimizationProblem(ElementwiseProblem):
                             ) - self.model.get_param(obj, label, param)
                         )
                     else:
-                        # this is the constraint as an actual numerical vaue
+                        # this is the constraint as an actual numerical value
                         c = (
                             constraint -
                             self.model.get_param(obj, label, param)

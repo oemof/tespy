@@ -318,7 +318,7 @@ class CombustionChamber(Component):
             else:
                 setattr(self, fluid.lower(), fluid)
         setattr(self, "no", "NO")
-        
+
         self.fuels = {}
         for f in self.fuel_list:
             self.fuels[f] = {}
@@ -578,7 +578,7 @@ class CombustionChamber(Component):
         """
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
-        
+
 
         if fluid in list(self.fuel_list) + [self.co2, self.o2, self.h2o, self.n2, self.no]:
             ###################################################################
@@ -632,12 +632,15 @@ class CombustionChamber(Component):
                 n_h_exc = 0
                 n_c_exc = 0
 
-            M_no = inl[0].fluid.wrapper[self.n2]._molar_mass + inl[0].fluid.wrapper[self.o2]._molar_mass
+            M_no = (
+                inl[0].fluid.wrapper[self.n2]._molar_mass
+                + inl[0].fluid.wrapper[self.o2]._molar_mass
+            )
             if self.f_nox.is_set:
                 n_nox_param = inl[1].m.val_SI * self.f_nox.val_SI / M_no
             else:
                 n_nox_param = 0
-            # nitrogen 
+            # nitrogen
             n_nitrogen = 0
             for i in inl:
                 n_nitrogen += (
@@ -660,18 +663,19 @@ class CombustionChamber(Component):
         # equation for oxygen
         elif fluid == self.o2:
             if self.lamb.val_SI < 1:
-                dn = -n_oxygen 
-            elif n_nitrogen >= n_nox_param *0.5:  
+                dn = -n_oxygen
+            elif n_nitrogen >= n_nox_param *0.5:
                 # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
                 # NO formation as defined in parameter f_nox
-                dn = -(n_oxygen / self.lamb.val_SI
-                      - n_nox_param  *0.5 
-                      )
+                dn = -(
+                    n_oxygen / self.lamb.val_SI - n_nox_param  *0.5
+                )
             else:
                 # limitation due to nitrogen shortage. All nitrogen is converted to NO
-                dn = -(n_oxygen / self.lamb.val_SI
-                      - n_nitrogen
-                      )
+                dn = -(
+                    n_oxygen / self.lamb.val_SI - n_nitrogen
+                )
+
             dm = dn * inl[0].fluid.wrapper[self.o2]._molar_mass
         ###################################################################
         # equation for fuel
@@ -687,32 +691,33 @@ class CombustionChamber(Component):
             else:
                 n_fuel_exc = 0
             dm = -(n_fuel[fluid] - n_fuel_exc) * inl[0].fluid.wrapper[fluid]._molar_mass
-        
+
         ###################################################################
         # equation for nitrogen
         # TODO take into account existing NO in inlets
         elif fluid == self.n2:
             if self.lamb.val_SI < 1:
                 # oxygen limitation: no formation of NO
-                dn=0
-            elif n_nitrogen >= n_nox_param *0.5:  
+                dn = 0
+            elif n_nitrogen >= n_nox_param * 0.5:
                 # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
                 # NO formation as defined in parameter f_nox
-                dn = -(-n_nox_param *0.5) 
+                dn = -(-n_nox_param * 0.5)
             else:
                 # limitation due to nitrogen shortage. All nitrogen is converted to NO
-                dn= -(n_nitrogen -0)
-            dm= dn * inl[0].fluid.wrapper[self.n2]._molar_mass
+                dn = -(n_nitrogen - 0)
+
+            dm = dn * inl[0].fluid.wrapper[self.n2]._molar_mass
         ###################################################################
         # equation for nitrogen monoxide
         elif fluid == self.no:
-    
+
             if self.lamb.val_SI < 1:
-                dn=0
-            elif n_nitrogen >= n_nox_param *0.5:  
-                dn = - (0 - n_nox_param)  
+                dn = 0
+            elif n_nitrogen >= n_nox_param * 0.5:
+                dn = -(-n_nox_param)
             else:
-                dn = - (0 - n_nitrogen *2)
+                dn = -(-n_nitrogen * 2)
 
             dm = dn * M_no / 2
         ###################################################################

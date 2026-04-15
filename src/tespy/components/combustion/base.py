@@ -23,13 +23,14 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
+from tespy.tools.fluid_properties.wrappers import PyromatWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import _numeric_deriv
 from tespy.tools.helpers import _numeric_deriv_vecvar
 from tespy.tools.helpers import fluidalias_in_list
-from tespy.tools.fluid_properties.wrappers import CoolPropWrapper, PyromatWrapper
 
 
 @component_registry

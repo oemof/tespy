@@ -882,7 +882,6 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA_\text{design} * f_\text{UA} - \sum\left(UA_{i}\right)
 
         """
-
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param
 
@@ -953,9 +952,9 @@ class SectionedHeatExchanger(HeatExchanger):
             secondary_index = 0
 
         m_r = self.inl[refrigerant_index].m
-        m_ratio_r = m_r.val_SI / m_r.design
+        m_ratio_r = m_r.val_SI / self._conn_design(self.inl[refrigerant_index], 'm')
         m_sf = self.inl[secondary_index].m
-        m_ratio_sf = m_sf.val_SI / m_sf.design
+        m_ratio_sf = m_sf.val_SI / self._conn_design(self.inl[secondary_index], 'm')
 
         fUA = (
             (1 + alpha_ratio * area_ratio)

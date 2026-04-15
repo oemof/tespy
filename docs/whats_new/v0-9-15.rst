@@ -17,7 +17,14 @@ Other Changes
   (`PR #941 <https://github.com/oemof/tespy/pull/941>`__).
 - There now is a quantity for :code:`pressure_difference` separate from the
   :code:`pressure` quantity. You will need to specify them individually in the
-  futur (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
+  future (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
+
+Bug Fixes
+#########
+- Fixed a bug, which prevented reading the correct information for the
+  connections adjacent to a component in :code:`local_offdesign=True` mode in
+  a design simulation or with an individual :code:`design_path` in an offdesign
+  simulation (`PR #943 <https://github.com/oemof/tespy/pull/943>`__).
 
 Contributors
 ############

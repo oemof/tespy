@@ -245,7 +245,7 @@ Inlets and outlets for PowerConnections
 +++++++++++++++++++++++++++++++++++++++
 
 If your component should incorporate :code:`PowerConnections` you can define
-connctor ids in a similar way, for example power inlet for compressors or
+connector ids in a similar way, for example power inlet for compressors or
 power outlet for turbines. Here the methods are :code:`powerinlets` and
 :code:`poweroutlets`.
 

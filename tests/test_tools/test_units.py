@@ -46,7 +46,7 @@ def test_units_set_ureg():
 
 @fixture
 def pipe_network():
-    """Return (nw, c_in, c_out, pipe) for a Source→SimpleHeatExchanger→Sink."""
+    """Return (nw, c_in, c_out, pipe) for a Source->SimpleHeatExchanger->Sink."""
     nw = Network()
     source = Source("source")
     sink = Sink("sink")

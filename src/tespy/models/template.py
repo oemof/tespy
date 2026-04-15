@@ -139,20 +139,20 @@ class ModelTemplate():
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
     def _get_diagram(self, fluid_name):
-        if fluid_name in self._DIAGRAM_CACHE:
-            return self._DIAGRAM_CACHE[fluid_name]
+        if fluid_name in self._diagram_cache:
+            return self._diagram_cache[fluid_name]
 
         else:
             diagram = FluidPropertyDiagram(fluid_name)
             diagram.set_unit_system(self.nw.units)
             diagram.set_isolines_subcritical(-20, 200)
             diagram.calc_isolines()
-            self._DIAGRAM_CACHE[fluid_name] = diagram
+            self._diagram_cache[fluid_name] = diagram
 
             return diagram
 
 
-    def _prepare_diagram_and_proccess_data(self, subcycle, fig, ax, figsize):
+    def _prepare_diagram_and_process_data(self, subcycle, fig, ax, figsize):
         connection_label = self._subcycle_mapping().get(subcycle)
 
         if connection_label is None:
@@ -190,7 +190,7 @@ class ModelTemplate():
 
     def plot_Ts_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
 
-        fig, ax, processes, points, diagram = self._prepare_diagram_and_proccess_data(
+        fig, ax, processes, points, diagram = self._prepare_diagram_and_process_data(
             subcycle, fig, ax, figsize
         )
 
@@ -214,7 +214,7 @@ class ModelTemplate():
 
     def plot_logph_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
 
-        fig, ax, processes, points, diagram = self._prepare_diagram_and_proccess_data(
+        fig, ax, processes, points, diagram = self._prepare_diagram_and_process_data(
             subcycle, fig, ax, figsize
         )
 

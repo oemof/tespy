@@ -749,7 +749,7 @@ class Network:
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses:
-                    msg = f"The network already has a bus labeld {b.label}."
+                    msg = f"The network already has a bus labelled {b.label}."
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 else:
@@ -901,7 +901,7 @@ class Network:
                     "have been added to the network."
                 )
                 logger.error(msg)
-                # raise an error in case network check is unsuccesful
+                # raise an error in case network check is unsuccessful
                 raise hlp.TESPyNetworkError(msg)
 
             # this rule only applies, in case there are any power connections
@@ -915,7 +915,7 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
                 elif len(comp.power_inl) != comp.num_power_i:
                     msg = (
@@ -926,12 +926,12 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
 
     def _prepare_problem(self):
         r"""
-        Initilialise the network depending on calclation mode.
+        Initialise the network depending on calculation mode.
 
         Design
 
@@ -2336,7 +2336,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
-        # TODO: depricate
+        # TODO: deprecate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2581,7 +2581,7 @@ class Network:
         - Perform actual calculation.
         - Postprocessing.
 
-        It is possible to check programatically, if a network was solved
+        It is possible to check programmatically, if a network was solved
         successfully with the `.converged` attribute.
 
         Parameters
@@ -2651,7 +2651,7 @@ class Network:
         if self.skip_postprocess:
             msg = (
                 "Postprocessing will be skipped, violations of "
-                "phyiscal/operational are not reported or logged!"
+                "physical/operational are not reported or logged!"
             )
             logger.debug(msg)
 
@@ -2935,7 +2935,7 @@ class Network:
         return
 
     def _invert_jacobian(self):
-        """Invert matrix of derivatives and caluclate increment."""
+        """Invert matrix of derivatives and calculate increment."""
         self.lin_dep = True
 
         try:

@@ -149,7 +149,7 @@ class SimpleHeatExchanger(Component):
     component does not simulate the secondary side of the heat exchanger. It
     is possible to calculate the pressure ratio with the Darcy-Weisbach
     equation or in case of liquid water use the Hazen-Williams equation.
-    Also, given ambient temperature and the heat transfer coeffiecient, it is
+    Also, given ambient temperature and the heat transfer coefficient, it is
     possible to predict heat transfer.
 
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
@@ -215,7 +215,7 @@ class SimpleHeatExchanger(Component):
     >>> heat_sink.set_attr(power_connector_location='outlet')
 
     Then we can create and add the :code:`PowerConnection`. We run a new
-    design calculation, because the old design case did not inlcude the
+    design calculation, because the old design case did not include the
     :code:`PowerConnection`. The energy value will be identical to the heat
     transfer of the pipe.
 
@@ -872,7 +872,7 @@ class SimpleHeatExchanger(Component):
         As solving :math:`\int_\mathrm{out}^\mathrm{in} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
         on how specific volume and pressure change throught the component, the
-        heat transfer is splitted into three separate virtual processes:
+        heat transfer is split into three separate virtual processes:
 
         - in->in*: decrease pressure to
           :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
@@ -1026,9 +1026,11 @@ class SimpleHeatExchanger(Component):
                     "chemical": 0, "physical": 0, "massless": self.E_P
                 }
             else:
-                msg = ('Exergy balance of simple heat exchangers, where '
-                       'outlet temperature is higher than inlet temperature '
-                       'with heat extracted is not implmented.')
+                msg = (
+                    'Exergy balance of simple heat exchangers, where outlet '
+                    'temperature is higher than inlet temperature with heat '
+                    'extracted is not implemented.'
+                )
                 logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan
@@ -1062,9 +1064,11 @@ class SimpleHeatExchanger(Component):
                     "chemical": 0, "physical": 0, "massless": self.E_F
                 }
             else:
-                msg = ('Exergy balance of simple heat exchangers, where '
-                       'inlet temperature is higher than outlet temperature '
-                       'with heat injected is not implmented.')
+                msg = (
+                    'Exergy balance of simple heat exchangers, where inlet '
+                    'temperature is higher than outlet temperature with heat '
+                    'injected is not implmented.'
+                )
                 logger.warning(msg)
                 self.E_P = np.nan
                 self.E_F = np.nan

@@ -473,8 +473,8 @@ class Connection(ConnectionBase):
     >>> type(so_si1.fluid)
     <class 'tespy.tools.data_containers.FluidComposition'>
 
-    If you want get a spcific value use the logic: connection.property.*.
-    Aditionally, it is possible to use the :code:`get_attr` method.
+    If you want get a specific value use the logic: connection.property.*.
+    Additionally, it is possible to use the :code:`get_attr` method.
 
     >>> so_si1.m.val0
     10

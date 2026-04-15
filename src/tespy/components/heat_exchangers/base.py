@@ -139,7 +139,7 @@ class HeatExchanger(Component):
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -696,7 +696,7 @@ class HeatExchanger(Component):
         Returns
         -------
         float
-            Maxmium cold side enthalpy increase.
+            Maximum cold side enthalpy increase.
 
             .. math::
 
@@ -743,7 +743,7 @@ class HeatExchanger(Component):
         Returns
         -------
         float
-            Maxmium hot side enthalpy decrease.
+            Maximum hot side enthalpy decrease.
 
             .. math::
 
@@ -1051,8 +1051,8 @@ class HeatExchanger(Component):
 
         As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
-        on how specific volume and pressure change throught the component, the
-        heat transfer is splitted into three separate virtual processes for
+        on how specific volume and pressure change throughout the component, the
+        heat transfer is split into three separate virtual processes for
         both sides:
 
         - in->in*: decrease pressure to
@@ -1372,7 +1372,7 @@ class HeatExchanger(Component):
             else td_at_steps[i + 1]
             for i in range(len(td_at_steps) - 1)
         ])
-    
+
 
     def calc_sections(self, postprocess=True):
         """Calculate the sections of the heat exchanger. For the base class,

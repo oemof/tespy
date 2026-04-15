@@ -160,7 +160,7 @@ class Pump(Turbomachine):
     >>> nw.add_conns(inc, outg)
 
     After that we calculate offdesign performance using the pump curve and a
-    characteristic function for the pump efficiency. We can calulate the
+    characteristic function for the pump efficiency. We can calculate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
     :ref:`tespy.data <data_label>` module. Of course you are able to
@@ -929,8 +929,10 @@ class Pump(Turbomachine):
             self.E_F = self.P.val + (
                 self.inl[0].Ex_therm - self.outl[0].Ex_therm)
         else:
-            msg = ('Exergy balance of a pump, where outlet temperature is '
-                   'smaller than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a pump, where outlet temperature is '
+                'smaller than inlet temperature is not implemented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

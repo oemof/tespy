@@ -136,6 +136,7 @@ class Component:
         self.printout = True
         self.bypass = False
         self.fkt_group = self.label
+        self._local_connection_design_state = {}
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
@@ -225,10 +226,14 @@ class Component:
             logger.error(msg)
             raise TypeError(msg)
         self.__dict__[key] = value
+        if key == 'local_offdesign' and not value:
+            self._local_connection_design_state = {}
 
     def _set_path_attr(self, key, value):
         self.__dict__[key] = value
         self.new_design = True
+        if key == 'design_path' and value is None:
+            self._local_connection_design_state = {}
 
     def get_attr(self, key):
         r"""
@@ -607,16 +612,16 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
+                return self.inl[inconn].m.val_SI / self._conn_design(self.inl[inconn], 'm')
             elif param == 'm_out':
-                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
+                return self.outl[outconn].m.val_SI / self._conn_design(self.outl[outconn], 'm')
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
-                return v / self.inl[inconn].v.design
+                return v / self._conn_design(self.inl[inconn], 'v')
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
-                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                    (self.outl[outconn].p.val_SI * self._conn_design(self.inl[inconn], 'p'))
+                    / (self.inl[inconn].p.val_SI * self._conn_design(self.outl[outconn], 'p'))
                 )
             else:
                 msg = (
@@ -636,6 +641,38 @@ class Component:
                 return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
+
+    def _conn_design(self, conn, param):
+        r"""
+        Return the design point value of a connection parameter.
+
+        When a component has an individual :code:`design_path` (either because
+        it has :code:`local_offdesign=True` in a design-mode solve, or because
+        it carries its own :code:`design_path` in an offdesign solve), the
+        adjacent connection design values are stored in
+        :code:`_local_connection_design_state` during preprocessing.  This
+        method returns those local values when available and falls back to the
+        connection's own :code:`.design` attribute otherwise.
+
+        Parameters
+        ----------
+        conn : tespy.connections.connection.Connection
+            Adjacent connection object.
+
+        param : str
+            Connection parameter name, e.g. :code:`'m'`, :code:`'p'`, :code:`'h'`,
+            :code:`'T'`, :code:`'v'`, :code:`'vol'`.
+
+        Returns
+        -------
+        float
+            Design point value in SI units.
+        """
+        if self._local_connection_design_state:
+            local_state = self._local_connection_design_state.get(conn.label)
+            if local_state is not None and param in local_state:
+                return local_state[param]
+        return getattr(conn, param).design
 
     def bus_func(self, bus):
         r"""

@@ -252,7 +252,7 @@ class SimpleHeatExchanger(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet ot inlet pressure ratio"
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,

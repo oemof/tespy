@@ -1,9 +1,19 @@
 # -*- coding: utf-8
 import importlib.resources
 import os
+import sys
+import warnings
+
+if sys.version_info < (3, 11):
+    warnings.warn(
+        f"Python {sys.version_info.major}.{sys.version_info.minor} is no "
+        f"longer supported as of the next major release of tespy. "
+        f"Please upgrade to Python 3.11 or newer.",
+        FutureWarning
+    )
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.9.13.dev0'
+__version__ = '0.9.15.dev0'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

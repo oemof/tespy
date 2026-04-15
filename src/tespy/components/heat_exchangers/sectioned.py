@@ -18,6 +18,7 @@ from scipy.optimize import brentq
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_mix_ph
@@ -196,7 +197,7 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> so1 = Source("vapor source")
     >>> so2 = Source("air source")
     >>> cd = SectionedHeatExchanger("condenser")
@@ -317,7 +318,162 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(cd.td_pinch.val, 2)
     4.3
     >>> os.remove("design.json")
+
+    Example
+    -------
+    A transcritical gas cooler designed to cool CO2 from 160°C to approximately 50°C
+    while water is heated from 10°C to 60°C. The heat exchanger uses characteristic
+    lines (`kA_char1` and `kA_char2`) to scale the heat transfer coefficient in
+    offdesign operation as mass flow varies.
+
+    This two-stage approach improves convergence:
+    - **Stage 1**: Design with fixed pressures to establish initial guess
+      values
+    - **Stage 2**: Offdesign with characteristic line scaling for part-load
+      analysis
+
+    >>> from tespy.components import Source, Sink, SectionedHeatExchanger
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools.characteristics import CharLine, load_default_char
+    >>> import os
+
+    Set up the network with appropriate units:
+
+    >>> nw = Network()
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "temperature": "degC", "mass_flow": "kg/s"
+    ... })
+    >>> nw.iterinfo = False
+
+    Create network components: two sources (CO2 and water inlets), the heat
+    exchanger, and two sinks (outlets):
+
+    >>> so_co2 = Source("CO2 source")
+    >>> so_water = Source("Water source")
+    >>> hx = SectionedHeatExchanger("transcritical gas cooler")
+    >>> si_co2 = Sink("CO2 sink")
+    >>> si_water = Sink("Water sink")
+
+    Create connections with counter-current arrangement (CO2 on side 1, water
+    on side 2):
+
+    >>> c1 = Connection(so_co2, "out1", hx, "in1", label="CO2_in")
+    >>> c2 = Connection(hx, "out1", si_co2, "in1", label="CO2_out")
+    >>> c11 = Connection(so_water, "out1", hx, "in2", label="water_in")
+    >>> c12 = Connection(hx, "out2", si_water, "in1", label="water_out")
+    >>> nw.add_conns(c1, c2, c11, c12)
+
+    **Stage 1: Design calculation with fixed pressures**
+
+    First, we solve with fixed pressures on both sides to generate good initial
+    guess values. This improves convergence for the complex transcritical
+    cycle.
+
+    Set CO2 inlet at 165 bar and 160°C (transcritical supercritical state):
+
+    >>> c1.set_attr(
+    ...     fluid={"CO2": 1},
+    ...     p=165,
+    ...     T=160,
+    ...     m=3.5
+    ... )
+
+    Set water inlet at 5 bar and 10°C (cold inlet for cooling):
+
+    >>> c11.set_attr(
+    ...     fluid={"Water": 1},
+    ...     p=5,
+    ...     T=10
+    ... )
+
+   Specify water outlet temperature target at 60°C:
+
+   >>> c12.set_attr(T=60)
+
+   Configure heat exchanger with fixed pressures and initial pinch point:
+
+   >>> hx.set_attr(
+   ...     td_pinch=20,
+   ...     pr1=1,
+   ...     pr2=1,
+   ...     num_sections=10
+   ... )
+
+   Solve the design point and save results:
+
+   >>> nw.solve('design')
+   >>> nw.save("design_trans_hx.json")
+
+   After design computation, the CO2 outlet state is:
+
+   >>> round(c2.p.val, 1)
+   165.0
+   >>> round(c2.T.val, 1)
+   30.0
+
+    **Stage 2: Offdesign analysis with kA_char characteristic scaling**
+
+    Now we activate characteristic line-based scaling. Load the default
+    characteristic line for heat exchangers:
+
+    >>> kA_char = load_default_char(
+    ...     "HeatExchanger", "kA_char1", "DEFAULT", CharLine
+    ... )
+
+    Reconfigure heat exchanger to use characteristic lines for UA scaling in
+    offdesign operation:
+
+    >>> hx.set_attr(
+    ...     kA_char1=kA_char,
+    ...     kA_char2=kA_char,
+    ...     design=['td_pinch'],
+    ...     offdesign=['UA_char']
+    ... )
+
+    When offdesign is set to :code:`['UA_char']`, the solver automatically
+    scales the UA value based on the characteristic curve during part-load
+    operation. Verify offdesign setup by solving at design conditions. The
+    design UA value is approximately 23.4 kW/K and pinch is 20.0 K:
+
+    >>> nw.solve('offdesign', design_path='design_trans_hx.json')
+    >>> round(hx.UA.val / 1e3, 2)
+    23.42
+    >>> round(hx.td_pinch.val, 1)
+    20.0
+
+    **Characteristic line scaling at part-load conditions**
+
+    With variable mass flow, the UA value scales according to the
+    characteristic curve. At 80 % mass flow, heat transfer reduces to roughly
+    83 % while UA reduces by 9.5 % following the characteristic scaling:
+
+    >>> c1.set_attr(m=2.8)
+    >>> nw.solve('offdesign', design_path='design_trans_hx.json')
+    >>> round(hx.Q.val_SI / hx.Q.design, 2)
+    0.83
+    >>> round(hx.UA.val_SI / hx.UA.design, 2)
+    0.91
+
+    The pinch point decreases to 15.3 K when heat transfer reduces faster than
+    the characteristic-based UA scaling:
+
+    >>> round(hx.td_pinch.val, 1)
+    15.3
+
+    Clean up the design file:
+
+    >>> os.remove("design_trans_hx.json")
+
+    The :code:`kA_char` parameter allows automatic part-load scaling of UA,
+    following the same principle as the standard HeatExchanger component
+    (:py:class:`tespy.components.heat_exchangers.base.HeatExchanger`). The
+    difference to the :code:`UA_char` usage is that :code:`kA_char` uses a
+    characteristic line lookup table to define the scaling relationship.
+    :code:`UA_cecchinato` requires the specification of Reynolds number
+    exponents, area ratio and alpha ratio of the involved fluids.
     """
+
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
@@ -332,6 +488,13 @@ class SectionedHeatExchanger(HeatExchanger):
                 quantity="heat_transfer_coefficient",
                 description="sum of UA values of all sections of heat exchanger"
             ),
+             'UA_char': dc_gcc(
+                    elements=['kA_char1', 'kA_char2'],
+                    num_eq_sets=1,
+                    func=self.UA_char_func,
+                    dependents=self.UA_dependents,
+                    description="equation for sectioned UA modification based on characteristic lines"
+         ),
             'refrigerant_index': dc_simple(
                 val=0,
                 description="side on which the refrigerant is flowing (0: hot, 1:cold)"
@@ -699,10 +862,40 @@ class SectionedHeatExchanger(HeatExchanger):
 
             .. math::
 
-                0 = UA - \sum UA_\text{i}
+                0 = UA - \sum UA_{i}
         """
         sections = self.calc_sections(False)
         return self.UA.val_SI - self.calc_UA(sections)
+
+    def UA_char_func(self):
+        r"""
+        Calculate offdesign UA from characteristic lines analogous to standard
+        heat exchanger kA_char, but for the sectioned heat exchanger.
+
+        Returns
+        -------
+        float
+            Residual value of equation:
+
+            .. math::
+
+                0 = UA_\text{design} * f_\text{UA} - \sum\left(UA_{i}\right)
+
+        """
+        p1 = self.kA_char1.param
+        p2 = self.kA_char2.param
+
+        f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
+        f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
+
+        fUA1 = self.kA_char1.char_func.evaluate(f1)
+        fUA2 = self.kA_char2.char_func.evaluate(f2)
+
+        fUA = 2 / (1 / fUA1 + 1 / fUA2)
+
+        sections = self.calc_sections(False)
+
+        return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_cecchinato_func(self):
         r"""
@@ -759,9 +952,9 @@ class SectionedHeatExchanger(HeatExchanger):
             secondary_index = 0
 
         m_r = self.inl[refrigerant_index].m
-        m_ratio_r = m_r.val_SI / m_r.design
+        m_ratio_r = m_r.val_SI / self._conn_design(self.inl[refrigerant_index], 'm')
         m_sf = self.inl[secondary_index].m
-        m_ratio_sf = m_sf.val_SI / m_sf.design
+        m_ratio_sf = m_sf.val_SI / self._conn_design(self.inl[secondary_index], 'm')
 
         fUA = (
             (1 + alpha_ratio * area_ratio)

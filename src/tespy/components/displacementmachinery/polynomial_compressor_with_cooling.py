@@ -375,7 +375,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             min_val=0,
             structure_matrix=self.dp_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
-            quantity="pressure",
+            quantity="pressure_difference",
             num_eq_sets=1,
             description="cooling port inlet to outlet absolute pressure change"
         )

@@ -168,7 +168,7 @@ class CombustionChamber(Component):
     be available in fluid property back-end and you need to provide the name of
     the fluid as well as its formation enthalpy :code:`hf` **in kJ/mol** or the
     lower heating value :code:`LHV` in **J/kg**. For example, let's use
-    :code:`ethanol` and :code:`` as examples:
+    :code:`ethanol` and :code:`acetone` as examples:
 
     >>> from tespy.tools import COMBUSTION_FLUIDS
     >>> COMBUSTION_FLUIDS.add_fluid("ethanol", hf=-234.95)

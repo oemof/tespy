@@ -1,0 +1,42 @@
+v0.9.14 - Kelvin's Kingdom (April, 7, 2026)
++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- When setting a `Ref` for a temperature, the starting value for enthalpy of
+  the connection with the `Ref` specified is updated in preprocessing
+  (`PR #921 <https://github.com/oemof/tespy/pull/921>`__).
+- When loading a :code:`Network` from its serialized form the :code:`is_var`
+  information of component properties being a variable was missing
+  (`PR #932 <https://github.com/oemof/tespy/pull/932>`__).
+- For component characteristic maps the default if no map is found in the
+  :code:`tespy.data` module was a :code:`CharLine` by accident. This was a
+  silent error because if not used, it did not do any trouble. Only when
+  importing a :code:`Network` and reconstructing the component parameters the
+  :code:`CharMap` could not be constructed successfully because it was missing
+  dimensions (`PR #933 <https://github.com/oemof/tespy/pull/933>`__).
+- The reactor classes :code:`FuelCell` and :code:`WaterElectrolyzer` were
+  missing the implementation for a :code:`PowerConnection`
+  (`PR #934 <https://github.com/oemof/tespy/pull/934>`__).
+
+Other Changes
+#############
+- A :code:`CITATION.cff` file is available to reference the GitHub repository
+  (`PR #917 <https://github.com/oemof/tespy/pull/917>`__).
+- You can now specify the flow speed at the inlet of pipes
+  (`PR #924 <https://github.com/oemof/tespy/pull/924>`__).
+- It is now possible to specify the efficiency of class :code:`Pump` based on
+  flow work (:math:`v\cdot \int dp`) next to isentropic efficiency
+  (`PR #927 <https://github.com/oemof/tespy/pull/927>`__).
+- The :code:`SectionedHeatExchanger` and :code:`MovingBoundaryHeatExchanger`
+  now can utilize the :code:`UA_char` as offdesign parameter. It utilizes the
+  characteristic :code:`kA_char` lines of the standard heat exchangers to
+  evaluate the change of :code:`UA` to :code:`UA_design` as function of mass
+  flow. It is similar to the :code:`UA_cecchinato` method, but does not need
+  the specification of Reynolds exponents, area or alpha ratios
+  (`PR #928 <https://github.com/oemof/tespy/pull/928>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@lennipapa <https://github.com/lennipapa>`__

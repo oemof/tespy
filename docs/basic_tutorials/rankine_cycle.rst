@@ -70,7 +70,7 @@ water return flow temperature.
 .. tip::
 
     You will find the documentation of each equation of the components in the
-    respective seciton of the API documentation. For example, the condenser
+    respective section of the API documentation. For example, the condenser
     :py:class:`tespy.components.heat_exchangers.condenser.Condenser`.
 
 .. literalinclude:: /../tutorial/basics/rankine.py
@@ -140,7 +140,7 @@ classes, i.e.
 
 as well as the :py:class:`tespy.connections.powerconnection.PowerConnection`
 class. Then we create a :code:`PowerBus` for the electrical distribution, which
-takes electricity fromt he :code:`Generator` and distributes it to the pump's
+takes electricity from the :code:`Generator` and distributes it to the pump's
 :code:`Motor` and the grid represented by the :code:`PowerSink`.
 
 .. literalinclude:: /../tutorial/basics/rankine.py

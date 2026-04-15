@@ -34,7 +34,7 @@ installed.
 
       1. Install virtualenv using the package management of your Linux distribution,
          pip install or install it from source
-         (`see virtualenv documentation <https://virtualenv.pypa.io/en/stable/installation.html>`_)
+         (`see virtualenv documentation <https://virtualenv.pypa.io/>`_)
       2. Open terminal to create and activate a virtual environment by typing:
 
          .. code-block:: console
@@ -61,7 +61,7 @@ installed.
          for Python 3.x (64 or 32 bit).
       2. Install miniforge3
       3. Open "miniforge prompt" to manage your virtual environments. You can
-         create a new environment and acivate it by
+         create a new environment and activate it by
 
          .. code-block:: console
 

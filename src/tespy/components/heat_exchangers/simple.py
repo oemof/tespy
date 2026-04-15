@@ -252,13 +252,13 @@ class SimpleHeatExchanger(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet ot inlet pressure ratio"
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
@@ -884,7 +884,7 @@ class SimpleHeatExchanger(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 

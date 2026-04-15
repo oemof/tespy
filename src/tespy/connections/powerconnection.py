@@ -156,18 +156,23 @@ class PowerConnection(ConnectionBase):
     def get_parameters(self):
         return {"E": dc_prop(d=1e-4, quantity="power")}
 
-    def calc_results(self, units):
+    def calc_results(self, units, skip_postprocess):
         self.E.set_val_from_SI(units)
         self.E.set_val0_from_SI(units)
         return True
 
-    def _set_design_params(self, data, units):
+    def _get_design_state_SI(self, data, units):
+        state = {}
         for var in self._result_attributes():
             param = self.get_attr(var)
-            param.design = units.ureg.Quantity(
-                float(data[var]),
-                data[f"{var}_unit"]
+            state[var] = units.ureg.Quantity(
+                float(data[var]), data[f"{var}_unit"]
             ).to(SI_UNITS[param.quantity]).magnitude
+        return state
+
+    def _set_design_params(self, data, units):
+        for var, val in self._get_design_state_SI(data, units).items():
+            self.get_attr(var).design = val
 
     def _set_starting_values(self, data, units):
         for prop in self.get_variables():

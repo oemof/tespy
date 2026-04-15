@@ -23,6 +23,7 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import _is_numeric
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import T_mix_ph
@@ -52,7 +53,6 @@ from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
-from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
@@ -115,15 +115,6 @@ class ConnectionBase:
             raise ValueError(msg)
 
     def _parameter_specification(self, key, value):
-
-        is_numeric = False
-        is_quantity = False
-
-        if isinstance(value, pint.Quantity):
-            is_quantity = True
-        else:
-            is_numeric = _is_numeric(value)
-
         if key == "Td_bp":
             msg = (
                 "The parameter 'Td_bp' is depreciated and will be removed in "
@@ -138,67 +129,68 @@ class ConnectionBase:
             )
             warnings.warn(msg, FutureWarning)
 
-        if value is None:
-            self.get_attr(key).set_attr(is_set=False)
-
-            if f"{key}_ref" in self.property_data:
-                self.get_attr(f"{key}_ref").set_attr(is_set=False)
-
-        elif is_numeric or is_quantity:
-            # value specification
-            if key in self.property_data:
-                if f"{key}_ref" in self.property_data:
-                    if self.get_attr(f"{key}_ref" ).is_set:
-                        msg = (
-                            f"You have specified a numerical value for the "
-                            f"parameter '{key}' while having a Ref specified "
-                            f"at the same time at connection {self.label}. In "
-                            "the moment, this does not overwrite setting the "
-                            "Ref. To unset the Ref before setting the "
-                            f"numerical value, run .set_attr({key}=None) "
-                            f"before .set_attr({key}={value}). With the next "
-                            "major release of TESPy setting a numerical value "
-                            "will always replace a previously specified Ref "
-                            "making it impossible to set a numerical value "
-                            "and a Ref for one parameter on one connection "
-                            "simultaneously."
-                        )
-                        warnings.warn(msg, FutureWarning)
-                self.get_attr(key).set_attr(is_set=True, val=value)
-            else:
+        # Starting-value key (e.g. 'm0') - route to the base container's val0
+        if key in self.property_data0:
+            if _is_numeric(value) or value is None:
                 self.get_attr(key.replace('0', '')).set_attr(val0=value)
+                return
+            else:
+                msg = (
+                    "You must provide a number of None for the parameter "
+                    f"{key} of Connection {self.label}."
+                )
+                logger.error(msg)
+                raise TypeError(msg)
 
-        # reference object
+        ref_key = f"{key}_ref"
+        has_ref_sibling = ref_key in self.property_data
+
+        if value is None:
+            self.get_attr(key).is_set = False
+            if has_ref_sibling:
+                self.get_attr(ref_key).is_set = False
+
         elif isinstance(value, Ref):
-            if f"{key}_ref" not in self.property_data:
+            if not has_ref_sibling:
                 msg = f"Referencing {key} is not implemented."
                 logger.error(msg)
                 raise NotImplementedError(msg)
-            else:
-                if self.get_attr(key).is_set:
-                    msg = (
-                        f"You have specified a Ref for the parameter '{key}' "
-                        "while having a numerical value specified at the same "
-                        f"time at connection {self.label}. In the moment, "
-                        "this does not overwrite setting the numerical value. "
-                        "To unset the specified value before setting the Ref, "
-                        f"run .set_attr({key}=None) before "
-                        f".set_attr({key}=Ref(...)). With the next major "
-                        "release of TESPy setting a Ref will automatically "
-                        "replace a previously specified numerical value "
-                        "making it impossible to set a numerical value and a "
-                        "Ref for one parameter on one connection "
-                        "simultaneously."
-                    )
-                    warnings.warn(msg, FutureWarning)
-                self.get_attr(f"{key}_ref").set_attr(ref=value)
-                self.get_attr(f"{key}_ref").set_attr(is_set=True)
+            if self.get_attr(key).is_set:
+                msg = (
+                    f"You have specified a Ref for the parameter '{key}' "
+                    "while having a numerical value specified at the same "
+                    f"time at connection {self.label}. In the moment, "
+                    "this does not overwrite setting the numerical value. "
+                    "To unset the specified value before setting the Ref, "
+                    f"run .set_attr({key}=None) before "
+                    f".set_attr({key}=Ref(...)). With the next major "
+                    "release of TESPy setting a Ref will automatically "
+                    "replace a previously specified numerical value "
+                    "making it impossible to set a numerical value and a "
+                    "Ref for one parameter on one connection "
+                    "simultaneously."
+                )
+                warnings.warn(msg, FutureWarning)
+            self.get_attr(ref_key).set_attr(ref=value, is_set=True)
 
-        # invalid datatype for keyword
         else:
-            msg = f"Wrong datatype for keyword argument {key}."
-            logger.error(msg)
-            raise TypeError(msg)
+            if has_ref_sibling and self.get_attr(ref_key).is_set:
+                msg = (
+                    f"You have specified a numerical value for the "
+                    f"parameter '{key}' while having a Ref specified "
+                    f"at the same time at connection {self.label}. In "
+                    "the moment, this does not overwrite setting the "
+                    "Ref. To unset the Ref before setting the "
+                    f"numerical value, run .set_attr({key}=None) "
+                    f"before .set_attr({key}={value}). With the next "
+                    "major release of TESPy setting a numerical value "
+                    "will always replace a previously specified Ref "
+                    "making it impossible to set a numerical value "
+                    "and a Ref for one parameter on one connection "
+                    "simultaneously."
+                )
+                warnings.warn(msg, FutureWarning)
+            self.get_attr(key).accept(value)
 
     def get_attr(self, key):
         r"""
@@ -707,70 +699,64 @@ class Connection(ConnectionBase):
           adjust the enthalpy values of that connection for the first
           iterations in order to meet the state requirement.
         """
-        # set specified values
-        for key in kwargs:
+        for key, value in kwargs.items():
             if key == 'label':
                 msg = 'Label can only be specified on instance creation.'
                 logger.error(msg)
                 raise TESPyConnectionError(msg)
             elif 'fluid' in key:
-                self._fluid_specification(key, kwargs[key])
-
+                self._fluid_specification(key, value)
             elif key in self.property_data or key in self.property_data0:
-                self._parameter_specification(key, kwargs[key])
-
+                self._parameter_specification(key, value)
             elif key == 'state':
-                if kwargs[key] in ['l', 'g']:
-                    self.state.set_attr(_val=kwargs[key], is_set=True)
-                elif kwargs[key] is None:
-                    self.state.set_attr(is_set=False)
-                else:
-                    msg = (
-                        'Keyword argument "state" must either be '
-                        '"l" or "g" or be None.'
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-            # design/offdesign parameter list
-            elif key in ['design', 'offdesign']:
-                if not isinstance(kwargs[key], list):
-                    msg = f"Please provide the {key} parameters as list!"
-                    logger.error(msg)
-                    raise TypeError(msg)
-                elif set(kwargs[key]).issubset(self.property_data.keys()):
-                    self.__dict__.update({key: kwargs[key]})
-                else:
-                    params = ', '.join(self.property_data.keys())
-                    msg = (
-                        "Available parameters for (off-)design specification "
-                        f"are: {params}."
-                    )
-                    logger.error(msg)
-                    raise ValueError(msg)
-
-            # design path
+                self._set_state(value)
+            elif key in ('design', 'offdesign'):
+                self._set_design_list(key, value)
             elif key == 'design_path':
-                self.__dict__.update({key: kwargs[key]})
-                self.new_design = True
-
-            # other boolean keywords
-            elif key in ['printout', 'local_design', 'local_offdesign']:
-                if not isinstance(kwargs[key], bool):
-                    msg = ('Please provide the ' + key + ' as boolean.')
-                    logger.error(msg)
-                    raise TypeError(msg)
-                else:
-                    self.__dict__.update({key: kwargs[key]})
-
-            elif key == "mixing_rule":
-                self.mixing_rule = kwargs[key]
-
-            # invalid keyword
+                self._set_path_attr(value)
+            elif key in ('printout', 'local_design', 'local_offdesign'):
+                self._set_bool_attr(key, value)
+            elif key == 'mixing_rule':
+                self.mixing_rule = value
             else:
                 msg = f"Connection has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
+
+    def _set_state(self, value):
+        if value in ('l', 'g'):
+            self.state.set_attr(_val=value, is_set=True)
+        elif value is None:
+            self.state.set_attr(is_set=False)
+        else:
+            msg = 'Keyword argument "state" must either be "l" or "g" or be None.'
+            logger.error(msg)
+            raise TypeError(msg)
+
+    def _set_design_list(self, key, value):
+        if not isinstance(value, list):
+            msg = f"Please provide the {key} parameters as list!"
+            logger.error(msg)
+            raise TypeError(msg)
+        if not set(value).issubset(self.property_data.keys()):
+            params = ', '.join(self.property_data.keys())
+            msg = (
+                f"Available parameters for (off-)design specification are: {params}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        self.__dict__[key] = value
+
+    def _set_path_attr(self, value):
+        self.design_path = value
+        self.new_design = True
+
+    def _set_bool_attr(self, key, value):
+        if not isinstance(value, bool):
+            msg = f"Please provide the {key} parameter as boolean."
+            logger.error(msg)
+            raise TypeError(msg)
+        self.__dict__[key] = value
 
     def _fluid_specification(self, key, value):
 
@@ -946,6 +932,12 @@ class Connection(ConnectionBase):
                 h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
                 if self.h.val_SI > h:
                     self.h.set_reference_val_SI(h - 1e3)
+
+        if self.T_ref.is_set:
+            ref = self.T_ref.ref
+            T_target = ref.obj.calc_T() * ref.factor + ref.delta_SI
+            h = h_mix_pT(self.p.val_SI, T_target, self.fluid_data, self.mixing_rule)
+            self.h.set_reference_val_SI(h)
 
     def _presolve(self):
         if len(self.fluid.is_var) > 0:
@@ -1191,7 +1183,7 @@ class Connection(ConnectionBase):
                 num_eq=1,
                 func_params={"variable": "p"},
                 structure_matrix=self.primary_ref_structure_matrix,
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="equation for linear relationship between two pressure values"
             ),
             "h_ref": dc_ref(
@@ -1577,7 +1569,15 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
-    def calc_results(self, units):
+    def calc_results(self, units, skip_postprocess):
+        self.m.set_val0_from_SI(units)
+        self.p.set_val0_from_SI(units)
+        self.h.set_val0_from_SI(units)
+        self.fluid.val0 = self.fluid.val.copy()
+
+        if skip_postprocess:
+            return True
+
         self.T.val_SI = self.calc_T()
         fluid = single_fluid(self.fluid_data)
         _converged = True
@@ -1674,32 +1674,48 @@ class Connection(ConnectionBase):
                 if not param.is_set:
                     param.set_val_from_SI(units)
 
-        self.m.set_val0_from_SI(units)
-        self.p.set_val0_from_SI(units)
-        self.h.set_val0_from_SI(units)
-        self.fluid.val0 = self.fluid.val.copy()
-
         return _converged
 
-    def _set_design_params(self, data, units):
+    def _get_design_state_SI(self, data, units):
+        """Return SI design values for all result attributes from *data*.
+
+        Handles the unit-string normalisations that arise from the saved
+        result format (e.g. :code:`"C"` for temperatures, :code:`"kgK"` entropy
+        units, :code:`"-"` dimensionless quantities).
+
+        Parameters
+        ----------
+        data : pandas.core.series.Series
+            A row from the connection design DataFrame.
+        units : tespy.tools.units.UnitSystem
+            The network's unit system (provides the pint registry).
+
+        Returns
+        -------
+        dict
+            Mapping of parameter name to its SI value.
+        """
+        state = {}
         for var in self._result_attributes():
-            if var not in data:
+            unit_key = f"{var}_unit"
+            if var not in data or unit_key not in data:
                 continue
-            unit = data[f"{var}_unit"]
+            unit = data[unit_key]
             if unit == "C":
-                if var == "T":
-                    unit = "degC"
-                elif var == "Td_bp":
-                    unit = "delta_degC"
+                unit = "degC" if var == "T" else "delta_degC"
             elif "kgK" in unit:
                 unit = unit.replace("kgK", "kg/K")
             elif unit == "-":
                 unit = "1"
             param = self.get_attr(var)
-            param.design = units.ureg.Quantity(
-                float(data[var]),
-                unit
+            state[var] = units.ureg.Quantity(
+                float(data[var]), unit
             ).to(SI_UNITS[param.quantity]).magnitude
+        return state
+
+    def _set_design_params(self, data, units):
+        for var, val in self._get_design_state_SI(data, units).items():
+            self.get_attr(var).design = val
 
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])
@@ -1725,7 +1741,7 @@ class Connection(ConnectionBase):
         return [
             col for prop in cls._result_attributes()
             for col in [prop, f"{prop}_unit"]
-        ] + list(all_fluids) + ['phase']
+        ] + list(all_fluids) + ['phase', 'source', 'source_id', 'target', 'target_id']
 
     @classmethod
     def _print_attributes(cls):
@@ -1739,7 +1755,11 @@ class Connection(ConnectionBase):
             self.fluid.val[fluid] if fluid in self.fluid.val else np.nan
             for fluid in all_fluids
         ] + [
-            self.phase.val
+            self.phase.val,
+            self.source.label,
+            self.source_id,
+            self.target.label,
+            self.target_id,
         ]
 
     def _adjust_to_property_limits(self, nw):

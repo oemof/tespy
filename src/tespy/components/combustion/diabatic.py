@@ -216,7 +216,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="inlet 0 to outlet 0 absolute pressure change"
             ),
             'eta': dc_cp(

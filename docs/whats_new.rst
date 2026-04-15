@@ -5,6 +5,8 @@ What's New
 
 Discover notable new features and improvements in each release
 
+.. include::  whats_new/v0-9-15.rst
+.. include::  whats_new/v0-9-14.rst
 .. include::  whats_new/v0-9-13.rst
 .. include::  whats_new/v0-9-12.rst
 .. include::  whats_new/v0-9-11.rst

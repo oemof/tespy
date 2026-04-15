@@ -185,7 +185,7 @@ class FuelCell(Component):
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="cooling inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
@@ -214,7 +214,7 @@ class FuelCell(Component):
         }
 
     def get_mandatory_constraints(self):
-        return {
+        constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
@@ -247,6 +247,14 @@ class FuelCell(Component):
                 "description": "reactor pressure equality equations"
             })
         }
+        if len(self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     @staticmethod
     def get_bypass_constraints():
@@ -259,6 +267,10 @@ class FuelCell(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    @staticmethod
+    def poweroutlets():
+        return ["power"]
 
     def _add_missing_fluids(self, connections):
         if self.inl[1] in connections:
@@ -324,6 +336,28 @@ class FuelCell(Component):
         e0 = (2 * hf['H2O'] - 2 * hf['H2'] - hf['O2']) / (2 * M)
 
         return e0
+
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power. Since the power of the FuelCell is negative by
+        definition of the system, the two quantities are added in the residual
+        so the power on the PowerConnection is positive again.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E + P
+        """
+        return self.power_outl[0].E.val_SI + self.P.val_SI
+
+    def energy_connector_dependents(self):
+        return [self.power_outl[0].E, self.P]
+
 
     def eta_func(self):
         r"""
@@ -454,7 +488,7 @@ class FuelCell(Component):
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = 1
+            self.jacobian[k, self.P.J_col] = 1
 
     def energy_balance_dependents(self):
         return [

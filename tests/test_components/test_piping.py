@@ -26,7 +26,8 @@ class TestPiping:
     def setup_piping_network(self, instance):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "temperature": "degC",
+            "pressure_difference": "bar"
         })
         self.source = Source('source')
         self.sink = Sink('sink')
@@ -67,8 +68,10 @@ class TestPiping:
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
         dp_char = CharLine(x, y)
-        instance.set_attr(zeta=None, dp_char={
-            'char_func': dp_char, 'is_set': True})
+        instance.set_attr(
+            zeta=None,
+            dp_char={"char_func": dp_char, "is_set": True}
+        )
         m = 11
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=None)
@@ -164,3 +167,28 @@ class TestPiping:
             f"{round(instance.Q.val, 1)}."
         )
         assert Q == round(instance.Q.val, 1), msg
+
+    def test_Pipe_flow_speed(self):
+        """Test flow speed specification of pipe."""
+        instance = Pipe('pipe')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        self.c1.set_attr(fluid={'H2O': 1}, v=2, p=10, T=50)
+
+        # find the diameter corresponding to flow speed of 2 m/s
+        instance.set_attr(dp=0.5, Q=0, D="var", flow_speed=2)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+        # v=2, flow_speed=2 -> area = 1m2 -> D = (4 / pi) ** 0.5
+        assert approx(instance.D.val) == (4 / np.pi) ** 0.5
+
+        # find flow volume based on diameter and flow speed
+        self.c1.set_attr(v=None)
+        instance.set_attr(D=0.25)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+        # reverse order: v = speed * area
+        assert approx(self.c1.v.val) == 2 * np.pi * (0.25 / 2) ** 2

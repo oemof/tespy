@@ -199,14 +199,14 @@ class Valve(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet ot inlet pressure ratio"
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="inlet to outlet absolute pressure change"
             ),
             'zeta': dc_cp(
@@ -461,9 +461,8 @@ class Valve(Component):
         self.zeta.val_SI = self.calc_zeta(i, o)
         if self.dp.val_SI > 0 and i.calc_phase() == "l":
             self.Kv.val_SI = (
-                i.v.val_SI * 3600 * (
-                    100 / (i.vol.val_SI * self.dp.val_SI)
-                ) ** 0.5
+                i.v.val_SI * 3600
+                * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
             )
 
     def entropy_balance(self):
@@ -472,7 +471,7 @@ class Valve(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 
@@ -558,9 +557,9 @@ class Valve(Component):
                 'isoline_property': 'h',
                 'isoline_value': self.inl[0].h.val,
                 'isoline_value_end': self.outl[0].h.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             }
         }

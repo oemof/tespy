@@ -35,11 +35,7 @@ The code for the full models is accessible open source on GitHub:
 More validations have been carried out in context of the implementation of
 the `exerpy library <https://github.com/oemof/exerpy>`__. Here TESPy has been
 benchmarked with EBSILON and ASPEN models. The results are available in the
-github repository:
-
-- `Combined Cycle CHP <https://github.com/oemof/exerpy/blob/main/examples/ccpp/validation.ipynb>`__
-- `CGAM model <https://github.com/oemof/exerpy/blob/main/examples/cgam/validation.ipynb>`__
-- `Air Source Heat Pump <https://github.com/oemof/exerpy/blob/main/examples/heatpump/validation.ipynb>`__
+`github repository <https://github.com/oemof/exerpy>`__.
 
 Unit testing
 ------------

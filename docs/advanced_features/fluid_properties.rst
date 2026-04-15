@@ -10,7 +10,7 @@ custom fluid property data, the :code:`IncompressibleFluidWrapper`. See
 :ref:`this section <incompressible_wrapper_label>` for more information.
 
 On top, there are two additional predefined engines, which are untested but may
-serve as an inspiration for you to create your onw one, i.e.
+serve as an inspiration for you to create your own one, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
 - the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.
@@ -158,7 +158,8 @@ spacing of temperature for all measurements.
     ...     "temperature_data": np.array([273.15, 373.15]),  # K
     ...     "density_data": np.array([1000, 1100]),  # kg/m3
     ...     "heat_capacity_data": np.array([4000, 4100]) * 1e3,  # J/kg
-    ...     "viscosity_data": np.array([0.05, 0.00025])  # Pa*s
+    ...     "viscosity_data": np.array([0.05, 0.00025]),  # Pa*s
+    ...     "conductivity_data": np.array([0.15, 0.13])  # W/m/K
     ... }
 
 .. attention::

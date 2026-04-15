@@ -1,0 +1,31 @@
+v0.9.15 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- The :code:`set_attr` methods of :code:`Component` and :code:`Connection` type
+  classes have  been refactored for improved readability and maintainability.
+  The responsibility for the value checks now lies in separate methods, which
+  are handled by the respective data containers
+  (`PR #936 <https://github.com/oemof/tespy/pull/936>`__).
+- The :code:`set_attr` method of :code:`Network` class has been deprecated, now
+  all the attributes need to be directly assigned in the future
+  (`PR #939 <https://github.com/oemof/tespy/pull/939>`__).
+- TESPy now exports :code:`'vol'` as key for specific volume in context of data
+  transfer to fluprodia for cycle plots. fluprodia version 4.1 will align with
+  the TESPy unit and naming schemes
+  (`PR #941 <https://github.com/oemof/tespy/pull/941>`__).
+- There now is a quantity for :code:`pressure_difference` separate from the
+  :code:`pressure` quantity. You will need to specify them individually in the
+  future (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
+
+Bug Fixes
+#########
+- Fixed a bug, which prevented reading the correct information for the
+  connections adjacent to a component in :code:`local_offdesign=True` mode in
+  a design simulation or with an individual :code:`design_path` in an offdesign
+  simulation (`PR #943 <https://github.com/oemof/tespy/pull/943>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -14,6 +14,7 @@ ERR = 1e-6
 molar_masses = {}
 gas_constants = {}
 gas_constants["uni"] = 8.314462618
+GRAVITY = 9.80665
 
 # TODO: Remove/replace these once the old units API is phased out
 fluid_property_data = {

@@ -242,7 +242,7 @@ recommended to just let the solver handle that by itself via the dependents.
     ...     deriv=my_ude_deriv, conns=[c1, c2]
     ... )
     >>> nw.add_ude(ude)
-    >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
+    >>> nw.m_range = [.1, 100]  # stabilize algorithm
     >>> nw.solve('design')
     >>> round(c1.m.val, 2)
     1.17

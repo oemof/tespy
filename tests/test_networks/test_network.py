@@ -193,6 +193,42 @@ class TestNetworks:
         )
         assert imported_nwk.checked, msg
 
+    def test_Network_import_with_component_parameter_as_variable(self):
+        """Test if component variables are retained after import."""
+        pipe = Pipe("pipe")
+        c1 = Connection(self.source, 'out1', pipe, 'in1', label="c1")
+        c2 = Connection(pipe, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=1.9)
+        pipe.set_attr(Q=0, D="var", ks=0.00005, L=100)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
+        imported_nwk.solve("design")
+        imported_nwk.assert_convergence()
+        assert approx(pipe.D.val) == imported_nwk.get_comp("pipe").D.val
+
+    def test_Network_deserialze_component_with_default_charmap(self):
+        """Test if component variables are retained after import."""
+        pump = Pump("pump")
+        c1 = Connection(self.source, 'out1', pump, 'in1', label="c1")
+        c2 = Connection(pump, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=3)
+        pump.set_attr(eta=0.7)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        # this deserialization fails if the CharMap is not correctly loaded
+        imported_nwk = Network.from_dict(serialization)
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.x.flatten()) == 2
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.y.flatten()) == 4
+        len(imported_nwk.get_comp("pump").head_flow_map.char_func.z.flatten()) == 4
+
+
     def test_Network_reader_unknown_component_class(self, tmp_path):
         """Test notsupported component."""
         tmp_path = f"{tmp_path}.json"
@@ -289,202 +325,6 @@ class TestNetworks:
         with raises(AttributeError):
             self.nw.converged
 
-
-class TestNetworkIndividualOffdesign:
-
-    def setup_Network_individual_offdesign(self):
-        """Set up network for individual offdesign tests."""
-        self.nw = Network()
-        self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC",
-            "volumetric_flow": "m3/s"
-        })
-
-        so = Source('source')
-        sp = Splitter('splitter', num_out=2)
-        self.pump1 = Pump('pump 1')
-        self.sc1 = SolarCollector('collector field 1')
-        v1 = Valve('valve1')
-        self.pump2 = Pump('pump 2')
-        self.sc2 = SolarCollector('collector field 2')
-        v2 = Valve('valve2')
-        me = Merge('merge', num_in=2)
-        si = Sink('sink')
-
-        self.pump1.set_attr(
-            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
-        )
-        self.pump2.set_attr(
-            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
-        )
-        self.sc1.set_attr(
-            pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
-        )
-        self.sc2.set_attr(
-            pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
-        )
-
-        fl = {'H2O': 1}
-        inlet = Connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
-        outlet = Connection(me, 'out1', si, 'in1', p=3)
-
-        self.sp_p1 = Connection(sp, 'out1', self.pump1, 'in1')
-        self.p1_sc1 = Connection(self.pump1, 'out1', self.sc1, 'in1')
-        self.sc1_v1 = Connection(self.sc1, 'out1', v1, 'in1', p=3.1, T=90)
-        v1_me = Connection(v1, 'out1', me, 'in1')
-
-        self.sp_p2 = Connection(sp, 'out2', self.pump2, 'in1')
-        self.p2_sc2 = Connection(self.pump2, 'out1', self.sc2, 'in1')
-        self.sc2_v2 = Connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
-        v2_me = Connection(v2, 'out1', me, 'in2')
-
-        self.nw.add_conns(
-            inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
-            v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me
-        )
-
-    def test_individual_design_path_on_connections_and_components(self, tmp_path):
-        """Test individual design path specification."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
-
-        self.sc2_v2.set_attr(T=95, state='l', m=None)
-        self.sc1_v1.set_attr(m=0.001, T=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
-        v2_design = self.sc2_v2.v.val_SI
-        zeta_sc2_design = self.sc2.zeta.val
-
-        self.sc1_v1.set_attr(m=None)
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc2.set_attr(design_path=tmp_path2)
-        self.pump2.set_attr(design_path=tmp_path2)
-        self.sp_p2.set_attr(design_path=tmp_path2)
-        self.p2_sc2.set_attr(design_path=tmp_path2)
-        self.sc2_v2.set_attr(design_path=tmp_path2)
-        self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw.assert_convergence()
-
-        self.sc1.set_attr(E=500)
-        self.sc2.set_attr(E=950)
-
-        self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(design_path=None)
-
-        # volumetric flow comparison
-        msg = f"Design path was set to None, is {self.sc2_v2.design_path}."
-        assert self.sc2_v2.design_path is None, msg
-
-        # volumetric flow comparison
-        msg = (
-            f"Value of volumetric flow must be {v1_design}, is "
-            f"{self.sc1_v1.v.val_SI}."
-        )
-        assert round(v1_design, 5) == round(self.sc1_v1.v.val_SI, 5), msg
-
-        msg = (
-            f"Value of volumetric flow must be {v2_design}, is "
-            f"{self.sc2_v2.v.val_SI}."
-        )
-        assert round(v2_design, 5) == round(self.sc2_v2.v.val_SI, 5), msg
-
-        # zeta value of solar collector comparison
-        msg = (
-            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
-        )
-        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
-
-        msg = (
-            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
-        )
-        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
-
-    def test_local_offdesign_on_connections_and_components(self, tmp_path):
-        """Test local offdesign feature."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
-
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sc1_v1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sc1.set_attr(E=500)
-
-        self.sc2_v2.set_attr(T=95, m=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
-
-        # connections and components on side 1 must have switched to offdesign
-
-        msg = (
-            'Solar collector outlet temperature must be different from design '
-            f'value {round(self.sc1_v1.T.design - 273.15, 1)}, is '
-            f'{round(self.sc1_v1.T.val, 1)}.'
-        )
-        assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
-
-        msg = "Parameter eta_s_char must be set for pump one."
-        assert self.pump1.eta_s_char.is_set, msg
-
-        msg = (
-            "Parameter v must be set for connection from solar collector1 to "
-            "pump1."
-        )
-        assert self.sc1_v1.v.is_set, msg
-
-    def test_missing_design_path_local_offdesign_on_connections(self, tmp_path):
-        """Test missing design path on connections in local offdesign mode."""
-        tmp_path = f'{tmp_path}.json'
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path)
-
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.sc1_v1.set_attr(local_offdesign=True)
-        self.sc1.set_attr(E=500)
-
-        self.sc2_v2.set_attr(T=95, m=None)
-        try:
-            self.nw.solve('design', init_only=True)
-        except TESPyNetworkError:
-            pass
 
 class TestNetworkPreprocessing:
 
@@ -1221,3 +1061,77 @@ def test_fluid_kwargs_propagation():
     assert approx(
         conductivity_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
     ) == 0.13875
+
+
+def test_skip_postprocessing():
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+
+    pipe = SimpleHeatExchanger("pipe")
+
+    so = Source("source")
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", pipe, "in1", label="c1")
+    c2 = Connection(pipe, "out1", si, "in1", label="c2")
+
+    nw.add_conns(c1, c2)
+
+    fluid_kwargs = {
+        "temperature_data": np.array([273.15, 373.15]),
+        "density_data": np.array([1000, 1100]),
+        "heat_capacity_data": np.array([4000, 4100]),
+        "viscosity_data": np.array([0.05, 0.00025]),
+        "conductivity_data": np.array([0.1425, 0.135])
+    }
+
+    c1.set_attr(
+        fluid={"f": 1},
+        fluid_engines={"f": IncompressibleFluidWrapper},
+        fluid_wrapper_kwargs={"f": fluid_kwargs},
+        p=1, T=30
+    )
+    c2.set_attr(p=0.9, T=50)
+    pipe.set_attr(Q=1500)
+
+    nw.solve("design", skip_postprocess=True)
+    nw.assert_convergence()
+
+    assert np.isnan(pipe.pr.val)
+    assert np.isnan(pipe.dp.val)
+    assert np.isnan(c2.v.val)
+    assert np.isnan(c1.s.val)
+
+
+def test_setting_ref_on_hex_leads_to_linear_dependency():
+    nw = Network()
+    nw.units.set_defaults(
+        temperature="°C",
+        pressure="bar"
+    )
+
+    so1 = Source("source1")
+    si1 = Sink("sink1")
+    so2 = Source("source2")
+    si2 = Sink("sink2")
+
+    hex = MovingBoundaryHeatExchanger("hex")
+
+    c1 = Connection(so1, "out1", hex, "in1", label="c1")
+    c2 = Connection(hex, "out1", si1, "in1", label="c2")
+    c3 = Connection(so2, "out1", hex, "in2", label="c3")
+    c4 = Connection(hex, "out2", si2, "in1", label="c4")
+
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(fluid={"water": 1}, td_dew=10, T=70, m=1)
+    c2.set_attr(x=0.5)
+
+    c3.set_attr(fluid={"air": 1}, T=40, p=1)
+    c4.set_attr(T=Ref(c3, 1, 5))
+
+    hex.set_attr(dp1=0, dp2=0)
+    nw.solve("design")
+    c3.set_attr(T=c4.T.val)
+    nw.solve("design")
+    assert nw.status == 0

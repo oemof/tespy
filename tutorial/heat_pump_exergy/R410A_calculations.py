@@ -162,7 +162,7 @@ result_dict.update({va.label: va.get_plotting_data()[1]})
 
 # create plot
 diagram = FluidPropertyDiagram('R410A')
-diagram.set_unit_system(T='°C', p='bar', h='kJ/kg')
+diagram.set_unit_system(units=nw.units)
 
 for key, data in result_dict.items():
     result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
@@ -228,7 +228,7 @@ df_comps.to_csv('R410A_E_D.csv')
 
 print("\n#### FURTHER CALCULATIONS ####\n")
 # switch off iterinfo
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 # offdesign test
 nw.solve('offdesign', design_path=path)
 

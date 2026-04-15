@@ -3,19 +3,18 @@ from fluprodia import FluidPropertyDiagram
 from matplotlib import pyplot as plt
 import pandas as pd
 
+from tespy.tools import OptimizationProblem
 from tespy.networks import Network
 from tespy.tools import get_plotting_data
 from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.helpers import merge_dicts
 from scipy.spatial.distance import cdist
 import numpy as np
 
 
 class ModelTemplate():
 
-    _DIAGRAM_CACHE = {}
-
     def __init__(self) -> None:
+        self._diagram_cache = {}
         self.parameter_lookup = self._parameter_lookup()
         self._create_network()
 
@@ -24,35 +23,39 @@ class ModelTemplate():
 
     def _parameter_lookup(self) -> dict:
         """
-        Example
+        Define the mapping between flat parameter names and their location in
+        the model. Three entry forms are supported:
 
+        - :code:`["Connections", "label", "attr"]` or
+          :code:`["Components", "label", "attr"]`: maps to a network object
+          attribute. The parameter is both settable and readable.
+
+        - :code:`{"get": callable}`: read-only. The callable takes no arguments
+          and returns the current value.
+
+        - :code:`{"set": callable}`: write-only. The callable accepts a single
+          value argument. Use this for parameters that cannot be associated
+          with a single Connection or Component attribute, e.g. a
+          UserDefinedEquation target value.
+
+        - :code:`{"get": callable, "set": callable}`: custom readable and
+          settable, e.g. a UDE target that can also be read back.
 
         Returns
         -------
         dict
-            return a mapping between single labels and their wiring to the
-            internal model, e.g.
+            e.g.
 
             {
-                "evaporator pinch": ["Component", "evaporator", "td_pinch"],
-                "evaporation temperature": ["Connection", "b1", "T"]
+                "evaporator pinch": ["Components", "evaporator", "td_pinch"],
+                "cop": {"get": self.calc_cop},
+                "ude target": {"get": self.get_ude_target, "set": self.set_ude_target},
             }
         """
         return {}
 
-    def _result_lookup(self):
-        return {}
-
     def get_results(self, labels):
-        result_lookup = self._result_lookup()
-        result_lookup.update(self._parameter_lookup())
-        results = {}
-        for label in labels:
-            if type(result_lookup[label]) == list:
-                results[label] = self.get_parameter(label)
-            else:
-                results[label] = result_lookup[label]()
-        return results
+        return {label: self.get_parameter(label) for label in labels}
 
     def _subcycle_mapping(self) -> dict:
         """Method to extract subcycles based on a label, which maps to
@@ -65,50 +68,53 @@ class ModelTemplate():
         """
         return {}
 
-    def _map_parameter(self, parameter: str) -> tuple:
-        return self.parameter_lookup[parameter]
-
-    def _map_to_input_dict(self, **kwargs) -> dict:
-        input_dict = {}
-        for param, value in kwargs.items():
-            if param not in self.parameter_lookup:
-                msg = (
-                    f"The parameter {param} is not mapped to any input of the "
-                    "model. The following parameters are available:\n"
-                    f"{', '.join(self.parameter_lookup)}."
-                )
-                raise KeyError(msg)
-            key = self._map_parameter(param)
-            input_dict = merge_dicts(
-                input_dict,
-                {key[0]: {key[1]: {key[2]: value}}}
+    def _map_parameter(self, parameter: str) -> list:
+        mapped = self.parameter_lookup[parameter]
+        if isinstance(mapped, dict):
+            raise TypeError(
+                f"'{parameter}' uses a custom get/set spec and cannot be "
+                "translated to a Connections/Components path."
             )
-        return input_dict
+        return mapped
 
     def get_parameter(self, parameter: str) -> float:
-        result_lookup = self._result_lookup()
-        if parameter in result_lookup:
-            mapped = result_lookup[parameter]
-            if callable(mapped):
-                return mapped()
-        else:
-            mapped = self._map_parameter(parameter)
-
+        if parameter not in self.parameter_lookup:
+            raise KeyError(f"'{parameter}' is not in parameter_lookup.")
+        mapped = self.parameter_lookup[parameter]
+        if isinstance(mapped, dict):
+            if "get" not in mapped:
+                raise AttributeError(f"'{parameter}' is write-only.")
+            return mapped["get"]()
         if mapped[0] == "Connections":
             return self.nw.get_conn(mapped[1]).get_attr(mapped[2]).val
-
         elif mapped[0] == "Components":
             return self.nw.get_comp(mapped[1]).get_attr(mapped[2]).val
 
     def set_parameters(self, **kwargs) -> None:
-        input_dict = self._map_to_input_dict(**kwargs)
-        if "Connections" in input_dict:
-            for c, params in input_dict["Connections"].items():
-                self.nw.get_conn(c).set_attr(**params)
+        conn_params = {}
+        comp_params = {}
+        for param, value in kwargs.items():
+            if param not in self.parameter_lookup:
+                raise KeyError(
+                    f"The parameter '{param}' is not in parameter_lookup. "
+                    f"Available: {', '.join(self.parameter_lookup)}."
+                )
+            mapped = self.parameter_lookup[param]
+            if isinstance(mapped, dict):
+                if "set" not in mapped:
+                    raise AttributeError(f"'{param}' is read-only.")
+                mapped["set"](value)
+            else:
+                obj_type, label, attr = mapped
+                if obj_type == "Connections":
+                    conn_params.setdefault(label, {})[attr] = value
+                elif obj_type == "Components":
+                    comp_params.setdefault(label, {})[attr] = value
 
-        if "Components" in input_dict:
-            for c, params in input_dict["Components"].items():
-                self.nw.get_comp(c).set_attr(**params)
+        for label, params in conn_params.items():
+            self.nw.get_conn(label).set_attr(**params)
+        for label, params in comp_params.items():
+            self.nw.get_comp(label).set_attr(**params)
 
     def solve_model_design(self, **kwargs) -> None:
         self.set_parameters(**kwargs)

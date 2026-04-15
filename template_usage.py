@@ -22,12 +22,8 @@ class MyConcreteModel(ModelTemplate):
             "heat": ["Components", "condenser high", "Q"],
             "higher cycle compressor efficiency": ["Components", "compressor high", "eta_s"],
             "lower cycle mass flow": ["Connections", "a1", "m"],
-        }
-
-    def _result_lookup(self):
-        return {
-            "cop": self.calc_cop,
-            "condensation temperature": ["Connections", "a3", "T"]
+            "condensation temperature": ["Connections", "a3", "T"],
+            "cop": {"get": self.calc_cop},
         }
 
     def _subcycle_mapping(self):

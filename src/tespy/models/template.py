@@ -346,7 +346,13 @@ class ModelTemplate():
         keys = list(param_dict.keys())
         input_values = np.array(list(param_dict.values())).T
 
-        order = self._order_min_change(input_values)
+        # check current state of model and get nearest to current state
+        current_values = np.array([self.get_parameter(k) for k in keys])
+        start_idx = int(np.argmin(cdist([current_values], input_values)[0]))
+
+        # sort following simulations and force starting with the nearest to
+        # current state
+        order = self._order_min_change(input_values, start_idx=start_idx)
         sorted_input = input_values[order]
 
         # Sensitivity analysis loop:
@@ -390,11 +396,11 @@ class ModelTemplate():
 
     # Method for ordering function -
     @staticmethod
-    def _order_min_change(points: np.ndarray) -> np.ndarray:
+    def _order_min_change(points: np.ndarray, start_idx: int = 0) -> np.ndarray:
         """Greedy heuristic: always go to the nearest unvisited point."""
         n = len(points)
         dist = cdist(points, points)
-        order = [0]
+        order = [start_idx]
         visited = set(order)
         while len(order) < n:
             last = order[-1]

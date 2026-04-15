@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 from pytest import fixture
+from pytest import raises
 
 from tespy import __datapath__
 from tespy.tools.characteristics import CharLine
@@ -69,6 +70,16 @@ def test_CharLine_extrapolation(sample_line_data):
     y = line.evaluate(x)
     msg = f"The evaluation of x={x} must be 7.0, but is {y}."
     assert y == 7.0, msg
+
+
+def test_CharLine_evaluate_at_nan(sample_line_data):
+    """Test the characteristic line with extrapolation."""
+    line = CharLine(**sample_line_data, extrapolate=True)
+
+    # test evaluation at x=-1 to check lower limits, result: y=7
+    x = np.nan
+    with raises(ValueError):
+        line.evaluate(x)
 
 
 @fixture
@@ -147,3 +158,23 @@ def test_CharMap_evaluation_extrapolate(sample_map_data):
          f"{round(z, 2)}."
        )
     assert round(z, 3) == 2.472, msg
+
+
+def test_CharMap_evaluate_at_nan_for_x(sample_map_data):
+    """Test the characteristic line with extrapolation."""
+    map = CharMap(**sample_map_data, extrapolate=True)
+
+    # test evaluation at x=-1 to check lower limits, result: y=7
+    x = np.nan
+    with raises(ValueError):
+        map.evaluate(x, 1)
+
+
+def test_CharMap_evaluate_at_nan_for_y(sample_map_data):
+    """Test the characteristic line with extrapolation."""
+    map = CharMap(**sample_map_data, extrapolate=True)
+
+    # test evaluation at x=-1 to check lower limits, result: y=7
+    y = np.nan
+    with raises(ValueError):
+        map.evaluate(1, y)

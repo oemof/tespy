@@ -52,7 +52,7 @@ See `PR #52 <https://github.com/oemof/tespy/pull/52>`_.
 Bug fixes
 #########
 - Adjusted network export and network import to work for grouped component properties and characteristic maps (`PR #46 <https://github.com/oemof/tespy/pull/46>`_).
-- Redesigned pre- and postprocessing of component properties as some errors occoured before. Design parameters are now always gathered from the component .csv-file containing the design point information (saved design state of the network) (`PR #50 <https://github.com/oemof/tespy/pull/50>`_).
+- Redesigned pre- and postprocessing of component properties as some errors occurred before. Design parameters are now always gathered from the component .csv-file containing the design point information (saved design state of the network) (`PR #50 <https://github.com/oemof/tespy/pull/50>`_).
 
 Other changes
 #############

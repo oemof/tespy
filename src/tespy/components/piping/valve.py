@@ -199,7 +199,7 @@ class Valve(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet ot inlet pressure ratio"
+                description="outlet to inlet pressure ratio"
             ),
             'dp': dc_cp(
                 min_val=0,

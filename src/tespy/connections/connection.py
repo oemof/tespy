@@ -130,7 +130,7 @@ class ConnectionBase:
             )
             warnings.warn(msg, FutureWarning)
 
-        # Starting-value key (e.g. 'm0') — route to the base container's val0
+        # Starting-value key (e.g. 'm0') - route to the base container's val0
         if key in self.property_data0:
             if _is_numeric(value) or value is None:
                 self.get_attr(key.replace('0', '')).set_attr(val0=value)
@@ -1747,25 +1747,46 @@ class Connection(ConnectionBase):
 
         return _converged
 
-    def _set_design_params(self, data, units):
+    def _get_design_state_SI(self, data, units):
+        """Return SI design values for all result attributes from *data*.
+
+        Handles the unit-string normalisations that arise from the saved
+        result format (e.g. :code:`"C"` for temperatures, :code:`"kgK"` entropy
+        units, :code:`"-"` dimensionless quantities).
+
+        Parameters
+        ----------
+        data : pandas.core.series.Series
+            A row from the connection design DataFrame.
+        units : tespy.tools.units.UnitSystem
+            The network's unit system (provides the pint registry).
+
+        Returns
+        -------
+        dict
+            Mapping of parameter name to its SI value.
+        """
+        state = {}
         for var in self._result_attributes():
-            if var not in data:
+            unit_key = f"{var}_unit"
+            if var not in data or unit_key not in data:
                 continue
-            unit = data[f"{var}_unit"]
+            unit = data[unit_key]
             if unit == "C":
-                if var == "T":
-                    unit = "degC"
-                elif var == "Td_bp":
-                    unit = "delta_degC"
+                unit = "degC" if var == "T" else "delta_degC"
             elif "kgK" in unit:
                 unit = unit.replace("kgK", "kg/K")
             elif unit == "-":
                 unit = "1"
             param = self.get_attr(var)
-            param.design = units.ureg.Quantity(
-                float(data[var]),
-                unit
+            state[var] = units.ureg.Quantity(
+                float(data[var]), unit
             ).to(SI_UNITS[param.quantity]).magnitude
+        return state
+
+    def _set_design_params(self, data, units):
+        for var, val in self._get_design_state_SI(data, units).items():
+            self.get_attr(var).design = val
 
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])
@@ -1791,7 +1812,7 @@ class Connection(ConnectionBase):
         return [
             col for prop in cls._result_attributes()
             for col in [prop, f"{prop}_unit"]
-        ] + list(all_fluids) + ['phase']
+        ] + list(all_fluids) + ['phase', 'source', 'source_id', 'target', 'target_id']
 
     @classmethod
     def _print_attributes(cls):
@@ -1805,7 +1826,11 @@ class Connection(ConnectionBase):
             self.fluid.val[fluid] if fluid in self.fluid.val else np.nan
             for fluid in all_fluids
         ] + [
-            self.phase.val
+            self.phase.val,
+            self.source.label,
+            self.source_id,
+            self.target.label,
+            self.target_id,
         ]
 
     def _adjust_to_property_limits(self, nw):

@@ -268,7 +268,10 @@ class Motor(Component):
                 f\left(\frac{\dot E_\text{in}}{\dot E_\text{in,design}}\right)
                 - \dot E_\text{out}
         """
-        expr = self.power_inl[0].E.val_SI / self.power_inl[0].E.design
+        expr = (
+            self.power_inl[0].E.val_SI
+            / self._conn_design(self.power_inl[0], "E")
+        )
         f = self.eta_char.char_func.evaluate(expr)
         return (
             self.power_inl[0].E.val_SI * self.eta.design * f

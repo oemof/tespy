@@ -422,5 +422,24 @@ class ModelTemplate():
         )
         raise NotImplementedError(msg)
 
-        else:
-            raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")
+    def get_objectives(self, objective_list: list) -> list:
+        return [self.get_parameter(obj) for obj in objective_list]
+
+    def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> pd.DataFrame:
+        from pymoo.optimize import minimize as pymoo_minimize
+
+        problem = OptimizationProblem(
+            self,
+            variables=variables,
+            constraints=constraints,
+            objective=objective,
+            minimize=minimize_flags,
+            kpi=kpi,
+        )
+
+        pymoo_minimize(
+            problem=problem,
+            algorithm=algorithm,
+            termination=termination,
+        )
+        return pd.DataFrame(problem.log)

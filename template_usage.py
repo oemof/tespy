@@ -20,25 +20,17 @@ class MyConcreteModel(ModelTemplate):
         return {
             "ihx pinch": ["Components", "internal heat exchanger", "td_pinch"],
             "heat": ["Components", "condenser high", "Q"],
+            "power": ["Connections", "e1", "E"],
             "higher cycle compressor efficiency": ["Components", "compressor high", "eta_s"],
             "lower cycle mass flow": ["Connections", "a1", "m"],
-            "condensation temperature": ["Connections", "a3", "T"],
+            "lower cycle condensation temperature": ["Connections", "a3", "T_bubble"],
             "cop": {"get": self.calc_cop},
-        }
-
-    def _subcycle_mapping(self):
-        return {
-            "lower": "a1",
-            "upper": "b1"
         }
 
     def calc_cop(self):
         return (
-            abs(self.nw.get_comp("condenser high").Q.val_SI)
-            / (
-                self.nw.get_comp("compressor high").P.val_SI
-                + self.nw.get_comp("compressor low").P.val_SI
-            )
+            abs(self.get_parameter("heat"))
+            / self.get_parameter("power")
         )
 
     def _create_network(self):
@@ -47,7 +39,8 @@ class MyConcreteModel(ModelTemplate):
         self.nw.units.set_defaults(
             temperature="degC",
             pressure="bar",
-            power="kW"
+            power="kW",
+            heat="kW"
         )
 
         cc_low = CycleCloser("cc low")
@@ -81,6 +74,20 @@ class MyConcreteModel(ModelTemplate):
 
         self.nw.add_conns(a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, c1, c2)
 
+        grid = PowerSource("grid")
+        distribution = PowerBus("distribution", num_in=1, num_out=2)
+        motor1 = Motor("motor1")
+        motor2 = Motor("motor2")
+
+        e1 = PowerConnection(grid, "power", distribution, "power_in1", label="e1")
+        e2 = PowerConnection(distribution, "power_out1", motor1, "power_in", label="e2")
+        e3 = PowerConnection(motor1, "power_out", compressor_low, "power", label="e3")
+
+        e4 = PowerConnection(distribution, "power_out2", motor2, "power_in", label="e4")
+        e5 = PowerConnection(motor2, "power_out", compressor_high, "power", label="e5")
+
+        self.nw.add_conns(e1, e2, e3, e4, e5)
+
         a1.set_attr(fluid={"R600a": 1}, T_dew=0, td_dew=10, m=1)
         a3.set_attr(T_bubble=55, td_bubble=5)
         b1.set_attr(fluid={"R600a": 1}, td_dew=10)
@@ -95,23 +102,50 @@ class MyConcreteModel(ModelTemplate):
 
         compressor_low.set_attr(eta_s=0.8)
         compressor_high.set_attr(eta_s=0.8)
+        motor1.set_attr(eta=0.98)
+        motor2.set_attr(eta=0.98)
 
         self.nw.solve("design")
+        self.nw.print_results()
+
+    def solve_model(self, **kwargs):
+        self.solve_model_design(**kwargs)
 
 
 model = MyConcreteModel()
-print(model.nw)
 
-model.plot_logph_diagram_matplotlib("upper", ".")
-model.plot_Ts_diagram_matplotlib("upper", ".")
-model.plot_QT_diagram_matplotlib("internal heat exchanger", ".")
-model.plot_QT_diagram_matplotlib("evaporator low", ".")
-# Sensitivity analysis
+model.plot_logph_diagram_matplotlib("a1", save_dir=".")
+model.plot_Ts_diagram_matplotlib("a1", save_dir=".")
+model.plot_QT_diagram_matplotlib("internal heat exchanger", save_dir=".")
+model.plot_QT_diagram_matplotlib("evaporator low", save_dir=".")
+
+# Sensitivity analysis example
+model.nw.iterinfo = False
 param_dict = {
     "ihx pinch": [3, 3, 20, 5, 0.2, 10],
     "heat": [-100, -200, -100, -800, -100, -200],
     "higher cycle compressor efficiency": [0.7, 0.7, 0.4, 0.9, 0.9, 0.7]
 }
 model.set_parameters(**{"lower cycle mass flow": None})
-result = model.sensitivity_analysis(param_dict=param_dict, result_param_list=["cop", "condensation temperature"])
+result = model.sensitivity_analysis(param_dict=param_dict, result_param_list=["cop", "lower cycle condensation temperature"])
 print(result)
+
+# optimization example
+model.set_parameters(**{"heat": -1000, "ihx pinch": 7.5})
+
+from pymoo.algorithms.soo.nonconvex.pso import PSO
+variables = {
+    "lower cycle condensation temperature": {"min": 35, "max": 75},
+}
+result_param_list=["condensation temperature"]
+
+algorithm = PSO(pop_size=20)
+
+result = model.optimize(
+    algorithm=algorithm,
+    termination=("n_gen", 5),
+    variables=variables,
+    objective=["cop"],
+    minimize_flags=[False]
+)
+print(result.loc[result["cop"].idxmax()])

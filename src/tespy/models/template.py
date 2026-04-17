@@ -126,6 +126,24 @@ class ModelTemplate():
             self._solved = False
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
+    def solve_model_offdesign(self, **kwargs) -> None:
+        self.set_parameters(**kwargs)
+
+        self._solved = False
+        # Check whether the design path is available
+        self.nw.solve("offdesign", design_path=self._design_path)
+
+        if self.nw.status == 0:
+            self._solved = True
+        elif self.nw.status in [1, 2, 3, 99]:
+            # in this case model is very likely corrupted!!
+            # fix it by running a presolve using the stable solution
+            self._solved = False
+            # check whether the design path and stable solution path are available
+            self.nw.solve(
+                "offdesign", init_only=True, design_path=self._design_path, init_path=self._stable_solution
+            )
+
     def _get_diagram(self, fluid_name):
         if fluid_name in self._diagram_cache:
             return self._diagram_cache[fluid_name]

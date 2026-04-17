@@ -786,7 +786,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
 
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
-    """Dump a nested dict with dataframes into a folder structrue
+    """Dump a nested dict with dataframes into a folder structure
 
     The upper level keys with subdictionaries are folder names, the lower
     level keys (where a dataframe is the value) will be the names of the

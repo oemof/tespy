@@ -1,14 +1,13 @@
 import numpy as np
+import pandas as pd
 from fluprodia import FluidPropertyDiagram
 from matplotlib import pyplot as plt
-import pandas as pd
+from scipy.spatial.distance import cdist
 
-from tespy.tools import OptimizationProblem
 from tespy.networks import Network
+from tespy.tools import OptimizationProblem
 from tespy.tools import get_plotting_data
 from tespy.tools.fluid_properties import single_fluid
-from scipy.spatial.distance import cdist
-import numpy as np
 
 
 class ModelTemplate():

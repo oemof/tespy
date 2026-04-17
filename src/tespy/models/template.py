@@ -56,17 +56,6 @@ class ModelTemplate():
     def get_results(self, labels):
         return {label: self.get_parameter(label) for label in labels}
 
-    def _subcycle_mapping(self) -> dict:
-        """Method to extract subcycles based on a label, which maps to
-        internal connection labels for plotting cycle diagrams
-
-        Returns
-        -------
-        dict
-            mapping of labels to connection labels in the model
-        """
-        return {}
-
     def _map_parameter(self, parameter: str) -> list:
         mapped = self.parameter_lookup[parameter]
         if isinstance(mapped, dict):
@@ -150,17 +139,17 @@ class ModelTemplate():
 
             return diagram
 
-
-    def _prepare_diagram_and_process_data(self, subcycle, fig, ax, figsize):
-        connection_label = self._subcycle_mapping().get(subcycle)
-
-        if connection_label is None:
-            raise ValueError("subcycle is unknown")
+    def _prepare_diagram_and_process_data(self, connection_label):
+        if connection_label not in self.nw.conns.index:
+            msg = f"There is no connection with the label {connection_label}."
+            raise KeyError(msg)
 
         fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
 
         if fluid_name is None:
-            raise ValueError("Fluid is mixture")
+            raise ValueError(
+                "Fluid is mixture, and not supported by fluprodia"
+            )
 
         diagram = self._get_diagram(fluid_name)
 
@@ -171,12 +160,7 @@ class ModelTemplate():
             if value is not None
         }
 
-        if fig is None or ax is None:
-            if figsize is None:
-                figsize = (10, 6)
-            fig, ax = plt.subplots(figsize=figsize)
-
-        return fig, ax, processes, points, diagram
+        return processes, points, diagram
 
     def _plot_processes_and_states(self, ax, processes, points, x_property, y_property):
 
@@ -187,16 +171,17 @@ class ModelTemplate():
             _ = ax.scatter(point[x_property], point[y_property], label=label, color="tab:red", zorder=10000)
 
 
-    def plot_Ts_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
+    def plot_Ts_diagram_matplotlib(self, subcycle, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
 
-        fig, ax, processes, points, diagram = self._prepare_diagram_and_process_data(
-            subcycle, fig, ax, figsize
-        )
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize or (10, 6))
+        else:
+            fig = ax.get_figure()
 
-        if x_min is None or x_max is None:
-            x_min, x_max = self._make_cycle_plot_limits(points, "s", "lin")
-        if y_min is None or y_max is None:
-            y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin")
+        processes, points, diagram = self._prepare_diagram_and_process_data(subcycle)
+
+        x_min, x_max = xlim or self._make_cycle_plot_limits(points, "s", "lin")
+        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "T", "lin")
 
         diagram.draw_isolines(
             fig, ax, "Ts", x_min, x_max, y_min, y_max,
@@ -206,21 +191,22 @@ class ModelTemplate():
         )
         self._plot_processes_and_states(ax, processes, points, "s", "T")
 
-        if save_path:
-            fig.savefig(f"{save_path}/ts_diagram.svg", bbox_inches="tight")
+        if save_dir:
+            fig.savefig(f"{save_dir}/ts_diagram.svg", bbox_inches="tight")
 
         return fig, ax
 
-    def plot_logph_diagram_matplotlib(self, subcycle=None, save_path=None, fig=None, ax=None, x_min=None, x_max=None, y_min=None, y_max=None, figsize=None):
+    def plot_logph_diagram_matplotlib(self, subcycle, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
 
-        fig, ax, processes, points, diagram = self._prepare_diagram_and_process_data(
-            subcycle, fig, ax, figsize
-        )
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize or (10, 6))
+        else:
+            fig = ax.get_figure()
 
-        if x_min is None or x_max is None:
-            x_min, x_max = self._make_cycle_plot_limits(points, "h", "lin")
-        if y_min is None or y_max is None:
-            y_min, y_max = self._make_cycle_plot_limits(points, "p", "log")
+        processes, points, diagram = self._prepare_diagram_and_process_data(subcycle)
+
+        x_min, x_max = xlim or self._make_cycle_plot_limits(points, "h", "lin")
+        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "p", "log")
 
         diagram.draw_isolines(
             fig, ax, "logph", x_min, x_max, y_min, y_max,
@@ -231,46 +217,27 @@ class ModelTemplate():
         )
         self._plot_processes_and_states(ax, processes, points, "h", "p")
 
-        if save_path:
-            fig.savefig(f"{save_path}/log_ph_diagram.svg", bbox_inches="tight")
+        if save_dir:
+            fig.savefig(f"{save_dir}/log_ph_diagram.svg", bbox_inches="tight")
+
         return fig, ax
 
-    def solve_model_offdesign(self, **kwargs) -> None:
-        self.set_parameters(**kwargs)
+    def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize or (10, 6))
+        else:
+            fig = ax.get_figure()
 
-        self._solved = False
-        # Check whether the design path is available
-        self.nw.solve("offdesign", design_path=self._design_path)
-
-        if self.nw.status == 0:
-            self._solved = True
-        elif self.nw.status in [1, 2, 3, 99]:
-            # in this case model is very likely corrupted!!
-            # fix it by running a presolve using the stable solution
-            self._solved = False
-            # check whether the design path and stable solution path are available
-            self.nw.solve("design", init_only=True, design_path=self._design_path, init_path=self._stable_solution)
-
-    def plot_Ts_diagram_plotly(self, subcycle=None):
-        pass
-
-    def plot_logph_diagram_plotly(self, subcycle=None):
-        pass
-
-    def plot_QT_diagram_matplotlib(self, heatexchanger_label=None, save_path=None):
         heatex = self.nw.get_comp(heatexchanger_label)
         heat, T_hot, T_cold, _, _ = heatex.calc_sections()
 
-        fig, ax = plt.subplots(1)
-
         ax.plot(heat, T_hot, "o-", color="red")
         ax.plot(heat, T_cold, "o-", color="blue")
-        if save_path:
-            fig.savefig(f"{save_path}/qt_diagram.svg", bbox_inches="tight")
-        return fig, ax
 
-    def plot_QT_diagram_plotly(self, heatexchanger_label=None):
-        pass
+        if save_dir:
+            fig.savefig(f"{save_dir}/qt_diagram.svg", bbox_inches="tight")
+
+        return fig, ax
 
     def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
         """Automatically retrieve the limits for an axes based on the process
@@ -417,32 +384,43 @@ class ModelTemplate():
         return order
 
     # Method for handling large step changes
-    def _intermediate_simulations(self, start: dict, end: dict) -> None:
+    # def _intermediate_simulations(self, start: dict, end: dict) -> None:
 
-        """Run simulation at intermediate design points for more stability."""
-        n=0
-        num_steps= 2
-        max_n=10
-        while n< max_n:
-            intermediate_points = {
-                param: np.linspace(start[param], end[param], num_steps).tolist()
-                for param in range(len(start))
-                }
-            for step in range(num_steps-1):
-                try:
-                    self.solve_model_design(
-                        {key: value[step] for key, value in intermediate_points.items()}
-                        )
+    #     """Run simulation at intermediate design points for more stability."""
+    #     n=0
+    #     num_steps= 2
+    #     max_n=10
+    #     while n< max_n:
+    #         intermediate_points = {
+    #             param: np.linspace(start[param], end[param], num_steps).tolist()
+    #             for param in range(len(start))
+    #             }
+    #         for step in range(num_steps-1):
+    #             try:
+    #                 self.solve_model_design(
+    #                     {key: value[step] for key, value in intermediate_points.items()}
+    #                     )
 
-                except Exception as e:
-                    print(f"Error solving model at intermediate point {step}: {e}")
-                    for param, value in enumerate(end):
-                        start[param]= intermediate_points[param][step]
-                        num_steps*=2
-                        n+=1
-                    continue
-                else:
-                    continue
+    #             except Exception as e:
+    #                 print(f"Error solving model at intermediate point {step}: {e}")
+    #                 for param, value in enumerate(end):
+    #                     start[param]= intermediate_points[param][step]
+    #                     num_steps*=2
+    #                     n+=1
+    #                 continue
+    #             else:
+    #                 continue
+
+    #     else:
+    #         raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")
+
+    def solve_model(self, **kwargs) -> None:
+        msg = (
+            "For the usage of the optimization please implement a concrete "
+            "method called 'solve_model' in your class. For example, you "
+            "could directly wire to the 'solve_model_design' method."
+        )
+        raise NotImplementedError(msg)
 
         else:
             raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")

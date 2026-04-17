@@ -189,14 +189,14 @@ class ModelTemplate():
             _ = ax.scatter(point[x_property], point[y_property], label=label, color="tab:red", zorder=10000)
 
 
-    def plot_Ts_diagram_matplotlib(self, subcycle, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
+    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
 
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
             fig = ax.get_figure()
 
-        processes, points, diagram = self._prepare_diagram_and_process_data(subcycle)
+        processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "s", "lin")
         y_min, y_max = ylim or self._make_cycle_plot_limits(points, "T", "lin")
@@ -214,14 +214,14 @@ class ModelTemplate():
 
         return fig, ax
 
-    def plot_logph_diagram_matplotlib(self, subcycle, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
+    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
 
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
             fig = ax.get_figure()
 
-        processes, points, diagram = self._prepare_diagram_and_process_data(subcycle)
+        processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "h", "lin")
         y_min, y_max = ylim or self._make_cycle_plot_limits(points, "p", "log")

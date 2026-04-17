@@ -327,6 +327,7 @@ class SectionedHeatExchanger(HeatExchanger):
     offdesign operation as mass flow varies.
 
     This two-stage approach improves convergence:
+
     - **Stage 1**: Design with fixed pressures to establish initial guess
       values
     - **Stage 2**: Offdesign with characteristic line scaling for part-load
@@ -387,30 +388,30 @@ class SectionedHeatExchanger(HeatExchanger):
     ...     T=10
     ... )
 
-   Specify water outlet temperature target at 60°C:
+    Specify water outlet temperature target at 60°C:
 
-   >>> c12.set_attr(T=60)
+    >>> c12.set_attr(T=60)
 
-   Configure heat exchanger with fixed pressures and initial pinch point:
+    Configure heat exchanger with fixed pressures and initial pinch point:
 
-   >>> hx.set_attr(
-   ...     td_pinch=20,
-   ...     pr1=1,
-   ...     pr2=1,
-   ...     num_sections=10
-   ... )
+    >>> hx.set_attr(
+    ...     td_pinch=20,
+    ...     pr1=1,
+    ...     pr2=1,
+    ...     num_sections=10
+    ... )
 
-   Solve the design point and save results:
+    Solve the design point and save results:
 
-   >>> nw.solve('design')
-   >>> nw.save("design_trans_hx.json")
+    >>> nw.solve('design')
+    >>> nw.save("design_trans_hx.json")
 
-   After design computation, the CO2 outlet state is:
+    After design computation, the CO2 outlet state is:
 
-   >>> round(c2.p.val, 1)
-   165.0
-   >>> round(c2.T.val, 1)
-   30.0
+    >>> round(c2.p.val, 1)
+    165.0
+    >>> round(c2.T.val, 1)
+    30.0
 
     **Stage 2: Offdesign analysis with kA_char characteristic scaling**
 

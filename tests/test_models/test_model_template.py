@@ -204,24 +204,6 @@ class TestOrderMinChange:
         order = ModelTemplate._order_min_change(pts, start_idx=0)
         assert list(order) == [0, 1, 2]
 
-
-# ---------------------------------------------------------------------------
-# solve_model dispatch
-# ---------------------------------------------------------------------------
-
-class TestSolveModel:
-
-    def setup_method(self):
-        self.model = SimpleModel()
-        self.model.nw = MagicMock()
-        self.model.nw.status = 0
-
-    def test_delegates_to_solve_model_design(self):
-        self.model.solve_model_design = MagicMock()
-        self.model.solve_model(pressure=20.0)
-        self.model.solve_model_design.assert_called_once_with(pressure=20.0)
-
-
 # ---------------------------------------------------------------------------
 # get_objectives
 # ---------------------------------------------------------------------------

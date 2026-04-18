@@ -59,3 +59,8 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__
+- `@jfreissmann <https://github.com/jfreissmann>`__
+- `@maltefritz <https://github.com/maltefritz>`__
+- `@pranaykasturi <https://github.com/pranaykasturi>`__
+- Konstantinos Papanikandros

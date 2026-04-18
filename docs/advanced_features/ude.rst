@@ -166,7 +166,59 @@ And a couple of optional arguments:
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
     True
-    >>> nw.del_ude(ude)
+
+Activating and deactivating
+---------------------------
+
+A :code:`UserDefinedEquation` can be temporarily deactivated without removing
+it from the network. This is useful when you want to switch constraints on or
+off between solves. For example, to switch between different operating
+strategies or to trade one constraint for another.
+
+The :code:`is_set` property controls whether the equation participates in the
+next solve. It defaults to :code:`True` when the object is created. To
+demonstrate this, we use the above example.
+
+.. code-block:: python
+
+    >>> ude.is_set
+    True
+
+Set :code:`is_set` to :code:`False` to exclude the equation from the solve.
+The UDE remains registered in the network and can be reactivated at any time.
+
+.. code-block:: python
+
+    >>> ude.is_set = False
+    >>> ude.is_set
+    False
+
+While the equation is inactive, the degree of freedom it previously consumed
+must be covered by another constraint. Here we pin the mass flow of
+connection :code:`c1` directly:
+
+.. code-block:: python
+
+    >>> c1.set_attr(m=1)
+    >>> nw.solve('design')
+    >>> round(c1.m.val_SI, 3)
+    1.0
+
+Reactivate the equation and drop the substituted constraint to restore the
+original formulation.
+
+.. code-block:: python
+
+    >>> c1.set_attr(m=None)
+    >>> ude.is_set = True
+    >>> nw.solve('design')
+    >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
+    True
+
+Before going into the next example which will use the same :code:`Network` we
+will again deactivate the ude.
+
+    >>> ude.is_set = False
 
 More examples
 -------------
@@ -237,11 +289,11 @@ recommended to just let the solver handle that by itself via the dependents.
     ...             * 0.5 / (T ** 0.5)
     ...         )
 
-    >>> ude = UserDefinedEquation(
-    ...     'ude numerical', my_ude, my_ude_dependents,
+    >>> ude_with_deriv = UserDefinedEquation(
+    ...     'ude numerical with deriv', my_ude, my_ude_dependents,
     ...     deriv=my_ude_deriv, conns=[c1, c2]
     ... )
-    >>> nw.add_ude(ude)
+    >>> nw.add_ude(ude_with_deriv)
     >>> nw.m_range = [.1, 100]  # stabilize algorithm
     >>> nw.solve('design')
     >>> round(c1.m.val, 2)
@@ -266,11 +318,12 @@ guaranteed that the derivatives are calculated correctly.
 
 .. code-block:: python
 
-    >>> nw.del_ude(ude)
-    >>> ude = UserDefinedEquation(
-    ...     'ude numerical', my_ude, my_ude_dependents, conns=[c1, c2]
+    >>> ude_with_deriv.is_set = False
+    >>> ude_automatic = UserDefinedEquation(
+    ...     'ude numerical automatic deriv', my_ude, my_ude_dependents,
+    ...     conns=[c1, c2]
     ... )
-    >>> nw.add_ude(ude)
+    >>> nw.add_ude(ude_automatic)
     >>> c1.set_attr(p=None)
     >>> c2.set_attr(T=250)
     >>> nw.solve('design')

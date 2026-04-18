@@ -73,7 +73,7 @@ def _translate_nested(variables, constraints, kpi):
     """Translate legacy nested dicts to flat equivalents.
 
     Returns (flat_vars, flat_constraints, flat_kpi, param_mapping).
-    param_mapping: flat_name -> (obj, label, param)  — param is None for Customs.
+    param_mapping: flat_name -> (obj, label, param)  - param is None for Customs.
     """
     param_mapping = {}
 

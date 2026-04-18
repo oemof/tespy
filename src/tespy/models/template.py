@@ -14,6 +14,7 @@ class ModelTemplate():
 
     def __init__(self) -> None:
         self._diagram_cache = {}
+        self._stable_solution = None
         self.parameter_lookup = self._parameter_lookup()
         self._create_network()
 

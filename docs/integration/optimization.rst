@@ -80,12 +80,12 @@ We use the :py:class:`ModelTemplate <tespy.models.template.ModelTemplate>` base
 class, which provides parameter access, solving and optimization infrastructure
 automatically. Inheriting from it requires implementing three methods:
 
-- :code:`_create_network` — assembles the TESPy network and produces a stable
+- :code:`_create_network` - assembles the TESPy network and produces a stable
   initial solution. Always call :code:`super()._create_network()` first.
-- :code:`_parameter_lookup` — returns a :code:`dict` that maps human-readable
+- :code:`_parameter_lookup` - returns a :code:`dict` that maps human-readable
   parameter names to their location in the network. These names are used
   directly by the optimizer, :code:`get_parameter` and :code:`set_parameters`.
-- :code:`solve_model` — routes calls to the appropriate solve logic (e.g.
+- :code:`solve_model` - routes calls to the appropriate solve logic (e.g.
   :code:`solve_model_design` or custom logic).
 
 The :code:`_create_network` method below builds the power plant with two

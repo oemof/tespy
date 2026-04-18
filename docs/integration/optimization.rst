@@ -75,107 +75,88 @@ of uv
 
 Creating your TESPy-Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-We have integrated an API in tespy, that automatically couples to pymoo. To
-use it, you need to define a class holding a TESPy network. The initialization
-of the class should build the network and run an initial simulation.
-Furthermore, you have to define methods
 
-- to get component or connection parameters of the plant :code:`get_param`,
-- to run a new simulation for every new input from pymoo :code:`solve_model`
-  and
-- to return the objective values :code:`get_objectives`.
+We use the :py:class:`ModelTemplate <tespy.models.template.ModelTemplate>` base
+class, which provides parameter access, solving and optimization infrastructure
+automatically. Inheriting from it requires implementing three methods:
 
-First, we set up the class with the TESPy network.
+- :code:`_create_network` — assembles the TESPy network and produces a stable
+  initial solution. Always call :code:`super()._create_network()` first.
+- :code:`_parameter_lookup` — returns a :code:`dict` that maps human-readable
+  parameter names to their location in the network. These names are used
+  directly by the optimizer, :code:`get_parameter` and :code:`set_parameters`.
+- :code:`solve_model` — routes calls to the appropriate solve logic (e.g.
+  :code:`solve_model_design` or custom logic).
 
-.. dropdown:: Display source code for the PowerPlant class
+The :code:`_create_network` method below builds the power plant with two
+extraction turbines, sets boundary conditions and runs the initial
+design-point solve.
+
+.. dropdown:: Display source code for the SamplePlant class
 
     .. literalinclude:: /../tutorial/advanced/optimization_example.py
         :language: python
         :start-after: [sec_1]
         :end-before: [sec_2]
 
-
-Next, we add the methods :code:`get_param`, :code:`solve_model` and
-:code:`get_objectives`. On top of that, we add a setter working similarly as the
-getter. The objective is to maximize thermal efficiency as defined in the
-equation below. The :code:`get_objectives` method calls a :code:`get_objective`
-method and collects all objectives values. This is useful if you are
-implementing pareto or multi-objective problems.
+Next, :code:`_parameter_lookup` registers lookup between model internals and
+keyword parameter specifications for inputs and outputs. Connection attributes
+using the :code:`["Connections", label, attr]` form, Component attributes
+follow the :code:`["Components", label, attr]` form. The thermal efficiency is
+registered as a read-only derived quantity via :code:`{"get": callable}`:
 
 .. math::
 
     \eta_\mathrm{th}=\frac{|\sum P|}{\dot{Q}_{sg}}
 
-.. attention::
+The feasibility check inside :code:`calc_efficiency` returns :code:`np.nan`
+for non-converged or physically infeasible solutions, which the optimizer
+treats as a penalty automatically.
 
-    The sense of optimization is minimization by default. We can change the
-    sense for each of the objectives we pass to the :code:`OptimizationProblem`
-    class by passing a list with :code:`True` or :code:`False` for each
-    inidivual objective **in identical order as the objectives** using the
-    :code:`minimize` argument. In this example we only use a single objective,
-    so there is not too much, that can go wrong.
-
-We also have to make sure, only the results of physically feasible solutions
-are returned. In case we have infeasible solutions, we can simply return
-:code:`np.nan`. An infeasible solution is obtained in case the power of a
-turbine is positive, the power of a pump is negative, or the heat exchanged
-in any of the preheaters is positive. We also check, if the calculation does
-converge.
-
-.. dropdown:: Display source code for the class methods
+.. dropdown:: Display source code for :code:`_parameter_lookup`, :code:`calc_efficiency` and :code:`solve_model`
 
     .. literalinclude:: /../tutorial/advanced/optimization_example.py
         :language: python
         :start-after: [sec_2]
         :end-before: [sec_3]
 
-After this, we import the
-:py:class:`tespy.tools.optimization.OptimizationProblem` class and create an
-instance of our self defined class, which we pass to an instance of the
-OptimizationProblem class. We also have to pass
-
-- the variables to optimize,
-- the constraints to consider,
-- the objective function name (you could define multiple in the
-  :code:`get_objective` method if you wanted) and
-
-On top, it is possible to pass two additional keyword arguments:
-
-- :code:`minimize`, which is indicating the sense of optimization for each
-  objective. By default (if nothing is provided) all objectives are to be
-  minimized. In this case we pass :code:`[False]` since we want to maximize
-  efficiency.
-- :code:`kpi`, which allows to automatically include extra model outputs in the
-  log of the optimization. The structure of the data is identical to the
-  connections and components dictionary in the variables. For each connection
-  or component we can simply pass a list or a set of parameters we want to
-  extract. In the example below, we select the power and pressure of the
-  high pressure turbine to showcase the capabilities.
-
-We set one inequality constraint, namely that the pressure of the first
-extraction has to be higher than the pressure at the second one:
-
-.. math::
-
-    p_{e,1} > p_{e,2}
-
-To do this, we can set a lower limit for the pressure at connection 2 and
-reference the pressure at connection 4 as seen in the code:
+After instantiating the model, all registered parameters are immediately
+accessible via :code:`get_parameter`:
 
 .. literalinclude:: /../tutorial/advanced/optimization_example.py
     :language: python
     :start-after: [sec_3]
     :end-before: [sec_4]
 
-Before we can run the optimization, we only need to select an appropriate
-algorithm. After that we can start the optimization run. For more information
-on algorithms available in the pymoo framework and their individual
-specifications please check the respective section of the documentation:
-`list of algorithms <https://pymoo.org/algorithms/index.html>`__.
+.. attention::
+
+    The sense of optimization is minimization by default. We can change the
+    sense for each of the objectives we pass to
+    :py:meth:`optimize <tespy.models.template.ModelTemplate.optimize>`
+    by passing a list with :code:`True` or :code:`False` for each individual
+    objective **in identical order as the objectives** using the
+    :code:`minimize_flags` argument.
+
+We set one inequality constraint - the first extraction pressure must exceed
+the second:
+
+.. math::
+
+    p_{e,1} > p_{e,2}
+
+This is expressed inside the :code:`constraints` dictionary by referencing the
+name of the first parameter as the lower bound of the second. The :code:`kpi`
+argument selects additional model outputs to include in the result log. Here
+we track the high-pressure turbine power and pressure ratio.
 
 Run pymoo-Optimization
 ^^^^^^^^^^^^^^^^^^^^^^
-The following code then simply runs the pymoo optimization.
+
+:py:meth:`model.optimize <tespy.models.template.ModelTemplate.optimize>` wraps
+:py:class:`OptimizationProblem <tespy.tools.optimization.OptimizationProblem>`
+and a pymoo algorithm into a single call and returns a :code:`DataFrame` of all
+evaluated individuals. For more information on available algorithms see the
+`list of algorithms <https://pymoo.org/algorithms/index.html>`__.
 
 .. literalinclude:: /../tutorial/advanced/optimization_example.py
     :language: python
@@ -204,10 +185,10 @@ In our run, we got the following optimal solution:
 
     Figure: Scatter plot for all individuals during the optimization
 
-You can access the data generated by the optimization from the
-:code:`problem.log` attribute, which contains each variable input that was
-evaluated by the optimizer in your tespy model. On top, you can access the
-result attribute, population information etc. as documented by pymoo.
+You can access the data generated by the optimization from the returned
+:code:`DataFrame`, which contains every evaluated individual. The plotting code
+in the download shows how to filter for feasible solutions and highlight the
+optimum.
 
 .. literalinclude:: /../tutorial/advanced/optimization_example.py
     :language: python

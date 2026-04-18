@@ -749,7 +749,7 @@ class Network:
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses:
-                    msg = f"The network already has a bus labeld {b.label}."
+                    msg = f"The network already has a bus labelled {b.label}."
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 else:
@@ -901,7 +901,7 @@ class Network:
                     "have been added to the network."
                 )
                 logger.error(msg)
-                # raise an error in case network check is unsuccesful
+                # raise an error in case network check is unsuccessful
                 raise hlp.TESPyNetworkError(msg)
 
             # this rule only applies, in case there are any power connections
@@ -915,7 +915,7 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
                 elif len(comp.power_inl) != comp.num_power_i:
                     msg = (
@@ -926,12 +926,12 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
 
     def _prepare_problem(self):
         r"""
-        Initilialise the network depending on calclation mode.
+        Initialise the network depending on calculation mode.
 
         Design
 
@@ -2336,7 +2336,7 @@ class Network:
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
-        # TODO: depricate
+        # TODO: deprecate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2581,7 +2581,7 @@ class Network:
         - Perform actual calculation.
         - Postprocessing.
 
-        It is possible to check programatically, if a network was solved
+        It is possible to check programmatically, if a network was solved
         successfully with the `.converged` attribute.
 
         Parameters
@@ -2651,7 +2651,7 @@ class Network:
         if self.skip_postprocess:
             msg = (
                 "Postprocessing will be skipped, violations of "
-                "phyiscal/operational are not reported or logged!"
+                "physical/operational are not reported or logged!"
             )
             logger.debug(msg)
 
@@ -2935,7 +2935,7 @@ class Network:
         return
 
     def _invert_jacobian(self):
-        """Invert matrix of derivatives and caluclate increment."""
+        """Invert matrix of derivatives and calculate increment."""
         self.lin_dep = True
 
         try:
@@ -3225,12 +3225,20 @@ class Network:
     def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
+        buckets = {}
         for c in self.conns['object']:
             c.good_starting_values = True
             _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
             if self.skip_postprocess:
                 continue
-            self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
+            conn_type = c.__class__.__name__
+            if conn_type not in buckets:
+                buckets[conn_type] = ([], [])
+            buckets[conn_type][0].append(c.label)
+            buckets[conn_type][1].append(c.collect_results(self.all_fluids))
+        for conn_type, (labels, rows) in buckets.items():
+            cols = self.results[conn_type].columns
+            self.results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
         return _converged
 
     def _postprocess_components(self):
@@ -3279,12 +3287,19 @@ class Network:
         if self.status == 2:
             return False
 
+        buckets = {}
         for cp in self.comps['object']:
-            key = cp.__class__.__name__
             result = cp.collect_results()
             if len(result) == 0:
                 continue
-            self.results[cp.__class__.__name__].loc[cp.label] = result
+            key = cp.__class__.__name__
+            if key not in buckets:
+                buckets[key] = ([], [])
+            buckets[key][0].append(cp.label)
+            buckets[key][1].append(result)
+        for key, (labels, rows) in buckets.items():
+            cols = self.results[key].columns
+            self.results[key] = pd.DataFrame(rows, index=labels, columns=cols)
 
         return _converged
 
@@ -3294,8 +3309,9 @@ class Network:
             return
         # busses
         for b in self.busses.values():
+            labels = []
+            rows = []
             for cp in b.comps.index:
-                # get components bus func value
                 bus_val = cp.calc_bus_value(b)
                 eff = cp.calc_bus_efficiency(b)
                 cmp_val = cp.bus_func(b.comps.loc[cp])
@@ -3303,21 +3319,20 @@ class Network:
                 b.comps.loc[cp, 'char'].get_domain_errors(
                     cp.calc_bus_expr(b), cp.label)
 
-                # save as reference value
                 if self.mode == 'design':
                     if b.comps.loc[cp, 'base'] == 'component':
                         design_value = cmp_val
                     else:
                         design_value = bus_val
-
                     b.comps.loc[cp, 'P_ref'] = design_value
-
                 else:
                     design_value = b.comps.loc[cp, 'P_ref']
 
-                result = [cmp_val, bus_val, eff, design_value]
-                self.results[b.label].loc[cp.label] = result
+                labels.append(cp.label)
+                rows.append([cmp_val, bus_val, eff, design_value])
 
+            cols = self.results[b.label].columns
+            self.results[b.label] = pd.DataFrame(rows, index=labels, columns=cols)
             b.P.val = float(self.results[b.label]['bus value'].sum())
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):

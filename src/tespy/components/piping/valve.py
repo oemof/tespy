@@ -526,8 +526,10 @@ class Valve(Component):
             self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
             self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
         else:
-            msg = ('Exergy balance of a valve, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a valve, where outlet temperature is '
+                'larger than inlet temperature is not implemented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

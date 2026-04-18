@@ -338,6 +338,19 @@ class UserDefinedEquation:
         self.conns = conns
         self.comps = comps
         self.params = params
+        self._is_set = True
+
+    def _get_is_set(self):
+        return self._is_set
+
+    def _set_is_set(self, value):
+        if not isinstance(value, bool):
+            msg = "is_set must be of type bool."
+            logger.error(msg)
+            raise TypeError(msg)
+        self._is_set = value
+
+    is_set = property(_get_is_set, _set_is_set)
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -345,6 +358,9 @@ class UserDefinedEquation:
         self._structure_matrix = {}
         self._rhs = {}
         self._equation_set_lookup = {}
+
+        if not self.is_set:
+            return
 
         self._equation_set_lookup[row_idx] = "equation"
 
@@ -786,7 +802,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
 
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
-    """Dump a nested dict with dataframes into a folder structrue
+    """Dump a nested dict with dataframes into a folder structure
 
     The upper level keys with subdictionaries are folder names, the lower
     level keys (where a dataframe is the value) will be the names of the

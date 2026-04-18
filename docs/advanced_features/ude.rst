@@ -166,7 +166,59 @@ And a couple of optional arguments:
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
     True
-    >>> nw.del_ude(ude)
+
+Activating and deactivating
+---------------------------
+
+A :code:`UserDefinedEquation` can be temporarily deactivated without removing
+it from the network. This is useful when you want to switch constraints on or
+off between solves. For example, to switch between different operating
+strategies or to trade one constraint for another.
+
+The :code:`is_set` property controls whether the equation participates in the
+next solve. It defaults to :code:`True` when the object is created. To
+demonstrate this, we use the above example.
+
+.. code-block:: python
+
+    >>> ude.is_set
+    True
+
+Set :code:`is_set` to :code:`False` to exclude the equation from the solve.
+The UDE remains registered in the network and can be reactivated at any time.
+
+.. code-block:: python
+
+    >>> ude.is_set = False
+    >>> ude.is_set
+    False
+
+While the equation is inactive, the degree of freedom it previously consumed
+must be covered by another constraint. Here we pin the mass flow of
+connection :code:`c1` directly:
+
+.. code-block:: python
+
+    >>> c1.set_attr(m=1)
+    >>> nw.solve('design')
+    >>> round(c1.m.val_SI, 3)
+    1.0
+
+Reactivate the equation and drop the substituted constraint to restore the
+original formulation.
+
+.. code-block:: python
+
+    >>> c1.set_attr(m=None)
+    >>> ude.is_set = True
+    >>> nw.solve('design')
+    >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
+    True
+
+Before going into the next example which will use the same :code:`Network` we
+will again deactivate the ude.
+
+    >>> ude.is_set = False
 
 More examples
 -------------
@@ -237,12 +289,12 @@ recommended to just let the solver handle that by itself via the dependents.
     ...             * 0.5 / (T ** 0.5)
     ...         )
 
-    >>> ude = UserDefinedEquation(
-    ...     'ude numerical', my_ude, my_ude_dependents,
+    >>> ude_with_deriv = UserDefinedEquation(
+    ...     'ude numerical with deriv', my_ude, my_ude_dependents,
     ...     deriv=my_ude_deriv, conns=[c1, c2]
     ... )
-    >>> nw.add_ude(ude)
-    >>> nw.set_attr(m_range=[.1, 100])  # stabilize algorithm
+    >>> nw.add_ude(ude_with_deriv)
+    >>> nw.m_range = [.1, 100]  # stabilize algorithm
     >>> nw.solve('design')
     >>> round(c1.m.val, 2)
     1.17
@@ -266,11 +318,12 @@ guaranteed that the derivatives are calculated correctly.
 
 .. code-block:: python
 
-    >>> nw.del_ude(ude)
-    >>> ude = UserDefinedEquation(
-    ...     'ude numerical', my_ude, my_ude_dependents, conns=[c1, c2]
+    >>> ude_with_deriv.is_set = False
+    >>> ude_automatic = UserDefinedEquation(
+    ...     'ude numerical automatic deriv', my_ude, my_ude_dependents,
+    ...     conns=[c1, c2]
     ... )
-    >>> nw.add_ude(ude)
+    >>> nw.add_ude(ude_automatic)
     >>> c1.set_attr(p=None)
     >>> c2.set_attr(T=250)
     >>> nw.solve('design')
@@ -323,3 +376,91 @@ instance must therefore be changed as below.
 One more example (using a CharLine for data point interpolation) can be found
 in the API documentation of class
 :py:class:`tespy.tools.helpers.UserDefinedEquation`.
+
+Superheat referenced to a different pressure level
+---------------------------------------------------
+
+A common requirement in refrigeration cycles is controlling the superheating of
+the refrigerant at the compressor inlet. A typical cycle includes an evaporator
+followed by a superheater before the compressor. If the superheater has a
+non-negligible pressure drop, the dew temperature at the superheater outlet
+differs from the dew temperature at the evaporator outlet. Specifying
+:code:`c_sh_out.td_dew = 10` would use the superheater outlet pressure as the
+saturation reference. However, we could want to reference the evaporator outlet
+pressure instead. A :code:`UserDefinedEquation` lets us implement this easily.
+
+The equation we want to enforce is:
+
+.. math::
+
+    0 = T_\text{sh,out} - T_\text{dew}\!\left(p_\text{evap,out}\right) - \Delta T_\text{sh}
+
+The example system consists of an evaporator, a superheater, a compressor,
+a condenser, a valve and a cycle closer.
+
+.. code-block:: python
+
+    >>> from tespy.components import (
+    ...     SimpleHeatExchanger, Compressor, Valve, CycleCloser
+    ... )
+    >>> from tespy.tools.fluid_properties.functions import T_dew_p
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(pressure='bar', temperature='degC')
+
+    >>> evaporator = SimpleHeatExchanger('evaporator')
+    >>> superheater = SimpleHeatExchanger('superheater')
+    >>> compressor = Compressor('compressor')
+    >>> condenser = SimpleHeatExchanger('condenser')
+    >>> valve = Valve('valve')
+    >>> cc = CycleCloser('cc')
+
+    >>> rc1 = Connection(evaporator, 'out1', superheater, 'in1', label='rc1')
+    >>> rc1b = Connection(superheater, 'out1', compressor, 'in1', label='rc1b')
+    >>> rc2 = Connection(compressor, 'out1', condenser, 'in1', label='rc2')
+    >>> rc3 = Connection(condenser, 'out1', valve, 'in1', label='rc3')
+    >>> rc4 = Connection(valve, 'out1', cc, 'in1', label='rc4')
+    >>> rc5 = Connection(cc, 'out1', evaporator, 'in1', label='rc5')
+
+    >>> nw.add_conns(rc1, rc1b, rc2, rc3, rc4, rc5)
+
+    >>> rc1.set_attr(fluid={'R600': 1}, T_dew=10, td_dew=2)
+    >>> rc1b.set_attr(td_dew=12)
+    >>> rc3.set_attr(T_bubble=60, td_bubble=5)
+    >>> evaporator.set_attr(dp=0)
+    >>> superheater.set_attr(dp=1)
+    >>> condenser.set_attr(dp=0, Q=-100)
+    >>> compressor.set_attr(eta_s=0.8)
+
+    >>> nw.solve('design')
+
+With the initial specification :code:`rc1b.td_dew = 12`, the 12 K superheat is
+measured relative to the dew temperature at :code:`rc1b`'s own pressure.
+Because of the 1 bar pressure drop across the superheater, this differs from
+the dew temperature at the evaporator outlet :code:`rc1`. We now replace this
+specification with the :code:`UserDefinedEquation` that pins the superheat
+relative to the evaporator outlet pressure.
+
+.. code-block:: python
+
+    >>> def superheat_func(ude):
+    ...     c_evap_out, c_comp_in = ude.conns
+    ...     return (
+    ...         c_comp_in.calc_T()
+    ...         - T_dew_p(c_evap_out.p.val_SI, c_evap_out.fluid_data)
+    ...         - ude.params['superheat']
+    ...     )
+
+    >>> def superheat_dependents(ude):
+    ...     c_evap_out, c_comp_in = ude.conns
+    ...     return [c_evap_out.p, c_comp_in.p, c_comp_in.h]
+
+    >>> rc1b.set_attr(td_dew=None)
+    >>> superheat_ude = UserDefinedEquation(
+    ...     'superheat', superheat_func, superheat_dependents,
+    ...     conns=[rc1, rc1b], params={'superheat': 10}
+    ... )
+    >>> nw.add_ude(superheat_ude)
+    >>> nw.solve('design')
+    >>> round(rc1b.calc_T() - T_dew_p(rc1.p.val_SI, rc1.fluid_data), 1)
+    10.0

@@ -20,7 +20,6 @@ import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.helpers import extend_basic_path
 
 
 class CharLine:
@@ -110,6 +109,10 @@ class CharLine:
         corresponding y-values. On extrapolation the two smallest or the two
         largest value pairs are used respectively.
         """
+        if np.isnan(x):
+            msg = "CharLine cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
             if self.extrapolate:
@@ -271,6 +274,10 @@ class CharMap:
         zarr : ndarray
             Output array of CharMap calculated from first dimension input.
         """
+        if np.isnan(x):
+            msg = "CharMap cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
             if self.extrapolate:
@@ -306,6 +313,10 @@ class CharMap:
         zarr : ndarray
             Output array of CharMap calculated from first dimension input.
         """
+        if np.isnan(y):
+            msg = "CharMap cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         ypos = np.searchsorted(yarr, y)
 
         if ypos == len(yarr):
@@ -553,6 +564,7 @@ def load_custom_char(name, char_type):
     obj : object
         The characteristics (CharLine, CharMap) object.
     """
+    from tespy.tools.helpers import extend_basic_path
     path = extend_basic_path('data')
 
     if char_type == CharLine:

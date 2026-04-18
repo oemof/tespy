@@ -104,7 +104,7 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure",
+                quantity="pressure_difference",
                 description="inlet to outlet absolute pressure change"
             )
         }
@@ -261,9 +261,9 @@ class Turbomachine(Component):
                 'isoline_property': 's',
                 'isoline_value': self.inl[0].s.val,
                 'isoline_value_end': self.outl[0].s.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             }
         }

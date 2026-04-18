@@ -98,13 +98,13 @@ class Network:
     >>> mynetwork.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
-    >>> mynetwork.set_attr(p_range=[1, 10])
+    >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
     <class 'tespy.networks.network.Network'>
-    >>> mynetwork.set_attr(iterinfo=False)
+    >>> mynetwork.iterinfo = False
     >>> mynetwork.iterinfo
     False
-    >>> mynetwork.set_attr(iterinfo=True)
+    >>> mynetwork.iterinfo = True
     >>> mynetwork.iterinfo
     True
 
@@ -132,14 +132,28 @@ class Network:
     >>> b.set_attr(printout=False)
     >>> e = PowerConnection(p, 'heat', h, 'power', printout=False)
     >>> nw.add_conns(e)
-    >>> nw.set_attr(iterinfo=False)
+    >>> nw.iterinfo = False
     >>> nw.solve('design')
     >>> nw.print_results()
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, iterinfo=True, units=None, m_range=None, p_range=None, h_range=None, **kwargs):
         self._set_defaults()
+        self.iterinfo = iterinfo
+
+        if units is not None:
+            self.units = units
+
         self.set_attr(**kwargs)
+
+        # because the units can still be specified via the deprecated API of
+        # set_attr, ranges need to be updated after set_attr!
+        if m_range is not None:
+            self.m_range = m_range
+        if p_range is not None:
+            self.p_range = p_range
+        if h_range is not None:
+            self.h_range = h_range
 
     def _serialize(self):
         return {
@@ -198,23 +212,9 @@ class Network:
         self.p_range_SI = [2e2, 300e5]
         self.h_range_SI = [1e3, 7e6]
 
-        property_names = {"m": "mass_flow", "p": "pressure", "h": "enthalpy"}
-        for prop, name in property_names.items():
-            limits = self.get_attr(f"{prop}_range_SI")
-            msg = (
-                f"Default {name} limits\n"
-                f"min: {limits[0]} {self.units._quantities[name]}\n"
-                f"max: {limits[1]} {self.units._quantities[name]}"
-            )
-            logger.debug(msg)
-
-            unit = self.units.default[name]
-            key = f"{prop}_range"
-            self.__dict__.update({
-                key: self.units.ureg.Quantity(
-                    np.array(self.get_attr(f"{key}_SI")), unit
-                )
-            })
+        self.m_range = self.m_range_SI
+        self.p_range = self.p_range_SI
+        self.h_range = self.h_range_SI
 
     def set_attr(self, **kwargs):
         r"""
@@ -234,6 +234,13 @@ class Network:
         p_range : list
             List with minimum and maximum values for pressure value range.
         """
+        if kwargs:
+            msg = (
+                "The set_attr method of Network is deprecated and will be "
+                "removed in the next major release. Please explicitly call "
+                "the respective set methods for specification of value "
+                "ranges, units or iterinfo."
+            )
         self.units = kwargs.get('units', self.units)
         unit_replace = {
             "C": "degC",
@@ -265,38 +272,101 @@ class Network:
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"
             if key in kwargs:
-                if isinstance(kwargs[key], list):
-                    quantity = fpd[prop]["text"].replace(" ", "_")
-                    unit = self.units.default[quantity]
-                    self.__dict__.update({
-                        key: self.units.ureg.Quantity(
-                            np.array(kwargs[key]),
-                            unit
-                        )
-                    })
-                    self.__dict__.update({
-                        f"{key}_SI":
-                        self.get_attr(key).to(SI_UNITS[quantity]).magnitude
-                    })
-                else:
-                    msg = f'Specify the range as list: [{prop}_min, {prop}_max]'
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-                limits = self.get_attr(f'{key}_SI')
                 msg = (
-                    f'Setting {fpd[prop]["text"]} limits\n'
-                    f'min: {limits[0]} {fpd[prop]["SI_unit"]}\n'
-                    f'max: {limits[1]} {fpd[prop]["SI_unit"]}'
+                    "Setting variable ranges through the Network.set_attr "
+                    f"is deprecated. Please use Network.set_{key} in the "
+                    "future."
                 )
-                logger.debug(msg)
+                warnings.warn(msg, FutureWarning)
+                logger.warning(msg)
+                if key == "m_range":
+                    self.m_range = kwargs[key]
+                elif key == "p_range":
+                    self.p_range = kwargs[key]
+                else:
+                    self.h_range = kwargs[key]
 
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
+        if "iterinfo" in kwargs:
+            msg = (
+                "Setting iterinfo through the Network.set_attr is deprecated. "
+                "Please directly specify Network.iterinfo=True/False in the "
+                "future."
+            )
+            warnings.warn(msg, FutureWarning)
+            logger.warning(msg)
 
-        if not isinstance(self.iterinfo, bool):
+    def _set_iterinfo(self, value):
+        if not isinstance(value, bool):
             msg = 'Network parameter iterinfo must be True or False!'
             logger.error(msg)
             raise TypeError(msg)
+        else:
+            self._iterinfo = value
+
+    def _get_iterinfo(self):
+        return self._iterinfo
+
+    def _set_units(self, value):
+        if not isinstance(value, Units):
+            msg = (
+                "The units must be an instance of class "
+                "tespy.tools.units.Units."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        else:
+            self._units = value
+
+    def _get_units(self):
+        return self._units
+
+    def _set_m_range(self, value):
+        self._check_range_dtype(value, "mass flow")
+        quantity = "mass_flow"
+        unit = self.units.default[quantity]
+        self._m_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.m_range_SI = self.m_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_m_range(self):
+        return self._m_range
+
+    def _set_p_range(self, value):
+        self._check_range_dtype(value, "pressure")
+        quantity = "pressure"
+        unit = self.units.default[quantity]
+        self._p_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.p_range_SI = self.p_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_p_range(self):
+        return self._p_range
+
+    def _set_h_range(self, value):
+        self._check_range_dtype(value, "enthalpy")
+        quantity = "enthalpy"
+        unit = self.units.default[quantity]
+        self._h_range = self.units.ureg.Quantity(np.array(value), unit)
+        self.h_range_SI = self.h_range.to(SI_UNITS[quantity]).magnitude
+
+    def _get_h_range(self):
+        return self._h_range
+
+    @staticmethod
+    def _check_range_dtype(value, property):
+        if isinstance(value, list) or isinstance(value, np.ndarray):
+            return
+        else:
+            msg = (
+                f"Specify the range for {property} as list: [min, max]."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+
+    iterinfo = property(_get_iterinfo, _set_iterinfo)
+    units = property(_get_units, _set_units)
+    m_range = property(_get_m_range, _set_m_range)
+    p_range = property(_get_p_range, _set_p_range)
+    h_range = property(_get_h_range, _set_h_range)
 
     def get_attr(self, key):
         r"""
@@ -312,6 +382,13 @@ class Network:
         out :
             Specified attribute.
         """
+        msg = (
+            "The Network.get_attr method is deprecated and will be removed "
+            "in the next major release."
+        )
+        warnings.warn(msg, FutureWarning)
+        logger.warning(msg)
+
         if key in self.__dict__:
             return self.__dict__[key]
         else:
@@ -672,7 +749,7 @@ class Network:
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 elif b.label in self.busses:
-                    msg = f"The network already has a bus labeld {b.label}."
+                    msg = f"The network already has a bus labelled {b.label}."
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
                 else:
@@ -824,7 +901,7 @@ class Network:
                     "have been added to the network."
                 )
                 logger.error(msg)
-                # raise an error in case network check is unsuccesful
+                # raise an error in case network check is unsuccessful
                 raise hlp.TESPyNetworkError(msg)
 
             # this rule only applies, in case there are any power connections
@@ -838,7 +915,7 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
                 elif len(comp.power_inl) != comp.num_power_i:
                     msg = (
@@ -849,12 +926,12 @@ class Network:
                         "network."
                     )
                     logger.error(msg)
-                    # raise an error in case network check is unsuccesful
+                    # raise an error in case network check is unsuccessful
                     raise hlp.TESPyNetworkError(msg)
 
     def _prepare_problem(self):
         r"""
-        Initilialise the network depending on calclation mode.
+        Initialise the network depending on calculation mode.
 
         Design
 
@@ -1762,8 +1839,33 @@ class Network:
                     _local_designs[path] = self._load_network_state(path)
 
                 data = _local_designs[path][c]
+                # resolve design label (may differ from cp.label)
+                label = self._find_isolated_comp_label(cp, data)
                 # write data
-                self._write_design_state_to_component(cp, data)
+                self._write_design_state_to_component(cp, data, label)
+
+                # store adjacent connection design values from the component's
+                # own design_path for use in offdesign equations
+                cp._local_connection_design_state = {}
+                for adj_conn in cp.inl + cp.outl + cp.power_inl + cp.power_outl:
+                    conn_type = adj_conn.__class__.__name__
+                    if conn_type in _local_designs[path]:
+                        conn_df = _local_designs[path][conn_type]
+                        matched_row = self._find_conn_in_isolated_design(
+                            adj_conn, cp, label, conn_df
+                        )
+                        if matched_row is not None:
+                            cp._local_connection_design_state[adj_conn.label] = (
+                                adj_conn._get_design_state_SI(matched_row, self.units)
+                            )
+                        else:
+                            msg = (
+                                "Could not retrieve connection design point "
+                                "data in local_offdesign of component "
+                                f"{cp.label} for the connections adjacent to "
+                                "the component."
+                            )
+                            raise KeyError(msg)
 
                 # unset design parameters
                 for var in cp.design:
@@ -1892,21 +1994,44 @@ class Network:
         dfs = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         ind_designs = {}
-        for label, row in df_comps.iterrows():
+        for _, row in df_comps.iterrows():
             df = dfs[row["comp_type"]]
             comp = row["object"]
             path = comp.design_path
-            # read data of components with individual design_path
+            # in offdesign mode any individually specified design_path is used
+            # to load this component's design reference, regardless of
+            # local_offdesign
             if path is not None:
                 if path not in ind_designs:
                     ind_designs[path] = self._load_network_state(path)
                 data = ind_designs[path][row["comp_type"]]
-
+                label = self._find_isolated_comp_label(comp, data)
+                self._write_design_state_to_component(comp, data, label)
+                # write adjacent connections design state from individual
+                # design_path to the component
+                comp._local_connection_design_state = {}
+                for adj_conn in comp.inl + comp.outl + comp.power_inl + comp.power_outl:
+                    conn_type = adj_conn.__class__.__name__
+                    if conn_type in ind_designs[path]:
+                        conn_df = ind_designs[path][conn_type]
+                        matched_row = self._find_conn_in_isolated_design(
+                            adj_conn, comp, label, conn_df
+                        )
+                        if matched_row is not None:
+                            comp._local_connection_design_state[adj_conn.label] = (
+                                adj_conn._get_design_state_SI(matched_row, self.units)
+                            )
+                        else:
+                            msg = (
+                                "Could not retrieve connection design point "
+                                f"data for component {comp.label}, connection "
+                                f"{adj_conn.label}."
+                            )
+                            raise KeyError(msg)
             else:
                 data = df
-
-            # write data to components
-            self._write_design_state_to_component(comp, data)
+                # write data to components
+                self._write_design_state_to_component(comp, data, comp.label)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
@@ -1935,29 +2060,106 @@ class Network:
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def _write_design_state_to_component(self, c, df):
+    def _find_isolated_comp_label(self, comp, comp_df):
+        """
+        Resolve which label in *comp_df* corresponds to *comp* for isolated
+        design loading.
+
+        - Exact match -> return :code:`comp.label`
+        - Single-type fallback: label not in index but exactly one row ->
+          return that row's label (the isolated design contains exactly one
+          component of that type, so it is unambiguous)
+        - Ambiguous (multiple rows, no exact match) -> raise error
+        """
+        if comp.label in comp_df.index:
+            return comp.label
+        elif len(comp_df) == 1:
+            return comp_df.index[0]
+        return None
+
+    def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_df):
+        """
+        Find the row in connection dataframe that corresponds to adjacent
+        connection when loading an isolated design file.
+
+        Matching strategy (in order):
+
+        1. Direct label match (:code:`adj_conn.label` in :code:`conn_df.index`).
+        2. Port-based topology match using the :code:`source` / :code:`target` /
+           :code:`source_id` / :code:`target_id` columns stored by
+           :py:meth:`tespy.connections.connection.Connection.collect_results`.
+
+        Parameters
+        ----------
+        adj_conn : tespy.connections.connection.BaseConnection
+            BaseConnection type object
+        comp : tespy.components.component.Component
+            Component type object
+        comp_label : str
+            Label of the component to look for inside the connections
+            dataframe
+        conn_df : pandas.core.frame.DataFrame
+            Connection information dataframe
+
+        Returns
+        -------
+        pandas.core.series.Series
+            Respective data of the connection
+        """
+        # --- direct label match ---
+        if adj_conn.label in conn_df.index:
+            return conn_df.loc[adj_conn.label]
+
+        # --- port-based topology match ---
+        if comp_label is None:
+            return None
+        if 'source' not in conn_df.columns or 'target' not in conn_df.columns:
+            return None
+
+        if adj_conn in comp.inl + comp.power_inl:
+            mask = (
+                (conn_df['target'] == comp_label)
+                & (conn_df['target_id'] == adj_conn.target_id)
+            )
+        else:
+            mask = (
+                (conn_df['source'] == comp_label)
+                & (conn_df['source_id'] == adj_conn.source_id)
+            )
+
+        matches = conn_df[mask]
+        if len(matches) == 1:
+            return matches.iloc[0]
+        return None
+
+    def _write_design_state_to_component(self, c, df, label):
         r"""
         Write design point information to components.
 
         Parameters
         ----------
-        component : tespy.components.component.Component
+        c : tespy.components.component.Component
             Write design point information to this component.
 
-        data : pandas.core.series.Series, pandas.core.frame.DataFrame
+        df : pandas.core.series.Series, pandas.core.frame.DataFrame
             Design point information.
+
+        label : str
+            Label of the component inside the data. It can differ under the
+            condition of an individual design_path speceified for that
+            component.
         """
-        if c.label not in df.index:
+        if label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find component '{c.label}' in design case file. "
+                f"Could not find component '{label}' in design case file. "
                 "This is is critical only to components, which need to load "
                 "design values from this case."
             )
             logger.debug(msg)
             return
         # write component design data
-        data = df.loc[c.label]
+        data = df.loc[label]
         c._set_design_parameters(self.mode, data)
 
     def _write_design_state_to_connection(self, c, df):
@@ -1977,9 +2179,10 @@ class Network:
         if c.label not in df.index:
             # no matches in the connections of the network and the design files
             msg = (
-                f"Could not find connection '{c.label}' in design case. Please "
-                "make sure no connections have been modified or components "
-                "have been relabeled for your offdesign calculation."
+                f"Could not find connection '{c.label}' in design case. "
+                "Please make sure no connections have been modified or "
+                "components have been relabeled for your offdesign "
+                "calculation."
             )
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)
@@ -2127,13 +2330,13 @@ class Network:
             data = json.load(f)
 
         dfs = {}
-        if "Connection" in data["Connection"]:
+        if "Connection" in data["Connection"] or "PowerConnection" in data["Connection"]:
             for key, value in data["Connection"].items():
                 # TODO: remove the future warning here and bump minimum pandas version to 3.0
                 with pd.option_context("future.no_silent_downcasting", True):
                     dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
                 dfs[key].index = dfs[key].index.astype(str)
-        # TODO: depricate
+        # TODO: deprecate
         # this is for compatibility of older savestates
         else:
             key = "Connection"
@@ -2378,7 +2581,7 @@ class Network:
         - Perform actual calculation.
         - Postprocessing.
 
-        It is possible to check programatically, if a network was solved
+        It is possible to check programmatically, if a network was solved
         successfully with the `.converged` attribute.
 
         Parameters
@@ -2448,7 +2651,7 @@ class Network:
         if self.skip_postprocess:
             msg = (
                 "Postprocessing will be skipped, violations of "
-                "phyiscal/operational are not reported or logged!"
+                "physical/operational are not reported or logged!"
             )
             logger.debug(msg)
 
@@ -2732,7 +2935,7 @@ class Network:
         return
 
     def _invert_jacobian(self):
-        """Invert matrix of derivatives and caluclate increment."""
+        """Invert matrix of derivatives and calculate increment."""
         self.lin_dep = True
 
         try:
@@ -3022,12 +3225,20 @@ class Network:
     def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
+        buckets = {}
         for c in self.conns['object']:
             c.good_starting_values = True
             _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
             if self.skip_postprocess:
                 continue
-            self.results[c.__class__.__name__].loc[c.label] = c.collect_results(self.all_fluids)
+            conn_type = c.__class__.__name__
+            if conn_type not in buckets:
+                buckets[conn_type] = ([], [])
+            buckets[conn_type][0].append(c.label)
+            buckets[conn_type][1].append(c.collect_results(self.all_fluids))
+        for conn_type, (labels, rows) in buckets.items():
+            cols = self.results[conn_type].columns
+            self.results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
         return _converged
 
     def _postprocess_components(self):
@@ -3076,12 +3287,19 @@ class Network:
         if self.status == 2:
             return False
 
+        buckets = {}
         for cp in self.comps['object']:
-            key = cp.__class__.__name__
             result = cp.collect_results()
             if len(result) == 0:
                 continue
-            self.results[cp.__class__.__name__].loc[cp.label] = result
+            key = cp.__class__.__name__
+            if key not in buckets:
+                buckets[key] = ([], [])
+            buckets[key][0].append(cp.label)
+            buckets[key][1].append(result)
+        for key, (labels, rows) in buckets.items():
+            cols = self.results[key].columns
+            self.results[key] = pd.DataFrame(rows, index=labels, columns=cols)
 
         return _converged
 
@@ -3091,8 +3309,9 @@ class Network:
             return
         # busses
         for b in self.busses.values():
+            labels = []
+            rows = []
             for cp in b.comps.index:
-                # get components bus func value
                 bus_val = cp.calc_bus_value(b)
                 eff = cp.calc_bus_efficiency(b)
                 cmp_val = cp.bus_func(b.comps.loc[cp])
@@ -3100,21 +3319,20 @@ class Network:
                 b.comps.loc[cp, 'char'].get_domain_errors(
                     cp.calc_bus_expr(b), cp.label)
 
-                # save as reference value
                 if self.mode == 'design':
                     if b.comps.loc[cp, 'base'] == 'component':
                         design_value = cmp_val
                     else:
                         design_value = bus_val
-
                     b.comps.loc[cp, 'P_ref'] = design_value
-
                 else:
                     design_value = b.comps.loc[cp, 'P_ref']
 
-                result = [cmp_val, bus_val, eff, design_value]
-                self.results[b.label].loc[cp.label] = result
+                labels.append(cp.label)
+                rows.append([cmp_val, bus_val, eff, design_value])
 
+            cols = self.results[b.label].columns
+            self.results[b.label] = pd.DataFrame(rows, index=labels, columns=cols)
             b.P.val = float(self.results[b.label]['bus value'].sum())
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
@@ -3515,7 +3733,7 @@ class Network:
         previous calculation in design and offdesign case.
 
         >>> imported_nwk = Network.from_json('exported_nwk.json')
-        >>> imported_nwk.set_attr(iterinfo=False)
+        >>> imported_nwk.iterinfo = False
         >>> imported_nwk.solve('design')
         >>> imported_nwk.lin_dep
         False

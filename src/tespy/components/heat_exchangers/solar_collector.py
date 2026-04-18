@@ -164,7 +164,7 @@ class SolarCollector(SimpleHeatExchanger):
     is determined in the design calculation. In offdesign operation (at a
     different irradiance) using the calculated surface area and mass flow, it
     is possible to predict the outlet temperature. It would instead be
-    possible to calulate the change in mass flow required to hold the
+    possible to calculate the change in mass flow required to hold the
     specified outlet temperature, too.
 
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])

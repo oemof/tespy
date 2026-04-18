@@ -395,8 +395,8 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        beta = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
+        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
@@ -435,8 +435,8 @@ class Compressor(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
@@ -592,9 +592,9 @@ class Compressor(Turbomachine):
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
-                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-                y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-                    self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
+                y = (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p')) / (
+                    self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
                 yarr *= (1 - self.igva.val_SI / 100)
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
@@ -648,8 +648,10 @@ class Compressor(Turbomachine):
             self.E_F = self.P.val + (
                 self.inl[0].Ex_therm - self.outl[0].Ex_therm)
         else:
-            msg = ('Exergy balance of a compressor, where outlet temperature '
-                   'is smaller than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a compressor, where outlet temperature '
+                'is smaller than inlet temperature is not implmented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

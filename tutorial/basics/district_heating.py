@@ -71,7 +71,7 @@ pipe_return.set_attr(
 nw.solve(mode="design")
 nw.print_results()
 # %%[sec_5]
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 pipe_feed.set_attr(Tamb=0, kA=pipe_feed.kA.val, Q=None)
 pipe_return.set_attr(Tamb=0, kA=pipe_return.kA.val, Q=None)
 

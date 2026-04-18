@@ -13,10 +13,10 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+import warnings
 
 import numpy as np
 import pandas as pd
-import pint
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -32,7 +32,6 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
-from tespy.tools.helpers import _is_numeric
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import bus_char_derivative
@@ -137,6 +136,7 @@ class Component:
         self.printout = True
         self.bypass = False
         self.fkt_group = self.label
+        self._local_connection_design_state = {}
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
@@ -173,109 +173,67 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
-        # set specified values
-        for key in kwargs:
+        for key, value in kwargs.items():
             if key in self.parameters:
-                data = self.get_attr(key)
-                if kwargs[key] is None:
-                    data.set_attr(is_set=False)
-                    if hasattr(data, "is_var"):
-                        data.set_attr(is_var=False)
-                    continue
-
-                is_numeric = False
-                is_quantity = False
-
-                if isinstance(kwargs[key], pint.Quantity):
-                    is_quantity = True
-                else:
-                    is_numeric = _is_numeric(kwargs[key])
-
-                # dict specification
-                if (isinstance(kwargs[key], dict) and
-                        not isinstance(data, dc_simple)):
-                    data.set_attr(**kwargs[key])
-
-                # value specification for component properties
-                elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
-                    if is_numeric or is_quantity:
-                        data.set_attr(val=kwargs[key], is_set=True)
-                        if isinstance(data, dc_cp):
-                            data.set_attr(is_var=False)
-
-                    elif isinstance(data, dc_simple):
-                        data.set_attr(val=kwargs[key], is_set=True)
-
-                    elif kwargs[key] == "var" and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, is_var=True)
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            f"Bad datatype for keyword argument {key} for "
-                            f"component {self.label}."
-                        )
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-                elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
-                    # value specification for characteristics
-                    if (isinstance(kwargs[key], CharLine) or
-                            isinstance(kwargs[key], CharMap)):
-                        data.char_func = kwargs[key]
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            f"Bad datatype for keyword argument {key} for "
-                            f"component {self.label}."
-                        )
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-            elif key in ['design', 'offdesign']:
-                if not isinstance(kwargs[key], list):
-                    msg = (
-                        f"Please provide the {key} parameters as list for "
-                        f"component {self.label}."
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(self.parameters.keys())):
-                    self.__dict__.update({key: kwargs[key]})
-
-                else:
-                    keys = ", ".join(self.parameters.keys())
-                    msg = (
-                        "Available parameters for (off-)design specification "
-                        f"of component {self.label} are: {keys}."
-                    )
-                    logger.error(msg)
-                    raise ValueError(msg)
-
-            elif key in ['local_design', 'local_offdesign',
-                         'printout', 'char_warnings', 'bypass']:
-                if not isinstance(kwargs[key], bool):
-                    msg = (
-                        f"Please provide the {key} parameters as bool for "
-                        f"component {self.label}."
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-                else:
-                    self.__dict__.update({key: kwargs[key]})
-
-            elif key == 'design_path' or key == 'fkt_group':
-                self.__dict__.update({key: kwargs[key]})
-
-                self.new_design = True
-
-            # invalid keyword
+                self._set_parameter(key, value)
+            elif key in ('design', 'offdesign'):
+                self._set_design_list(key, value)
+            elif key in ('local_design', 'local_offdesign',
+                         'printout', 'char_warnings', 'bypass'):
+                self._set_bool_attr(key, value)
+            elif key in ('design_path', 'fkt_group'):
+                self._set_path_attr(key, value)
             else:
                 msg = f"Component {self.label} has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
+
+    def _set_parameter(self, key, value):
+        try:
+            self.parameters[key].accept(value)
+        except TypeError as e:
+            msg = (
+                f"Bad datatype for keyword argument '{key}' on "
+                f"component {self.label}: {e}"
+            )
+            logger.error(msg)
+            raise TypeError(msg) from e
+
+    def _set_design_list(self, key, value):
+        if not isinstance(value, list):
+            msg = (
+                f"Please provide the {key} parameters as list for "
+                f"component {self.label}."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        if not set(value).issubset(self.parameters.keys()):
+            keys = ", ".join(self.parameters.keys())
+            msg = (
+                "Available parameters for (off-)design specification "
+                f"of component {self.label} are: {keys}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        self.__dict__[key] = value
+
+    def _set_bool_attr(self, key, value):
+        if not isinstance(value, bool):
+            msg = (
+                f"Please provide the {key} parameter as bool for "
+                f"component {self.label}."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        self.__dict__[key] = value
+        if key == 'local_offdesign' and not value:
+            self._local_connection_design_state = {}
+
+    def _set_path_attr(self, key, value):
+        self.__dict__[key] = value
+        self.new_design = True
+        if key == 'design_path' and value is None:
+            self._local_connection_design_state = {}
 
     def get_attr(self, key):
         r"""
@@ -654,16 +612,16 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
+                return self.inl[inconn].m.val_SI / self._conn_design(self.inl[inconn], 'm')
             elif param == 'm_out':
-                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
+                return self.outl[outconn].m.val_SI / self._conn_design(self.outl[outconn], 'm')
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
-                return v / self.inl[inconn].v.design
+                return v / self._conn_design(self.inl[inconn], 'v')
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
-                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                    (self.outl[outconn].p.val_SI * self._conn_design(self.inl[inconn], 'p'))
+                    / (self.inl[inconn].p.val_SI * self._conn_design(self.outl[outconn], 'p'))
                 )
             else:
                 msg = (
@@ -683,6 +641,38 @@ class Component:
                 return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
             else:
                 return False
+
+    def _conn_design(self, conn, param):
+        r"""
+        Return the design point value of a connection parameter.
+
+        When a component has an individual :code:`design_path` (either because
+        it has :code:`local_offdesign=True` in a design-mode solve, or because
+        it carries its own :code:`design_path` in an offdesign solve), the
+        adjacent connection design values are stored in
+        :code:`_local_connection_design_state` during preprocessing.  This
+        method returns those local values when available and falls back to the
+        connection's own :code:`.design` attribute otherwise.
+
+        Parameters
+        ----------
+        conn : tespy.connections.connection.Connection
+            Adjacent connection object.
+
+        param : str
+            Connection parameter name, e.g. :code:`'m'`, :code:`'p'`, :code:`'h'`,
+            :code:`'T'`, :code:`'v'`, :code:`'vol'`.
+
+        Returns
+        -------
+        float
+            Design point value in SI units.
+        """
+        if self._local_connection_design_state:
+            local_state = self._local_connection_design_state.get(conn.label)
+            if local_state is not None and param in local_state:
+                return local_state[param]
+        return getattr(conn, param).design
 
     def bus_func(self, bus):
         r"""
@@ -1070,7 +1060,7 @@ class Component:
 
         Note
         ----
-        The zeta value is caluclated on the basis of a given pressure loss at
+        The zeta value is calculated on the basis of a given pressure loss at
         a given flow rate in the design case. As the cross sectional area A
         will not change, it is possible to handle the equation in this way:
 
@@ -1095,13 +1085,22 @@ class Component:
             )
 
     def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
+        zeta_var = self.get_attr(zeta)
+        if zeta_var.is_var:
+            msg = (
+                f"The specification of {zeta} as variable is deprecated and "
+                "will be removed in the next major release."
+            )
+            logger.warning(msg)
+            warnings.warn(msg, FutureWarning)
+
         return [
             self.inl[inconn].m,
             self.inl[inconn].p,
             self.inl[inconn].h,
             self.outl[outconn].p,
             self.outl[outconn].h,
-            self.get_attr(zeta)
+            zeta_var
         ]
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):

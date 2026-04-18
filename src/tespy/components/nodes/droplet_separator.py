@@ -252,7 +252,7 @@ class DropletSeparator(NodeBase):
 
     def fluid_structure_matrix(self, k):
         r"""
-        Set the fluid strucutre matrix to force fluid composition equality.
+        Set the fluid structure matrix to force fluid composition equality.
         """
         for eq, conn in enumerate(self.outl):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
@@ -350,9 +350,9 @@ class DropletSeparator(NodeBase):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[i].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)
         }

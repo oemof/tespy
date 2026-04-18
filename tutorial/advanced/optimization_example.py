@@ -1,6 +1,5 @@
 # %%[sec_1]
 import numpy as np
-import pandas as pd
 from pymoo.algorithms.soo.nonconvex.de import DE  # https://pymoo.org/algorithms/index.html
 
 from tespy.components import CycleCloser
@@ -22,23 +21,6 @@ from tespy.models import ModelTemplate
 
 
 class SamplePlant(ModelTemplate):
-
-    def _parameter_lookup(self):
-        return {
-            "extraction pressure 1": ["Connections", "2", "p"],
-            "extraction pressure 2": ["Connections", "4", "p"],
-            "hpt power": ["Components", "high pressure turbine", "P"],
-            "hpt pressure ratio": ["Components", "high pressure turbine", "pr"],
-            "efficiency": {"get": self.calc_efficiency},
-        }
-
-    def calc_efficiency(self):
-        if self._solved:
-            return (
-                self.nw.get_conn("e7").E.val
-                / self.nw.get_conn("h1").E.val
-            )
-        return np.nan
 
     def _create_network(self):
         super()._create_network()
@@ -160,18 +142,37 @@ class SamplePlant(ModelTemplate):
         self.nw.save(self._stable_solution)
         self._solved = True
         self.nw.print_results()
-
 # %%[sec_2]
+    def _parameter_lookup(self):
+        return {
+            "extraction pressure 1": ["Connections", "2", "p"],
+            "extraction pressure 2": ["Connections", "4", "p"],
+            "hpt power": ["Components", "high pressure turbine", "P"],
+            "hpt pressure ratio": ["Components", "high pressure turbine", "pr"],
+            "efficiency": {"get": self.calc_efficiency},
+        }
+
+    def calc_efficiency(self):
+        if self._solved:
+            return (
+                self.nw.get_conn("e7").E.val
+                / self.nw.get_conn("h1").E.val
+            )
+        return np.nan
+
+    def solve_model(self, **kwargs):
+        self.solve_model_design(**kwargs)
+# %%[sec_3]
 plant = SamplePlant()
 plant.get_parameter("efficiency")
 
 num_evo = 20
-# %%[sec_3]
+# %%[sec_4]
 import os
 
 if os.getenv("GITHUB_ACTIONS") == "true" or "PYTEST_CURRENT_TEST" in os.environ:
     num_evo = 2
-# %%[sec_4]
+# %%[sec_5]
 algorithm = DE(pop_size=20)
 
 result = plant.optimize(
@@ -188,7 +189,7 @@ result = plant.optimize(
     minimize_flags=[False],
     kpi=["hpt power", "hpt pressure ratio"],
 )
-# %%[sec_5]
+# %%[sec_6]
 print(result)
 
 # plot the results
@@ -225,4 +226,4 @@ plt.tight_layout()
 
 fig.savefig("optimization_result.svg")
 print(best)
-# %%[sec_6]
+# %%[sec_7]

@@ -1,6 +1,23 @@
 v0.9.15 - Under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- A draft for a high-level :code:`tespy.model` class is available:
+  :code:`ModelTemplate`. The class provides some interfacing and orchestration
+  methods to make sensitivity analysis, cycle plotting and optimization easier.
+  For examples on how to use it please check the
+  :ref:`Integration <integration_model_class_template_label>` and
+  :ref:`Optimization <tutorial_optimization_label>` tutorials
+  (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
+- The API for :code:`OptimizationProblem` changed from nested type dictionary
+  specification to flat type dictionary specification and is fully compatible
+  to the new :code:`ModelTemplate` class.
+  **We strongly recommend to use it together with :code:`ModelTemplate`**
+  **in the future.** The :ref:`optimization <tutorial_optimization_label>`
+  tutorial has been revised accordingly
+  (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
+
 Other Changes
 #############
 - The :code:`set_attr` methods of :code:`Component` and :code:`Connection` type
@@ -18,6 +35,19 @@ Other Changes
 - There now is a quantity for :code:`pressure_difference` separate from the
   :code:`pressure` quantity. You will need to specify them individually in the
   future (`PR #942 <https://github.com/oemof/tespy/pull/942>`__).
+- :code:`T_dew` and :code:`T_bubble` are now also available as outputs
+  parameters of the connection post-processing
+  (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
+- It is possible to set or unset a :code:`UserDefinedEquation` without needing
+  to remove and add it again to a :code:`Network`, check the example in the
+  respective  :ref:`section of the docs <ude_label>`
+  (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
+- :code:`HeatExchanger` class type components now also have the
+  :code:`calc_sections` method to make QT diagrams in the same structure as
+  available in :code:`SectionedHeatExchanger`
+  (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
+- Improve performance for passing data to the :code:`Network.results`
+  dataframes (`PR #944 <https://github.com/oemof/tespy/pull/944>`__).
 
 Bug Fixes
 #########

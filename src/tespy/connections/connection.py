@@ -1364,13 +1364,13 @@ class Connection(ConnectionBase):
         if _is_variable(self.p):
             self._partial_derivative(
                 self.p, k,
-                dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
                 * self.m.val_SI
             )
         if _is_variable(self.h):
             self._partial_derivative(
                 self.h, k,
-                dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
                 * self.m.val_SI
             )
 

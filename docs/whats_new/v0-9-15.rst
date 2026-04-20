@@ -55,6 +55,9 @@ Bug Fixes
   connections adjacent to a component in :code:`local_offdesign=True` mode in
   a design simulation or with an individual :code:`design_path` in an offdesign
   simulation (`PR #943 <https://github.com/oemof/tespy/pull/943>`__).
+- Fixed a bug that prevented derivative calculation for volumetric flow of
+  gas mixtures and the postprocessing of valve type components
+  (`PR #949 <https://github.com/oemof/tespy/pull/949>`__).
 
 Contributors
 ############

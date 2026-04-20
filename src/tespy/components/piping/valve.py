@@ -20,6 +20,7 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -459,11 +460,17 @@ class Valve(Component):
         self.pr.val_SI = o.p.val_SI / i.p.val_SI
         self.dp.val_SI = i.p.val_SI - o.p.val_SI
         self.zeta.val_SI = self.calc_zeta(i, o)
-        if self.dp.val_SI > 0 and i.calc_phase() == "l":
-            self.Kv.val_SI = (
-                i.v.val_SI * 3600
-                * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
-            )
+
+        # prevent Kv calculation for mixtures
+        # TODO: support incompressible mixtures
+        fluid = single_fluid(i.fluid_data)
+        self.Kv.val_SI = np.nan
+        if fluid is not None:
+            if self.dp.val_SI > 0 and i.calc_phase() == "l":
+                self.Kv.val_SI = (
+                    i.v.val_SI * 3600
+                    * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
+                )
 
     def entropy_balance(self):
         r"""

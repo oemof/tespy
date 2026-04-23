@@ -121,7 +121,7 @@ class DropletSeparator(NodeBase):
     True
     >>> round(ds_sig.calc_Q(), 4)
     1.0
-    >>> round(abs(ds_sil.calc_Q(), 4))
+    >>> round(abs(ds_sil.calc_Q()), 4)
     0.0
 
     In a different setup, we unset pressure and enthalpy and specify gas

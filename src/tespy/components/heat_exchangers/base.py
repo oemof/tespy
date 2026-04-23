@@ -452,6 +452,14 @@ class HeatExchanger(Component):
             self.outl[0].h
         ]
 
+    def _min_ttd(self):
+        """Return the minimum of the two terminal temperature differences."""
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+        return min(i1.calc_T() - o2.calc_T(), o1.calc_T() - i2.calc_T())
+
     def calculate_td_log(self):
         i1 = self.inl[0]
         i2 = self.inl[1]
@@ -495,12 +503,17 @@ class HeatExchanger(Component):
                 T_{in,2} - T_{in,1} + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.val_SI * self.calculate_td_log()
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            # Temperature profile invalid: one terminal ΔT has gone negative.
+            # Q < 0 and kA·min_ttd < 0 → combined residual is never zero,
+            # preventing false convergence.  The min_ttd term provides a
+            # temperature-based gradient independent of the energy balance row.
+            # The residual is continuous at min_ttd = 0 because td_log → 0
+            # as min(ttd_u, ttd_l) → 0, so both branches give Q there.
+            return Q + self.kA.val_SI * min_ttd
+        return Q + self.kA.val_SI * self.calculate_td_log()
 
     def kA_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -570,13 +583,11 @@ class HeatExchanger(Component):
         fkA2 = self.kA_char2.char_func.evaluate(f2)
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        td_log = self.calculate_td_log()
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.design * fkA * td_log
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            return Q + self.kA.design * fkA * min_ttd
+        return Q + self.kA.design * fkA * self.calculate_td_log()
 
     def kA_char_dependents(self):
         return [

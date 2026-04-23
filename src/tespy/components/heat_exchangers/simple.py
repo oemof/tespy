@@ -609,8 +609,17 @@ class SimpleHeatExchanger(Component):
         """
         i = self.inl[0]
         o = self.outl[0]
-        td_log = self._calculate_td_log()
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val_SI * td_log
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            # Outlet has crossed ambient: td_log undefined (log of negative).
+            # Replace with ttd_2 directly: signs ensure the residual is never
+            # zero (Q and kA·ttd_2 have the same sign when invalid), and
+            # continuity holds because td_log → 0 as ttd_2 → 0 from the valid
+            # side, so both branches give Q at the boundary.
+            return Q + self.kA.val_SI * ttd_2
+        return Q + self.kA.val_SI * self._calculate_td_log()
 
     def kA_group_dependents(self):
         return [
@@ -660,12 +669,12 @@ class SimpleHeatExchanger(Component):
         expr = self.get_char_expr(p, **self.kA_char.char_params)
         fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
 
-        td_log = self._calculate_td_log()
-
-        return (
-            i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            + self.kA.design * fkA * td_log
-        )
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            return Q + self.kA.design * fkA * ttd_2
+        return Q + self.kA.design * fkA * self._calculate_td_log()
 
     def kA_char_group_dependents(self):
         return [

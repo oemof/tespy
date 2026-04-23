@@ -722,10 +722,10 @@ class SectionedHeatExchanger(HeatExchanger):
         UA_sections = Q_per_section / td_log_per_section
         return sum(UA_sections)
 
-    def _min_td(self):
+    @staticmethod
+    def _min_td(sections):
         """Return the minimum hot-minus-cold temperature difference."""
-        steps = self._assign_steps()
-        T_hot, T_cold = self._get_T_at_steps(steps)
+        _, T_hot, T_cold, _, _ = sections
         return np.min(T_hot - T_cold)
 
     def UA_func(self, **kwargs):
@@ -741,8 +741,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
                 0 = UA - \sum UA_{i}
         """
-        min_td = self._min_td()
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
         if min_td <= 0.0:
             # Invalid pinch: _calc_td_log_per_section clips negative td to
             # 1e-3 K, making UA_calc >> UA_target (large negative first term).
@@ -780,8 +780,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
-        min_td = self._min_td()
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)
@@ -852,8 +852,8 @@ class SectionedHeatExchanger(HeatExchanger):
                 + alpha_ratio * area_ratio * m_ratio_r ** -re_exp_r
             )
         )
-        min_td = self._min_td()
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)

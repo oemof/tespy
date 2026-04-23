@@ -252,7 +252,7 @@ class DropletSeparator(NodeBase):
 
     def fluid_structure_matrix(self, k):
         r"""
-        Set the fluid strucutre matrix to force fluid composition equality.
+        Set the fluid structure matrix to force fluid composition equality.
         """
         for eq, conn in enumerate(self.outl):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1

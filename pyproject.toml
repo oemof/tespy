@@ -27,7 +27,7 @@ exclude = [
 
 [project]
 name = "tespy"
-version = "0.9.15.dev0"
+version = "0.9.15.post1"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -50,6 +50,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "CoolProp>=6.8",
+    "fluprodia>=4.1.2",
     "jinja2",
     "matplotlib>=3.2.1",
     "numpy>=1.13.3",

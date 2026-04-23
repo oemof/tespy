@@ -668,7 +668,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         back_end : str, optional
             CoolProp back end for the AbstractState object, by default "IF97"
         """
-        # avoid unncessary loading time if not used
+        # avoid unnecessary loading time if not used
         try:
             import iapws
         except ModuleNotFoundError:

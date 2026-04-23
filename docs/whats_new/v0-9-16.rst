@@ -1,0 +1,12 @@
+v0.9.16 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- Improve convergence behavior of :code:`UA` and :code:`kA` related equations
+  of :code:`HeatExchanger` classes
+  (`PR #953 <https://github.com/oemof/tespy/pull/953>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

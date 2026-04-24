@@ -1332,11 +1332,14 @@ class Connection(ConnectionBase):
         ref = self.T_ref.ref
         return self.T_dependents() + ref.obj.T_dependents()
 
-    def calc_viscosity(self, T0=None):
+    def calc_viscosity(self, T0=None, postprocess=False):
         try:
             return viscosity_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
-        except NotImplementedError:
-            return np.nan
+        except NotImplementedError as e:
+            if postprocess:
+                return np.nan
+            else:
+                raise e
 
     def calc_vol(self, T0=None):
         try:
@@ -1644,7 +1647,7 @@ class Connection(ConnectionBase):
                 self.phase.val = "phase not recognized"
 
         if _converged:
-            self.vol.val_SI = self.calc_vol()
+            self.vol.val_SI = self.calc_vol(postprocess=True)
             self.v.val_SI = self.vol.val_SI * self.m.val_SI
             self.s.val_SI = self.calc_s()
 

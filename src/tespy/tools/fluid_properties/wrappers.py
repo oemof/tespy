@@ -808,8 +808,14 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
-        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
+
+        if self.back_end == "mp":
+            self._T_crit, self._p_crit = self.AS.critical()
+        else:
+            self._T_crit = self._T_max
+            self._p_crit = self._p_max
+
         self._molar_mass = self.AS.mw()
 
     def isentropic(self, p_1, h_1, p_2):

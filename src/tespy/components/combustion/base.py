@@ -843,6 +843,12 @@ class CombustionChamber(Component):
             )
 
         res += self.calc_ti()
+        if self.f_nox.is_set:
+            # NO is endothermal reaction 90.3 kJ/mol
+            NO_in = sum(i.fluid.val.get(self.no, 0) * i.m.val_SI for i in inl)
+            o = self.outl[0]
+            NO_out = o.fluid.val.get(self.no, 0) * o.m.val_SI  # kg / s
+            res -= 90.30 * 1e3 * (NO_out - NO_in) / o.fluid.wrappers[self.no]._molar_mass #mol/kg
         return res
 
     def energy_balance_dependents(self):

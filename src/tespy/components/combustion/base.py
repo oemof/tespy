@@ -848,7 +848,10 @@ class CombustionChamber(Component):
             NO_in = sum(i.fluid.val.get(self.no, 0) * i.m.val_SI for i in inl)
             o = self.outl[0]
             NO_out = o.fluid.val.get(self.no, 0) * o.m.val_SI  # kg / s
-            res -= 90.30 * 1e3 * (NO_out - NO_in) / o.fluid.wrappers[self.no]._molar_mass #mol/kg
+            res -= (
+                90.30 * 1e3 * (NO_out - NO_in)  # J/mol * kg/s
+                / o.fluid.wrapper[self.no]._molar_mass # kg / mol
+            )
         return res
 
     def energy_balance_dependents(self):

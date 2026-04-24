@@ -50,7 +50,7 @@ class TestCombustion:
 
     def setup_CombustionChamber_network_wNO(self, instance):
         self.cp = Compressor("Compressor")
-        
+
         self.c1 = Connection(self.air, 'out1', instance, 'in1', label="air")
         self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
         self.c3 = Connection(instance, 'out1', self.cp, 'in1', label="heated air")
@@ -170,10 +170,9 @@ class TestCombustion:
         self.setup_CombustionChamber_network_wNO(instance)
 
         # connection parameter specification
-        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129, 'ig::NO':0.0}
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         fuel = {'CO2': 0.04, 'CH4': 0.96}
-        self.c1.set_attr(fluid=air, fluid_engines={"NO": my_PyromatWrapper},
-                          p=1, T=30)
+        self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
         instance.set_attr(lamb=1.5)
         self.cp.set_attr(eta_s=0.8, pr=10)

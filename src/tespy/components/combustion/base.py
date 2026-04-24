@@ -680,11 +680,11 @@ class CombustionChamber(Component):
         elif fluid == self.o2:
             if self.lamb.val_SI < 1:
                 dn = -n_oxygen
-            elif n_nitrogen >= n_nox_param *0.5:
+            elif n_nitrogen >= n_nox_param * 0.5:
                 # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
                 # NO formation as defined in parameter f_nox
                 dn = -(
-                    n_oxygen / self.lamb.val_SI - n_nox_param  *0.5
+                    n_oxygen / self.lamb.val_SI - n_nox_param * 0.5
                 )
             else:
                 # limitation due to nitrogen shortage. All nitrogen is converted to NO

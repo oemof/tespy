@@ -173,39 +173,30 @@ class TestCombustion:
         air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
         fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1, T=30)
-        self.c2.set_attr(fluid=fuel, T=30)
+        self.c2.set_attr(fluid=fuel, T=30, m=0.2)
         instance.set_attr(lamb=1.5)
         self.cp.set_attr(eta_s=0.8, pr=10)
-        # test specified bus value on CombustionChamber (must be equal to ti)
-        b = Bus('thermal input', P=1e6)
-        b.add_comps({'comp': instance})
-        self.nw.add_busses(b)
         self.nw.solve('design')
+
         self.c3.set_attr(T=1200)
         instance.set_attr(lamb=None)
         self.nw.solve('design')
-        assert self.nw.status == 0
         self.nw.assert_convergence()
-        msg = f'Value of thermal input must be {b.P.val}, is {instance.ti.val}.'
-        assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
-        b.set_attr(P=None)
+        m_in1 = self.c1.m.val_SI
+        m_in2 = self.c2.m.val_SI
 
-        # test specified thermal input for CombustionChamber
-        instance.set_attr(ti=1e6, f_nox=0.005)
+        # test specification of f_nox == 0: Must be same result
+        instance.set_attr(f_nox=0.0)
         self.nw.solve('design')
-        self.nw.assert_convergence()
-        ti = (
-            self.c2.m.val_SI * self.c2.fluid.val['CH4']
-            * instance.fuels['CH4']['LHV']
-        )
-        msg = f'Value of thermal input must be {instance.ti.val}, is {ti}.'
-        assert round(ti, 1) == round(instance.ti.val, 1), msg
+        assert pytest.approx(m_in1) == self.c1.m.val_SI
+        assert pytest.approx(m_in2) == self.c2.m.val_SI
+        assert pytest.approx(self.c3.fluid.val["NO"]) == 0
 
-        # test specified lamb for CombustionChamber
-        self.c3.set_attr(T=None)
-        instance.set_attr(lamb=1)
+        # test specification of f_nox > 0
+        instance.set_attr(f_nox=0.01)
         self.nw.solve('design')
-        self.nw.assert_convergence()
+        # here we need to actually check what is the expected result
+        assert False
 
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')
@@ -385,8 +376,10 @@ class TestCombustion:
         Q.set_attr(P=1.5 * instance.Q1.val)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        heat = (self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
-                self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
+        heat = (
+            self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
+            self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
+        )
         msg = f'Value of total heat output must be {Q.P.val}, is {-heat}.'
         assert round(Q.P.val, 1) == -round(heat, 1), msg
 

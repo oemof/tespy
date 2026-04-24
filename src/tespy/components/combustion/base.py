@@ -201,14 +201,14 @@ class CombustionChamber(Component):
                 func=self.ti_func,
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
-                quantity="heat"
+                quantity="heat",
+                description="thermal input of fuel: lower heating value multipled with mass flow"
             ),
-            'f_nox': dc_cp(
-                func=self.stoichiometry_func,
-                dependents=self.stoichiometry_dependents,
-                #num_eq_sets=1,
+            "f_nox": dc_cp(
                 quantity="ratio",
-                min_val=1e-9, max_val=1,
+                min_val=0,
+                max_val=1,
+                description="generation rate of NO in flue gas, only active if value is explicitly set"
             ),
         }
 
@@ -277,7 +277,10 @@ class CombustionChamber(Component):
     def setup_reaction_parameters(self):
         r"""Setup parameters for reaction (gas name aliases and LHV)."""
         self.fuel_list = []
-        all_fluids = {f: c.fluid.engine[f] for c in self.inl + self.outl for f in c.fluid.val }
+        all_fluids = {
+            f: c.fluid.engine[f]
+            for c in self.inl + self.outl for f in c.fluid.val
+        }
         for f in all_fluids.keys():
             if issubclass(all_fluids[f], CoolPropWrapper) or all_fluids[f] is None:
                 if fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids.keys()):
@@ -396,7 +399,7 @@ class CombustionChamber(Component):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
             if self.f_nox.is_set:
-                return ["H2O", "CO2","NO"]
+                return ["H2O", "CO2", "NO"]
             else:
                 return ["H2O", "CO2"]
         else:

@@ -648,8 +648,10 @@ class Compressor(Turbomachine):
             self.E_F = self.P.val + (
                 self.inl[0].Ex_therm - self.outl[0].Ex_therm)
         else:
-            msg = ('Exergy balance of a compressor, where outlet temperature '
-                   'is smaller than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a compressor, where outlet temperature '
+                'is smaller than inlet temperature is not implmented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

@@ -21,6 +21,7 @@ from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
+from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
@@ -138,7 +139,7 @@ class HeatExchanger(Component):
         Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -452,6 +453,14 @@ class HeatExchanger(Component):
             self.outl[0].h
         ]
 
+    def _min_ttd(self):
+        """Return the minimum of the two terminal temperature differences."""
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+        return min(i1.calc_T() - o2.calc_T(), o1.calc_T() - i2.calc_T())
+
     def calculate_td_log(self):
         i1 = self.inl[0]
         i2 = self.inl[1]
@@ -495,12 +504,17 @@ class HeatExchanger(Component):
                 T_{in,2} - T_{in,1} + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.val_SI * self.calculate_td_log()
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            # Temperature profile invalid: one terminal ΔT has gone negative.
+            # Q < 0 and kA·min_ttd < 0 → combined residual is never zero,
+            # preventing false convergence.  The min_ttd term provides a
+            # temperature-based gradient independent of the energy balance row.
+            # The residual is continuous at min_ttd = 0 because td_log → 0
+            # as min(ttd_u, ttd_l) → 0, so both branches give Q there.
+            return Q + self.kA.val_SI * min_ttd
+        return Q + self.kA.val_SI * self.calculate_td_log()
 
     def kA_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -570,13 +584,11 @@ class HeatExchanger(Component):
         fkA2 = self.kA_char2.char_func.evaluate(f2)
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        td_log = self.calculate_td_log()
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.design * fkA * td_log
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            return Q + self.kA.design * fkA * min_ttd
+        return Q + self.kA.design * fkA * self.calculate_td_log()
 
     def kA_char_dependents(self):
         return [
@@ -695,7 +707,7 @@ class HeatExchanger(Component):
         Returns
         -------
         float
-            Maxmium cold side enthalpy increase.
+            Maximum cold side enthalpy increase.
 
             .. math::
 
@@ -742,7 +754,7 @@ class HeatExchanger(Component):
         Returns
         -------
         float
-            Maxmium hot side enthalpy decrease.
+            Maximum hot side enthalpy decrease.
 
             .. math::
 
@@ -1050,8 +1062,8 @@ class HeatExchanger(Component):
 
         As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
-        on how specific volume and pressure change throught the component, the
-        heat transfer is splitted into three separate virtual processes for
+        on how specific volume and pressure change throughout the component, the
+        heat transfer is split into three separate virtual processes for
         both sides:
 
         - in->in*: decrease pressure to
@@ -1248,3 +1260,143 @@ class HeatExchanger(Component):
                 'ending_point_property': 'vol',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)}
+
+    @staticmethod
+    def _get_Q_sections(h_at_steps, mass_flow):
+        """Calculate the heat exchange of every section given steps of
+        enthalpy and mass flow.
+
+        Parameters
+        ----------
+        h_at_steps : list
+            Enthalpy values at sections (inlet, phase change points, outlet)
+        mass_flow : float
+            Mass flow value
+
+        Returns
+        -------
+        float
+            Heat exchanged between defined steps of enthalpy.
+        """
+        return np.diff(h_at_steps) * mass_flow
+
+    @staticmethod
+    def _assign_to_steps(start, end, steps):
+        return start + steps * (end - start)
+
+    def _get_Q_cumsum_steps(self, steps):
+        """Assign the sections of the heat exchanger
+
+        Returns
+        -------
+        list
+            List of cumulative sum of heat exchanged defining the heat exchanger
+            sections.
+        """
+        start = self.outl[0].h.val_SI
+        end = self.inl[0].h.val_SI
+
+        h_steps_hot = self._assign_to_steps(start, end, steps)
+        Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
+        return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
+
+    def _assign_steps(self):
+        """Assign the sections of the heat exchanger
+
+        Returns
+        -------
+        list
+            List of cumulative sum of heat exchanged defining the heat exchanger
+            sections.
+        """
+        return np.array([0, 1])
+
+    def _get_T_at_steps(self, steps):
+        """Calculate the temperature values for the provided sections.
+
+        Parameters
+        ----------
+        Q_sections : list
+            Cumulative heat exchanged from the hot side to the cold side
+            defining the sections of the heat exchanger.
+
+        Returns
+        -------
+        tuple
+            Lists of cold side and hot side temperature
+        """
+        h_steps_hot = self._assign_to_steps(
+            self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
+        )
+        p_steps_hot = self._assign_to_steps(
+            self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
+        )
+
+        h_steps_cold = self._assign_to_steps(
+            self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
+        )
+        p_steps_cold = self._assign_to_steps(
+            self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
+        )
+
+        T_steps_hot = np.array([
+            T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
+            for p, h in zip(p_steps_hot, h_steps_hot)
+        ])
+        T_steps_cold = np.array([
+            T_mix_ph(p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
+            for p, h in zip(p_steps_cold, h_steps_cold)
+        ])
+        return T_steps_hot, T_steps_cold
+
+    @staticmethod
+    def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
+        """Calculate the logarithmic temperature difference values per section
+        of heat exchanged.
+
+        Parameters
+        ----------
+        T_steps_hot : list
+            Temperature hot side at beginning and end of sections.
+
+        T_steps_cold : list
+            Temperature cold side at beginning and end of sections.
+
+        Returns
+        -------
+        list
+            Lists of temperature differences per section of heat exchanged.
+        """
+        td_at_steps = T_steps_hot - T_steps_cold
+        if postprocess:
+            if (td_at_steps <= 0).any():
+                return np.ones(len(td_at_steps) - 1) * np.nan
+        td_at_steps[td_at_steps <= 0] = 1e-3
+        return np.array([
+            (td_at_steps[i + 1] - td_at_steps[i])
+            / math.log(td_at_steps[i + 1] / td_at_steps[i])
+            # round is required because tiny differences may cause
+            # inconsistencies due to rounding errors
+            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
+            else td_at_steps[i + 1]
+            for i in range(len(td_at_steps) - 1)
+        ])
+
+    def calc_sections(self, postprocess=True):
+        """Calculate the sections of the heat exchanger. For the base class,
+        these are only points at the edges
+
+        Returns
+        -------
+        tuple
+            Cumulated heat transfer over sections, temperature at steps hot
+            side, temperature at steps cold side, heat transfer per section
+        """
+        steps = self._assign_steps()
+        Q_sections = self._get_Q_cumsum_steps(steps)
+        T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
+        Q_per_section = np.diff(Q_sections)
+        td_log_per_section = self._calc_td_log_per_section(
+            T_steps_hot, T_steps_cold, postprocess
+        )
+        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section

@@ -74,7 +74,7 @@ class DataContainer:
       :py:class:`tespy.tools.data_containers.ComponentCharacteristicMaps`
     - component properties
       :py:class:`tespy.tools.data_containers.ComponentProperties`
-    - grouped component properites
+    - grouped component properties
       :py:class:`tespy.tools.data_containers.GroupedComponentProperties`
     - fluid composition
       :py:class:`tespy.tools.data_containers.FluidComposition`

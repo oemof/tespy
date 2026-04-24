@@ -473,8 +473,8 @@ class Connection(ConnectionBase):
     >>> type(so_si1.fluid)
     <class 'tespy.tools.data_containers.FluidComposition'>
 
-    If you want get a spcific value use the logic: connection.property.*.
-    Aditionally, it is possible to use the :code:`get_attr` method.
+    If you want get a specific value use the logic: connection.property.*.
+    Additionally, it is possible to use the :code:`get_attr` method.
 
     >>> so_si1.m.val0
     10
@@ -1364,13 +1364,13 @@ class Connection(ConnectionBase):
         if _is_variable(self.p):
             self._partial_derivative(
                 self.p, k,
-                dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                dv_mix_dph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
                 * self.m.val_SI
             )
         if _is_variable(self.h):
             self._partial_derivative(
                 self.h, k,
-                dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data)
+                dv_mix_pdh(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
                 * self.m.val_SI
             )
 
@@ -1620,18 +1620,18 @@ class Connection(ConnectionBase):
                     self.x.val_SI = np.nan
 
                 try:
-                    self.Td_bp.val_SI = self.calc_Td_bp()
-                except ValueError:
+                    T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
+                    # T_sat = T_bubble!
+                    T_dew = T_dew_p(self.p.val_SI, self.fluid_data)
+                    self.td_dew.val_SI = self.T.val_SI - T_dew
+                    self.td_bubble.val_SI = T_bubble - self.T.val_SI
+                    self.Td_bp.val_SI = self.T.val_SI - T_bubble
+                    self.T_bubble.val_SI = T_bubble
+                    self.T_dew.val_SI = T_dew
+
+                except (ValueError, NotImplementedError):
                     self.Td_bp.val_SI = np.nan
-
-                try:
-                    self.td_dew.val_SI = self.calc_td_dew()
-                except ValueError:
                     self.td_dew.val_SI = np.nan
-
-                try:
-                    self.td_bubble.val_SI = self.calc_td_bubble()
-                except ValueError:
                     self.td_bubble.val_SI = np.nan
 
                 try:
@@ -1734,7 +1734,7 @@ class Connection(ConnectionBase):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp", "td_dew", "td_bubble"]
+        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp", "td_dew", "td_bubble", "T_dew", "T_bubble"]
 
     @classmethod
     def _get_result_cols(cls, all_fluids):

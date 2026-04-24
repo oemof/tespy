@@ -408,6 +408,11 @@ class CombustionChamber(Component):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
             if self.f_nox.is_set:
+                if "NO" not in outl[0].fluid.engine:
+                    outl[0].fluid.engine["NO"] = PyromatWrapper
+                    outl[0].fluid.back_end["NO"] = "ig"
+                    outl[0].fluid.val["NO"] = 0.0001
+
                 return ["H2O", "CO2", "NO"]
             else:
                 return ["H2O", "CO2"]

@@ -852,8 +852,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         return self.AS.s(p=p, h=h)[0]
 
     def s_pT(self, p, T):
-        if self.back_end == "ig":
-            self._not_implemented()
         return self.AS.s(p=p, T=T)[0]
 
     def h_QT(self, Q, T):
@@ -870,16 +868,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.s(x=Q, T=T)[0]
-
-    def T_boiling(self, p):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.T(x=1, p=p)[0]
-
-    def p_boiling(self, T):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.p(x=1, T=T)[0]
 
     def Q_ph(self, p, h):
         if self.back_end == "ig":

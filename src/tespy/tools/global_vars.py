@@ -89,16 +89,21 @@ fluid_property_data = {
 
 
 class FluidAliases:
+    # this method should be able to handle different wrappers:
+    # if not in CoolProp just take whatever the fluid name is
 
     def __init__(self):
         self.fluids = {}
 
     def get_fluid(self, fluid):
         if fluid not in self.fluids:
-            self.fluids[fluid] = set(
-                alias.replace(" ", "")
-                for alias in CP.CoolProp.get_aliases(fluid)
-            )
+            try:
+                self.fluids[fluid] = set(
+                    alias.replace(" ", "")
+                    for alias in CP.CoolProp.get_aliases(fluid)
+                )
+            except RuntimeError:
+                self.fluids[fluid] = set([fluid])
 
         return self.fluids[fluid]
 

@@ -1341,11 +1341,14 @@ class Connection(ConnectionBase):
             else:
                 raise e
 
-    def calc_vol(self, T0=None):
+    def calc_vol(self, T0=None, postprocess=False):
         try:
             return v_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule, T0=T0)
-        except NotImplementedError:
-            return np.nan
+        except NotImplementedError as e:
+            if postprocess:
+                return np.nan
+            else:
+                raise e
 
     def v_func(self, **kwargs):
         r"""Equation for volumetric flow specification :math:`\dot V`

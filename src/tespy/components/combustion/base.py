@@ -307,20 +307,29 @@ class CombustionChamber(Component):
             )
             logger.debug(msg)
 
-        for fluid in ["O2", "CO2", "H2O", "N2"]:
+        self.no = None
+        other_fluids = ["O2", "CO2", "H2O", "N2"]
+        if self.f_nox.is_set:
+            other_fluids += ["NO"]
+
+        for fluid in other_fluids:
             if not fluidalias_in_list(fluid, all_fluids):
                 aliases = ", ".join(FLUID_ALIASES.get_fluid(fluid))
                 msg = (
                     f"The component {self.label} (class "
                     f"{self.__class__.__name__}) requires that the fluid "
-                    f"{fluid} (aliases: {aliases}) is in the network's list "
-                    "of fluids."
+                    f"{fluid} (aliases: {aliases}) is in list of fluids "
+                    "associated with adjacent connections."
                 )
                 logger.error(msg)
                 raise TESPyComponentError(msg)
             else:
                 setattr(self, fluid.lower(), fluid)
-        setattr(self, "no", "NO")
+
+        self._reactive_fluids = (
+            list(self.fuel_list)
+            + [self.co2, self.o2, self.h2o, self.n2, self.no]
+        )
 
         self.fuels = {}
         for f in self.fuel_list:
@@ -582,8 +591,7 @@ class CombustionChamber(Component):
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
 
-
-        if fluid in list(self.fuel_list) + [self.co2, self.o2, self.h2o, self.n2, self.no]:
+        if fluid in self._reactive_fluids:
             ###################################################################
             # molar mass flow for fuel and oxygen
             n_fuel = {}

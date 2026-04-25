@@ -22,6 +22,7 @@ from time import time
 import numpy as np
 import pandas as pd
 from numpy.linalg import norm
+from scipy.optimize import brentq
 from tabulate import tabulate
 
 from tespy.components import CycleCloser
@@ -2942,11 +2943,14 @@ class Network:
         """Find the increment for variable col that reduces equation row's
         residual.
 
-        Searches both +/- directions independently with increasing step size
-        (up to 10 iterations each). Each side is searched only until it first
-        shows a residual change - escaping the flat two-phase plateau. Once
-        both sides have reacted, the gradient direction (lower residual) is
-        chosen. If only one side reacts within the budget, that side is used.
+        Searches both +/- directions with geometrically growing step sizes
+        (x2 per iteration, up to 20 iterations each). Prefers the side that
+        produces a sign change in the residual — which guarantees a root in
+        the bracket [x0, x0±d] by the IVT — and refines its location with
+        Brent's method. If both sides bracket a root, the tighter one (smaller
+        |r| at the probe point) is used. Falls back to a secant step if
+        brentq raises, and to the lower-magnitude heuristic when neither side
+        yields a sign change.
 
         Returns the step to add to the variable, or None if neither direction
         improves the residual.
@@ -2977,8 +2981,8 @@ class Network:
                 return result[sub_idx] if sub_idx < len(result) else result[0]
             return result
 
-        d = abs(x0) * 0.1
-        # Record (step_d, residual) at the first d where each side reacts
+        # Guard against x0 == 0 producing a zero initial step
+        d = max(abs(x0) * 0.1, 1e-3)
         found_plus = None
         found_minus = None
 
@@ -2995,9 +2999,38 @@ class Network:
 
             if found_plus is not None and found_minus is not None:
                 break
-            d *= 1.2
+            d *= 2
 
-        # Pick the side with the lower residual magnitude as the gradient direction
+        plus_sign_change = found_plus is not None and r0 * found_plus[1] < 0
+        minus_sign_change = found_minus is not None and r0 * found_minus[1] < 0
+
+        if plus_sign_change or minus_sign_change:
+            # Both sides bracket a root: prefer the tighter probe (smaller |r|)
+            if plus_sign_change and minus_sign_change:
+                plus_d, plus_r = found_plus
+                minus_d, minus_r = found_minus
+                if abs(plus_r) <= abs(minus_r):
+                    sign, step_d, r_val = +1, plus_d, plus_r
+                else:
+                    sign, step_d, r_val = -1, minus_d, minus_r
+            elif plus_sign_change:
+                sign, step_d, r_val = +1, found_plus[0], found_plus[1]
+            else:
+                sign, step_d, r_val = -1, found_minus[0], found_minus[1]
+
+            a = x0
+            b = x0 + sign * step_d
+            try:
+                tol = max(abs(x0) * 1e-6, 1e-10)
+                x_root = brentq(eval_r, min(a, b), max(a, b), xtol=tol)
+                return x_root - x0
+            except Exception:
+                pass
+
+            # Secant fallback: linear interpolation between x0 and the probe
+            return sign * step_d * (-r0) / (r_val - r0)
+
+        # No sign change found — fall back to lower-magnitude direction
         if found_plus is None and found_minus is None:
             return None
         if found_plus is None:

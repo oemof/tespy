@@ -109,7 +109,7 @@ class Node(Splitter, Merge):
     >>> nw.add_conns(c1, c2, c3, c4)
 
     We can parametrize the system, for example, to preheat 50 kg/s of water.
-    The system will then identify, what amout of extraction steam is required
+    The system will then identify, what amount of extraction steam is required
     to preheat the water to the saturated liquid state. Apart from the inlet
     states we have to add one mass flow specification to define the split
     ratio between the two outlets.
@@ -117,7 +117,7 @@ class Node(Splitter, Merge):
     .. note::
 
         The enthalpy of the fluid will be identical at all exits. If you want
-        to have separation of phasey, you have to use a `DropletSeparator`
+        to have separation of phases, you have to use a `DropletSeparator`
         downstream of this component.
 
     >>> c1.set_attr(fluid={"water": 1}, m=50, p=3, T=50)

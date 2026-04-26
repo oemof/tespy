@@ -154,7 +154,7 @@ def darcy_friction_factor(re, ks, d):
         Pipe roughness ks / m.
 
     d : float
-        Pipe diameter/characteristic lenght d / m.
+        Pipe diameter/characteristic length d / m.
 
     Returns
     -------
@@ -336,7 +336,7 @@ def prandtl_karman_derivative(reynolds, darcy_friction_factor, **kwargs):
 
 def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
     """
-    Calculate friction coefficient accroding to Colebrook-White equation.
+    Calculate friction coefficient according to Colebrook-White equation.
 
     Applied in transition zone and rough conditions.
 

@@ -119,10 +119,10 @@ class SteamTurbine(Turbine):
     Example
     -------
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
-    to 0,5 bar at the outlet. For example, it is possible to calulate the power
-    output and vapour content at the outlet for a given isentropic efficiency.
-    The :code:`SteamTurbine` class follows the implementation of the Baumann
-    rule :cite:`Tanuma2017`
+    to 0,5 bar at the outlet. For example, it is possible to calculate the
+    power output and vapour content at the outlet for a given isentropic
+    efficiency. The :code:`SteamTurbine` class follows the implementation of
+    the Baumann rule :cite:`Tanuma2017`
 
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
@@ -173,7 +173,7 @@ class SteamTurbine(Turbine):
         params["eta_s_dry_group"] = dc_gcp(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
-            dependents=self.eta_s_dependents,  # same depedents!
+            dependents=self.eta_s_dependents,  # same dependents!
             description="method to apply Baumann rule"
         )
 

@@ -115,8 +115,9 @@ class Turbine(Turbomachine):
     Example
     -------
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
-    to 0,5 bar at the outlet. For example, it is possible to calulate the power
-    output and vapour content at the outlet for a given isentropic efficiency.
+    to 0,5 bar at the outlet. For example, it is possible to calculate the
+    power output and vapour content at the outlet for a given isentropic
+    efficiency.
 
     >>> from tespy.components import Sink, Source, Turbine
     >>> from tespy.connections import Connection
@@ -538,8 +539,10 @@ class Turbine(Turbomachine):
                 self.outl[0].Ex_therm - self.inl[0].Ex_therm)
             self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
         else:
-            msg = ('Exergy balance of a turbine, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a turbine, where outlet temperature is '
+                'larger than inlet temperature is not implemented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

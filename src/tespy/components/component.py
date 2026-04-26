@@ -1060,7 +1060,7 @@ class Component:
 
         Note
         ----
-        The zeta value is caluclated on the basis of a given pressure loss at
+        The zeta value is calculated on the basis of a given pressure loss at
         a given flow rate in the design case. As the cross sectional area A
         will not change, it is possible to handle the equation in this way:
 

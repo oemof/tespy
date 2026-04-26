@@ -100,7 +100,7 @@ class Bus:
     pressure before pump. The flue gases of the combustion engine should leave
     the flue gas cooler at 120 °C. For a good start we specify the cooling water
     mass flow in the first simulation run. Then we will solve a second time and
-    swtich the specification to the temperature value.
+    switch the specification to the temperature value.
 
     >>> fgc_cw.set_attr(p=Ref(cw_pu, 1, 0), T=90)
 
@@ -315,7 +315,7 @@ class Bus:
             - You do not need to provide a parameter, if the component only has
               one option for the bus (turbomachines, heat exchangers,
               combustion chamber).
-            - For instance, you do neet do provide a parameter, if you want to
+            - For instance, you do need do provide a parameter, if you want to
               add a combustion engine ('Q', 'Q1', 'Q2', 'TI', 'P', 'Qloss').
 
         - char (float/tespy.components.characteristics.characteristics):

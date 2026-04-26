@@ -160,7 +160,7 @@ class Pump(Turbomachine):
     >>> nw.add_conns(inc, outg)
 
     After that we calculate offdesign performance using the pump curve and a
-    characteristic function for the pump efficiency. We can calulate the
+    characteristic function for the pump efficiency. We can calculate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
     :ref:`tespy.data <data_label>` module. Of course you are able to
@@ -294,13 +294,14 @@ class Pump(Turbomachine):
         guess can (but does not necessarily) help. Instead, we can also
         re-create the characteristic maps, and this time provide the
         :code:`extrapolate` keyword. It will extrapolate beyond the component
-        map and thus produce non-zero derivatives. Typically, this is not only
-        necessary for the head map.
+        map and thus produce non-zero derivatives.
+        TODO: Update this docs part, Jacobian is not a problem anymore but
+        non-extrapolation leads to non-convergence.
 
     >>> outg.set_attr(p=1.2)
     >>> nw.solve("design")
-    >>> nw.status == 3  # check if status is linear dependency
-    True
+    >>> nw.status  # check status variable of the network, 2: non-convergence
+    2
 
     >>> pump_H_map = CharMap(
     ...     x=frequencies,
@@ -929,8 +930,10 @@ class Pump(Turbomachine):
             self.E_F = self.P.val + (
                 self.inl[0].Ex_therm - self.outl[0].Ex_therm)
         else:
-            msg = ('Exergy balance of a pump, where outlet temperature is '
-                   'smaller than inlet temperature is not implmented.')
+            msg = (
+                'Exergy balance of a pump, where outlet temperature is '
+                'smaller than inlet temperature is not implemented.'
+            )
             logger.warning(msg)
             self.E_P = np.nan
             self.E_F = np.nan

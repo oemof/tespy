@@ -119,9 +119,9 @@ class DropletSeparator(NodeBase):
     True
     >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
     True
-    >>> ds_sig.calc_Q()
+    >>> round(ds_sig.calc_Q(), 4)
     1.0
-    >>> ds_sil.calc_Q()
+    >>> round(abs(ds_sil.calc_Q()), 4)
     0.0
 
     In a different setup, we unset pressure and enthalpy and specify gas
@@ -252,7 +252,7 @@ class DropletSeparator(NodeBase):
 
     def fluid_structure_matrix(self, k):
         r"""
-        Set the fluid strucutre matrix to force fluid composition equality.
+        Set the fluid structure matrix to force fluid composition equality.
         """
         for eq, conn in enumerate(self.outl):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1

@@ -134,10 +134,10 @@ class Condenser(HeatExchanger):
 
     ttd_u : float, dict
         Upper terminal temperature difference (referring to saturation
-        temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+        temperature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.

@@ -327,6 +327,7 @@ class SectionedHeatExchanger(HeatExchanger):
     offdesign operation as mass flow varies.
 
     This two-stage approach improves convergence:
+
     - **Stage 1**: Design with fixed pressures to establish initial guess
       values
     - **Stage 2**: Offdesign with characteristic line scaling for part-load
@@ -387,30 +388,30 @@ class SectionedHeatExchanger(HeatExchanger):
     ...     T=10
     ... )
 
-   Specify water outlet temperature target at 60°C:
+    Specify water outlet temperature target at 60°C:
 
-   >>> c12.set_attr(T=60)
+    >>> c12.set_attr(T=60)
 
-   Configure heat exchanger with fixed pressures and initial pinch point:
+    Configure heat exchanger with fixed pressures and initial pinch point:
 
-   >>> hx.set_attr(
-   ...     td_pinch=20,
-   ...     pr1=1,
-   ...     pr2=1,
-   ...     num_sections=10
-   ... )
+    >>> hx.set_attr(
+    ...     td_pinch=20,
+    ...     pr1=1,
+    ...     pr2=1,
+    ...     num_sections=10
+    ... )
 
-   Solve the design point and save results:
+    Solve the design point and save results:
 
-   >>> nw.solve('design')
-   >>> nw.save("design_trans_hx.json")
+    >>> nw.solve('design')
+    >>> nw.save("design_trans_hx.json")
 
-   After design computation, the CO2 outlet state is:
+    After design computation, the CO2 outlet state is:
 
-   >>> round(c2.p.val, 1)
-   165.0
-   >>> round(c2.T.val, 1)
-   30.0
+    >>> round(c2.p.val, 1)
+    165.0
+    >>> round(c2.T.val, 1)
+    30.0
 
     **Stage 2: Offdesign analysis with kA_char characteristic scaling**
 
@@ -691,45 +692,6 @@ class SectionedHeatExchanger(HeatExchanger):
 
         return h_at_steps
 
-    @staticmethod
-    def _get_Q_sections(h_at_steps, mass_flow):
-        """Calculate the heat exchange of every section given steps of
-        enthalpy and mass flow.
-
-        Parameters
-        ----------
-        h_at_steps : list
-            Enthalpy values at sections (inlet, phase change points, outlet)
-        mass_flow : float
-            Mass flow value
-
-        Returns
-        -------
-        float
-            Heat exchanged between defined steps of enthalpy.
-        """
-        return np.diff(h_at_steps) * mass_flow
-
-    @staticmethod
-    def _assign_to_steps(start, end, steps):
-        return start + steps * (end - start)
-
-    def _get_Q_cumsum_steps(self, steps):
-        """Assign the sections of the heat exchanger
-
-        Returns
-        -------
-        list
-            List of cumulative sum of heat exchanged defining the heat exchanger
-            sections.
-        """
-        start = self.outl[0].h.val_SI
-        end = self.inl[0].h.val_SI
-
-        h_steps_hot = self._assign_to_steps(start, end, steps)
-        Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
-        return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
-
     def _assign_steps(self):
         """Assign the sections of the heat exchanger
 
@@ -748,97 +710,6 @@ class SectionedHeatExchanger(HeatExchanger):
         steps = np.unique(np.r_[steps, steps_hot, steps_cold])
         return steps
 
-    def _get_T_at_steps(self, steps):
-        """Calculate the temperature values for the provided sections.
-
-        Parameters
-        ----------
-        Q_sections : list
-            Cumulative heat exchanged from the hot side to the cold side
-            defining the sections of the heat exchanger.
-
-        Returns
-        -------
-        tuple
-            Lists of cold side and hot side temperature
-        """
-        h_steps_hot = self._assign_to_steps(
-            self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
-        )
-        p_steps_hot = self._assign_to_steps(
-            self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
-        )
-
-        h_steps_cold = self._assign_to_steps(
-            self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
-        )
-        p_steps_cold = self._assign_to_steps(
-            self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
-        )
-
-        T_steps_hot = np.array([
-            T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
-            for p, h in zip(p_steps_hot, h_steps_hot)
-        ])
-        T_steps_cold = np.array([
-            T_mix_ph(p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-            for p, h in zip(p_steps_cold, h_steps_cold)
-        ])
-        return T_steps_hot, T_steps_cold
-
-    @staticmethod
-    def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
-        """Calculate the logarithmic temperature difference values per section
-        of heat exchanged.
-
-        Parameters
-        ----------
-        T_steps_hot : list
-            Temperature hot side at beginning and end of sections.
-
-        T_steps_cold : list
-            Temperature cold side at beginning and end of sections.
-
-        Returns
-        -------
-        list
-            Lists of temperature differences per section of heat exchanged.
-        """
-        if postprocess:
-            td_at_steps = T_steps_hot - T_steps_cold
-            if (td_at_steps <= 0).any():
-                return np.ones(len(td_at_steps) - 1) * np.nan
-        # the temperature ranges both come with increasing values
-        td_at_steps = np.abs(T_steps_hot - T_steps_cold)
-
-        return np.array([
-            (td_at_steps[i + 1] - td_at_steps[i])
-            / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            # round is required because tiny differences may cause
-            # inconsistencies due to rounding errors
-            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
-            else td_at_steps[i + 1]
-            for i in range(len(td_at_steps) - 1)
-        ])
-
-    def calc_sections(self, postprocess=True):
-        """Calculate the sections of the heat exchanger.
-
-        Returns
-        -------
-        tuple
-            Cumulated heat transfer over sections, temperature at steps hot
-            side, temperature at steps cold side, heat transfer per section
-        """
-        steps = self._assign_steps()
-        Q_sections = self._get_Q_cumsum_steps(steps)
-        T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
-        Q_per_section = np.diff(Q_sections)
-        td_log_per_section = self._calc_td_log_per_section(
-            T_steps_hot, T_steps_cold, postprocess
-        )
-        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
-
     def calc_UA(self, sections):
         """Calculate the sum of UA for all sections in the heat exchanger
 
@@ -850,6 +721,12 @@ class SectionedHeatExchanger(HeatExchanger):
         _, _, _, Q_per_section, td_log_per_section = sections
         UA_sections = Q_per_section / td_log_per_section
         return sum(UA_sections)
+
+    @staticmethod
+    def _min_td(sections):
+        """Return the minimum hot-minus-cold temperature difference."""
+        _, T_hot, T_cold, _, _ = sections
+        return np.min(T_hot - T_cold)
 
     def UA_func(self, **kwargs):
         r"""
@@ -865,6 +742,16 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA - \sum UA_{i}
         """
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
+        if min_td <= 0.0:
+            # Invalid pinch: _calc_td_log_per_section clips negative td to
+            # 1e-3 K, making UA_calc >> UA_target (large negative first term).
+            # Adding min_td injects a temperature-based gradient that is not
+            # proportional to the energy balance row, preventing linear
+            # dependency in the Jacobian.  The combined residual is never zero
+            # while min_td <= 0, so the solver cannot converge to the false
+            # fixed point at the thermodynamic limit.
+            return self.UA.val_SI - self.calc_UA(sections) + min_td
         return self.UA.val_SI - self.calc_UA(sections)
 
     def UA_char_func(self):
@@ -894,7 +781,9 @@ class SectionedHeatExchanger(HeatExchanger):
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         sections = self.calc_sections(False)
-
+        min_td = self._min_td(sections)
+        if min_td <= 0:
+            return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_cecchinato_func(self):
@@ -970,6 +859,9 @@ class SectionedHeatExchanger(HeatExchanger):
             )
         )
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
+        if min_td <= 0:
+            return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_dependents(self):

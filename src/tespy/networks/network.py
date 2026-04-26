@@ -2907,13 +2907,14 @@ class Network:
         residual.
 
         Searches both +/- directions with geometrically growing step sizes
-        (x2 per iteration, up to 20 iterations each). Prefers the side that
-        produces a sign change in the residual which guarantees a root in
-        the bracket [x0, x0±d] by the IVT and refines its location with
-        Brent's method. If both sides bracket a root, the tighter one (smaller
-        |r| at the probe point) is used. Falls back to a secant step if
-        brentq raises, and to the lower-magnitude heuristic when neither side
-        yields a sign change.
+        (x2 per iteration, up to 20 iterations each). Works for both scalar
+        variables (m, h, p, E) and vector variables (fluid mass fractions).
+        Prefers the side that produces a sign change in the residual, which
+        guarantees a root in the bracket [x0, x0±d] by the IVT, and refines
+        its location with Brent's method. If both sides bracket a root, the
+        tighter one (smaller |r| at the probe point) is used. Falls back to a
+        secant step if brentq raises, and to the lower-magnitude heuristic
+        when neither side yields a sign change.
 
         Returns the step to add to the variable, or None if neither direction
         improves the residual.
@@ -2926,19 +2927,43 @@ class Network:
             return None
         data = obj.equations[param_name]
 
-        container = self.variables_dict[col]["obj"]
-        x0 = container._val_SI
+        var_data = self.variables_dict[col]
+        container = var_data["obj"]
+
+        if var_data["variable"] == "fluid":
+            fluid_key = var_data["fluid"]
+            x0 = container.val[fluid_key]
+            # Maintain sum=1 by adjusting the largest other variable fluid by
+            # the same delta in the opposite direction.
+            other_var_fluids = [f for f in container.is_var if f != fluid_key]
+            if other_var_fluids:
+                companion = max(other_var_fluids, key=lambda f: container.val.get(f, 0))
+                companion_x0 = container.val[companion]
+            else:
+                companion = None
+                companion_x0 = None
+
+            def set_x(v):
+                container.val[fluid_key] = v
+                if companion is not None:
+                    container.val[companion] = companion_x0 - (v - x0)
+        else:
+            x0 = container._val_SI
+
+            def set_x(v):
+                container._val_SI = v
+
         r0 = self.residual[row]
         abs_r0 = abs(r0)
 
         def eval_r(x):
-            container._val_SI = x
+            set_x(x)
             try:
                 result = data.func(**data.func_params)
             except Exception:
                 return None
             finally:
-                container._val_SI = x0
+                set_x(x0)
             if hasattr(result, '__iter__'):
                 result = list(result)
                 return result[sub_idx] if sub_idx < len(result) else result[0]

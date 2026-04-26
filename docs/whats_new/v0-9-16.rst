@@ -6,6 +6,8 @@ Other Changes
 - Improve convergence behavior of :code:`UA` and :code:`kA` related equations
   of :code:`HeatExchanger` classes
   (`PR #953 <https://github.com/oemof/tespy/pull/953>`__).
+- Implement a method to catch all-zero entries in rows of the Jacobian to
+  continue iterations(`PR #955 <https://github.com/oemof/tespy/pull/955>`__).
 
 Contributors
 ############

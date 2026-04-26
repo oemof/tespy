@@ -2945,8 +2945,8 @@ class Network:
 
         Searches both +/- directions with geometrically growing step sizes
         (x2 per iteration, up to 20 iterations each). Prefers the side that
-        produces a sign change in the residual — which guarantees a root in
-        the bracket [x0, x0±d] by the IVT — and refines its location with
+        produces a sign change in the residual which guarantees a root in
+        the bracket [x0, x0±d] by the IVT and refines its location with
         Brent's method. If both sides bracket a root, the tighter one (smaller
         |r| at the probe point) is used. Falls back to a secant step if
         brentq raises, and to the lower-magnitude heuristic when neither side
@@ -3022,7 +3022,9 @@ class Network:
             b = x0 + sign * step_d
             try:
                 tol = max(abs(x0) * 1e-6, 1e-10)
-                x_root = brentq(eval_r, min(a, b), max(a, b), xtol=tol)
+                x_root = brentq(
+                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=10
+                )
                 return x_root - x0
             except Exception:
                 pass
@@ -3030,7 +3032,7 @@ class Network:
             # Secant fallback: linear interpolation between x0 and the probe
             return sign * step_d * (-r0) / (r_val - r0)
 
-        # No sign change found — fall back to lower-magnitude direction
+        # No sign change found - fall back to lower-magnitude direction
         if found_plus is None and found_minus is None:
             return None
         if found_plus is None:
@@ -3048,7 +3050,7 @@ class Network:
             return -minus_d if abs(minus_r) < abs_r0 else None
 
     def _fill_jacobian_surrogates(self):
-        """Restore invertibility for all-zero rows and find corrective steps.
+        """Restore invertibility for all-zero rows and find better steps.
 
         For each row that is entirely zero but expected to have non-zero
         entries (per the incidence matrix), inserts 1 in the expected positions

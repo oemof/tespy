@@ -22,6 +22,7 @@ from time import time
 import numpy as np
 import pandas as pd
 from numpy.linalg import norm
+from scipy.optimize import brentq
 from tabulate import tabulate
 
 from tespy.components import CycleCloser
@@ -1228,6 +1229,7 @@ class Network:
         self._presolved_equations = []
         self._reference_container_lookup = {}
         self._equation_lookup = {}
+        self._equation_obj_lookup = {}
         self._incidence_matrix = {}
 
         num_vars = self._prepare_variables()
@@ -1668,6 +1670,9 @@ class Network:
                 for eq_num, eq_name in obj._equation_lookup.items()
             }
             self._equation_lookup.update(eq_map)
+            self._equation_obj_lookup.update(
+                {eq_num: obj for eq_num in obj._equation_lookup}
+            )
 
             dependents_map = {
                 eq_num: [dependent.J_col for dependent in dependents]
@@ -2934,9 +2939,144 @@ class Network:
             print(msg)
         return
 
+    def _search_reducing_step(self, row, col):
+        """Find the increment for variable col that reduces equation row's
+        residual.
+
+        Searches both +/- directions with geometrically growing step sizes
+        (x2 per iteration, up to 20 iterations each). Prefers the side that
+        produces a sign change in the residual which guarantees a root in
+        the bracket [x0, x0±d] by the IVT and refines its location with
+        Brent's method. If both sides bracket a root, the tighter one (smaller
+        |r| at the probe point) is used. Falls back to a secant step if
+        brentq raises, and to the lower-magnitude heuristic when neither side
+        yields a sign change.
+
+        Returns the step to add to the variable, or None if neither direction
+        improves the residual.
+        """
+        obj = self._equation_obj_lookup.get(row)
+        if obj is None:
+            return None
+        _, (param_name, sub_idx) = self._equation_lookup[row]
+        if param_name not in obj.equations:
+            return None
+        data = obj.equations[param_name]
+
+        container = self.variables_dict[col]["obj"]
+        x0 = container._val_SI
+        r0 = self.residual[row]
+        abs_r0 = abs(r0)
+
+        def eval_r(x):
+            container._val_SI = x
+            try:
+                result = data.func(**data.func_params)
+            except Exception:
+                return None
+            finally:
+                container._val_SI = x0
+            if hasattr(result, '__iter__'):
+                result = list(result)
+                return result[sub_idx] if sub_idx < len(result) else result[0]
+            return result
+
+        # Guard against x0 == 0 producing a zero initial step
+        d = max(abs(x0) * 0.1, 1e-3)
+        found_plus = None
+        found_minus = None
+
+        for _ in range(20):
+            if found_plus is None:
+                r = eval_r(x0 + d)
+                if r is not None and r != r0:
+                    found_plus = (d, r)
+
+            if found_minus is None:
+                r = eval_r(x0 - d)
+                if r is not None and r != r0:
+                    found_minus = (d, r)
+
+            if found_plus is not None and found_minus is not None:
+                break
+            d *= 2
+
+        plus_sign_change = found_plus is not None and r0 * found_plus[1] < 0
+        minus_sign_change = found_minus is not None and r0 * found_minus[1] < 0
+
+        if plus_sign_change or minus_sign_change:
+            # Both sides bracket a root: prefer the tighter probe (smaller |r|)
+            if plus_sign_change and minus_sign_change:
+                plus_d, plus_r = found_plus
+                minus_d, minus_r = found_minus
+                if abs(plus_r) <= abs(minus_r):
+                    sign, step_d, r_val = +1, plus_d, plus_r
+                else:
+                    sign, step_d, r_val = -1, minus_d, minus_r
+            elif plus_sign_change:
+                sign, step_d, r_val = +1, found_plus[0], found_plus[1]
+            else:
+                sign, step_d, r_val = -1, found_minus[0], found_minus[1]
+
+            a = x0
+            b = x0 + sign * step_d
+            try:
+                tol = max(abs(x0) * 1e-6, 1e-10)
+                x_root = brentq(
+                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=10
+                )
+                return x_root - x0
+            except Exception:
+                pass
+
+            # Secant fallback: linear interpolation between x0 and the probe
+            return sign * step_d * (-r0) / (r_val - r0)
+
+        # No sign change found - fall back to lower-magnitude direction
+        if found_plus is None and found_minus is None:
+            return None
+        if found_plus is None:
+            step_d, r_val = found_minus
+            return -step_d if abs(r_val) < abs_r0 else None
+        if found_minus is None:
+            step_d, r_val = found_plus
+            return +step_d if abs(r_val) < abs_r0 else None
+
+        plus_d, plus_r = found_plus
+        minus_d, minus_r = found_minus
+        if abs(plus_r) <= abs(minus_r):
+            return +plus_d if abs(plus_r) < abs_r0 else None
+        else:
+            return -minus_d if abs(minus_r) < abs_r0 else None
+
+    def _fill_jacobian_surrogates(self):
+        """Restore invertibility for all-zero rows and find better steps.
+
+        For each row that is entirely zero but expected to have non-zero
+        entries (per the incidence matrix), inserts 1 in the expected positions
+        so the Jacobian can be inverted for all other variables.
+        Subsequently searches value of associated variable(s) to find the
+        increment for the affected variable(s) that reduces that equation's
+        residual.
+
+        Returns a dict {col: step} of increment overrides to apply after the
+        inversion.
+        """
+        overrides = {}
+        for row in self._check_all_zero_rows(self.jacobian):
+            for col in self._incidence_matrix.get(row, []):
+                if self.jacobian[row, col] == 0.0:
+                    self.jacobian[row, col] = 1.0
+                    step = self._search_reducing_step(row, col)
+                    if step is not None:
+                        overrides[col] = step
+        return overrides
+
     def _invert_jacobian(self):
         """Invert matrix of derivatives and calculate increment."""
         self.lin_dep = True
+
+        overrides = self._fill_jacobian_surrogates()
 
         try:
             # Let the matrix inversion be computed by the GPU if use_cuda in
@@ -2953,6 +3093,12 @@ class Network:
             self.lin_dep = False
         except np.linalg.LinAlgError:
             self.increment = self.residual * 0
+
+        # Override stuck-variable increments with the search-based steps found
+        # before the inversion.  These bypass the ill-conditioning that the
+        # full Newton step would produce for zero-derivative rows.
+        for col, step in overrides.items():
+            self.increment[col] = step
 
         n = self.variable_counter
         self._incidence_matrix_dense = np.zeros((n, n))

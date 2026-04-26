@@ -176,6 +176,18 @@ class HAConnection(Connection):
 
     def _adjust_to_property_limits(self, nw):
 
+        if self.r.is_set and self.it < 5:
+            # with relative humidity specified and at beginning of iterations
+            # large water fraction is unlikely expected
+            air_alias = list(_get_fluid_alias("air", self.fluid_data))[0]
+            if air_alias in self.fluid.is_var:
+                if self.fluid.val[air_alias] < 0.8:
+                    self.fluid.set_reference_val(air_alias, 0.95)
+            water_alias = list(_get_fluid_alias("water", self.fluid_data))[0]
+            if water_alias in self.fluid.is_var:
+                if self.fluid.val[water_alias] > 0.2:
+                    self.fluid.set_reference_val(water_alias, 0.05)
+
         if self.p.is_var:
             if self.p.val_SI < 100:
                 self.p.val_SI = 101

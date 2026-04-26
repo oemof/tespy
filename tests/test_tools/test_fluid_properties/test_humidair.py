@@ -84,7 +84,7 @@ def test_specification_relative_humidity(humidair_network):
         p=1,
         T=15,
         r=0.9,  # relative humidity
-        fluid0={"air": 0.99, "water": 0.01}, # there must be some kind of composition information present
+        fluid0={"air": 0.9, "water": 0.1}, # there must be some kind of composition information present
         fluid_balance=True  # fluid balance is not automatically closed
     )
     c2.set_attr(T=5)

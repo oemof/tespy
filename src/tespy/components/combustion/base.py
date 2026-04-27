@@ -762,7 +762,7 @@ class CombustionChamber(Component):
         return {
             "scalars": [var for c in inl + outl for var in [c.m, c.h]],
             "vectors": [{
-                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl
             }]
         }
 
@@ -863,7 +863,7 @@ class CombustionChamber(Component):
         k : int
             Position of equation in Jacobian matrix.
         """
-        inl, outl = self._get_combustion_connections()
+        inl, _ = self._get_combustion_connections()
         for i in inl:
             if i.m.is_var:
                 deriv = 0
@@ -873,21 +873,12 @@ class CombustionChamber(Component):
             for f in (self.fuel_list & i.fluid.is_var):
                 self.jacobian[k, i.fluid.J_col[f]] = -i.m.val_SI * self.fuels[f]["LHV"]
 
-        o = outl[0]
-        if o.m.is_var:
-            deriv = 0
-            for f in self.fuel_list:
-                deriv += o.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
-            self.jacobian[k, o.m.J_col] = deriv
-        for f in (self.fuel_list & o.fluid.is_var):
-            self.jacobian[k, o.fluid.J_col[f]] = o.m.val_SI * self.fuels[f]["LHV"]
-
     def ti_dependents(self):
-        inl, outl = self._get_combustion_connections()
+        inl, _ = self._get_combustion_connections()
         return {
-            "scalars": [c.m for c in inl + outl],
+            "scalars": [c.m for c in inl],
             "vectors": [{
-                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
+                c.fluid: self.fuel_list & c.fluid.is_var for c in inl
             }]
         }
 
@@ -907,15 +898,12 @@ class CombustionChamber(Component):
                 \right) - \dot{m}_{out,1} \cdot x_{fuel,out,1} \right]
                 \; \forall i \in [1,2]
         """
-        inl, outl = self._get_combustion_connections()
+        inl, _ = self._get_combustion_connections()
         ti = 0
         for f in self.fuel_list:
             m = 0
             for i in inl:
                 m += i.m.val_SI * i.fluid.val.get(f, 0)
-
-            for o in outl:
-                m -= o.m.val_SI * o.fluid.val.get(f, 0)
 
             ti += m * self.fuels[f]["LHV"]
 

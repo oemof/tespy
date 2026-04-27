@@ -722,6 +722,12 @@ class SectionedHeatExchanger(HeatExchanger):
         UA_sections = Q_per_section / td_log_per_section
         return sum(UA_sections)
 
+    @staticmethod
+    def _min_td(sections):
+        """Return the minimum hot-minus-cold temperature difference."""
+        _, T_hot, T_cold, _, _ = sections
+        return np.min(T_hot - T_cold)
+
     def UA_func(self, **kwargs):
         r"""
         Residual method for fixed heat transfer coefficient UA.
@@ -736,6 +742,16 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA - \sum UA_{i}
         """
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
+        if min_td <= 0.0:
+            # Invalid pinch: _calc_td_log_per_section clips negative td to
+            # 1e-3 K, making UA_calc >> UA_target (large negative first term).
+            # Adding min_td injects a temperature-based gradient that is not
+            # proportional to the energy balance row, preventing linear
+            # dependency in the Jacobian.  The combined residual is never zero
+            # while min_td <= 0, so the solver cannot converge to the false
+            # fixed point at the thermodynamic limit.
+            return self.UA.val_SI - self.calc_UA(sections) + min_td
         return self.UA.val_SI - self.calc_UA(sections)
 
     def UA_char_func(self):
@@ -765,7 +781,9 @@ class SectionedHeatExchanger(HeatExchanger):
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         sections = self.calc_sections(False)
-
+        min_td = self._min_td(sections)
+        if min_td <= 0:
+            return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_cecchinato_func(self):
@@ -823,9 +841,15 @@ class SectionedHeatExchanger(HeatExchanger):
             secondary_index = 0
 
         m_r = self.inl[refrigerant_index].m
-        m_ratio_r = m_r.val_SI / self._conn_design(self.inl[refrigerant_index], 'm')
+        m_ratio_r = max(
+            m_r.val_SI / self._conn_design(self.inl[refrigerant_index], 'm'),
+            1e-6
+        )
         m_sf = self.inl[secondary_index].m
-        m_ratio_sf = m_sf.val_SI / self._conn_design(self.inl[secondary_index], 'm')
+        m_ratio_sf = max(
+            m_sf.val_SI / self._conn_design(self.inl[secondary_index], 'm'),
+            1e-6
+        )
 
         fUA = (
             (1 + alpha_ratio * area_ratio)
@@ -835,6 +859,9 @@ class SectionedHeatExchanger(HeatExchanger):
             )
         )
         sections = self.calc_sections(False)
+        min_td = self._min_td(sections)
+        if min_td <= 0:
+            return self.UA.design * fUA - self.calc_UA(sections) + min_td
         return self.UA.design * fUA - self.calc_UA(sections)
 
     def UA_dependents(self):

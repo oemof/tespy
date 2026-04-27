@@ -13,7 +13,7 @@ if sys.version_info < (3, 11):
     )
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = '0.9.15.post1 - Kelvin\'s Kingdom'
+__version__ = '0.9.16.dev0'
 
 # tespy data and connections import
 from . import connections  # noqa: F401

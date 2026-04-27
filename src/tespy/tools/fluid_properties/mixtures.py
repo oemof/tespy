@@ -13,6 +13,8 @@ SPDX-License-Identifier: MIT
 
 import math
 
+from CoolProp.CoolProp import HAPropsSI
+
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.global_vars import gas_constants
 
@@ -36,7 +38,7 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _water_in_mixture(fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -88,6 +90,56 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
     return h
 
 
+def w_mix_fluid_data(fluid_data):
+
+    water_alias = _get_fluid_alias("H2O", fluid_data)
+    water_alias = next(iter(water_alias))
+
+    air_alias = _get_fluid_alias("air", fluid_data)
+    air_alias = next(iter(air_alias))
+
+    return (
+        fluid_data[water_alias]["mass_fraction"]
+        / fluid_data[air_alias]["mass_fraction"]
+    )
+
+def w_mix_pTrh_humidair(p, T, rh):
+    return HAPropsSI("W", "P", p, "T", T, "RH", rh)  # kg water/kg dry air
+
+def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    w_def = w_mix_fluid_data(fluid_data)
+    w_max = w_mix_pTrh_humidair(p, T, 1.0)
+    if w_def > w_max:
+        _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
+        return w_max
+    return w_def
+
+def h_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    w = w_mix_pT_humidair(p, T, fluid_data, **kwargs)
+    return HAPropsSI("H", "P", p, "T", T, "W", w)
+
+def w_mix_phrh_humidair(p, h, rh):
+    return HAPropsSI("W", "P", p, "H", h, "RH", rh)  # kg water/kg dry air
+
+def w_mix_ph_humidair(p, h, fluid_data, **kwargs):
+    w_def = w_mix_fluid_data(fluid_data)
+    w_max = w_mix_phrh_humidair(p, h, 1.0)
+    if w_def > w_max:
+        _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
+        return w_max
+    return w_def
+
+def w_mix_psrh_humidair(p, s, rh):
+    return HAPropsSI("W", "P", p, "S", s, "RH", rh)  # kg water/kg dry air
+
+def w_mix_ps_humidair(p, s, fluid_data, **kwargs):
+    w_def = w_mix_fluid_data(fluid_data)
+    w_max = w_mix_psrh_humidair(p, s, 1.0)
+    if w_def > w_max:
+        _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
+        return w_max
+    return w_def
+
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     molar_fractions = get_molar_fractions(fluid_data)
 
@@ -103,7 +155,7 @@ def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _water_in_mixture(fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         mass_fractions_gas, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -136,6 +188,11 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     return s
 
 
+def s_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    w = w_mix_fluid_data(fluid_data)
+    return HAPropsSI("S", "P", p, "T", T, "W", w)
+
+
 def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
     molar_fractions = get_molar_fractions(fluid_data)
 
@@ -151,7 +208,7 @@ def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
-    water_alias = _water_in_mixture(fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         _, molar_fraction_gas, mass_liquid, _, p_sat, pp_water = cond_check(p, T, fluid_data, water_alias)
@@ -181,6 +238,11 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
             v += 1 / data["wrapper"].d_pT(p, T) * data["mass_fraction"]
 
     return v
+
+
+def v_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    w = w_mix_fluid_data(fluid_data)
+    return HAPropsSI("V", "P", p, "T", T, "W", w)
 
 
 def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
@@ -239,10 +301,15 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
     return viscosity
 
 
+def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    w = w_mix_fluid_data(fluid_data)
+    return HAPropsSI("Visc", "P", p, "T", T, "W", w)
+
+
 def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
 
     molar_fractions = get_molar_fractions(fluid_data)
-    water_alias = _water_in_mixture(fluid_data)
+    water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
         water_alias = next(iter(water_alias))
         _, molar_fractions_gas, _, molar_liquid, _, _ = cond_check(
@@ -277,9 +344,9 @@ def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
     return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
 
 
-def _water_in_mixture(fluid_data):
+def _get_fluid_alias(fluid, fluid_data):
     return (
-        FLUID_ALIASES.get_fluid("H2O")
+        FLUID_ALIASES.get_fluid(fluid)
         & set([
             f for f in fluid_data
             if _is_larger_than_precision(fluid_data[f]["mass_fraction"])
@@ -351,14 +418,16 @@ def cond_check(p, T, fluid_data, water_alias):
 T_MIX_PH_REVERSE = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
-    "incompressible": h_mix_pT_incompressible
+    "incompressible": h_mix_pT_incompressible,
+    "humidair": h_mix_pT_humidair
 }
 
 
 T_MIX_PS_REVERSE = {
     "ideal": s_mix_pT_ideal,
     "ideal-cond": s_mix_pT_ideal_cond,
-    "incompressible": s_mix_pT_incompressible
+    "incompressible": s_mix_pT_incompressible,
+    "humidair": s_mix_pT_humidair
 }
 
 
@@ -366,28 +435,32 @@ H_MIX_PT_DIRECT = {
     "ideal": h_mix_pT_ideal,
     "ideal-cond": h_mix_pT_ideal_cond,
     "incompressible": h_mix_pT_incompressible,
-    "forced-gas": h_mix_pT_forced_gas
+    "forced-gas": h_mix_pT_forced_gas,
+    "humidair": h_mix_pT_humidair
 }
 
 
 S_MIX_PT_DIRECT = {
     "ideal": s_mix_pT_ideal,
     "ideal-cond": s_mix_pT_ideal_cond,
-    "incompressible": s_mix_pT_incompressible
+    "incompressible": s_mix_pT_incompressible,
+    "humidair": s_mix_pT_humidair
 }
 
 
 V_MIX_PT_DIRECT = {
     "ideal": v_mix_pT_ideal,
     "ideal-cond": v_mix_pT_ideal_cond,
-    "incompressible": v_mix_pT_incompressible
+    "incompressible": v_mix_pT_incompressible,
+    "humidair": v_mix_pT_humidair
 }
 
 
 VISCOSITY_MIX_PT_DIRECT = {
     "ideal": viscosity_mix_pT_ideal,
     "ideal-cond": viscosity_mix_pT_ideal,
-    "incompressible": viscosity_mix_pT_incompressible
+    "incompressible": viscosity_mix_pT_incompressible,
+    "humidair": viscosity_mix_pT_humidair
 }
 
 EXERGY_CHEMICAL = {

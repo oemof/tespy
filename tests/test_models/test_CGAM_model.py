@@ -90,7 +90,7 @@ class TestCGAM:
         self.nwk.add_conns(c8, c8p, c11, c11p, c9)
 
         c8.set_attr(p=20, T=25, m=14, fluid=water)
-        c1.set_attr(p=1.013, T=25, fluid=air, m=100)
+        c1.set_attr(p=1.013, T=25, fluid=air)
         c10.set_attr(T=25, fluid=fuel, p=12)
         c7.set_attr(p=1.013)
         c3.set_attr(T=850 - 273.15)
@@ -98,7 +98,7 @@ class TestCGAM:
         c11p.set_attr(x=0.5)
 
         cmp.set_attr(pr=10, eta_s=0.86)
-        cb.set_attr(eta=0.98, pr=0.95, lamb=2)
+        cb.set_attr(eta=0.98, pr=0.95)
         tur.set_attr(eta_s=0.86)
         aph.set_attr(pr1=0.97, pr2=0.95)
         eva.set_attr(pr1=0.95 ** 0.5)
@@ -114,16 +114,13 @@ class TestCGAM:
 
         heat_output.add_comps(
             {'comp': eco, 'char': -1},
-            {'comp': eva, 'char': -1})
+            {'comp': eva, 'char': -1}
+        )
         fuel_input.add_comps({'comp': cb, 'base': 'bus'})
         self.nwk.add_busses(heat_output, fuel_input)
 
-        self.nwk.solve('design')
-
         power.set_attr(P=-30e6)
-        c1.set_attr(m=None)
         c4.set_attr(T=1520 - 273.15)
-        cb.set_attr(lamb=None)
         self.nwk.solve('design')
         self.nwk.assert_convergence()
 

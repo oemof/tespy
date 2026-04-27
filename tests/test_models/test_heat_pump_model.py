@@ -154,7 +154,7 @@ class TestHeatPump:
         ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, design=['ttd_l'], offdesign=['kA_char'],
+            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
             kA_char1=kA_char1, kA_char2=kA_char2
         )
 
@@ -265,7 +265,6 @@ class TestHeatPump:
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})
         su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
-        ev_amb_out.set_attr(T=7)
 
         # compressor-system
         cp1_he.set_attr(p=15)
@@ -282,14 +281,9 @@ class TestHeatPump:
         """
         tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
-        # the model does not consistently solve!!
-        self.nw.assert_convergence()
-        dr_su = self.nw.get_conn("drum:out2_superheater:in2")
-        self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
-        self.nw.get_comp("evaporator").set_attr(ttd_l=5)
-        self.nw.solve('design')
         self.nw.save(tmp_path)
         self.nw.print_results()
+        self.nw.assert_convergence()
 
         # input values from ebsilon
         T_range = [105, 100, 90, 80]

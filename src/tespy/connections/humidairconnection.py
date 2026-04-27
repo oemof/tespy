@@ -97,13 +97,16 @@ class HAConnection(Connection):
 
     def _parameter_specification(self, key, value):
         if key == "w" or key == "w0":
-            # specification of w is equivalent to specification of fluid
-            # composition for humid air
-            air = 1 / (1 + value)
-            if key == "w":
-                self.set_attr(fluid={"air": air, "water": 1 - air})
+            if value is None:
+                self.fluid.is_set = {}
             else:
-                self.set_attr(fluid0={"air": air, "water": 1 - air})
+                # specification of w is equivalent to specification of fluid
+                # composition for humid air
+                air = 1 / (1 + value)
+                if key == "w":
+                    self.set_attr(fluid={"air": air, "water": 1 - air})
+                else:
+                    self.set_attr(fluid0={"air": air, "water": 1 - air})
         else:
             super()._parameter_specification(key, value)
 

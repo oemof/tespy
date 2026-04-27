@@ -149,6 +149,23 @@ class TestCombustion:
         self.nw.assert_convergence()
         assert self.c3.T.val == pytest.approx(1500)
 
+    def test_DiabaticCombustionChamber_H2(self):
+        instance = DiabaticCombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
+
+        instance.set_attr(pr=0.95, eta=1)
+
+        air = {'O2': 0.21, 'N2': 0.79}
+        fuel = {'H2': 1}
+
+        self.c1.set_attr(fluid=air, m=100, p=1, T=20)
+        self.c2.set_attr(fluid=fuel, p=1, T=20)
+        self.c3.set_attr(T=1000)
+
+        self.nw.solve(mode='design')
+        self.nw.assert_convergence()
+        assert self.c3.fluid.val["O2"] > 0
+
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')
         self.setup_CombustionChamber_network(instance)

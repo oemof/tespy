@@ -6,7 +6,7 @@ New features
 - There is a new type of connection, :code:`HAConnection`, which utilizes the
   `HAPropsSI` functionalities of `CoolProp <https://coolprop.org>`__. The
   feature is still in experimental stage, go and check it out in the example
-  :ref:`on this page <>`
+  :ref:`on this page <tutorial_humidair_label>`
   (`PR #940 <https://github.com/oemof/tespy/pull/940>`__).
 
 Other Changes

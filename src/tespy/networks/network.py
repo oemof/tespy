@@ -1130,7 +1130,10 @@ class Network:
             reference_conn = all_connections[0]
 
             fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
-            fluid0 = {f: value for c in all_connections for f, value in c.fluid.val0.items()}
+            fluid0 = {
+                f: value for c in all_connections
+                for f, value in c.fluid.val0.items()
+            }
             if len(fluid_specs) == 0:
 
                 if len(reference_conn._potential_fluids) > 1:

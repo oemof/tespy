@@ -18,6 +18,9 @@ Other Changes
   continue iterations (`PR #955 <https://github.com/oemof/tespy/pull/955>`__).
 - Remove under-stoichiometric combustion due to numerical issues with hydrogen
   (`PR #957 <https://github.com/oemof/tespy/pull/957>`__).
+  UPDATE: The fix has been reverted and a better solutions was implemented:
+  (`94063d3 <https://github.com/oemof/tespy/commit/94063d3e2a6e6b8ce58bed38324275efe92a211c>`__).
+
 
 Contributors
 ############

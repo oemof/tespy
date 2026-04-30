@@ -238,6 +238,85 @@ class ConnectionBase:
     def get_variables(self):
         return {}
 
+    def _build_parameters(self):
+        return {
+            k: v for k, v in self.get_parameters().items()
+            if hasattr(v, "func") and v.func is not None
+        }
+
+    def _init_common(self, source, outlet_id, target, inlet_id, label, **kwargs):
+        self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
+        if label is not None:
+            self.label = label
+            if not isinstance(label, str):
+                msg = "Please provide the label as string."
+                logger.error(msg)
+                raise TypeError(msg)
+
+        self.source = source
+        self.source_id = outlet_id
+        self.target = target
+        self.target_id = inlet_id
+
+        self.new_design = True
+        self.design_path = None
+        self.design = []
+        self.offdesign = []
+        self.local_design = False
+        self.local_offdesign = False
+        self.printout = True
+
+        self.property_data = self.get_parameters()
+        self.property_data0 = [x + '0' for x in self.property_data.keys()]
+        self.parameters = self._build_parameters()
+        self.__dict__.update(self.property_data)
+        logger.debug(
+            f"Created connection from {self.source.label} ({self.source_id}) "
+            f"to {self.target.label} ({self.target_id})."
+        )
+        self.set_attr(**kwargs)
+
+    def _set_design_list(self, key, value):
+        if not isinstance(value, list):
+            msg = f"Please provide the {key} parameters as list!"
+            logger.error(msg)
+            raise TypeError(msg)
+        if not set(value).issubset(self.property_data.keys()):
+            params = ', '.join(self.property_data.keys())
+            msg = (
+                f"Available parameters for (off-)design specification are: {params}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        self.__dict__[key] = value
+
+    def _set_path_attr(self, value):
+        self.design_path = value
+        self.new_design = True
+
+    def _set_bool_attr(self, key, value):
+        if not isinstance(value, bool):
+            msg = f"Please provide the {key} parameter as boolean."
+            logger.error(msg)
+            raise TypeError(msg)
+        self.__dict__[key] = value
+
+    def _reset_design(self, redesign):
+        for value in self.get_variables().values():
+            value.design = np.nan
+
+        self.new_design = True
+
+        if redesign:
+            for var in self.design:
+                self.get_attr(var).is_set = True
+
+            for var in self.offdesign:
+                self.get_attr(var).is_set = False
+
+    def _presolve(self):
+        return []
+
     def _guess_starting_values(self, units):
         pass
 
@@ -547,6 +626,15 @@ class Connection(ConnectionBase):
     False
     """
 
+    def _build_parameters(self):
+        return {
+            k: v for k, v in self.get_parameters().items()
+            if (
+                (hasattr(v, "func") and v.func is not None)
+                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
+            )
+        }
+
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
@@ -556,66 +644,14 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
-        if label is not None:
-            self.label = label
-            if not isinstance(label, str):
-                msg = "Please provide the label as string."
-                logger.error(msg)
-                raise TypeError(msg)
-
-        # set specified values
-        self.source = source
-        self.source_id = outlet_id
-        self.target = target
-        self.target_id = inlet_id
-
-        # defaults
-        self.new_design = True
-        self.design_path = None
-        self.design = []
-        self.offdesign = []
-        self.local_design = False
-        self.local_offdesign = False
-        self.printout = True
-
-        # set default values for kwargs
-        self.property_data = self.get_parameters()
-        self.parameters = {
-            k: v for k, v in self.get_parameters().items()
-            if (
-                (hasattr(v, "func") and v.func is not None)
-                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
-            )
-        }
         self.state = dc_simple()
         self.phase = dc_simple()
-        self.property_data0 = [x + '0' for x in self.property_data.keys()]
-        self.__dict__.update(self.property_data)
         self.mixing_rule = None
-        msg = (
-            f"Created connection from {self.source.label} ({self.source_id}) "
-            f"to {self.target.label} ({self.target_id})."
-        )
-        logger.debug(msg)
-
-        self.set_attr(**kwargs)
+        self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
 
     def _reset_design(self, redesign):
-        for value in self.get_variables().values():
-            value.design = np.nan
-
         self.fluid.design = {}
-
-        self.new_design = True
-
-        # switch connections to design mode
-        if redesign:
-            for var in self.design:
-                self.get_attr(var).is_set = True
-
-            for var in self.offdesign:
-                self.get_attr(var).is_set = False
+        super()._reset_design(redesign)
 
     def set_attr(self, **kwargs):
         r"""
@@ -736,31 +772,6 @@ class Connection(ConnectionBase):
             msg = 'Keyword argument "state" must either be "l" or "g" or be None.'
             logger.error(msg)
             raise TypeError(msg)
-
-    def _set_design_list(self, key, value):
-        if not isinstance(value, list):
-            msg = f"Please provide the {key} parameters as list!"
-            logger.error(msg)
-            raise TypeError(msg)
-        if not set(value).issubset(self.property_data.keys()):
-            params = ', '.join(self.property_data.keys())
-            msg = (
-                f"Available parameters for (off-)design specification are: {params}."
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-        self.__dict__[key] = value
-
-    def _set_path_attr(self, value):
-        self.design_path = value
-        self.new_design = True
-
-    def _set_bool_attr(self, key, value):
-        if not isinstance(value, bool):
-            msg = f"Please provide the {key} parameter as boolean."
-            logger.error(msg)
-            raise TypeError(msg)
-        self.__dict__[key] = value
 
     def _fluid_specification(self, key, value):
 

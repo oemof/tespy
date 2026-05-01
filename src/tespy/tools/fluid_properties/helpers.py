@@ -19,22 +19,10 @@ import numpy as np
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import central_difference
 from tespy.tools.helpers import newton_with_kwargs
-from tespy.tools.logger import logger
 
 
 def _is_larger_than_precision(value):
     return value > ERR
-
-
-def _check_mixing_rule(mixing_rule, mixing_functions, propertyfunction):
-    if mixing_rule not in mixing_functions:
-        msg = (
-            f"The mixing rule '{mixing_rule}' is not available for "
-            f"the fluid property functions for {propertyfunction}. Available "
-            f"rules are '" + "', '".join(mixing_functions.keys()) + "'."
-        )
-        logger.exception(msg)
-        raise KeyError(msg)
 
 
 def get_number_of_fluids(fluid_data):

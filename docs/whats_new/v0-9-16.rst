@@ -1,0 +1,29 @@
+v0.9.16 - Kelvin's Kingdom (April, 27, 2026)
+++++++++++++++++++++++++++++++++++++++++++++
+
+New features
+############
+- There is a new type of connection, :code:`HAConnection`, which utilizes the
+  `HAPropsSI` functionalities of `CoolProp <https://coolprop.org>`__. The
+  feature is still in experimental stage, go and check it out in the example
+  :ref:`on this page <tutorial_humidair_label>`
+  (`PR #940 <https://github.com/oemof/tespy/pull/940>`__).
+
+Other Changes
+#############
+- Improve convergence behavior of :code:`UA` and :code:`kA` related equations
+  of :code:`HeatExchanger` classes
+  (`PR #953 <https://github.com/oemof/tespy/pull/953>`__).
+- Implement a method to catch all-zero entries in rows of the Jacobian to
+  continue iterations (`PR #955 <https://github.com/oemof/tespy/pull/955>`__).
+- Remove under-stoichiometric combustion due to numerical issues with hydrogen
+  (`PR #957 <https://github.com/oemof/tespy/pull/957>`__).
+  UPDATE: The fix has been reverted and a better solutions was implemented:
+  (`94063d3 <https://github.com/oemof/tespy/commit/94063d3e2a6e6b8ce58bed38324275efe92a211c>`__).
+
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@jowr <https://github.com/jowr>`__
+- `@JacobCHP <https://github.com/JacobCHP>`__

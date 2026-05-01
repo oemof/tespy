@@ -83,15 +83,12 @@ class TestCombustion:
         fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
-        instance.set_attr(lamb=1.5)
+        self.c3.set_attr(T=1200)
 
         # test specified bus value on CombustionChamber (must be equal to ti)
         b = Bus('thermal input', P=1e6)
         b.add_comps({'comp': instance})
         self.nw.add_busses(b)
-        self.nw.solve('design')
-        self.c3.set_attr(T=1200)
-        instance.set_attr(lamb=None)
         self.nw.solve('design')
         assert self.nw.status == 0
         self.nw.assert_convergence()
@@ -152,6 +149,23 @@ class TestCombustion:
         self.nw.assert_convergence()
         assert self.c3.T.val == pytest.approx(1500)
 
+    def test_DiabaticCombustionChamber_H2(self):
+        instance = DiabaticCombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
+
+        instance.set_attr(pr=0.95, eta=1)
+
+        air = {'O2': 0.21, 'N2': 0.79}
+        fuel = {'H2': 1}
+
+        self.c1.set_attr(fluid=air, m=100, p=1, T=20)
+        self.c2.set_attr(fluid=fuel, p=1, T=20)
+        self.c3.set_attr(T=1000)
+
+        self.nw.solve(mode='design')
+        self.nw.assert_convergence()
+        assert self.c3.fluid.val["O2"] > 0
+
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')
         self.setup_CombustionChamber_network(instance)
@@ -183,12 +197,10 @@ class TestCombustion:
         fuel = {'CO2': 0.04, 'CH4': 0.96}
         self.c1.set_attr(fluid=air, p=1.2, T=30)
         self.c2.set_attr(fluid=fuel, T=30, p=1.5)
+        self.c3.set_attr(T=1200)
 
         pr = 0.97
-        instance.set_attr(pr=pr, eta=0.95, ti=1e6, lamb=1.5)
-        self.nw.solve('design')
-        self.c3.set_attr(T=1200)
-        instance.set_attr(lamb=None)
+        instance.set_attr(pr=pr, eta=0.95, ti=1e6)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0

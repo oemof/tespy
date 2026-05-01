@@ -263,6 +263,11 @@ class CombustionChamber(Component):
         super()._preprocess(num_nw_vars)
         self.setup_reaction_parameters()
 
+        # impose better starting values if None are available
+        if self.outl[0].fluid.val0 == {}:
+            for f in self.fuel_list:
+                self.outl[0].fluid.val0[f] = 0
+
     def _get_combustion_connections(self):
         return (self.inl[:2], [self.outl[0]])
 

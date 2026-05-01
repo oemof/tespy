@@ -1,0 +1,12 @@
+v0.9.17 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- Mixing rules are now registered via a :code:`MixingRuleRegistry`, making it
+  possible to add custom mixing rules at runtime
+  (`PR #960 <https://github.com/oemof/tespy/pull/960>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

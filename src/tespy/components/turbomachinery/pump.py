@@ -294,13 +294,14 @@ class Pump(Turbomachine):
         guess can (but does not necessarily) help. Instead, we can also
         re-create the characteristic maps, and this time provide the
         :code:`extrapolate` keyword. It will extrapolate beyond the component
-        map and thus produce non-zero derivatives. Typically, this is not only
-        necessary for the head map.
+        map and thus produce non-zero derivatives.
+        TODO: Update this docs part, Jacobian is not a problem anymore but
+        non-extrapolation leads to non-convergence.
 
     >>> outg.set_attr(p=1.2)
     >>> nw.solve("design")
-    >>> nw.status == 3  # check if status is linear dependency
-    True
+    >>> nw.status  # check status variable of the network, 2: non-convergence
+    2
 
     >>> pump_H_map = CharMap(
     ...     x=frequencies,

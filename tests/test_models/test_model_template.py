@@ -10,7 +10,7 @@ import pytest
 from tespy.models.template import ModelTemplate
 
 # ---------------------------------------------------------------------------
-# Minimal concrete subclass – no real network operations needed for most tests
+# Minimal concrete subclass - no real network operations needed for most tests
 # ---------------------------------------------------------------------------
 
 class SimpleModel(ModelTemplate):

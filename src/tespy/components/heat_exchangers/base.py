@@ -453,6 +453,14 @@ class HeatExchanger(Component):
             self.outl[0].h
         ]
 
+    def _min_ttd(self):
+        """Return the minimum of the two terminal temperature differences."""
+        i1 = self.inl[0]
+        i2 = self.inl[1]
+        o1 = self.outl[0]
+        o2 = self.outl[1]
+        return min(i1.calc_T() - o2.calc_T(), o1.calc_T() - i2.calc_T())
+
     def calculate_td_log(self):
         i1 = self.inl[0]
         i2 = self.inl[1]
@@ -466,9 +474,9 @@ class HeatExchanger(Component):
         T_o2 = o2.calc_T()
 
         if T_i1 <= T_o2:
-            T_i1 = T_o2 + 0.01
+            T_o2 = T_i1 - 0.1
         if T_o1 <= T_i2:
-            T_o1 = T_i2 + 0.01
+            T_o1 = T_i2 + 0.1
 
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2
@@ -496,12 +504,17 @@ class HeatExchanger(Component):
                 T_{in,2} - T_{in,1} + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.val_SI * self.calculate_td_log()
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            # Temperature profile invalid: one terminal ΔT has gone negative.
+            # Q < 0 and kA·min_ttd < 0 → combined residual is never zero,
+            # preventing false convergence.  The min_ttd term provides a
+            # temperature-based gradient independent of the energy balance row.
+            # The residual is continuous at min_ttd = 0 because td_log → 0
+            # as min(ttd_u, ttd_l) → 0, so both branches give Q there.
+            return Q + self.kA.val_SI * min_ttd
+        return Q + self.kA.val_SI * self.calculate_td_log()
 
     def kA_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -564,20 +577,27 @@ class HeatExchanger(Component):
         """
         p1 = self.kA_char1.param
         p2 = self.kA_char2.param
-        f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
+        if self.local_offdesign:
+            design_value = self._connection_offdesign[self.inl[0].label][p1]
+            actual_value = getattr(self.inl[0], p1).val_SI
+            f1 = actual_value / design_value
+
+            design_value = self._connection_offdesign[self.inl[1].label][p2]
+            actual_value = getattr(self.inl[1], p2).val_SI
+            f2 = actual_value / design_value
+        else:
+            f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
+            f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
 
         fkA1 = self.kA_char1.char_func.evaluate(f1)
         fkA2 = self.kA_char2.char_func.evaluate(f2)
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
-        td_log = self.calculate_td_log()
-
-        return (
-            self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            ) + self.kA.design * fkA * td_log
-        )
+        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+        min_ttd = self._min_ttd()
+        if min_ttd <= 0:
+            return Q + self.kA.design * fkA * min_ttd
+        return Q + self.kA.design * fkA * self.calculate_td_log()
 
     def kA_char_dependents(self):
         return [
@@ -1356,13 +1376,11 @@ class HeatExchanger(Component):
         list
             Lists of temperature differences per section of heat exchanged.
         """
+        td_at_steps = T_steps_hot - T_steps_cold
         if postprocess:
-            td_at_steps = T_steps_hot - T_steps_cold
             if (td_at_steps <= 0).any():
                 return np.ones(len(td_at_steps) - 1) * np.nan
-        # the temperature ranges both come with increasing values
-        td_at_steps = np.abs(T_steps_hot - T_steps_cold)
-
+        td_at_steps[td_at_steps <= 0] = 1e-3
         return np.array([
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
@@ -1372,7 +1390,6 @@ class HeatExchanger(Component):
             else td_at_steps[i + 1]
             for i in range(len(td_at_steps) - 1)
         ])
-
 
     def calc_sections(self, postprocess=True):
         """Calculate the sections of the heat exchanger. For the base class,

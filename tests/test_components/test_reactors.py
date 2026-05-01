@@ -54,9 +54,8 @@ class TestWaterElectrolyzer:
 
         self.nw.add_conns(fw_el, el_o2, el_h2)
 
-    def test_WaterElectrolyzer(self, tmp_path):
+    def test_WaterElectrolyzer(self):
         """Test component properties of water electrolyzer."""
-        tmp_path = f'{tmp_path}.json'
         # check bus function:
         # power output on component and bus must be indentical
         self.nw.get_conn('h2o').set_attr(T=25, p=1)
@@ -98,13 +97,13 @@ class TestWaterElectrolyzer:
             f"Value of heat must be {heat.P.val}, is {self.instance.Q.val}."
         )
         assert approx(heat.P.val) == self.instance.Q.val, msg
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
 
         # check bus function:
         # heat output on component and bus must identical (offdesign test)
         Q = heat.P.val * 0.9
         heat.set_attr(P=Q)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
         assert approx(Q) == self.instance.Q.val, msg
@@ -159,7 +158,7 @@ class TestWaterElectrolyzer:
         self.instance.set_attr(
             pr=pr, e=None, eta=None, zeta='var', P=2e7, design=['pr'])
         self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
@@ -169,7 +168,7 @@ class TestWaterElectrolyzer:
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
         self.instance.set_attr(zeta=None, offdesign=['zeta'])
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
@@ -179,7 +178,7 @@ class TestWaterElectrolyzer:
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=None)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
         assert approx(Q) == self.instance.Q.val, msg

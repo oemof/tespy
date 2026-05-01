@@ -272,16 +272,15 @@ class TestHeatPump:
         ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1})
         he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
-    def test_model(self, tmp_path):
+    def test_model(self):
         """
         Test the operating points of the heat pump against a different model.
 
         By now, not all characteristic functions of the original model are
         available in detail, thus perfect matching is not possible!
         """
-        tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         self.nw.print_results()
         self.nw.assert_convergence()
 
@@ -308,11 +307,11 @@ class TestHeatPump:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
                     self.nw.solve(
-                        'offdesign', design_path=tmp_path, init_path=tmp_path
+                        'offdesign', design_path=design_state, init_path=design_state
                     )
 
                 else:
-                    self.nw.solve('offdesign', design_path=tmp_path)
+                    self.nw.solve('offdesign', design_path=design_state)
 
                 self.nw.assert_convergence()
                 # relative deviation should not exceed 6.5 %

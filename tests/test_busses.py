@@ -104,10 +104,9 @@ class TestBusses:
 
         self.nw.solve('design')
 
-    def test_model(self, tmp_path):
+    def test_model(self):
         """Test the bus functionalities in a gas turbine model."""
-        tmp_path = f'{tmp_path}.json'
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         tpo = self.nw.busses['total power output']
         ti = self.nw.busses['thermal input']
         cpi = self.nw.busses['compressor power input']
@@ -169,7 +168,7 @@ class TestBusses:
         self.nw.get_conn('ambient air flow').set_attr(m=None)
         P_design = cpibb.P.val
         cpibb.set_attr(P=P_design)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
 
         eta_cpi = round(1 / cp.calc_bus_efficiency(cpi), 6)
         eta_cp_tpo = round(cp.calc_bus_efficiency(tpo), 6)
@@ -203,7 +202,7 @@ class TestBusses:
         # 60 % load
         load = 0.6
         cpibb.set_attr(P=P_design * load)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
 
         eta_cp_tpo = round(cp.calc_bus_efficiency(tpo), 6)
         eta_cp_char = self.motor_bus_based.evaluate(load)

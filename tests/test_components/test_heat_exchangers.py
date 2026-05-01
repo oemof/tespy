@@ -10,7 +10,6 @@ tests/test_components/test_heat_exchangers.py
 SPDX-License-Identifier: MIT
 """
 import math
-import os
 
 import numpy as np
 from CoolProp.CoolProp import PropsSI as PSI
@@ -451,7 +450,7 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert Q_loss == round(instance.Q_loss.val, 0), msg
 
-    def test_SolarCollector(self, tmp_path):
+    def test_SolarCollector(self):
         """Test component properties of solar collector."""
         instance = SolarCollector('solar collector')
         self.setup_SimpleHeatExchanger_network(instance)
@@ -498,9 +497,8 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert Q_loss == round(instance.Q_loss.val_SI, 0), msg
 
-    def test_HeatExchanger(self, tmp_path):
+    def test_HeatExchanger(self):
         """Test component properties of heat exchanger."""
-        tmp_path = f'{tmp_path}.json'
         instance = HeatExchanger('heat exchanger')
         self.setup_HeatExchanger_network(instance)
 
@@ -519,7 +517,7 @@ class TestHeatExchangers:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         Q_design = instance.Q.val
 
         # test specified kA value
@@ -585,7 +583,7 @@ class TestHeatExchangers:
         # to design state
         self.c2.set_attr(T=70)
         instance.set_attr(ttd_l=None)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f'Value of heat flow must be {instance.Q.val}, is {round(Q, 0)}.'
         assert round(Q, 0) == round(instance.Q.val, 0), msg
@@ -711,9 +709,8 @@ class TestHeatExchangers:
         )
         assert np.isnan(instance.kA.val), msg
 
-    def test_Condenser(self, tmp_path):
+    def test_Condenser(self):
         """Test component properties of Condenser."""
-        tmp_path = f'{tmp_path}.json'
         instance = Condenser('condenser')
         self.setup_HeatExchanger_network(instance)
 
@@ -729,7 +726,7 @@ class TestHeatExchangers:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         Q_design = instance.Q.val
 
         # test specified kA value
@@ -782,7 +779,7 @@ class TestHeatExchangers:
 
         # check kA value with condensing pressure in offdesign mode:
         # no changes to design point means: identical pressure
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
             f'Value of condensing pressure be {p}, is '
@@ -867,11 +864,9 @@ class TestHeatExchangers:
             instance.Q.val, instance.td_log.val
         )
 
-    def test_ParallelFlowHeatExchanger_offdesign(self, tmp_path):
+    def test_ParallelFlowHeatExchanger_offdesign(self):
         instance = ParallelFlowHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
         self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
@@ -879,15 +874,15 @@ class TestHeatExchangers:
         instance.set_attr(design=["ttd_u"], offdesign=["kA"])
 
         self.nw.solve("design")
-        self.nw.save(design_path)
-        self.nw.solve("offdesign", design_path=design_path)
+        design_state = self.nw.save(as_dict=True)
+        self.nw.solve("offdesign", design_path=design_state)
         assert approx(instance.ttd_u.val) == 15
         self.c1.set_attr(m=1.5)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
         assert approx(instance.kA.val_SI) == instance.kA.design
         assert approx(instance.ttd_u.val, abs=0.01) == 23.01
         self.c1.set_attr(m=0.8)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
         assert approx(instance.kA.val_SI) == instance.kA.design
         assert approx(instance.ttd_u.val, abs=0.01) == 10.88
 
@@ -954,10 +949,9 @@ class TestHeatExchangers:
         # minimum temperature difference at section borders = pinch
         assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
 
-    def test_MovingBoundaryHeatExchanger_offdesign_UA(self, tmp_path):
+    def test_MovingBoundaryHeatExchanger_offdesign_UA(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
         self.c2.set_attr(td_bubble=5)
@@ -972,11 +966,11 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        self.nw.save(design_path)
+        design_state = self.nw.save(as_dict=True)
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA"])
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         assert approx(instance.td_pinch.val_SI) == 5
 
@@ -985,7 +979,7 @@ class TestHeatExchangers:
 
         # reduces heat transfer
         self.c1.set_attr(m=0.9)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         # reducing heat transfer will reduce pinch at identical pinch
         assert instance.td_pinch.val_SI < 5
@@ -1083,10 +1077,9 @@ class TestHeatExchangers:
         # minimum temperature difference at section borders = pinch
         assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
 
-    def test_SectionedHeatExchanger_offdesign_UA(self, tmp_path):
+    def test_SectionedHeatExchanger_offdesign_UA(self):
         instance = SectionedHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
         self.c2.set_attr(td_bubble=5)
@@ -1101,11 +1094,11 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        self.nw.save(design_path)
+        design_state = self.nw.save(as_dict=True)
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA"])
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         assert approx(instance.td_pinch.val_SI) == 5
 
@@ -1114,15 +1107,14 @@ class TestHeatExchangers:
 
         # reduces heat transfer
         self.c1.set_attr(m=0.9)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         # reducing heat transfer will reduce pinch at identical pinch
         assert instance.td_pinch.val_SI < 5
 
-    def test_SectionedHeatExchanger_offdesign_UA_char(self, tmp_path):
+    def test_SectionedHeatExchanger_offdesign_UA_char(self):
         instance = SectionedHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
         self.c2.set_attr(td_bubble=5)
@@ -1137,18 +1129,18 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        self.nw.save(design_path)
+        design_state = self.nw.save(as_dict=True)
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA_char"])
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         assert approx(instance.td_pinch.val_SI) == 5
         assert approx(instance.UA.val_SI) == instance.UA.design
 
         self.c1.set_attr(m=0.9)
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         expr1 = 0.9
         expr2 = self.c3.m.val_SI / self.c3.m.design
@@ -1164,10 +1156,9 @@ class TestHeatExchangers:
         get_global_param_string("REFPROP_version") == "n/a",
         reason='This test requires REFPROP, dependency is missing.'
     )
-    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_condenser(self, tmp_path):
+    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_condenser(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.nw.units.set_defaults(heat="kW")
         self.c1.set_attr(fluid={"REFPROP::R410A": 1}, T=70)
@@ -1179,7 +1170,7 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.nw.assert_convergence()
-        self.nw.save(design_path)
+        design_state = self.nw.save(as_dict=True)
 
         instance.set_attr(
             area_ratio=21.64,
@@ -1191,7 +1182,7 @@ class TestHeatExchangers:
         instance.set_attr(offdesign=["UA_cecchinato"])
         self.c1.set_attr(design=["T"])
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         assert approx(instance.td_pinch.val_SI) == 7.61134
 
@@ -1200,7 +1191,7 @@ class TestHeatExchangers:
 
         # reduce heat transfer
         instance.set_attr(Q=-35)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         m_ratio_sf = self.c3.m.val_SI / self.c3.m.design
         m_ratio_r = self.c1.m.val_SI / self.c1.m.design
@@ -1217,10 +1208,9 @@ class TestHeatExchangers:
         get_global_param_string("REFPROP_version") == "n/a",
         reason='This test requires REFPROP, dependency is missing.'
     )
-    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_evaporator(self, tmp_path):
+    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_evaporator(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
-        design_path = os.path.join(tmp_path, "design.json")
 
         self.nw.units.set_defaults(heat="kW")
         self.c1.set_attr(fluid={"water": 1}, p=1, T=12)
@@ -1234,7 +1224,7 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.nw.assert_convergence()
-        self.nw.save(design_path)
+        design_state = self.nw.save(as_dict=True)
 
         instance.set_attr(
             area_ratio=1,
@@ -1246,7 +1236,7 @@ class TestHeatExchangers:
         instance.set_attr(offdesign=["UA_cecchinato"])
         self.c2.set_attr(design=["T"])
 
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         assert approx(instance.td_pinch.val_SI) == 4.662423
 
@@ -1255,7 +1245,7 @@ class TestHeatExchangers:
 
         # reduce heat transfer
         instance.set_attr(Q=-25)
-        self.nw.solve("offdesign", design_path=design_path)
+        self.nw.solve("offdesign", design_path=design_state)
 
         m_ratio_sf = self.c1.m.val_SI / self.c1.m.design
         m_ratio_r = self.c3.m.val_SI / self.c3.m.design

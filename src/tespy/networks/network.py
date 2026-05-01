@@ -1792,7 +1792,6 @@ class Network:
         """
         # connections
         self._conn_variables = []
-        _local_designs = {}
         for c in self.conns['object']:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
@@ -1814,12 +1813,9 @@ class Network:
                 for var in c.offdesign:
                     c.get_attr(var).is_set = True
 
-                if path not in _local_designs:
-                    _local_designs[path] = self._load_network_state(path)
-
-                df = _local_designs[c.design_path][c.__class__.__name__]
+                entries = self._load_network_state(path)[c.__class__.__name__]
                 # write data to connections
-                self._write_design_state_to_connection(c, df)
+                self._write_design_state_to_connection(c, entries)
 
             else:
                 c._reset_design(self.redesign)
@@ -1844,10 +1840,9 @@ class Network:
                     )
                     logger.error(msg)
                     raise hlp.TESPyNetworkError(msg)
-                if path not in _local_designs:
-                    _local_designs[path] = self._load_network_state(path)
 
-                data = _local_designs[path][c]
+                local_design = self._load_network_state(path)
+                data = local_design[c]
                 # resolve design label (may differ from cp.label)
                 label = self._find_isolated_comp_label(cp, data)
                 # write data
@@ -1858,10 +1853,10 @@ class Network:
                 cp._local_connection_design_state = {}
                 for adj_conn in cp.inl + cp.outl + cp.power_inl + cp.power_outl:
                     conn_type = adj_conn.__class__.__name__
-                    if conn_type in _local_designs[path]:
-                        conn_df = _local_designs[path][conn_type]
+                    if conn_type in local_design:
+                        conn_entries = local_design[conn_type]
                         matched_row = self._find_conn_in_isolated_design(
-                            adj_conn, cp, label, conn_df
+                            adj_conn, cp, label, conn_entries
                         )
                         if matched_row is not None:
                             cp._local_connection_design_state[adj_conn.label] = (
@@ -2000,20 +1995,18 @@ class Network:
         # fetch all components, reindex with label
         df_comps = self.comps.loc[components_with_parameters].copy()
         # iter through unique types of components (class names)
-        dfs = self._load_network_state(self.design_path)
+        state = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
-        ind_designs = {}
         for _, row in df_comps.iterrows():
-            df = dfs[row["comp_type"]]
+            entries = state[row["comp_type"]]
             comp = row["object"]
             path = comp.design_path
             # in offdesign mode any individually specified design_path is used
             # to load this component's design reference, regardless of
             # local_offdesign
             if path is not None:
-                if path not in ind_designs:
-                    ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path][row["comp_type"]]
+                _individual_design = self._load_network_state(path)
+                data = _individual_design[row["comp_type"]]
                 label = self._find_isolated_comp_label(comp, data)
                 self._write_design_state_to_component(comp, data, label)
                 # write adjacent connections design state from individual
@@ -2021,10 +2014,10 @@ class Network:
                 comp._local_connection_design_state = {}
                 for adj_conn in comp.inl + comp.outl + comp.power_inl + comp.power_outl:
                     conn_type = adj_conn.__class__.__name__
-                    if conn_type in ind_designs[path]:
-                        conn_df = ind_designs[path][conn_type]
+                    if conn_type in _individual_design:
+                        conn_entries = _individual_design[conn_type]
                         matched_row = self._find_conn_in_isolated_design(
-                            adj_conn, comp, label, conn_df
+                            adj_conn, comp, label, conn_entries
                         )
                         if matched_row is not None:
                             comp._local_connection_design_state[adj_conn.label] = (
@@ -2038,64 +2031,61 @@ class Network:
                             )
                             raise KeyError(msg)
             else:
-                data = df
                 # write data to components
-                self._write_design_state_to_component(comp, data, comp.label)
+                self._write_design_state_to_component(comp, entries, comp.label)
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
 
         if len(self.busses) > 0:
             for b, bus in self.busses.items():
-                # the bus design data are stored in dfs[b][0] (column is not named)
                 if len(bus.comps) > 0:
-                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
+                    for comp_label, p_ref in state[b].items():
+                        comp = self.get_comp(comp_label)
+                        if comp is not None:
+                            bus.comps.loc[comp, "P_ref"] = p_ref
 
         # iter through connections
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
-            df = dfs[conn_type]
+            entries = state[conn_type]
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
-                if path not in ind_designs:
-                    ind_designs[path] = self._load_network_state(path)
-                data = ind_designs[path][conn_type]
-            else:
-                data = df
+                entries = self._load_network_state(path)[conn_type]
 
-            self._write_design_state_to_connection(c, data)
+            self._write_design_state_to_connection(c, entries)
 
         msg = 'Done reading design point information for connections.'
         logger.debug(msg)
 
-    def _find_isolated_comp_label(self, comp, comp_df):
+    def _find_isolated_comp_label(self, comp, comp_entries):
         """
-        Resolve which label in *comp_df* corresponds to *comp* for isolated
-        design loading.
+        Resolve which label in *comp_entries* corresponds to *comp* for
+        isolated design loading.
 
         - Exact match -> return :code:`comp.label`
-        - Single-type fallback: label not in index but exactly one row ->
-          return that row's label (the isolated design contains exactly one
+        - Single-type fallback: label not found but exactly one entry ->
+          return that entry's label (the isolated design contains exactly one
           component of that type, so it is unambiguous)
-        - Ambiguous (multiple rows, no exact match) -> raise error
+        - Ambiguous (multiple entries, no exact match) -> raise error
         """
-        if comp.label in comp_df.index:
+        if comp.label in comp_entries:
             return comp.label
-        elif len(comp_df) == 1:
-            return comp_df.index[0]
+        elif len(comp_entries) == 1:
+            return next(iter(comp_entries))
         return None
 
-    def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_df):
+    def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_entries):
         """
-        Find the row in connection dataframe that corresponds to adjacent
-        connection when loading an isolated design file.
+        Find the entry in *conn_entries* that corresponds to *adj_conn* when
+        loading an isolated design file.
 
         Matching strategy (in order):
 
-        1. Direct label match (:code:`adj_conn.label` in :code:`conn_df.index`).
+        1. Direct label match (:code:`adj_conn.label` in :code:`conn_entries`).
         2. Port-based topology match using the :code:`source` / :code:`target` /
-           :code:`source_id` / :code:`target_id` columns stored by
+           :code:`source_id` / :code:`target_id` fields stored by
            :py:meth:`tespy.connections.connection.Connection.collect_results`.
 
         Parameters
@@ -2105,43 +2095,44 @@ class Network:
         comp : tespy.components.component.Component
             Component type object
         comp_label : str
-            Label of the component to look for inside the connections
-            dataframe
-        conn_df : pandas.core.frame.DataFrame
-            Connection information dataframe
+            Label of the component to look for inside the connection entries.
+        conn_entries : dict
+            Mapping of connection labels to their data dicts.
 
         Returns
         -------
-        pandas.core.series.Series
-            Respective data of the connection
+        dict or None
+            Data dict for the matched connection, or None if not found.
         """
         # --- direct label match ---
-        if adj_conn.label in conn_df.index:
-            return conn_df.loc[adj_conn.label]
+        if adj_conn.label in conn_entries:
+            return conn_entries[adj_conn.label]
 
         # --- port-based topology match ---
-        if comp_label is None:
+        if comp_label is None or not conn_entries:
             return None
-        if 'source' not in conn_df.columns or 'target' not in conn_df.columns:
+        any_row = next(iter(conn_entries.values()))
+        if 'source' not in any_row or 'target' not in any_row:
             return None
 
         if adj_conn in comp.inl + comp.power_inl:
-            mask = (
-                (conn_df['target'] == comp_label)
-                & (conn_df['target_id'] == adj_conn.target_id)
-            )
+            matches = [
+                row for row in conn_entries.values()
+                if row.get('target') == comp_label
+                and row.get('target_id') == adj_conn.target_id
+            ]
         else:
-            mask = (
-                (conn_df['source'] == comp_label)
-                & (conn_df['source_id'] == adj_conn.source_id)
-            )
+            matches = [
+                row for row in conn_entries.values()
+                if row.get('source') == comp_label
+                and row.get('source_id') == adj_conn.source_id
+            ]
 
-        matches = conn_df[mask]
         if len(matches) == 1:
-            return matches.iloc[0]
+            return matches[0]
         return None
 
-    def _write_design_state_to_component(self, c, df, label):
+    def _write_design_state_to_component(self, c, entries, label):
         r"""
         Write design point information to components.
 
@@ -2150,15 +2141,15 @@ class Network:
         c : tespy.components.component.Component
             Write design point information to this component.
 
-        df : pandas.core.series.Series, pandas.core.frame.DataFrame
-            Design point information.
+        entries : dict
+            Mapping of component labels to their design point data dicts.
 
         label : str
             Label of the component inside the data. It can differ under the
-            condition of an individual design_path speceified for that
+            condition of an individual design_path specified for that
             component.
         """
-        if label not in df.index:
+        if label not in entries:
             # no matches in the connections of the network and the design files
             msg = (
                 f"Could not find component '{label}' in design case file. "
@@ -2168,10 +2159,9 @@ class Network:
             logger.debug(msg)
             return
         # write component design data
-        data = df.loc[label]
-        c._set_design_parameters(self.mode, data)
+        c._set_design_parameters(self.mode, entries[label])
 
-    def _write_design_state_to_connection(self, c, df):
+    def _write_design_state_to_connection(self, c, entries):
         r"""
         Write design point information to connections.
 
@@ -2180,12 +2170,10 @@ class Network:
         c : tespy.connections.connection.Connection
             Write design point information to this connection.
 
-        df : pandas.core.frame.DataFrame
-            Dataframe containing design point information.
+        entries : dict
+            Mapping of connection labels to their design point data dicts.
         """
-        # match connection (source, source_id, target, target_id) on
-        # connection objects of design file
-        if c.label not in df.index:
+        if c.label not in entries:
             # no matches in the connections of the network and the design files
             msg = (
                 f"Could not find connection '{c.label}' in design case. "
@@ -2196,10 +2184,9 @@ class Network:
             logger.exception(msg)
             raise hlp.TESPyNetworkError(msg)
 
-        data = df.loc[c.label]
-        c._set_design_params(data, self.units)
+        c._set_design_params(entries[c.label], self.units)
 
-    def _write_starting_values_to_connection(self, c, df):
+    def _write_starting_values_to_connection(self, c, entries):
         r"""
         Write parameter information from init_path to connections.
 
@@ -2208,17 +2195,16 @@ class Network:
         c : tespy.connections.connection.Connection
             Write init path information to this connection.
 
-        df : pandas.core.frame.DataFrame
-            Dataframe containing init path information.
+        entries : dict
+            Mapping of connection labels to their state data dicts.
         """
-        if c.label not in df.index:
+        if c.label not in entries:
             # no matches in the connections of the network and the design files
             msg = f"Could not find connection {c.label} in init path file."
             logger.debug(msg)
             return
 
-        data = df.loc[c.label]
-        c._set_starting_values(data, self.units)
+        c._set_starting_values(entries[c.label], self.units)
         c.good_starting_values = True
 
     def _set_starting_values(self):
@@ -2233,14 +2219,13 @@ class Network:
           boiling point or fluid state.
         """
         if self.init_path is not None:
-            dfs = self._load_network_state(self.init_path)
+            state = self._load_network_state(self.init_path)
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
         for c in self.conns['object']:
             if self.init_path is not None:
-                df = dfs[c.__class__.__name__]
-                self._write_starting_values_to_connection(c, df)
+                self._write_starting_values_to_connection(c, state[c.__class__.__name__])
 
             c._guess_starting_values(self.units)
 
@@ -2258,57 +2243,53 @@ class Network:
 
 
     @staticmethod
-    def _load_network_state(json_path: str | bytes | bytearray | Path):
+    def _load_network_state(json_path: str | bytes | bytearray | Path | dict):
         r"""
-        Read network state from given file.
+        Read network state from given file or in-memory dict.
 
         Parameters
         ----------
-        json_path : str | bytes | bytearray | Path
-            Path to network information.
+        json_path : str | bytes | bytearray | Path | dict
+            Path to a saved network state file, a JSON string, or a state
+            dict as returned by :meth:`Network.save` with no arguments.
         """
-        data = None
-        if not isinstance(json_path, Path):
-            try:
-                data = json.loads(json_path)
-            except json.JSONDecodeError as e:
-                msg = (
-                    "The provided json_path could not be decoded. If this is not "
-                    "a valid json string, please provide a valid file path instead of "
-                    "%s"
-                )
-                logger.debug(msg, str(json_path))
-                pass
-        if data is None:
-            with open(json_path, "r") as f:
-                data = json.load(f)
+        if isinstance(json_path, dict):
+            data = json_path
+        else:
+            data = None
+            if not isinstance(json_path, Path):
+                try:
+                    data = json.loads(json_path)
+                except json.JSONDecodeError as e:
+                    msg = (
+                        "The provided json_path could not be decoded. If this is not "
+                        "a valid json string, please provide a valid file path instead of "
+                        "%s"
+                    )
+                    logger.debug(msg, str(json_path))
+                    pass
+            if data is None:
+                with open(json_path, "r") as f:
+                    data = json.load(f)
 
-        dfs = {}
+        def _row(d):
+            return {col: np.nan if val is None else val for col, val in d.items()}
+
+        state = {}
         if "Connection" in data["Connection"] or "PowerConnection" in data["Connection"]:
             for key, value in data["Connection"].items():
-                # TODO: remove the future warning here and bump minimum pandas version to 3.0
-                with pd.option_context("future.no_silent_downcasting", True):
-                    dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
-                dfs[key].index = dfs[key].index.astype(str)
+                state[key] = {str(k): _row(v) for k, v in value.items()}
         # TODO: deprecate
         # this is for compatibility of older savestates
         else:
-            key = "Connection"
-            value = data["Connection"]
-            with pd.option_context("future.no_silent_downcasting", True):
-                dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
-            dfs[key].index = dfs[key].index.astype(str)
+            state["Connection"] = {str(k): _row(v) for k, v in data["Connection"].items()}
 
         for key, value in data["Component"].items():
-            with pd.option_context("future.no_silent_downcasting", True):
-                dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
-            dfs[key].index = dfs[key].index.astype(str)
+            state[key] = {str(k): _row(v) for k, v in value.items()}
         for key, value in data["Bus"].items():
-            with pd.option_context("future.no_silent_downcasting", True):
-                dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
-            dfs[key].index = dfs[key].index.astype(str)
+            state[key] = {str(k): (np.nan if v is None else v) for k, v in value.items()}
 
-        return dfs
+        return state
 
     def get_linear_dependent_variables(self) -> list:
         """Get a list with sublists containing linear dependent variables
@@ -2560,15 +2541,15 @@ class Network:
         mode : str
             Choose from 'design' and 'offdesign'.
 
-        init_path : str
-            Path to the folder, where your network was saved to, e.g.
-            saving to :code:`nw.save('myplant/test.json')` would require loading
-            from :code:`init_path='myplant/test.json'`.
+        init_path : str | Path | dict
+            Path to a previously saved network state (e.g.
+            :code:`nw.save('myplant/test.json')`), or the dict returned by
+            :code:`nw.save()` (no argument).
 
-        design_path : str
-            Path to the folder, where your network's design case was saved to,
-            e.g. saving to :code:`nw.save('myplant/test.json')` would require
-            loading from :code:`design_path='myplant/test.json'`.
+        design_path : str | Path | dict
+            Path to the saved design-case state (e.g.
+            :code:`nw.save('myplant/test.json')`), or the dict returned by
+            :code:`nw.save()` (no argument).
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
@@ -2643,16 +2624,6 @@ class Network:
 
         if not self.checked:
             self.check_topology()
-
-        msg = (
-            "Solver properties:\n"
-            f" - mode: {self.mode}\n"
-            f" - init_path: {self.init_path}\n"
-            f" - design_path: {self.design_path}\n"
-            f" - min_iter: {self.min_iter}\n"
-            f" - max_iter: {self.max_iter}"
-        )
-        logger.debug(msg)
 
         msg = (
             "Network information:\n"
@@ -3922,26 +3893,31 @@ class Network:
 
         return export
 
-    def save(self, json_file_path: str | Path | None) -> None | str:
+    def save(self, json_file_path: str | Path | None = None, as_dict: bool = False) -> None | dict | str:
         r"""
         Dump the results to a json style output.
 
         Parameters
         ----------
         json_file_path : str | Path | None
-            Filename to dump results into.
+            Filename to dump results into. If :code:`None`, the state is returned
+            in-memory (as dict when :code:`as_dict=True`, otherwise as JSON string).
+        as_dict : bool
+            If :code:`True` and :code:`json_file_path` is :code:`None`, return the state as
+            a dict that can be passed directly as :code:`design_path` or
+            :code:`init_path` in a subsequent :meth:`solve` call. Default
+            :code:`False`; the :code:`False` behaviour (returning a JSON string) is
+            deprecated and will be removed in a future release.
 
         Returns
         -------
         None
             If a file path is provided, results are saved to file.
+        dict
+            If :code:`json_file_path` is :code:`None` and :code:`as_dict=True`.
         str
-            If no file path is provided, results are returned as string.
-
-        Note
-        ----
-        Results will be saved to specified file path in json format. If no
-        file path is provided, the results will be returned as string.
+            If :code:`json_file_path` is :code:`None` and :code:`as_dict=False`
+            (deprecated).
         """
         dump = {}
 
@@ -3953,6 +3929,15 @@ class Network:
         dump = hlp._nested_dict_of_dataframes_to_dict(dump)
 
         if json_file_path is None:
+            if as_dict:
+                return dump
+            msg = (
+                "Calling Network.save() without a file path returns a JSON "
+                "string, which is deprecated and will be removed in a future "
+                "release. Use Network.save(as_dict=True) to get a dict that "
+                "can be passed directly as design_path or init_path."
+            )
+            warnings.warn(msg, FutureWarning)
             return json.dumps(dump, indent=2)
 
         with open(json_file_path, "w") as f:

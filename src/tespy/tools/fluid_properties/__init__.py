@@ -1,5 +1,6 @@
 # -*- coding: utf-8
 
+from .mixtures import MIXING_RULES  # noqa: F401
 from .functions import Q_mix_ph  # noqa: F401
 from .functions import T_mix_ph  # noqa: F401
 from .functions import T_mix_ps  # noqa: F401

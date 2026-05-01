@@ -1,6 +1,5 @@
 # -*- coding: utf-8
 
-from .mixtures import MIXING_RULES  # noqa: F401
 from .functions import Q_mix_ph  # noqa: F401
 from .functions import T_mix_ph  # noqa: F401
 from .functions import T_mix_ps  # noqa: F401
@@ -23,5 +22,6 @@ from .functions import v_mix_pT  # noqa: F401
 from .functions import viscosity_mix_ph  # noqa: F401
 from .functions import viscosity_mix_pT  # noqa: F401
 from .helpers import single_fluid  # noqa: F401
+from .mixtures import MIXING_RULES  # noqa: F401
 from .wrappers import CoolPropWrapper  # noqa: F401
 from .wrappers import IncompressibleFluidWrapper  # noqa: F401

@@ -54,6 +54,15 @@ Navigate here to your favorite section:
         - Get professional support
         - Learn how to contribute
 
+    .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
+        :link: integration_label
+        :link-type: ref
+        :class-card: landing-card
+
+        - Make use of ModelTemplate classes
+        - Run parametric optimization
+        - Analyse cycles with exerpy
+
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Advanced Tutorials
         :link:  advanced_tutorials_label
         :link-type: ref
@@ -62,15 +71,6 @@ Navigate here to your favorite section:
         - Build models incrementally
         - Generate good initial values
         - Carry out exergy analyses
-
-    .. grid-item-card::  :material-outlined:`account_tree;2.5em;sd-text-logo-main` Workflow Integration
-        :link: integration_label
-        :link-type: ref
-        :class-card: landing-card
-
-        - Run parametric optimization
-        - Connect models with other libraries
-        - Analyse cycles with exerpy
 
     .. grid-item-card::  :material-outlined:`integration_instructions;2.5em;sd-text-logo-main` API Documentation
         :link: documentation_label

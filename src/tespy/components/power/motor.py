@@ -96,7 +96,6 @@ class Motor(Component):
     >>> from tespy.components import Sink, Source, Compressor, Motor, PowerSource
     >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"

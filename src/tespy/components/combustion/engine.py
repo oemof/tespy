@@ -198,7 +198,6 @@ class CombustionEngine(CombustionChamber):
     ... Splitter)
     >>> from tespy.connections import Connection, Ref
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
@@ -238,26 +237,25 @@ class CombustionEngine(CombustionChamber):
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(chp.ti.val, 0)
     25300000.0
     >>> round(chp.Q1.val, 0)
     -4980000.0
     >>> chp.set_attr(Q1=-4e6, P=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve(mode=mode, init_path=design_state, design_path=design_state)
     >>> round(chp.ti.val, 0)
     17794554.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.617
     >>> chp.set_attr(P=chp.P.design * 0.75, Q1=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve(mode=mode, init_path=design_state, design_path=design_state)
     >>> round(chp.ti.val, 0)
     20550000.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.75
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):

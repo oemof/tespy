@@ -96,7 +96,6 @@ class Generator(Component):
     >>> from tespy.components import Sink, Source, Turbine, Generator, PowerSink
     >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"

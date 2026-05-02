@@ -100,7 +100,6 @@ class Drum(DropletSeparator):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
@@ -141,7 +140,7 @@ class Drum(DropletSeparator):
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.assert_convergence()
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
@@ -153,12 +152,11 @@ class Drum(DropletSeparator):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     3.0
-    >>> os.remove('tmp.json')
     """
 
     @staticmethod

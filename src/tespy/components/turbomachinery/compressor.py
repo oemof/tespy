@@ -120,7 +120,6 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
@@ -140,16 +139,15 @@ class Compressor(Turbomachine):
     >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.79
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):

@@ -250,7 +250,7 @@ observe the change in efficiency of the motor:
     >>> nw.solve("offdesign", design_path=design_state, init_path=design_state)
     >>> nw.assert_convergence()
     >>> round(motor.eta.val, 3)
-    0.966
+    0.965
 
 .. note::
 

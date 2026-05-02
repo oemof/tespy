@@ -258,11 +258,11 @@ power outlet for turbines. Here the methods are :code:`powerinlets` and
 In a similar way, you can add flexibility with a dynamic number of inlets and
 outlets:
 
-.. literalinclude:: /../src/tespy/components/power/bus.py
-    :pyobject: PowerBus.powerinlets
+.. literalinclude:: /../src/tespy/components/energy/_bus.py
+    :pyobject: _EnergyBus.powerinlets
 
-.. literalinclude:: /../src/tespy/components/power/bus.py
-    :pyobject: PowerBus.poweroutlets
+.. literalinclude:: /../src/tespy/components/energy/_bus.py
+    :pyobject: _EnergyBus.poweroutlets
 
 Define the required methods
 +++++++++++++++++++++++++++

@@ -522,7 +522,8 @@ def make_connection(cls):
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")
     elif cls == HeatConnection:
-        from tespy.components import HeatSink, HeatSource
+        from tespy.components import HeatSink
+        from tespy.components import HeatSource
         return cls(HeatSource(""), "heat", HeatSink(""), "heat")
     else:
         raise NotImplementedError(

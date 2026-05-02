@@ -21,10 +21,10 @@ from pytest import mark
 from tespy.components import Condenser
 from tespy.components import Desuperheater
 from tespy.components import HeatExchanger
+from tespy.components import HeatSink
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
-from tespy.components import HeatSink
 from tespy.components import SectionedHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink

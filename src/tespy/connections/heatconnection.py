@@ -1,5 +1,5 @@
-from tespy.connections.powerconnection import PowerConnection
 from tespy.connections.connection import connection_registry
+from tespy.connections.powerconnection import PowerConnection
 from tespy.tools.data_containers import FluidProperties as dc_prop
 
 

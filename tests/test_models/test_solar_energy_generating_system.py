@@ -20,11 +20,11 @@ from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import Generator
 from tespy.components import HeatExchanger
+from tespy.components import HeatSource
 from tespy.components import Merge
 from tespy.components import Motor
 from tespy.components import ParabolicTrough
 from tespy.components import PowerBus
-from tespy.components import HeatSource
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import Pump

@@ -199,7 +199,7 @@ class TestOrderMinChange:
         assert order[0] == 2
 
     def test_greedy_nearest_neighbour(self):
-        # points on a line; greedy from idx 0 should go 0→1→2
+        # points on a line; greedy from idx 0 should go 0->1->2
         pts = np.array([[0.0], [1.0], [100.0]])
         order = ModelTemplate._order_min_change(pts, start_idx=0)
         assert list(order) == [0, 1, 2]

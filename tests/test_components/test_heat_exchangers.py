@@ -24,14 +24,14 @@ from tespy.components import HeatExchanger
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
-from tespy.components import PowerSink
+from tespy.components import HeatSink
 from tespy.components import SectionedHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.connections import Connection
-from tespy.connections import PowerConnection
+from tespy.connections import HeatConnection
 from tespy.networks import Network
 from tespy.tools.fluid_properties import h_mix_pT
 
@@ -313,9 +313,9 @@ class TestHeatExchangers:
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
-        instance.set_attr(D='var', power_connector_location='outlet')
-        ambient = PowerSink('ambient')
-        h1 = PowerConnection(instance, 'heat', ambient, 'power', label='h1')
+        instance.set_attr(D='var')
+        ambient = HeatSink('ambient')
+        h1 = HeatConnection(instance, 'heat', ambient, 'heat', label='h1')
         self.nw.add_conns(h1)
         h1.set_attr(E=1e5)
         self.nw.solve('design')

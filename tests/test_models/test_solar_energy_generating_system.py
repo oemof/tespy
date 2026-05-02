@@ -24,6 +24,7 @@ from tespy.components import Merge
 from tespy.components import Motor
 from tespy.components import ParabolicTrough
 from tespy.components import PowerBus
+from tespy.components import HeatSource
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import Pump
@@ -33,6 +34,7 @@ from tespy.components import Splitter
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
@@ -283,9 +285,8 @@ class TestSEGS:
         )
 
         # solar heat input
-        solar = PowerSource("solar")
-        pt.set_attr(power_connector_location="inlet")
-        h_solar = PowerConnection(solar, "power", pt, "heat", label="h_solar")
+        solar = HeatSource("solar")
+        h_solar = HeatConnection(solar, "heat", pt, "heat", label="h_solar")
         self.nw.add_conns(h_solar)
 
         # component parameters

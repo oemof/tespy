@@ -114,22 +114,22 @@ class Network:
     any results.
 
     >>> from tespy.networks import Network
-    >>> from tespy.components import Source, Sink, Pipe, PowerSink
-    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.components import Source, Sink, Pipe, HeatSink
+    >>> from tespy.connections import Connection, HeatConnection
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
-    >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False, power_connector_location="outlet")
-    >>> h = PowerSink('heat to ambient')
+    >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False)
+    >>> h = HeatSink('heat to ambient')
     >>> a = Connection(so, 'out1', p, 'in1')
     >>> b = Connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(a, b)
     >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
     >>> b.set_attr(printout=False)
-    >>> e = PowerConnection(p, 'heat', h, 'power', printout=False)
+    >>> e = HeatConnection(p, 'heat', h, 'heat', printout=False)
     >>> nw.add_conns(e)
     >>> nw.iterinfo = False
     >>> nw.solve('design')

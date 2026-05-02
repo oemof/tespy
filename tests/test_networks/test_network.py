@@ -1088,3 +1088,18 @@ def test_setting_ref_on_hex_leads_to_linear_dependency():
     c3.set_attr(T=c4.T.val)
     nw.solve("design")
     assert nw.status == 0
+
+
+class TestBackwardsCompatibility:
+    """Verify that save/export files written by v0.9.x are still readable."""
+
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+
+    def test_v09_export_design_and_offdesign(self):
+        """v0.9 export + flat design state: import, design, offdesign all work."""
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+        nw.iterinfo = False
+        nw.solve("design")
+        nw.assert_convergence()
+        nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design.json"))
+        nw.assert_convergence()

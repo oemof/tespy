@@ -846,62 +846,6 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \dot{m}_{in,1} \cdot \left(
-                h_{out,1} - h_{in,1} \right)
-        """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m._reference_container, f, bus=bus)
-
-        if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h._reference_container, f, bus=bus)
-
-        if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h._reference_container, f, bus=bus)
-
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.

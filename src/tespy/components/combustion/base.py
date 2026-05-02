@@ -926,56 +926,6 @@ class CombustionChamber(Component):
 
         return ti
 
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = LHV \cdot \dot{m}_{f}
-        """
-        return self.calc_ti()
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate the matrix of partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        inl, outl = self._get_combustion_connections()
-        f = self.calc_bus_value
-        for c in inl + outl:
-            if c.m.is_var:
-                if c.m.J_col not in bus.jacobian:
-                    bus.jacobian[c.m.J_col] = 0
-                bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
-
-            for fl in (self.fuel_list & c.fluid.is_var):
-                if c.fluid.J_col[fl] not in bus.jacobian:
-                    bus.jacobian[c.fluid.J_col[fl]] = 0
-                bus.jacobian[c.fluid.J_col[fl]] -= _numeric_deriv_vecvar(c.fluid._reference_container, f, fl, bus=bus)
-
     def convergence_check(self):
         r"""
         Perform a convergence check.

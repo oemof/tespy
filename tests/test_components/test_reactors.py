@@ -17,7 +17,6 @@ from tespy.components import PowerSource
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
-from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
@@ -57,60 +56,51 @@ class TestWaterElectrolyzer:
     def test_WaterElectrolyzer(self, tmp_path):
         """Test component properties of water electrolyzer."""
         tmp_path = f'{tmp_path}.json'
-        # check bus function:
-        # power output on component and bus must be indentical
+        # check PowerConnection:
+        # power on component and PowerConnection must be identical
         self.nw.get_conn('h2o').set_attr(T=25, p=1)
         self.nw.get_conn('h2').set_attr(T=25)
-        power = Bus('power')
-        power.add_comps({'comp': self.instance, 'param': 'P', 'base': 'bus'})
-        power.set_attr(P=2.5e6)
-        self.nw.add_busses(power)
+        power_source = PowerSource('power source')
+        e_power = PowerConnection(
+            power_source, 'power', self.instance, 'power', label='e_power'
+        )
+        self.nw.add_conns(e_power)
+        e_power.set_attr(E=2.5e6)
 
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
         msg = (
-            f"Value of power must be {power.P.val}, is {self.instance.P.val}."
+            f"Value of power must be {e_power.E.val}, is {self.instance.P.val_SI}."
         )
-        assert approx(power.P.val) == self.instance.P.val, msg
+        assert approx(e_power.E.val_SI) == self.instance.P.val_SI, msg
 
-        # effieciency was set to 100 % with inlet and outlet states of the
-        # reaction educts and products beeing identical to reference state
+        # efficiency was set to 100 % with inlet and outlet states of the
+        # reaction educts and products being identical to reference state
         # therefore Q must be equal to 0
         msg = f"Value of heat must be 0.0, is {self.instance.Q.val}."
         assert approx(self.instance.Q.val, abs=1e-4) == 0.0, msg
 
-        # reset power, change efficiency value and specify heat bus value
-        power.set_attr(P=None)
+        # reset power, change efficiency value and specify heat output
+        e_power.set_attr(E=None)
         self.nw.get_conn('h2o').set_attr(T=25, p=1)
         self.nw.get_conn('h2').set_attr(T=50)
-        self.instance.set_attr(eta=0.8)
-        # check bus function:
-        # heat output on component and bus must be indentical
-        heat = Bus('heat')
-        heat.add_comps({'comp': self.instance, 'param': 'Q'})
-        heat.set_attr(P=-8e5)
-        self.nw.add_busses(heat)
+        self.instance.set_attr(eta=0.8, Q=-8e5)
 
         self.nw.solve('design')
         self.nw.assert_convergence()
-        msg = (
-            f"Value of heat must be {heat.P.val}, is {self.instance.Q.val}."
-        )
-        assert approx(heat.P.val) == self.instance.Q.val, msg
+        msg = f"Value of heat must be {-8e5}, is {self.instance.Q.val}."
+        assert approx(-8e5) == self.instance.Q.val, msg
         self.nw.save(tmp_path)
 
-        # check bus function:
-        # heat output on component and bus must identical (offdesign test)
-        Q = heat.P.val * 0.9
-        heat.set_attr(P=Q)
+        # check heat output constraint (offdesign test)
+        Q = self.instance.Q.val * 0.9
+        self.instance.set_attr(Q=Q)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
         msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
         assert approx(Q) == self.instance.Q.val, msg
-
-        # delete both busses again
-        self.nw.del_busses(heat, power)
+        self.instance.set_attr(Q=None)
 
         # test efficiency vs. specific energy consumption
         self.nw.get_conn('h2').set_attr(m=0.1)

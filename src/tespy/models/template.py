@@ -436,14 +436,12 @@ class ModelTemplate():
                 })
                 continue
 
-            extra = {}
             if postproc_func is not None:
-                extra = postproc_func(self) or {}
+                postproc_func(self)
 
             result_rows.append({
                 **input_dict,
                 **self.get_results(result_param_list),
-                **extra,
             })
 
         results = pd.DataFrame(result_rows)

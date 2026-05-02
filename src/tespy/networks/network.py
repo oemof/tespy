@@ -2450,12 +2450,12 @@ class Network:
         init_path : str | Path | dict
             Path to a previously saved network state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save()` (no argument).
+            :code:`nw.save(as_dict=True)`.
 
         design_path : str | Path | dict
             Path to the saved design-case state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save()` (no argument).
+            :code:`nw.save(as_dict=True)`.
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
@@ -3618,15 +3618,15 @@ class Network:
         >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
-        >>> nw.save('design_state.json')
+        >>> design_state = nw.save(as_dict=True)
         >>> _ = nw.export('exported_nwk.json')
         >>> mass_flow = round(nw.get_conn('c01').m.val_SI, 1)
         >>> compressor.set_attr(igva='var')
-        >>> nw.solve('offdesign', design_path='design_state.json')
+        >>> nw.solve('offdesign', design_path=design_state)
         >>> round(turbine.eta_s.val, 1)
         0.9
         >>> e4.set_attr(E=0.75)
-        >>> nw.solve('offdesign', design_path='design_state.json')
+        >>> nw.solve('offdesign', design_path=design_state)
         >>> nw.assert_convergence()
         >>> eta_s_t = round(turbine.eta_s.val, 3)
         >>> igva = round(compressor.igva.val, 3)
@@ -3649,17 +3649,16 @@ class Network:
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
         >>> imported_nwk.get_comp('compressor').set_attr(igva='var')
-        >>> imported_nwk.solve('offdesign', design_path='design_state.json')
+        >>> imported_nwk.solve('offdesign', design_path=design_state)
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3)
         0.9
         >>> imported_nwk.get_conn('e4').set_attr(E=0.75)
-        >>> imported_nwk.solve('offdesign', design_path='design_state.json')
+        >>> imported_nwk.solve('offdesign', design_path=design_state)
         >>> round(imported_nwk.get_comp('turbine').eta_s.val, 3) == eta_s_t
         True
         >>> round(imported_nwk.get_comp('compressor').igva.val, 3) == igva
         True
         >>> os.remove('exported_nwk.json')
-        >>> os.remove('design_state.json')
         """
         msg = f'Reading network data from base path {json_file_path}.'
         logger.info(msg)

@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+import warnings
 
 import numpy as np
 
@@ -26,6 +27,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
+from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -196,28 +198,23 @@ class SimpleHeatExchanger(Component):
     >>> round(outg.T.val, 1)
     140.0
 
-    Use of the PowerConnection
-    --------------------------
+    Use of the HeatConnection
+    -------------------------
 
     Single sided heat exchangers can also connect to a
-    :code:`PowerConnection`. In this case the heat exchanger represents a heat
-    source from the perspective of the :code:`PowerConnection`, meaning, we
-    need a :code:`PowerSink` component as target of that connection.
-    To utilize the component in this connects, it is required to set the
-    :code:`power_connector_location`, in this case it should be the
-    :code:`'outlet'`.
+    :code:`HeatConnection`. The component auto-detects whether the connection
+    is on the inlet or outlet side - no prior declaration is needed.
 
-    >>> from tespy.connections import PowerConnection
-    >>> from tespy.components import PowerSink
-    >>> ambient = PowerSink('ambient heat dissipation')
-    >>> heat_sink.set_attr(power_connector_location='outlet')
+    >>> from tespy.connections import HeatConnection
+    >>> from tespy.components import HeatSink
+    >>> ambient = HeatSink('ambient heat dissipation')
 
-    Then we can create and add the :code:`PowerConnection`. We run a new
+    Create and add the :code:`HeatConnection` as an outlet. We run a new
     design calculation, because the old design case did not include the
-    :code:`PowerConnection`. The energy value will be identical to the heat
-    transfer of the pipe.
+    :code:`HeatConnection`. The energy value will be identical to the heat
+    transfer of the component.
 
-    >>> h1 = PowerConnection(heat_sink, 'heat', ambient, 'power', label='h1')
+    >>> h1 = HeatConnection(heat_sink, 'heat', ambient, 'heat', label='h1')
     >>> nw.add_conns(h1)
     >>> nw.solve('design')
     >>> round(h1.E.val) == round(-heat_sink.Q.val)
@@ -226,7 +223,7 @@ class SimpleHeatExchanger(Component):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        if len(self.power_inl + self.power_outl) > 0:
+        if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
@@ -234,6 +231,17 @@ class SimpleHeatExchanger(Component):
             })
 
         return constraints
+
+    def set_attr(self, **kwargs):
+        if 'power_connector_location' in kwargs:
+            warnings.warn(
+                "The parameter 'power_connector_location' is deprecated and has no "
+                "effect. Connect the component directly on either the inlet or outlet "
+                "side without prior declaration.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        super().set_attr(**kwargs)
 
     def get_parameters(self):
         return {
@@ -358,37 +366,62 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def powerinlets(self):
-        if self.power_connector_location.val == "inlet":
-            return ['heat']
-        else:
-            return []
+    @staticmethod
+    def powerinlets():
+        return ['heat']
 
-    def poweroutlets(self):
-        if self.power_connector_location.val == "outlet":
-            return ['heat']
-        else:
-            return []
+    @staticmethod
+    def poweroutlets():
+        return ['heat']
 
-    def _get_power_connector_location(self):
-        if self.power_connector_location.val == "inlet":
-            return self.power_inl[0]
-        else:
-            return self.power_outl[0]
+    @staticmethod
+    def heatinlets():
+        return ['heat']
 
-    def energy_connector_balance_func(self):
-        connector = self._get_power_connector_location()
-        if self.power_connector_location.val == "inlet":
-            energy_flow = -connector.E.val_SI
-        else:
-            energy_flow = connector.E.val_SI
+    @staticmethod
+    def heatoutlets():
+        return ['heat']
 
-        return energy_flow + self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+    def _validate_connections(self):
+        super()._validate_connections()
+        all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl
+        if len(all_energy) > 1:
+            msg = (
+                f"Component {self.label} has more than one energy connection. "
+                "Connect to exactly one side using one connection type."
+            )
+            raise TESPyNetworkError(msg)
+        if self.power_inl or self.power_outl:
+            warnings.warn(
+                f"Component {self.label} is connected via PowerConnection. "
+                "Please use HeatConnection instead. PowerConnection support for "
+                "SimpleHeatExchanger will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
             )
 
+    def _get_energy_connector_location(self):
+        """Return (connector, side, val_attr) for the active energy connection."""
+        if self.heat_inl:
+            return self.heat_inl[0], "inlet"
+        if self.heat_outl:
+            return self.heat_outl[0], "outlet"
+        if self.power_inl:
+            return self.power_inl[0], "inlet"
+        return self.power_outl[0], "outlet"
+
+    def energy_connector_balance_func(self):
+        connector, side = self._get_energy_connector_location()
+        energy_flow = (
+            -connector.E.val_SI if side == "inlet"
+            else connector.E.val_SI
+        )
+        return energy_flow + self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
     def energy_connector_dependents(self):
-        connector = self._get_power_connector_location()
+        connector, _ = self._get_energy_connector_location()
         return [connector.E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def energy_balance_func(self):

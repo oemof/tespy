@@ -114,22 +114,22 @@ class Network:
     any results.
 
     >>> from tespy.networks import Network
-    >>> from tespy.components import Source, Sink, Pipe, PowerSink
-    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.components import Source, Sink, Pipe, HeatSink
+    >>> from tespy.connections import Connection, HeatConnection
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
-    >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False, power_connector_location="outlet")
-    >>> h = PowerSink('heat to ambient')
+    >>> p = Pipe('pipe', Q=0, pr=0.95, printout=False)
+    >>> h = HeatSink('heat to ambient')
     >>> a = Connection(so, 'out1', p, 'in1')
     >>> b = Connection(p, 'out1', si, 'in1')
     >>> nw.add_conns(a, b)
     >>> a.set_attr(fluid={'CH4': 1}, T=30, p=10, m=10, printout=False)
     >>> b.set_attr(printout=False)
-    >>> e = PowerConnection(p, 'heat', h, 'power', printout=False)
+    >>> e = HeatConnection(p, 'heat', h, 'heat', printout=False)
     >>> nw.add_conns(e)
     >>> nw.iterinfo = False
     >>> nw.solve('design')
@@ -767,34 +767,27 @@ class Network:
     def _init_components(self):
         r"""Set up necessary component information."""
         for comp in self.comps["object"]:
-            # get incoming and outgoing connections of a component
             source_mask = self.conns["source"] == comp
-            required_connectors_mask = self.conns["source_id"].isin(comp.outlets())
-            sources = self.conns[source_mask & required_connectors_mask]
-            sources = sources["source_id"].sort_values().index.tolist()
             target_mask = self.conns["target"] == comp
-            required_connectors_mask = self.conns["target_id"].isin(comp.inlets())
-            targets = self.conns[target_mask & required_connectors_mask]
-            targets = targets["target_id"].sort_values().index.tolist()
-            # save the incoming and outgoing as well as the number of
-            # connections as component attribute
-            comp.inl = self.conns.loc[targets, "object"].tolist()
-            comp.outl = self.conns.loc[sources, "object"].tolist()
 
-            required_connectors_mask = self.conns["source_id"].isin(comp.poweroutlets())
-            sources = self.conns[source_mask & required_connectors_mask]
-            sources = sources["source_id"].sort_values().index.tolist()
-
-            required_connectors_mask = self.conns["target_id"].isin(comp.powerinlets())
-            targets = self.conns[target_mask & required_connectors_mask]
-            targets = targets["target_id"].sort_values().index.tolist()
-
-            comp.power_inl = self.conns.loc[targets, "object"].tolist()
-            comp.power_outl = self.conns.loc[sources, "object"].tolist()
+            comp.inl, comp.outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask, comp.inlets(), comp.outlets()
+            )
+            comp.power_inl, comp.power_outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask,
+                comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
+            )
             comp.num_power_i = len(comp.powerinlets())
             comp.num_power_o = len(comp.poweroutlets())
 
-            # set up restults and specification dataframes
+            comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask,
+                comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
+            )
+            comp.num_heat_i = len(comp.heatinlets())
+            comp.num_heat_o = len(comp.heatoutlets())
+
+            # set up results and specification dataframes
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
@@ -806,55 +799,37 @@ class Network:
                     columns=cols, dtype='float64'
                 )
 
-    def _check_components(self):
-        # count number of incoming and outgoing connections and compare to
-        # expected values
-        for comp in self.comps['object']:
-            if len(comp.outl) != comp.num_o:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_o - len(comp.outl)} outgoing connections. "
-                    "Make sure all outlets are connected and all connections "
-                    "have been added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccesful
-                raise hlp.TESPyNetworkError(msg)
-            elif len(comp.inl) != comp.num_i:
-                msg = (
-                    f"The component {comp.label} is missing "
-                    f"{comp.num_i - len(comp.inl)} incoming connections. "
-                    "Make sure all inlets are connected and all connections "
-                    "have been added to the network."
-                )
-                logger.error(msg)
-                # raise an error in case network check is unsuccessful
-                raise hlp.TESPyNetworkError(msg)
+    def _resolve_comp_conn_domain(
+        self, source_mask, target_mask, inlet_ids, outlet_ids, conn_type=None
+    ):
+        """Return :code:`(inl, outl)` connection lists for one domain.
 
-            # this rule only applies, in case there are any power connections
-            if len(comp.power_inl) + len(comp.power_outl) > 0:
-                if len(comp.power_outl) != comp.num_power_o:
-                    msg = (
-                        f"The component {comp.label} is missing "
-                        f"{comp.num_power_o - len(comp.power_outl)} outgoing "
-                        "power connections. Make sure all outlets are "
-                        "connected and all connections have been added to the "
-                        "network."
-                    )
-                    logger.error(msg)
-                    # raise an error in case network check is unsuccessful
-                    raise hlp.TESPyNetworkError(msg)
-                elif len(comp.power_inl) != comp.num_power_i:
-                    msg = (
-                        f"The component {comp.label} is missing "
-                        f"{comp.num_power_i - len(comp.power_inl)} incoming "
-                        "power connections. Make sure all outlets are "
-                        "connected and all connections have been added to the "
-                        "network."
-                    )
-                    logger.error(msg)
-                    # raise an error in case network check is unsuccessful
-                    raise hlp.TESPyNetworkError(msg)
+        Parameters
+        ----------
+        source_mask, target_mask : boolean Series
+            Rows in :code:`self.conns` where the component is source / target.
+        inlet_ids, outlet_ids : list[str]
+            Port IDs returned by the component's :code:`*inlets()` / :code:`*outlets()`.
+        conn_type : str, optional
+            If given, further restrict to rows whose :code:`conn_type` column
+            matches this class name (e.g. :code:`"PowerConnection"`).
+        """
+        if conn_type is not None:
+            type_mask = self.conns["conn_type"] == conn_type
+            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids) & type_mask]
+            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids) & type_mask]
+        else:
+            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
+            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
+
+        return (
+            self.conns.loc[tgt["target_id"].sort_values().index, "object"].tolist(),
+            self.conns.loc[src["source_id"].sort_values().index, "object"].tolist(),
+        )
+
+    def _check_components(self):
+        for comp in self.comps['object']:
+            comp._validate_connections()
 
     def _prepare_problem(self):
         r"""
@@ -1767,7 +1742,7 @@ class Network:
                 # store adjacent connection design values from the component's
                 # own design_path for use in offdesign equations
                 cp._local_connection_design_state = {}
-                for adj_conn in cp.inl + cp.outl + cp.power_inl + cp.power_outl:
+                for adj_conn in cp.all_connections:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in local_design:
                         conn_entries = local_design[conn_type]
@@ -1928,7 +1903,7 @@ class Network:
                 # write adjacent connections design state from individual
                 # design_path to the component
                 comp._local_connection_design_state = {}
-                for adj_conn in comp.inl + comp.outl + comp.power_inl + comp.power_outl:
+                for adj_conn in comp.all_connections:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in _individual_design:
                         conn_entries = _individual_design[conn_type]
@@ -2023,7 +1998,7 @@ class Network:
         if 'source' not in any_row or 'target' not in any_row:
             return None
 
-        if adj_conn in comp.inl + comp.power_inl:
+        if adj_conn in comp.all_inlets:
             matches = [
                 row for row in conn_entries.values()
                 if row.get('target') == comp_label
@@ -2184,7 +2159,7 @@ class Network:
             return {col: np.nan if val is None else val for col, val in d.items()}
 
         state = {}
-        if "Connection" in data["Connection"] or "PowerConnection" in data["Connection"]:
+        if any(k in data["Connection"] for k in ("Connection", "PowerConnection", "HeatConnection")):
             for key, value in data["Connection"].items():
                 state[key] = {str(k): _row(v) for k, v in value.items()}
         # TODO: deprecate

@@ -24,6 +24,7 @@ from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.connections.connection import ConnectionBase
@@ -520,6 +521,10 @@ def make_connection(cls):
         return cls(Source(""), "out1", Sink(""), "in1")
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")
+    elif cls == HeatConnection:
+        from tespy.components import HeatSink
+        from tespy.components import HeatSource
+        return cls(HeatSource(""), "heat", HeatSink(""), "heat")
     else:
         raise NotImplementedError(
             f"The connection class {cls} is not implemented in testing"

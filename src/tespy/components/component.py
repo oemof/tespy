@@ -30,6 +30,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
+from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
@@ -145,6 +146,8 @@ class Component:
         self.num_o = len(self.outlets())
         self.num_power_i = len(self.powerinlets())
         self.num_power_o = len(self.poweroutlets())
+        self.num_heat_i = len(self.heatinlets())
+        self.num_heat_o = len(self.heatoutlets())
 
     def set_attr(self, **kwargs):
         r"""
@@ -568,6 +571,46 @@ class Component:
     @staticmethod
     def poweroutlets():
         return []
+
+    @staticmethod
+    def heatinlets():
+        return []
+
+    @staticmethod
+    def heatoutlets():
+        return []
+
+    @property
+    def all_connections(self):
+        return self.all_inlets + self.all_outlets
+
+    @property
+    def all_inlets(self):
+        return self.inl + self.power_inl + self.heat_inl
+
+    @property
+    def all_outlets(self):
+        return self.outl + self.power_outl + self.heat_outl
+
+    def _validate_connections(self):
+        if len(self.outl) != self.num_o:
+            msg = (
+                f"The component {self.label} is missing "
+                f"{self.num_o - len(self.outl)} outgoing connections. "
+                "Make sure all outlets are connected and all connections "
+                "have been added to the network."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+        if len(self.inl) != self.num_i:
+            msg = (
+                f"The component {self.label} is missing "
+                f"{self.num_i - len(self.inl)} incoming connections. "
+                "Make sure all inlets are connected and all connections "
+                "have been added to the network."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
 
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)

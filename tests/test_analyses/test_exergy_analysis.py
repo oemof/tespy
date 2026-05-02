@@ -16,6 +16,7 @@ from pytest import raises
 from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Generator
+from tespy.components import HeatSource
 from tespy.components import Merge
 from tespy.components import Motor
 from tespy.components import PowerBus
@@ -29,6 +30,7 @@ from tespy.components import Splitter
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools.global_vars import ERR
@@ -59,7 +61,7 @@ class TestClausiusRankine:
         gen = Generator("generator")
         grid = PowerSink("grid")
         fwp_shaft = Generator("fwp shaft")
-        heat_src = PowerSource("heat source")
+        heat_src = HeatSource("heat source")
 
         gen.set_attr(eta=1)
 
@@ -88,8 +90,7 @@ class TestClausiusRankine:
         self.nw.add_conns(e1, e2, e3, e4)
 
         # heat connection: heat source -> steam generator
-        steam_generator.set_attr(power_connector_location="inlet")
-        h1 = PowerConnection(heat_src, "power", steam_generator, "heat", label="h1")
+        h1 = HeatConnection(heat_src, "heat", steam_generator, "heat", label="h1")
         self.nw.add_conns(h1)
 
         # component parameters
@@ -198,7 +199,7 @@ class TestRefrigerator:
         # power components
         grid = PowerSource("grid")
         motor = Motor("motor")
-        cold_space = PowerSource("cold space")
+        cold_space = HeatSource("cold space")
 
         motor.set_attr(eta=1)
 
@@ -216,8 +217,7 @@ class TestRefrigerator:
         self.nw.add_conns(e1, e2)
 
         # heat connection: cold space -> evaporator
-        eva.set_attr(power_connector_location="inlet")
-        h1 = PowerConnection(cold_space, "power", eva, "heat", label="h1")
+        h1 = HeatConnection(cold_space, "heat", eva, "heat", label="h1")
         self.nw.add_conns(h1)
 
         # component parameters
@@ -330,7 +330,7 @@ class TestCompressedAirOut:
         # power components
         gen = Generator("generator")
         grid = PowerSink("grid")
-        heat_src = PowerSource("heat source")
+        heat_src = HeatSource("heat source")
         gen.set_attr(eta=1)
 
         # create connections
@@ -345,8 +345,7 @@ class TestCompressedAirOut:
         self.nw.add_conns(e1, e2)
 
         # heat connection: heat source -> reheater
-        reheater.set_attr(power_connector_location="inlet")
-        h1 = PowerConnection(heat_src, "power", reheater, "heat", label="h1")
+        h1 = HeatConnection(heat_src, "heat", reheater, "heat", label="h1")
         self.nw.add_conns(h1)
 
         # component parameters

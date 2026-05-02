@@ -166,6 +166,8 @@ def create_tabular_component_views():
         # TODO: Find a better solution
         instance.power_outl = []
         instance.power_inl = []
+        instance.heat_outl = []
+        instance.heat_inl = []
 
         cls_ref = instance.__class__
         cls_module = cls_ref.__module__

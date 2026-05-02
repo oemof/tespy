@@ -15,6 +15,7 @@ class ModelTemplate():
     def __init__(self) -> None:
         self._diagram_cache = {}
         self._stable_solution = None
+        self._ean = None
         self.parameter_lookup = self._parameter_lookup()
         self._create_network()
 
@@ -316,34 +317,77 @@ class ModelTemplate():
 
         return ax_min_val, ax_max_val
 
-    def sensitivity_analysis(self, param_dict=None, result_param_list=None) -> pd.DataFrame:
-        """
-        1. Check the parameter lengths
-        2. Use the order_min_change method
-        3. Solve design or offdesign
-        4. Deal with the large step changes
-        5. Save the results - What results are needed?
-            - Function needs to be passed - check for this and raise exception
-            - Use the method for the objective function
+    def save_design(self, path=None) -> None:
+        """Save current network state as the design reference."""
+        save_path = path or getattr(self, '_design_path', 'design.json')
+        self.nw.save(save_path)
+        self._design_path = save_path
+
+    def run_exergy_analysis(self, Tamb, pamb, E_F, E_P, E_L=None):
+        """Run an exergy analysis via exerpy and cache the result.
 
         Parameters
         ----------
-        param_dict : dict
-            A dictionary of parameter names and lists of values to be used in the
-            sensitivity analysis. All lists must have the same length, which
-            determines the number of simulations to be run.
+        Tamb : float
+            Ambient temperature in °C.
+        pamb : float
+            Ambient pressure in bar.
+        E_F : dict
+            Fuel exergy definition, e.g. ``{'inputs': [...], 'outputs': [...]}``.
+        E_P : dict
+            Product exergy definition.
+        E_L : dict, optional
+            Loss exergy definition.
 
-        result_func : function -> dict
-            This function will be called after each simulation step and should
-            return a dictionary. Its contents will be appended to a pandas
-            DataFrame, which is returned after the sensitivity analyses
-            finishes. Therefore, the function should return a dictionary of
-            string column name and (numeric) result value pairs.
+        Returns
+        -------
+        exerpy.ExergyAnalysis
+        """
+        from exerpy import ExergyAnalysis
+        kwargs = {'E_F': E_F, 'E_P': E_P}
+        if E_L is not None:
+            kwargs['E_L'] = E_L
+        self._ean = ExergyAnalysis.from_tespy(self.nw, Tamb + 273.15, pamb * 1e5)
+        self._ean.analyse(**kwargs)
+        return self._ean
+
+    def sensitivity_analysis(self, param_dict=None, result_param_list=None, mode='design', postproc_func=None) -> pd.DataFrame:
+        """
+        Parameters
+        ----------
+        param_dict : dict
+            A dictionary of parameter names and lists of values to be used in
+            the sensitivity analysis. All lists must have the same length,
+            which determines the number of simulations to be run.
+        result_param_list : list, optional
+            Names of model parameters (from :meth:`_parameter_lookup`) to
+            record after each simulation step.
+        mode : str, optional
+            ``'design'`` or ``'offdesign'``. Default is ``'design'``.
+        postproc_func : callable, optional
+            A function ``postproc_func(model) -> dict | None`` called after
+            each successful solve. Use it to run any postprocessing - e.g.
+            an exergy analysis, custom KPI calculation, or result export.
+            The returned dict (if any) is merged into the result row as
+            additional columns alongside ``result_param_list``. If the
+            function returns ``None`` no extra columns are added.
+
+            Example - running an exergy analysis after each offdesign solve::
+
+                def run_exergy(model):
+                    model.run_exergy_analysis(Tamb, pamb, E_F, E_P)
+
+                hp.sensitivity_analysis(
+                    param_dict={"T_geo": [8, 9, 10, 11]},
+                    result_param_list=["epsilon"],
+                    mode="offdesign",
+                    postproc_func=run_exergy,
+                )
 
         Returns
         -------
         pandas.core.frame.DataFrame
-            DataFrame with input and specified output values of the model
+            DataFrame with input parameter columns and result columns.
         """
         if param_dict is None:
             raise ValueError(
@@ -371,7 +415,10 @@ class ModelTemplate():
         # Sensitivity analysis loop:
         for row_num, row in enumerate(sorted_input):
             input_dict = {keys[i]: row[i] for i in range(len(keys))}
-            self.solve_model_design(**input_dict)
+            if mode == 'offdesign':
+                self.solve_model_offdesign(**input_dict)
+            else:
+                self.solve_model_design(**input_dict)
 
             if self.nw.status > 1:
                 # TODO: get an example, which actually would trigger this
@@ -389,9 +436,14 @@ class ModelTemplate():
                 })
                 continue
 
+            extra = {}
+            if postproc_func is not None:
+                extra = postproc_func(self) or {}
+
             result_rows.append({
                 **input_dict,
-                **self.get_results(result_param_list)
+                **self.get_results(result_param_list),
+                **extra,
             })
 
         results = pd.DataFrame(result_rows)

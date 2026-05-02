@@ -508,11 +508,11 @@ class HeatExchanger(Component):
         min_ttd = self._min_ttd()
         if min_ttd <= 0:
             # Temperature profile invalid: one terminal ΔT has gone negative.
-            # Q < 0 and kA·min_ttd < 0 → combined residual is never zero,
+            # Q < 0 and kA·min_ttd < 0 -> combined residual is never zero,
             # preventing false convergence.  The min_ttd term provides a
             # temperature-based gradient independent of the energy balance row.
-            # The residual is continuous at min_ttd = 0 because td_log → 0
-            # as min(ttd_u, ttd_l) → 0, so both branches give Q there.
+            # The residual is continuous at min_ttd = 0 because td_log -> 0
+            # as min(ttd_u, ttd_l) -> 0, so both branches give Q there.
             return Q + self.kA.val_SI * min_ttd
         return Q + self.kA.val_SI * self.calculate_td_log()
 
@@ -1134,119 +1134,6 @@ class HeatExchanger(Component):
             self.S_irr += self.get_attr('S_irr' + str(i + 1))
 
         self.S_irr += self.S_Q1 + self.S_Q2
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a heat exchanger.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \dot{E}_\mathrm{out,2}^\mathrm{T} -
-            \dot{E}_\mathrm{in,2}^\mathrm{T}
-            & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2} > T_0\\
-            \dot{E}_\mathrm{out,1}^\mathrm{T} -
-            \dot{E}_\mathrm{in,1}^\mathrm{T}
-            & T_0 \geq  T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{out,1}^\mathrm{T} +
-            \dot{E}_\mathrm{out,2}^\mathrm{T}
-            & T_\mathrm{in,1}, T_\mathrm{out,2} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,1}\\
-            \dot{E}_\mathrm{out,1}^\mathrm{T}
-            & T_\mathrm{in,1} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            \text{not defined (nan)}
-            & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{out,2}^\mathrm{T}
-            & T_\mathrm{in,1}, T_\mathrm{out,1},
-            T_\mathrm{out,2} \geq T_0 > T_\mathrm{in,2}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{M} -
-            \dot{E}_\mathrm{out,2}^\mathrm{M}
-            & T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2} > T_0\\
-            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,2}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,1}^\mathrm{M} -
-            \dot{E}_\mathrm{out,1}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in,1}, T_\mathrm{in,2}, T_\mathrm{out,1},
-            T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{in,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{M} -
-            \dot{E}_\mathrm{out,2}^\mathrm{M}
-            & T_\mathrm{in,1}, T_\mathrm{out,2} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,1}\\
-            \dot{E}_\mathrm{in,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{M}
-            & T_\mathrm{in,1} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,1}, T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,2}^\mathrm{PH}
-            & T_\mathrm{in,1}, T_\mathrm{out,1} > T_0 \geq
-            T_\mathrm{in,2}, T_\mathrm{out,2}\\
-            \dot{E}_\mathrm{in,1}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,1}^\mathrm{PH} +
-            \dot{E}_\mathrm{in,2}^\mathrm{PH} -
-            \dot{E}_\mathrm{out,2}^\mathrm{M}
-            & T_\mathrm{in,1}, T_\mathrm{out,1},
-            T_\mathrm{out,2} \geq T_0 > T_\mathrm{in,2}\\
-            \end{cases}
-        """
-        if all([c.T.val_SI > T0 for c in self.inl + self.outl]):
-            self.E_P = self.outl[1].Ex_therm - self.inl[1].Ex_therm
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
-                self.inl[1].Ex_mech - self.outl[1].Ex_mech)
-        elif all([c.T.val_SI <= T0 for c in self.inl + self.outl]):
-            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-            self.E_F = self.inl[1].Ex_physical - self.outl[1].Ex_physical + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif (self.inl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0 and
-              self.outl[0].T.val_SI <= T0 and self.inl[1].T.val_SI <= T0):
-            self.E_P = self.outl[0].Ex_therm + self.outl[1].Ex_therm
-            self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
-                self.outl[0].Ex_mech + self.outl[1].Ex_mech)
-        elif (self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
-              self.outl[0].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
-            self.E_P = self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical - (
-                self.outl[1].Ex_physical + self.outl[0].Ex_mech)
-        elif (self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0 and
-              self.inl[1].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
-                self.inl[1].Ex_physical - self.outl[1].Ex_physical)
-        else:
-            self.E_P = self.outl[1].Ex_therm
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical + (
-                self.inl[1].Ex_physical - self.outl[1].Ex_mech)
-
-        self.E_bus = {"chemical": np.nan, "physical": np.nan, "massless": np.nan}
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

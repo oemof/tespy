@@ -616,36 +616,6 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     assert sum(cycle) == 45
 
 
-def test_v08_to_v09_import():
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_exported_nwk.json"
-    )
-
-    nw = Network.from_json(path)
-    assert nw.checked, "The network import was not successful"
-
-
-def test_v08_to_v09_complete():
-    network_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_exported_nwk.json"
-    )
-
-    nw = Network.from_json(network_path)
-
-    design_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_design_state.json"
-    )
-
-    nw = Network.from_json(network_path)
-    nw.solve("design")
-    nw.get_comp('compressor').set_attr(igva='var')
-    nw.solve("offdesign", init_path=design_path, design_path=design_path)
-    nw.assert_convergence()
-
-
 def test_missing_cyclecloser_but_no_missing_source():
     nw = Network()
     nw.units.set_defaults(**{

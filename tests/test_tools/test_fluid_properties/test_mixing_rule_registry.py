@@ -37,10 +37,6 @@ class TestMixingRuleRegistryBuiltins:
         for rule in ("ideal", "ideal-cond", "incompressible", "humidair"):
             assert rule in MIXING_RULES._T_ph
 
-    def test_exergy_chemical_only_for_ideal_cond(self):
-        assert "ideal-cond" in MIXING_RULES._exergy_chemical
-        assert "ideal" not in MIXING_RULES._exergy_chemical
-
 
 class TestMixingRuleRegistryUnknownRule:
 

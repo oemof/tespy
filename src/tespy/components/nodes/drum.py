@@ -197,33 +197,6 @@ class Drum(DropletSeparator):
     def propagate_wrapper_to_target(self, branch):
         return super().propagate_wrapper_to_target(branch)
 
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a merge.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        Please note, that the exergy balance accounts for physical exergy only.
-
-        .. math::
-
-            \dot{E}_\mathrm{P} = \sum \dot{E}_{\mathrm{out,}j}^\mathrm{PH}\\
-            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-        """
-        self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
-        self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-
     def get_plotting_data(self):
         """
         Generate a dictionary containing FluProDia plotting information.

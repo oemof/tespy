@@ -24,13 +24,14 @@ from tespy.components import HeatExchanger
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
+from tespy.components import PowerSink
 from tespy.components import SectionedHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools.fluid_properties import h_mix_pT
 
@@ -312,10 +313,11 @@ class TestHeatExchangers:
 
         # test diameter calculation from specified dimensions (as pipe)
         # with Hazen-Williams method
-        instance.set_attr(D='var')
-        b = Bus('heat', P=-1e5)
-        b.add_comps({'comp': instance})
-        self.nw.add_busses(b)
+        instance.set_attr(D='var', power_connector_location='outlet')
+        ambient = PowerSink('ambient')
+        h1 = PowerConnection(instance, 'heat', ambient, 'power', label='h1')
+        self.nw.add_conns(h1)
+        h1.set_attr(E=1e5)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
@@ -338,7 +340,7 @@ class TestHeatExchangers:
         # test heat transfer coefficient as variable of the system (ambient
         # temperature required)
         instance.set_attr(kA='var', zeta=None)
-        b.set_attr(P=-5e4)
+        h1.set_attr(E=5e4)
         self.nw.solve('design')
         self.nw.assert_convergence()
 
@@ -352,7 +354,7 @@ class TestHeatExchangers:
 
         # test kA as network results parameter
         instance.set_attr(Q=-5e4, Tamb=None, kA=None)
-        b.set_attr(P=None)
+        h1.set_attr(E=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
         kA_network = self.nw.results['SimpleHeatExchanger'].loc[
@@ -511,9 +513,7 @@ class TestHeatExchangers:
         self.c1.set_attr(T=120, p=3, fluid={'H2O': 1})
         self.c2.set_attr(T=70)
         self.c3.set_attr(T=40, p=5, fluid={'Ar': 1})
-        b = Bus('heat transfer', P=-80e3)
-        b.add_comps({'comp': instance})
-        self.nw.add_busses(b)
+        instance.set_attr(Q=-80e3)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
@@ -521,8 +521,7 @@ class TestHeatExchangers:
         Q_design = instance.Q.val
 
         # test specified kA value
-        instance.set_attr(kA=instance.kA.val * 2 / 3)
-        b.set_attr(P=None)
+        instance.set_attr(kA=instance.kA.val * 2 / 3, Q=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
 
@@ -535,8 +534,7 @@ class TestHeatExchangers:
         assert round(Q, 1) == round(Q_design * 2 / 3, 1), msg
 
         # back to design case
-        instance.set_attr(kA=None)
-        b.set_attr(P=Q_design)
+        instance.set_attr(kA=None, Q=Q_design)
         self.nw.solve('design')
         self.nw.assert_convergence()
 
@@ -621,7 +619,7 @@ class TestHeatExchangers:
         assert instance.ttd_u.val < 0, msg
 
         # test heat exchanger effectiveness
-        b.set_attr(P=None)
+        instance.set_attr(Q=None)
         self.c1.set_attr(m=1, T=80, h=None)
         self.c2.set_attr(T=None, h=None)
 

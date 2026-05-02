@@ -323,17 +323,3 @@ class DiabaticCombustionChamber(CombustionChamber):
                     f"pressure at the outlet of component {self.label}."
                 )
                 logger.warning(msg)
-
-    def exergy_balance(self, T0):
-
-        self.E_P = self.outl[0].Ex_physical - (
-            self.inl[0].Ex_physical + self.inl[1].Ex_physical
-        )
-        self.E_F = (
-            self.inl[0].Ex_chemical + self.inl[1].Ex_chemical -
-            self.outl[0].Ex_chemical
-        )
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = {"chemical": np.nan, "physical": np.nan, "massless": np.nan}

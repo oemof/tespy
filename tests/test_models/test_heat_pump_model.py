@@ -16,13 +16,15 @@ from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import HeatExchanger
+from tespy.components import PowerBus
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
@@ -60,15 +62,6 @@ class TestHeatPump:
         cp1 = Compressor('compressor 1')
         cp2 = Compressor('compressor 2')
         he = HeatExchanger('intercooler')
-
-        # busses
-        self.power = Bus('total compressor power')
-        self.power.add_comps(
-            {'comp': cp1, 'base': 'bus'},
-            {'comp': cp2, 'base': 'bus'})
-        self.heat = Bus('total delivered heat')
-        self.heat.add_comps({'comp': cd, 'char': -1})
-        self.nw.add_busses(self.power, self.heat)
 
         # consumer system
         c_in_cd = Connection(cc_refrigerant, 'out1', cd, 'in1')
@@ -114,6 +107,16 @@ class TestHeatPump:
         he_ic_out = Connection(he, 'out2', ic_out, 'in1')
 
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
+
+        # power network
+        grid = PowerSource('grid')
+        distribution = PowerBus('power distribution', num_in=1, num_out=2)
+
+        self.e_grid = PowerConnection(grid, 'power', distribution, 'power_in1')
+        e_cp1 = PowerConnection(distribution, 'power_out1', cp1, 'power')
+        e_cp2 = PowerConnection(distribution, 'power_out2', cp2, 'power')
+
+        self.nw.add_conns(self.e_grid, e_cp1, e_cp2)
 
         # condenser system
         x = np.array([
@@ -318,8 +321,9 @@ class TestHeatPump:
                 # this should be much less, unfortunately not all ebsilon
                 # characteristics are available, thus it is
                 # difficult/impossible to match the models perfectly!
+                cd = self.nw.get_comp('condenser')
                 d_rel_COP = abs(
-                    self.heat.P.val / self.power.P.val - cop_array[i, j]
+                    (-cd.Q.val) / self.e_grid.E.val - cop_array[i, j]
                 ) / cop_array[i, j]
                 msg = (
                     'The deviation in COP should be less than 0.07, is '

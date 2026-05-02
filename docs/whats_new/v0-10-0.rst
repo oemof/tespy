@@ -1,0 +1,37 @@
+v0.10.0 - Under development
++++++++++++++++++++++++++++
+
+API Changes
+###########
+- The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
+  with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
+  (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- The built-in :code:`ExergyAnalysis` class has been removed and its
+  functionality moved to the external library
+  `exerpy <https://github.com/oemof/exerpy>`__. Use
+  :py:meth:`tespy.models.template.ModelTemplate.run_exergy_analysis` or call
+  :code:`ExergyAnalysis.from_tespy(nw, Tamb, pamb)` directly from exerpy
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+
+Other Changes
+#############
+- Mixing rules are now registered via a :code:`MixingRuleRegistry`, making it
+  possible to add custom mixing rules at runtime
+  (`PR #960 <https://github.com/oemof/tespy/pull/960>`__).
+- You can now pass a :code:`postproc_func` argument to
+  :py:meth:`~tespy.models.template.ModelTemplate.sensitivity_analysis`, which
+  accepts any callable :code:`postproc_func(model) -> dict | None` to be
+  executed after each solve step
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+- The automatic y-axis limits of
+  :py:meth:`~tespy.models.template.ModelTemplate.plot_Ts_diagram_matplotlib`
+  and
+  :py:meth:`~tespy.models.template.ModelTemplate.plot_logph_diagram_matplotlib`
+  now extend to at least the fluid's critical temperature or critical pressure
+  respectively, so the two-phase dome is always fully visible when no explicit
+  :code:`ylim` is passed
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

@@ -47,6 +47,16 @@ Advanced Features
         .. image:: /_static/images/thumbnails/advanced_features/characteristics_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Exergy Analysis
+        :link: advanced_exergy_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/integration/exerpy.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/integration/exerpy_darkmode.svg
+            :class: only-dark
+
 .. toctree::
     :maxdepth: 1
     :glob:
@@ -56,3 +66,4 @@ Advanced Features
     advanced_features/fluid_properties.rst
     advanced_features/custom_components.rst
     advanced_features/characteristics.rst
+    advanced_features/exergy.rst

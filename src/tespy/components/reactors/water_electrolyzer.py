@@ -931,15 +931,3 @@ class WaterElectrolyzer(Component):
         self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
         self.e.val_SI = self.P.val_SI / self.outl[2].m.val_SI
         self.eta.val_SI = self.e0 / self.e.val_SI
-
-    def exergy_balance(self, T0):
-        self.E_P = (
-            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
-            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
-            + self.inl[0].Ex_physical
-        )
-        self.E_F = self.P.val_SI
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = self.P.val_SI

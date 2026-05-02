@@ -307,44 +307,6 @@ def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
     return HAPropsSI("Visc", "P", p, "T", T, "W", w)
 
 
-def exergy_chemical_ideal_cond(pamb, Tamb, fluid_data, Chem_Ex):
-
-    molar_fractions = get_molar_fractions(fluid_data)
-    water_alias = _get_fluid_alias("H2O", fluid_data)
-    if water_alias:
-        water_alias = next(iter(water_alias))
-        _, molar_fractions_gas, _, molar_liquid, _, _ = cond_check(
-            pamb, Tamb, fluid_data, water_alias
-        )
-    else:
-        molar_fractions_gas = molar_fractions
-        molar_liquid = 0
-
-    ex_cond = 0
-    ex_dry = 0
-    for fluid, x in molar_fractions_gas.items():
-        if x == 0:
-            continue
-
-        fluid_aliases = FLUID_ALIASES.get_fluid(fluid)
-
-        if molar_liquid > 0 and "water" in fluid_aliases:
-            y = [
-                Chem_Ex[k][2] for k in fluid_aliases if k in Chem_Ex
-            ]
-            ex_cond += molar_liquid * y[0]
-
-        y = [Chem_Ex[k][3] for k in fluid_aliases if k in Chem_Ex]
-        ex_dry += x * y[0] + Tamb * gas_constants['uni'] * 1e-3 * x * math.log(x)
-
-    ex_chemical = ex_cond + ex_dry * (1 - molar_liquid)
-    ex_chemical *= 1 / calc_molar_mass_mixture(
-        fluid_data, molar_fractions
-    )
-
-    return ex_chemical * 1e3  # Data from Chem_Ex are in kJ / mol
-
-
 def _get_fluid_alias(fluid, fluid_data):
     return (
         FLUID_ALIASES.get_fluid(fluid)
@@ -436,11 +398,10 @@ class MixingRuleRegistry:
         self._viscosity_pT = {}
         self._T_ph = {}
         self._T_ps = {}
-        self._exergy_chemical = {}
 
     def register(
         self, name, *, h_pT=None, s_pT=None, v_pT=None,
-        viscosity_pT=None, exergy_chemical=None,
+        viscosity_pT=None,
         T_ph_inversion=True, T_ps_inversion=True,
     ):
         """Register a mixing rule.
@@ -457,8 +418,6 @@ class MixingRuleRegistry:
             :code:`v(p, T, fluid_data, **kwargs) -> float`
         viscosity_pT : callable, optional
             :code:`visc(p, T, fluid_data, **kwargs) -> float`
-        exergy_chemical : callable, optional
-            :code:`ex(pamb, Tamb, fluid_data, Chem_Ex) -> float`
         T_ph_inversion : bool
             When *True* (default), *h_pT* is also registered as the Newton
             residual for :code:`T(p, h)` inversion.  Set to *False* when the
@@ -478,8 +437,6 @@ class MixingRuleRegistry:
             self._v_pT[name] = v_pT
         if viscosity_pT is not None:
             self._viscosity_pT[name] = viscosity_pT
-        if exergy_chemical is not None:
-            self._exergy_chemical[name] = exergy_chemical
 
     def _get(self, registry, name, label):
         if name not in registry:
@@ -511,10 +468,6 @@ class MixingRuleRegistry:
     def T_ps(self, name):
         return self._get(self._T_ps, name, "temperature (from entropy)")
 
-    def exergy_chemical(self, name):
-        return self._get(self._exergy_chemical, name, "chemical exergy")
-
-
 MIXING_RULES = MixingRuleRegistry()
 
 MIXING_RULES.register(
@@ -530,7 +483,6 @@ MIXING_RULES.register(
     s_pT=s_mix_pT_ideal_cond,
     v_pT=v_mix_pT_ideal_cond,
     viscosity_pT=viscosity_mix_pT_ideal,
-    exergy_chemical=exergy_chemical_ideal_cond,
 )
 MIXING_RULES.register(
     "incompressible",

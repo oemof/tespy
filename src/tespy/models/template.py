@@ -15,6 +15,7 @@ class ModelTemplate():
     def __init__(self) -> None:
         self._diagram_cache = {}
         self._stable_solution = None
+        self._ean = None
         self.parameter_lookup = self._parameter_lookup()
         self._create_network()
 
@@ -200,7 +201,15 @@ class ModelTemplate():
         processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "s", "lin")
-        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "T", "lin")
+        if ylim:
+            y_min, y_max = ylim
+        else:
+            conn = self.nw.get_conn(connection_label)
+            fluid_name = single_fluid(conn.fluid_data)
+            ureg = self.nw.units.get_ureg()
+            T_unit = self.nw.units.get_default('temperature')
+            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').to(T_unit).magnitude
+            y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin", clamp_max=T_crit)
 
         diagram.draw_isolines(
             fig, ax, "Ts", x_min, x_max, y_min, y_max,
@@ -225,7 +234,15 @@ class ModelTemplate():
         processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "h", "lin")
-        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "p", "log")
+        if ylim:
+            y_min, y_max = ylim
+        else:
+            conn = self.nw.get_conn(connection_label)
+            fluid_name = single_fluid(conn.fluid_data)
+            ureg = self.nw.units.get_ureg()
+            p_unit = self.nw.units.get_default('pressure')
+            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').to(p_unit).magnitude
+            y_min, y_max = self._make_cycle_plot_limits(points, "p", "log", clamp_max=p_crit)
 
         diagram.draw_isolines(
             fig, ax, "logph", x_min, x_max, y_min, y_max,
@@ -258,7 +275,7 @@ class ModelTemplate():
 
         return fig, ax
 
-    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
+    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1, clamp_max=None) -> tuple:
         """Automatically retrieve the limits for an axes based on the process
         point limits in one axis
 
@@ -273,6 +290,10 @@ class ModelTemplate():
         padding_rel : float, optional
             relative difference to overall distance between min and max value,
             by default 0.1
+        clamp_max : float, optional
+            if provided, the upper bound is computed using
+            ``max(max_val, clamp_max)`` so the axis always reaches at least
+            this value (plus padding)
 
         Returns
         -------
@@ -282,6 +303,8 @@ class ModelTemplate():
         all_values = [point[quantity] for point in states.values()]
         min_val = min(all_values)
         max_val = max(all_values)
+        if clamp_max is not None:
+            max_val = max(max_val, clamp_max)
 
         if scale == 'lin':
             delta_val = max_val - min_val
@@ -294,34 +317,77 @@ class ModelTemplate():
 
         return ax_min_val, ax_max_val
 
-    def sensitivity_analysis(self, param_dict=None, result_param_list=None) -> pd.DataFrame:
-        """
-        1. Check the parameter lengths
-        2. Use the order_min_change method
-        3. Solve design or offdesign
-        4. Deal with the large step changes
-        5. Save the results - What results are needed?
-            - Function needs to be passed - check for this and raise exception
-            - Use the method for the objective function
+    def save_design(self, path=None) -> None:
+        """Save current network state as the design reference."""
+        save_path = path or getattr(self, '_design_path', 'design.json')
+        self.nw.save(save_path)
+        self._design_path = save_path
+
+    def run_exergy_analysis(self, Tamb, pamb, E_F, E_P, E_L=None):
+        """Run an exergy analysis via exerpy and cache the result.
 
         Parameters
         ----------
-        param_dict : dict
-            A dictionary of parameter names and lists of values to be used in the
-            sensitivity analysis. All lists must have the same length, which
-            determines the number of simulations to be run.
+        Tamb : float
+            Ambient temperature in °C.
+        pamb : float
+            Ambient pressure in bar.
+        E_F : dict
+            Fuel exergy definition, e.g. ``{'inputs': [...], 'outputs': [...]}``.
+        E_P : dict
+            Product exergy definition.
+        E_L : dict, optional
+            Loss exergy definition.
 
-        result_func : function -> dict
-            This function will be called after each simulation step and should
-            return a dictionary. Its contents will be appended to a pandas
-            DataFrame, which is returned after the sensitivity analyses
-            finishes. Therefore, the function should return a dictionary of
-            string column name and (numeric) result value pairs.
+        Returns
+        -------
+        exerpy.ExergyAnalysis
+        """
+        from exerpy import ExergyAnalysis
+        kwargs = {'E_F': E_F, 'E_P': E_P}
+        if E_L is not None:
+            kwargs['E_L'] = E_L
+        self._ean = ExergyAnalysis.from_tespy(self.nw, Tamb + 273.15, pamb * 1e5)
+        self._ean.analyse(**kwargs)
+        return self._ean
+
+    def sensitivity_analysis(self, param_dict=None, result_param_list=None, mode='design', postproc_func=None) -> pd.DataFrame:
+        """
+        Parameters
+        ----------
+        param_dict : dict
+            A dictionary of parameter names and lists of values to be used in
+            the sensitivity analysis. All lists must have the same length,
+            which determines the number of simulations to be run.
+        result_param_list : list, optional
+            Names of model parameters (from :meth:`_parameter_lookup`) to
+            record after each simulation step.
+        mode : str, optional
+            ``'design'`` or ``'offdesign'``. Default is ``'design'``.
+        postproc_func : callable, optional
+            A function ``postproc_func(model) -> dict | None`` called after
+            each successful solve. Use it to run any postprocessing - e.g.
+            an exergy analysis, custom KPI calculation, or result export.
+            The returned dict (if any) is merged into the result row as
+            additional columns alongside ``result_param_list``. If the
+            function returns ``None`` no extra columns are added.
+
+            Example - running an exergy analysis after each offdesign solve::
+
+                def run_exergy(model):
+                    model.run_exergy_analysis(Tamb, pamb, E_F, E_P)
+
+                hp.sensitivity_analysis(
+                    param_dict={"T_geo": [8, 9, 10, 11]},
+                    result_param_list=["epsilon"],
+                    mode="offdesign",
+                    postproc_func=run_exergy,
+                )
 
         Returns
         -------
         pandas.core.frame.DataFrame
-            DataFrame with input and specified output values of the model
+            DataFrame with input parameter columns and result columns.
         """
         if param_dict is None:
             raise ValueError(
@@ -349,7 +415,10 @@ class ModelTemplate():
         # Sensitivity analysis loop:
         for row_num, row in enumerate(sorted_input):
             input_dict = {keys[i]: row[i] for i in range(len(keys))}
-            self.solve_model_design(**input_dict)
+            if mode == 'offdesign':
+                self.solve_model_offdesign(**input_dict)
+            else:
+                self.solve_model_design(**input_dict)
 
             if self.nw.status > 1:
                 # TODO: get an example, which actually would trigger this
@@ -367,9 +436,12 @@ class ModelTemplate():
                 })
                 continue
 
+            if postproc_func is not None:
+                postproc_func(self)
+
             result_rows.append({
                 **input_dict,
-                **self.get_results(result_param_list)
+                **self.get_results(result_param_list),
             })
 
         results = pd.DataFrame(result_rows)

@@ -44,13 +44,6 @@ def get_all_subdictionaries(data):
     return subdictionaries
 
 
-def get_chem_ex_lib(name):
-    """Return a new dictionary by merging two dictionaries recursively."""
-    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
-    with open(path, "r") as f:
-        return json.load(f)
-
-
 def fluidalias_in_list(fluid, fluid_list):
     aliases = FLUID_ALIASES.get_fluid(fluid)
     return set(fluid_list) & aliases

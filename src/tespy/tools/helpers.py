@@ -44,13 +44,6 @@ def get_all_subdictionaries(data):
     return subdictionaries
 
 
-def get_chem_ex_lib(name):
-    """Return a new dictionary by merging two dictionaries recursively."""
-    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
-    with open(path, "r") as f:
-        return json.load(f)
-
-
 def fluidalias_in_list(fluid, fluid_list):
     aliases = FLUID_ALIASES.get_fluid(fluid)
     return set(fluid_list) & aliases
@@ -615,45 +608,6 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     deriv = exp / d2
     return deriv
 
-
-def bus_char_evaluation(component_value, char_func, reference_value, bus_value, **kwargs):
-    r"""
-    Calculate the value of a bus.
-
-    Parameters
-    ----------
-    comp_value : float
-        Value of the energy transfer at the component.
-
-    reference_value : float
-        Value of the bus in reference state.
-
-    char_func : tespy.tools.characteristics.char_line
-        Characteristic function of the bus.
-
-    Returns
-    -------
-    residual : float
-        Residual of the equation.
-
-        .. math::
-
-            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
-            {f\left(\frac{\dot{E}_\mathrm{bus}}
-            {\dot{E}_\mathrm{bus,ref}}\right)}
-    """
-    return bus_value - component_value / char_func.evaluate(
-        bus_value / reference_value
-    )
-
-
-def bus_char_derivative(component_value, char_func, reference_value, bus_value, **kwargs):
-    """Calculate derivative for bus char evaluation."""
-    d = 1e-3
-    return (1 - (
-        1 / char_func.evaluate((bus_value + d) / reference_value) -
-        1 / char_func.evaluate((bus_value - d) / reference_value)
-    ) / (2 * d))
 
 
 def newton_with_kwargs(

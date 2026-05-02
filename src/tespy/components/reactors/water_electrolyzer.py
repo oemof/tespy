@@ -135,7 +135,6 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
@@ -173,21 +172,20 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val
     >>> round(P_design / 1e6, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.2)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 2)
     0.84
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):
@@ -739,116 +737,6 @@ class WaterElectrolyzer(Component):
         )
         return val
 
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \begin{cases}
-                P & \text{key = 'P'}\\
-                - \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1} \right) &
-                \text{key = 'Q'}\\
-                \end{cases}
-        """
-        ######################################################################
-        # equations for power on bus
-        if bus['param'] == 'P':
-            val = self.calc_P()
-
-        ######################################################################
-        # equations for heat on bus
-
-        elif bus['param'] == 'Q':
-            val = -self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            )
-
-        ######################################################################
-        # missing/invalid bus parameter
-
-        else:
-            msg = (
-                f'The parameter {bus["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}. Please specify '
-                f'a bus parameter (P/Q) for component {self.label}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-
-        return val
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        b = bus.comps.loc[self]
-
-        ######################################################################
-        # derivatives for power on bus
-        if b['param'] == 'P':
-            for c in self.inl + self.outl:
-                if c.m.is_var and c != self.outl[0]:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
-
-                if c.h.is_var:
-                    if c.h.J_col not in bus.jacobian:
-                        bus.jacobian[c.h.J_col] = 0
-                    bus.jacobian[c.h.J_col] -= _numeric_deriv(c.h._reference_container, f, bus=bus)
-
-            # variable power
-            if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= _numeric_deriv(self.P._reference_container, f, bus=bus)
-
-        ######################################################################
-        # derivatives for heat on bus
-        elif b['param'] == 'Q':
-
-            i = self.inl[0]
-            o = self.outl[0]
-            if i.m.is_var:
-                if i.m.J_col not in bus.jacobian:
-                    bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
-
-            if i.h.is_var:
-                if i.h.J_col not in bus.jacobian:
-                    bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
-
-            if o.h.is_var:
-                if o.h.J_col not in bus.jacobian:
-                    bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
-
     def start_fluid_wrapper_branch(self):
         branches = {}
         for outconn in self.outl[1:]:
@@ -931,15 +819,3 @@ class WaterElectrolyzer(Component):
         self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
         self.e.val_SI = self.P.val_SI / self.outl[2].m.val_SI
         self.eta.val_SI = self.e0 / self.e.val_SI
-
-    def exergy_balance(self, T0):
-        self.E_P = (
-            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
-            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
-            + self.inl[0].Ex_physical
-        )
-        self.E_F = self.P.val_SI
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = self.P.val_SI

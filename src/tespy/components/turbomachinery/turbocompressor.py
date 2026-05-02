@@ -120,7 +120,6 @@ class TurboCompressor(Compressor):
     >>> from tespy.components import Sink, Source, TurboCompressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
@@ -145,14 +144,14 @@ class TurboCompressor(Compressor):
     ... )
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.77
     >>> round(comp.igva.val, 2)
@@ -164,11 +163,10 @@ class TurboCompressor(Compressor):
 
     >>> comp.set_attr(igva=10)
     >>> inc.set_attr(v=None)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> nw.assert_convergence()
     >>> round(inc.v.val, 2)
     44.31
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):

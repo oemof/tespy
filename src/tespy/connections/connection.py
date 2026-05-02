@@ -2074,38 +2074,6 @@ class Connection(ConnectionBase):
         self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
 
-    def _get_chemical_exergy(self, pamb, Tamb, Chem_Ex):
-        r"""
-        Get the value of a connection's specific chemical exergy.
-
-        Parameters
-        ----------
-        p0 : float
-            Ambient pressure p0 / Pa.
-
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Chem_Ex : dict
-            Lookup table for standard specific chemical exergy.
-
-        Note
-        ----
-            .. math::
-
-                E^\mathrm{CH} = \dot{m} \cdot e^\mathrm{CH}
-        """
-        if Chem_Ex is None:
-            self.ex_chemical = 0
-        else:
-            self.ex_chemical = fp.functions.calc_chemical_exergy(
-                pamb, Tamb, self.fluid_data, Chem_Ex, self.mixing_rule,
-                self.T.val_SI
-            )
-
-        self.Ex_chemical = self.m.val_SI * self.ex_chemical
-
-
 class Ref:
     r"""
     A reference object is used to reference (unknown) properties of connections

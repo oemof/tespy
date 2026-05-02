@@ -18,8 +18,8 @@
     :hidden:
 
     advanced_features
-    advanced_tutorials
     integration
+    advanced_tutorials
     documentation
 
 ..  toctree::

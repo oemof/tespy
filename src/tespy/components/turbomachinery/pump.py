@@ -147,7 +147,6 @@ class Pump(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
@@ -175,7 +174,7 @@ class Pump(Turbomachine):
     ... design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(pu.pr.val, 0)
     7.0
     >>> round(outg.p.val - inc.p.val, 0)
@@ -183,12 +182,11 @@ class Pump(Turbomachine):
     >>> round(pu.P.val, 0)
     1125.0
     >>> outg.set_attr(p=12)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(pu.eta_s.val, 2)
     0.71
     >>> round(inc.v.val, 1)
     0.9
-    >>> os.remove('tmp.json')
 
     In the second example we model a pump with characteristic maps. These can
     be retrieved from manufacturers, for example, grundfos :cite:`grundfos`
@@ -882,64 +880,3 @@ class Pump(Turbomachine):
             i.vol.val_SI * (o.p.val_SI - i.p.val_SI)
             / (o.h.val_SI - i.h.val_SI)
         )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a pump.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
-            \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} = P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-            self.E_F = self.P.val
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm + (
-                self.outl[0].Ex_mech - self.inl[0].Ex_mech)
-            self.E_F = self.P.val + self.inl[0].Ex_therm
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_mech - self.inl[0].Ex_mech
-            self.E_F = self.P.val + (
-                self.inl[0].Ex_therm - self.outl[0].Ex_therm)
-        else:
-            msg = (
-                'Exergy balance of a pump, where outlet temperature is '
-                'smaller than inlet temperature is not implemented.'
-            )
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": 0, "physical": 0, "massless": self.P.val
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

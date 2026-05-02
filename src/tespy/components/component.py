@@ -34,8 +34,6 @@ from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import bus_char_derivative
-from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
@@ -674,136 +672,6 @@ class Component:
                 return local_state[param]
         return getattr(conn, param).design
 
-    def bus_func(self, bus):
-        r"""
-        Base method for calculation of the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        residual : float
-            Residual value of bus equation.
-        """
-        return 0
-
-    def calc_bus_expr(self, bus):
-        r"""
-        Return the busses' characteristic line input expression.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate the characteristic function expression for.
-
-        Returns
-        -------
-        expr : float
-            Ratio of power to power design depending on the bus base
-            specification.
-        """
-        b = bus.comps.loc[self]
-        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
-            return 1
-        else:
-            comp_val = self.bus_func(b)
-            if b['base'] == 'component':
-                return abs(comp_val / b['P_ref'])
-            else:
-                kwargs = {
-                    "function": bus_char_evaluation,
-                    "parameter": "bus_value",
-                    "component_value": comp_val,
-                    "reference_value": b["P_ref"],
-                    "char_func": b["char"]
-                }
-                bus_value = newton_with_kwargs(
-                    derivative=bus_char_derivative,
-                    target_value=0,
-                    val0=b['P_ref'],
-                    valmin=-1e15,
-                    valmax=1e15,
-                    **kwargs
-                )
-                return bus_value / b['P_ref']
-
-    def calc_bus_efficiency(self, bus):
-        r"""
-        Return the busses' efficiency.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate the efficiency value on.
-
-        Returns
-        -------
-        efficiency : float
-            Efficiency value of the bus.
-
-            .. math::
-
-                \eta_\mathrm{bus} = \begin{cases}
-                \eta\left(
-                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
-                \text{bus base = 'bus'}\\
-                \eta\left(
-                \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component,ref}}\right) &
-                \text{bus base = 'component'}
-                \end{cases}
-
-        Note
-        ----
-        If the base value of the bus is the bus value itself, a newton
-        iteration is used to find the bus value satisfying the corresponding
-        equation (case 1).
-        """
-        return bus.comps.loc[self, 'char'].evaluate(self.calc_bus_expr(bus))
-
-    def calc_bus_value(self, bus):
-        r"""
-        Return the busses' value of the component's energy transfer.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate energy transfer on.
-
-        Returns
-        -------
-        bus_value : float
-            Value of the energy transfer on the specified bus.
-
-            .. math::
-
-                \dot{E}_\mathrm{bus} = \begin{cases}
-                \frac{\dot{E}_\mathrm{component}}{f\left(
-                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
-                \text{bus base = 'bus'}\\
-                \dot{E}_\mathrm{component} \cdot f\left(
-                \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component,ref}}\right) &
-                \text{bus base = 'component'}
-                \end{cases}
-
-        Note
-        ----
-        If the base value of the bus is the bus value itself, a newton
-        iteration is used to find the bus value satisfying the corresponding
-        equation (case 1).
-        """
-        b = bus.comps.loc[self]
-        comp_val = self.bus_func(b)
-        expr = self.calc_bus_expr(bus)
-        if b['base'] == 'component':
-            return comp_val * b['char'].evaluate(expr)
-        else:
-            return comp_val / b['char'].evaluate(expr)
-
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
@@ -939,29 +807,6 @@ class Component:
     def entropy_balance(self):
         r"""Entropy balance calculation method."""
         return
-
-    def exergy_balance(self, T0):
-        r"""
-        Exergy balance calculation method.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-        """
-        self.E_P = np.nan
-        self.E_F = np.nan
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = np.nan
-        self.epsilon = self._calc_epsilon()
-
-    def _calc_epsilon(self):
-        if self.E_F == 0:
-            return np.nan
-        else:
-            return self.E_P / self.E_F
 
     def get_plotting_data(self):
         return

@@ -89,7 +89,6 @@ class PowerBus(Component):
     >>> from tespy.components import PowerSource, PowerSink, PowerBus
     >>> from tespy.connections import PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"

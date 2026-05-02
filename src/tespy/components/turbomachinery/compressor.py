@@ -120,7 +120,6 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
@@ -140,16 +139,15 @@ class Compressor(Turbomachine):
     >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.79
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):
@@ -600,64 +598,3 @@ class Compressor(Turbomachine):
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
 
         return _no_limit_violations
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a compressor.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
-            \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} = P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-            self.E_F = self.P.val
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm + (
-                self.outl[0].Ex_mech - self.inl[0].Ex_mech)
-            self.E_F = self.P.val + self.inl[0].Ex_therm
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_mech - self.inl[0].Ex_mech
-            self.E_F = self.P.val + (
-                self.inl[0].Ex_therm - self.outl[0].Ex_therm)
-        else:
-            msg = (
-                'Exergy balance of a compressor, where outlet temperature '
-                'is smaller than inlet temperature is not implmented.'
-            )
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": 0, "physical": 0, "massless": self.P.val
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

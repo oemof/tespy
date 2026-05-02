@@ -66,7 +66,7 @@ API breaking changes
 
     >>> data = nwk.export("tmp.json")
     >>> list(data.keys())
-    ['Network', 'Connection', 'Component', 'Bus']
+    ['Network', 'Connection', 'Component']
     >>> list(data["Component"])
     ['Sink', 'Source']
     >>> imported_nw = Network.from_json("tmp.json")

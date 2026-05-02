@@ -31,8 +31,6 @@ from tespy.components import FuelCell
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
 from tespy.components.component import component_registry
-from tespy.connections import Bus
-from tespy.connections import Connection
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools import helpers as hlp
@@ -46,7 +44,6 @@ from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
-from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
@@ -112,9 +109,9 @@ class Network:
 
     A simple network consisting of a source, a pipe and a sink. This example
     shows how the printout parameter can be used. We specify
-    :code:`printout=False` for both connections, the pipe as well as the heat
-    bus. Therefore the :code:`.print_results()` method should not print any
-    results.
+    :code:`printout=False` for both connections, the pipe as well as the power
+    connection. Therefore the :code:`.print_results()` method should not print
+    any results.
 
     >>> from tespy.networks import Network
     >>> from tespy.components import Source, Sink, Pipe, PowerSink
@@ -187,8 +184,6 @@ class Network:
         self.comps = pd.DataFrame(columns=list(dtypes.keys())).astype(dtypes)
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
-        # bus dictionary
-        self.busses = {}
         self.subsystems = {}
         # results and specification dictionary
         self.results = {}
@@ -677,48 +672,6 @@ class Network:
             msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
 
-    def add_busses(self, *args):
-        r"""
-        Add one or more busses to the network.
-
-        Parameters
-        ----------
-        b : tespy.connections.bus.Bus
-            The bus to be added to the network, bus objects bi
-            :code:`add_busses(b1, b2, b3, ...)`.
-        """
-        for b in args:
-            if self.check_busses(b):
-                self.busses[b.label] = b
-                msg = f"Added bus {b.label} to network."
-                logger.debug(msg)
-
-                self.results[b.label] = pd.DataFrame(
-                    columns=[
-                        'component value', 'bus value', 'efficiency',
-                        'design value'
-                    ],
-                    dtype='float64'
-                )
-
-    def del_busses(self, *args):
-        r"""
-        Remove one or more busses from the network.
-
-        Parameters
-        ----------
-        b : tespy.connections.bus.Bus
-            The bus to be removed from the network, bus objects bi
-            :code:`add_busses(b1, b2, b3, ...)`.
-        """
-        for b in args:
-            if b in self.busses.values():
-                del self.busses[b.label]
-                msg = f"Deleted bus {b.label} from network."
-                logger.debug(msg)
-
-                del self.results[b.label]
-
     def assert_convergence(self):
         """Check convergence status of a simulation."""
         msg = 'Calculation did not converge!'
@@ -734,34 +687,6 @@ class Network:
                 "call of the solve method"
             )
             raise AttributeError(msg)
-
-    def check_busses(self, b):
-        r"""
-        Checksthe busses to be added for type, duplicates and identical labels.
-
-        Parameters
-        ----------
-        b : tespy.connections.bus.Bus
-            The bus to be checked.
-        """
-        if isinstance(b, Bus):
-            if len(self.busses) > 0:
-                if b in self.busses.values():
-                    msg = f"The network contains the bus {b.label} already."
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-                elif b.label in self.busses:
-                    msg = f"The network already has a bus labelled {b.label}."
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
-                else:
-                    return True
-            else:
-                return True
-        else:
-            msg = 'Only objects of type bus are allowed in *args.'
-            logger.error(msg)
-            raise TypeError(msg)
 
     def check_topology(self):
         r"""Check if components are connected properly within the network."""
@@ -946,9 +871,8 @@ class Network:
         - Set component and connection design point properties.
         - Switch from design/offdesign parameter specification.
         """
-        # keep track of the number of bus, component and connection equations
+        # keep track of the number of component and connection equations
         # as well as number of component variables
-        self.num_bus_eq = 0
         self.num_comp_eq = 0
         self.num_conn_eq = 0
         self.variable_counter = 0
@@ -1662,10 +1586,6 @@ class Network:
         self.num_ude_eq = _eq_counter - eq_counter
         eq_counter = _eq_counter
 
-        for b in self.busses.values():
-            self.busses[b.label] = b
-            self.num_bus_eq += b.P.is_set * 1
-
     def _prepare_network_parts(self, parts, eq_counter):
         for obj in parts:
             eq_counter = obj._prepare_for_solver(self._presolved_equations, eq_counter)
@@ -1824,10 +1744,6 @@ class Network:
             else:
                 c._reset_design(self.redesign)
                 # unset all design values
-        # unset design values for busses, count bus equations and
-        # reindex bus dictionary
-        for b in self.busses.values():
-            b.comps['P_ref'] = np.nan
 
         series = pd.Series(dtype='float64')
         for cp in self.comps['object']:
@@ -2044,12 +1960,6 @@ class Network:
 
         msg = 'Done reading design point information for components.'
         logger.debug(msg)
-
-        if len(self.busses) > 0:
-            for b, bus in self.busses.items():
-                # the bus design data are stored in dfs[b][0] (column is not named)
-                if len(bus.comps) > 0:
-                    bus.comps.loc[self.get_comp(dfs[b].index), "P_ref"] = dfs[b][0].values
 
         # iter through connections
         for c in self.conns['object']:
@@ -2303,11 +2213,6 @@ class Network:
             with pd.option_context("future.no_silent_downcasting", True):
                 dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
             dfs[key].index = dfs[key].index.astype(str)
-        for key, value in data["Bus"].items():
-            with pd.option_context("future.no_silent_downcasting", True):
-                dfs[key] = pd.DataFrame.from_dict(value, orient="index").fillna(np.nan)
-            dfs[key].index = dfs[key].index.astype(str)
-
         return dfs
 
     def get_linear_dependent_variables(self) -> list:
@@ -2658,7 +2563,6 @@ class Network:
             "Network information:\n"
             f" - Number of components: {len(self.comps)}\n"
             f" - Number of connections: {len(self.conns)}\n"
-            f" - Number of busses: {len(self.busses)}"
         )
         logger.debug(msg)
 
@@ -2769,8 +2673,6 @@ class Network:
         r"""Check, if the number of supplied parameters is sufficient."""
         msg = f'Number of connection equations: {self.num_conn_eq}.'
         logger.debug(msg)
-        msg = f'Number of bus equations: {self.num_bus_eq}.'
-        logger.debug(msg)
         msg = f'Number of component equations: {self.num_comp_eq}.'
         logger.debug(msg)
         msg = f'Number of user defined equations: {self.num_ude_eq}.'
@@ -2779,10 +2681,7 @@ class Network:
         msg = f'Total number of variables: {self.variable_counter}.'
         logger.debug(msg)
 
-        n = (
-            self.num_comp_eq + self.num_conn_eq +
-            self.num_bus_eq + self.num_ude_eq
-        )
+        n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
         if n > self.variable_counter:
             msg = (
                 f"You have provided too many parameters: {self.variable_counter} "
@@ -3279,7 +3178,6 @@ class Network:
         - Check component parameters for consistency
         """
         self._solve_equations()
-        self._solve_busses()
         self._invert_jacobian()
 
         # check for linear dependency
@@ -3312,30 +3210,10 @@ class Network:
 
             obj.it += 1
 
-    def _solve_busses(self):
-        r"""
-        Calculate the equations and the partial derivatives for the busses.
-        """
-        sum_eq = self.num_comp_eq + self.num_conn_eq
-        for bus in self.busses.values():
-            if bus.P.is_set:
-
-                bus.solve()
-                self.residual[sum_eq] = bus.residual
-
-                if len(bus.jacobian) > 0:
-                    columns = [k for k in bus.jacobian]
-                    data = list(bus.jacobian.values())
-                    self.jacobian[sum_eq, columns] = data
-
-                bus.clear_jacobian()
-                sum_eq += 1
-
     def _postprocess(self):
-        r"""Calculate connection, bus and component parameters."""
+        r"""Calculate connection and component parameters."""
         _converged = self._postprocess_connections()
         _converged = self._postprocess_components() and _converged
-        self._postprocess_busses()
 
         if self.status == 0 and not _converged:
             self.status = 1
@@ -3435,38 +3313,6 @@ class Network:
 
         return _converged
 
-    def _postprocess_busses(self):
-        """Process the bus results."""
-        if self.skip_postprocess:
-            return
-        # busses
-        for b in self.busses.values():
-            labels = []
-            rows = []
-            for cp in b.comps.index:
-                bus_val = cp.calc_bus_value(b)
-                eff = cp.calc_bus_efficiency(b)
-                cmp_val = cp.bus_func(b.comps.loc[cp])
-
-                b.comps.loc[cp, 'char'].get_domain_errors(
-                    cp.calc_bus_expr(b), cp.label)
-
-                if self.mode == 'design':
-                    if b.comps.loc[cp, 'base'] == 'component':
-                        design_value = cmp_val
-                    else:
-                        design_value = bus_val
-                    b.comps.loc[cp, 'P_ref'] = design_value
-                else:
-                    design_value = b.comps.loc[cp, 'P_ref']
-
-                labels.append(cp.label)
-                rows.append([cmp_val, bus_val, eff, design_value])
-
-            cols = self.results[b.label].columns
-            self.results[b.label] = pd.DataFrame(rows, index=labels, columns=cols)
-            b.P.val = float(self.results[b.label]['bus value'].sum())
-
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""Print the calculations results to prompt."""
         # Define colors for highlighting values in result table
@@ -3491,7 +3337,6 @@ class Network:
 
         result += self._print_components(colored, coloring, subsystem)
         result += self._print_connections(colored, coloring, subsystem)
-        result += self._print_buses(colored, coloring, subsystem)
 
         if len(str(result)) > 0:
             logger.result(result)
@@ -3571,33 +3416,6 @@ class Network:
                 result += (
                     tabulate(df, headers='keys', tablefmt='psql', floatfmt='.3e')
                 )
-        return result
-
-    def _print_buses(self, colored, coloring, subsystem) -> str:
-        result = ""
-        # bus printout only if not subsystem is passed
-        if subsystem is None:
-            for b in self.busses.values():
-                if b.printout:
-                    df = self.results[b.label].loc[
-                        :, ['component value', 'bus value', 'efficiency']
-                    ].copy()
-                    df.loc['total'] = df.sum()
-                    df.loc['total', 'efficiency'] = np.nan
-                    if colored:
-                        df["bus value"] = df["bus value"].astype(str)
-                        if b.P.is_set:
-                            value = df.loc['total', 'bus value']
-                            df.loc['total', 'bus value'] = (
-                                f"{coloring['set']}{value}{coloring['end']}"
-                            )
-                    result += f"\n##### RESULTS (Bus: {b.label}) #####\n"
-                    result += (
-                        tabulate(
-                            df, headers='keys', tablefmt='psql',
-                            floatfmt='.3e'
-                        )
-                    )
         return result
 
     def _color_component_prints(self, c, *args):
@@ -3706,21 +3524,6 @@ class Network:
         msg = 'Created connections.'
         logger.info(msg)
 
-        # load busses
-        data = network_data.get("Bus", {})
-        if len(data) > 0:
-            busses = _construct_busses(data, comps)
-            # add busses to network
-            for b in busses.values():
-                nw.add_busses(b)
-
-            msg = 'Created busses.'
-            logger.info(msg)
-
-        else:
-            msg = 'No bus data found!'
-            logger.debug(msg)
-
         msg = 'Created network.'
         logger.info(msg)
 
@@ -3755,15 +3558,14 @@ class Network:
         - Folder: path (e.g. 'mynetwork')
         - Component.json
         - Connection.json
-        - Bus.json
         - Network.json
 
         Example
         -------
         Create a network and export it. This is followed by loading the network
         from the exported json file. All network information stored will be
-        passed to a new network object. Components, connections and busses will
-        be accessible by label. The following example setup is simple gas
+        passed to a new network object. Components and connections will be
+        accessible by label. The following example setup is simple gas
         turbine setup with compressor, combustion chamber and turbine. The fuel
         is fed from a pipeline and throttled to the required pressure while
         keeping the temperature at a constant value.
@@ -3833,9 +3635,10 @@ class Network:
         >>> nw.assert_convergence()
 
         The total power output is set to 1 MW, electrical or mechanical
-        efficiencies are not considered in this example. The documentation
-        example in class :py:class:`tespy.connections.bus.Bus` provides more
-        information on efficiencies of generators, for instance.
+        efficiencies are not considered in this example. See
+        :py:class:`tespy.components.power.motor.Motor` and
+        :py:class:`tespy.components.power.generator.Generator` for modelling
+        conversion efficiencies between mechanical and electrical power.
 
         >>> combustion.set_attr(lamb=None)
         >>> c3.set_attr(T=1100)
@@ -3912,7 +3715,6 @@ class Network:
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
-        export["Bus"] = self._export_busses()
 
         if json_file_path:
             with open(json_file_path, "w") as f:
@@ -3948,7 +3750,6 @@ class Network:
         # save relevant state information only
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
-        dump["Bus"] = self._save_busses()
 
         dump = hlp._nested_dict_of_dataframes_to_dict(dump)
 
@@ -3965,9 +3766,6 @@ class Network:
         - Component/
           - Compressor.csv
           - ....
-        - Bus/
-          - power input bus.csv
-          - ...
 
         Parameters
         ----------
@@ -3978,7 +3776,6 @@ class Network:
         # save relevant state information only
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
-        dump["Bus"] = self._save_busses()
         hlp._nested_dict_of_dataframes_to_filetree(dump, folder_path)
 
     def _save_connections(self):
@@ -4006,20 +3803,6 @@ class Network:
         dump = {}
         for c in self.comps['comp_type'].unique():
             dump[c] = self.results[c].replace(np.nan, None)
-        return dump
-
-    def _save_busses(self):
-        r"""
-        Save the bus properties.
-
-        Returns
-        -------
-        dump : dict
-            Dump of the component information.
-        """
-        dump = {}
-        for label in self.busses:
-            dump[label] = self.results[label]["design value"].replace(np.nan, None)
         return dump
 
     def _export_network(self):
@@ -4063,88 +3846,6 @@ class Network:
                 components[c].update(cp._serialize())
 
         return components
-
-    def _export_busses(self):
-        """Export bus information
-
-        Returns
-        -------
-        dict
-            Serialization of bus objects.
-        """
-        busses = {}
-        for bus in self.busses.values():
-            busses.update(bus._serialize())
-
-        return busses
-
-
-def v07_to_v08_save(path):
-    """Transform the v0.7 network save to a dictionary compatible to v0.8.
-
-    Parameters
-    ----------
-    path : str
-        Path to the save structure
-
-    Returns
-    -------
-    dict
-        Dictionary of the v0.8 network save
-    """
-    data = {
-        "Component": {},
-        "Bus": {},
-        "Connection": {},
-    }
-    component_files_path = os.path.join(path, "components")
-    for file in os.listdir(component_files_path):
-        df = pd.read_csv(
-            os.path.join(component_files_path, file),
-            sep=';', decimal='.', index_col=0
-        )
-        data["Component"][file.removesuffix(".csv")] = df.to_dict(orient="index")
-    df = pd.read_csv(
-        os.path.join(path, f"connections.csv"),
-        sep=';', decimal='.', index_col=0
-    )
-    data["Connection"] = df.to_dict(orient="index")
-
-    with open(os.path.join(path, "busses.json"), "r") as f:
-        data["Bus"] = json.load(f)
-
-    return data
-
-
-def v07_to_v08_export(path):
-    """Transform the v0.7 network export to a dictionary compatible to v0.8.
-
-    Parameters
-    ----------
-    path : str
-        Path to the export structure
-
-    Returns
-    -------
-    dict
-        Dictionary of the v0.8 network export
-    """
-    data = {
-        "Component": {},
-        "Bus": {},
-        "Connection": {},
-        "Network": {}
-    }
-    component_files_path = os.path.join(path, "components")
-    for file in os.listdir(component_files_path):
-        with open(os.path.join(component_files_path, file), "r") as f:
-            data["Component"][file.removesuffix(".json")] = json.load(f)
-    files = {"busses": "Bus", "connections": "Connection", "network": "Network"}
-    for file, key in files.items():
-        with open(os.path.join(path, f"{file}.json"), "r") as f:
-            data[key] = json.load(f)
-
-    return data
 
 
 def _construct_components(target_class, data, nw):
@@ -4223,38 +3924,3 @@ def _construct_connections(target_class, data, comps):
         conns[label]._deserialize(conn_data, conns)
 
     return conns
-
-
-def _construct_busses(data, comps):
-    r"""
-    Create busses of the network.
-
-    Parameters
-    ----------
-    data : dict
-        Bus information from .json file.
-
-    comps : dict
-        TESPy components dictionary.
-
-    Returns
-    -------
-    dict
-        Dict with TESPy bus objects.
-    """
-    busses = {}
-
-    for label, bus_data in data.items():
-        busses[label] = Bus(label)
-        busses[label].P.set_attr(**bus_data["P"])
-
-        components = [_ for _ in bus_data if _ != "P"]
-        for cp in components:
-            char = CharLine(**bus_data[cp]["char"])
-            component_data = {
-                "comp": comps[cp], "param": bus_data[cp]["param"],
-                "base": bus_data[cp]["base"], "char": char
-            }
-            busses[label].add_comps(component_data)
-
-    return busses

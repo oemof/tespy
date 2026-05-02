@@ -19,7 +19,6 @@ from tespy.components import Motor
 from tespy.components import PowerSink
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
@@ -84,17 +83,6 @@ class TestCombustion:
         self.c1.set_attr(fluid=air, p=1, T=30)
         self.c2.set_attr(fluid=fuel, T=30)
         self.c3.set_attr(T=1200)
-
-        # test specified bus value on CombustionChamber (must be equal to ti)
-        b = Bus('thermal input', P=1e6)
-        b.add_comps({'comp': instance})
-        self.nw.add_busses(b)
-        self.nw.solve('design')
-        assert self.nw.status == 0
-        self.nw.assert_convergence()
-        msg = f'Value of thermal input must be {b.P.val}, is {instance.ti.val}.'
-        assert round(b.P.val, 1) == round(instance.ti.val, 1), msg
-        b.set_attr(P=None)
 
         # test specified thermal input for CombustionChamber
         instance.set_attr(ti=1e6)
@@ -264,24 +252,9 @@ class TestCombustion:
         self.c4.set_attr(p=3, T=60, m=50, fluid=water1)
         self.c5.set_attr(p=3, T=80, m=50, fluid=water2)
 
-        # create busses
-        TI = Bus('thermal input')
-        Q1 = Bus('heat output 1')
-        Q2 = Bus('heat output 2')
-        Q = Bus('heat output')
-        Qloss = Bus('thermal heat loss')
-
-        TI.add_comps({'comp': instance, 'param': 'TI'})
-        Q1.add_comps({'comp': instance, 'param': 'Q1'})
-        Q2.add_comps({'comp': instance, 'param': 'Q2'})
-        Q.add_comps({'comp': instance, 'param': 'Q'})
-        Qloss.add_comps({'comp': instance, 'param': 'Qloss'})
-
-        self.nw.add_busses(TI, Q1, Q2, Q, Qloss)
-
-        # test specified thermal input bus value
+        # test specified thermal input
         ti = 1e6
-        TI.set_attr(P=ti)
+        instance.set_attr(ti=ti)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
@@ -289,22 +262,12 @@ class TestCombustion:
         # calculate in offdesign mode
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        msg = (
-            f'Value of thermal input must be {TI.P.val}, is {instance.ti.val}.'
-        )
-        assert round(TI.P.val, 1) == round(instance.ti.val, 1), msg
-
-        # test specified thermal input in component
-        TI.set_attr(P=None)
-        instance.set_attr(ti=ti)
-        self.nw.solve('offdesign', design_path=tmp_path)
-        self.nw.assert_convergence()
         msg = f'Value of thermal input must be {ti}, is {instance.ti.val}.'
         assert round(ti, 1) == round(instance.ti.val, 1), msg
         instance.set_attr(ti=None)
 
-        # test specified heat output 1 bus value
-        Q1.set_attr(P=instance.Q1.val)
+        # test specified heat output 1
+        instance.set_attr(Q1=instance.Q1.val)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
         # heat output is at design point value, thermal input must therefore
@@ -316,10 +279,10 @@ class TestCombustion:
         heat1 = self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI)
         msg = f'Value of heat output 1 must be {-heat1}, is {instance.Q1.val}.'
         assert round(heat1, 1) == -round(instance.Q1.val, 1), msg
-        Q1.set_attr(P=None)
+        instance.set_attr(Q1=None)
 
-        # test specified heat output 2 bus value
-        Q2.set_attr(P=1.2 * instance.Q2.val)
+        # test specified heat output 2
+        instance.set_attr(Q2=1.2 * instance.Q2.val)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
 
@@ -328,38 +291,15 @@ class TestCombustion:
         msg = f'Value of heat output 2 must be {-heat2}, is {instance.Q2.val}.'
         assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
 
-        # test specified heat output 2 in component
-        Q2.set_attr(P=None)
-        instance.set_attr(Q2=-heat2)
+        # test specified heat loss
+        instance.set_attr(Q2=None, Qloss=-1e5)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()
-        heat2 = self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI)
-        msg = f'Value of heat output 2 must be {-heat2}, is {instance.Q2.val}.'
-        assert round(heat2, 1) == -round(instance.Q2.val, 1), msg
-
-        # test total heat output bus value
-        instance.set_attr(Q2=None)
-        Q.set_attr(P=1.5 * instance.Q1.val)
-        self.nw.solve('offdesign', design_path=tmp_path)
-        self.nw.assert_convergence()
-        heat = (self.c4.m.val_SI * (self.c6.h.val_SI - self.c4.h.val_SI) +
-                self.c5.m.val_SI * (self.c7.h.val_SI - self.c5.h.val_SI))
-        msg = f'Value of total heat output must be {Q.P.val}, is {-heat}.'
-        assert round(Q.P.val, 1) == -round(heat, 1), msg
-
-        # test specified heat loss bus value
-        Q.set_attr(P=None)
-        Qloss.set_attr(P=-1e5)
-        self.nw.solve('offdesign', design_path=tmp_path)
-        self.nw.assert_convergence()
-        msg = (
-            f'Value of heat loss must be {Qloss.P.val}, is '
-            f'{instance.Qloss.val}.'
-        )
-        assert round(Qloss.P.val, 1) == round(instance.Qloss.val, 1), msg
+        msg = f'Value of heat loss must be {-1e5}, is {instance.Qloss.val}.'
+        assert round(-1e5, 1) == round(instance.Qloss.val, 1), msg
 
         # test connector specification
-        Qloss.set_attr(P=None)
+        instance.set_attr(Qloss=None)
         self.e2.set_attr(E=400e5)
         self.nw.solve('offdesign', design_path=tmp_path)
         self.nw.assert_convergence()

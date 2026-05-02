@@ -25,8 +25,8 @@ from tespy.components import HeatExchanger
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import ParabolicTrough
 from tespy.components import ParallelFlowHeatExchanger
-from tespy.components import SectionedHeatExchanger
 from tespy.components import PowerSink
+from tespy.components import SectionedHeatExchanger
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import SolarCollector

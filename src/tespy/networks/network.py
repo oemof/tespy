@@ -767,53 +767,27 @@ class Network:
     def _init_components(self):
         r"""Set up necessary component information."""
         for comp in self.comps["object"]:
-            # get incoming and outgoing connections of a component
             source_mask = self.conns["source"] == comp
-            required_connectors_mask = self.conns["source_id"].isin(comp.outlets())
-            sources = self.conns[source_mask & required_connectors_mask]
-            sources = sources["source_id"].sort_values().index.tolist()
             target_mask = self.conns["target"] == comp
-            required_connectors_mask = self.conns["target_id"].isin(comp.inlets())
-            targets = self.conns[target_mask & required_connectors_mask]
-            targets = targets["target_id"].sort_values().index.tolist()
-            # save the incoming and outgoing as well as the number of
-            # connections as component attribute
-            comp.inl = self.conns.loc[targets, "object"].tolist()
-            comp.outl = self.conns.loc[sources, "object"].tolist()
 
-            power_type_mask = self.conns["object"].apply(
-                lambda c: c.__class__.__name__ == "PowerConnection"
+            comp.inl, comp.outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask, comp.inlets(), comp.outlets()
             )
-            required_connectors_mask = self.conns["source_id"].isin(comp.poweroutlets())
-            sources = self.conns[source_mask & required_connectors_mask & power_type_mask]
-            sources = sources["source_id"].sort_values().index.tolist()
-
-            required_connectors_mask = self.conns["target_id"].isin(comp.powerinlets())
-            targets = self.conns[target_mask & required_connectors_mask & power_type_mask]
-            targets = targets["target_id"].sort_values().index.tolist()
-
-            comp.power_inl = self.conns.loc[targets, "object"].tolist()
-            comp.power_outl = self.conns.loc[sources, "object"].tolist()
+            comp.power_inl, comp.power_outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask,
+                comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
+            )
             comp.num_power_i = len(comp.powerinlets())
             comp.num_power_o = len(comp.poweroutlets())
 
-            heat_type_mask = self.conns["object"].apply(
-                lambda c: c.__class__.__name__ == "HeatConnection"
+            comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
+                source_mask, target_mask,
+                comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
             )
-            required_connectors_mask = self.conns["source_id"].isin(comp.heatoutlets())
-            sources = self.conns[source_mask & required_connectors_mask & heat_type_mask]
-            sources = sources["source_id"].sort_values().index.tolist()
-
-            required_connectors_mask = self.conns["target_id"].isin(comp.heatinlets())
-            targets = self.conns[target_mask & required_connectors_mask & heat_type_mask]
-            targets = targets["target_id"].sort_values().index.tolist()
-
-            comp.heat_inl = self.conns.loc[targets, "object"].tolist()
-            comp.heat_outl = self.conns.loc[sources, "object"].tolist()
             comp.num_heat_i = len(comp.heatinlets())
             comp.num_heat_o = len(comp.heatoutlets())
 
-            # set up restults and specification dataframes
+            # set up results and specification dataframes
             comp_type = comp.__class__.__name__
             if comp_type not in self.results:
                 cols = [
@@ -824,6 +798,34 @@ class Network:
                 self.results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
                 )
+
+    def _resolve_comp_conn_domain(
+        self, source_mask, target_mask, inlet_ids, outlet_ids, conn_type=None
+    ):
+        """Return ``(inl, outl)`` connection lists for one domain.
+
+        Parameters
+        ----------
+        source_mask, target_mask : boolean Series
+            Rows in ``self.conns`` where the component is source / target.
+        inlet_ids, outlet_ids : list[str]
+            Port IDs returned by the component's ``*inlets()`` / ``*outlets()``.
+        conn_type : str, optional
+            If given, further restrict to rows whose ``conn_type`` column
+            matches this class name (e.g. ``"PowerConnection"``).
+        """
+        if conn_type is not None:
+            type_mask = self.conns["conn_type"] == conn_type
+            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids) & type_mask]
+            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids) & type_mask]
+        else:
+            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
+            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
+
+        return (
+            self.conns.loc[tgt["target_id"].sort_values().index, "object"].tolist(),
+            self.conns.loc[src["source_id"].sort_values().index, "object"].tolist(),
+        )
 
     def _check_components(self):
         for comp in self.comps['object']:
@@ -1740,7 +1742,7 @@ class Network:
                 # store adjacent connection design values from the component's
                 # own design_path for use in offdesign equations
                 cp._local_connection_design_state = {}
-                for adj_conn in cp.inl + cp.outl + cp.power_inl + cp.power_outl + cp.heat_inl + cp.heat_outl:
+                for adj_conn in cp.all_connections:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in local_design:
                         conn_entries = local_design[conn_type]
@@ -1901,7 +1903,7 @@ class Network:
                 # write adjacent connections design state from individual
                 # design_path to the component
                 comp._local_connection_design_state = {}
-                for adj_conn in comp.inl + comp.outl + comp.power_inl + comp.power_outl + comp.heat_inl + comp.heat_outl:
+                for adj_conn in comp.all_connections:
                     conn_type = adj_conn.__class__.__name__
                     if conn_type in _individual_design:
                         conn_entries = _individual_design[conn_type]
@@ -1996,7 +1998,7 @@ class Network:
         if 'source' not in any_row or 'target' not in any_row:
             return None
 
-        if adj_conn in comp.inl + comp.power_inl:
+        if adj_conn in comp.all_inlets:
             matches = [
                 row for row in conn_entries.values()
                 if row.get('target') == comp_label

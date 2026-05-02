@@ -580,6 +580,18 @@ class Component:
     def heatoutlets():
         return []
 
+    @property
+    def all_connections(self):
+        return self.all_inlets + self.all_outlets
+
+    @property
+    def all_inlets(self):
+        return self.inl + self.power_inl + self.heat_inl
+
+    @property
+    def all_outlets(self):
+        return self.outl + self.power_outl + self.heat_outl
+
     def _validate_connections(self):
         if len(self.outl) != self.num_o:
             msg = (

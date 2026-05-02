@@ -3,6 +3,9 @@ v0.10.0 - Under development
 
 API Changes
 ###########
+- The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
+  with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
+  (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use

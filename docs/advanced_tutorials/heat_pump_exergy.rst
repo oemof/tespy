@@ -254,11 +254,10 @@ An exergy destruction waterfall diagram can be generated with:
 
    ean.plot_exergy_waterfall(title='NH3 Heat Pump Exergy Analysis')
 
-Post-Processing
-^^^^^^^^^^^^^^^
-Below, different possibilities of post-processing and visualization of the
-exergy analysis results will be presented. The following issues will be
-considered:
+Parametric analysis
+^^^^^^^^^^^^^^^^^^^
+Below, different parametric analyses will be presented considering the
+following issues:
 
 - plot exergy destruction
 - varying ambient and geothermal temperature
@@ -306,6 +305,20 @@ individual components of the GCHP destroy, the exergy destruction :code:`E_D`
 can be displayed in a bar chart as shown at the end of this section. The
 waterfall diagram is created directly from the :code:`ExergyAnalysis` instance
 by calling :py:meth:`exerpy.ExergyAnalysis.plot_exergy_waterfall`.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_waterfall.svg
+    :align: center
+    :alt: Waterfall plot for ammonia heat pump
+    :figclass: only-light
+
+    Figure: Waterfall diagram for the ammonia heat pump
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_waterfall_darkmode.svg
+    :align: center
+    :alt: Waterfall plot for ammonia heat pump
+    :figclass: only-dark
+
+    Figure: Waterfall diagram for the ammonia heat pump
 
 In addition, the component-level results are exported to a :code:`.csv` file
 so that they can be combined across refrigerants in the separate plot script.

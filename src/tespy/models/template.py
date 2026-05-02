@@ -200,7 +200,15 @@ class ModelTemplate():
         processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "s", "lin")
-        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "T", "lin")
+        if ylim:
+            y_min, y_max = ylim
+        else:
+            conn = self.nw.get_conn(connection_label)
+            fluid_name = single_fluid(conn.fluid_data)
+            ureg = self.nw.units.get_ureg()
+            T_unit = self.nw.units.get_default('temperature')
+            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').to(T_unit).magnitude
+            y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin", clamp_max=T_crit)
 
         diagram.draw_isolines(
             fig, ax, "Ts", x_min, x_max, y_min, y_max,
@@ -225,7 +233,15 @@ class ModelTemplate():
         processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "h", "lin")
-        y_min, y_max = ylim or self._make_cycle_plot_limits(points, "p", "log")
+        if ylim:
+            y_min, y_max = ylim
+        else:
+            conn = self.nw.get_conn(connection_label)
+            fluid_name = single_fluid(conn.fluid_data)
+            ureg = self.nw.units.get_ureg()
+            p_unit = self.nw.units.get_default('pressure')
+            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').to(p_unit).magnitude
+            y_min, y_max = self._make_cycle_plot_limits(points, "p", "log", clamp_max=p_crit)
 
         diagram.draw_isolines(
             fig, ax, "logph", x_min, x_max, y_min, y_max,
@@ -258,7 +274,7 @@ class ModelTemplate():
 
         return fig, ax
 
-    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1) -> tuple:
+    def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1, clamp_max=None) -> tuple:
         """Automatically retrieve the limits for an axes based on the process
         point limits in one axis
 
@@ -273,6 +289,10 @@ class ModelTemplate():
         padding_rel : float, optional
             relative difference to overall distance between min and max value,
             by default 0.1
+        clamp_max : float, optional
+            if provided, the upper bound is computed using
+            ``max(max_val, clamp_max)`` so the axis always reaches at least
+            this value (plus padding)
 
         Returns
         -------
@@ -282,6 +302,8 @@ class ModelTemplate():
         all_values = [point[quantity] for point in states.values()]
         min_val = min(all_values)
         max_val = max(all_values)
+        if clamp_max is not None:
+            max_val = max(max_val, clamp_max)
 
         if scale == 'lin':
             delta_val = max_val - min_val

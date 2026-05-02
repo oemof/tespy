@@ -966,18 +966,18 @@ and similar for connection parameters:
     Mass fractions of the fluid composition are always SI values!
 
 On top of that, you can access pandas DataFrames containing grouped results
-for the components, connections and busses. The instance of class Network
-provides a results dictionary.
+for the components and connections. The instance of class Network provides a
+results dictionary.
 
 .. code:: python
 
-    # key for connections is 'Connection'
+    # key for fluid connections is 'Connection'
     results_for_conns = my_plant.results['Connection']
+    # key for power connections is 'PowerConnection'
+    results_for_power_conns = my_plant.results['PowerConnection']
     # keys for components are the respective class name, e.g.
     results_for_turbines = my_plant.results['Turbine']
     results_for_heat_exchangers = my_plant.results['HeatExchanger']
-    # keys for busses are the labels, e.g. a Bus labeled 'power input'
-    results_for_mybus = my_plant.results['power input']
 
 The index of the DataFrames is the connection's or component's label.
 
@@ -985,7 +985,6 @@ The index of the DataFrames is the connection's or component's label.
 
     results_for_specific_conn = my_plant.results['Connection'].loc['myconn']
     results_for_specific_turbine = my_plant.results['Turbine'].loc['turbine 1']
-    results_for_component_on_bus = my_plant.results['power input'].loc['turbine 1']
 
 The full list of connection and component parameters can be obtained from the
 respective API documentation.
@@ -1001,7 +1000,7 @@ save the network first.
     my_plant.export('mynetwork.json')
 
 This exports a json file containing all relevant information defining your
-network (general network information, components, connections, busses,
+network (general network information, components, connections,
 characteristics) holding the parametrisation of that network. You can re-import
 the network using following code with the path to the saved document. The
 generated network object contains the same information as a TESPy network
@@ -1015,9 +1014,8 @@ created by a python script.
 
 .. note::
 
-    Imported busses, components and connections are accessible by their label,
-    e.g. :code:`imported_plant.busses['total heat output']`,
-    :code:`imported_plant.get_comp('condenser')` and
+    Imported components and connections are accessible by their label,
+    e.g. :code:`imported_plant.get_comp('condenser')` and
     :code:`imported_plant.get_conn('myconnectionlabel')` respectively. If
     you did not provide labels for your connections, by default, the
     connection's label will be according to this principle:

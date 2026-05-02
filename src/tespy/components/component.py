@@ -34,8 +34,6 @@ from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import bus_char_derivative
-from tespy.tools.helpers import bus_char_evaluation
 from tespy.tools.helpers import newton_with_kwargs
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS

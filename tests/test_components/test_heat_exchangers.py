@@ -621,7 +621,7 @@ class TestHeatExchangers:
         assert instance.ttd_u.val < 0, msg
 
         # test heat exchanger effectiveness
-        b.set_attr(P=None)
+        instance.set_attr(Q=None)
         self.c1.set_attr(m=1, T=80, h=None)
         self.c2.set_attr(T=None, h=None)
 

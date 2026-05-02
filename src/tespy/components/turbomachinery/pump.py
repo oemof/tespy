@@ -147,7 +147,6 @@ class Pump(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
@@ -175,7 +174,7 @@ class Pump(Turbomachine):
     ... design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'water': 1}, p=1, T=20, v=1.5, design=['v'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(pu.pr.val, 0)
     7.0
     >>> round(outg.p.val - inc.p.val, 0)
@@ -183,12 +182,11 @@ class Pump(Turbomachine):
     >>> round(pu.P.val, 0)
     1125.0
     >>> outg.set_attr(p=12)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(pu.eta_s.val, 2)
     0.71
     >>> round(inc.v.val, 1)
     0.9
-    >>> os.remove('tmp.json')
 
     In the second example we model a pump with characteristic maps. These can
     be retrieved from manufacturers, for example, grundfos :cite:`grundfos`

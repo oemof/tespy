@@ -102,7 +102,6 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
@@ -117,7 +116,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -129,12 +128,11 @@ class Valve(Component):
     we can determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> os.remove('tmp.json')
 
     You can also specify the flow coefficient of the valve :code:`Kv` which is
     used in context of liquids. For this there are several methods available:

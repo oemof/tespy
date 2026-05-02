@@ -251,9 +251,11 @@ available keywords:
 
 - :code:`mode` is the calculation mode (:code:`'design'`-calculation or
   :code:`'offdesign'`-calculation).
-- :code:`init_path` is the path to the network folder you want to use for
+- :code:`init_path` is the path to a saved network state (json file path or
+  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) to use for
   initialisation.
-- :code:`design_path` is the path to the network folder which holds the
+- :code:`design_path` is the path to a saved network state (json file path or
+  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) which holds the
   information of your plant's design point.
 - :code:`max_iter` is the maximum amount of iterations performed by the
   solver.
@@ -434,11 +436,19 @@ calculation can not start without a successful check. The design/offdesign
 switch is described in the network setup section. For offdesign calculation the
 :code:`design_path` argument is required. The design point information is
 extracted from that path in preprocessing. For this, you will need to save
-your network's design point information using:
+your network's design point information. Three approaches are available:
 
 .. code-block:: python
 
-    nw.save('path/for/savestate')
+    # 1. Save to a json file - pass the file path as design_path / init_path
+    nw.save('path/to/design.json')
+
+    # 2. Save as an in-memory dict - pass the dict directly, no file I/O needed
+    state = nw.save(as_dict=True)
+    nw.solve('offdesign', design_path=state)
+
+    # 3. Save to csv files in a folder (for inspection or post-processing)
+    nw.save_csv('path/to/folder')
 
 **Simplifying the variable space**
 
@@ -530,10 +540,11 @@ results of a previous calculation, you need to specify
 
 Last step in starting value generation is the initialisation from a saved
 network state. In order to initialise your calculation with this method, you
-need to provide the path to the saved network in the :code:`init_path` argument
-of the `solve` method. TESPy searches through the connections.csv file. If a
-connection with the respective label is found, the starting values for the
-system variables are taken over from that file.
+need to provide a saved network state via the :code:`init_path` argument of
+the :code:`solve` method - either a file path to a json file or a :code:`dict`
+returned by :code:`nw.save(as_dict=True)`. TESPy searches through the
+connection entries. If a connection with the respective label is found, the
+starting values for the system variables are taken over from that state.
 
 .. note::
 
@@ -991,25 +1002,30 @@ respective API documentation.
 
 Serialization and deserialization
 ---------------------------------
-The network reader is a useful tool to import networks from a data structure
-using .csv-files. In order to re-import an exported TESPy network, you must
-save the network first.
+The network export/import is a useful tool to persist and restore the full
+network parametrisation. :py:meth:`~tespy.networks.network.Network.export`
+always returns the data as a :code:`dict` and optionally writes it to a json
+file at the same time. The network can be restored from either a json file or
+the dict directly.
+
+**Export to file and re-import:**
 
 .. code:: python
 
     my_plant.export('mynetwork.json')
 
-This exports a json file containing all relevant information defining your
-network (general network information, components, connections,
-characteristics) holding the parametrisation of that network. You can re-import
-the network using following code with the path to the saved document. The
-generated network object contains the same information as a TESPy network
-created by a python script.
+    from tespy.networks import Network
+    imported_plant = Network.from_json('mynetwork.json')
+    imported_plant.solve('design')
+
+**Export as in-memory dict and re-import without file I/O:**
 
 .. code:: python
 
+    data = my_plant.export()
+
     from tespy.networks import Network
-    imported_plant = Network.from_json('path/to/mynetwork.json')
+    imported_plant = Network.from_dict(data)
     imported_plant.solve('design')
 
 .. note::

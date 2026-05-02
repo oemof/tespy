@@ -123,7 +123,6 @@ class Turbine(Turbomachine):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
@@ -145,18 +144,17 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=36, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
     >>> inc.set_attr(m=28.8)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(t.eta_s.val, 3)
     0.898
     >>> round(inc.p.val, 1)
     88.6
-    >>> os.remove('tmp.json')
     """
 
     @staticmethod

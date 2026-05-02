@@ -41,7 +41,6 @@ class HeatPumpModel(ModelTemplate):
         self.Tgeo = Tgeo
         self.T_hs_feed = T_hs_feed
         self._ean = None
-        self._design_path = f"{fluid}.json"
         super().__init__()
 
     # ------------------------------------------------------------------

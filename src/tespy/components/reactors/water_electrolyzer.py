@@ -135,7 +135,6 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
@@ -173,21 +172,20 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val
     >>> round(P_design / 1e6, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.2)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 2)
     0.84
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):

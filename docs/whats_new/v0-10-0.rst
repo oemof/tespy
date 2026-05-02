@@ -15,6 +15,13 @@ API Changes
 
 Other Changes
 #############
+- :py:meth:`~tespy.networks.network.Network.save` now accepts an
+  :code:`as_dict=True` flag to return the network state as a plain
+  :code:`dict`, which can be passed directly as :code:`design_path` or
+  :code:`init_path` in a subsequent :meth:`~tespy.networks.network.Network.solve`
+  call without writing to disk. Passing :code:`None` without :code:`as_dict=True`
+  still works but is deprecated
+  (`PR #962 <https://github.com/oemof/tespy/pull/962>`__).
 - Mixing rules are now registered via a :code:`MixingRuleRegistry`, making it
   possible to add custom mixing rules at runtime
   (`PR #960 <https://github.com/oemof/tespy/pull/960>`__).

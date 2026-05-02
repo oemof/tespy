@@ -138,8 +138,7 @@ class SamplePlant(ModelTemplate):
         c6.set_attr(p=None)
 
         self.nw.solve("design")
-        self._stable_solution = "_stable.json"
-        self.nw.save(self._stable_solution)
+        self._stable_solution = self.nw.save(as_dict=True)
         self._solved = True
         self.nw.print_results()
 # %%[sec_2]

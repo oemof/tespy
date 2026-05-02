@@ -226,9 +226,8 @@ class TestCombustion:
         with pytest.raises(TESPyNetworkError):
             self.nw.solve('design')
 
-    def test_CombustionEngine(self, tmp_path):
+    def test_CombustionEngine(self):
         """Test component properties of combustion engine."""
-        tmp_path = f'{tmp_path}.json'
         instance = CombustionEngine('combustion engine')
         self.setup_CombustionEngine_network(instance)
         eta_char = CharLine(x=[0.5, 0.75, 1.0], y=[0.9, 0.98, 1])
@@ -258,9 +257,9 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         # calculate in offdesign mode
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f'Value of thermal input must be {ti}, is {instance.ti.val}.'
         assert round(ti, 1) == round(instance.ti.val, 1), msg
@@ -268,7 +267,7 @@ class TestCombustion:
 
         # test specified heat output 1
         instance.set_attr(Q1=instance.Q1.val)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         # heat output is at design point value, thermal input must therefore
         # not have changed
@@ -283,7 +282,7 @@ class TestCombustion:
 
         # test specified heat output 2
         instance.set_attr(Q2=1.2 * instance.Q2.val)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
 
         # calculate heat output over cooling loop
@@ -293,7 +292,7 @@ class TestCombustion:
 
         # test specified heat loss
         instance.set_attr(Q2=None, Qloss=-1e5)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f'Value of heat loss must be {-1e5}, is {instance.Qloss.val}.'
         assert round(-1e5, 1) == round(instance.Qloss.val, 1), msg
@@ -301,7 +300,7 @@ class TestCombustion:
         # test connector specification
         instance.set_attr(Qloss=None)
         self.e2.set_attr(E=400e5)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
             f'Value of power must be {-self.e1.E.val}, is '

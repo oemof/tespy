@@ -147,7 +147,6 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     >>> from tespy.components import Sink, Source, ParallelFlowHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
@@ -203,8 +202,8 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     value instead of the final pinch and then resolve again.
 
     >>> he.set_attr(design=["ttd_u"], offdesign=["kA"])
-    >>> nw.save("design.json")
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> design_state = nw.save(as_dict=True)
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.kA.val_SI / he.kA.design, 1)
     1.0
 
@@ -213,14 +212,13 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     check what happens to the outflow temperature of the water.
 
     >>> c3.set_attr(v=2000)
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(c2.T.val, 2)
     38.69
     >>> c3.set_attr(v=2500, T=8)
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(c2.T.val, 2)
     44.0
-    >>> os.remove("design.json")
     """
     def get_parameters(self):
         params = super().get_parameters()

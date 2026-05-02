@@ -138,7 +138,6 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.components import Sink, Source, Desuperheater
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
@@ -171,20 +170,19 @@ class Desuperheater(HeatExchanger):
     >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)
     1.0
     >>> et_de.set_attr(v=12)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve('offdesign', init_path=design_state, design_path=design_state)
     >>> round(cw_de.v.val, 2)
     0.41
-    >>> os.remove('tmp.json')
     """
 
     def get_mandatory_constraints(self):

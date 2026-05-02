@@ -319,9 +319,11 @@ class ModelTemplate():
 
     def save_design(self, path=None) -> None:
         """Save current network state as the design reference."""
-        save_path = path or getattr(self, '_design_path', 'design.json')
-        self.nw.save(save_path)
-        self._design_path = save_path
+        if path is not None:
+            self.nw.save(path)
+            self._design_path = path
+        else:
+            self._design_path = self.nw.save(as_dict=True)
 
     def run_exergy_analysis(self, Tamb, pamb, E_F, E_P, E_L=None):
         """Run an exergy analysis via exerpy and cache the result.

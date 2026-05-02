@@ -284,8 +284,7 @@ class SectionedHeatExchanger(HeatExchanger):
     - the refrigerant index (which side of the heat exchanger is passed by the
       refrigerant)
 
-    >>> import os
-    >>> nw.save("design.json")
+    >>> design_state = nw.save(as_dict=True)
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
@@ -295,7 +294,7 @@ class SectionedHeatExchanger(HeatExchanger):
     ...     design=["td_pinch"],
     ...     offdesign=["UA_cecchinato"]
     ... )
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
 
     Without modifying any parameter, pinch and UA should be identical to
     design conditions.
@@ -310,14 +309,13 @@ class SectionedHeatExchanger(HeatExchanger):
     than the UA value does.
 
     >>> c1.set_attr(m=0.8)
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(cd.Q.val_SI / cd.Q.design, 2)
     0.8
     >>> round(cd.UA.val_SI / cd.UA.design, 2)
     0.88
     >>> round(cd.td_pinch.val, 2)
     4.3
-    >>> os.remove("design.json")
 
     Example
     -------
@@ -337,7 +335,6 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine, load_default_char
-    >>> import os
 
     Set up the network with appropriate units:
 
@@ -404,7 +401,7 @@ class SectionedHeatExchanger(HeatExchanger):
     Solve the design point and save results:
 
     >>> nw.solve('design')
-    >>> nw.save("design_trans_hx.json")
+    >>> design_state = nw.save(as_dict=True)
 
     After design computation, the CO2 outlet state is:
 
@@ -437,7 +434,7 @@ class SectionedHeatExchanger(HeatExchanger):
     operation. Verify offdesign setup by solving at design conditions. The
     design UA value is approximately 23.4 kW/K and pinch is 20.0 K:
 
-    >>> nw.solve('offdesign', design_path='design_trans_hx.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(hx.UA.val / 1e3, 2)
     23.42
     >>> round(hx.td_pinch.val, 1)
@@ -450,7 +447,7 @@ class SectionedHeatExchanger(HeatExchanger):
     83 % while UA reduces by 9.5 % following the characteristic scaling:
 
     >>> c1.set_attr(m=2.8)
-    >>> nw.solve('offdesign', design_path='design_trans_hx.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(hx.Q.val_SI / hx.Q.design, 2)
     0.83
     >>> round(hx.UA.val_SI / hx.UA.design, 2)
@@ -461,10 +458,6 @@ class SectionedHeatExchanger(HeatExchanger):
 
     >>> round(hx.td_pinch.val, 1)
     15.3
-
-    Clean up the design file:
-
-    >>> os.remove("design_trans_hx.json")
 
     The :code:`kA_char` parameter allows automatic part-load scaling of UA,
     following the same principle as the standard HeatExchanger component

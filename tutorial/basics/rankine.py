@@ -224,14 +224,14 @@ c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
 # %%[sec_10]
 my_plant.solve("design")
-my_plant.save("rankine_design.json")
+design_state = my_plant.save(as_dict=True)
 # %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
 for m in partload_m_range:
     c1.set_attr(m=m)
-    my_plant.solve("offdesign", design_path="rankine_design.json")
+    my_plant.solve("offdesign", design_path=design_state)
     partload_efficiency += [e5.E.val / sg.Q.val * 100]
 
 

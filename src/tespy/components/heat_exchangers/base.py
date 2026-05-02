@@ -183,7 +183,6 @@ class HeatExchanger(Component):
     >>> from tespy.components import Sink, Source, HeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
@@ -212,22 +211,21 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(he_cw.T.val, 1)
     27.5
     >>> round(he_ex.T.val, 1)
     14.4
     >>> ex_he.set_attr(v=0.1, T=40)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(he_cw.T.val, 1)
     33.9
     >>> round(he_ex.T.val, 1)
     18.8
-    >>> os.remove("tmp.json")
     """
 
     def get_parameters(self):

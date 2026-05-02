@@ -23,7 +23,6 @@ from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
@@ -504,7 +503,7 @@ ALL_CONNECTION_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.connections"])
     # exclude the Subsystem component as it is just a wrapper
     if inspect.isclass(obj)
-    and obj not in {ConnectionBase, Bus, Ref}
+    and obj not in {ConnectionBase, Ref}
 ]
 
 @mark.parametrize("obj", ALL_CONNECTION_CLASSES)

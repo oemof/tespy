@@ -5,19 +5,13 @@ Exergy Analysis of a Ground-Coupled Heat Pump
 
 .. note::
 
-    tespy v0.9 will be the last major version supporting the inbuilt exergy
-    analysis feature. All features have moved to the new external library
-    `exerpy <https://github.com/oemof/exerpy>`__. Exerpy is fully compatible to
-    input from a tespy model, meaning, you can build your model in the same way
-    as you are used to it and pass the relevant system boundary crossing
-    streams to exerpy to make the automatic analysis. On top of that, exerpy
-    offers advanced features like exergoecomic methods. You will find a couple
-    of examples on how to integrate tespy models with exerpy in the respective
-    section of the
-    `documentation <https://exerpy.readthedocs.io/en/latest/examples.html>`__.
-    The examples given in the tespy documentation will still be supported, but
-    the implementation will be adjusted to work with exerpy with the next major
-    version.
+    The exergy analysis in this tutorial uses
+    `exerpy <https://github.com/oemof/exerpy>`__, the dedicated external
+    library for exergy analysis. Exerpy is fully compatible with TESPy models -
+    build your network as usual and pass the system boundary crossing streams to
+    exerpy for automatic analysis. On top of physical exergy, exerpy offers
+    advanced features like exergoeconomic methods. More examples are available
+    in the `exerpy documentation <https://exerpy.readthedocs.io/en/latest/examples.html>`__.
 
 Task
 ^^^^
@@ -25,10 +19,9 @@ Task
 This tutorial shows how to set up and carry out an exergy analysis for a
 ground-coupled heat pump (GCHP). In addition, various post-processing options
 are presented. To investigate the impact of refrigerant choice on COP and
-exergetic efficiency, two Python scripts of the same network with different
-refrigerants (NH3 and R410A) are created. Finally, the influence of varying
-different parameters on COP and exergy efficiency is investigated and
-plotted.
+exergetic efficiency, the same :code:`HeatPumpModel` class is evaluated with
+different refrigerants (NH3 and R290). Finally, the influence of varying
+different parameters on COP and exergy efficiency is investigated and plotted.
 
 .. note::
 
@@ -47,14 +40,12 @@ that the heat pump model differs slightly in structure from the model in the
 previous tutorial. All related Python scripts of the fully working GCHP-model
 are listed in the following:
 
-- GCHP with NH3 (the model only):
-  :download:`NH3.py </../tutorial/heat_pump_exergy/NH3.py>`
-- GCHP with R410A (the model only):
-  :download:`R410A.py </../tutorial/heat_pump_exergy/R410A.py>`
-- GCHP with NH3 (model and post-processing):
-  :download:`NH3_calculations.py </../tutorial/heat_pump_exergy/NH3_calculations.py>`
-- GCHP with R410A (model and post-processing):
-  :download:`R410A_calculations.py </../tutorial/heat_pump_exergy/R410A_calculations.py>`
+- GCHP model class:
+  :download:`heat_pump_model.py </../tutorial/heat_pump_exergy/heat_pump_model.py>`
+- Single-fluid evaluation (NH3):
+  :download:`NH3_example.py </../tutorial/heat_pump_exergy/NH3_example.py>`
+- Full calculations for all refrigerants with parametric studies:
+  :download:`all_calculations.py </../tutorial/heat_pump_exergy/all_calculations.py>`
 - Plots of the results of the parameter variations:
   :download:`plots.py </../tutorial/heat_pump_exergy/plots.py>`
 
@@ -84,7 +75,7 @@ The input data of the model are based on different literature. In general, the
 model of the GCHP is based on a data sheet of a real heat pump
 (`Viessmann Vitocal 300-G <https://www.viessmann.de/de/wohngebaeude/waermepumpe/sole-wasser-waermepumpen/vitocal-300-g.html>`_ ).
 However, the data are used as approximate values to create a model that works
-with both NH3 and R410A, although the mentioned heat pump is designed to use
+with both NH3 and R290, although the mentioned heat pump is designed to use
 R410A. The range of the underfloor heating system temperature and the range of
 the geothermal temperature are assumptions based on measured data from the
 research project
@@ -98,9 +89,34 @@ TESPy model
 In principle, the GCHP-model corresponds to the flowsheet shown above.
 The heating system and the geothermal heat collector can be modeled as sources
 and sinks, which represent the feed and the return flow in both cases.
-The condenser is modeled as :code:`Condenser` instance, while the evaporator
-is modeled using :code:`HeatExchanger` instance. In total, the TESPy model
-consists of 11 components.
+The condenser is modeled as :code:`MovingBoundaryHeatExchanger` instance, while
+the evaporator is modeled using a :code:`HeatExchanger` instance. In total, the
+TESPy model consists of 11 components.
+
+The model is encapsulated in a :code:`HeatPumpModel` class that inherits from
+:code:`ModelTemplate`. This design allows the same network to be instantiated
+for different refrigerants by simply passing the fluid name as a constructor
+argument, and provides a high-level interface for parametric studies through
+the :code:`sensitivity_analysis` method. The constructor stores the design
+parameters and delegates network creation to the :code:`_create_network` method
+via the :code:`ModelTemplate` base class:
+
+.. literalinclude:: /../tutorial/heat_pump_exergy/heat_pump_model.py
+   :language: python
+   :pyobject: HeatPumpModel.__init__
+
+The :code:`_parameter_lookup` method defines the named parameters that can be
+read and written through the :code:`set_parameters` and
+:code:`sensitivity_analysis` interfaces. For parameters that require custom
+getter or setter logic - such as :code:`T_geo`, which maps to the feed
+temperature with a fixed offset, or :code:`COP` and :code:`epsilon` which are
+derived quantities - a dictionary with :code:`"get"` and/or :code:`"set"` keys
+is used. Simple connection or component attributes can be given as a path list
+directly:
+
+.. literalinclude:: /../tutorial/heat_pump_exergy/heat_pump_model.py
+   :language: python
+   :pyobject: HeatPumpModel._parameter_lookup
 
 In real systems, the circulating brine in the geothermal collector usually
 consists of a mixture of water and antifreeze. Pure water is used as the
@@ -121,59 +137,21 @@ calculation:
 - temperatures and pressure of geothermal heat collector feed and return flow
 - condenser heat output
 
-The model using NH3 as refrigerant and the model using R410A as refrigerant
-differ in the fluid definition, the naming of the stored files and the
-specification of the starting values only. The definition of the starting
-values is necessary to obtain a numerical solution for the first calculation.
-In this tutorial, the given code examples are shown exemplary for the model
-with NH3 as refrigerant only.
+The network is built, parametrized and solved within the :code:`_create_network`
+method. The motor and power distribution objects are also set up here, so that
+power connections cross the system boundary in a way that is compatible with
+exerpy. The geothermal return temperature :code:`c13` tracks the feed
+temperature :code:`c11` via a :code:`Ref` object with a fixed offset of 3 °C.
+Similarly, the heating system return temperature :code:`c21` tracks the feed
+temperature :code:`c23` with a fixed offset of 5 °C.
 
-The units used, and the ambient state are defined as follows:
+.. literalinclude:: /../tutorial/heat_pump_exergy/heat_pump_model.py
+   :language: python
+   :pyobject: HeatPumpModel._create_network
 
-.. code-block:: python
-
-    nw = Network()
-    nw.units.set_defaults(
-        temperature="degC", pressure="bar", enthalpy="kJ/kg"
-    )
-
-    pamb = 1.013
-    Tamb = 2.8
-
-For the model using R410A as refrigerant, the fluid definition is accordingly
-:code:`'R410A'` instead of :code:`'NH3'`.
-
-The temperature of the heating system feed flow is set to 40 °C in design
-calculation. The difference between feed and return flow temperature is kept
-constant at 5 °C. Therefore, the return flow is set to 35 °C.
-
-The geothermal heat collector temperature is defined as follows:
-
-.. code-block:: python
-
-    Tgeo = 9.5
-
-:code:`Tgeo` is the mean geothermal temperature. The difference between
-feed and return flow temperature is kept constant at 3 °C. Therefore, the feed
-flow temperature in the design calculation is set to :code:`Tgeo + 1.5 °C` and
-the return flow temperature is set to :code:`Tgeo - 1.5 °C`.
-
-The complete Python code of the TESPy models is available in the scripts
-:download:`NH3.py </../tutorial/heat_pump_exergy/NH3.py>` with NH3 as
-refrigerant and :download:`R410A.py </../tutorial/heat_pump_exergy/R410A.py>`
-with R410A as refrigerant. All other specified values of the component and
-connection parameters can be found in these Python scripts.
-
-In the scripts
-:download:`NH3_calculations.py </../tutorial/heat_pump_exergy/NH3_calculations.py>` and
-:download:`R410A_calculations.py </../tutorial/heat_pump_exergy/R410A_calculations.py>`,
-the Python code of the TESPy models of the GCHP is extended to handle the
-different tasks mentioned in the introduction. In these two scripts you can
-find the corresponding Python code for all calculations that will be presented
-in the next sections of the tutorial. As previously mentioned, the given code
-examples in the following are only shown exemplary for the GCHP with NH3 as
-refrigerant. If the scripts differ beyond the mentioned points, it will be
-pointed out at the respective place of the tutorial.
+The units used are temperature in °C, pressure in bar and enthalpy in kJ/kg.
+The ambient state (:code:`Tamb`, :code:`pamb`) is stored on the instance and
+passed to exerpy when the exergy analysis is run.
 
 h-log(p)-diagram
 ^^^^^^^^^^^^^^^^
@@ -181,62 +159,21 @@ h-log(p)-diagram
 At first, we will have a short look at the h-log(p)-diagram of the process,
 exemplary for NH3 as working fluid. Such diagrams are useful to better
 understand a process, therefore we will quickly present how to generate it
-using TESPy with fluprodia. For more information and installation
-instructions for fluprodia please have a look at the
-`online documentation <https://fluprodia.readthedocs.io/en/latest/>`_.
+using TESPy. The :code:`plot_logph_diagram_matplotlib` method wraps the
+`fluprodia <https://fluprodia.readthedocs.io/en/latest/>`_ library to generate
+the diagram directly from the network state. The cycle-closing connection
+:code:`'c1'` is passed as the starting point so that the method can trace the
+full refrigerant cycle:
 
-The data for the diagram are first saved in a dictionary :code:`result_dict`
-using the :code:`get_plotting_data` method of each component that is to be
-visualized.
-
-.. code-block:: python
-
-    from fluprodia import FluidPropertyDiagram
-
-    result_dict = {}
-    result_dict.update({ev.label : ev.get_plotting_data()[2]})
-    result_dict.update({cp.label : cp.get_plotting_data()[1]})
-    result_dict.update({cd.label : cd.get_plotting_data()[1]})
-    result_dict.update({va.label : va.get_plotting_data()[1]})
+.. literalinclude:: /../tutorial/heat_pump_exergy/NH3_example.py
+   :language: python
+   :start-after: [logph]
+   :end-before: [exergy]
 
 .. note::
 
-    The first level key of the nested dictionary returned from the
-    :code:`get_plotting_data` method contains the connection id of the state
-    change. Make sure you specify the correct id for the components to be
-    displayed. A table of the state change and the respective id can be found
+    For more information on fluprodia integration also see
     :ref:`here <fluprodia_label>`.
-
-Next, a :code:`FluidPropertyDiagram` instance is created and the units of the
-diagram are specified.
-
-.. code-block:: python
-
-    diagram = FluidPropertyDiagram('NH3')
-    diagram.set_unit_system(units=nw.units)
-
-Afterwards, the dictionary can be passed to the :code:`calc_individual_isoline`
-method of the :code:`FluidPropertyDiagram` object. In addition, the axis
-limits are set. The :code:`calc_isolines` method calculates all isolines of the
-diagram and the :code:`draw_isolines` method draws the isolines of the
-specified type. Finally, the results can be plotted and the diagram can be
-saved with the code shown below.
-
-.. code-block:: python
-
-    for key, data in result_dict.items():
-            result_dict[key]['datapoints'] = diagram.calc_individual_isoline(**data)
-
-    diagram.set_limits(x_min=0, x_max=2100, y_min=1e0, y_max=2e2)
-    diagram.calc_isolines()
-    diagram.draw_isolines('logph')
-
-    for key in result_dict.keys():
-        datapoints = result_dict[key]['datapoints']
-        diagram.ax.plot(datapoints['h'],datapoints['p'], color='#ff0000')
-        diagram.ax.scatter(datapoints['h'][0],datapoints['p'][0], color='#ff0000')
-
-    diagram.save('NH3_logph.svg')
 
 .. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_logph.svg
     :align: center
@@ -248,8 +185,8 @@ The resulting fluid property diagram is shown in the figure above. It can
 easily be seen, that the evaporator slightly overheats the working fluid, while
 it leaves the condenser in saturated liquid state. The working fluid temperature
 after leaving the compressor is quite high with far more than 100 °C given the
-heat sink only requires a temperature of only 40 °C. In comparison, the R410A
-leaves the compressor at about 75 °C.
+heat sink only requires a temperature of only 40 °C. In comparison, R290
+leaves the compressor at a lower temperature.
 
 More examples of creating fluid property diagrams can be found in the fluprodia
 documentation referenced above.
@@ -265,122 +202,57 @@ operation of the heat pump regarding exergetic efficiency are investigated.
 Analysis setup
 ++++++++++++++
 
-After the network has been built, the exergy analysis can be set up. For this
-purpose, all exergy flows entering and leaving the network must be defined.
-The exergy flows are defined as a list of busses as follows:
+After the network has been solved, the exergy analysis is carried out via the
+:code:`run_exergy_analysis` method, which internally creates an
+:py:class:`exerpy.ExergyAnalysis` instance from the TESPy network. All exergy
+streams crossing the system boundary must be classified as:
 
-- fuel exergy :code:`E_F`
-- product exergy :code:`E_P`
-- exergy loss streams :code:`E_L`
-- internal exergy streams not bound to connections :code:`internal_busses`
+- fuel exergy :code:`E_F` - resources supplied to the system
+- product exergy :code:`E_P` - desired output of the system
+- exergy loss streams :code:`E_L` - exergy discarded to the environment
 
-First, the busses for the exergy analysis must be defined. The first bus is
-for the electrical energy supply of the compressor and the pumps. The motor
-efficiency is calculated by a characteristic line. This power input bus
-represents fuel exergy.
+In exerpy, each of these is a dictionary with :code:`"inputs"` and
+:code:`"outputs"` keys containing the labels of the boundary-crossing
+connections.
 
-The product exergy is the heat supply of the condenser to the heating system,
-which is represented by the heating system bus. The bus consists of the
-streams :code:`hs_ret` and :code:`hs_feed`. Note that the :code:`base`
-keyword of the stream entering the network :code:`hs_ret` must be set to
-:code:`bus`.
+For the GCHP the electrical power is supplied via a :code:`PowerConnection`
+labelled :code:`'e1'` (grid side). The geothermal heat boundary is represented
+by the material connections :code:`'c11'` (inlet from ground) and
+:code:`'c13'` (outlet to ground). The heating system boundary is represented
+by :code:`'c23'` (feed flow to house) and :code:`'c21'` (return flow from
+house). In the example of the GCHP, only :code:`E_F` and :code:`E_P` are
+defined. Ambient temperature and pressure are passed in the network units
+(°C and bar); the method converts them to SI units (K, Pa) before calling
+exerpy:
 
-Lastly, the geothermal heat bus represents the heat that is transferred from
-the geothermal heat collector to the evaporator. The bus consists of the
-streams :code:`gh_in` and :code:`gh_out`. Here, the :code:`base` of the stream
-:code:`gh_in` is set to :code:`bus`, because this stream represents an energy
-input from outside of the network. In this example, the geothermal heat bus is
-defined as fuel exergy, because the ambient temperature :code:`Tamb` is set at
-a lower temperature than the temperature of the geothermal heat collector.
-
-.. code-block:: python
-
-    x = np.array([0, 0.2, 0.4, 0.6, 0.8, 1, 1.2])
-    y = np.array([0, 0.86, 0.9, 0.93, 0.95, 0.96, 0.95])
-
-    char = CharLine(x=x, y=y)
-    power = Bus('power input')
-    power.add_comps(
-        {'comp': cp, 'char': char, 'base': 'bus'},
-        {'comp': ghp, 'char': char, 'base': 'bus'},
-        {'comp': hsp, 'char': char, 'base': 'bus'}
-    )
-
-    heat_cons = Bus('heating system')
-    heat_cons.add_comps({'comp': hs_ret, 'base': 'bus'}, {'comp': hs_feed})
-
-    heat_geo = Bus('geothermal heat')
-    heat_geo.add_comps({'comp': gh_in, 'base': 'bus'}, {'comp': gh_out})
-
-    nw.add_busses(power, heat_cons, heat_geo)
-
-In order to carry out the exergy analysis an :code:`ExergyAnalysis` instance
-passing the network to analyse as well as the respective busses is created.
-The product exergy is represented by the bus :code:`power`. The busses
-:code:`heat_cons` and :code:`heat_geo` are passed as fuel exergy.
-In the example of the GCHP, only :code:`E_F` and :code:`E_P` are defined.
-Other examples of exergy analysis setup can be found in the
-:ref:`TESPy analysis <advanced_exergy_label>` page and in the API
-documentation of class :py:class:`tespy.tools.analyses.ExergyAnalysis`.
-
-.. code-block:: python
-
-   ean = ExergyAnalysis(network=nw, E_F=[power, heat_geo], E_P=[heat_cons])
-
-   ean.analyse(pamb, Tamb)
-
-The :py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse` method will run the
-exergy analysis automatically. This method expects information about the
-ambient pressure and ambient temperature. Additionally, an automatic check of
-consistency is performed by the analysis as further described in
-:ref:`TESPy analysis <advanced_exergy_label>`.
+.. literalinclude:: /../tutorial/heat_pump_exergy/NH3_example.py
+   :language: python
+   :start-after: [exergy]
 
 Results
 +++++++
 
-The results can be printed by using the
-:py:meth:`tespy.tools.analyses.ExergyAnalysis.print_results` method.
+The results can be printed and retrieved as DataFrames using the
+:py:meth:`exerpy.ExergyAnalysis.exergy_results` method:
 
 .. code-block:: python
 
-   ean.print_results()
+   df_comp, df_material, df_power = ean.exergy_results()
 
-Further descriptions of which tables are printed and how to select what is
-printed can be found in the :ref:`TESPy analysis section <advanced_exergy_label>`.
-There you can also find more detailed descriptions of how to access the
-underlying data for the tabular printouts, which are stored in
-`pandas DataFrames <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html>`_.
-
-With the `plotly <https://plotly.com/>`_ library installed, the results can
-also be displayed in a `sankey diagram <https://plotly.com/python/sankey-diagram/>`_.
-The :py:meth:`tespy.tools.analyses.ExergyAnalysis.generate_plotly_sankey_input`
-method returns a dictionary containing links and nodes for the sankey diagram.
+The overall system results (total :code:`E_F`, :code:`E_P`, :code:`E_D` and
+:code:`epsilon`) are available directly as attributes:
 
 .. code-block:: python
 
-   links, nodes = ean.generate_plotly_sankey_input()
-    fig = go.Figure(go.Sankey(
-        arrangement="snap",
-        node={
-            "label": nodes,
-            'pad': 11,
-            'color': 'orange'},
-        link=links
-    ))
-    plot(fig, filename='NH3_sankey')
+   print(f"E_F = {ean.E_F:.1f} W")
+   print(f"E_P = {ean.E_P:.1f} W")
+   print(f"epsilon = {ean.epsilon:.3f}")
 
+An exergy destruction waterfall diagram can be generated with:
 
-.. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_sankey.svg
-    :align: center
-    :alt: Sankey diagram of the Ground-Coupled Heat Pump (GCHP)
+.. code-block:: python
 
-    Figure: Sankey diagram of the GCHP (open in
-    new tab to enlarge).
-
-In the figure above you can see the sankey diagram which is created by running
-the script of the GCHP with NH3 as refrigerant. Information about, for example,
-the colors used or the node order can be found in the
-:ref:`TESPy analysis section <advanced_exergy_label>`.
+   ean.plot_exergy_waterfall(title='NH3 Heat Pump Exergy Analysis')
 
 Post-Processing
 ^^^^^^^^^^^^^^^
@@ -394,10 +266,13 @@ considered:
 - varying heating load and geothermal temperature
 
 In order to be able to compare the results of the two refrigerants NH3 and
-R410A, plots of the results of the mentioned issues are created in a separate
-plot script :download:`plots.py </../tutorial/heat_pump_exergy/plots.py>`. The plots in this
-tutorial are created with `Matplotlib <https://matplotlib.org/>`_. For
-installation instructions or further documentation please see the Matplotlib
+R290, all calculations are collected in a single script
+:download:`all_calculations.py </../tutorial/heat_pump_exergy/all_calculations.py>`
+that loops over both fluids. The :code:`HeatPumpModel` class makes it
+straightforward to switch refrigerants - only the fluid name changes. The plots
+in this tutorial are created with `Matplotlib <https://matplotlib.org/>`_ in a
+separate script :download:`plots.py </../tutorial/heat_pump_exergy/plots.py>`.
+For installation instructions or further documentation please see the Matplotlib
 documentation.
 
 For the post-processing, the following additional packages
@@ -409,49 +284,38 @@ are required:
     import pandas as pd
     import matplotlib.pyplot as plt
 
+The overall structure of the calculations script is a loop over both working
+fluids. For each fluid the model is created, the design case is solved and
+saved, the h-log(p) diagram is generated and the exergy analysis is run at the
+design point before the parametric studies begin:
+
+.. literalinclude:: /../tutorial/heat_pump_exergy/all_calculations.py
+   :language: python
+   :end-before: [ed_export]
+
+.. note::
+
+    All code excerpts shown in the following subsections are **continuations
+    of the same** :code:`for fluid in ["NH3", "R290"]:` loop introduced
+    above. They are not standalone scripts.
+
 Plot exergy destruction
 +++++++++++++++++++++++
 In order to visualize how much exergy of the fuel exergy :code:`E_F` the
 individual components of the GCHP destroy, the exergy destruction :code:`E_D`
-can be displayed in a bar chart as shown at the end of this section.
+can be displayed in a bar chart as shown at the end of this section. The
+waterfall diagram is created directly from the :code:`ExergyAnalysis` instance
+by calling :py:meth:`exerpy.ExergyAnalysis.plot_exergy_waterfall`.
 
-To create this diagram, the required data for the diagram must first be
-handled. As shown below, the three lists :code:`comps`, :code:`E_D` and
-:code:`E_P` are created and first filled with the values for the top bar. A
-loop is then used to add all component labels to the list :code:`comps` that
-destroy a noticeable amount of exergy (> 1W).  The list :code:`E_D` contains
-the corresponding values of the destroyed exergy. List :code:`E_P`, in turn,
-contains the value of the exergy that remains after subtracting the destroyed
-exergy from the fuel exergy.
+In addition, the component-level results are exported to a :code:`.csv` file
+so that they can be combined across refrigerants in the separate plot script.
+The code below extracts :code:`E_D` and the running fuel-exergy remainder for
+each component that destroys more than 1 W, and saves a compact DataFrame:
 
-.. code-block:: python
-
-    comps = ['E_F']
-    E_F = ean.network_data.E_F
-    E_D = [0]
-    E_P = [E_F]
-    for comp in ean.component_data.index:
-        # only plot components with exergy destruction > 1 W
-        if ean.component_data.E_D[comp] > 1 :
-            comps.append(comp)
-            E_D.append(ean.component_data.E_D[comp])
-            E_F = E_F-ean.component_data.E_D[comp]
-            E_P.append(E_F)
-    comps.append("E_P")
-    E_D.append(0)
-    E_P.append(E_F)
-
-With regard to the bar chart to be created, the filled lists are then saved in
-a panda DataFrame and exported to a :code:`.csv` file. Exporting the data is
-necessary in order to be able to use the results of the two scripts of the
-different refrigerants NH3 and R410A in a separate script.
-
-.. code-block:: python
-
-    df_comps = pd.DataFrame(columns= comps)
-    df_comps.loc["E_D"] = E_D
-    df_comps.loc["E_P"] = E_P
-    df_comps.to_csv('NH3_E_D.csv')
+.. literalinclude:: /../tutorial/heat_pump_exergy/all_calculations.py
+   :language: python
+   :start-after: [ed_export]
+   :end-before: [parametric]
 
 .. note::
 
@@ -488,84 +352,34 @@ The bar chart shows how much exergy the individual components of the GCHP
 destroy in absolute terms and as a percentage of the fuel exergy :code:`E_F`.
 After deducting the destroyed exergy :code:`E_D`, the product exergy
 :code:`E_P` remains. Overall, it is noticeable that the GCHP with NH3 requires
-less fuel exergy than the GCHP with R410A, with the same amount of product
+less fuel exergy than the GCHP with R290, with the same amount of product
 exergy. Furthermore, with NH3 the condenser has the highest exergy destruction,
-whereas with R410A the valve destroys the largest amount of exergy.
+whereas with R290 the valve destroys the largest amount of exergy.
 
 Varying ambient and geothermal temperature
 ++++++++++++++++++++++++++++++++++++++++++
 In order to consider the influence of a change in ambient temperature or
-geothermal temperature on the exergetic efficiency, offdesign calculations are
-performed with different values of these parameters. The first step is to
-create dataframes as shown below. The ambient temperature :code:`Tamb`
-is varied between 1°C and 20°C. The mean geothermal temperature :code:`Tgeo`
-is varied between 11.5°C and 6.5°C. Note that the geothermal temperature
-:code:`Tgeo` is given as a mean value of the feed an return flow temperatures,
-as described in the beginning of this tutorial.
+geothermal temperature on the exergetic efficiency, parametric studies are
+performed with different values of these parameters.
 
-.. code-block:: python
+For the variation of the ambient temperature :code:`Tamb`, only the exergy
+analysis is re-executed without re-solving the network - the thermodynamic
+state is unchanged and only the reference temperature shifts. The ambient
+temperature is varied between 4°C and 20°C.
 
-    Tamb_design = Tamb
-    Tgeo_design = Tgeo
-    i = 0
+The mean geothermal temperature :code:`Tgeo` is varied between 14°C and 8°C
+via offdesign calculations using the
+:py:meth:`~tespy.models.template.ModelTemplate.sensitivity_analysis` method.
+The method accepts a :code:`param_dict` with the parameter name and a list of
+values, a list of result quantities to collect and the solve mode. When a
+:code:`postproc_func` is provided, it is called after each successful solve -
+here it runs the exergy analysis so that :code:`epsilon` is up to date before
+the results are recorded.
 
-    # create data ranges and frames
-    Tamb_range = np.array([1,4,8,12,16,20])
-    Tgeo_range = np.array([11.5, 10.5, 9.5, 8.5, 7.5, 6.5])
-    df_eps_Tamb = pd.DataFrame(columns= Tamb_range)
-    df_eps_Tgeo = pd.DataFrame(columns= Tgeo_range)
-
-Next, the exergetic efficiency epsilon can be calculated for the different
-values of :code:`Tamb` in :code:`Tamb_range` by calling the
-:py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse` method in a loop. The
-results are saved in the created dataframe and exported to a .csv file.
-
-.. code-block:: python
-
-    # calculate epsilon depending on Tamb
-    eps_Tamb = []
-    print("Varying ambient temperature:\n")
-    for Tamb in Tamb_range:
-        i += 1
-        ean.analyse(pamb, Tamb)
-        eps_Tamb.append(ean.network_data.epsilon)
-        print("Case %d: Tamb = %.1f °C"%(i,Tamb))
-
-    # save to data frame
-    df_eps_Tamb.loc[Tgeo_design] = eps_Tamb
-    df_eps_Tamb.to_csv('NH3_eps_Tamb.csv')
-
-.. note::
-
-    If only the ambient state (temperature or pressure) changes, there is no
-    need to create a new :code:`ExergyAnalysis` instance. Instead, you can
-    simply call the :py:meth:`tespy.tools.analyses.ExergyAnalysis.analyse`
-    method with the new ambient state. A new instance only needs to be created
-    when there are changes in the topology of the network.
-
-The following calculation of the network with different geothermal mean
-temperatures is carried out as an offdesign calculation. Again, no new
-:code:`ExergyAnalysis` instance needs to be created. The ambient temperature
-:code:`Tamb` is reset to the design value.
-
-.. code-block:: python
-
-    # calculate epsilon depending on Tgeo
-    eps_Tgeo = []
-    print("\nVarying mean geothermal temperature:\n")
-    for Tgeo in Tgeo_range:
-        i += 1
-        # set feed and return flow temperatures around mean value Tgeo
-        gh_in_ghp.set_attr(T=Tgeo+1.5)
-        ev_gh_out.set_attr(T=Tgeo-1.5)
-        nw.solve('offdesign', init_path=path, design_path=path)
-        ean.analyse(pamb, Tamb_design)
-        eps_Tgeo.append(ean.network_data.epsilon)
-        print("Case %d: Tgeo = %.1f °C"%(i,Tgeo))
-
-    # save to data frame
-    df_eps_Tgeo.loc[Tamb_design] = eps_Tgeo
-    df_eps_Tgeo.to_csv('NH3_eps_Tgeo.csv')
+.. literalinclude:: /../tutorial/heat_pump_exergy/all_calculations.py
+   :language: python
+   :start-after: [parametric]
+   :end-before: [tgeo_ths]
 
 The results of the calculation can be plotted as shown in the following
 figure. The related Python code to create this plot can be found in the plot
@@ -588,73 +402,36 @@ documentation.
     Figure: Varying ambient and geothermal temperature.
 
 It can be recognized that the specified ambient temperature :code:`Tamb` used
-in the :code:`analyse` method of the :code:`ExergyAnalysis` instance has a
-considerable influence on the exergetic efficiency epsilon. The closer the
-ambient temperature is to the temperature of the heating system, the lower the
-exergetic efficiency. This can be argued from the fact that while :code:`E_F`
-and :code:`E_P` both decrease with increasing :code:`Tamb`, :code:`E_P`
-decreases proportionally more than :code:`E_F`. In comparison, it can be seen
-on the right that with increasing :code:`Tgeo`, and thus decreasing
-temperature difference between geothermal heat collector and heating system,
-epsilon increases. This can be explained by the resulting decrease in
-:code:`E_F` with :code:`E_P` remaining constant.
+in the exergy analysis has a considerable influence on the exergetic efficiency
+epsilon. The closer the ambient temperature is to the temperature of the
+heating system, the lower the exergetic efficiency. This can be argued from
+the fact that while :code:`E_F` and :code:`E_P` both decrease with increasing
+:code:`Tamb`, :code:`E_P` decreases proportionally more than :code:`E_F`. In
+comparison, it can be seen on the right that with increasing :code:`Tgeo`, and
+thus decreasing temperature difference between geothermal heat collector and
+heating system, epsilon increases. This can be explained by the resulting
+decrease in :code:`E_F` with :code:`E_P` remaining constant.
 
 Varying geothermal and heating system temperature
 +++++++++++++++++++++++++++++++++++++++++++++++++
 Another relation that can be investigated is the influence of a change in the
 geothermal and the heating system temperatures on the exergetic efficiency and
-the COP of the GCHP. Again, the first step is to create data frames. In this
-calculation :code:`Tgeo` is varied between 10.5°C and 6.5°C. The heating
-system temperature :code:`Ths` is varied between 42.5°C and 32.5°C. As before,
-all temperature values are mean values of the feed and return flow
+the COP of the GCHP. In this calculation :code:`Tgeo` is varied between 14°C
+and 10°C. The heating system temperature :code:`Ths` is varied between 45°C
+and 35°C. All temperature values are mean values of the feed and return flow
 temperatures.
 
-.. code-block:: python
+The full Cartesian product of :code:`Tgeo_range` and :code:`Ths_range` is
+assembled with :func:`itertools.product` and passed to
+:py:meth:`~tespy.models.template.ModelTemplate.sensitivity_analysis` as
+parallel lists. Both :code:`T_geo` and :code:`T_hs` are varied simultaneously
+within a single offdesign loop, and the results DataFrame is then pivoted to
+obtain COP and exergetic efficiency as functions of both temperatures:
 
-    # create data ranges and frames
-    Tgeo_range = [10.5, 8.5, 6.5]
-    Ths_range = [42.5, 37.5, 32.5]
-    df_eps_Tgeo_Ths = pd.DataFrame(columns= Ths_range)
-    df_cop_Tgeo_Ths = pd.DataFrame(columns= Ths_range)
-
-The values of :code:`Tgeo` and :code:`Ths` are varied simultaneously within
-the specified range and again the exergetic efficiency is calculated. In
-addition, the COP is calculated for each parameter combination. The data is
-stored in two dataframes with the range of :code:`Tgeo` as rows and the range
-of :code:`Ths` as columns.
-
-.. code-block:: python
-
-    # calculate epsilon and COP
-    print(
-        "\nVary mean geothermal temperature and heating system temperature:\n"
-    )
-    for Tgeo in Tgeo_range:
-        # set feed and return flow temperatures around mean value Tgeo
-        gh_in_ghp.set_attr(T=Tgeo+1.5)
-        ev_gh_out.set_attr(T=Tgeo-1.5)
-        epsilon = []
-        cop = []
-        for Ths in Ths_range:
-            i += 1
-            cd_hs_feed.set_attr(T=Ths+2.5)
-            hs_ret_hsp.set_attr(T=Ths-2.5)
-            if Ths == Ths_range[0]:
-                nw.solve('offdesign', init_path=path, design_path=path)
-            else:
-                nw.solve('offdesign', design_path=path)
-            ean.analyse(pamb, Tamb_design)
-            epsilon.append(ean.network_data.epsilon)
-            cop += [abs(cd.Q.val) / (cp.P.val + ghp.P.val + hsp.P.val)]
-            print("Case %d: Tgeo = %.1f °C, Ths = %.1f °C"%(i,Tgeo,Ths))
-
-        # save to data frame
-        df_eps_Tgeo_Ths.loc[Tgeo] = epsilon
-        df_cop_Tgeo_Ths.loc[Tgeo] = cop
-
-    df_eps_Tgeo_Ths.to_csv('NH3_eps_Tgeo_Ths.csv')
-    df_cop_Tgeo_Ths.to_csv('NH3_cop_Tgeo_Ths.csv')
-
+.. literalinclude:: /../tutorial/heat_pump_exergy/all_calculations.py
+   :language: python
+   :start-after: [tgeo_ths]
+   :end-before: [tgeo_q]
 
 The results of this calculation are shown in the following figure. The
 corresponding Python code can likewise be found in the plot script
@@ -675,7 +452,7 @@ corresponding Python code can likewise be found in the plot script
     Figure: Varying geothermal and heating system temperature.
 
 It can be seen that the GCHP with NH3 has a better exergetic efficiency than
-with R410A. As in the prior investigation, an increasing geothermal heat
+with R290. As in the prior investigation, an increasing geothermal heat
 collector temperature also has a favorable effect on epsilon. The opposite
 behavior of epsilon and COP for both refrigerants is remarkable. The COP drops
 while the exergetic efficiency rises. This can be explained by the fact that at
@@ -693,10 +470,11 @@ efficiency and the COP of the GCHP is examined. The investigation is carried
 out in the same way as the variation of :code:`Tgeo` and :code:`Ths` described
 above. In contrast to the previous investigation, :code:`Q` is varied here
 instead of :code:`Ths`. The range of :code:`Q` varies between 4.3 and 2.8 kW.
-The rated load was previously set at 4 kW in the design calculation. Due to the
-similarity to the previous parameter variation, the corresponding Python code
-is not presented, but can be found in the scripts linked at the beginning
-instead.
+The rated load was previously set at 4 kW in the design calculation.
+
+.. literalinclude:: /../tutorial/heat_pump_exergy/all_calculations.py
+   :language: python
+   :start-after: [tgeo_q]
 
 .. figure:: /_static/images/tutorials/heat_pump_exergy/diagram_cop_eps_Tgeo_Q.svg
     :align: center
@@ -729,7 +507,7 @@ but also in the Python script of the plots, if a plot is created with the
 stand-alone plot script.
 
 More examples of exergy analysis can be found in the
-:ref:`TESPy analysis section <advanced_exergy_label>` and in the API
-documentation of the :py:class:`tespy.tools.analyses.ExergyAnalysis` class. If
-you are interested in contributing or have questions and remarks on this
+:ref:`TESPy analysis section <advanced_exergy_label>` and in the
+`exerpy documentation <https://exerpy.readthedocs.io/en/latest/examples.html>`__.
+If you are interested in contributing or have questions and remarks on this
 tutorial, you are welcome to file an issue at our GitHub page.

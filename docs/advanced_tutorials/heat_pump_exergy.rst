@@ -178,6 +178,14 @@ full refrigerant cycle:
 .. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_logph.svg
     :align: center
     :alt: Fluid Property Diagram h-log(p) of the GCHP
+    :figclass: only-light
+
+    Figure: h-log(p) diagram of the NH3 GCHP.
+
+.. figure:: /_static/images/tutorials/heat_pump_exergy/NH3_logph_darkmode.svg
+    :align: center
+    :alt: Fluid Property Diagram h-log(p) of the GCHP
+    :figclass: only-dark
 
     Figure: h-log(p) diagram of the NH3 GCHP.
 

@@ -10,12 +10,12 @@ available from its original location tespy/components/power/sink.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.components.energy._sink import _EnergySink
 
 
 @component_registry
-class PowerSink(Component):
+class PowerSink(_EnergySink):
     r"""
     A power flow drains in a PowerSink.
 
@@ -55,10 +55,4 @@ class PowerSink(Component):
     'a labeled sink'
     """
 
-    @staticmethod
-    def powerinlets():
-        return ["power"]
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
+    _energy_port = "power"

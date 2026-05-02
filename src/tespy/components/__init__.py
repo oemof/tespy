@@ -27,6 +27,9 @@ from .nodes.splitter import Splitter  # noqa: F401
 from .piping.pipe import Pipe  # noqa: F401
 from .piping.valve import Valve  # noqa: F401
 from .power.bus import PowerBus  # noqa: F401
+from .heat.bus import HeatBus  # noqa: F401
+from .heat.sink import HeatSink  # noqa: F401
+from .heat.source import HeatSource  # noqa: F401
 from .power.generator import Generator  # noqa: F401
 from .power.motor import Motor  # noqa: F401
 from .power.sink import PowerSink  # noqa: F401

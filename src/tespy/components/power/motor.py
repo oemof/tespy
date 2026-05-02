@@ -10,14 +10,12 @@ available from its original location tespy/components/power/motor.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.components.energy._converter import _EnergyConverter
 
 
 @component_registry
-class Motor(Component):
+class Motor(_EnergyConverter):
     r"""
     A motor converts electrical energy into mechanical energy.
 
@@ -162,126 +160,3 @@ class Motor(Component):
     0.95
     """
 
-    def powerinlets(self):
-        return ["power_in"]
-
-    def poweroutlets(self):
-        return ["power_out"]
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
-
-    def get_parameters(self):
-        return {
-            "eta": dc_cp(**{
-                "structure_matrix": self.eta_structure_matrix,
-                "func": self.eta_func,
-                "dependents": self.eta_dependents,
-                "num_eq_sets": 1,
-                "max_val": 1,
-                "min_val": 0,
-                "quantity": "efficiency",
-                "description": "efficiency"
-            }),
-            "delta_power": dc_cp(**{
-                "structure_matrix": self.delta_power_structure_matrix,
-                "func": self.delta_power_func,
-                "dependents": self.delta_power_dependents,
-                "num_eq_sets": 1,
-                "min_val": 0,
-                "quantity": "power",
-                "description": "inlet to outlet power difference"
-            }),
-            "eta_char": dc_cc(**{
-                "func": self.eta_char_func,
-                "dependents": self.eta_char_dependents,
-                "num_eq_sets": 1,
-                "description": "efficiency lookup table for offdesign"
-            })
-        }
-
-    def eta_func(self):
-        r"""
-        Equation for efficiency of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} \cdot \eta - \dot E_\text{out}
-        """
-        return (
-            self.power_inl[0].E.val_SI * self.eta.val_SI
-            - self.power_outl[0].E.val_SI
-        )
-
-    def eta_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].E.sm_col] = self.eta.val_SI
-        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
-
-    def eta_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def delta_power_func(self):
-        r"""
-        Equation for power delta of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} - \dot E_\text{out} - \Delta \dot E
-        """
-        return (
-            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-            - self.delta_power.val_SI
-        )
-
-    def delta_power_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].E.sm_col] = 1
-        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
-        self._rhs[k] = self.delta_power.val_SI
-
-    def delta_power_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def eta_char_func(self):
-        r"""
-        Equation for efficiency characteristics of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} \cdot \eta_\text{design} \cdot
-                f\left(\frac{\dot E_\text{in}}{\dot E_\text{in,design}}\right)
-                - \dot E_\text{out}
-        """
-        expr = (
-            self.power_inl[0].E.val_SI
-            / self._conn_design(self.power_inl[0], "E")
-        )
-        f = self.eta_char.char_func.evaluate(expr)
-        return (
-            self.power_inl[0].E.val_SI * self.eta.design * f
-            - self.power_outl[0].E.val_SI
-        )
-
-    def eta_char_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def calc_parameters(self):
-        self.eta.val_SI = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
-        self.delta_power.val_SI = (
-            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-        )

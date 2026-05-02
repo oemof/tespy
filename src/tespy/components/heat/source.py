@@ -1,11 +1,11 @@
 # -*- coding: utf-8
 
-"""Module of class PowerSource.
+"""Module of class HeatSource.
 
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/components/power/source.py
+available from its original location tespy/components/heat/source.py
 
 SPDX-License-Identifier: MIT
 """
@@ -15,9 +15,9 @@ from tespy.components.energy._source import _EnergySource
 
 
 @component_registry
-class PowerSource(_EnergySource):
+class HeatSource(_EnergySource):
     r"""
-    A power flow emerges from a PowerSource.
+    A heat flow emerges from a HeatSource.
 
     Parameters
     ----------
@@ -47,12 +47,12 @@ class PowerSource(_EnergySource):
 
     Example
     -------
-    Create a PowerSource and specify a label.
+    Create a HeatSource and specify a label.
 
-    >>> from tespy.components import PowerSource
-    >>> so = PowerSource('a labeled source')
+    >>> from tespy.components import HeatSource
+    >>> so = HeatSource('a labeled heat source')
     >>> so.label
-    'a labeled source'
+    'a labeled heat source'
     """
 
-    _energy_port = "power"
+    _energy_port = "heat"

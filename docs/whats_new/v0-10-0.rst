@@ -3,8 +3,8 @@ v0.10.0 - Under development
 
 API Changes
 ###########
-- The built-in :py:class:`tespy.tools.analyses.ExergyAnalysis` class has been
-  deprecated and its functionality moved to the external library
+- The built-in :code:`ExergyAnalysis` class has been removed and its
+  functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use
   :py:meth:`tespy.models.template.ModelTemplate.run_exergy_analysis` or call
   :code:`ExergyAnalysis.from_tespy(nw, Tamb, pamb)` directly from exerpy

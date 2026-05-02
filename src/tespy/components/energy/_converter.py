@@ -17,7 +17,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 class _EnergyConverter(Component):
     """Base for components that convert power from one flow to another.
 
-    Both Motor and Generator have one ``power_in`` and one ``power_out``
+    Both Motor and Generator have one :code:`power_in` and one :code:`power_out`
     connection, an efficiency equation and an optional characteristic curve.
     The characteristic is always normalised by the outlet flow.
     """

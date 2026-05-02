@@ -292,7 +292,7 @@ class ModelTemplate():
             by default 0.1
         clamp_max : float, optional
             if provided, the upper bound is computed using
-            ``max(max_val, clamp_max)`` so the axis always reaches at least
+            :code:`max(max_val, clamp_max)` so the axis always reaches at least
             this value (plus padding)
 
         Returns
@@ -335,7 +335,7 @@ class ModelTemplate():
         pamb : float
             Ambient pressure in bar.
         E_F : dict
-            Fuel exergy definition, e.g. ``{'inputs': [...], 'outputs': [...]}``.
+            Fuel exergy definition, e.g. :code:`{'inputs': [...], 'outputs': [...]}`.
         E_P : dict
             Product exergy definition.
         E_L : dict, optional
@@ -365,14 +365,14 @@ class ModelTemplate():
             Names of model parameters (from :meth:`_parameter_lookup`) to
             record after each simulation step.
         mode : str, optional
-            ``'design'`` or ``'offdesign'``. Default is ``'design'``.
+            :code:`'design'` or :code:`'offdesign'`. Default is :code:`'design'`.
         postproc_func : callable, optional
-            A function ``postproc_func(model) -> dict | None`` called after
+            A function :code:`postproc_func(model) -> dict | None` called after
             each successful solve. Use it to run any postprocessing - e.g.
             an exergy analysis, custom KPI calculation, or result export.
             The returned dict (if any) is merged into the result row as
-            additional columns alongside ``result_param_list``. If the
-            function returns ``None`` no extra columns are added.
+            additional columns alongside :code:`result_param_list`. If the
+            function returns :code:`None` no extra columns are added.
 
             Example - running an exergy analysis after each offdesign solve::
 

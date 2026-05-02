@@ -17,9 +17,9 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 class _EnergyBus(Component):
     """Base for components that distribute energy across many flows.
 
-    Subclasses set :attr:`_energy_port` to ``"power"`` or ``"heat"``.
-    Port names follow the pattern ``<domain>_in<n>`` / ``<domain>_out<n>``,
-    e.g. ``power_in1`` for a :class:`PowerBus` and ``heat_in1`` for a
+    Subclasses set :attr:`_energy_port` to :code:`"power"` or :code:`"heat"`.
+    Port names follow the pattern :code:`<domain>_in<n>` / :code:`<domain>_out<n>`,
+    e.g. :code:`power_in1` for a :class:`PowerBus` and :code:`heat_in1` for a
     :class:`HeatBus`.
     """
 

@@ -15,7 +15,7 @@ from tespy.components.component import Component
 class _EnergySink(Component):
     """Base for boundary components that absorb a single energy flow.
 
-    Subclasses set :attr:`_energy_port` to ``"power"`` or ``"heat"`` to
+    Subclasses set :attr:`_energy_port` to :code:`"power"` or :code:`"heat"` to
     declare which connection domain they participate in.
     """
 

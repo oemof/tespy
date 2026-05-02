@@ -802,17 +802,17 @@ class Network:
     def _resolve_comp_conn_domain(
         self, source_mask, target_mask, inlet_ids, outlet_ids, conn_type=None
     ):
-        """Return ``(inl, outl)`` connection lists for one domain.
+        """Return :code:`(inl, outl)` connection lists for one domain.
 
         Parameters
         ----------
         source_mask, target_mask : boolean Series
-            Rows in ``self.conns`` where the component is source / target.
+            Rows in :code:`self.conns` where the component is source / target.
         inlet_ids, outlet_ids : list[str]
-            Port IDs returned by the component's ``*inlets()`` / ``*outlets()``.
+            Port IDs returned by the component's :code:`*inlets()` / :code:`*outlets()`.
         conn_type : str, optional
-            If given, further restrict to rows whose ``conn_type`` column
-            matches this class name (e.g. ``"PowerConnection"``).
+            If given, further restrict to rows whose :code:`conn_type` column
+            matches this class name (e.g. :code:`"PowerConnection"`).
         """
         if conn_type is not None:
             type_mask = self.conns["conn_type"] == conn_type

@@ -798,42 +798,42 @@ To help you with debugging, you can use a couple of methods to inspect the
 mathematical problem. To do this, you have to start the simulation with
 :code:`init_only=True`. This can also be applied in case the number of
 parameters passed to your problem is incorrect and you might be unsure why.
-Then you can use the following methods to obtain information on your problem:
+Then you can use the following print methods to obtain formatted tabular output
+on your problem:
 
 .. code-block:: python
 
     nw.solve("design", init_only=True)
-    print(nw.get_presolved_variables())
-    print(nw.get_presolved_equations())
-    print(nw.get_variables())
-    print(nw.get_equations())
+    nw.print_presolved_variables()
+    nw.print_presolved_equations()
+    nw.print_variables()
+    nw.print_equations()
+    nw.print_equations_with_dependents()
+    nw.print_incidence_matrix()
 
-- :code:`get_presolved_variables`: A list of all variables of the system, that
-  have already been solved in the preprocessing. The list contains tuples of
-  labels and attributes, e.g. :code:`("1", "p")` for the pressure of the
-  connection with label "1".
-- :code:`get_presolved_equations`: A list of equations of the system, that were
-  applied to presolved the aforementioned variables. These come in a similar
-  form as tuples, e.g. :code:`("3", "T")` for the temperature equation of the
-  connection with label "3".
-- :code:`get_variables`: A dictionary of the actual variables remaining for the
-  solver to solve for. The keys of the dictionary are again tuples, with an
-  index number and the variable type, e.g. :code:`(0, "h")` for a variable
-  representing enthalpy. The values corresponding to each key are again a list,
-  which show all of the variables the are representing, e.g.
-  :code:`[("2", "h"), ("7", "h")]` in case the variable represents the enthalpy
-  of the connections with the labels "2" and "7".
-- :code:`get_equations`: A dictionary with the actual equations remaining for
-  the solver to be solved after the presolving. The key is an integer index and
-  the value is a tuple containing the label of the component or connection,
-  from which the equation originates and a second tuple with the name of the
-  constraint as well as an index (which is used, when one constraint comes
-  with more than a single equation), e.g. :code:`("compressor", ("eta_s", 0))`
-  for the first equation coming of the constraint "eta_s" of a component named
-  "compressor".
+- :py:meth:`~tespy.networks.network.Network.print_presolved_variables`: prints
+  a table of all variables already solved during preprocessing, identified by
+  their object label and property, e.g. :code:`c1 (p)`.
+- :py:meth:`~tespy.networks.network.Network.print_presolved_equations`: prints
+  a table of the equations used to resolve those variables, identified by object
+  label and equation name, e.g. :code:`c1.T`.
+- :py:meth:`~tespy.networks.network.Network.print_variables`: prints a table of
+  the remaining variables passed to the solver, each shown with a short label
+  (e.g. :code:`h1`) and the original variables it represents.
+- :py:meth:`~tespy.networks.network.Network.print_equations`: prints a table of
+  the remaining equations passed to the solver, identified by object label and
+  equation name, e.g. :code:`compressor.eta_s`.
+- :py:meth:`~tespy.networks.network.Network.print_equations_with_dependents`:
+  extends the equations table with the variables each equation depends on.
+- :py:meth:`~tespy.networks.network.Network.print_incidence_matrix`: prints the
+  incidence matrix with equations as rows and variables as columns, using
+  :code:`x` for a dependency and :code:`-` for none.
 
-These methods will help you in finding which of your specifications might be
-the reason for over- order under-determination of the problem.
+The underlying data can also be retrieved programmatically via the corresponding
+:code:`get_*` methods. These methods will help you in finding which of your
+specifications might be the reason for over- or under-determination of the
+problem. See the :ref:`debugging tutorial <tutorial_debugging_label>` for a
+worked example.
 
 If you have the correct number of specifications and run the simulation, it
 can still happen that the calculation crashes after or even before the first

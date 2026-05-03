@@ -29,9 +29,23 @@ API Changes
 
 Other Changes
 #############
+- Support for Python 3.10 has been dropped.
+
 - Installation instructions now recommend
   `uv <https://docs.astral.sh/uv/>`__ as the primary package manager
   (`PR #967 <https://github.com/oemof/tespy/pull/967>`__).
+- Companion :code:`print_*` methods have been added for all debugging
+  inspection methods on :py:class:`~tespy.networks.network.Network`:
+  :py:meth:`~tespy.networks.network.Network.print_variables_before_presolve`,
+  :py:meth:`~tespy.networks.network.Network.print_presolved_variables`,
+  :py:meth:`~tespy.networks.network.Network.print_variables`,
+  :py:meth:`~tespy.networks.network.Network.print_presolved_equations`,
+  :py:meth:`~tespy.networks.network.Network.print_equations`,
+  :py:meth:`~tespy.networks.network.Network.print_equations_with_dependents`,
+  and :py:meth:`~tespy.networks.network.Network.print_incidence_matrix`.
+  Error messages that reference variables or equations now use the same
+  human-readable formatting as these print methods
+  (`PR #969 <https://github.com/oemof/tespy/pull/969>`__).
 - :py:meth:`~tespy.networks.network.Network.get_ude` has been added,
   analogous to :py:meth:`~tespy.networks.network.Network.get_comp` and
   :py:meth:`~tespy.networks.network.Network.get_conn`, to retrieve a

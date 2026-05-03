@@ -45,8 +45,7 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
-            # TODO: replace C with degC in next major version
-            "temperature": "C",
+            "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
         })

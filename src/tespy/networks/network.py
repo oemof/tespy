@@ -2234,6 +2234,13 @@ class Network:
             if k in self._presolved_equations
         ]
 
+    def print_presolved_equations(self):
+        """Print a formatted table of presolved equations."""
+        rows = self.get_presolved_equations()
+        print(f"Presolved equations ({len(rows)} total):")
+        if rows:
+            print(tabulate(rows, headers=["Object", "Equation"], tablefmt="simple"))
+
     def get_variables_before_presolve(self) -> list:
         """Get the list of variables before presolving.
 
@@ -2246,6 +2253,13 @@ class Network:
             (v["object"].label, v["property"])
             for v in self._variable_lookup.values()
         ]
+
+    def print_variables_before_presolve(self):
+        """Print a formatted table of all variables before presolving."""
+        rows = self.get_variables_before_presolve()
+        print(f"Variables before presolving ({len(rows)} total):")
+        if rows:
+            print(tabulate(rows, headers=["Object", "Property"], tablefmt="simple"))
 
     def get_presolved_variables(self) -> list:
         """Get the list of presolved variables with their respective parent
@@ -2267,6 +2281,13 @@ class Network:
             if key not in represented_variables
         ]
 
+    def print_presolved_variables(self):
+        """Print a formatted table of presolved variables."""
+        rows = self.get_presolved_variables()
+        print(f"Presolved variables ({len(rows)} total):")
+        if rows:
+            print(tabulate(rows, headers=["Object", "Property"], tablefmt="simple"))
+
     def get_variables(self) -> dict:
         """Get all variables of the presolved problem with their respective
         represented original variables.
@@ -2286,6 +2307,21 @@ class Network:
             ]
             for key, data in self.variables_dict.items()
         }
+
+    def print_variables(self):
+        """Print a formatted table of variables after presolving."""
+        variables = self.get_variables()
+        print(f"Variables after presolving ({len(variables)} total):")
+        rows = [
+            (
+                var_idx,
+                var_type,
+                ", ".join(f"{lbl} ({prop})" for lbl, prop in represents),
+            )
+            for (var_idx, var_type), represents in variables.items()
+        ]
+        if rows:
+            print(tabulate(rows, headers=["#", "Type", "Represents"], tablefmt="simple"))
 
     def _get_variables_by_number(self, number_list) -> dict:
         """Get all variables of the presolved problem by variable numbers.
@@ -2319,6 +2355,24 @@ class Network:
         """
         return self._equation_lookup
 
+    @staticmethod
+    def _format_eq_name(eq_name):
+        if isinstance(eq_name, tuple):
+            name, sub_idx = eq_name
+            return f"{name}{{{sub_idx}}}" if sub_idx > 0 else name
+        return eq_name
+
+    def print_equations(self):
+        """Print a formatted table of equations after presolving."""
+        equations = self.get_equations()
+        print(f"Equations after presolving ({len(equations)} total):")
+        rows = [
+            (eq_num, label, self._format_eq_name(eq_name))
+            for eq_num, (label, eq_name) in sorted(equations.items())
+        ]
+        if rows:
+            print(tabulate(rows, headers=["Eq#", "Object", "Equation"], tablefmt="simple"))
+
     def get_equations_with_dependents(self) -> dict:
         """Get the equations together with the variables they depend on.
 
@@ -2337,6 +2391,53 @@ class Network:
             })
         return dependencies
 
+    def print_equations_with_dependents(self):
+        """Print a formatted table of equations and the variables they depend on."""
+        print(f"Equations with dependent variables ({len(self._incidence_matrix)} total):")
+        rows = []
+        for eq_idx, dependents in sorted(self._incidence_matrix.items()):
+            label, eq_name = self._equation_lookup[eq_idx]
+            dep_str = ", ".join(
+                f"#{v_idx} ({v_type})"
+                for v_idx, v_type in self._get_variables_by_number(dependents).keys()
+            )
+            rows.append((eq_idx, label, self._format_eq_name(eq_name), dep_str))
+        if rows:
+            print(tabulate(
+                rows,
+                headers=["Eq#", "Object", "Equation", "Dependent variables"],
+                tablefmt="simple",
+            ))
+
+    def print_incidence_matrix(self):
+        """Print the incidence matrix with equation rows and variable columns."""
+        eq_indices = sorted(self._incidence_matrix.keys())
+        all_var_indices = sorted({
+            v_idx
+            for deps in self._incidence_matrix.values()
+            for v_idx in deps
+        })
+
+        col_labels = []
+        for v_idx in all_var_indices:
+            v_data = self.variables_dict[v_idx]
+            v_type = v_data["variable"]
+            if v_type == "fluid" and v_data["fluid"] is not None:
+                col_labels.append(f"{v_data['fluid']}{v_idx}")
+            else:
+                col_labels.append(f"{v_type}{v_idx}")
+
+        rows = []
+        for eq_idx in eq_indices:
+            label, eq_name = self._equation_lookup[eq_idx]
+            row_label = f"{label}.{self._format_eq_name(eq_name)}"
+            dep_set = set(self._incidence_matrix[eq_idx])
+            rows.append(
+                [row_label] + ["x" if v in dep_set else "-" for v in all_var_indices]
+            )
+
+        print("Incidence matrix:")
+        print(tabulate(rows, headers=[""] + col_labels, tablefmt="simple"))
 
     def _get_equations_by_number(self, number_list) -> dict:
         """Get the actual equations after presolving the problem by equation

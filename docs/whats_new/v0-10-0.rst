@@ -3,6 +3,15 @@ v0.10.0 - Under development
 
 API Changes
 ###########
+- Passing per-quantity unit keyword arguments to
+  :py:meth:`~tespy.networks.network.Network.set_attr` (e.g.
+  :code:`T_unit`, :code:`p_unit`, :code:`h_unit`, ...) now raises a
+  :code:`TypeError`. Use
+  :py:meth:`~tespy.tools.units.Units.set_defaults` instead, e.g.
+  :code:`nw.units.set_defaults(temperature='degC', pressure='bar')`.
+  The shorthand :code:`"C"` for Celsius is no longer accepted; use
+  :code:`"degC"` or :code:`"°C"` instead
+  (`PR #968 <https://github.com/oemof/tespy/pull/968>`__).
 - The :code:`power_connector_location` attribute of :code:`SimpleHeatExchanger`
   is deprecated and no longer required. Use :code:`HeatConnection` together
   with the new :code:`HeatSource` and :code:`HeatSink` components instead -

@@ -2682,11 +2682,16 @@ class Network:
 
         elif self.status == 2:
             msg = (
-                'The solver does not seem to make any progress, aborting '
-                'calculation. Residual value is '
-                '{:.2e}'.format(norm(self.residual)) + '. This frequently '
-                'happens, if the solver pushes the fluid properties out of '
-                'their feasible range.'
+                "The solver does not seem to make any progress, aborting "
+                "calculation. Residual value is "
+                "{:.2e}".format(norm(self.residual)) +
+                "\nPossible reasons include:\n"
+                " - fluid properties moving outside the valid range of the "
+                "property database (consider adjusting p_range or h_range),\n"
+                " - an impossible constraint that can never be satisfied \n"
+                " - bad starting values causing the Newton solver to diverge.\n"
+                "Use nw.print_residuals() to identify which equations have "
+                "the largest residuals."
             )
             logger.warning(msg)
             return
@@ -2748,9 +2753,16 @@ class Network:
 
         if self.iter == self.max_iter - 1:
             msg = (
-                f"Reached maximum iteration count ({self.max_iter})), "
+                f"Reached maximum iteration count ({self.max_iter}), "
                 "calculation stopped. Residual value is "
-                "{:.2e}".format(norm(self.residual))
+                "{:.2e}. ".format(norm(self.residual)) +
+                "\nPossible reasons include:\n"
+                " - fluid properties moving outside the valid range of the "
+                "property database (consider adjusting p_range or h_range),\n"
+                " - an impossible constraint that can never be satisfied \n"
+                " - bad starting values causing the Newton solver to diverge.\n"
+                "Use nw.print_residuals() to identify which equations have "
+                "the largest residuals."
             )
             logger.warning(msg)
             self.status = 2

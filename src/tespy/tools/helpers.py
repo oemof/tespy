@@ -790,7 +790,6 @@ def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
     os.makedirs(basepath, exist_ok=True)
     for key, value in dictionary.items():
         if isinstance(value, dict):
-            basepath = os.path.join(basepath, key)
-            _nested_dict_of_dataframes_to_filetree(value, basepath)
+            _nested_dict_of_dataframes_to_filetree(value, os.path.join(basepath, key))
         else:
             value.to_csv(os.path.join(basepath, f"{key}.csv"))

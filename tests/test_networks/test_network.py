@@ -1182,3 +1182,11 @@ class TestBackwardsCompatibility:
         nw.get_comp('compressor').set_attr(igva='var')
         nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design_state.json"))
         nw.assert_convergence()
+
+    # integrated this test here because it has quite a few different components
+    def test_export_folder_csv_files(self, tmp_path):
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+        nw.solve("design")
+        nw.save_csv(tmp_path)
+        assert (tmp_path / "Component" / "TurboCompressor.csv").exists()
+        assert (tmp_path / "Connection" / "Connection.csv").exists()

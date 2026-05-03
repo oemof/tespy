@@ -53,7 +53,7 @@ API breaking changes
 
   You can also export your state to a folder + csv files tree.
 
-    >>> nwk.save_csv("csv_state_export_folder")
+    nwk.save_csv("csv_state_export_folder")
 
   **Exporting and Importing a Network**
 

@@ -20,6 +20,12 @@ API Changes
 
 Other Changes
 #############
+- :py:meth:`~tespy.networks.network.Network.get_ude` has been added,
+  analogous to :py:meth:`~tespy.networks.network.Network.get_comp` and
+  :py:meth:`~tespy.networks.network.Network.get_conn`, to retrieve a
+  :code:`UserDefinedEquation` by label. Not found labels currently return
+  :code:`None`, they will raise a :code:`KeyError` in a future version
+  (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
 - :py:meth:`~tespy.networks.network.Network.save` now accepts an
   :code:`as_dict=True` flag to return the network state as a plain
   :code:`dict`, which can be passed directly as :code:`design_path` or
@@ -50,6 +56,10 @@ Bug Fixes
   :py:meth:`~tespy.networks.network.Network.save` now create the target
   directory if it does not exist yet
   (`PR #965 <https://github.com/oemof/tespy/pull/965>`__).
+- :py:meth:`~tespy.networks.network.Network.save_csv` no longer writes
+  :code:`Component` CSV files inside the :code:`Connection` subdirectory
+  when both are exported together
+  (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
 
 Contributors
 ############

@@ -2442,6 +2442,24 @@ class Network:
         print("Incidence matrix:")
         print(tabulate(rows, headers=[""] + col_labels, tablefmt="simple"))
 
+    def print_residuals(self):
+        """Print a formatted table of equation residuals, sorted by magnitude."""
+        if not hasattr(self, "residual"):
+            print("Residuals are not available before the first solve call.")
+            return
+        rows = []
+        for eq_idx in self.get_sorted_residual_index():
+            label, eq_name = self._equation_lookup[eq_idx]
+            rows.append((eq_idx, label, self._format_eq_name(eq_name), self.residual[eq_idx]))
+        print(f"Residuals per equation ({len(rows)} total, sorted by magnitude):")
+        if rows:
+            print(tabulate(
+                rows,
+                headers=["Eq#", "Object", "Equation", "Residual"],
+                tablefmt="simple",
+                floatfmt=".3e",
+            ))
+
     def _get_equations_by_number(self, number_list) -> dict:
         """Get the actual equations after presolving the problem by equation
         number
@@ -2752,11 +2770,18 @@ class Network:
         msg = f'Total number of variables: {self.variable_counter}.'
         logger.debug(msg)
 
+        _hint = (
+            "\nUse nw.print_variables() and nw.print_equations() to inspect "
+            "which variables and equations are present, "
+            "nw.print_equations_with_dependents() to see which variables each "
+            "equation depends on, or nw.print_incidence_matrix() for a compact "
+            "overview."
+        )
         n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
         if n > self.variable_counter:
             msg = (
                 f"You have provided too many parameters: {self.variable_counter} "
-                f"required, {n} supplied. Aborting calculation!"
+                f"required, {n} supplied. Aborting calculation!{_hint}"
             )
             logger.error(msg)
             self.status = 12
@@ -2764,7 +2789,7 @@ class Network:
         elif n < self.variable_counter:
             msg = (
                 f"You have not provided enough parameters: {self.variable_counter} "
-                f"required, {n} supplied. Aborting calculation!"
+                f"required, {n} supplied. Aborting calculation!{_hint}"
             )
             logger.error(msg)
             self.status = 11

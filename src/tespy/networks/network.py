@@ -1418,13 +1418,13 @@ class Network:
                     equations = self._get_equation_sets_by_eq_set_number(
                         [eq_idx[(col1, col2)], row]
                     )
-                    var_str = "\n  ".join(f"{lbl} ({prop})" for lbl, prop in variables)
-                    eq_str = "\n  ".join(f"{lbl}.{eq}" for lbl, eq in equations)
+                    var_str = ", ".join(f"{lbl} ({prop})" for lbl, prop in variables)
+                    eq_str = ", ".join(f"{lbl}.{eq}" for lbl, eq in equations)
                     msg = (
                         "Two variables are directly linked by two equations. "
                         "This overdetermines the problem.\n"
-                        f"  Variables:\n  {var_str}\n"
-                        f"  Equations:\n  {eq_str}"
+                        f"  Variables:  {var_str}\n"
+                        f"  Equations:  {eq_str}"
                     )
                     raise hlp.TESPyNetworkError(msg)
 
@@ -1482,12 +1482,12 @@ class Network:
         cycling_eqs = [v for k, v in eq_idx.items() if k in edge_list]
         variable_names = self._get_variables_before_presolve_by_number(cycle)
         equations = self._get_equation_sets_by_eq_set_number(cycling_eqs)
-        var_str = "\n  ".join(f"{lbl} ({prop})" for lbl, prop in variable_names)
-        eq_str = "\n  ".join(f"{lbl}.{eq}" for lbl, eq in equations)
+        var_str = ", ".join(f"{lbl} ({prop})" for lbl, prop in variable_names)
+        eq_str = ", ".join(f"{lbl}.{eq}" for lbl, eq in equations)
         msg = (
             "A circular dependency has been detected. This overdetermines the problem.\n"
-            f"  Variables:\n  {var_str}\n"
-            f"  Equations:\n  {eq_str}"
+            f"  Variables:  {var_str}\n"
+            f"  Equations:  {eq_str}"
         )
         raise hlp.TESPyNetworkError(msg)
 
@@ -1639,11 +1639,11 @@ class Network:
                     f"({self._variable_lookup[var]['property']})"
                     for var in linear_dependents["variables"]
                 ]
-                var_str = "\n  ".join(variables_properties)
+                var_str = ", ".join(variables_properties)
                 msg = (
                     "You specified more than one variable within a set of "
                     "linearly dependent variables.\n"
-                    f"  Variables:\n  {var_str}"
+                    f"  Variables:  {var_str}"
                 )
                 raise hlp.TESPyNetworkError(msg)
             elif number_specifications == 1:
@@ -3095,7 +3095,7 @@ class Network:
                 var_str = self._format_var_label(col)
                 missing_entries += [f"{eq_str}: {var_str}"]
 
-            entries_str = "\n  ".join(missing_entries)
+            entries_str = ", ".join(missing_entries)
             self.singularity_msg = (
                 "Found singularity in Jacobian matrix, calculation aborted! "
                 "The setup of your problem seems to be solvable. It failed "
@@ -3103,7 +3103,7 @@ class Network:
                 "a non-zero was expected, or vice versa. This usually lies in "
                 "starting value selection or bad convergence.\n"
                 "  The following equation/variable pairs may have an "
-                f"unexpected zero/non-zero partial derivative:\n  {entries_str}\n"
+                f"unexpected zero/non-zero partial derivative:  {entries_str}\n"
             )
             self._find_linear_dependencies(self.jacobian)
             return
@@ -3113,7 +3113,7 @@ class Network:
         all_zero_rows = self._check_all_zero_rows(matrix)
         if len(all_zero_cols) + len(all_zero_rows) == 0:
             eq_indices = self._cauchy_schwarz_inequality(matrix)
-            eq_str = "\n  ".join(
+            eq_str = ", ".join(
                 f"{lbl}.{self._format_eq_name(eq_name)}"
                 for lbl, eq_name in self._get_equations_by_number(eq_indices).values()
             )
@@ -3123,13 +3123,13 @@ class Network:
             )
         else:
             if len(all_zero_cols) > 0:
-                var_str = "\n  ".join(self._format_var_label(i) for i in all_zero_cols)
+                var_str = ", ".join(self._format_var_label(i) for i in all_zero_cols)
                 self.singularity_msg += (
                     "The following variables are not associated with any equation:\n"
                     f"  {var_str}\n"
                 )
             if len(all_zero_rows) > 0:
-                eq_str = "\n  ".join(
+                eq_str = ", ".join(
                     f"{lbl}.{self._format_eq_name(eq_name)}"
                     for lbl, eq_name in self._get_equations_by_number(all_zero_rows).values()
                 )

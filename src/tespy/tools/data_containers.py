@@ -74,7 +74,7 @@ class DataContainer:
       :py:class:`tespy.tools.data_containers.ComponentCharacteristicMaps`
     - component properties
       :py:class:`tespy.tools.data_containers.ComponentProperties`
-    - grouped component properites
+    - grouped component properties
       :py:class:`tespy.tools.data_containers.GroupedComponentProperties`
     - fluid composition
       :py:class:`tespy.tools.data_containers.FluidComposition`
@@ -973,6 +973,12 @@ class FluidComposition(DataContainer):
             }
         else:
             return self._val
+
+    def set_reference_val(self, key, value):
+        if self._reference_container is not None:
+            self._reference_container.val[key] = value
+        else:
+            raise ValueError()
 
     val = property(get_val, set_val)
     is_set = property(get_is_set, set_is_set)

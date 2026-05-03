@@ -83,6 +83,21 @@ class TestPiping:
         msg = f"The pressure drop at the valve should be {dp} but is {dp_act}."
         assert dp == dp_act, msg
 
+    def test_Valve_Kv_mixture(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'N2': 0.8, 'O2': 0.2}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        self.nw.solve("design")
+
+        # volumetric flow must then be exactly equal to Kv
+        assert np.isnan(instance.Kv.val_SI)
+
     def test_Valve_Kv(self):
         instance = Valve('valve')
         self.setup_piping_network(instance)

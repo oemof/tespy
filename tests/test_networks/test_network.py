@@ -11,6 +11,8 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
+import warnings
+from copy import deepcopy
 
 import numpy as np
 from pytest import approx
@@ -38,6 +40,7 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -141,15 +144,14 @@ class TestNetworks:
         self.nw.solve("design")
         self.nw.assert_convergence()
 
-    def test_Network_missing_connection_in_init_path(self, tmp_path):
+    def test_Network_missing_connection_in_init_path(self):
         """Test debug message for missing connection in init_path."""
-        tmp_path = f"{tmp_path}.json"
         IF = SubsystemInterface('IF')
         a = Connection(self.source, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -158,7 +160,7 @@ class TestNetworks:
         b = Connection(IF, 'out1', self.sink, 'in1')
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a, b)
-        self.nw.solve('design', init_path=tmp_path, init_only=True)
+        self.nw.solve('design', init_path=design_state, init_only=True)
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -250,32 +252,23 @@ class TestNetworks:
             Network.from_json(tmp_path)
 
 
-    def test_Network_missing_data_in_individual_design_case_file(self, tmp_path):
+    def test_Network_missing_data_in_individual_design_case_file(self):
         """Test for missing data in individual design case files."""
-        tmp_path = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(self.source, 'out1', pi, 'in1')
         a.set_attr(m=1, p=1, T=293.15, fluid={'water': 1})
         b = Connection(pi, 'out1', self.sink, 'in1')
-        b.set_attr(design_path=tmp_path2)
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state1 = self.nw.save(as_dict=True)
+        design_state2 = deepcopy(design_state1)
+        design_state2["Connection"] = {}
 
-        with open(tmp_path, "r") as f:
-            data = json.load(f)
+        b.set_attr(design_path=design_state2)
+        self.offdesign_TESPyNetworkError(design_path=design_state1, init_only=True)
 
-        data["Connection"] = {}
-
-        with open(tmp_path2, "w") as f:
-            json.dump(data, f)
-
-        self.offdesign_TESPyNetworkError(design_path=tmp_path, init_only=True)
-
-    def test_Network_missing_connection_in_design_path(self, tmp_path):
+    def test_Network_missing_connection_in_design_path(self):
         """Test for missing connection data in design case files."""
-        tmp_path = f"{tmp_path}.json"
         pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
@@ -284,17 +277,11 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        self.nw.save(tmp_path)
-
-        with open(tmp_path, "r") as f:
-            data = json.load(f)
+        data = self.nw.save(as_dict=True)
 
         data["Connection"] = {}
 
-        with open(tmp_path, "w") as f:
-            json.dump(data, f)
-
-        self.offdesign_TESPyNetworkError(design_path=tmp_path)
+        self.offdesign_TESPyNetworkError(design_path=data)
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""
@@ -325,202 +312,6 @@ class TestNetworks:
         with raises(AttributeError):
             self.nw.converged
 
-
-class TestNetworkIndividualOffdesign:
-
-    def setup_Network_individual_offdesign(self):
-        """Set up network for individual offdesign tests."""
-        self.nw = Network()
-        self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC",
-            "volumetric_flow": "m3/s"
-        })
-
-        so = Source('source')
-        sp = Splitter('splitter', num_out=2)
-        self.pump1 = Pump('pump 1')
-        self.sc1 = SolarCollector('collector field 1')
-        v1 = Valve('valve1')
-        self.pump2 = Pump('pump 2')
-        self.sc2 = SolarCollector('collector field 2')
-        v2 = Valve('valve2')
-        me = Merge('merge', num_in=2)
-        si = Sink('sink')
-
-        self.pump1.set_attr(
-            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
-        )
-        self.pump2.set_attr(
-            eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char']
-        )
-        self.sc1.set_attr(
-            pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
-        )
-        self.sc2.set_attr(
-            pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
-        )
-
-        fl = {'H2O': 1}
-        inlet = Connection(so, 'out1', sp, 'in1', T=50, p=3, fluid=fl)
-        outlet = Connection(me, 'out1', si, 'in1', p=3)
-
-        self.sp_p1 = Connection(sp, 'out1', self.pump1, 'in1')
-        self.p1_sc1 = Connection(self.pump1, 'out1', self.sc1, 'in1')
-        self.sc1_v1 = Connection(self.sc1, 'out1', v1, 'in1', p=3.1, T=90)
-        v1_me = Connection(v1, 'out1', me, 'in1')
-
-        self.sp_p2 = Connection(sp, 'out2', self.pump2, 'in1')
-        self.p2_sc2 = Connection(self.pump2, 'out1', self.sc2, 'in1')
-        self.sc2_v2 = Connection(self.sc2, 'out1', v2, 'in1', p=3.1, m=0.1)
-        v2_me = Connection(v2, 'out1', me, 'in2')
-
-        self.nw.add_conns(
-            inlet, outlet, self.sp_p1, self.p1_sc1, self.sc1_v1,
-            v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me
-        )
-
-    def test_individual_design_path_on_connections_and_components(self, tmp_path):
-        """Test individual design path specification."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
-        v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
-
-        self.sc2_v2.set_attr(T=95, state='l', m=None)
-        self.sc1_v1.set_attr(m=0.001, T=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
-        v2_design = self.sc2_v2.v.val_SI
-        zeta_sc2_design = self.sc2.zeta.val
-
-        self.sc1_v1.set_attr(m=None)
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc2.set_attr(design_path=tmp_path2)
-        self.pump2.set_attr(design_path=tmp_path2)
-        self.sp_p2.set_attr(design_path=tmp_path2)
-        self.p2_sc2.set_attr(design_path=tmp_path2)
-        self.sc2_v2.set_attr(design_path=tmp_path2)
-        self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw.assert_convergence()
-
-        self.sc1.set_attr(E=500)
-        self.sc2.set_attr(E=950)
-
-        self.nw.solve('offdesign', design_path=tmp_path1)
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(design_path=None)
-
-        # volumetric flow comparison
-        msg = f"Design path was set to None, is {self.sc2_v2.design_path}."
-        assert self.sc2_v2.design_path is None, msg
-
-        # volumetric flow comparison
-        msg = (
-            f"Value of volumetric flow must be {v1_design}, is "
-            f"{self.sc1_v1.v.val_SI}."
-        )
-        assert round(v1_design, 5) == round(self.sc1_v1.v.val_SI, 5), msg
-
-        msg = (
-            f"Value of volumetric flow must be {v2_design}, is "
-            f"{self.sc2_v2.v.val_SI}."
-        )
-        assert round(v2_design, 5) == round(self.sc2_v2.v.val_SI, 5), msg
-
-        # zeta value of solar collector comparison
-        msg = (
-            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
-        )
-        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
-
-        msg = (
-            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
-        )
-        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
-
-    def test_local_offdesign_on_connections_and_components(self, tmp_path):
-        """Test local offdesign feature."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
-
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sc1_v1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sc1.set_attr(E=500)
-
-        self.sc2_v2.set_attr(T=95, m=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
-
-        # connections and components on side 1 must have switched to offdesign
-
-        msg = (
-            'Solar collector outlet temperature must be different from design '
-            f'value {round(self.sc1_v1.T.design - 273.15, 1)}, is '
-            f'{round(self.sc1_v1.T.val, 1)}.'
-        )
-        assert self.sc1_v1.T.design > self.sc1_v1.T.val, msg
-
-        msg = "Parameter eta_s_char must be set for pump one."
-        assert self.pump1.eta_s_char.is_set, msg
-
-        msg = (
-            "Parameter v must be set for connection from solar collector1 to "
-            "pump1."
-        )
-        assert self.sc1_v1.v.is_set, msg
-
-    def test_missing_design_path_local_offdesign_on_connections(self, tmp_path):
-        """Test missing design path on connections in local offdesign mode."""
-        tmp_path = f'{tmp_path}.json'
-        self.setup_Network_individual_offdesign()
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.sc2_v2.set_attr(m=0)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        self.nw.save(tmp_path)
-
-        self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
-        self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
-
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.sc1_v1.set_attr(local_offdesign=True)
-        self.sc1.set_attr(E=500)
-
-        self.sc2_v2.set_attr(T=95, m=None)
-        try:
-            self.nw.solve('design', init_only=True)
-        except TESPyNetworkError:
-            pass
 
 class TestNetworkPreprocessing:
 
@@ -665,6 +456,12 @@ class TestNetworkPreprocessing:
         assert c2.fluid.val["R134a"] == 1
 
 
+def test_temperature_unit_C_raises():
+    nw = Network()
+    with raises(ValueError):
+        nw.units.set_defaults(temperature="C")
+
+
 def test_use_cuda_without_it_being_installed():
     nw = Network()
 
@@ -705,6 +502,62 @@ def test_connection_not_found():
 
     nw.add_conns(c1, c2)
     assert nw.get_conn("1") is None
+
+
+def _make_simple_network():
+    nw = Network()
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1", label="c1")
+    nw.add_conns(c)
+    return nw, so, si, c
+
+
+def test_get_comp_found():
+    nw, so, si, c = _make_simple_network()
+    assert nw.get_comp("source") is so
+
+
+def test_get_comp_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_comp("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
+
+
+def test_get_conn_found():
+    nw, so, si, c = _make_simple_network()
+    assert nw.get_conn("c1") is c
+
+
+def test_get_conn_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_conn("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
+
+
+def test_get_ude_found():
+    nw, so, si, c = _make_simple_network()
+    ude = UserDefinedEquation("my_ude", lambda u: 0, lambda u: [], conns=[c])
+    nw.add_ude(ude)
+    assert nw.get_ude("my_ude") is ude
+
+
+def test_get_ude_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_ude("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
 
 
 def test_missing_source_sink_cycle_closer():
@@ -825,36 +678,6 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     )
     # checksum for the variable numbers
     assert sum(cycle) == 45
-
-
-def test_v08_to_v09_import():
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_exported_nwk.json"
-    )
-
-    nw = Network.from_json(path)
-    assert nw.checked, "The network import was not successful"
-
-
-def test_v08_to_v09_complete():
-    network_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_exported_nwk.json"
-    )
-
-    nw = Network.from_json(network_path)
-
-    design_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "_design_state.json"
-    )
-
-    nw = Network.from_json(network_path)
-    nw.solve("design")
-    nw.get_comp('compressor').set_attr(igva='var')
-    nw.solve("offdesign", init_path=design_path, design_path=design_path)
-    nw.assert_convergence()
 
 
 def test_missing_cyclecloser_but_no_missing_source():
@@ -1033,7 +856,7 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
     assert nw.status == 0
 
 
-def test_offdesign_of_component_parameter_group(tmp_path):
+def test_offdesign_of_component_parameter_group():
 
     nw = Network()
     nw.units.set_defaults(
@@ -1057,14 +880,13 @@ def test_offdesign_of_component_parameter_group(tmp_path):
     nw.assert_convergence()
     assert not instance.darcy_group.is_set
 
-    path = os.path.join(tmp_path, "design.json")
-    nw.save(path)
-    nw.solve("offdesign", design_path=path)
+    design_state = nw.save(as_dict=True)
+    nw.solve("offdesign", design_path=design_state)
     nw.assert_convergence()
     assert instance.darcy_group.is_set
 
 
-def test_design_of_component_parameter_group(tmp_path):
+def test_design_of_component_parameter_group():
 
     nw = Network()
     nw.units.set_defaults(
@@ -1088,9 +910,8 @@ def test_design_of_component_parameter_group(tmp_path):
     nw.assert_convergence()
     assert instance.darcy_group.is_set
 
-    path = os.path.join(tmp_path, "design.json")
-    nw.save(path)
-    nw.solve("offdesign", design_path=path)
+    design_state = nw.save(as_dict=True)
+    nw.solve("offdesign", design_path=design_state)
     nw.assert_convergence()
     assert not instance.darcy_group.is_set
 
@@ -1331,3 +1152,47 @@ def test_setting_ref_on_hex_leads_to_linear_dependency():
     c3.set_attr(T=c4.T.val)
     nw.solve("design")
     assert nw.status == 0
+
+
+def test_export_creates_nonexistent_directory(tmp_path):
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+    nw.iterinfo = False
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1")
+    nw.add_conns(c)
+    c.set_attr(fluid={"water": 1}, T=25, p=1, m=1)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    export_path = tmp_path / "new_subdir" / "network.json"
+    nw.export(str(export_path))
+    assert export_path.exists()
+    design_path = tmp_path / "new_subdir" / "design.json"
+    nw.save(design_path)
+    assert design_path.exists()
+
+
+class TestBackwardsCompatibility:
+    """Verify that save/export files written by v0.9.x are still readable."""
+
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+
+    def test_v09_export_design_and_offdesign(self):
+        """v0.9 export + flat design state: import, design, offdesign all work."""
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+        nw.iterinfo = False
+        nw.solve("design")
+        nw.assert_convergence()
+        nw.get_comp('compressor').set_attr(igva='var')
+        nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design_state.json"))
+        nw.assert_convergence()
+
+    # integrated this test here because it has quite a few different components
+    def test_export_folder_csv_files(self, tmp_path):
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+        nw.solve("design")
+        nw.save_csv(tmp_path)
+        assert (tmp_path / "Component" / "TurboCompressor.csv").exists()
+        assert (tmp_path / "Connection" / "Connection.csv").exists()

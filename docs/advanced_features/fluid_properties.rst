@@ -10,7 +10,7 @@ custom fluid property data, the :code:`IncompressibleFluidWrapper`. See
 :ref:`this section <incompressible_wrapper_label>` for more information.
 
 On top, there are two additional predefined engines, which are untested but may
-serve as an inspiration for you to create your onw one, i.e.
+serve as an inspiration for you to create your own one, i.e.
 
 - the `iapws <https://github.com/jjgomera/iapws/>`_ library and
 - the `pyromat <https://github.com/chmarti1/PYroMat/>`_ library.
@@ -74,15 +74,18 @@ with the :code:`IncompressibleFluidWrapper`. See
 
 Fluid mixtures
 ++++++++++++++
-TESPy provides support for three types of mixtures:
+TESPy provides support for the following built-in mixture rules:
 
-- ideal: Mixtures for gases only.
-- ideal-cond: Mixture for gases with condensation calculation for water share.
-- incompressible: Mixtures for CoolProp-based incompressible fluids.
+- :code:`ideal-cond`: gaseous mixtures **with flash calculations for water** (default).
+- :code:`ideal`: gaseous mixtures **without flash calculations**.
+- :code:`incompressible`: mass-weighted mixtures of CoolProp incompressible fluids.
+- :code:`humidair`: humid-air mixtures via CoolProp's :code:`HAPropsSI`.
+- :code:`forced-gas`: like :code:`ideal`, but forces the gas phase for water at saturation.
 
 These mixtures are handled externally by TESPy by using the pure fluid
 properties of CoolProp and then applying the respective mixing rules, read more
-about it :ref:`here <mixture_routines_label>`.
+about it :ref:`here <mixture_routines_label>`.  Custom mixing rules can also be
+registered at runtime - see the same section for details.
 
 More accurate formulations are available directly through CoolProp, which
 provides a back end for predefined mixtures. This back end is rather instable
@@ -430,24 +433,44 @@ the previous section:
 
 Mixture routines in TESPy
 -------------------------
-Different types of mixture routines are implemented in TESPy. You can select,
-which routine should be applied in each separated subnetwork of your system by
-specifying a mixing rule. `ideal-cond` is the default mixing rule. The following
-mixing rules are available at the moment:
-
-- `ideal-cond`: gaseous fluids **with flash calculations for water**.
-- `ideal`: gaseous fluids **without flash calculations**.
-- `incompressible`: mass based mixtures of individual incompressible fluids.
-
-The mixtures are calculated by using the pure fluid properties from the selected
-fluid property engines and combining them through corresponding equations. The
+Mixing rules define how pure-fluid properties are combined into mixture
+properties. You select one per subnetwork via the :code:`mixing_rule` argument.
+:code:`ideal-cond` is the default. The built-in rules are listed in the
+:ref:`Fluid Mixtures <fluid_properties_label>` section above; the underlying
 equations are documented in the
 :py:mod:`fluid_properties.mixtures <tespy.tools.fluid_properties.mixtures>`
 module.
 
-.. note::
+Custom mixing rules
++++++++++++++++++++
+New mixing rules can be registered at runtime through the
+:py:obj:`MIXING_RULES <tespy.tools.fluid_properties.MIXING_RULES>` registry.
+Each property function must accept :code:`(p, T, fluid_data, **kwargs)` and
+return a scalar value in SI units.
 
-    Similarly to the custom fluid property engine, you can implement your own
-    mixture routines. If you are interested in doing so, you can get in contact
-    via the :ref:`user meeting <community_label>` or the GitHub
-    `discussion forum <https://github.com/oemof/tespy/discussions>`__.
+.. code-block:: python
+
+    >>> from tespy.tools.fluid_properties import MIXING_RULES
+
+    >>> def my_h_pT(p, T, fluid_data, **kwargs):
+    ...     h = 0
+    ...     for data in fluid_data.values():
+    ...         h += data["wrapper"].h_pT(p, T) * data["mass_fraction"]
+    ...     return h
+
+    >>> def my_s_pT(p, T, fluid_data, **kwargs):
+    ...     s = 0
+    ...     for data in fluid_data.values():
+    ...         s += data["wrapper"].s_pT(p, T) * data["mass_fraction"]
+    ...     return s
+
+    >>> MIXING_RULES.register(
+    ...     "my-rule",
+    ...     h_pT=my_h_pT,
+    ...     s_pT=my_s_pT,
+    ... )
+
+The :code:`T_ph_inversion` and :code:`T_ps_inversion` keyword arguments
+(both default to :code:`True`) control whether the registered :code:`h_pT`
+and :code:`s_pT` functions are also used as Newton residuals for the
+:code:`T(p, h)` and :code:`T(p, s)` inversions.

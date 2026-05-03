@@ -10,74 +10,63 @@ installed.
 
 .. tab-set::
 
-   .. tab-item:: Linux
+   .. tab-item:: uv (recommended)
 
-      **Installing Python 3**
+      `uv <https://docs.astral.sh/uv/>`_ is a fast Python package and project
+      manager. Install it by following the
+      `official instructions <https://docs.astral.sh/uv/getting-started/installation/>`_,
+      then initialise a new project and add TESPy:
 
-      Most Linux distributions will have Python 3 in their repository. Use the
-      specific software management to install it, if it is not yet installed. If
-      you are using Ubuntu/Debian try executing the following code in your
-      terminal:
+      .. code-block:: console
 
-      .. code:: console
+         uv init my-project
+         cd my-project
+         uv add tespy
 
-         sudo apt-get install python3
+      To include the optional optimisation dependencies:
 
-      You can also download different versions of Python via
-      https://www.python.org/downloads/.
+      .. code-block:: console
 
-      **Having Python 3 installed**
+         uv add tespy[opt]
 
-      We recommend installing TESPy within a virtual Python environment and not
-      into the base, system-wide Python installation. On Linux you can use
-      virtualenv to do so.
+   .. tab-item:: pip
 
-      1. Install virtualenv using the package management of your Linux distribution,
-         pip install or install it from source
-         (`see virtualenv documentation <https://virtualenv.pypa.io/>`_)
-      2. Open terminal to create and activate a virtual environment by typing:
+      We recommend installing TESPy within a virtual Python environment. Create
+      and activate one, then install TESPy via pip:
 
-         .. code-block:: console
+      .. code-block:: console
 
-            virtualenv -p /usr/bin/python3 your_env_name
-            source your_env_name/bin/activate
+         python -m venv tespy-env
+         source tespy-env/bin/activate  # Linux/macOS
+         # tespy-env\Scripts\activate   # Windows
+         pip install tespy
 
-      3. In terminal type: :code:`pip install tespy`
+      To include the optional optimisation dependencies:
 
-      Warning: If you have an older version of virtualenv you should update pip
-      :code:`pip install --upgrade pip`.
+      .. code-block:: console
 
-      **Using Conda**
+         pip install tespy[opt]
 
-      Alternatively you can use conda for environment and package management. You
-      can follow the installation instructions for windows users.
+   .. tab-item:: conda
 
-   .. tab-item:: Windows
+      TESPy is available on conda-forge. You can install it into a new or
+      existing conda environment:
 
-      For windows we recommend using conda as package manager. You can download a
-      lightweight open source variant of conda: "miniforge3".
+      .. code-block:: console
 
-      1. Download latest `miniforge3 <https://github.com/conda-forge/miniforge>`__
-         for Python 3.x (64 or 32 bit).
-      2. Install miniforge3
-      3. Open "miniforge prompt" to manage your virtual environments. You can
-         create a new environment and acivate it by
-
-         .. code-block:: console
-
-            conda create -n tespy-env python=3.12
-            activate tespy-env
-
-      4. In the active prompt type: :code:`pip install tespy`
+         conda install -c conda-forge tespy
 
    .. tab-item:: Developer Version
 
       If you would like to get access to not yet released features or features
-      under development you can install the developer version. The steps are
-      similar to the steps here, but INSTEAD of installing TESPy using
+      under development you can install the developer version. Fork and clone the
+      `TESPy repository <https://github.com/oemof/tespy>`_, then install all
+      development dependencies with uv:
 
       .. code-block:: console
 
-           pip install tespy
+         cd tespy
+         uv sync --extra dev
 
-      follow the instructions on :ref:`this page <development_how_label>`.
+      Alternatively, follow the instructions on
+      :ref:`this page <development_how_label>`.

@@ -96,8 +96,8 @@ class Units:
             Default unit: "J/kg/K"
         pressure : str
             Default unit: "Pa". For backwards compatibility, setting this also
-            sets ``pressure_difference`` to the same unit unless
-            ``pressure_difference`` is explicitly provided as well.
+            sets :code:`pressure_difference` to the same unit unless
+            :code:`pressure_difference` is explicitly provided as well.
         pressure_difference : str
             Default unit: "Pa"
         mass_flow : str
@@ -142,15 +142,6 @@ class Units:
             self._check_quantity_exists(key)
             if value == "-":
                 value = "1"
-            elif value == "C":
-                value = "degC"
-                msg = (
-                    "The unit 'C' is used for 'Coulomb' in pint. For "
-                    "backwards compatibility it will be parsed as degC for "
-                    "now. Please use '°C' (or correct pint aliases) instead  "
-                    "as it will stop working with the next major release"
-                )
-                warnings.warn(msg, FutureWarning)
             if self._is_compatible(key, value):
                 self.default[key] = value
             else:

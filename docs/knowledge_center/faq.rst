@@ -256,7 +256,7 @@ Visualization, post-processing and cycle analysis
     .. dropdown:: How can I plot log(p)-h and T-s diagrams from my simulation?
 
         Fluid property diagrams can help you analyze and improve your
-        thermodynamic processes. CoolProp offers a somewhat unwieldly
+        thermodynamic processes. CoolProp offers a somewhat unwieldy
         `inbuilt feature <https://coolprop.org/coolprop/python-plotting.html>`__
         for creating those, but we recommend using the officially supported
         companion module fluprodia. It allows for the creation and

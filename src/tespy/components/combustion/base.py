@@ -167,7 +167,7 @@ class CombustionChamber(Component):
     be available in fluid property back-end and you need to provide the name of
     the fluid as well as its formation enthalpy :code:`hf` **in kJ/mol** or the
     lower heating value :code:`LHV` in **J/kg**. For example, let's use
-    :code:`ethanol` and :code:`` as examples:
+    :code:`ethanol` and :code:`acetone` as examples:
 
     >>> from tespy.tools import COMBUSTION_FLUIDS
     >>> COMBUSTION_FLUIDS.add_fluid("ethanol", hf=-234.95)
@@ -262,6 +262,11 @@ class CombustionChamber(Component):
     def _preprocess(self, num_nw_vars):
         super()._preprocess(num_nw_vars)
         self.setup_reaction_parameters()
+
+        # impose better starting values if None are available
+        if self.outl[0].fluid.val0 == {}:
+            for f in self.fuel_list:
+                self.outl[0].fluid.val0[f] = 0
 
     def _get_combustion_connections(self):
         return (self.inl[:2], [self.outl[0]])
@@ -921,56 +926,6 @@ class CombustionChamber(Component):
 
         return ti
 
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = LHV \cdot \dot{m}_{f}
-        """
-        return self.calc_ti()
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate the matrix of partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        inl, outl = self._get_combustion_connections()
-        f = self.calc_bus_value
-        for c in inl + outl:
-            if c.m.is_var:
-                if c.m.J_col not in bus.jacobian:
-                    bus.jacobian[c.m.J_col] = 0
-                bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
-
-            for fl in (self.fuel_list & c.fluid.is_var):
-                if c.fluid.J_col[fl] not in bus.jacobian:
-                    bus.jacobian[c.fluid.J_col[fl]] = 0
-                bus.jacobian[c.fluid.J_col[fl]] -= _numeric_deriv_vecvar(c.fluid._reference_container, f, fl, bus=bus)
-
     def convergence_check(self):
         r"""
         Perform a convergence check.
@@ -1175,16 +1130,3 @@ class CombustionChamber(Component):
 
         self.S_irr = 0
         self.T_mcomb = self.calc_ti() / self.S_comb
-
-    def exergy_balance(self, T0):
-        self.E_P = self.outl[0].Ex_physical - (
-            self.inl[0].Ex_physical + self.inl[1].Ex_physical
-        )
-        self.E_F = (
-            self.inl[0].Ex_chemical + self.inl[1].Ex_chemical
-            - self.outl[0].Ex_chemical
-        )
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = np.nan

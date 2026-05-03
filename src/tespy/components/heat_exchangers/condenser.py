@@ -134,10 +134,10 @@ class Condenser(HeatExchanger):
 
     ttd_u : float, dict
         Upper terminal temperature difference (referring to saturation
-        temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+        temperature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -186,7 +186,6 @@ class Condenser(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import os
     >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
@@ -212,7 +211,7 @@ class Condenser(HeatExchanger):
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(amb_he.v.val, 2)
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
@@ -221,7 +220,7 @@ class Condenser(HeatExchanger):
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
@@ -232,12 +231,11 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(subcooling=True)
     >>> he_c.set_attr(td_bubble=5)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):

@@ -53,7 +53,7 @@ API breaking changes
 
   You can also export your state to a folder + csv files tree.
 
-    >>> nwk.save_csv("csv_state_export_folder")
+    nwk.save_csv("csv_state_export_folder")
 
   **Exporting and Importing a Network**
 
@@ -66,7 +66,7 @@ API breaking changes
 
     >>> data = nwk.export("tmp.json")
     >>> list(data.keys())
-    ['Network', 'Connection', 'Component', 'Bus']
+    ['Network', 'Connection', 'Component']
     >>> list(data["Component"])
     ['Sink', 'Source']
     >>> imported_nw = Network.from_json("tmp.json")
@@ -104,7 +104,13 @@ New Features
     >>> from tespy.connections import Connection
     >>> from tespy.components import Source, Sink, SimpleHeatExchanger
 
-    >>> nw = Network(p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False)
+    >>> nw = Network()
+    >>> nw.units.set_defaults(
+    ...     pressure"bar",
+    ...     temperature="°C",
+    ...     enthalpy="kJ / kg"
+    ... )
+    >>> nw.iterinfo = False
 
     >>> source = Source("In")
     >>> sink = Sink("Out")

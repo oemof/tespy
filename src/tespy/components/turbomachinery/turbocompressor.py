@@ -120,7 +120,6 @@ class TurboCompressor(Compressor):
     >>> from tespy.components import Sink, Source, TurboCompressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
@@ -145,14 +144,14 @@ class TurboCompressor(Compressor):
     ... )
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.77
     >>> round(comp.igva.val, 2)
@@ -164,11 +163,10 @@ class TurboCompressor(Compressor):
 
     >>> comp.set_attr(igva=10)
     >>> inc.set_attr(v=None)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> nw.assert_convergence()
     >>> round(inc.v.val, 2)
     44.31
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):
@@ -236,8 +234,8 @@ class TurboCompressor(Compressor):
         i = self.inl[0]
         o = self.outl[0]
 
-        beta = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
+        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
@@ -276,8 +274,8 @@ class TurboCompressor(Compressor):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
@@ -315,10 +313,10 @@ class TurboCompressor(Compressor):
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
-                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
                 y = (
-                    (self.inl[0].m.val_SI * self.inl[0].p.design)
-                    / (self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                    (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p'))
+                    / (self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
                 )
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
                 yarr *= (1 - self.igva.val_SI / 100)

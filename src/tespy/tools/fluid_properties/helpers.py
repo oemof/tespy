@@ -19,22 +19,10 @@ import numpy as np
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import central_difference
 from tespy.tools.helpers import newton_with_kwargs
-from tespy.tools.logger import logger
 
 
 def _is_larger_than_precision(value):
     return value > ERR
-
-
-def _check_mixing_rule(mixing_rule, mixing_functions, propertyfunction):
-    if mixing_rule not in mixing_functions:
-        msg = (
-            f"The mixing rule '{mixing_rule}' is not available for "
-            f"the fluid property functions for {propertyfunction}. Available "
-            f"rules are '" + "', '".join(mixing_functions.keys()) + "'."
-        )
-        logger.exception(msg)
-        raise KeyError(msg)
 
 
 def get_number_of_fluids(fluid_data):
@@ -49,6 +37,9 @@ def get_pure_fluid(fluid_data):
 
 def single_fluid(fluid_data):
     r"""Return the name of the pure fluid in a fluid vector."""
+    if "_HUMID_AIR" in fluid_data:
+        return None
+
     if get_number_of_fluids(fluid_data) > 1:
         return None
     else:
@@ -151,7 +142,7 @@ def darcy_friction_factor(re, ks, d):
         Pipe roughness ks / m.
 
     d : float
-        Pipe diameter/characteristic lenght d / m.
+        Pipe diameter/characteristic length d / m.
 
     Returns
     -------
@@ -333,7 +324,7 @@ def prandtl_karman_derivative(reynolds, darcy_friction_factor, **kwargs):
 
 def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
     """
-    Calculate friction coefficient accroding to Colebrook-White equation.
+    Calculate friction coefficient according to Colebrook-White equation.
 
     Applied in transition zone and rough conditions.
 

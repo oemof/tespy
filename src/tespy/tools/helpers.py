@@ -15,6 +15,7 @@ from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
 
+import numpy as np
 import pandas as pd
 
 from tespy import __datapath__
@@ -41,13 +42,6 @@ def get_all_subdictionaries(data):
             subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
 
     return subdictionaries
-
-
-def get_chem_ex_lib(name):
-    """Return a new dictionary by merging two dictionaries recursively."""
-    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
-    with open(path, "r") as f:
-        return json.load(f)
 
 
 def fluidalias_in_list(fluid, fluid_list):
@@ -338,6 +332,19 @@ class UserDefinedEquation:
         self.conns = conns
         self.comps = comps
         self.params = params
+        self._is_set = True
+
+    def _get_is_set(self):
+        return self._is_set
+
+    def _set_is_set(self, value):
+        if not isinstance(value, bool):
+            msg = "is_set must be of type bool."
+            logger.error(msg)
+            raise TypeError(msg)
+        self._is_set = value
+
+    is_set = property(_get_is_set, _set_is_set)
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -345,6 +352,9 @@ class UserDefinedEquation:
         self._structure_matrix = {}
         self._rhs = {}
         self._equation_set_lookup = {}
+
+        if not self.is_set:
+            return
 
         self._equation_set_lookup[row_idx] = "equation"
 
@@ -599,45 +609,6 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     return deriv
 
 
-def bus_char_evaluation(component_value, char_func, reference_value, bus_value, **kwargs):
-    r"""
-    Calculate the value of a bus.
-
-    Parameters
-    ----------
-    comp_value : float
-        Value of the energy transfer at the component.
-
-    reference_value : float
-        Value of the bus in reference state.
-
-    char_func : tespy.tools.characteristics.char_line
-        Characteristic function of the bus.
-
-    Returns
-    -------
-    residual : float
-        Residual of the equation.
-
-        .. math::
-
-            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
-            {f\left(\frac{\dot{E}_\mathrm{bus}}
-            {\dot{E}_\mathrm{bus,ref}}\right)}
-    """
-    return bus_value - component_value / char_func.evaluate(
-        bus_value / reference_value
-    )
-
-
-def bus_char_derivative(component_value, char_func, reference_value, bus_value, **kwargs):
-    """Calculate derivative for bus char evaluation."""
-    d = 1e-3
-    return (1 - (
-        1 / char_func.evaluate((bus_value + d) / reference_value) -
-        1 / char_func.evaluate((bus_value - d) / reference_value)
-    ) / (2 * d))
-
 
 def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
@@ -698,6 +669,23 @@ def central_difference(function=None, parameter=None, delta=None, **kwargs):
     lower = kwargs
     lower[parameter] -= delta
     return (function(**upper) - function(**lower)) / (2 * delta)
+
+
+def seeded_random_generator(seed_value: str | bytes | int) -> np.random.Generator:
+    """Generate a reproducible random number generator based on a seed value."""
+    if isinstance(seed_value, str):
+        seed_value = seed_value.encode("utf-8")
+    if isinstance(seed_value, bytes):
+        seed_value = int.from_bytes(seed_value, "little", signed=False) % (2**32)
+    if not isinstance(seed_value, int):
+        raise ValueError("Seed value must be of type str, bytes or int.")
+    return np.random.default_rng(seed=seed_value)
+
+
+def seeded_random(seed_value: str | bytes | int) -> float:
+    """Generate a reproducible random number between 0 and 1 based on a seed value."""
+    rng = seeded_random_generator(seed_value)
+    return rng.random()
 
 
 def get_basic_path():
@@ -786,7 +774,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
 
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
-    """Dump a nested dict with dataframes into a folder structrue
+    """Dump a nested dict with dataframes into a folder structure
 
     The upper level keys with subdictionaries are folder names, the lower
     level keys (where a dataframe is the value) will be the names of the
@@ -802,7 +790,6 @@ def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
     os.makedirs(basepath, exist_ok=True)
     for key, value in dictionary.items():
         if isinstance(value, dict):
-            basepath = os.path.join(basepath, key)
-            _nested_dict_of_dataframes_to_filetree(value, basepath)
+            _nested_dict_of_dataframes_to_filetree(value, os.path.join(basepath, key))
         else:
             value.to_csv(os.path.join(basepath, f"{key}.csv"))

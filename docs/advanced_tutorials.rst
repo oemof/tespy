@@ -71,6 +71,14 @@ you!
         .. image:: /_static/images/thumbnails/advanced_tutorials/heat_pump_exergy_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Humid air connections
+        :link: tutorial_humidair_label
+        :link-type: ref
+
+        Model moist air streams with humidity ratio or relative humidity
+        specifications, and track condensation in cooling applications.
+        Experimental feature!
+
     .. grid-item-card::  Build a new component
         :link: develop_components_tutorial_label
         :link-type: ref
@@ -92,4 +100,5 @@ you!
     advanced_tutorials/debugging.ipynb
     advanced_tutorials/powerconnections.rst
     advanced_tutorials/heat_pump_exergy.rst
+    advanced_tutorials/humid_air.ipynb
     advanced_tutorials/develop_components.rst

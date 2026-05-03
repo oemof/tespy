@@ -115,14 +115,14 @@ class Turbine(Turbomachine):
     Example
     -------
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
-    to 0,5 bar at the outlet. For example, it is possible to calulate the power
-    output and vapour content at the outlet for a given isentropic efficiency.
+    to 0,5 bar at the outlet. For example, it is possible to calculate the
+    power output and vapour content at the outlet for a given isentropic
+    efficiency.
 
     >>> from tespy.components import Sink, Source, Turbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
@@ -144,18 +144,17 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=36, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
     >>> inc.set_attr(m=28.8)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(t.eta_s.val, 3)
     0.898
     >>> round(inc.p.val, 1)
     88.6
-    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -311,8 +310,8 @@ class Turbine(Turbomachine):
         o = self.outl[0]
         vol = i.calc_vol(T0=i.T.val_SI)
         residual = (
-            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
-            * (i.p.design * i.vol.design / (i.p.val_SI * vol)) ** 0.5
+            - i.m.val_SI + self._conn_design(i, 'm') * i.p.val_SI / self._conn_design(i, 'p')
+            * (self._conn_design(i, 'p') * self._conn_design(i, 'vol') / (i.p.val_SI * vol)) ** 0.5
             * abs(
                     (1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n))
                     / (1 - (self.pr.design) ** ((n + 1) / n))
@@ -490,60 +489,3 @@ class Turbine(Turbomachine):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
         self.eta_s.val_SI = self.calc_eta_s()
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a turbine.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            -P + \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-           \dot{E}_\mathrm{F} =
-           \begin{cases}
-           \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-           \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
-           \dot{E}_\mathrm{out}^\mathrm{M}
-           & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
-           & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-           \end{cases}
-
-           \dot{E}_\mathrm{bus} = -P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = -self.P.val
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = -self.P.val + self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_therm + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = -self.P.val + (
-                self.outl[0].Ex_therm - self.inl[0].Ex_therm)
-            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-        else:
-            msg = ('Exergy balance of a turbine, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

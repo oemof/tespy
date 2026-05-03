@@ -108,12 +108,20 @@ To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 
 Installing TESPy
 ================
-If you have a working Python3 environment, use pypi to install the latest
-tespy version:
+The recommended way to install TESPy is with
+`uv <https://docs.astral.sh/uv/>`_:
+
+.. code:: bash
+
+  uv add tespy
+
+Alternatively, use pip or conda:
 
 .. code:: bash
 
   pip install tespy
+  # or
+  conda install -c conda-forge tespy
 
 If you want to use the latest features, you might want to install the
 **developer version**. See section

@@ -167,6 +167,13 @@ And a couple of optional arguments:
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
     True
 
+A registered equation can be retrieved by its label at any time:
+
+.. code-block:: python
+
+    >>> nw.get_ude('my ude') is ude
+    True
+
 Activating and deactivating
 ---------------------------
 

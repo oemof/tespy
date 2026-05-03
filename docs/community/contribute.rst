@@ -79,15 +79,21 @@ contact us, we are looking forward to hearing from you!
 Install the developer version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is recommenden to use
-`virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ for
-the development process. Fork the repository and clone your forked tespy GitHub
-repository and install development requirements with pip.
+Fork the repository and clone your forked TESPy GitHub repository. We
+recommend `uv <https://docs.astral.sh/uv/>`_ for managing the development
+environment — it creates a virtual environment and installs all dependencies
+in one step:
 
 .. code:: bash
 
     git clone https://github.com/YOUR_GITHUB_USERNAME/tespy.git
     cd tespy
+    uv sync --extra dev
+
+Alternatively, use pip:
+
+.. code:: bash
+
     pip install -e .[dev]
 
 In order to stay in sync with the oemof/tespy base repository, add the link to
@@ -157,9 +163,9 @@ software tests in the selected Python version.
 
     python -m tox -e docs
     python -m tox -e check
-    python -m tox -e py310
     python -m tox -e py311
     python -m tox -e py312
+    python -m tox -e py313
 
 If you want to have a look at the documentation build on your local machine use
 the following command from the local tespy clone:

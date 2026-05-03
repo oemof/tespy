@@ -1090,6 +1090,26 @@ def test_setting_ref_on_hex_leads_to_linear_dependency():
     assert nw.status == 0
 
 
+def test_export_creates_nonexistent_directory(tmp_path):
+    nw = Network()
+    nw.units.set_defaults(temperature="°C", pressure="bar")
+    nw.iterinfo = False
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1")
+    nw.add_conns(c)
+    c.set_attr(fluid={"water": 1}, T=25, p=1, m=1)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    export_path = tmp_path / "new_subdir" / "network.json"
+    nw.export(str(export_path))
+    assert export_path.exists()
+    design_path = tmp_path / "new_subdir" / "design.json"
+    nw.save(design_path)
+    assert design_path.exists()
+
+
 class TestBackwardsCompatibility:
     """Verify that save/export files written by v0.9.x are still readable."""
 
@@ -1101,5 +1121,6 @@ class TestBackwardsCompatibility:
         nw.iterinfo = False
         nw.solve("design")
         nw.assert_convergence()
-        nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design.json"))
+        nw.get_comp('compressor').set_attr(igva='var')
+        nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design_state.json"))
         nw.assert_convergence()

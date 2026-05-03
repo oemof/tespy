@@ -3663,6 +3663,7 @@ class Network:
         export["Component"] = self._export_components()
 
         if json_file_path:
+            os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
             with open(json_file_path, "w") as f:
                 json.dump(export, f, indent=2)
 
@@ -3716,6 +3717,7 @@ class Network:
             warnings.warn(msg, FutureWarning)
             return json.dumps(dump, indent=2)
 
+        os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
 

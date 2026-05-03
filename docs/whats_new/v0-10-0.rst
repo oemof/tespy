@@ -20,6 +20,9 @@ API Changes
 
 Other Changes
 #############
+- Installation instructions now recommend
+  `uv <https://docs.astral.sh/uv/>`__ as the primary package manager
+  (`PR #967 <https://github.com/oemof/tespy/pull/967>`__).
 - :py:meth:`~tespy.networks.network.Network.get_ude` has been added,
   analogous to :py:meth:`~tespy.networks.network.Network.get_comp` and
   :py:meth:`~tespy.networks.network.Network.get_conn`, to retrieve a

@@ -456,6 +456,12 @@ class TestNetworkPreprocessing:
         assert c2.fluid.val["R134a"] == 1
 
 
+def test_temperature_unit_C_raises():
+    nw = Network()
+    with raises(ValueError):
+        nw.units.set_defaults(temperature="C")
+
+
 def test_use_cuda_without_it_being_installed():
     nw = Network()
 

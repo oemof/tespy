@@ -239,32 +239,16 @@ class Network:
                 "ranges, units or iterinfo."
             )
         self.units = kwargs.get('units', self.units)
-        unit_replace = {
-            "C": "degC",
-            "J / kgK": "J / (kg * K)",
-            "kJ / kgK": "kJ / (kg * K)",
-            "MJ / kgK": "MJ / (kg * K)",
-        }
-        # unit sets
-        msg = None
         for prop in fpd.keys():
             unit = f'{prop}_unit'
             if unit in kwargs:
-                if msg is None:
-                    msg = (
-                        "The API for specification of units in a Network "
-                        "changed. The old variant will be removed in the next "
-                        "major release. Please use the "
-                        "'Network.units.set_defaults' method instead."
-                    )
-                # for backwards compatibility: Update in the default units
-                self.units.set_defaults(**{
-                    fpd[prop]["text"].replace(" ", "_"):
-                    unit_replace.get(kwargs[unit], kwargs[unit])
-                })
-
-        if msg:
-            warnings.warn(msg, FutureWarning)
+                msg = (
+                    f"Passing '{unit}' to Network.set_attr is no longer "
+                    "supported. Use Network.units.set_defaults() instead, "
+                    f"e.g. nw.units.set_defaults("
+                    f"{fpd[prop]['text'].replace(' ', '_')}='...')."
+                )
+                raise TypeError(msg)
 
         for prop in ['m', 'p', 'h']:
             key = f"{prop}_range"

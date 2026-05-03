@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -39,6 +40,7 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -494,6 +496,62 @@ def test_connection_not_found():
 
     nw.add_conns(c1, c2)
     assert nw.get_conn("1") is None
+
+
+def _make_simple_network():
+    nw = Network()
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1", label="c1")
+    nw.add_conns(c)
+    return nw, so, si, c
+
+
+def test_get_comp_found():
+    nw, so, si, c = _make_simple_network()
+    assert nw.get_comp("source") is so
+
+
+def test_get_comp_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_comp("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
+
+
+def test_get_conn_found():
+    nw, so, si, c = _make_simple_network()
+    assert nw.get_conn("c1") is c
+
+
+def test_get_conn_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_conn("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
+
+
+def test_get_ude_found():
+    nw, so, si, c = _make_simple_network()
+    ude = UserDefinedEquation("my_ude", lambda u: 0, lambda u: [], conns=[c])
+    nw.add_ude(ude)
+    assert nw.get_ude("my_ude") is ude
+
+
+def test_get_ude_not_found_warns():
+    nw, *_ = _make_simple_network()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = nw.get_ude("nonexistent")
+    assert result is None
+    assert len(w) == 1
+    assert issubclass(w[0].category, FutureWarning)
 
 
 def test_missing_source_sink_cycle_closer():
@@ -1124,3 +1182,11 @@ class TestBackwardsCompatibility:
         nw.get_comp('compressor').set_attr(igva='var')
         nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design_state.json"))
         nw.assert_convergence()
+
+    # integrated this test here because it has quite a few different components
+    def test_export_folder_csv_files(self, tmp_path):
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+        nw.solve("design")
+        nw.save_csv(tmp_path)
+        assert (tmp_path / "Component" / "TurboCompressor.csv").exists()
+        assert (tmp_path / "Connection" / "Connection.csv").exists()

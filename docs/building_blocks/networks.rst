@@ -1036,4 +1036,6 @@ the dict directly.
     you did not provide labels for your connections, by default, the
     connection's label will be according to this principle:
     :code:`'source-label:source-id_target-label:target-id'`, where source and
-    target are the labels of the connected components.
+    target are the labels of the connected components. User defined equations
+    can be retrieved in the same way with
+    :code:`imported_plant.get_ude('my ude label')`.

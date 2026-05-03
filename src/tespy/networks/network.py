@@ -473,7 +473,12 @@ class Network:
         try:
             return self.conns.loc[label, 'object']
         except KeyError:
-            logger.warning(f"Connection with label {label} not found.")
+            warnings.warn(
+                f"Connection with label {label} not found. Returning None is "
+                "deprecated and will raise a KeyError in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
             return None
 
     def get_comp(self, label):
@@ -494,7 +499,12 @@ class Network:
         try:
             return self.comps.loc[label, 'object']
         except KeyError:
-            logger.warning(f"Component with label {label} not found.")
+            warnings.warn(
+                f"Component with label {label} not found. Returning None is "
+                "deprecated and will raise a KeyError in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
             return None
 
     def add_conns(self, *args):
@@ -671,6 +681,32 @@ class Network:
             del self.user_defined_eq[c.label]
             msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
+
+    def get_ude(self, label):
+        r"""
+        Get UserDefinedEquation via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the UserDefinedEquation object.
+
+        Returns
+        -------
+        c : tespy.tools.helpers.UserDefinedEquation
+            UserDefinedEquation object with specified label, None if no
+            UserDefinedEquation of the network has this label.
+        """
+        try:
+            return self.user_defined_eq[label]
+        except KeyError:
+            warnings.warn(
+                f"UserDefinedEquation with label {label} not found. Returning "
+                "None is deprecated and will raise a KeyError in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            return None
 
     def assert_convergence(self):
         """Check convergence status of a simulation."""

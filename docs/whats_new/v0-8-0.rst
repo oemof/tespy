@@ -104,7 +104,13 @@ New Features
     >>> from tespy.connections import Connection
     >>> from tespy.components import Source, Sink, SimpleHeatExchanger
 
-    >>> nw = Network(p_unit="bar", T_unit="C", h_unit="kJ / kg", iterinfo=False)
+    >>> nw = Network()
+    >>> nw.units.set_defaults(
+    ...     pressure"bar",
+    ...     temperature="°C",
+    ...     enthalpy="kJ / kg"
+    ... )
+    >>> nw.iterinfo = False
 
     >>> source = Source("In")
     >>> sink = Sink("Out")

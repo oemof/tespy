@@ -44,6 +44,13 @@ Other Changes
   :code:`ylim` is passed
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
 
+Bug Fixes
+#########
+- :py:meth:`~tespy.networks.network.Network.export` and
+  :py:meth:`~tespy.networks.network.Network.save` now create the target
+  directory if it does not exist yet
+  (`PR #965 <https://github.com/oemof/tespy/pull/965>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

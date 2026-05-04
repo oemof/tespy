@@ -12,9 +12,6 @@ SPDX-License-Identifier: MIT
 """
 import itertools
 
-import CoolProp.CoolProp as CP
-import numpy as np
-
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
@@ -24,12 +21,9 @@ from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
-from tespy.tools.fluid_properties.wrappers import PyromatWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import _numeric_deriv_vecvar
 from tespy.tools.helpers import fluidalias_in_list
 
 
@@ -413,6 +407,18 @@ class CombustionChamber(Component):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
             if self.f_nox.is_set:
+                try:
+                    from tespy.tools.fluid_properties.wrappers import PyromatWrapper
+                except ModuleNotFoundError:
+                    msg = (
+                        f"Using f_nox to incorporate nitric oxide in the flue "
+                        f"gas of component {self.label} (class "
+                        f"{self.__class__.__name__}) currently only works "
+                        "pyromat as fluid property back end. Install it in "
+                        "your environment if you want to make use of the "
+                        "feature."
+                    )
+                    raise ModuleNotFoundError(msg)
                 if "NO" not in outl[0].fluid.engine:
                     outl[0].fluid.engine["NO"] = PyromatWrapper
                     outl[0].fluid.back_end["NO"] = "ig"
@@ -658,7 +664,10 @@ class CombustionChamber(Component):
                 + inl[0].fluid.wrapper[self.o2]._molar_mass
             )
             if self.f_nox.is_set:
-                n_nox_param = (inl[0].m.val_SI+inl[1].m.val_SI) * self.f_nox.val_SI / M_no
+                n_nox_param = (
+                    (inl[0].m.val_SI + inl[1].m.val_SI)
+                    * self.f_nox.val_SI / M_no
+                )
             else:
                 n_nox_param = 0
             # nitrogen

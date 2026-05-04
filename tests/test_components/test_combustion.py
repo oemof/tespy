@@ -187,6 +187,16 @@ class TestCombustion:
         mass_inlet = self.c1.m.val_SI + self.c2.m.val_SI
         assert approx(mass_NO) == mass_inlet * f_nox / 2
 
+        M_NO = self.c3.fluid_data["NO"]["wrapper"]._molar_mass
+        M_N2 = self.c1.fluid_data["N2"]["wrapper"]._molar_mass
+        n_nitrogen_out = (
+            self.c3.fluid.val["NO"] * self.c3.m.val_SI / M_NO
+            + self.c3.fluid.val["N2"] * self.c3.m.val_SI / M_N2 * 2
+        )
+        n_nitrogen_in = self.c1.fluid.val["N2"] * self.c1.m.val_SI / M_N2 * 2
+        assert approx(n_nitrogen_in) == n_nitrogen_out
+
+
     def test_DiabaticCombustionChamber_H2(self):
         instance = DiabaticCombustionChamber('combustion chamber')
         self.setup_CombustionChamber_network(instance)

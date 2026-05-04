@@ -9,8 +9,8 @@ tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-
-import pytest
+from pytest import approx
+from pytest import raises
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
@@ -128,7 +128,7 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000, 1e-3)
+        assert instance.fuels["CO"]["LHV"] == approx(10112000, 1e-3)
 
         molar_flow = {}
         for c in self.nw.conns["object"]:
@@ -139,15 +139,15 @@ class TestCombustion:
             }
         o2 = molar_flow["air"]["O2"]
         co2 = molar_flow["fluegas"]["CO2"]
-        assert o2 == pytest.approx(co2 * 1.5, 1e-3)
+        assert o2 == approx(co2 * 1.5, 1e-3)
 
         self.c3.set_attr(T=1500)
         instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert self.c3.T.val == pytest.approx(1500)
+        assert self.c3.T.val == approx(1500)
 
-    def test_CombustionChamber_NO(self):
+    def test_CombustionChamberNO(self):
         """
         Test component properties of combustion chamber.
         """
@@ -173,15 +173,19 @@ class TestCombustion:
         # test specification of f_nox == 0: Must be same result
         instance.set_attr(f_nox=0.0)
         self.nw.solve('design')
-        assert pytest.approx(m_in1) == self.c1.m.val_SI
-        assert pytest.approx(m_in2) == self.c2.m.val_SI
-        assert pytest.approx(self.c3.fluid.val["NO"]) == 0
+        assert approx(m_in1) == self.c1.m.val_SI
+        assert approx(m_in2) == self.c2.m.val_SI
+        assert approx(self.c3.fluid.val["NO"]) == 0
 
         # test specification of f_nox > 0
-        instance.set_attr(f_nox=0.01)
+        f_nox = 0.01
+        instance.set_attr(f_nox=f_nox)
         self.nw.solve('design')
+        self.nw.assert_convergence()
         # here we need to actually check what is the expected result
-        assert False
+        mass_NO = self.c3.fluid.val["NO"] * self.c3.m.val_SI
+        mass_inlet = self.c1.m.val_SI + self.c2.m.val_SI
+        assert approx(mass_NO) == mass_inlet * f_nox / 2
 
     def test_DiabaticCombustionChamber_H2(self):
         instance = DiabaticCombustionChamber('combustion chamber')
@@ -217,7 +221,7 @@ class TestCombustion:
         instance.set_attr(lamb=1)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert self.c3.T.val_SI == pytest.approx(2110, abs=0.1)
+        assert self.c3.T.val_SI == approx(2110, abs=0.1)
 
     def test_DiabaticCombustionChamber(self):
         """
@@ -269,7 +273,7 @@ class TestCombustion:
         instance.set_attr(pr=pr)
         self.c2.set_attr(p=None)
         self.c3.set_attr(p=1.3)
-        with pytest.raises(TESPyNetworkError):
+        with raises(TESPyNetworkError):
             self.nw.solve('design')
 
     def test_CombustionEngine(self):

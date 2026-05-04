@@ -208,7 +208,7 @@ class CombustionChamber(Component):
                 quantity="ratio",
                 min_val=0,
                 max_val=1,
-                description="generation rate of NO in flue gas, only active if value is explicitly set"
+                description="Mass-based nitric oxide (NO) generation rate in flue gas in mass of created NO per mass of fuel and air input. Only active if value is explicitly set"
             ),
         }
 

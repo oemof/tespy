@@ -3259,11 +3259,12 @@ class Network:
 
         # this could be in a different place, its kind of in between
         # network and connection
-        for idx, data in self.variables_dict.items():
-            if type(data["obj"]) == dc_vecvar:
-                total_mass_fractions = sum(data["obj"].val.values())
-                for fluid in data["obj"].is_var:
-                    data["obj"]._val[fluid] /= total_mass_fractions
+        if self.iter < 10:
+            for data in self.variables_dict.values():
+                if type(data["obj"]) == dc_vecvar:
+                    total_mass_fractions = sum(data["obj"].val.values())
+                    for fluid in data["obj"].is_var:
+                        data["obj"]._val[fluid] /= total_mass_fractions
 
         if norm(self.increment) > 1e-1:
             for c in self.conns['object']:

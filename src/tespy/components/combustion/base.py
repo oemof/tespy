@@ -653,7 +653,7 @@ class CombustionChamber(Component):
                 + inl[0].fluid.wrapper[self.o2]._molar_mass
             )
             if self.f_nox.is_set:
-                n_nox_param = inl[1].m.val_SI * self.f_nox.val_SI / M_no
+                n_nox_param = (inl[0].m.val_SI+inl[1].m.val_SI) * self.f_nox.val_SI / M_no
             else:
                 n_nox_param = 0
             # nitrogen

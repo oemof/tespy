@@ -146,7 +146,6 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, SolarCollector
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
@@ -170,16 +169,15 @@ class SolarCollector(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(sc.A.val, 1)
     14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(sc.Q.val, 1)
     6083.8
     >>> round(outg.T.val, 1)
     70.5
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):

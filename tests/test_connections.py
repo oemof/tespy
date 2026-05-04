@@ -23,12 +23,13 @@ from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
+from tespy.connections.humidairconnection import HAConnection
 from tespy.networks import Network
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.functions import T_bubble_p
@@ -44,8 +45,7 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
-            # TODO: replace C with degC in next major version
-            "temperature": "C",
+            "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
         })
@@ -503,7 +503,7 @@ ALL_CONNECTION_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.connections"])
     # exclude the Subsystem component as it is just a wrapper
     if inspect.isclass(obj)
-    and obj not in {ConnectionBase, Bus, Ref}
+    and obj not in {ConnectionBase, Ref}
 ]
 
 @mark.parametrize("obj", ALL_CONNECTION_CLASSES)
@@ -516,10 +516,14 @@ def test_all_classes_in_registry(obj):
 
 
 def make_connection(cls):
-    if cls == Connection:
+    if cls == Connection or cls == HAConnection:
         return cls(Source(""), "out1", Sink(""), "in1")
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")
+    elif cls == HeatConnection:
+        from tespy.components import HeatSink
+        from tespy.components import HeatSource
+        return cls(HeatSource(""), "heat", HeatSink(""), "heat")
     else:
         raise NotImplementedError(
             f"The connection class {cls} is not implemented in testing"

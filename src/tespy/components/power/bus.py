@@ -10,14 +10,12 @@ available from its original location tespy/components/power/bus.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.components.energy._bus import _EnergyBus
 
 
 @component_registry
-class PowerBus(Component):
+class PowerBus(_EnergyBus):
     """
     A PowerBus can hold any number incoming and outgoing power flows.
 
@@ -89,7 +87,6 @@ class PowerBus(Component):
     >>> from tespy.components import PowerSource, PowerSink, PowerBus
     >>> from tespy.connections import PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
@@ -122,48 +119,4 @@ class PowerBus(Component):
     True
     """
 
-    def powerinlets(self):
-        return [f"power_in{i + 1}" for i in range(self.num_in.val)]
-
-    def poweroutlets(self):
-        return [f"power_out{i + 1}" for i in range(self.num_out.val)]
-
-    def get_parameters(self):
-        return {
-            "num_in": dc_simple(val=0, description="number of inlets"),
-            "num_out": dc_simple(val=0, description="number of outlets")
-        }
-
-    def get_mandatory_constraints(self):
-        return {
-            "energy_balance_constraint": dc_cmc(**{
-                "func": self.energy_balance_func,
-                "dependents": self.energy_balance_dependents,
-                "num_eq_sets": 1,
-                "description": "energy balance over all inflows and outflows"
-            })
-        }
-
-    def energy_balance_func(self):
-        r"""
-        Equation for energy balance of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\sum_{i} \dot E_\text{i} - \sum_{o} \dot E_\text{o}\\
-                \forall i \in \text{inlets}, o \in \text{outlets}
-        """
-        residual = 0
-        for i in self.power_inl:
-            residual += i.E.val_SI
-        for o in self.power_outl:
-            residual -= o.E.val_SI
-        return residual
-
-    def energy_balance_dependents(self):
-        return [c.E for c in self.power_inl + self.power_outl]
+    _energy_port = "power"

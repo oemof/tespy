@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+import warnings
 
 import numpy as np
 
@@ -26,6 +27,7 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
+from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -155,7 +157,6 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
@@ -179,47 +180,41 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(heat_sink.Q.val, 0)
     -52581.0
     >>> round(heat_sink.kA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(heat_sink.Q.val, 0)
     -56599.0
     >>> round(outg.T.val, 1)
     156.9
     >>> inc.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(heat_sink.Q.val, 1)
     -47275.8
     >>> round(outg.T.val, 1)
     140.0
-    >>> os.remove('tmp.json')
 
-    Use of the PowerConnection
-    --------------------------
+    Use of the HeatConnection
+    -------------------------
 
     Single sided heat exchangers can also connect to a
-    :code:`PowerConnection`. In this case the heat exchanger represents a heat
-    source from the perspective of the :code:`PowerConnection`, meaning, we
-    need a :code:`PowerSink` component as target of that connection.
-    To utilize the component in this connects, it is required to set the
-    :code:`power_connector_location`, in this case it should be the
-    :code:`'outlet'`.
+    :code:`HeatConnection`. The component auto-detects whether the connection
+    is on the inlet or outlet side - no prior declaration is needed.
 
-    >>> from tespy.connections import PowerConnection
-    >>> from tespy.components import PowerSink
-    >>> ambient = PowerSink('ambient heat dissipation')
-    >>> heat_sink.set_attr(power_connector_location='outlet')
+    >>> from tespy.connections import HeatConnection
+    >>> from tespy.components import HeatSink
+    >>> ambient = HeatSink('ambient heat dissipation')
 
-    Then we can create and add the :code:`PowerConnection`. We run a new
+    Create and add the :code:`HeatConnection` as an outlet. We run a new
     design calculation, because the old design case did not include the
-    :code:`PowerConnection`. The energy value will be identical to the heat
-    transfer of the pipe.
+    :code:`HeatConnection`. The energy value will be identical to the heat
+    transfer of the component.
 
-    >>> h1 = PowerConnection(heat_sink, 'heat', ambient, 'power', label='h1')
+    >>> h1 = HeatConnection(heat_sink, 'heat', ambient, 'heat', label='h1')
     >>> nw.add_conns(h1)
     >>> nw.solve('design')
     >>> round(h1.E.val) == round(-heat_sink.Q.val)
@@ -228,7 +223,7 @@ class SimpleHeatExchanger(Component):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        if len(self.power_inl + self.power_outl) > 0:
+        if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
@@ -236,6 +231,17 @@ class SimpleHeatExchanger(Component):
             })
 
         return constraints
+
+    def set_attr(self, **kwargs):
+        if 'power_connector_location' in kwargs:
+            warnings.warn(
+                "The parameter 'power_connector_location' is deprecated and has no "
+                "effect. Connect the component directly on either the inlet or outlet "
+                "side without prior declaration.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        super().set_attr(**kwargs)
 
     def get_parameters(self):
         return {
@@ -360,37 +366,62 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def powerinlets(self):
-        if self.power_connector_location.val == "inlet":
-            return ['heat']
-        else:
-            return []
+    @staticmethod
+    def powerinlets():
+        return ['heat']
 
-    def poweroutlets(self):
-        if self.power_connector_location.val == "outlet":
-            return ['heat']
-        else:
-            return []
+    @staticmethod
+    def poweroutlets():
+        return ['heat']
 
-    def _get_power_connector_location(self):
-        if self.power_connector_location.val == "inlet":
-            return self.power_inl[0]
-        else:
-            return self.power_outl[0]
+    @staticmethod
+    def heatinlets():
+        return ['heat']
 
-    def energy_connector_balance_func(self):
-        connector = self._get_power_connector_location()
-        if self.power_connector_location.val == "inlet":
-            energy_flow = -connector.E.val_SI
-        else:
-            energy_flow = connector.E.val_SI
+    @staticmethod
+    def heatoutlets():
+        return ['heat']
 
-        return energy_flow + self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
+    def _validate_connections(self):
+        super()._validate_connections()
+        all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl
+        if len(all_energy) > 1:
+            msg = (
+                f"Component {self.label} has more than one energy connection. "
+                "Connect to exactly one side using one connection type."
+            )
+            raise TESPyNetworkError(msg)
+        if self.power_inl or self.power_outl:
+            warnings.warn(
+                f"Component {self.label} is connected via PowerConnection. "
+                "Please use HeatConnection instead. PowerConnection support for "
+                "SimpleHeatExchanger will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
             )
 
+    def _get_energy_connector_location(self):
+        """Return (connector, side, val_attr) for the active energy connection."""
+        if self.heat_inl:
+            return self.heat_inl[0], "inlet"
+        if self.heat_outl:
+            return self.heat_outl[0], "outlet"
+        if self.power_inl:
+            return self.power_inl[0], "inlet"
+        return self.power_outl[0], "outlet"
+
+    def energy_connector_balance_func(self):
+        connector, side = self._get_energy_connector_location()
+        energy_flow = (
+            -connector.E.val_SI if side == "inlet"
+            else connector.E.val_SI
+        )
+        return energy_flow + self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
     def energy_connector_dependents(self):
-        connector = self._get_power_connector_location()
+        connector, _ = self._get_energy_connector_location()
         return [connector.E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def energy_balance_func(self):
@@ -616,7 +647,7 @@ class SimpleHeatExchanger(Component):
             # Outlet has crossed ambient: td_log undefined (log of negative).
             # Replace with ttd_2 directly: signs ensure the residual is never
             # zero (Q and kA·ttd_2 have the same sign when invalid), and
-            # continuity holds because td_log → 0 as ttd_2 → 0 from the valid
+            # continuity holds because td_log -> 0 as ttd_2 -> 0 from the valid
             # side, so both branches give Q at the boundary.
             return Q + self.kA.val_SI * ttd_2
         return Q + self.kA.val_SI * self._calculate_td_log()
@@ -711,61 +742,6 @@ class SimpleHeatExchanger(Component):
                             o.mixing_rule
                         )
                         o.h.set_reference_val_SI(h_out)
-
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
-        """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m._reference_container, f, bus=bus)
-
-        if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h._reference_container, f, bus=bus)
-
-        if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h._reference_container, f, bus=bus)
 
     def initialise_source(self, c, key):
         r"""
@@ -916,187 +892,6 @@ class SimpleHeatExchanger(Component):
         self.S_Q = i.m.val_SI * (s2_star - s1_star)
         self.S_irr = i.m.val_SI * (o.s.val_SI - i.s.val_SI) - self.S_Q
         self.T_mQ = (o.h.val_SI - i.h.val_SI) / (s2_star - s1_star)
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a simple heat exchanger.
-
-        The exergy of heat is calculated by allocation of thermal and
-        mechanical share of exergy in the physical exergy. Depending on the
-        temperature levels at the inlet and outlet of the heat exchanger as
-        well as the direction of heat transfer (input or output) fuel and
-        product exergy are calculated as follows.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        If the fluid transfers heat to the ambient, you can specify
-        :code:`mysimpleheatexchanger.set_attr(dissipative=False)` if you do
-        NOT want the exergy production nan (only applicable in case
-        :math:`\dot{Q}<0`).
-
-        .. math ::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \begin{cases}
-            \begin{cases}
-            \text{not defined (nan)} & \text{if dissipative}\\
-            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} &
-            \text{else}\\
-            \end{cases}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
-            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} +
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M} +
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} > 0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \begin{cases}
-            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} +
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T} +
-            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} +
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
-            \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
-            \dot{E}_\mathrm{in}^\mathrm{T}-\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} > 0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} =
-            \begin{cases}
-            \begin{cases}
-            \dot{E}_\mathrm{P} & \text{other cases}\\
-            \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-            \dot{E}_\mathrm{F} & \dot{Q} > 0\\
-            \end{cases}
-        """
-        if self.dissipative.val is None:
-            self.dissipative.val = True
-            msg = (
-                "In a future version of TESPy, the dissipative property must "
-                "explicitly be set to True or False in the context of the "
-                f"exergy analysis for component {self.label}."
-            )
-            logger.warning(msg)
-        if self.Q.val_SI < 0:
-            if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-                if self.dissipative.val:
-                    self.E_P = np.nan
-                else:
-                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_P
-                }
-            elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
-                self.E_P = self.outl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_therm + self.outl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0,
-                    "massless": self.inl[0].Ex_therm + self.outl[0].Ex_therm
-                }
-            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-                self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_P
-                }
-            else:
-                msg = (
-                    'Exergy balance of simple heat exchangers, where outlet '
-                    'temperature is higher than inlet temperature with heat '
-                    'extracted is not implemented.'
-                )
-                logger.warning(msg)
-                self.E_P = np.nan
-                self.E_F = np.nan
-                self.E_bus = {
-                    "chemical": np.nan, "physical": np.nan, "massless": np.nan
-                }
-        elif self.Q.val_SI > 0:
-            if self.inl[0].T.val_SI >= T0 - 1e-6 and self.outl[0].T.val_SI >= T0 - 1e-6:
-                self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-                self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_F
-                }
-            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-                self.E_P = self.outl[0].Ex_therm + self.inl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0,
-                    "massless": self.inl[0].Ex_therm
-                }
-            elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
-                if self.dissipative.val:
-                    self.E_P = np.nan
-                else:
-                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
-                        self.outl[0].Ex_mech - self.inl[0].Ex_mech
-                    )
-                self.E_F = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_F
-                }
-            else:
-                msg = (
-                    'Exergy balance of simple heat exchangers, where inlet '
-                    'temperature is higher than outlet temperature with heat '
-                    'injected is not implmented.'
-                )
-                logger.warning(msg)
-                self.E_P = np.nan
-                self.E_F = np.nan
-                self.E_bus = {
-                    "chemical": np.nan, "physical": np.nan, "massless": self.E_F
-                }
-        else:
-            # fully dissipative
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-            self.E_bus = {
-                "chemical": np.nan, "physical": np.nan, "massless": np.nan
-            }
-
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

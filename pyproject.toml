@@ -27,7 +27,7 @@ exclude = [
 
 [project]
 name = "tespy"
-version = "0.9.16.dev0"
+version = "0.10.0.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -47,7 +47,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "CoolProp>=6.8",
     "fluprodia>=4.1.2",
@@ -70,6 +70,7 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 [project.optional-dependencies]
 dev = [
     "build",
+    "exerpy",
     "flit",
     "fluprodia>=4",
     "furo",

@@ -270,8 +270,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     - the refrigerant index (which side of the heat exchanger is passed by the
       refrigerant)
 
-    >>> import os
-    >>> nw.save("design.json")
+    >>> design_state = nw.save(as_dict=True)
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
@@ -281,7 +280,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     ...     design=["td_pinch"],
     ...     offdesign=["UA_cecchinato"]
     ... )
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
 
     Without modifying any parameter, pinch and UA should be identical to
     design conditions.
@@ -296,14 +295,13 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     than the UA value does.
 
     >>> c1.set_attr(m=0.8)
-    >>> nw.solve("offdesign", design_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(cd.Q.val_SI / cd.Q.design, 2)
     0.8
     >>> round(cd.UA.val_SI / cd.UA.design, 2)
     0.88
     >>> round(cd.td_pinch.val, 2)
     4.3
-    >>> os.remove("design.json")
     """
     def get_parameters(self):
         params = super().get_parameters()

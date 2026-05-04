@@ -102,7 +102,6 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "temperature": "degC"
@@ -117,7 +116,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -129,12 +128,11 @@ class Valve(Component):
     we can determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> os.remove('tmp.json')
 
     You can also specify the flow coefficient of the valve :code:`Kv` which is
     used in context of liquids. For this there are several methods available:
@@ -488,67 +486,6 @@ class Valve(Component):
         self.S_irr = self.inl[0].m.val_SI * (
             self.outl[0].s.val_SI - self.inl[0].s.val_SI
         )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a valve.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \text{not defined (nan)} & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M}-
-            \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-        """
-        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_therm + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-        else:
-            msg = (
-                'Exergy balance of a valve, where outlet temperature is '
-                'larger than inlet temperature is not implemented.'
-            )
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

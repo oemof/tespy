@@ -56,6 +56,7 @@ from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import seeded_random
 from tespy.tools.units import SI_UNITS
 
 
@@ -236,6 +237,88 @@ class ConnectionBase:
 
     def get_variables(self):
         return {}
+
+    def _build_parameters(self):
+        return {
+            k: v for k, v in self.get_parameters().items()
+            if hasattr(v, "func") and v.func is not None
+        }
+
+    def _init_common(self, source, outlet_id, target, inlet_id, label, **kwargs):
+        self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
+        if label is not None:
+            self.label = label
+            if not isinstance(label, str):
+                msg = "Please provide the label as string."
+                logger.error(msg)
+                raise TypeError(msg)
+
+        self.source = source
+        self.source_id = outlet_id
+        self.target = target
+        self.target_id = inlet_id
+
+        self.new_design = True
+        self.design_path = None
+        self.design = []
+        self.offdesign = []
+        self.local_design = False
+        self.local_offdesign = False
+        self.printout = True
+
+        self.property_data = self.get_parameters()
+        self.property_data0 = [x + '0' for x in self.property_data.keys()]
+        self.parameters = self._build_parameters()
+        self.__dict__.update(self.property_data)
+        logger.debug(
+            f"Created connection from {self.source.label} ({self.source_id}) "
+            f"to {self.target.label} ({self.target_id})."
+        )
+        self.set_attr(**kwargs)
+
+    def _set_design_list(self, key, value):
+        if not isinstance(value, list):
+            msg = f"Please provide the {key} parameters as list!"
+            logger.error(msg)
+            raise TypeError(msg)
+        if not set(value).issubset(self.property_data.keys()):
+            params = ', '.join(self.property_data.keys())
+            msg = (
+                f"Available parameters for (off-)design specification are: {params}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        self.__dict__[key] = value
+
+    def _set_path_attr(self, value):
+        self.design_path = value
+        self.new_design = True
+
+    def _set_bool_attr(self, key, value):
+        if not isinstance(value, bool):
+            msg = f"Please provide the {key} parameter as boolean."
+            logger.error(msg)
+            raise TypeError(msg)
+        self.__dict__[key] = value
+
+    def _reset_design(self, redesign):
+        for value in self.get_variables().values():
+            value.design = np.nan
+
+        self.new_design = True
+
+        if redesign:
+            for var in self.design:
+                self.get_attr(var).is_set = True
+
+            for var in self.offdesign:
+                self.get_attr(var).is_set = False
+
+    def _presolve(self):
+        return []
+
+    def _guess_starting_values(self, units):
+        pass
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -543,6 +626,15 @@ class Connection(ConnectionBase):
     False
     """
 
+    def _build_parameters(self):
+        return {
+            k: v for k, v in self.get_parameters().items()
+            if (
+                (hasattr(v, "func") and v.func is not None)
+                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
+            )
+        }
+
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
@@ -552,66 +644,14 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
-        if label is not None:
-            self.label = label
-            if not isinstance(label, str):
-                msg = "Please provide the label as string."
-                logger.error(msg)
-                raise TypeError(msg)
-
-        # set specified values
-        self.source = source
-        self.source_id = outlet_id
-        self.target = target
-        self.target_id = inlet_id
-
-        # defaults
-        self.new_design = True
-        self.design_path = None
-        self.design = []
-        self.offdesign = []
-        self.local_design = False
-        self.local_offdesign = False
-        self.printout = True
-
-        # set default values for kwargs
-        self.property_data = self.get_parameters()
-        self.parameters = {
-            k: v for k, v in self.get_parameters().items()
-            if (
-                (hasattr(v, "func") and v.func is not None)
-                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
-            )
-        }
         self.state = dc_simple()
         self.phase = dc_simple()
-        self.property_data0 = [x + '0' for x in self.property_data.keys()]
-        self.__dict__.update(self.property_data)
         self.mixing_rule = None
-        msg = (
-            f"Created connection from {self.source.label} ({self.source_id}) "
-            f"to {self.target.label} ({self.target_id})."
-        )
-        logger.debug(msg)
-
-        self.set_attr(**kwargs)
+        self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
 
     def _reset_design(self, redesign):
-        for value in self.get_variables().values():
-            value.design = np.nan
-
         self.fluid.design = {}
-
-        self.new_design = True
-
-        # switch connections to design mode
-        if redesign:
-            for var in self.design:
-                self.get_attr(var).is_set = True
-
-            for var in self.offdesign:
-                self.get_attr(var).is_set = False
+        super()._reset_design(redesign)
 
     def set_attr(self, **kwargs):
         r"""
@@ -733,31 +773,6 @@ class Connection(ConnectionBase):
             logger.error(msg)
             raise TypeError(msg)
 
-    def _set_design_list(self, key, value):
-        if not isinstance(value, list):
-            msg = f"Please provide the {key} parameters as list!"
-            logger.error(msg)
-            raise TypeError(msg)
-        if not set(value).issubset(self.property_data.keys()):
-            params = ', '.join(self.property_data.keys())
-            msg = (
-                f"Available parameters for (off-)design specification are: {params}."
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-        self.__dict__[key] = value
-
-    def _set_path_attr(self, value):
-        self.design_path = value
-        self.new_design = True
-
-    def _set_bool_attr(self, key, value):
-        if not isinstance(value, bool):
-            msg = f"Please provide the {key} parameter as boolean."
-            logger.error(msg)
-            raise TypeError(msg)
-        self.__dict__[key] = value
-
     def _fluid_specification(self, key, value):
 
         self._check_fluid_datatypes(key, value)
@@ -873,6 +888,72 @@ class Connection(ConnectionBase):
                 fluid, back_end, **wrapper_kwargs
             )
 
+    def _guess_starting_values(self, units):
+        # the below part does not work for PowerConnection right now
+        if sum(self.fluid.val.values()) == 0:
+            msg = (
+                'The starting value for the fluid composition of the '
+                f'connection {self.label} is empty. This might lead to issues '
+                'in the initialisation and solving process as fluid '
+                'property functions can not be called. Make sure you '
+                'specified a fluid composition in all parts of the network.'
+            )
+            logger.warning(msg)
+
+        for key, variable in self.get_variables().items():
+            # for connections variables can be presolved and not be var anymore
+            if variable.is_var:
+                if not self.good_starting_values:
+                    self._guess_starting_value_from_connected_components(key, units)
+
+                variable.set_SI_from_val0(units)
+                # variable.set_SI_from_val0()
+                variable.set_reference_val_SI(variable._val_SI)
+
+        self._precalc_guess_values()
+
+    def _guess_starting_value_from_connected_components(self, key, units):
+        r"""
+        Set starting values for fluid properties.
+
+        The component classes provide generic starting values for their inlets
+        and outlets.
+
+        Parameters
+        ----------
+        c : tespy.connections.connection.Connection
+            Connection to initialise.
+        """
+        if np.isnan(self.get_attr(key).val0):
+            # starting value for mass flow is random between 1 and 2 kg/s
+            # (should be generated based on some hash maybe?)
+            if key == 'm':
+                rndm = seeded_random(self.label)
+                value = float(rndm + 1)
+
+            # generic starting values for pressure and enthalpy
+            elif key in ['p', 'h']:
+                # retrieve starting values from component information
+                val_s = self.source.initialise_source(self, key)
+                val_t = self.target.initialise_target(self, key)
+
+                if val_s == 0 and val_t == 0:
+                    if key == 'p':
+                        value = 1e5
+                    elif key == 'h':
+                        value = 1e6
+
+                elif val_s == 0:
+                    value = val_t
+                elif val_t == 0:
+                    value = val_s
+                else:
+                    value = (val_s + val_t) / 2
+
+            # these values are SI, so they are set to the respective variable
+            self.get_attr(key).set_reference_val_SI(value)
+            self.get_attr(key).set_val0_from_SI(units)
+
     def _precalc_guess_values(self):
         """
         Precalculate enthalpy values for connections.
@@ -961,6 +1042,7 @@ class Connection(ConnectionBase):
             raise TESPyNetworkError(msg)
 
         presolved_equations = []
+
         if self.p.is_set:
             if self.T_dew.is_set or self.T_bubble.is_set:
                 msg = (
@@ -1232,7 +1314,7 @@ class Connection(ConnectionBase):
                 dependents=self.Td_bp_dependents, num_eq=1,
                 quantity="temperature_difference",
                 description="temperature difference to boiling point (deprecated)"
-            )
+            ),
         }
 
     def get_fluid_data(self):
@@ -1788,7 +1870,7 @@ class Connection(ConnectionBase):
                 self._adjust_enthalpy(fl)
 
                 # two-phase related
-                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 10:
+                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
                     self._adjust_to_two_phase(fl)
 
         # mixture
@@ -1997,38 +2079,6 @@ class Connection(ConnectionBase):
 
         self.ex_physical = self.ex_therm + self.ex_mech
         self.Ex_physical = self.m.val_SI * self.ex_physical
-
-    def _get_chemical_exergy(self, pamb, Tamb, Chem_Ex):
-        r"""
-        Get the value of a connection's specific chemical exergy.
-
-        Parameters
-        ----------
-        p0 : float
-            Ambient pressure p0 / Pa.
-
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Chem_Ex : dict
-            Lookup table for standard specific chemical exergy.
-
-        Note
-        ----
-            .. math::
-
-                E^\mathrm{CH} = \dot{m} \cdot e^\mathrm{CH}
-        """
-        if Chem_Ex is None:
-            self.ex_chemical = 0
-        else:
-            self.ex_chemical = fp.functions.calc_chemical_exergy(
-                pamb, Tamb, self.fluid_data, Chem_Ex, self.mixing_rule,
-                self.T.val_SI
-            )
-
-        self.Ex_chemical = self.m.val_SI * self.ex_chemical
-
 
 class Ref:
     r"""

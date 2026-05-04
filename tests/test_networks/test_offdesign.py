@@ -33,7 +33,7 @@ from tespy.tools import load_default_char
 from tespy.tools.helpers import TESPyNetworkError
 
 
-def _build_network_and_designs(tmp_path):
+def _build_network_and_designs():
     """
     Build a compressor -> heat-exchanger network and save two design cases.
 
@@ -43,9 +43,6 @@ def _build_network_and_designs(tmp_path):
     Returns a dict with the network, all components and connections, the two
     save-file paths, and the parsed JSON dicts for both design cases.
     """
-    tmp_path1 = f"{tmp_path}1.json"
-    tmp_path2 = f"{tmp_path}2.json"
-
     nw = Network()
     nw.units.set_defaults(
         pressure="bar", temperature="degC", pressure_difference="kPa"
@@ -79,36 +76,28 @@ def _build_network_and_designs(tmp_path):
 
     # design case 1: m = 1 kg/s
     nw.solve("design")
-    nw.save(tmp_path1)
+    design1 = nw.save(as_dict=True)
 
     # design case 2: m = 0.8 kg/s
     c1.set_attr(m=0.8)
     c1.set_attr(T_dew=52)
     nw.solve("design")
-    nw.save(tmp_path2)
-
-    with open(tmp_path1) as f:
-        design1 = json.load(f)
-    with open(tmp_path2) as f:
-        design2 = json.load(f)
+    design2 = nw.save(as_dict=True)
 
     return dict(
         nw=nw,
         compressor=compressor, heatex=heatex,
         c0=c0, c1=c1, c2=c2, c3=c3, c4=c4,
-        tmp_path1=tmp_path1, tmp_path2=tmp_path2,
         design1=design1, design2=design2,
     )
 
 
-def _build_isolated_design(tmp_path):
+def _build_isolated_design():
     """
     Build a standalone heat-exchanger network (no compressor) and save its
     design. Labels match those used in the bigger network built by
     _build_network_and_designs.
     """
-    save_path = f"{tmp_path}_isolated.json"
-
     nw = Network()
     nw.units.set_defaults(
         pressure="bar",
@@ -138,23 +127,18 @@ def _build_isolated_design(tmp_path):
     )
 
     nw.solve("design")
-    nw.save(save_path)
+    design = nw.save(as_dict=True)
 
-    with open(save_path, "r") as f:
-        design = json.load(f)
-
-    return dict(save_path=save_path, design=design)
+    return dict(design=design)
 
 
-def _build_isolated_design_with_different_labels(tmp_path):
+def _build_isolated_design_with_different_labels():
     """
     Like _build_isolated_design but with different component and connection
     labels. The heat exchanger type is the same, so the single-type fallback
     should resolve the component, and port-based matching should resolve the
     connections.
     """
-    save_path = f"{tmp_path}_isolated_diff.json"
-
     nw = Network()
     nw.units.set_defaults(
         pressure="bar",
@@ -184,26 +168,22 @@ def _build_isolated_design_with_different_labels(tmp_path):
     )
 
     nw.solve("design")
-    nw.save(save_path)
+    design = nw.save(as_dict=True)
 
-    with open(save_path, "r") as f:
-        design = json.load(f)
-
-    return dict(save_path=save_path, design=design)
+    return dict(design=design)
 
 
-def test_individual_design_path_offdesign(tmp_path):
+def test_individual_design_path_offdesign():
     """
     Component design values: heat exchanger uses its local design path,
     compressor stays on the global design path.
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, compressor, heatex = o["nw"], o["compressor"], o["heatex"]
     c1 = o["c1"]
     design1, design2 = o["design1"], o["design2"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
 
-    nw.solve("offdesign", design_path=tmp_path1, init_only=True)
+    nw.solve("offdesign", design_path=design1, init_only=True)
 
     assert heatex.UA.design == design1["Component"]["SectionedHeatExchanger"]["heat exchanger"]["UA"]
     assert compressor.eta_s.design == design1["Component"]["Compressor"]["compressor"]["eta_s"]
@@ -214,8 +194,8 @@ def test_individual_design_path_offdesign(tmp_path):
     assert compressor._conn_design(c1, "m") == c1.m.design
     assert compressor._conn_design(c1, "T") == c1.T.design
 
-    heatex.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1, init_only=True)
+    heatex.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1, init_only=True)
 
     assert heatex.UA.design == design2["Component"]["SectionedHeatExchanger"]["heat exchanger"]["UA"]
     assert compressor.eta_s.design == design1["Component"]["Compressor"]["compressor"]["eta_s"]
@@ -226,7 +206,7 @@ def test_individual_design_path_offdesign(tmp_path):
     assert heatex._conn_design(c1, "T") != c1.T.design
 
 
-def test_local_offdesign_adjacent_components_different_paths(tmp_path):
+def test_local_offdesign_adjacent_components_different_paths():
     """
     Two adjacent components (compressor -> heat exchanger, sharing connection
     c1) can each have local_offdesign=True pointing to *different* design
@@ -234,14 +214,13 @@ def test_local_offdesign_adjacent_components_different_paths(tmp_path):
     reference for the shared connection; they must not interfere with each
     other.
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, compressor, heatex = o["nw"], o["compressor"], o["heatex"]
     design1, design2 = o["design1"], o["design2"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
     c1 = o["c1"]
 
-    compressor.set_attr(design_path=tmp_path1, local_offdesign=True)
-    heatex.set_attr(design_path=tmp_path2, local_offdesign=True)
+    compressor.set_attr(design_path=design1, local_offdesign=True)
+    heatex.set_attr(design_path=design2, local_offdesign=True)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -267,18 +246,17 @@ def test_local_offdesign_adjacent_components_different_paths(tmp_path):
     assert np.isnan(c1.m.design)
 
 
-def test_unset_local_offdesign_clears_data(tmp_path):
+def test_unset_local_offdesign_clears_data():
     """
     After a run with local_offdesign=True a run with local_offdesign=False
     must not be able to reference values from the old design_path
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, heatex = o["nw"], o["heatex"]
     design2 = o["design2"]
-    tmp_path2 = o["tmp_path2"]
     c1 = o["c1"]
 
-    heatex.set_attr(design_path=tmp_path2, local_offdesign=True)
+    heatex.set_attr(design_path=design2, local_offdesign=True)
     nw.solve("design", init_only=True)
 
     expected_m = design2["Connection"]["Connection"]["c1"]["m"]
@@ -290,21 +268,20 @@ def test_unset_local_offdesign_clears_data(tmp_path):
     assert np.isnan(heatex._conn_design(c1, "m"))
 
 
-def test_offdesign_connection_design_stays_global(tmp_path):
+def test_offdesign_connection_design_stays_global():
     """
     After an offdesign solve the adjacent connections' own .design
     attributes must still reflect the global design path. The local design
     reference lives exclusively in _local_connection_design_state on the
     component; the connection objects themselves are not modified.
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, heatex = o["nw"], o["heatex"]
     c1 = o["c1"]
-    design1 = o["design1"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
+    design1, design2 = o["design1"], o["design2"]
 
-    heatex.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1)
 
     # c1 is adjacent to heatex, but its .design comes from the global design1.
     # Mass flow is in kg/s both as SI and as saved unit, so no conversion needed.
@@ -319,13 +296,13 @@ def test_offdesign_non_local_component_uses_global(tmp_path):
     _local_connection_design_state and _conn_design must return the
     connection's own (global) .design value unchanged.
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, compressor, heatex = o["nw"], o["compressor"], o["heatex"]
     c0, c1 = o["c0"], o["c1"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
+    design1, design2 = o["design1"], o["design2"]
 
-    heatex.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1)
 
     # Compressor has no local_offdesign -> empty local state
     assert compressor._local_connection_design_state == {}
@@ -335,19 +312,18 @@ def test_offdesign_non_local_component_uses_global(tmp_path):
     assert compressor._conn_design(c1, "m") == c1.m.design
 
 
-def test_local_design_path_reverts_to_global_when_unset(tmp_path):
+def test_local_design_path_reverts_to_global_when_unset():
     """
     After unsetting a component's design_path the global is used again
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, heatex = o["nw"], o["heatex"]
     design1, design2 = o["design1"], o["design2"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
     c1 = o["c1"]
 
     # Enable local offdesign -> UA from design2
-    heatex.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1)
     assert approx(heatex.UA.design) == design2["Component"]["SectionedHeatExchanger"]["heat exchanger"]["UA"]
     assert approx(heatex._conn_design(c1, "m")) != c1.m.design
 
@@ -363,27 +339,27 @@ def test_local_design_path_reverts_to_global_when_unset(tmp_path):
     # UA.design reverts to the global value once _load_offdesign_state() is
     # triggered.  Clearing design_path sets new_design=True on the component,
     # which is enough to trigger a reload on the next solve.
-    nw.solve("offdesign", design_path=tmp_path1)
+    nw.solve("offdesign", design_path=design1)
     assert approx(heatex.UA.design) == design1["Component"]["SectionedHeatExchanger"]["heat exchanger"]["UA"]
 
 
-def test_isolated_design_matching_labels(tmp_path):
+def test_isolated_design_matching_labels():
     """
     Load a local_offdesign component's design state from an isolated design
     file where all labels match. The UA design value and adjacent connection
     design values must come from the isolated design, not the global path.
     """
-    o = _build_network_and_designs(tmp_path)
-    iso = _build_isolated_design(tmp_path)
+    o = _build_network_and_designs()
+    iso = _build_isolated_design()
 
     nw, heatex = o["nw"], o["heatex"]
-    tmp_path1 = o["tmp_path1"]
+    design1 = o["design1"]
 
     # The isolated design has the same UA value as design1 (same conditions),
     # so we confirm the component and connections were loaded by checking the
     # _local_connection_design_state is populated.
-    heatex.set_attr(design_path=iso["save_path"])
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=iso["design"])
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     # Component design value (UA) loaded from the isolated design
@@ -403,21 +379,21 @@ def test_isolated_design_matching_labels(tmp_path):
     assert local_c1_m == approx(expected)
 
 
-def test_isolated_design_different_labels(tmp_path):
+def test_isolated_design_different_labels():
     """
     Load a local_offdesign component's design state from an isolated design
     file where the component label and connection labels differ from the main
     network. The single-type fallback should resolve the component, and
     port-based matching should resolve the connections.
     """
-    o = _build_network_and_designs(tmp_path)
-    iso = _build_isolated_design_with_different_labels(tmp_path)
+    o = _build_network_and_designs()
+    iso = _build_isolated_design_with_different_labels()
 
     nw, heatex = o["nw"], o["heatex"]
-    tmp_path1 = o["tmp_path1"]
+    design1 = o["design1"]
 
-    heatex.set_attr(design_path=iso["save_path"], local_offdesign=True)
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=iso["design"], local_offdesign=True)
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     # Component design value loaded via single-type fallback
@@ -442,20 +418,20 @@ def test_isolated_design_different_labels(tmp_path):
     )
 
 
-def test_UA_char_char_expr_offdesign_design_reference(tmp_path):
+def test_UA_char_char_expr_offdesign_design_reference():
     """
     Verify that the UA modification uses different references for their
     mass flows in offdesign with individual design_path and global design path
     """
-    o = _build_network_and_designs(tmp_path)
+    o = _build_network_and_designs()
     nw, heatex = o["nw"], o["heatex"]
     c1 = o["c1"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
+    design1, design2 = o["design1"], o["design2"]
 
     c1.set_attr(m=0.9)
 
-    heatex.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1)
+    heatex.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
@@ -470,7 +446,7 @@ def test_UA_char_char_expr_offdesign_design_reference(tmp_path):
 
     # change to different specification: no design path of component
     heatex.set_attr(design_path=None)
-    nw.solve("offdesign", design_path=tmp_path1)
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
@@ -485,36 +461,32 @@ def test_UA_char_char_expr_offdesign_design_reference(tmp_path):
     assert approx(fUA_a) != fUA_b
 
 
-def test_design_without_topology_info_mismatched_labels_raises(tmp_path):
+def test_design_without_topology_info_mismatched_labels_raises():
     """
     An old-style design file (no source/target/source_id/target_id topology
     columns) must work fine when connection labels match, but must raise a
     KeyError with a clear message when labels differ and topology-based
     fallback is therefore unavailable.
     """
-    o = _build_network_and_designs(tmp_path)
-    iso = _build_isolated_design_with_different_labels(tmp_path)
+    o = _build_network_and_designs()
+    iso = _build_isolated_design_with_different_labels()
 
     nw, heatex = o["nw"], o["heatex"]
-    tmp_path1 = o["tmp_path1"]
+    design1 = o["design1"]
 
     # Strip topology columns to simulate a pre-0.9.15 export
-    old_style_path = f"{tmp_path}_old_style.json"
-    with open(iso["save_path"]) as f:
-        data = json.load(f)
+    data = iso["design"]
     for conns in data["Connection"].values():
         for conn_data in conns.values():
             for col in ("source", "target", "source_id", "target_id"):
                 conn_data.pop(col, None)
-    with open(old_style_path, "w") as f:
-        json.dump(data, f)
 
-    heatex.set_attr(design_path=old_style_path)
+    heatex.set_attr(design_path=data)
     with raises(KeyError):
-        nw.solve("offdesign", design_path=tmp_path1, init_only=True)
+        nw.solve("offdesign", design_path=design1, init_only=True)
 
 
-def _build_power_network_and_designs(tmp_path):
+def _build_power_network_and_designs():
     """
     Build a power-only model (PowerSource -> Motor/inverter -> Motor -> PowerSink)
     and save two design cases.
@@ -522,12 +494,9 @@ def _build_power_network_and_designs(tmp_path):
     Design 1: inverter eta=0.95, inlet power E=100 kW
     Design 2: inverter eta=0.90, inlet power E=80 kW
 
-    Returns a dict with the network, all components and connections, the two
-    save-file paths, and the parsed JSON dicts for both design cases.
+    Returns a dict with the network, all components and connections, and the
+    dicts for both design cases.
     """
-    tmp_path1 = f"{tmp_path}1.json"
-    tmp_path2 = f"{tmp_path}2.json"
-
     nw = Network()
     nw.units.set_defaults(
         pressure="bar", temperature="degC", pressure_difference="kPa",
@@ -551,24 +520,18 @@ def _build_power_network_and_designs(tmp_path):
     # design case 1: eta=0.95, E=100 kW
     e1.set_attr(E=100)
     nw.solve("design")
-    nw.save(tmp_path1)
+    design1 = nw.save(as_dict=True)
 
     # design case 2: eta=0.90, E=80 kW
     inverter.set_attr(eta=0.90)
     e1.set_attr(E=80)
     nw.solve("design")
-    nw.save(tmp_path2)
-
-    with open(tmp_path1) as f:
-        design1 = json.load(f)
-    with open(tmp_path2) as f:
-        design2 = json.load(f)
+    design2 = nw.save(as_dict=True)
 
     return dict(
         nw=nw,
         inverter=inverter, motor=motor,
         e1=e1, e2=e2, e3=e3,
-        tmp_path1=tmp_path1, tmp_path2=tmp_path2,
         design1=design1, design2=design2,
     )
 
@@ -579,14 +542,13 @@ def test_power_individual_design_path_offdesign(tmp_path):
     value is different from two different components, when they use different
     design paths
     """
-    o = _build_power_network_and_designs(tmp_path)
+    o = _build_power_network_and_designs()
     nw, inverter, motor = o["nw"], o["inverter"], o["motor"]
     e1, e2 = o["e1"], o["e2"]
     design1, design2 = o["design1"], o["design2"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
 
     # --- Global design1 as baseline ---
-    nw.solve("offdesign", design_path=tmp_path1, init_only=True)
+    nw.solve("offdesign", design_path=design1, init_only=True)
 
     assert inverter.eta.design == approx(
         design1["Component"]["Motor"]["inverter"]["eta"]
@@ -597,8 +559,8 @@ def test_power_individual_design_path_offdesign(tmp_path):
     assert approx(inverter._conn_design(e2, "E")) == motor._conn_design(e2, "E")
 
     # --- Individual design2 for inverter and its inlet connection ---
-    inverter.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1, init_only=True)
+    inverter.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1, init_only=True)
 
     assert inverter.eta.design == approx(
         design2["Component"]["Motor"]["inverter"]["eta"]
@@ -610,20 +572,20 @@ def test_power_individual_design_path_offdesign(tmp_path):
     assert approx(inverter._conn_design(e2, "E")) != motor._conn_design(e2, "E")
 
 
-def test_eta_char_char_expr_design_mode_local_offdesign(tmp_path):
+def test_eta_char_char_expr_design_mode_local_offdesign():
     """
     When the inverter runs with local_offdesign=True and design_path=design2 in
     a design-mode solve, its eta_char_func must evaluate the characteristic
     expression using the design2 power reference. If E changes, the expression
     needs to change.
     """
-    o = _build_power_network_and_designs(tmp_path)
+    o = _build_power_network_and_designs()
     nw, inverter = o["nw"], o["inverter"]
     e1 = o["e1"]
-    tmp_path2 = o["tmp_path2"]
+    design2 = o["design2"]
 
     # design2 conditions still active: inverter.eta=0.90, e1.E=80 kW
-    inverter.set_attr(local_offdesign=True, design_path=tmp_path2)
+    inverter.set_attr(local_offdesign=True, design_path=design2)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -643,22 +605,22 @@ def test_eta_char_char_expr_design_mode_local_offdesign(tmp_path):
     assert expr == approx(100 / 80)
 
 
-def test_eta_char_char_expr_offdesign_design_reference(tmp_path):
+def test_eta_char_char_expr_offdesign_design_reference():
     """
     Verify that eta_char_func uses the correct design power reference in
     offdesign mode depending on whether the inlet connection has an individual
     design_path.
     """
-    o = _build_power_network_and_designs(tmp_path)
+    o = _build_power_network_and_designs()
     nw, inverter = o["nw"], o["inverter"]
     e1 = o["e1"]
-    tmp_path1, tmp_path2 = o["tmp_path1"], o["tmp_path2"]
+    design1, design2 = o["design1"], o["design2"]
 
     e1.set_attr(E=90)
 
     # individual design_path=design2
-    inverter.set_attr(design_path=tmp_path2)
-    nw.solve("offdesign", design_path=tmp_path1)
+    inverter.set_attr(design_path=design2)
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     assert approx(inverter._conn_design(e1, "E")) != e1.E.design
@@ -667,7 +629,7 @@ def test_eta_char_char_expr_offdesign_design_reference(tmp_path):
 
     # no individual design_path (global design1)
     inverter.set_attr(design_path=None)
-    nw.solve("offdesign", design_path=tmp_path1)
+    nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
     assert approx(inverter._conn_design(e1, "E")) == e1.E.design
@@ -733,17 +695,15 @@ class TestNetworkIndividualOffdesign:
             v1_me, self.sp_p2, self.p2_sc2, self.sc2_v2, v2_me
         )
 
-    def test_individual_design_path_on_connections_and_components(self, tmp_path):
+    def test_individual_design_path_on_connections_and_components(self):
         """Test individual design path specification."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
+        design1 = self.nw.save(as_dict=True)
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta.val
 
@@ -751,7 +711,7 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
+        design2 = self.nw.save(as_dict=True)
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta.val
 
@@ -759,18 +719,18 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc2.set_attr(design_path=tmp_path2)
-        self.pump2.set_attr(design_path=tmp_path2)
-        self.sp_p2.set_attr(design_path=tmp_path2)
-        self.p2_sc2.set_attr(design_path=tmp_path2)
-        self.sc2_v2.set_attr(design_path=tmp_path2)
-        self.nw.solve('offdesign', design_path=tmp_path1)
+        self.sc2.set_attr(design_path=design2)
+        self.pump2.set_attr(design_path=design2)
+        self.sp_p2.set_attr(design_path=design2)
+        self.p2_sc2.set_attr(design_path=design2)
+        self.sc2_v2.set_attr(design_path=design2)
+        self.nw.solve('offdesign', design_path=design1)
         self.nw.assert_convergence()
 
         self.sc1.set_attr(E=500)
         self.sc2.set_attr(E=950)
 
-        self.nw.solve('offdesign', design_path=tmp_path1)
+        self.nw.solve('offdesign', design_path=design1)
         self.nw.assert_convergence()
         self.sc2_v2.set_attr(design_path=None)
 
@@ -802,32 +762,29 @@ class TestNetworkIndividualOffdesign:
         )
         assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
 
-    def test_local_offdesign_on_connections_and_components(self, tmp_path):
+    def test_local_offdesign_on_connections_and_components(self):
         """Test local offdesign feature."""
-        tmp_path1 = f"{tmp_path}1.json"
-        tmp_path2 = f"{tmp_path}2.json"
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        self.nw.save(tmp_path1)
+        design1 = self.nw.save(as_dict=True)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path1)
-        self.sc1_v1.set_attr(local_offdesign=True, design_path=tmp_path1)
+        self.sc1.set_attr(local_offdesign=True, design_path=design1)
+        self.pump1.set_attr(local_offdesign=True, design_path=design1)
+        self.sp_p1.set_attr(local_offdesign=True, design_path=design1)
+        self.p1_sc1.set_attr(local_offdesign=True, design_path=design1)
+        self.sc1_v1.set_attr(local_offdesign=True, design_path=design1)
         self.sc1.set_attr(E=500)
 
         self.sc2_v2.set_attr(T=95, m=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        self.nw.save(tmp_path2)
 
         # connections and components on side 1 must have switched to offdesign
 
@@ -847,24 +804,23 @@ class TestNetworkIndividualOffdesign:
         )
         assert self.sc1_v1.v.is_set, msg
 
-    def test_missing_design_path_local_offdesign_on_connections(self, tmp_path):
+    def test_missing_design_path_local_offdesign_on_connections(self):
         """Test missing design path on connections in local offdesign mode."""
-        tmp_path = f'{tmp_path}.json'
         self.setup_Network_individual_offdesign()
         self.nw.solve('design')
         self.nw.assert_convergence()
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
 
-        self.sc1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.pump1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.sp_p1.set_attr(local_offdesign=True, design_path=tmp_path)
-        self.p1_sc1.set_attr(local_offdesign=True, design_path=tmp_path)
+        self.sc1.set_attr(local_offdesign=True, design_path=design_state)
+        self.pump1.set_attr(local_offdesign=True, design_path=design_state)
+        self.sp_p1.set_attr(local_offdesign=True, design_path=design_state)
+        self.p1_sc1.set_attr(local_offdesign=True, design_path=design_state)
         self.sc1_v1.set_attr(local_offdesign=True)
         self.sc1.set_attr(E=500)
 

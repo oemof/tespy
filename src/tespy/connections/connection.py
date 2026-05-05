@@ -809,6 +809,14 @@ class Connection(ConnectionBase):
         ]
 
         for arg in arglist:
+            if arg not in self.__dict__:
+                msg = (
+                    f"The parameter {arg} passed to construct  "
+                    f"{self.__class__.__name__} {self.label} is not an "
+                    "attribute of this class. Skipping it!"
+                )
+                logger.warning(msg)
+                continue
             container = self.get_attr(arg)
             if isinstance(container, dc):
                 container.set_attr(**data[arg])

@@ -919,23 +919,36 @@ class Network:
             back_ends = {}
             wrapper_kwargs = {}
             any_fluids = []
+
+            all_components = [c for c in branch_data["components"]]
+            for cp in all_components:
+                any_fluids += cp._add_missing_fluids(all_connections)
+
             any_fluids0 = []
             mixing_rules = []
             for c in all_connections:
-                for f in c.fluid.is_set:
-                    any_fluids_set += [f]
-
-                    if f in c.fluid.engine:
-                        engines[f] = c.fluid.engine[f]
-                    if f in c.fluid.back_end:
-                        back_ends[f] = c.fluid.back_end[f]
-                    if f in c.fluid.wrapper_kwargs:
-                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
-
+                any_fluids_set += list(c.fluid.is_set)
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
                 if c.mixing_rule is not None:
                     mixing_rules += [c.mixing_rule]
+
+            for c in all_connections:
+                for f in set(any_fluids):
+                    if f in c.fluid.engine:
+                        if f in engines and engines[f] != c.fluid.engine[f]:
+                            raise ValueError("")
+                        engines[f] = c.fluid.engine[f]
+
+                    if f in c.fluid.back_end:
+                        if f in back_ends and back_ends[f] != c.fluid.back_end[f]:
+                            raise ValueError("")
+                        back_ends[f] = c.fluid.back_end[f]
+
+                    if f in c.fluid.wrapper_kwargs:
+                        if f in wrapper_kwargs and wrapper_kwargs[f] != c.fluid.wrapper_kwargs[f]:
+                            raise ValueError("")
+                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
 
             mixing_rule = list(set(mixing_rules))
             if len(mixing_rule) > 1:
@@ -952,10 +965,6 @@ class Network:
 
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
-
-            all_components = [c for c in branch_data["components"]]
-            for cp in all_components:
-                any_fluids += cp._add_missing_fluids(all_connections)
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             self.all_fluids += list(potential_fluids)
@@ -3250,11 +3259,12 @@ class Network:
 
         # this could be in a different place, its kind of in between
         # network and connection
-        for idx, data in self.variables_dict.items():
-            if type(data["obj"]) == dc_vecvar:
-                total_mass_fractions = sum(data["obj"].val.values())
-                for fluid in data["obj"].is_var:
-                    data["obj"]._val[fluid] /= total_mass_fractions
+        if self.iter < 10:
+            for data in self.variables_dict.values():
+                if type(data["obj"]) == dc_vecvar:
+                    total_mass_fractions = sum(data["obj"].val.values())
+                    for fluid in data["obj"].is_var:
+                        data["obj"]._val[fluid] /= total_mass_fractions
 
         if norm(self.increment) > 1e-1:
             for c in self.conns['object']:

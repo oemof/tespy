@@ -9,11 +9,12 @@ tests/test_components/test_combustion.py
 
 SPDX-License-Identifier: MIT
 """
-
-import pytest
+from pytest import approx
+from pytest import raises
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
+from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
 from tespy.components import Motor
 from tespy.components import PowerSink
@@ -45,6 +46,15 @@ class TestCombustion:
         self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
         self.c3 = Connection(instance, 'out1', self.fg, 'in1', label="fluegas")
         self.nw.add_conns(self.c1, self.c2, self.c3)
+
+    def setup_CombustionChamber_network_wNO(self, instance):
+        self.cp = Compressor("Compressor")
+
+        self.c1 = Connection(self.air, 'out1', instance, 'in1', label="air")
+        self.c2 = Connection(self.fuel, 'out1', instance, 'in2', label="fuel")
+        self.c3 = Connection(instance, 'out1', self.cp, 'in1', label="heated air")
+        self.c4 = Connection(self.cp, 'out1', self.fg, 'in1', label="fluegas")
+        self.nw.add_conns(self.c1, self.c2, self.c3, self.c4)
 
     def setup_CombustionEngine_network(self, instance):
 
@@ -118,7 +128,7 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        assert instance.fuels["CO"]["LHV"] == pytest.approx(10112000, 1e-3)
+        assert instance.fuels["CO"]["LHV"] == approx(10112000, 1e-3)
 
         molar_flow = {}
         for c in self.nw.conns["object"]:
@@ -129,13 +139,63 @@ class TestCombustion:
             }
         o2 = molar_flow["air"]["O2"]
         co2 = molar_flow["fluegas"]["CO2"]
-        assert o2 == pytest.approx(co2 * 1.5, 1e-3)
+        assert o2 == approx(co2 * 1.5, 1e-3)
 
         self.c3.set_attr(T=1500)
         instance.set_attr(lamb=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert self.c3.T.val == pytest.approx(1500)
+        assert self.c3.T.val == approx(1500)
+
+    def test_CombustionChamberNO(self):
+        """
+        Test component properties of combustion chamber.
+        """
+        instance = CombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network_wNO(instance)
+
+        # connection parameter specification
+        air = {'N2': 0.7556, 'O2': 0.2315, 'Ar': 0.0129}
+        fuel = {'CO2': 0.04, 'CH4': 0.96}
+        self.c1.set_attr(fluid=air, p=1, T=30)
+        self.c2.set_attr(fluid=fuel, T=30, m=0.2)
+        instance.set_attr(lamb=1.5)
+        self.cp.set_attr(eta_s=0.8, pr=10)
+        self.nw.solve('design')
+
+        self.c3.set_attr(T=1200)
+        instance.set_attr(lamb=None)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        m_in1 = self.c1.m.val_SI
+        m_in2 = self.c2.m.val_SI
+
+        # test specification of f_nox == 0: Must be same result
+        instance.set_attr(f_nox=0.0)
+        self.nw.solve('design')
+        assert approx(m_in1) == self.c1.m.val_SI
+        assert approx(m_in2) == self.c2.m.val_SI
+        assert approx(self.c3.fluid.val["NO"]) == 0
+
+        # test specification of f_nox > 0
+        f_nox = 0.01
+        instance.set_attr(f_nox=f_nox)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        # here we need to actually check what is the expected result
+        mass_NO = self.c3.fluid.val["NO"] * self.c3.m.val_SI
+        mass_inlet = self.c1.m.val_SI + self.c2.m.val_SI
+        assert approx(mass_NO) == mass_inlet * f_nox / 2
+
+        M_NO = self.c3.fluid_data["NO"]["wrapper"]._molar_mass
+        M_N2 = self.c1.fluid_data["N2"]["wrapper"]._molar_mass
+        n_nitrogen_out = (
+            self.c3.fluid.val["NO"] * self.c3.m.val_SI / M_NO
+            + self.c3.fluid.val["N2"] * self.c3.m.val_SI / M_N2 * 2
+        )
+        n_nitrogen_in = self.c1.fluid.val["N2"] * self.c1.m.val_SI / M_N2 * 2
+        assert approx(n_nitrogen_in) == n_nitrogen_out
+
 
     def test_DiabaticCombustionChamber_H2(self):
         instance = DiabaticCombustionChamber('combustion chamber')
@@ -171,7 +231,7 @@ class TestCombustion:
         instance.set_attr(lamb=1)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        assert self.c3.T.val_SI == pytest.approx(2110, abs=0.1)
+        assert self.c3.T.val_SI == approx(2110, abs=0.1)
 
     def test_DiabaticCombustionChamber(self):
         """
@@ -223,7 +283,7 @@ class TestCombustion:
         instance.set_attr(pr=pr)
         self.c2.set_attr(p=None)
         self.c3.set_attr(p=1.3)
-        with pytest.raises(TESPyNetworkError):
+        with raises(TESPyNetworkError):
             self.nw.solve('design')
 
     def test_CombustionEngine(self):

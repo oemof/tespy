@@ -27,6 +27,17 @@ API Changes
   :code:`ExergyAnalysis.from_tespy(nw, Tamb, pamb)` directly from exerpy
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
 
+New Features
+############
+- A new :code:`f_nox` parameter has been added to
+  :py:class:`~tespy.components.combustion.base.CombustionChamber` and derived
+  combustion components. Setting it enables nitric oxide (NO) formation
+  modelling: the value represents the mass-based NO generation rate (mass of NO
+  created per unit mass of total fuel and air input). Requires
+  `pyromat <https://github.com/chmarti1/PYroMat>`__ being installed as fluid
+  property backend
+  (`PR #904 <https://github.com/oemof/tespy/pull/904>`__).
+
 Other Changes
 #############
 - Support for Python 3.10 has been dropped.
@@ -90,3 +101,4 @@ Bug Fixes
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

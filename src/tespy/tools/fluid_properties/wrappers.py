@@ -808,8 +808,14 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
-        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
+
+        if self.back_end == "mp":
+            self._T_crit, self._p_crit = self.AS.critical()
+        else:
+            self._T_crit = self._T_max
+            self._p_crit = self._p_max
+
         self._molar_mass = self.AS.mw()
 
     def isentropic(self, p_1, h_1, p_2):
@@ -846,8 +852,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         return self.AS.s(p=p, h=h)[0]
 
     def s_pT(self, p, T):
-        if self.back_end == "ig":
-            self._not_implemented()
         return self.AS.s(p=p, T=T)[0]
 
     def h_QT(self, Q, T):
@@ -864,16 +868,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.s(x=Q, T=T)[0]
-
-    def T_boiling(self, p):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.T(x=1, p=p)[0]
-
-    def p_boiling(self, T):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.p(x=1, T=T)[0]
 
     def Q_ph(self, p, h):
         if self.back_end == "ig":

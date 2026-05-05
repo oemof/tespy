@@ -789,7 +789,7 @@ class Component:
                 if (
                         ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)) and
-                        (data[key] is not None)
+                        (data.get(key) is not None)
                     ):
                     if f"{key}_unit" in data:
                         value = _UNITS.ureg.Quantity(

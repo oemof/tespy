@@ -12,9 +12,6 @@ SPDX-License-Identifier: MIT
 """
 import itertools
 
-import CoolProp.CoolProp as CP
-import numpy as np
-
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
@@ -23,11 +20,10 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
+from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import _numeric_deriv
-from tespy.tools.helpers import _numeric_deriv_vecvar
 from tespy.tools.helpers import fluidalias_in_list
 
 
@@ -200,8 +196,14 @@ class CombustionChamber(Component):
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
                 quantity="heat",
-                description="thermal input (fuel LHV multiplied with mass flow)"
-            )
+                description="thermal input of fuel: lower heating value multipled with mass flow"
+            ),
+            "f_nox": dc_cp(
+                quantity="ratio",
+                min_val=0,
+                max_val=1,
+                description="Mass-based nitric oxide (NO) generation rate in flue gas in mass of created NO per mass of fuel and air input. Only active if value is explicitly set"
+            ),
         }
 
     def _update_num_eq(self):
@@ -274,11 +276,17 @@ class CombustionChamber(Component):
     def setup_reaction_parameters(self):
         r"""Setup parameters for reaction (gas name aliases and LHV)."""
         self.fuel_list = []
-        all_fluids = set([f for c in self.inl + self.outl for f in c.fluid.val])
-        for f in all_fluids:
-            if fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids.keys()):
-                self.fuel_list += [f]
-
+        all_fluids = {
+            f: c.fluid.engine[f]
+            for c in self.inl + self.outl for f in c.fluid.val
+        }
+        for f in all_fluids.keys():
+            if issubclass(all_fluids[f], CoolPropWrapper) or all_fluids[f] is None:
+                if fluidalias_in_list(f, COMBUSTION_FLUIDS.fluids.keys()):
+                    self.fuel_list += [f]
+            else:
+                if f in COMBUSTION_FLUIDS.fluids.keys():
+                    self.fuel_list += [f]
         self.fuel_list = set(self.fuel_list)
 
         if len(self.fuel_list) == 0:
@@ -298,19 +306,29 @@ class CombustionChamber(Component):
             )
             logger.debug(msg)
 
-        for fluid in ["O2", "CO2", "H2O", "N2"]:
+        self.no = None
+        other_fluids = ["O2", "CO2", "H2O", "N2"]
+        if self.f_nox.is_set:
+            other_fluids += ["NO"]
+
+        for fluid in other_fluids:
             if not fluidalias_in_list(fluid, all_fluids):
                 aliases = ", ".join(FLUID_ALIASES.get_fluid(fluid))
                 msg = (
                     f"The component {self.label} (class "
                     f"{self.__class__.__name__}) requires that the fluid "
-                    f"{fluid} (aliases: {aliases}) is in the network's list "
-                    "of fluids."
+                    f"{fluid} (aliases: {aliases}) is in list of fluids "
+                    "associated with adjacent connections."
                 )
                 logger.error(msg)
                 raise TESPyComponentError(msg)
             else:
                 setattr(self, fluid.lower(), fluid)
+
+        self._reactive_fluids = (
+            list(self.fuel_list)
+            + [self.co2, self.o2, self.h2o, self.n2, self.no]
+        )
 
         self.fuels = {}
         for f in self.fuel_list:
@@ -388,7 +406,27 @@ class CombustionChamber(Component):
     def _add_missing_fluids(self, connections):
         inl, outl = self._get_combustion_connections()
         if set(inl + outl) & set(connections):
-            return ["H2O", "CO2"]
+            if self.f_nox.is_set:
+                try:
+                    from tespy.tools.fluid_properties.wrappers import PyromatWrapper
+                except ModuleNotFoundError:
+                    msg = (
+                        f"Using f_nox to incorporate nitric oxide in the flue "
+                        f"gas of component {self.label} (class "
+                        f"{self.__class__.__name__}) currently only works "
+                        "pyromat as fluid property back end. Install it in "
+                        "your environment if you want to make use of the "
+                        "feature."
+                    )
+                    raise ModuleNotFoundError(msg)
+                if "NO" not in outl[0].fluid.engine:
+                    outl[0].fluid.engine["NO"] = PyromatWrapper
+                    outl[0].fluid.back_end["NO"] = "ig"
+                    outl[0].fluid.val["NO"] = 0.0001
+
+                return ["H2O", "CO2", "NO"]
+            else:
+                return ["H2O", "CO2"]
         else:
             return super()._add_missing_fluids(connections)
 
@@ -569,7 +607,7 @@ class CombustionChamber(Component):
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
 
-        if fluid in list(self.fuel_list) + [self.co2, self.o2, self.h2o]:
+        if fluid in self._reactive_fluids:
             ###################################################################
             # molar mass flow for fuel and oxygen
             n_fuel = {}
@@ -621,6 +659,26 @@ class CombustionChamber(Component):
                 n_h_exc = 0
                 n_c_exc = 0
 
+            M_no = (
+                inl[0].fluid.wrapper[self.n2]._molar_mass
+                + inl[0].fluid.wrapper[self.o2]._molar_mass
+            )
+            if self.f_nox.is_set:
+                n_nox_param = (
+                    (inl[0].m.val_SI + inl[1].m.val_SI)
+                    * self.f_nox.val_SI / M_no
+                )
+            else:
+                n_nox_param = 0
+            # nitrogen
+            n_nitrogen = 0
+            for i in inl:
+                n_nitrogen += (
+                    i.m.val_SI
+                    * i.fluid.val.get(self.n2, 0)
+                    / inl[0].fluid.wrapper[self.n2]._molar_mass
+                )
+
         ###################################################################
         # equation for carbondioxide
         if fluid == self.co2:
@@ -635,10 +693,20 @@ class CombustionChamber(Component):
         # equation for oxygen
         elif fluid == self.o2:
             if self.lamb.val_SI < 1:
-                dm = -n_oxygen * inl[0].fluid.wrapper[self.o2]._molar_mass
+                dn = -n_oxygen
+            elif n_nitrogen >= n_nox_param * 0.5:
+                # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
+                # NO formation as defined in parameter f_nox
+                dn = -(
+                    n_oxygen / self.lamb.val_SI - n_nox_param * 0.5
+                )
             else:
-                dm = -n_oxygen / self.lamb.val_SI * inl[0].fluid.wrapper[self.o2]._molar_mass
+                # limitation due to nitrogen shortage. All nitrogen is converted to NO
+                dn = -(
+                    n_oxygen / self.lamb.val_SI - n_nitrogen
+                )
 
+            dm = dn * inl[0].fluid.wrapper[self.o2]._molar_mass
         ###################################################################
         # equation for fuel
         elif fluid in self.fuel_list:
@@ -654,6 +722,34 @@ class CombustionChamber(Component):
                 n_fuel_exc = 0
             dm = -(n_fuel[fluid] - n_fuel_exc) * inl[0].fluid.wrapper[fluid]._molar_mass
 
+        ###################################################################
+        # equation for nitrogen
+        # TODO take into account existing NO in inlets
+        elif fluid == self.n2:
+            if self.lamb.val_SI < 1:
+                # oxygen limitation: no formation of NO
+                dn = 0
+            elif n_nitrogen >= n_nox_param * 0.5:
+                # limitation by f_nox/ enough nitrogen and oxygen for NO formation.
+                # NO formation as defined in parameter f_nox
+                dn = -(n_nox_param * 0.5)
+            else:
+                # limitation due to nitrogen shortage. All nitrogen is converted to NO
+                dn = -(n_nitrogen - 0)
+
+            dm = dn * inl[0].fluid.wrapper[self.n2]._molar_mass
+        ###################################################################
+        # equation for nitrogen monoxide
+        elif fluid == self.no:
+
+            if self.lamb.val_SI < 1:
+                dn = 0
+            elif n_nitrogen >= n_nox_param * 0.5:
+                dn = -(-n_nox_param)
+            else:
+                dn = -(-n_nitrogen * 2)
+
+            dm = dn * M_no / 2
         ###################################################################
         # equation for other fluids
         else:
@@ -742,6 +838,7 @@ class CombustionChamber(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
+        #TODO substract energy for NO formation
         inl, outl = self._get_combustion_connections()
         T_ref = 298.15
         p_ref = 1e5
@@ -760,6 +857,15 @@ class CombustionChamber(Component):
             )
 
         res += self.calc_ti()
+        if self.f_nox.is_set:
+            # NO is endothermal reaction 90.3 kJ/mol
+            NO_in = sum(i.fluid.val.get(self.no, 0) * i.m.val_SI for i in inl)
+            o = self.outl[0]
+            NO_out = o.fluid.val.get(self.no, 0) * o.m.val_SI  # kg / s
+            res -= (
+                90.30 * 1e3 * (NO_out - NO_in)  # J/mol * kg/s
+                / o.fluid.wrapper[self.no]._molar_mass # kg / mol
+            )
         return res
 
     def energy_balance_dependents(self):

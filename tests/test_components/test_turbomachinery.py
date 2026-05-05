@@ -537,7 +537,7 @@ class TestTurbomachinery:
         fl = {'H2O': 1}
         # start in gas, end in gas
         self.c1.set_attr(fluid=fl, m=15, p=100, T=500)
-        self.c2.set_attr(td_dew=1)
+        self.c2.set_attr(td_dew=0.5)
 
         eta_s_dry = 0.9
         instance.set_attr(eta_s_dry=eta_s_dry, alpha=1)

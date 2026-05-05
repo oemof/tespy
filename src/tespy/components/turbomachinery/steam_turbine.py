@@ -18,6 +18,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.logger import logger
@@ -256,7 +257,10 @@ class SteamTurbine(Turbine):
 
                 return hout - hsat
 
-            frac = brentq(find_sat, 1, 0)
+            frac = 1
+            if round(outl.calc_Q(), 3) != 1:
+                frac = brentq(find_sat, 1, 0)
+
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)
 

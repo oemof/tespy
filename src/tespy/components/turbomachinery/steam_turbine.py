@@ -16,9 +16,9 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
-from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.logger import logger

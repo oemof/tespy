@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 import warnings
 
 import numpy as np
-import pint
 
 from tespy.components import Subsystem
 from tespy.components.component import Component

@@ -14,7 +14,8 @@ wf = "NH3"
 # network
 nw = Network()
 nw.units.set_defaults(
-    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW"
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW", heat="MW",
+    pressure_difference="bar"
 )
 
 # components

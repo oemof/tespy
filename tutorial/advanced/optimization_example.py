@@ -28,7 +28,8 @@ class SamplePlant(ModelTemplate):
 
         self.nw.iterinfo = False
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+            "pressure_difference": "bar"
         })
         # components
         # main cycle

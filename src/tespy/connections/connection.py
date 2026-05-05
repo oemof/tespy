@@ -1969,31 +1969,31 @@ class Connection(ConnectionBase):
             if self.Td_bp.val_SI > 0 or self.state.val == 'g':
                 h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
+                    self.h.set_reference_val_SI(h)
                     logger.debug(self._property_range_message('h'))
             else:
                 h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
+                    self.h.set_reference_val_SI(h)
                     logger.debug(self._property_range_message('h'))
 
         elif self.td_bubble.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
             if self.td_bubble.val_SI >= 0:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
+                    self.h.set_reference_val_SI(h)
             else:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
+                    self.h.set_reference_val_SI(h)
 
         elif self.td_dew.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             if self.td_dew.val_SI >= 0:
                 if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
+                    self.h.set_reference_val_SI(h)
             else:
                 if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
+                    self.h.set_reference_val_SI(h)
 
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)

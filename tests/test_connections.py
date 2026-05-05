@@ -182,6 +182,44 @@ def simple_test_network():
     return nw
 
 
+def test_td_dew_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
+
+
+def test_td_bubble_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
+
+
 @mark.skipif(
     get_global_param_string("REFPROP_version") == "n/a",
     reason='This test requires REFPROP, dependency is missing.'

@@ -12,10 +12,11 @@ from tespy.components import Merge
 from tespy.components import Splitter
 from tespy.components import PowerBus
 from tespy.components import PowerSink
-from tespy.components import PowerSource
+from tespy.components import HeatSource
 from tespy.components import Pump
 from tespy.components import Turbine
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.models import ModelTemplate
 
@@ -102,11 +103,10 @@ class SamplePlant(ModelTemplate):
         e6 = PowerConnection(electricity, "power_out3", pu3, "power", label="e6")
         e7 = PowerConnection(electricity, "power_out4", grid, "power", label="e7")
 
-        # heating bus
-        sg.set_attr(power_connector_location="inlet")
-        heat_source = PowerSource("heat source")
+        # heating
+        heat_source = HeatSource("heat source")
 
-        h1 = PowerConnection(heat_source, "power", sg, "heat", label="h1")
+        h1 = HeatConnection(heat_source, "heat", sg, "heat", label="h1")
 
         self.nw.add_conns(e1, e2, e3, e4, e5, e6, e7, h1)
 

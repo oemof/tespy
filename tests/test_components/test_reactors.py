@@ -143,10 +143,9 @@ class TestWaterElectrolyzer:
         )
         assert approx(e) == self.instance.e.val, msg
 
-        # test cooling loop pressure ratio, zeta as variable value
+        # test cooling loop pressure ratio
         pr = 0.95
-        self.instance.set_attr(
-            pr=pr, e=None, eta=None, zeta='var', P=2e7, design=['pr'])
+        self.instance.set_attr(pr=pr, e=None, eta=None, P=2e7)
         self.nw.solve('design')
         design_state = self.nw.save(as_dict=True)
         self.nw.assert_convergence()
@@ -157,7 +156,7 @@ class TestWaterElectrolyzer:
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
-        self.instance.set_attr(zeta=None, offdesign=['zeta'])
+        self.instance.set_attr(design=['pr'], offdesign=['zeta'])
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
@@ -223,10 +222,8 @@ class TestFuelCell:
         )
         self.nw.add_conns(o2_fc, h2_fc, fc_h2o)
 
-    def test_FuelCell(self, tmp_path):
+    def test_FuelCell(self):
         """Test component properties of fuel cell."""
-        tmp_path = f'{tmp_path}.json'
-
         # test efficiency vs. specific energy consumption
         # eta = e / e0, with both e and e0 negative for the fuel cell
         self.nw.get_conn('h2').set_attr(m=0.01)
@@ -258,13 +255,11 @@ class TestFuelCell:
         )
         assert approx(e) == self.instance.e.val, msg
 
-        # test cooling loop pressure ratio, zeta as variable value
+        # test cooling loop pressure ratio
         pr = 0.95
-        self.instance.set_attr(
-            pr=pr, e=None, eta=None, zeta='var', P=-2e5, design=['pr']
-        )
+        self.instance.set_attr(pr=pr, e=None, eta=None, P=-2e5)
         self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
@@ -273,8 +268,8 @@ class TestFuelCell:
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
-        self.instance.set_attr(zeta=None, offdesign=['zeta'])
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.instance.set_attr(design=['pr'], offdesign=['zeta'])
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
@@ -284,7 +279,7 @@ class TestFuelCell:
         # test heat output specification in offdesign mode
         Q = self.instance.Q.val * 0.9
         self.instance.set_attr(Q=Q, P=None)
-        self.nw.solve('offdesign', design_path=tmp_path)
+        self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = f"Value of heat must be {Q}, is {self.instance.Q.val}."
         assert approx(Q) == self.instance.Q.val, msg

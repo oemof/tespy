@@ -86,6 +86,9 @@ Bug Fixes
   :code:`Component` CSV files inside the :code:`Connection` subdirectory
   when both are exported together
   (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
+- :py:meth:`~tespy.connections.connection.Connection._adjust_to_two_phase` was
+  not working correctly with :code:`td_dew` or :code:`td_bubble` equal to zero
+  (`PR #971 <https://github.com/oemof/tespy/pull/971>`__).
 
 Contributors
 ############

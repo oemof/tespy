@@ -20,6 +20,12 @@ API Changes
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- Several previously deprecated features have been removed: the
+  :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
+  parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,
+  the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
+  :code:`fluid_property_data` from :code:`global_vars`
+  (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use

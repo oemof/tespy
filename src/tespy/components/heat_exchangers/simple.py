@@ -159,7 +159,8 @@ class SimpleHeatExchanger(Component):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
@@ -715,33 +716,6 @@ class SimpleHeatExchanger(Component):
             self.outl[0].p,
             self.outl[0].h,
         ]
-
-    def convergence_check(self):
-        if self.kA_group.is_set:
-            i = self.inl[0]
-            o = self.outl[0]
-            T_in = i.calc_T()
-            T_out = o.calc_T()
-            if T_in > self.Tamb.val_SI:
-                if T_out < self.Tamb.val_SI:
-                    if o.h.is_var:
-                        h_out = h_mix_pT(
-                            o.p.val_SI,
-                            self.Tamb.val_SI + 0.0001,
-                            o.fluid_data,
-                            o.mixing_rule
-                        )
-                        o.h.set_reference_val_SI(h_out)
-            elif T_in < self.Tamb.val_SI:
-                if T_out > self.Tamb.val_SI:
-                    if o.h.is_var:
-                        h_out = h_mix_pT(
-                            o.p.val_SI,
-                            self.Tamb.val_SI - 0.0001,
-                            o.fluid_data,
-                            o.mixing_rule
-                        )
-                        o.h.set_reference_val_SI(h_out)
 
     def initialise_source(self, c, key):
         r"""

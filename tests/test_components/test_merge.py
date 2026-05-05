@@ -24,7 +24,8 @@ class TestMerge:
     def setup_method(self):
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         so1 = Source("Source1")
@@ -77,7 +78,8 @@ class TestCyclicMerging:
 
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         source = Source("source1")

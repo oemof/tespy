@@ -94,7 +94,8 @@ def heatexchanger_network(request):
 
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC", "volumetric_flow": "m3/s"
+        "pressure": "bar", "pressure_difference": "bar",
+        "temperature": "degC", "volumetric_flow": "m3/s"
     })
 
     inl1 = Source('inlet 1')
@@ -264,9 +265,8 @@ class TestHeatExchangers:
 
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar",
-            "temperature": "degC",
-            "volumetric_flow": "m3/s"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "volumetric_flow": "m3/s"
         })
         self.inl1 = Source('inlet 1')
         self.outl1 = Sink('outlet 1')

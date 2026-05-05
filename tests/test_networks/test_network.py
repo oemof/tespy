@@ -48,7 +48,8 @@ class TestNetworks:
     def setup_method(self):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
         self.source = Source('source')
         self.sink = Sink('sink')
@@ -318,7 +319,8 @@ class TestNetworkPreprocessing:
     def setup_method(self):
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
     def _create_linear_branch(self):
@@ -336,7 +338,8 @@ class TestNetworkPreprocessing:
 
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         source = Source('source')
@@ -577,7 +580,7 @@ def test_missing_source_sink_cycle_closer():
 def test_dublicated_linear_dependent_variables():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -604,7 +607,7 @@ def test_dublicated_linear_dependent_variables():
 def test_cyclic_linear_dependent_variables():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -642,7 +645,7 @@ def test_cyclic_linear_dependent_variables():
 def test_cyclic_linear_dependent_with_merge_and_split():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -683,7 +686,8 @@ def test_cyclic_linear_dependent_with_merge_and_split():
 def test_missing_cyclecloser_but_no_missing_source():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC",
+        "enthalpy": "kJ/kg"
     })
 
     # Components
@@ -722,7 +726,7 @@ def test_missing_cyclecloser_but_no_missing_source():
 def test_two_phase_in_supercritical_starting_pressure_convergence():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -748,7 +752,7 @@ def test_two_phase_in_supercritical_starting_pressure_convergence():
 def test_two_phase_in_supercritical_pressure_non_convergence():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -772,7 +776,7 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
 def test_postprocessing_supercritical():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
 
     so = Source("source")
@@ -795,8 +799,7 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_1():
     """
     nw = Network()
     nw.units.set_defaults(
-        pressure="bar",
-        temperature="degC"
+        pressure="bar", pressure_difference="bar", temperature="degC"
     )
 
     inflow = Source("inflow")
@@ -825,8 +828,7 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
     """
     nw = Network()
     nw.units.set_defaults(
-        pressure="bar",
-        temperature="degC"
+        pressure="bar", pressure_difference="bar", temperature="degC"
     )
 
     inflow = Source("source")
@@ -860,8 +862,7 @@ def test_offdesign_of_component_parameter_group():
 
     nw = Network()
     nw.units.set_defaults(
-        pressure="bar",
-        temperature="degC"
+        pressure="bar", pressure_difference="bar", temperature="degC"
     )
 
     inflow = Source("source")
@@ -890,8 +891,7 @@ def test_design_of_component_parameter_group():
 
     nw = Network()
     nw.units.set_defaults(
-        pressure="bar",
-        temperature="degC"
+        pressure="bar", pressure_difference="bar", temperature="degC"
     )
 
     inflow = Source("source")
@@ -987,9 +987,8 @@ class WaterElectrolyzer(WaterElectrolyzer):
 def test_component_with_numpy_array_in_residual():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar",
-        "temperature": "degC",
-        "power": "MW"
+        "pressure": "bar", "pressure_difference": "bar",
+        "temperature": "degC", "power": "MW"
     })
     instance = WaterElectrolyzer('electrolyzer')
 
@@ -1040,7 +1039,9 @@ def test_generates_fluid_wrapper_branches_with_inherited_component():
 
 def test_fluid_kwargs_propagation():
     nw = Network()
-    nw.units.set_defaults(temperature="°C", pressure="bar")
+    nw.units.set_defaults(
+        temperature="°C", pressure="bar", pressure_difference="bar"
+    )
 
     pipe = SimpleHeatExchanger("pipe")
 
@@ -1082,7 +1083,7 @@ def test_fluid_kwargs_propagation():
 
 def test_skip_postprocessing():
     nw = Network()
-    nw.units.set_defaults(temperature="°C", pressure="bar")
+    nw.units.set_defaults(temperature="°C", pressure="bar", pressure_difference="bar")
 
     pipe = SimpleHeatExchanger("pipe")
 
@@ -1124,7 +1125,7 @@ def test_setting_ref_on_hex_leads_to_linear_dependency():
     nw = Network()
     nw.units.set_defaults(
         temperature="°C",
-        pressure="bar"
+        pressure="bar", pressure_difference="bar"
     )
 
     so1 = Source("source1")
@@ -1156,7 +1157,9 @@ def test_setting_ref_on_hex_leads_to_linear_dependency():
 
 def test_export_creates_nonexistent_directory(tmp_path):
     nw = Network()
-    nw.units.set_defaults(temperature="°C", pressure="bar")
+    nw.units.set_defaults(
+        temperature="°C", pressure="bar", pressure_difference="bar"
+    )
     nw.iterinfo = False
     so = Source("source")
     si = Sink("sink")

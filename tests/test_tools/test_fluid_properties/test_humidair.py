@@ -24,9 +24,7 @@ from tespy.networks import Network
 def humidair_network():
     nw = Network()
     nw.units.set_defaults(
-        temperature="°C",
-        pressure="bar",
-        heat="kW"
+        temperature="°C", pressure="bar", pressure_difference="bar", heat="kW"
     )
 
 

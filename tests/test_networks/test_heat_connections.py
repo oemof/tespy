@@ -25,7 +25,9 @@ from tespy.networks import Network
 def _fluid_network():
     """Return a minimal network with water flowing through a SimpleHeatExchanger."""
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC", heat="kW")
+    nw.units.set_defaults(
+        pressure="bar", pressure_difference="bar", temperature="degC", heat="kW"
+    )
 
     src = Source("fluid source")
     si = Sink("fluid sink")

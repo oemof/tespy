@@ -141,7 +141,8 @@ class PolynomialCompressor(DisplacementMachine):
     >>> from CoolProp.CoolProp import PropsSI
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")

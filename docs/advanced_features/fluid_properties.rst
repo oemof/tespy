@@ -130,6 +130,7 @@ a very simple system, just a flow of fluid through a heat exchanger.
     >>> nw.units.set_defaults(
     ...     temperature="°C",
     ...     pressure="bar",
+    ...     pressure_difference="bar",
     ...     heat="kW"
     ... )
 
@@ -404,7 +405,9 @@ the previous section:
     >>> from tespy.networks import Network
 
     >>> nwk = Network(iterinfo=False)
-    >>> nwk.units.set_defaults(temperature="degC", pressure="MPa")
+    >>> nwk.units.set_defaults(
+    ...     temperature="degC", pressure="MPa", pressure_difference="MPa"
+    ... )
 
     >>> so = Source("Source")
     >>> tu = Turbine("Turbine")

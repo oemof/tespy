@@ -88,7 +88,7 @@ class Merge(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar"
+    ...     "pressure": "bar", "pressure_difference": "bar"
     ... })
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')

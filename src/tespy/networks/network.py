@@ -94,7 +94,8 @@ class Network:
     >>> from tespy.networks import Network
     >>> mynetwork = Network()
     >>> mynetwork.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
@@ -117,7 +118,8 @@ class Network:
     >>> from tespy.connections import Connection, HeatConnection
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -3694,7 +3696,8 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "pressure": "bar", "pressure_difference": "bar",
+        ...     "temperature": "degC", "enthalpy": "kJ/kg",
         ...     "power": "MW"
         ... })
         >>> air = Source('air')

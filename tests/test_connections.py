@@ -45,6 +45,7 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
+            "pressure_difference": "bar",
             "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
@@ -167,7 +168,8 @@ def simple_test_network():
     nw = Network()
     nw.units.set_defaults(
         temperature="degC",
-        pressure="bar"
+        pressure="bar",
+        pressure_difference="bar"
     )
 
     so = Source("source")

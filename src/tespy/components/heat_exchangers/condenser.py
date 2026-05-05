@@ -188,7 +188,8 @@ class Condenser(HeatExchanger):
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')

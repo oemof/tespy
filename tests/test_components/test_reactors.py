@@ -28,7 +28,8 @@ class TestWaterElectrolyzer:
         """Set up network for electrolyzer tests."""
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
         self.instance = WaterElectrolyzer('electrolyzer')
 
@@ -193,7 +194,8 @@ class TestFuelCell:
         """Set up network for fuel cell tests."""
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
         self.instance = FuelCell('fuel cell')
 

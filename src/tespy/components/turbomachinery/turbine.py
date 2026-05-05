@@ -125,8 +125,8 @@ class Turbine(Turbomachine):
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
-    ...     "mass_flow": "t/h"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg", "mass_flow": "t/h"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')

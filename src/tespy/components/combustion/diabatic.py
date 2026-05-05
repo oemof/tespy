@@ -132,7 +132,8 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')

@@ -183,7 +183,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> import numpy as np
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> nw.iterinfo = False
     >>> so1 = Source("vapor source")

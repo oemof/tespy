@@ -1906,22 +1906,32 @@ class Connection(ConnectionBase):
                     logger.debug(self._property_range_message('h'))
 
         elif self.td_bubble.is_set:
-            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
-            if self.td_bubble.val_SI >= 0:
-                if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h)
+            # very strictly modifying h to target value
+            if abs(self.td_bubble.val_SI) < 1e-3:
+                if self.td_bubble.val_SI >= 0:
+                    h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
+                else:
+                    h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
             else:
-                if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h)
+                T_bubble = self.fluid.wrapper[fluid].T_bubble(self.p.val_SI)
+                h = self.fluid.wrapper[fluid].h_pT(
+                    self.p.val_SI, T_bubble - self.td_bubble.val_SI
+                )
+            self.h.set_reference_val_SI(h)
 
         elif self.td_dew.is_set:
-            h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
-            if self.td_dew.val_SI >= 0:
-                if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h)
+            # very strictly modifying h to target value
+            if abs(self.td_dew.val_SI) < 1e-3:
+                if self.td_dew.val_SI >= 0:
+                    h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
+                else:
+                    h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
             else:
-                if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h)
+                T_dew = self.fluid.wrapper[fluid].T_dew(self.p.val_SI)
+                h = self.fluid.wrapper[fluid].h_pT(
+                    self.p.val_SI, T_dew + self.td_dew.val_SI
+                )
+            self.h.set_reference_val_SI(h)
 
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)

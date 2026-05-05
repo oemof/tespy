@@ -717,6 +717,33 @@ class SimpleHeatExchanger(Component):
             self.outl[0].h,
         ]
 
+    def convergence_check(self):
+        if self.kA_group.is_set:
+            i = self.inl[0]
+            o = self.outl[0]
+            T_in = i.calc_T()
+            T_out = o.calc_T()
+            if T_in > self.Tamb.val_SI:
+                if T_out < self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI + 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
+            elif T_in < self.Tamb.val_SI:
+                if T_out > self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI - 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
+
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy the outlets.

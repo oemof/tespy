@@ -9,7 +9,6 @@ available from its original location tespy/tools/helpers.py
 SPDX-License-Identifier: MIT
 """
 
-import json
 import os
 from collections.abc import Iterable
 from collections.abc import Mapping
@@ -25,7 +24,6 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
-from tespy.tools.global_vars import fluid_property_data
 
 
 def get_all_subdictionaries(data):
@@ -79,61 +77,6 @@ class TESPyComponentError(Exception):
     """Custom message for component related errors."""
 
     pass
-
-
-def convert_to_SI(property, value, unit):
-    r"""
-    Convert a value to its SI value.
-
-    Parameters
-    ----------
-    property : str
-        Fluid property to convert.
-
-    value : float
-        Value to convert.
-
-    unit : str
-        Unit of the value.
-
-    Returns
-    -------
-    SI_value : float
-        Specified fluid property in SI value.
-    """
-    if property == 'T':
-        converters = fluid_property_data['T']['units'][unit]
-        return (value + converters[0]) * converters[1]
-
-    else:
-        return value * fluid_property_data[property]['units'][unit]
-
-
-def convert_from_SI(property, SI_value, unit):
-    r"""
-    Get a value in the network's unit system from SI value.
-
-    Parameters
-    ----------
-    property : str
-        Fluid property to convert.
-
-    SI_value : float
-        SI value to convert.
-
-    unit : str
-        Unit of the value.
-
-    Returns
-    -------
-    value : float
-        Specified fluid property value in network's unit system.
-    """
-    if property == 'T':
-        converters = fluid_property_data['T']['units'][unit]
-        return SI_value / converters[1] - converters[0]
-    else:
-        return SI_value / fluid_property_data[property]['units'][unit]
 
 
 class UserDefinedEquation:

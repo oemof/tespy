@@ -48,7 +48,6 @@ from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
@@ -116,20 +115,6 @@ class ConnectionBase:
             raise ValueError(msg)
 
     def _parameter_specification(self, key, value):
-        if key == "Td_bp":
-            msg = (
-                "The parameter 'Td_bp' is depreciated and will be removed in "
-                "the next major release of tespy. Please use 'td_bubble' or "
-                "'td_dew' instead. In contrast to 'Td_bp' not the following: "
-                "A positive value for 'td_bubble' indicates a liquid state, "
-                "meaning the temperature of the fluid will be lower than the "
-                "associated bubble temperature by the specified value."
-                "A positive value for 'td_dew' indicates a gaseous state, "
-                "meaning the temperature of the fluid will be higher than the "
-                "associated dew temperature by the specified value."
-            )
-            warnings.warn(msg, FutureWarning)
-
         # Starting-value key (e.g. 'm0') - route to the base container's val0
         if key in self.property_data0:
             if _is_numeric(value) or value is None:
@@ -463,10 +448,6 @@ class Connection(ConnectionBase):
     T : float, tespy.connections.connection.Ref
         Temperature specification.
 
-    Td_bp : float
-        Temperature difference to boiling point at pressure corresponding
-        pressure of this connection in K.
-
     v : float
         Volumetric flow specification.
 
@@ -576,18 +557,12 @@ class Connection(ConnectionBase):
     >>> type(so_si2.m_ref.ref.get_attr('obj'))
     <class 'tespy.connections.connection.Connection'>
 
-    Unset the specified temperature and specify temperature difference to
-    boiling point (deprecated) instead.
+    Unset the specified temperature:
 
     >>> so_si2.T.is_set
     True
-    >>> so_si2.set_attr(Td_bp=5, T=None)
+    >>> so_si2.set_attr(T=None)
     >>> so_si2.T.is_set
-    False
-    >>> so_si2.Td_bp.val
-    5.0
-    >>> so_si2.set_attr(Td_bp=None)
-    >>> so_si2.Td_bp.is_set
     False
 
     Bubble line or dew line temperature difference:
@@ -691,10 +666,6 @@ class Connection(ConnectionBase):
 
         T : float, tespy.connections.connection.Ref
             Temperature specification.
-
-        Td_bp : float
-            Temperature difference to boiling point at pressure corresponding
-            pressure of this connection in K.
 
         v : float
             Volumetric flow specification.
@@ -990,13 +961,12 @@ class Connection(ConnectionBase):
         # and state specification. These should be recalculated even with
         # good starting values, for example, when one exchanges enthalpy
         # with boiling point temperature difference.
-        if (self.Td_bp.is_set or self.state.is_set or self.td_dew.is_set or self.td_bubble.is_set):
+        if (self.state.is_set or self.td_dew.is_set or self.td_bubble.is_set):
             fluid = fp.single_fluid(self.fluid_data)
             if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
                 self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
             if (
-                    (self.Td_bp.val_SI > 0 and self.Td_bp.is_set)
-                    or (self.state.val == 'g' and self.state.is_set)
+                    (self.state.val == 'g' and self.state.is_set)
                     or (self.td_dew.val_SI >= 0 and self.td_dew.is_set)
                     or (self.td_bubble.val_SI < 0 and self.td_bubble.is_set)
                 ):
@@ -1005,8 +975,7 @@ class Connection(ConnectionBase):
                     self.h.set_reference_val_SI(h + 1e3)
 
             elif (
-                    (self.Td_bp.val_SI < 0 and self.Td_bp.is_set)
-                    or (self.state.val == 'l' and self.state.is_set)
+                    (self.state.val == 'l' and self.state.is_set)
                     or (self.td_bubble.val_SI >= 0 and self.td_bubble.is_set)
                     or (self.td_dew.val_SI < 0 and self.td_dew.is_set)
                 ):
@@ -1026,7 +995,7 @@ class Connection(ConnectionBase):
 
         specifications = []
         for name, container in self.property_data.items():
-            if name in ["p", "h", "T", "x", "Td_bp", "td_bubble", "td_dew", "T_dew", "T_bubble"]:
+            if name in ["p", "h", "T", "x", "td_bubble", "td_dew", "T_dew", "T_bubble"]:
                 if container.is_set:
                     specifications += [name]
 
@@ -1078,15 +1047,6 @@ class Connection(ConnectionBase):
                 msg = f"Determined h by known p and T at {self.label}."
                 logger.info(msg)
 
-            elif self.Td_bp.is_set:
-                T_sat = T_sat_p(self.p.val_SI, self.fluid_data)
-                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_sat + self.Td_bp.val_SI, self.fluid_data))
-                self.h._potential_var = False
-                if "Td_bp" in self._equation_set_lookup.values():
-                    presolved_equations += ["Td_bp"]
-                msg = f"Determined h by known p and Td_bp at {self.label}."
-                logger.info(msg)
-
             elif self.td_bubble.is_set:
                 T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
                 # fix for pure fluids: T cannot be too close to saturation
@@ -1134,18 +1094,6 @@ class Connection(ConnectionBase):
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
                 msg = f"Determined h and p by known T and x at {self.label}."
-                logger.info(msg)
-
-            elif self.T.is_set and self.Td_bp.is_set:
-                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI - self.Td_bp.val_SI, self.fluid_data))
-                self.p._potential_var = False
-                self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
-                self.h._potential_var = False
-                if "T" in self._equation_set_lookup.values():
-                    presolved_equations += ["T"]
-                if "Td_bp" in self._equation_set_lookup.values():
-                    presolved_equations += ["Td_bp"]
-                msg = f"Determined h and p by known T and Td_bp at {self.label}."
                 logger.info(msg)
 
             elif self.T.is_set and self.td_bubble.is_set:
@@ -1308,13 +1256,7 @@ class Connection(ConnectionBase):
                 _val=False, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
-            ),
-            "Td_bp": dc_prop(
-                func=self.Td_bp_func, deriv=self.Td_bp_deriv,
-                dependents=self.Td_bp_dependents, num_eq=1,
-                quantity="temperature_difference",
-                description="temperature difference to boiling point (deprecated)"
-            ),
+            )
         }
 
     def get_fluid_data(self):
@@ -1552,12 +1494,6 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
-    def calc_Td_bp(self):
-        try:
-            return self.calc_T() - T_sat_p(self.p.val_SI, self.fluid_data)
-        except NotImplementedError:
-            return np.nan
-
     def calc_td_dew(self):
         try:
             return self.calc_T() - T_dew_p(self.p.val_SI, self.fluid_data)
@@ -1569,18 +1505,6 @@ class Connection(ConnectionBase):
             return T_bubble_p(self.p.val_SI, self.fluid_data) - self.calc_T()
         except NotImplementedError:
             return np.nan
-
-    def Td_bp_func(self, **kwargs):
-        # temperature difference to boiling point
-        return self.calc_Td_bp() - self.Td_bp.val_SI
-
-    def Td_bp_deriv(self, increment_filter, k, **kwargs):
-        f = self.Td_bp_func
-        self._partial_derivative(self.p, k, f)
-        self._partial_derivative(self.h, k, f)
-
-    def Td_bp_dependents(self):
-        return [self.p, self.h]
 
     def td_dew_func(self, **kwargs):
         r"""Equation for fixed bubble temperature subcooling :math:`\Delta T`
@@ -1713,12 +1637,10 @@ class Connection(ConnectionBase):
                     T_dew = T_dew_p(self.p.val_SI, self.fluid_data)
                     self.td_dew.val_SI = self.T.val_SI - T_dew
                     self.td_bubble.val_SI = T_bubble - self.T.val_SI
-                    self.Td_bp.val_SI = self.T.val_SI - T_bubble
                     self.T_bubble.val_SI = T_bubble
                     self.T_dew.val_SI = T_dew
 
                 except (ValueError, NotImplementedError):
-                    self.Td_bp.val_SI = np.nan
                     self.td_dew.val_SI = np.nan
                     self.td_bubble.val_SI = np.nan
 
@@ -1728,7 +1650,6 @@ class Connection(ConnectionBase):
                     self.phase.val = "phase not recognized"
             else:
                 self.x.val_SI = np.nan
-                self.Td_bp.val_SI = np.nan
                 self.phase.val = "phase not recognized"
 
         if _converged:
@@ -1822,7 +1743,7 @@ class Connection(ConnectionBase):
 
     @classmethod
     def _result_attributes(cls):
-        return ["m", "p", "h", "T", "v", "s", "vol", "x", "Td_bp", "td_dew", "td_bubble", "T_dew", "T_bubble"]
+        return ["m", "p", "h", "T", "v", "s", "vol", "x", "td_dew", "td_bubble", "T_dew", "T_bubble"]
 
     @classmethod
     def _get_result_cols(cls, all_fluids):
@@ -1870,7 +1791,7 @@ class Connection(ConnectionBase):
                 self._adjust_enthalpy(fl)
 
                 # two-phase related
-                if (self.Td_bp.is_set or self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
+                if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
                     self._adjust_to_two_phase(fl)
 
         # mixture
@@ -1965,8 +1886,8 @@ class Connection(ConnectionBase):
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
         # this is supposed to never be accessed with INCOMP backend but it is
         # not enforced. With INCOMP backend this causes a crash
-        if self.Td_bp.is_set or self.state.is_set:
-            if self.Td_bp.val_SI > 0 or self.state.val == 'g':
+        if self.state.is_set:
+            if self.state.val == 'g':
                 h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
                 if self.h.val_SI < h:
                     self.h.set_reference_val_SI(h)
@@ -2043,9 +1964,9 @@ class Connection(ConnectionBase):
             Debugging message.
         """
         msg = (
-            f"{fpd[prop]['text'][0].upper()}{fpd[prop]['text'][1:]} out of "
-            f"fluid property range at connection {self.label}, adjusting value "
-            f"to {self.get_attr(prop).val_SI} {fpd[prop]['SI_unit']}."
+            f"{self.get_attr(prop).quantity} out of fluid property range at "
+            f"connection {self.label}, adjusting value to "
+            f"{self.get_attr(prop).val_SI}."
         )
         return msg
 

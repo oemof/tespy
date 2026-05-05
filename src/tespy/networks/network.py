@@ -45,7 +45,6 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
 
@@ -239,14 +238,11 @@ class Network:
                 "ranges, units or iterinfo."
             )
         self.units = kwargs.get('units', self.units)
-        for prop in fpd.keys():
-            unit = f'{prop}_unit'
-            if unit in kwargs:
+        for key in kwargs.items():
+            if "_unit" in key:
                 msg = (
-                    f"Passing '{unit}' to Network.set_attr is no longer "
-                    "supported. Use Network.units.set_defaults() instead, "
-                    f"e.g. nw.units.set_defaults("
-                    f"{fpd[prop]['text'].replace(' ', '_')}='...')."
+                    f"Passing '{key}' to Network.set_attr is no longer "
+                    "supported. Use Network.units.set_defaults() instead."
                 )
                 raise TypeError(msg)
 

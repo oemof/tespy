@@ -195,7 +195,8 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> import numpy as np
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> nw.iterinfo = False
     >>> so1 = Source("vapor source")
@@ -340,7 +341,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "mass_flow": "kg/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "mass_flow": "kg/s"
     ... })
     >>> nw.iterinfo = False
 

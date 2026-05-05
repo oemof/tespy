@@ -72,7 +72,7 @@ We can change the default units as follows:
     >>> nw.units.get_default("power")
     'hp'
     >>> nw.units.set_defaults(efficiency="%")  # percent
-    >>> nw.units.set_defaults(pressure="bar")
+    >>> nw.units.set_defaults(pressure="bar", pressure_difference="bar")
 
 The unit specification then applies to all parameters with the same quantity.
 For example, let's set up a model of a compressor.

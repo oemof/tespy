@@ -149,7 +149,8 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg",
     ...     "volumetric_flow": "l/s", "heat_transfer_coefficient": "kW/K"
     ... })
     >>> feed_water = Source("Feed water inlet")

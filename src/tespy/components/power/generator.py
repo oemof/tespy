@@ -96,7 +96,8 @@ class Generator(_EnergyConverter):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -159,4 +160,3 @@ class Generator(_EnergyConverter):
     >>> round(generator.eta.val, 3)
     0.952
     """
-

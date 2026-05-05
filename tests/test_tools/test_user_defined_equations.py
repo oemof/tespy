@@ -32,7 +32,10 @@ def _build_refrigeration_cycle():
     """
     nw = Network()
     nw.iterinfo = False
-    nw.units.set_defaults(temperature="°C", pressure="bar", power="kW", heat="kW")
+    nw.units.set_defaults(
+        temperature="°C", pressure="bar", pressure_difference="bar",
+        power="kW", heat="kW"
+    )
 
     evaporator = SimpleHeatExchanger("evaporator")
     superheater = SimpleHeatExchanger("superheater")

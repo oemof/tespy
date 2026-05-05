@@ -32,7 +32,9 @@ from tespy.networks import Network
 @fixture
 def nw():
     nw = Network()
-    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", pressure_difference="bar"
+    )
     return nw
 
 

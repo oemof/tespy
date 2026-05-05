@@ -17,6 +17,7 @@ nw = Network()
 nw.units.set_defaults(
     temperature="°C",
     pressure="bar",
+    pressure_difference="bar",
     heat="MW"
 )
 
@@ -56,6 +57,7 @@ nw = Network()
 nw.units.set_defaults(
     temperature="°C",
     pressure="bar",
+    pressure_difference="bar",
     heat="MW"
 )
 
@@ -104,6 +106,7 @@ nw = Network()
 nw.units.set_defaults(
     temperature="°C",
     pressure="bar",
+    pressure_difference="bar",
     heat="MW"
 )
 
@@ -142,6 +145,7 @@ nw = Network()
 nw.units.set_defaults(
     temperature="°C",
     pressure="bar",
+    pressure_difference="bar",
     heat="MW"
 )
 

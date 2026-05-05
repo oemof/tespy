@@ -89,7 +89,8 @@ class PowerBus(_EnergyBus):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
 
     We can add a PowerSource representing the grid and three PowerSink

@@ -108,7 +108,9 @@ different tespy classes required.
 
     >>> # %% network definition
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
 
     >>> # %% component definition
     >>> feed_water = Source('feed water inlet')

@@ -4,10 +4,10 @@ from tespy.networks import Network
 from tespy.components import (
     Condenser, Compressor, CycleCloser,  HeatExchanger,
     SimpleHeatExchanger, Pump, Sink, Source, Valve, PowerBus, PowerSource,
-    PowerSink
+    HeatSink
     )
 
-from tespy.connections import Connection, PowerConnection
+from tespy.connections import Connection, PowerConnection, HeatConnection
 # %%[sec_2]
 wf = "NH3"
 
@@ -257,14 +257,13 @@ def generate_network_with_starting_values(wf):
 
     grid = PowerSource("grid")
     electricity = PowerBus("electricity distribution", num_in=1, num_out=3)
-    heat = PowerSink("heat production")
-    cons_heatsink.set_attr(power_connector_location="outlet")
+    heat = HeatSink("heat production")
     e1 = PowerConnection(grid, "power", electricity, "power_in1", label="e1")
     e2 = PowerConnection(electricity, "power_out1", compressor, "power", label="e2")
     e3 = PowerConnection(electricity, "power_out2", cons_pump, "power", label="e3")
     e4 = PowerConnection(electricity, "power_out3", heatsource_pump, "power", label="e4")
 
-    h1 = PowerConnection(cons_heatsink, "heat", heat, "power", label="h1")
+    h1 = HeatConnection(cons_heatsink, "heat", heat, "heat", label="h1")
     nw.add_conns(e1, e2, e3, e4, h1)
 
     nw.solve("design")

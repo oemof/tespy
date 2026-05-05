@@ -55,8 +55,8 @@ class TestSEGS:
         # setting up network
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
-            "entropy": "kJ/kgK"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg", "entropy": "kJ/kgK"
         })
 
         # components definition

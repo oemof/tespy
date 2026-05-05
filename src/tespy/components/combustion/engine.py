@@ -200,7 +200,8 @@ class CombustionEngine(CombustionChamber):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')

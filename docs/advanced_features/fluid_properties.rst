@@ -130,6 +130,7 @@ a very simple system, just a flow of fluid through a heat exchanger.
     >>> nw.units.set_defaults(
     ...     temperature="°C",
     ...     pressure="bar",
+    ...     pressure_difference="bar",
     ...     heat="kW"
     ... )
 
@@ -260,7 +261,7 @@ class. Below we will use the polynomial formulation for **gaseous water** from
 
     >>> import numpy as np
     >>> from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
-    >>> from tespy.tools.global_vars import gas_constants
+    >>> from tespy.tools.global_vars import GAS_CONSTANT_UNI
 
 Then we set up a new class and implement the methods to calculate enthalpy and
 entropy from (pressure and) temperature. The structure and names of the
@@ -331,7 +332,7 @@ isentropic change of pressure for an ideal gas.
     ...     def isentropic(self, p_1, h_1, p_2):
     ...         T_1 = self.T_ph(p_1, h_1)
     ...         cp = self.cp_pT(p_1, T_1)
-    ...         kappa = cp / (cp - gas_constants["uni"] / self._molar_mass)
+    ...         kappa = cp / (cp - GAS_CONSTANT_UNI / self._molar_mass)
     ...         T_2 = T_1 * (p_2 / p_1) ** ((kappa - 1) / kappa)
     ...         return self.h_pT(p_2, T_2)
 
@@ -404,7 +405,9 @@ the previous section:
     >>> from tespy.networks import Network
 
     >>> nwk = Network(iterinfo=False)
-    >>> nwk.units.set_defaults(temperature="degC", pressure="MPa")
+    >>> nwk.units.set_defaults(
+    ...     temperature="degC", pressure="MPa", pressure_difference="MPa"
+    ... )
 
     >>> so = Source("Source")
     >>> tu = Turbine("Turbine")

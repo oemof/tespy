@@ -45,7 +45,6 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
 
@@ -95,7 +94,8 @@ class Network:
     >>> from tespy.networks import Network
     >>> mynetwork = Network()
     >>> mynetwork.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
@@ -118,7 +118,8 @@ class Network:
     >>> from tespy.connections import Connection, HeatConnection
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -239,14 +240,11 @@ class Network:
                 "ranges, units or iterinfo."
             )
         self.units = kwargs.get('units', self.units)
-        for prop in fpd.keys():
-            unit = f'{prop}_unit'
-            if unit in kwargs:
+        for key in kwargs.items():
+            if "_unit" in key:
                 msg = (
-                    f"Passing '{unit}' to Network.set_attr is no longer "
-                    "supported. Use Network.units.set_defaults() instead, "
-                    f"e.g. nw.units.set_defaults("
-                    f"{fpd[prop]['text'].replace(' ', '_')}='...')."
+                    f"Passing '{key}' to Network.set_attr is no longer "
+                    "supported. Use Network.units.set_defaults() instead."
                 )
                 raise TypeError(msg)
 
@@ -3698,7 +3696,8 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "pressure": "bar", "pressure_difference": "bar",
+        ...     "temperature": "degC", "enthalpy": "kJ/kg",
         ...     "power": "MW"
         ... })
         >>> air = Source('air')

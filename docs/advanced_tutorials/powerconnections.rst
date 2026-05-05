@@ -116,7 +116,9 @@ consumption.
     >>> from tespy.connections import Connection, PowerConnection
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> cond = Source("condensate")
     >>> fwp = Pump("feed water pump")
     >>> feedwater = Sink("feedwater")
@@ -159,7 +161,9 @@ intermediate pressure is variable.
     >>> from tespy.networks import Network
     >>> from tespy.tools import UserDefinedEquation
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> so = Source("air source")
     >>> compressor1 = Compressor("compressor 1")
     >>> compressor2 = Compressor("compressor 2")
@@ -213,7 +217,9 @@ instance.
     >>> from tespy.tools import CharLine
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> so = Source("evaporated refrigerant")
     >>> compressor = Compressor("compressor")
     >>> si = Sink("compressed refrigerant")

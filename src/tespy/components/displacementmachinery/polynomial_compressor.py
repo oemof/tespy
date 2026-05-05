@@ -141,7 +141,8 @@ class PolynomialCompressor(DisplacementMachine):
     >>> from CoolProp.CoolProp import PropsSI
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
@@ -303,19 +304,6 @@ class PolynomialCompressor(DisplacementMachine):
     """
 
     def _preprocess(self, row_idx):
-        if self.Q_diss_rel.is_set:
-            msg = (
-                "The parameter Q_diss_rel has been renamed, please use "
-                "'dissipation_ratio' instead."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-            # this only injects to .val and not to .val_SI, the calculation
-            # of .val_SI from .val in preprocessing already happened before
-            # this point
-            self.set_attr(dissipation_ratio=self.Q_diss_rel.val)
-            self.dissipation_ratio.val_SI = self.Q_diss_rel.val_SI
-
         if not self.dissipation_ratio.is_set:
             msg = (
                 f"The component {self.label} of type {self.__class__.__name__} "
@@ -361,10 +349,6 @@ class PolynomialCompressor(DisplacementMachine):
             "dissipation_ratio": dc_cp(
                 min_val=0, max_val=1, val=0, quantity="ratio",
                 description="heat dissipation ratio relative to power consumption"
-            ),
-            "Q_diss_rel": dc_cp(
-                min_val=0, max_val=1, val=0, quantity="ratio",
-                description="heat dissipation ratio relative to power consumption(deprecated)"
             ),
             "rpm": dc_cp(
                 min_val=0, is_result=True, _potential_var=True,

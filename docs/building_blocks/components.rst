@@ -82,7 +82,9 @@ not be implemented by the solver.
     >>> from tespy.connections import Connection
 
     >>> nw = Network()
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
 
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -180,7 +182,9 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> from tespy.tools.characteristics import CharLine
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
 
     >>> he = HeatExchanger('evaporator')
     >>> cond = Source('condensate')
@@ -259,7 +263,8 @@ Full working example for :code:`eta_s_char` specification of a turbine.
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ...     temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    ...     temperature="degC", pressure="bar", pressure_difference="bar",
+    ...     enthalpy="kJ/kg"
     ... )
     >>> si = Sink('sink')
     >>> so = Source('source')

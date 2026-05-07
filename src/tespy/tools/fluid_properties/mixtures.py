@@ -22,6 +22,44 @@ from .helpers import get_molar_fractions
 
 
 def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific enthalpy of an ideal gas mixture.
+
+    Applies Dalton's law to assign partial pressures and sums the
+    mass-fraction-weighted component enthalpies.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+
+    Notes
+    -----
+    Molar fractions are derived from mass fractions:
+
+    .. math::
+
+        y_i = \frac{x_i / M_i}{\sum_j x_j / M_j}
+
+    Each component is evaluated at its partial pressure
+    :math:`p_i = p \cdot y_i`. The mixture enthalpy is:
+
+    .. math::
+
+        h_\text{mix}(p, T) = \sum_i x_i \cdot h_i(p_i, T)
+    """
     molar_fractions = get_molar_fractions(fluid_data)
 
     h = 0
@@ -35,6 +73,53 @@ def h_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific enthalpy of an ideal gas mixture with water condensation.
+
+    Extends :func:`h_mix_pT_ideal` by checking whether the water vapour
+    partial pressure exceeds the saturation pressure at *T*. If condensation
+    occurs the water content is split between a saturated gas phase and a
+    liquid phase, and the enthalpy is computed accordingly.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+
+    Notes
+    -----
+    If no H2O is present, or the water partial pressure is below saturation,
+    the result equals :func:`h_mix_pT_ideal`.
+
+    When :math:`p_\text{sat}(T) < p \cdot y_\text{H2O}`, the liquid water
+    mass fraction :math:`x_\text{liq}` is determined by :func:`cond_check`.
+    The enthalpy is then:
+
+    .. math::
+
+        h_\text{mix} =
+            x_\text{liq} \cdot h_\text{H2O}(Q{=}0,\,T)
+            + (1 - x_\text{liq}) \left[
+                x_\text{H2O}^\text{gas} \cdot h_\text{H2O}(Q{=}1,\,T)
+                + \sum_{i \neq \text{H2O}}
+                    x_i^\text{gas} \cdot h_i\!\left(p_i^\text{gas},\,T\right)
+            \right]
+
+    where :math:`x_i^\text{gas}` and :math:`p_i^\text{gas}` are the gas-phase
+    mass fractions and partial pressures after condensate removal.
+    """
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
@@ -60,6 +145,51 @@ def h_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific enthalpy treating all H2O as gas phase.
+
+    Like :func:`h_mix_pT_ideal`, but forces the water component to be
+    evaluated as saturated vapour whenever the temperature is at or below the
+    saturation point at the water partial pressure.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+
+    Notes
+    -----
+    For all components other than H2O the partial-pressure enthalpy is used:
+
+    .. math::
+
+        h_i = h_i(p_i, T), \quad p_i = p \cdot y_i
+
+    For H2O, when :math:`T \le T_\text{sat}(p_\text{H2O})`, the saturated
+    vapour enthalpy is substituted:
+
+    .. math::
+
+        h_\text{H2O} = h_\text{H2O}(Q{=}1,\,T)
+
+    The mixture enthalpy is:
+
+    .. math::
+
+        h_\text{mix}(p, T) = \sum_i x_i \cdot h_i
+    """
     molar_fractions = get_molar_fractions(fluid_data)
 
     h = 0
@@ -79,6 +209,35 @@ def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
 
 
 def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific enthalpy of an incompressible mixture.
+
+    Each component is evaluated at the full mixture pressure (no partial
+    pressure splitting) and contributions are summed by mass fraction.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+
+    Notes
+    -----
+    .. math::
+
+        h_\text{mix}(p, T) = \sum_i x_i \cdot h_i(p, T)
+    """
 
     h = 0
     for data in fluid_data.values():
@@ -89,6 +248,25 @@ def h_mix_pT_incompressible(p, T, fluid_data, **kwargs):
 
 
 def w_mix_fluid_data(fluid_data):
+    r"""
+    Return the humidity ratio of a moist-air mixture from fluid composition.
+
+    Parameters
+    ----------
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+
+    Notes
+    -----
+    .. math::
+
+        w = \frac{x_\text{H2O}}{x_\text{air}}
+    """
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
     water_alias = next(iter(water_alias))
@@ -102,9 +280,58 @@ def w_mix_fluid_data(fluid_data):
     )
 
 def w_mix_pTrh_humidair(p, T, rh):
+    r"""
+    Return humidity ratio at given pressure, temperature and relative humidity.
+
+    Thin wrapper around :func:`CoolProp.CoolProp.HAPropsSI`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    rh : float
+        Relative humidity (0–1).
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+    """
     return HAPropsSI("W", "P", p, "T", T, "RH", rh)  # kg water/kg dry air
 
 def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    r"""
+    Return effective humidity ratio for a humid-air mixture at given *p* and *T*.
+
+    Compares the mixture humidity ratio derived from *fluid_data* with the
+    saturation limit at RH = 1 and caps it if condensation would occur.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+
+    Notes
+    -----
+    .. math::
+
+        w = \min\!\left(w_\text{fluid\_data},\; w_\text{sat}(p, T)\right)
+
+    where :math:`w_\text{sat}(p, T) = w(p, T, \text{RH}{=}1)`.
+    """
     w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_pTrh_humidair(p, T, 1.0)
     if w_def > w_max:
@@ -113,13 +340,84 @@ def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
     return w_def
 
 def h_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific enthalpy of a humid-air mixture.
+
+    Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
+    obtained from :func:`w_mix_pT_humidair`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Forwarded to :func:`w_mix_pT_humidair`.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+    """
     w = w_mix_pT_humidair(p, T, fluid_data, **kwargs)
     return HAPropsSI("H", "P", p, "T", T, "W", w)
 
 def w_mix_phrh_humidair(p, h, rh):
+    r"""
+    Return humidity ratio at given pressure, enthalpy and relative humidity.
+
+    Thin wrapper around :func:`CoolProp.CoolProp.HAPropsSI`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    h : float
+        Specific enthalpy in J/kg.
+    rh : float
+        Relative humidity (0–1).
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+    """
     return HAPropsSI("W", "P", p, "H", h, "RH", rh)  # kg water/kg dry air
 
 def w_mix_ph_humidair(p, h, fluid_data, **kwargs):
+    r"""
+    Return effective humidity ratio for a humid-air mixture at given *p* and *h*.
+
+    Compares the mixture humidity ratio derived from *fluid_data* with the
+    saturation limit at RH = 1 and caps it if condensation would occur.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    h : float
+        Specific enthalpy in J/kg.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+
+    Notes
+    -----
+    .. math::
+
+        w = \min\!\left(w_\text{fluid\_data},\; w_\text{sat}(p, h)\right)
+
+    where :math:`w_\text{sat}(p, h) = w(p, h, \text{RH}{=}1)`.
+    """
     w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_phrh_humidair(p, h, 1.0)
     if w_def > w_max:
@@ -128,9 +426,58 @@ def w_mix_ph_humidair(p, h, fluid_data, **kwargs):
     return w_def
 
 def w_mix_psrh_humidair(p, s, rh):
+    r"""
+    Return humidity ratio at given pressure, entropy and relative humidity.
+
+    Thin wrapper around :func:`CoolProp.CoolProp.HAPropsSI`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    s : float
+        Specific entropy in J/(kg K).
+    rh : float
+        Relative humidity (0–1).
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+    """
     return HAPropsSI("W", "P", p, "S", s, "RH", rh)  # kg water/kg dry air
 
 def w_mix_ps_humidair(p, s, fluid_data, **kwargs):
+    r"""
+    Return effective humidity ratio for a humid-air mixture at given *p* and *s*.
+
+    Compares the mixture humidity ratio derived from *fluid_data* with the
+    saturation limit at RH = 1 and caps it if condensation would occur.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    s : float
+        Specific entropy in J/(kg K).
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Humidity ratio in kg\ :sub:`water` / kg\ :sub:`dry air`.
+
+    Notes
+    -----
+    .. math::
+
+        w = \min\!\left(w_\text{fluid\_data},\; w_\text{sat}(p, s)\right)
+
+    where :math:`w_\text{sat}(p, s) = w(p, s, \text{RH}{=}1)`.
+    """
     w_def = w_mix_fluid_data(fluid_data)
     w_max = w_mix_psrh_humidair(p, s, 1.0)
     if w_def > w_max:
@@ -139,6 +486,44 @@ def w_mix_ps_humidair(p, s, fluid_data, **kwargs):
     return w_def
 
 def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific entropy of an ideal gas mixture.
+
+    Applies Dalton's law to assign partial pressures and sums the
+    mass-fraction-weighted component entropies.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific entropy in J/(kg K).
+
+    Notes
+    -----
+    Molar fractions are derived from mass fractions:
+
+    .. math::
+
+        y_i = \frac{x_i / M_i}{\sum_j x_j / M_j}
+
+    Each component is evaluated at its partial pressure
+    :math:`p_i = p \cdot y_i`. The mixture entropy is:
+
+    .. math::
+
+        s_\text{mix}(p, T) = \sum_i x_i \cdot s_i(p_i, T)
+    """
     molar_fractions = get_molar_fractions(fluid_data)
 
     s = 0
@@ -152,6 +537,53 @@ def s_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific entropy of an ideal gas mixture with water condensation.
+
+    Extends :func:`s_mix_pT_ideal` by checking whether the water vapour
+    partial pressure exceeds the saturation pressure at *T*. If condensation
+    occurs the water content is split between a saturated gas phase and a
+    liquid phase, and the entropy is computed accordingly.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific entropy in J/(kg K).
+
+    Notes
+    -----
+    If no H2O is present, or the water partial pressure is below saturation,
+    the result equals :func:`s_mix_pT_ideal`.
+
+    When :math:`p_\text{sat}(T) < p \cdot y_\text{H2O}`, the liquid water
+    mass fraction :math:`x_\text{liq}` is determined by :func:`cond_check`.
+    The entropy is then:
+
+    .. math::
+
+        s_\text{mix} =
+            x_\text{liq} \cdot s_\text{H2O}(Q{=}0,\,T)
+            + (1 - x_\text{liq}) \left[
+                x_\text{H2O}^\text{gas} \cdot s_\text{H2O}(Q{=}1,\,T)
+                + \sum_{i \neq \text{H2O}}
+                    x_i^\text{gas} \cdot s_i\!\left(p_i^\text{gas},\,T\right)
+            \right]
+
+    where :math:`x_i^\text{gas}` and :math:`p_i^\text{gas}` are the gas-phase
+    mass fractions and partial pressures after condensate removal.
+    """
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
@@ -176,6 +608,35 @@ def s_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific entropy of an incompressible mixture.
+
+    Each component is evaluated at the full mixture pressure (no partial
+    pressure splitting) and contributions are summed by mass fraction.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific entropy in J/(kg K).
+
+    Notes
+    -----
+    .. math::
+
+        s_\text{mix}(p, T) = \sum_i x_i \cdot s_i(p, T)
+    """
 
     s = 0
     for data in fluid_data.values():
@@ -187,11 +648,67 @@ def s_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def s_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific entropy of a humid-air mixture.
+
+    Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
+    obtained from :func:`w_mix_fluid_data`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific entropy in J/(kg K).
+    """
     w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("S", "P", p, "T", T, "W", w)
 
 
 def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific volume of an ideal gas mixture.
+
+    Sums the partial densities evaluated at each component's partial pressure
+    and returns the reciprocal.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific volume in m³/kg.
+
+    Notes
+    -----
+    Using Dalton's law, each component contributes its density at its partial
+    pressure :math:`p_i = p \cdot y_i`:
+
+    .. math::
+
+        \rho_\text{mix}(p, T) = \sum_i \rho_i(p_i, T)
+
+        v_\text{mix} = \frac{1}{\rho_\text{mix}}
+    """
     molar_fractions = get_molar_fractions(fluid_data)
 
     d = 0
@@ -205,6 +722,51 @@ def v_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific volume of an ideal gas mixture with water condensation.
+
+    Extends :func:`v_mix_pT_ideal` by checking whether the water vapour
+    partial pressure exceeds the saturation pressure at *T*. If condensation
+    occurs the water content is split between a saturated gas phase and a
+    liquid phase, and the specific volume is computed accordingly.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific volume in m³/kg.
+
+    Notes
+    -----
+    If no H2O is present, or the water partial pressure is below saturation,
+    the result equals :func:`v_mix_pT_ideal`.
+
+    When :math:`p_\text{sat}(T) < p \cdot y_\text{H2O}`, the liquid water
+    mass fraction :math:`x_\text{liq}` is determined by :func:`cond_check`.
+    The mixture density is then:
+
+    .. math::
+
+        \rho_\text{mix} =
+            x_\text{liq} \cdot \rho_\text{H2O}(Q{=}0,\,T)
+            + (1 - x_\text{liq}) \left[
+                \rho_\text{H2O}(Q{=}1,\,T)
+                + \sum_{i \neq \text{H2O}} \rho_i\!\left(p_i^\text{gas},\,T\right)
+            \right]
+
+        v_\text{mix} = \frac{1}{\rho_\text{mix}}
+    """
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
     if water_alias:
@@ -229,6 +791,35 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate specific volume of an incompressible mixture.
+
+    Applies volume additivity: each component's specific volume is weighted
+    by its mass fraction and contributions are summed.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific volume in m³/kg.
+
+    Notes
+    -----
+    .. math::
+
+        v_\text{mix}(p, T) = \sum_i x_i \cdot v_i(p, T)
+    """
 
     v = 0
     for data in fluid_data.values():
@@ -239,6 +830,28 @@ def v_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def v_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific volume of a humid-air mixture.
+
+    Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
+    obtained from :func:`w_mix_fluid_data`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific volume in m³/kg.
+    """
     w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("V", "P", p, "T", T, "W", w)
 
@@ -290,6 +903,35 @@ def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
+    r"""
+    Calculate dynamic viscosity of an incompressible mixture.
+
+    Applies a simple mass-fraction-weighted average of the component
+    viscosities at the full mixture pressure.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Dynamic viscosity in Pa s.
+
+    Notes
+    -----
+    .. math::
+
+        \eta_\text{mix}(p, T) = \sum_i x_i \cdot \eta_i(p, T)
+    """
 
     viscosity = 0
     for data in fluid_data.values():
@@ -300,11 +942,49 @@ def viscosity_mix_pT_incompressible(p=None, T=None, fluid_data=None, **kwargs):
 
 
 def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate dynamic viscosity of a humid-air mixture.
+
+    Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
+    obtained from :func:`w_mix_fluid_data`.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing H2O and air components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Dynamic viscosity in Pa s.
+    """
     w = w_mix_fluid_data(fluid_data)
     return HAPropsSI("Visc", "P", p, "T", T, "W", w)
 
 
 def _get_fluid_alias(fluid, fluid_data):
+    r"""
+    Return the set of aliases present in *fluid_data* for a given fluid name.
+
+    Parameters
+    ----------
+    fluid : str
+        Canonical fluid name (e.g. :code:`"H2O"`, :code:`"air"`).
+    fluid_data : dict
+        Fluid property data.
+
+    Returns
+    -------
+    set
+        Intersection of known aliases for *fluid* with the keys in
+        *fluid_data* that carry a non-negligible mass fraction.
+    """
     return (
         FLUID_ALIASES.get_fluid(fluid)
         & set([

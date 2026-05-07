@@ -51,6 +51,21 @@ def _is_numeric(potentially_a_number):
         return False
 
 
+class _NumEqMixin:
+    """Mixin that provides the num_eq property for data containers."""
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
+
+
 class DataContainer:
     """
     The DataContainer is parent class for all data containers.
@@ -233,7 +248,7 @@ class DataContainer:
         )
 
 
-class ComponentCharacteristics(DataContainer):
+class ComponentCharacteristics(_NumEqMixin, DataContainer):
     """
     Data container for component characteristics.
 
@@ -300,19 +315,8 @@ class ComponentCharacteristics(DataContainer):
                 f"ComponentCharacteristics parameter, got {type(value).__name__}."
             )
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
 
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
-
-
-class ComponentCharacteristicMaps(DataContainer):
+class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
     """
     Data container for characteristic maps.
 
@@ -349,6 +353,7 @@ class ComponentCharacteristicMaps(DataContainer):
             "func": None,
             "deriv": None,
             "num_eq_sets": 0,
+            "_num_eq": None,
             "structure_matrix": None,
             "constant_deriv": False,
             "dependents": None,
@@ -377,19 +382,8 @@ class ComponentCharacteristicMaps(DataContainer):
                 f"ComponentCharacteristicMaps parameter, got {type(value).__name__}."
             )
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
 
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
-
-
-class ComponentMandatoryConstraints(DataContainer):
+class ComponentMandatoryConstraints(_NumEqMixin, DataContainer):
     """
     Data container for component mandatory constraints.
     """
@@ -417,29 +411,8 @@ class ComponentMandatoryConstraints(DataContainer):
             "description": None
         }
 
-    def _serialize(self):
-        keys = self._serializable_keys()
-        return {k: self.get_attr(k) for k in keys}
 
-    @staticmethod
-    def _serializable_keys():
-        return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
-        ]
-
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
-
-
-class GroupedComponentProperties(DataContainer):
+class GroupedComponentProperties(_NumEqMixin, DataContainer):
     """
     Data container for grouped component parameters.
 
@@ -497,17 +470,6 @@ class GroupedComponentProperties(DataContainer):
                 f"got {type(value).__name__}."
             )
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
-
 
 class GroupedComponentCharacteristics(GroupedComponentProperties):
     """
@@ -525,7 +487,7 @@ class GroupedComponentCharacteristics(GroupedComponentProperties):
     """
     pass
 
-class FluidProperties(DataContainer):
+class FluidProperties(_NumEqMixin, DataContainer):
     """
     Data container for fluid properties.
 
@@ -609,15 +571,6 @@ class FluidProperties(DataContainer):
                 f"Expected a numeric value, pint.Quantity, dict, or None, "
                 f"got {type(value).__name__}."
             )
-
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
 
     def get_reference_val_SI(self):
         """Get value of the reference corresponding to own value
@@ -794,7 +747,6 @@ class FluidProperties(DataContainer):
     val_with_unit = property(get_val_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
-    num_eq = property(get_num_eq, set_num_eq)
 
 
 class ComponentProperties(FluidProperties):
@@ -1104,7 +1056,7 @@ class ReferencedFluidProperties(DataContainer):
             return {}
 
 
-class SimpleDataContainer(DataContainer):
+class SimpleDataContainer(_NumEqMixin, DataContainer):
     """
     Simple data container without data type restrictions to val field.
 
@@ -1153,20 +1105,10 @@ class SimpleDataContainer(DataContainer):
             self.val = value
             self.is_set = True
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
     def get_val(self):
         return self._val
 
     def set_val(self, value):
         self._val = value
 
-    num_eq = property(get_num_eq, set_num_eq)
     val = property(get_val, set_val)

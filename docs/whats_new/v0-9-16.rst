@@ -21,6 +21,13 @@ Other Changes
   UPDATE: The fix has been reverted and a better solutions was implemented:
   (`94063d3 <https://github.com/oemof/tespy/commit/94063d3e2a6e6b8ce58bed38324275efe92a211c>`__).
 
+Bug Fixes
+#########
+- UPDATE post3: The temperature starting value guess for referenced temperature
+  specifications was originally updated before updating all guess values for
+  all connections. This could lead to doing a guess for one conneciton, while
+  the referenced connection did not have that update yet
+  (`3d99318 <https://github.com/oemof/tespy/commit/3d9931834de6f9adcf8f24f9f42e083f5f87cf61>`__).
 
 Contributors
 ############

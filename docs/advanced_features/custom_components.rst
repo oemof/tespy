@@ -138,7 +138,7 @@ following:
 
 .. math::
 
-    0=h_{\mathrm{in,1}}-h_{\mathrm{out,1}}
+    0=h_{\text{in,1}}-h_{\text{out,1}}
 
 The corresponding method looks like this:
 

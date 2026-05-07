@@ -852,20 +852,20 @@ class SimpleHeatExchanger(Component):
 
         .. math::
 
-            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{out}^\mathrm{in}
-            v \cdot dp - \int_\mathrm{out}^\mathrm{in} T \cdot ds
+            h_\text{out} - h_\text{in} = \int_\text{out}^\text{in}
+            v \cdot dp - \int_\text{out}^\text{in} T \cdot ds
 
-        As solving :math:`\int_\mathrm{out}^\mathrm{in} v \cdot dp` for non
+        As solving :math:`\int_\text{out}^\text{in} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
         on how specific volume and pressure change throught the component, the
         heat transfer is split into three separate virtual processes:
 
         - in->in*: decrease pressure to
-          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          :math:`p_\text{in*}=p_\text{in}\cdot\sqrt{\frac{p_\text{out}}{p_\text{in}}}`
           without changing enthalpy.
         - in*->out* transfer heat without changing pressure.
-          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
-        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          :math:`h_\text{out*}-h_\text{in*}=h_\text{out}-h_\text{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\text{out}`
           without changing enthalpy.
 
         Note
@@ -874,9 +874,9 @@ class SimpleHeatExchanger(Component):
 
         .. math::
 
-            \text{S\_Q}=\dot{m} \cdot \left(s_\mathrm{out*}-s_\mathrm{in*}
+            \text{S\_Q}=\dot{m} \cdot \left(s_\text{out*}-s_\text{in*}
             \right)\\
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right) - \text{S\_Q}\\
             \text{T\_mQ}=\frac{\dot{Q}}{\text{S\_Q}}
         """

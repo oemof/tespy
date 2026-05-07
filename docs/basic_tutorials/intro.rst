@@ -43,7 +43,7 @@ The list of components available can be found
 :ref:`here <modules_components_label>`. If you set up a component you
 have to specify a (within one network) unique label. Moreover, it is possible
 to specify parameters for the component, for example power :math:`P` for a pump
-or upper terminal temperature difference :math:`ttd_\mathrm{u}` of a heat
+or upper terminal temperature difference :math:`ttd_\text{u}` of a heat
 exchanger. The full list of parameters for a specific component is stated in
 the respective class documentation. This example uses a compressor, a control
 valve two (simple) heat exchangers and a so-called cycle closer.

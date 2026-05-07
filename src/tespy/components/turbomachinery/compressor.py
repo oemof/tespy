@@ -381,13 +381,13 @@ class Compressor(Turbomachine):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             0 = \frac{p_{out} \cdot p_{in,design}}
-            {p_\mathrm{in} \cdot p_\mathrm{out,design}}-
+            {p_\text{in} \cdot p_\text{out,design}}-
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
@@ -422,12 +422,12 @@ class Compressor(Turbomachine):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
-            0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
+            0 = \frac{\eta_\text{s}}{\eta_\text{s,design}} -
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]

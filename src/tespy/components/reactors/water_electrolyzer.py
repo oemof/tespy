@@ -410,7 +410,7 @@ class WaterElectrolyzer(Component):
 
             .. math::
 
-                0 = T_\mathrm{out,2} - T_\mathrm{out,3}
+                0 = T_\text{out,2} - T_\text{out,3}
         """
         return self.outl[1].calc_T() -  self.outl[2].calc_T()
 
@@ -490,14 +490,14 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 \begin{split}
-                0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-
-                h_\mathrm{in,2,ref}\right)\\
-                &-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -
-                h_\mathrm{in,1} \right)\\
-                & -\dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -
-                h_\mathrm{out,2,ref} \right)\\
-                & +\dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -
-                h_\mathrm{out,3,ref} + e_0\right)\\
+                0=&P + \dot{m}_\text{in,2}\cdot\left(h_\text{in,2}-
+                h_\text{in,2,ref}\right)\\
+                &-\dot{m}_\text{in,1}\cdot\left( h_\text{out,1} -
+                h_\text{in,1} \right)\\
+                & -\dot{m}_\text{out,2} \cdot \left( h_\text{out,2} -
+                h_\text{out,2,ref} \right)\\
+                & +\dot{m}_\text{out,3} \cdot \left( h_\text{out,3} -
+                h_\text{out,3,ref} + e_0\right)\\
                 \end{split}
 
             - Reference temperature: 298.15 K.
@@ -622,11 +622,11 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-                0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}\\
-                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,in,2}-
-                \dot{m}_\mathrm{O_2,out,2}\\
-                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,in,2} -
-                \dot{m}_\mathrm{H_2,out,3}
+                0 =\dot{m}_\text{in,1}-\dot{m}_\text{out,1}\\
+                0=O_2\cdot\dot{m}_\text{H_{2}O,in,2}-
+                \dot{m}_\text{O_2,out,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\text{H_{2}O,in,2} -
+                \dot{m}_\text{H_2,out,3}
         """
         # calculate the ratio of o2 in water
         M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
@@ -687,8 +687,8 @@ class WaterElectrolyzer(Component):
 
         .. math::
 
-            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\text{in,2} - p_\text{out,2}\\
+            0 = p_\text{in,3} - p_\text{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1

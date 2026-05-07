@@ -341,10 +341,10 @@ class Merge(NodeBase):
 
         .. math::
 
-            \dot{S}_\mathrm{irr}= \dot{m}_\mathrm{out} \cdot
-            \left( s_\mathrm{out} - s_\mathrm{out,ref} \right)
-            - \sum_{i} \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\text{irr}= \dot{m}_\text{out} \cdot
+            \left( s_\text{out} - s_\text{out,ref} \right)
+            - \sum_{i} \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
         """
         T_ref = 298.15
         p_ref = 1e5

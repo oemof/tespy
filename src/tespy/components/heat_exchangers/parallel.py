@@ -111,12 +111,12 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     ttd_l : float, dict
         Initial terminal temperature difference, referring to the temperature
         difference between the two inlets of the heat exchanger,
-        :math:`ttd_\mathrm{l}/\text{K}`.
+        :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
         Final terminal temperature difference, referring to the temperature
         difference between the two outlets of the heat exchanger,
-        :math:`ttd_\mathrm{u}/\text{K}`.
+        :math:`ttd_\text{u}/\text{K}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,

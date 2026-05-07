@@ -621,9 +621,9 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 .. math::
 
-    \forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
+    \forall i \in \text{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
-    \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
+    \text{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
 .. _module_convergence_label:
 

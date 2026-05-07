@@ -479,8 +479,8 @@ class CombustionChamber(Component):
 
             .. math::
 
-                0 = p_\mathrm{in,1} - p_\mathrm{out,1}\\
-                0 = p_\mathrm{in,2} - p_\mathrm{out,1}
+                0 = p_\text{in,1} - p_\text{out,1}\\
+                0 = p_\text{in,2} - p_\text{out,1}
         """
         inl, outl = self._get_combustion_connections()
 
@@ -1215,13 +1215,13 @@ class CombustionChamber(Component):
 
         .. math::
 
-            T_\mathrm{m,comb}= \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
-            {\dot{S}_\mathrm{comb}}\\
-            \dot{S}_\mathrm{comb}= \dot{m}_\mathrm{fluegas} \cdot
-            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)
-            - \sum_{i=1}^2 \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
-            \dot{S}_\mathrm{irr}= 0\\
+            T_\text{m,comb}= \frac{\dot{m}_\text{fuel} \cdot LHV}
+            {\dot{S}_\text{comb}}\\
+            \dot{S}_\text{comb}= \dot{m}_\text{fluegas} \cdot
+            \left(s_\text{fluegas}-s_\text{fluegas,ref}\right)
+            - \sum_{i=1}^2 \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
+            \dot{S}_\text{irr}= 0\\
         """
         T_ref = 298.15
         p_ref = 1e5

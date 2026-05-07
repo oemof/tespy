@@ -85,17 +85,17 @@ def calc_physical_exergy(h, s, p, pamb, Tamb, fluid_data, mixing_rule=None, T0=N
     -------
     e_ph : tuple
         Specific thermal and mechanical exergy
-        (:math:`e^\mathrm{T}`, :math:`e^\mathrm{M}`) in J / kg.
+        (:math:`e^\text{T}`, :math:`e^\text{M}`) in J / kg.
 
         .. math::
 
-            e^\mathrm{T} = \left( h - h \left( p, T_0 \right) \right) -
+            e^\text{T} = \left( h - h \left( p, T_0 \right) \right) -
             T_0 \cdot \left(s - s\left(p, T_0\right)\right)
 
-            e^\mathrm{M}=\left(h\left(p,T_0\right)-h\left(p_0,T_0\right)\right)
+            e^\text{M}=\left(h\left(p,T_0\right)-h\left(p_0,T_0\right)\right)
             -T_0\cdot\left(s\left(p, T_0\right)-s\left(p_0,T_0\right)\right)
 
-            e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}
+            e^\text{PH} = e^\text{T} + e^\text{M}
     """
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
@@ -166,12 +166,7 @@ def h_mix_pT(p, T, fluid_data, mixing_rule=None):
 
 
 def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].h_pQ(p, Q)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).h_pQ(p, Q)
 
 
 def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
@@ -181,75 +176,44 @@ def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
     return (upper - lower) / (2 * d)
 
 
+def _pure_fluid_wrapper(fluid_data):
+    if get_number_of_fluids(fluid_data) != 1:
+        raise ValueError("Saturation function cannot be called on mixtures.")
+    return get_pure_fluid(fluid_data)["wrapper"]
+
+
 def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].Q_ph(p, h)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).Q_ph(p, h)
+
 
 def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].phase_ph(p, h)
-    else:
-        msg = "State function cannot be called on mixtures."
-        raise ValueError(msg)
+    if get_number_of_fluids(fluid_data) != 1:
+        raise ValueError("State function cannot be called on mixtures.")
+    return get_pure_fluid(fluid_data)["wrapper"].phase_ph(p, h)
 
 
 def p_sat_T(T, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].p_sat(T)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).p_sat(T)
 
 
 def T_sat_p(p, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].T_sat(p)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).T_sat(p)
 
 
 def T_dew_p(p, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].T_dew(p)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).T_dew(p)
 
 
 def p_dew_T(T, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].p_dew(T)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).p_dew(T)
 
 
 def T_bubble_p(p, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].T_bubble(p)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).T_bubble(p)
 
 
 def p_bubble_T(T, fluid_data, mixing_rule=None):
-    if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].p_bubble(T)
-    else:
-        msg = "Saturation function cannot be called on mixtures."
-        raise ValueError(msg)
+    return _pure_fluid_wrapper(fluid_data).p_bubble(T)
 
 
 def dT_sat_dp(p, fluid_data, mixing_rule=None):
@@ -264,9 +228,8 @@ def s_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].s_ph(p, h)
     else:
-        T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
+        T = T_mix_ph(p, h, fluid_data, mixing_rule, T0)
         return s_mix_pT(p, T, fluid_data, mixing_rule)
-
 
 
 def s_mix_pT(p, T, fluid_data, mixing_rule=None):
@@ -302,7 +265,7 @@ def v_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
             w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("V", "P", p, "H", h, "W", w)
         else:
-            T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
+            T = T_mix_ph(p, h, fluid_data, mixing_rule, T0)
             return v_mix_pT(p, T, fluid_data, mixing_rule)
 
 
@@ -337,7 +300,7 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
             w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("Visc", "P", p, "H", h, "W", w)
         else:
-            T = T_mix_ph(p, h , fluid_data, mixing_rule, T0)
+            T = T_mix_ph(p, h, fluid_data, mixing_rule, T0)
             return viscosity_mix_pT(p, T, fluid_data, mixing_rule)
 
 

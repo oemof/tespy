@@ -4,6 +4,7 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.logger import logger
 
+
 @connection_registry
 class PowerConnection(ConnectionBase):
 

@@ -107,18 +107,12 @@ class Subsystem:
 
     def __init__(self, label):
 
-        forbidden = [';', ', ', '.']
         if not isinstance(label, str):
             msg = 'Subsystem label must be of type str!'
             logger.error(msg)
             raise ValueError(msg)
 
-        elif len([x for x in forbidden if x in label]) > 0:
-            msg = f'Can\'t use {", ".join(forbidden)} in label.'
-            logger.error(msg)
-            raise ValueError(msg)
-        else:
-            self.label = label
+        self.label = label
 
         self.comps = {}
         self.conns = {}

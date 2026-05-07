@@ -413,8 +413,7 @@ class Network:
             if subsystem.label in self.subsystems:
                 for c in subsystem.conns.values():
                     self.del_conns(c)
-
-            del self.subsystems[subsystem.label: str]
+                del self.subsystems[subsystem.label]
 
     def get_subsystem(self, label):
         r"""
@@ -611,9 +610,11 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
-                self.results[comp.__class__.__name__].drop(
-                    comp.label, inplace=True, errors="ignore"
-                )
+                comp_type = comp.__class__.__name__
+                if comp_type in self.results:
+                    self.results[comp_type].drop(
+                        comp.label, inplace=True, errors="ignore"
+                    )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
 
@@ -2850,10 +2851,10 @@ class Network:
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         m = [k for k, v in self.variables_dict.items() if v["variable"] == "m"]
-        p = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         p = [k for k, v in self.variables_dict.items() if v["variable"] == "p"]
         h = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         fl = [k for k, v in self.variables_dict.items() if v["variable"] == "fluid"]
+        e = [k for k, v in self.variables_dict.items() if v["variable"] == "E"]
         cp = [k for k in self.variables_dict if k not in m + p + h + fl]
 
         iter_str = str(self.iter + 1)
@@ -2864,6 +2865,7 @@ class Network:
         pressure = 'NaN'
         enthalpy = 'NaN'
         fluid = 'NaN'
+        energy = 'NaN'
         component = 'NaN'
 
         progress_val = -1
@@ -2876,6 +2878,7 @@ class Network:
                 pressure = '{:.2e}'.format(norm(self.increment[p]))
                 enthalpy = '{:.2e}'.format(norm(self.increment[h]))
                 fluid = '{:.2e}'.format(norm(self.increment[fl]))
+                energy  = '{:.2e}'.format(norm(self.increment[e]))
                 component  = '{:.2e}'.format(norm(self.increment[cp]))
 
             # This should not be hardcoded here.
@@ -2904,6 +2907,7 @@ class Network:
             pressure=pressure,
             enthalpy=enthalpy,
             fluid=fluid,
+            energy=energy,
             component=component
         )
         logger.progress(progress_val, msg)
@@ -3576,12 +3580,11 @@ class Network:
             if not colored:
                 return str(val)
             # else part
-            if (val_SI < comp.get_attr(param).min_val - ERR or
-                    val_SI > comp.get_attr(param).max_val + ERR ):
+            if val_SI < param_obj.min_val - ERR or val_SI > param_obj.max_val + ERR:
                 return f"{coloring['err']}{val}{coloring['end']}"
-            if comp.get_attr(args[0]).is_var:
+            if param_obj.is_var:
                 return f"{coloring['var']}{val}{coloring['end']}"
-            if comp.get_attr(args[0]).is_set:
+            if param_obj.is_set:
                 return f"{coloring['set']}{val}{coloring['end']}"
             return str(val)
         else:

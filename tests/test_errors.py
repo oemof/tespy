@@ -144,10 +144,8 @@ def test_get_attr_errors():
 
 def test_cmp_instanciation_ValueError():
     """Test bad label specification for component."""
-    labels = [5, 'Label,', 'Labe;l', 'Label.']
-    for label in labels:
-        with raises(ValueError):
-            CombustionEngine(label)
+    with raises(ValueError):
+        CombustionEngine(5)
 
 ##############################################################################
 # test errors in connection classes
@@ -270,11 +268,6 @@ def test_compressor_missing_char_parameter():
 def test_subsys_label_str():
     with raises(ValueError):
         Subsystem(5)
-
-
-def test_subsys_label_forbidden():
-    with raises(ValueError):
-        Subsystem('label;')
 
 
 def test_subsys_no_create_network():

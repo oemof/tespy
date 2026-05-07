@@ -106,18 +106,8 @@ class Component:
 
     def __init__(self, label, **kwargs):
 
-        # check if components label is of type str and for prohibited chars
-        _forbidden = [';', ',', '.']
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
-            logger.error(msg)
-            raise ValueError(msg)
-
-        elif any([True for x in _forbidden if x in label]):
-            msg = (
-                f"You cannot use any of {', '.join(_forbidden)} in a "
-                f"component label ({self.__class__.__name__})"
-            )
             logger.error(msg)
             raise ValueError(msg)
 

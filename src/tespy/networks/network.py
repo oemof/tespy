@@ -240,7 +240,7 @@ class Network:
                 "ranges, units or iterinfo."
             )
         self.units = kwargs.get('units', self.units)
-        for key in kwargs.items():
+        for key in kwargs:
             if "_unit" in key:
                 msg = (
                     f"Passing '{key}' to Network.set_attr is no longer "

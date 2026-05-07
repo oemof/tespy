@@ -146,6 +146,12 @@ class HAConnection(Connection):
                 except ValueError:
                     pass
 
+    def _precalc_guess_values_for_references(self):
+        """precalculate starting values for specified temperature
+        references
+        """
+        pass
+
     def _presolve(self):
 
         air_alias = _get_fluid_alias("air", self.fluid_data)

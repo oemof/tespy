@@ -241,6 +241,12 @@ class ConnectionBase:
     def _guess_starting_values(self, units):
         pass
 
+    def _precalc_guess_values_for_references(self):
+        """precalculate starting values for specified temperature
+        references
+        """
+        pass
+
     def _preprocess(self, row_idx):
         self.num_eq = 0
 
@@ -1003,6 +1009,10 @@ class Connection(ConnectionBase):
                 if self.h.val_SI > h:
                     self.h.set_reference_val_SI(h - 1e3)
 
+    def _precalc_guess_values_for_references(self):
+        """precalculate starting values for specified temperature
+        references
+        """
         if self.T_ref.is_set:
             ref = self.T_ref.ref
             T_target = ref.obj.calc_T() * ref.factor + ref.delta_SI

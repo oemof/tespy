@@ -2244,6 +2244,14 @@ class Network:
 
             c._guess_starting_values(self.units)
 
+        # here reference values can be updated, e.g. a reference temperature
+        # if the starting value of the reference connection is not yet updated
+        # then the calculation of the reference can cause issues, therefore:
+        # first update all of the starting values and only then to
+        # precalculation of reference values
+        for c in self.conns["object"]:
+            c._precalc_guess_values_for_references()
+
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
                 # for components every variable should be an actual variable

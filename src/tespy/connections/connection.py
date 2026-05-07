@@ -412,6 +412,59 @@ class ConnectionBase:
     def collect_results(self, all_fluids):
         return None
 
+    def _get_design_state_SI(self, data, units):
+        state = {}
+        for var in self._result_attributes():
+            unit_key = f"{var}_unit"
+            if var not in data or unit_key not in data:
+                continue
+            unit = data[unit_key]
+            if unit == "C":
+                unit = "degC" if var == "T" else "delta_degC"
+            elif "kgK" in unit:
+                unit = unit.replace("kgK", "kg/K")
+            elif unit == "-":
+                unit = "1"
+            param = self.get_attr(var)
+            state[var] = units.ureg.Quantity(
+                float(data[var]), unit
+            ).to(SI_UNITS[param.quantity]).magnitude
+        return state
+
+    def _set_design_params(self, data, units):
+        for var, val in self._get_design_state_SI(data, units).items():
+            self.get_attr(var).design = val
+
+    def _set_starting_values(self, data, units):
+        for prop in self.get_variables():
+            var = self.get_attr(prop)
+            var.val0 = units.ureg.Quantity(
+                float(data[prop]),
+                data[f"{prop}_unit"]
+            )
+
+    def _deserialize(self, data, all_connections):
+        arglist = [
+            _ for _ in data
+            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
+            and "ref" not in _
+        ]
+
+        for arg in arglist:
+            if arg not in self.__dict__:
+                msg = (
+                    f"The parameter {arg} passed to construct  "
+                    f"{self.__class__.__name__} {self.label} is not an "
+                    "attribute of this class. Skipping it!"
+                )
+                logger.warning(msg)
+                continue
+            container = self.get_attr(arg)
+            if isinstance(container, dc):
+                container.set_attr(**data[arg])
+            else:
+                self.set_attr(**{arg: data[arg]})
+
 
 @connection_registry
 class Connection(ConnectionBase):
@@ -808,26 +861,7 @@ class Connection(ConnectionBase):
         return export
 
     def _deserialize(self, data, all_connections):
-        arglist = [
-            _ for _ in data
-            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
-            and "ref" not in _
-        ]
-
-        for arg in arglist:
-            if arg not in self.__dict__:
-                msg = (
-                    f"The parameter {arg} passed to construct  "
-                    f"{self.__class__.__name__} {self.label} is not an "
-                    "attribute of this class. Skipping it!"
-                )
-                logger.warning(msg)
-                continue
-            container = self.get_attr(arg)
-            if isinstance(container, dc):
-                container.set_attr(**data[arg])
-            else:
-                self.set_attr(**{arg: data[arg]})
+        super()._deserialize(data, all_connections)
 
         for f, engine in data["fluid"]["engine"].items():
             data["fluid"]["engine"][f] = wrapper_registry.items[engine]
@@ -1702,58 +1736,13 @@ class Connection(ConnectionBase):
 
         return _converged
 
-    def _get_design_state_SI(self, data, units):
-        """Return SI design values for all result attributes from *data*.
-
-        Handles the unit-string normalisations that arise from the saved
-        result format (e.g. :code:`"C"` for temperatures, :code:`"kgK"` entropy
-        units, :code:`"-"` dimensionless quantities).
-
-        Parameters
-        ----------
-        data : pandas.core.series.Series
-            A row from the connection design DataFrame.
-        units : tespy.tools.units.UnitSystem
-            The network's unit system (provides the pint registry).
-
-        Returns
-        -------
-        dict
-            Mapping of parameter name to its SI value.
-        """
-        state = {}
-        for var in self._result_attributes():
-            unit_key = f"{var}_unit"
-            if var not in data or unit_key not in data:
-                continue
-            unit = data[unit_key]
-            if unit == "C":
-                unit = "degC" if var == "T" else "delta_degC"
-            elif "kgK" in unit:
-                unit = unit.replace("kgK", "kg/K")
-            elif unit == "-":
-                unit = "1"
-            param = self.get_attr(var)
-            state[var] = units.ureg.Quantity(
-                float(data[var]), unit
-            ).to(SI_UNITS[param.quantity]).magnitude
-        return state
-
     def _set_design_params(self, data, units):
-        for var, val in self._get_design_state_SI(data, units).items():
-            self.get_attr(var).design = val
-
+        super()._set_design_params(data, units)
         for fluid in self.fluid.val:
             self.fluid.design[fluid] = float(data[fluid])
 
     def _set_starting_values(self, data, units):
-        for prop in self.get_variables():
-            var = self.get_attr(prop)
-            var.val0 = units.ureg.Quantity(
-                float(data[prop]),
-                data[f"{prop}_unit"]
-            )
-
+        super()._set_starting_values(data, units)
         for fluid in self.fluid.is_var:
             self.fluid.val[fluid] = float(data[fluid])
             self.fluid.val0[fluid] = float(self.fluid.val[fluid])
@@ -2013,10 +2002,10 @@ class Connection(ConnectionBase):
         ----
             .. math::
 
-                e^\mathrm{PH} = e^\mathrm{T} + e^\mathrm{M}\\
-                E^\mathrm{T} = \dot{m} \cdot e^\mathrm{T}\\
-                E^\mathrm{M} = \dot{m} \cdot e^\mathrm{M}\\
-                E^\mathrm{PH} = \dot{m} \cdot e^\mathrm{PH}
+                e^\text{PH} = e^\text{T} + e^\text{M}\\
+                E^\text{T} = \dot{m} \cdot e^\text{T}\\
+                E^\text{M} = \dot{m} \cdot e^\text{M}\\
+                E^\text{PH} = \dot{m} \cdot e^\text{PH}
         """
         self.ex_therm, self.ex_mech = fp.functions.calc_physical_exergy(
             self.h.val_SI, self.s.val_SI, self.p.val_SI, pamb, Tamb,
@@ -2038,7 +2027,7 @@ class Ref:
 
     .. math::
 
-        \dot{m} = \dot{m}_\mathrm{ref} \cdot \mathrm{factor} + \mathrm{delta}
+        \dot{m} = \dot{m}_\text{ref} \cdot \text{factor} + \text{delta}
 
     Parameters
     ----------

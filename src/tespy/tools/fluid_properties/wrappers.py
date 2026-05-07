@@ -830,15 +830,6 @@ class PyromatWrapper(FluidPropertyWrapper):
     def h_pT(self, p, T):
         return self.AS.h(p=p, T=T)[0]
 
-    def T_ph(self, p, h):
-        return self.AS.T(p=p, h=h)[0]
-
-    def T_ps(self, p, s):
-        return self.AS.T(p=p, s=s)[0]
-
-    def h_pT(self, p, T):
-        return self.AS.h(p=p, T=T)[0]
-
     def h_ps(self, p, s):
         return self.AS.h(p=p, s=s)[0]
 

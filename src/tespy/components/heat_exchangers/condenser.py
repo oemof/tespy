@@ -130,14 +130,14 @@ class Condenser(HeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
         Upper terminal temperature difference (referring to saturation
-        temperature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+        temperature of condensing fluid) :math:`ttd_\text{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -188,7 +188,8 @@ class Condenser(HeatExchanger):
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')

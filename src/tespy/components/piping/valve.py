@@ -104,7 +104,8 @@ class Valve(Component):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -145,7 +146,8 @@ class Valve(Component):
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -315,7 +317,7 @@ class Valve(Component):
 
             .. math::
 
-                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
+                0=p_\text{in}-p_\text{out}-f\left( expr \right)
         """
         p = self.dp_char.param
         expr = self.get_char_expr(p, **self.dp_char.char_params)
@@ -480,7 +482,7 @@ class Valve(Component):
 
         .. math::
 
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (

@@ -106,18 +106,8 @@ class Component:
 
     def __init__(self, label, **kwargs):
 
-        # check if components label is of type str and for prohibited chars
-        _forbidden = [';', ',', '.']
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
-            logger.error(msg)
-            raise ValueError(msg)
-
-        elif any([True for x in _forbidden if x in label]):
-            msg = (
-                f"You cannot use any of {', '.join(_forbidden)} in a "
-                f"component label ({self.__class__.__name__})"
-            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -832,7 +822,7 @@ class Component:
                 if (
                         ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)) and
-                        (data[key] is not None)
+                        (data.get(key) is not None)
                     ):
                     if f"{key}_unit" in data:
                         value = _UNITS.ureg.Quantity(
@@ -1016,22 +1006,12 @@ class Component:
             )
 
     def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
-        zeta_var = self.get_attr(zeta)
-        if zeta_var.is_var:
-            msg = (
-                f"The specification of {zeta} as variable is deprecated and "
-                "will be removed in the next major release."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-
         return [
             self.inl[inconn].m,
             self.inl[inconn].p,
             self.inl[inconn].h,
             self.outl[outconn].p,
             self.outl[outconn].h,
-            zeta_var
         ]
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):

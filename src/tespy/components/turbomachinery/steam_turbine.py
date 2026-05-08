@@ -16,6 +16,7 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -129,7 +130,8 @@ class SteamTurbine(Turbine):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -256,7 +258,10 @@ class SteamTurbine(Turbine):
 
                 return hout - hsat
 
-            frac = brentq(find_sat, 1, 0)
+            frac = 1
+            if round(outl.calc_Q(), 3) != 1:
+                frac = brentq(find_sat, 1, 0)
+
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)
 

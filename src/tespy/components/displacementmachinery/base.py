@@ -182,7 +182,7 @@ class DisplacementMachine(Component):
 
         .. math::
 
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (

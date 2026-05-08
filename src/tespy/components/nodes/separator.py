@@ -17,8 +17,6 @@ from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import dT_mix_dph
 from tespy.tools.fluid_properties import dT_mix_pdh
 
-# from tespy.tools.fluid_properties import dT_mix_ph_dfluid
-
 
 @component_registry
 class Separator(NodeBase):
@@ -94,7 +92,8 @@ class Separator(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si1 = Sink('sink1')

@@ -4,7 +4,8 @@ working_fluid = "NH3"
 
 nw = Network()
 nw.units.set_defaults(
-    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW"
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW",
+    pressure_difference="bar"
 )
 # %%[sec_2]
 from tespy.components import MovingBoundaryHeatExchanger

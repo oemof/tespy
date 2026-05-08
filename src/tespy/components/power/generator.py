@@ -96,7 +96,8 @@ class Generator(_EnergyConverter):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -162,8 +163,8 @@ class Generator(_EnergyConverter):
     @classmethod
     def port_schema(cls):
         return {
-            "inlets": {"type": "fixed", "ports": ["in1"]},
-            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
             "powerinlets": {"type": "fixed", "ports": ["power_in"]},
             "poweroutlets": {"type": "fixed", "ports": ["power_out"]},
         }

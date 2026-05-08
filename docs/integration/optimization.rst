@@ -107,7 +107,7 @@ registered as a read-only derived quantity via :code:`{"get": callable}`:
 
 .. math::
 
-    \eta_\mathrm{th}=\frac{|\sum P|}{\dot{Q}_{sg}}
+    \eta_\text{th}=\frac{|\sum P|}{\dot{Q}_{sg}}
 
 The feasibility check inside :code:`calc_efficiency` returns :code:`np.nan`
 for non-converged or physically infeasible solutions, which the optimizer

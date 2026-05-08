@@ -35,7 +35,8 @@ class TestCGAM:
     def setup_method(self):
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
 
         air_molar = {

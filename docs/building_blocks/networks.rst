@@ -72,7 +72,7 @@ We can change the default units as follows:
     >>> nw.units.get_default("power")
     'hp'
     >>> nw.units.set_defaults(efficiency="%")  # percent
-    >>> nw.units.set_defaults(pressure="bar")
+    >>> nw.units.set_defaults(pressure="bar", pressure_difference="bar")
 
 The unit specification then applies to all parameters with the same quantity.
 For example, let's set up a model of a compressor.
@@ -621,9 +621,9 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 .. math::
 
-    \forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
+    \forall i \in \text{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
-    \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
+    \text{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
 .. _module_convergence_label:
 

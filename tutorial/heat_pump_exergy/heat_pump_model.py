@@ -59,7 +59,8 @@ class HeatPumpModel(ModelTemplate):
     def _create_network(self):
         self.nw = Network()
         self.nw.units.set_defaults(
-            temperature="degC", pressure="bar", enthalpy="kJ/kg"
+            temperature="degC", pressure="bar", enthalpy="kJ/kg",
+            pressure_difference="bar"
         )
 
         # components

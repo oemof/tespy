@@ -81,7 +81,7 @@ fig, ax = plt.subplots(1, figsize=(20, 10))
 isolines = {
     'Q': np.linspace(0, 1, 2),
     'p': np.array([1, 2, 5, 10, 20, 50, 100, 300]),
-    'v': np.array([]),
+    'vol': np.array([]),
     'h': np.arange(500, 3501, 500)
 }
 

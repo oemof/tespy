@@ -71,13 +71,13 @@ New Features
 
       .. math::
 
-          \eta=\frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{component}}
+          \eta=\frac{\dot{E}_\text{bus}}{\dot{E}_\text{component}}
 
     - :code:`'bus'`: This means, the efficiency definition of the bus is
 
       .. math::
 
-          \eta=\frac{\dot{E}_\mathrm{component}}{\dot{E}_\mathrm{bus}}
+          \eta=\frac{\dot{E}_\text{component}}{\dot{E}_\text{bus}}
 
   These definitions also apply to the characteristic line usage. The default
   setting (if you do not specify the base) uses :code:`'base': 'component'`.

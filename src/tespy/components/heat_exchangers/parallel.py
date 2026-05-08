@@ -111,12 +111,12 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     ttd_l : float, dict
         Initial terminal temperature difference, referring to the temperature
         difference between the two inlets of the heat exchanger,
-        :math:`ttd_\mathrm{l}/\text{K}`.
+        :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
         Final terminal temperature difference, referring to the temperature
         difference between the two outlets of the heat exchanger,
-        :math:`ttd_\mathrm{u}/\text{K}`.
+        :math:`ttd_\text{u}/\text{K}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,
@@ -149,7 +149,8 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg",
     ...     "volumetric_flow": "l/s", "heat_transfer_coefficient": "kW/K"
     ... })
     >>> feed_water = Source("Feed water inlet")

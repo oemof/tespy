@@ -20,12 +20,29 @@ API Changes
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- Several previously deprecated features have been removed: the
+  :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
+  parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,
+  the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
+  :code:`fluid_property_data` from :code:`global_vars`
+  (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use
   :py:meth:`tespy.models.template.ModelTemplate.run_exergy_analysis` or call
   :code:`ExergyAnalysis.from_tespy(nw, Tamb, pamb)` directly from exerpy
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+
+New Features
+############
+- A new :code:`f_nox` parameter has been added to
+  :py:class:`~tespy.components.combustion.base.CombustionChamber` and derived
+  combustion components. Setting it enables nitric oxide (NO) formation
+  modelling: the value represents the mass-based NO generation rate (mass of NO
+  created per unit mass of total fuel and air input). Requires
+  `pyromat <https://github.com/chmarti1/PYroMat>`__ being installed as fluid
+  property backend
+  (`PR #904 <https://github.com/oemof/tespy/pull/904>`__).
 
 Other Changes
 #############
@@ -86,7 +103,11 @@ Bug Fixes
   :code:`Component` CSV files inside the :code:`Connection` subdirectory
   when both are exported together
   (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
+- :py:meth:`~tespy.connections.connection.Connection._adjust_to_two_phase` was
+  not working correctly with :code:`td_dew` or :code:`td_bubble` equal to zero
+  (`PR #971 <https://github.com/oemof/tespy/pull/971>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__

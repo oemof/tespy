@@ -149,7 +149,8 @@ class Pump(Turbomachine):
     >>> from tespy.tools.characteristics import CharLine
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -250,6 +251,7 @@ class Pump(Turbomachine):
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar",
+    ...     "pressure_difference": "bar",
     ...     "temperature": "degC",
     ...     "volumetric_flow": "m3/s",
     ...     "enthalpy": "kJ/kg",

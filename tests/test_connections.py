@@ -45,6 +45,7 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
+            "pressure_difference": "bar",
             "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
@@ -167,7 +168,8 @@ def simple_test_network():
     nw = Network()
     nw.units.set_defaults(
         temperature="degC",
-        pressure="bar"
+        pressure="bar",
+        pressure_difference="bar"
     )
 
     so = Source("source")
@@ -180,6 +182,44 @@ def simple_test_network():
 
     nw.add_conns(c1, c2)
     return nw
+
+
+def test_td_dew_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
+
+
+def test_td_bubble_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
 
 
 @mark.skipif(

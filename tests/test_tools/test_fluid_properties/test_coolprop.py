@@ -153,7 +153,8 @@ class TestFluidPropertyBackEnds:
         """Setup a Clausius-Rankine cycle."""
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
 
         # %% components
@@ -207,7 +208,8 @@ class TestFluidPropertyBackEnds:
         """Setup a pipeline network."""
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
 
         # %% components

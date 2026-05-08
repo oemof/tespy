@@ -76,20 +76,20 @@ potential exergy are neglected and therefore not considered as well.
       - description
     * - :code:`ex_physical`, :code:`Ex_physical`
       - (specific) physical exergy
-      - :math:`e^\mathrm{PH}`, :math:`E^\mathrm{PH}`
+      - :math:`e^\text{PH}`, :math:`E^\text{PH}`
       - due to the deviation of the temperature and pressure of the system from
         those of the environment
     * - :code:`ex_therm`, :code:`Ex_therm`
       - (specific) thermal exergy
-      - :math:`e^\mathrm{T}`, :math:`E^\mathrm{T}`
+      - :math:`e^\text{T}`, :math:`E^\text{T}`
       - associated with the system temperature
     * - :code:`ex_mech`, :code:`Ex_mech`
       - (specific) mechanical exergy
-      - :math:`e^\mathrm{M}`, :math:`E^\mathrm{M}`
+      - :math:`e^\text{M}`, :math:`E^\text{M}`
       - associated with the system pressure
     * - :code:`ex_chemical`, :code:`Ex_chemical`
       - (specific) chemical exergy
-      - :math:`e^\mathrm{CH}`, :math:`E^\mathrm{CH}`
+      - :math:`e^\text{CH}`, :math:`E^\text{CH}`
       - based on standard chemical exergy in ambient model, the `tespy.data`
         module provides three different datasets for standard exergy based on
         various sources, i.e. `Ahrendts`
@@ -97,23 +97,23 @@ potential exergy are neglected and therefore not considered as well.
         :cite:`Szargut1988` and `Szargut2007` :cite:`Szargut2007,Bakshi2011`.
     * - :code:`E_P`
       - product exergy
-      - :math:`\dot{E}_\mathrm{P}`
+      - :math:`\dot{E}_\text{P}`
       - represents the desired result(expressed in terms of exergy) generated
         by the system being considered represents the resources (expressed in
         terms of exergy)
     * - :code:`E_F`
       - fuel exergy
-      - :math:`\dot{E}_\mathrm{F}`
+      - :math:`\dot{E}_\text{F}`
       - represents the resources (expressed in terms of exergy) expended to
         provide the product exergy
     * - :code:`E_D`
       - exergy destruction
-      - :math:`\dot{E}_\mathrm{D}`
+      - :math:`\dot{E}_\text{D}`
       - thermodynamic inefficiencies associated with the irreversibility
         (entropy generation) within the system boundaries
     * - :code:`E_L`
       - exergy loss
-      - :math:`\dot{E}_\mathrm{L}`
+      - :math:`\dot{E}_\text{L}`
       - thermodynamic inefficiencies associated with the transfer of exergy
         through material and energy streams to the surroundings
     * - :code:`epsilon`
@@ -122,11 +122,11 @@ potential exergy are neglected and therefore not considered as well.
       - ratio between product exergy and fuel exergy
     * - :code:`y_D,k`
       - exergy destruction ratio
-      - :math:`y_\mathrm{D}`
+      - :math:`y_\text{D}`
       - rate of exergy destruction in a component compared to the exergy rate
         of the fuel provided to the overall system
     * - :code:`y*_D,k`
       - exergy destruction ratio
-      - :math:`y^*_\mathrm{D}`
+      - :math:`y^*_\text{D}`
       - rate of exergy destruction in a component compared to the total exergy
         destruction rate within the system

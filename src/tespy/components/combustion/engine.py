@@ -200,7 +200,8 @@ class CombustionEngine(CombustionChamber):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
@@ -928,7 +929,7 @@ class CombustionEngine(CombustionChamber):
 
           .. math::
 
-              P_\mathrm{irr,inner}=\left(1 - \frac{1}{\eta_\mathrm{mech}}
+              P_\text{irr,inner}=\left(1 - \frac{1}{\eta_\text{mech}}
               \right) \cdot P
 
         The default values are:
@@ -975,26 +976,26 @@ class CombustionEngine(CombustionChamber):
         .. math::
 
             \begin{split}
-            T_\mathrm{m,comb}= & \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
-            {\dot{S}_\mathrm{comb}}\\
-            \dot{S}_\mathrm{comb} =&\dot{S}_\mathrm{Q,comb}-\left(
-            \dot{S}_\mathrm{Q,11} + \dot{S}_\mathrm{Q,21} +
-            \dot{S}_\mathrm{Q,loss} +\dot{S}_\mathrm{irr,i}\right)\\
-            \dot{S}_\mathrm{Q,comb}= & \dot{m}_\mathrm{fluegas} \cdot
-            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)\\
-            & - \sum_{i=3}^4 \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
-            \dot{S}_\mathrm{Q,11}= & \frac{\dot{Q}_1}{T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{Q,21}= & \frac{\dot{Q}_2}{T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{Q,loss}= & \frac{\dot{Q}_\mathrm{loss}}
-            {T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{irr,i}= & \frac{\left(1 -
-            \frac{1}{\eta_\mathrm{mech}}\right) \cdot P}{T_\mathrm{v,inner}}\\
-            T_\mathrm{Q,12} = &\frac{-\dot{Q}_1}{\dot{m}_1 \cdot \left(
-            s_\mathrm{out,1} - s_\mathrm{in,1}\right)}\\
-            T_\mathrm{Q,22} = &\frac{-\dot{Q}_2}{\dot{m}_2 \cdot \left(
-            s_\mathrm{out,2} - s_\mathrm{in,2}\right)}\\
-            \dot{S}_\mathrm{irr} = &\sum \dot{S}_\mathrm{irr}\\
+            T_\text{m,comb}= & \frac{\dot{m}_\text{fuel} \cdot LHV}
+            {\dot{S}_\text{comb}}\\
+            \dot{S}_\text{comb} =&\dot{S}_\text{Q,comb}-\left(
+            \dot{S}_\text{Q,11} + \dot{S}_\text{Q,21} +
+            \dot{S}_\text{Q,loss} +\dot{S}_\text{irr,i}\right)\\
+            \dot{S}_\text{Q,comb}= & \dot{m}_\text{fluegas} \cdot
+            \left(s_\text{fluegas}-s_\text{fluegas,ref}\right)\\
+            & - \sum_{i=3}^4 \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
+            \dot{S}_\text{Q,11}= & \frac{\dot{Q}_1}{T_\text{v,inner}}\\
+            \dot{S}_\text{Q,21}= & \frac{\dot{Q}_2}{T_\text{v,inner}}\\
+            \dot{S}_\text{Q,loss}= & \frac{\dot{Q}_\text{loss}}
+            {T_\text{v,inner}}\\
+            \dot{S}_\text{irr,i}= & \frac{\left(1 -
+            \frac{1}{\eta_\text{mech}}\right) \cdot P}{T_\text{v,inner}}\\
+            T_\text{Q,12} = &\frac{-\dot{Q}_1}{\dot{m}_1 \cdot \left(
+            s_\text{out,1} - s_\text{in,1}\right)}\\
+            T_\text{Q,22} = &\frac{-\dot{Q}_2}{\dot{m}_2 \cdot \left(
+            s_\text{out,2} - s_\text{in,2}\right)}\\
+            \dot{S}_\text{irr} = &\sum \dot{S}_\text{irr}\\
             \end{split}\\
         """
         T_ref = 298.15

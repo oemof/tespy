@@ -45,7 +45,6 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import fluid_property_data as fpd
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
 
@@ -95,7 +94,8 @@ class Network:
     >>> from tespy.networks import Network
     >>> mynetwork = Network()
     >>> mynetwork.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> mynetwork.p_range = [1, 10]
     >>> type(mynetwork)
@@ -118,7 +118,8 @@ class Network:
     >>> from tespy.connections import Connection, HeatConnection
     >>> nw = Network()
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -239,14 +240,11 @@ class Network:
                 "ranges, units or iterinfo."
             )
         self.units = kwargs.get('units', self.units)
-        for prop in fpd.keys():
-            unit = f'{prop}_unit'
-            if unit in kwargs:
+        for key in kwargs:
+            if "_unit" in key:
                 msg = (
-                    f"Passing '{unit}' to Network.set_attr is no longer "
-                    "supported. Use Network.units.set_defaults() instead, "
-                    f"e.g. nw.units.set_defaults("
-                    f"{fpd[prop]['text'].replace(' ', '_')}='...')."
+                    f"Passing '{key}' to Network.set_attr is no longer "
+                    "supported. Use Network.units.set_defaults() instead."
                 )
                 raise TypeError(msg)
 
@@ -415,8 +413,7 @@ class Network:
             if subsystem.label in self.subsystems:
                 for c in subsystem.conns.values():
                     self.del_conns(c)
-
-            del self.subsystems[subsystem.label: str]
+                del self.subsystems[subsystem.label]
 
     def get_subsystem(self, label):
         r"""
@@ -613,9 +610,11 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
-                self.results[comp.__class__.__name__].drop(
-                    comp.label, inplace=True, errors="ignore"
-                )
+                comp_type = comp.__class__.__name__
+                if comp_type in self.results:
+                    self.results[comp_type].drop(
+                        comp.label, inplace=True, errors="ignore"
+                    )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
 
@@ -919,23 +918,36 @@ class Network:
             back_ends = {}
             wrapper_kwargs = {}
             any_fluids = []
+
+            all_components = [c for c in branch_data["components"]]
+            for cp in all_components:
+                any_fluids += cp._add_missing_fluids(all_connections)
+
             any_fluids0 = []
             mixing_rules = []
             for c in all_connections:
-                for f in c.fluid.is_set:
-                    any_fluids_set += [f]
-
-                    if f in c.fluid.engine:
-                        engines[f] = c.fluid.engine[f]
-                    if f in c.fluid.back_end:
-                        back_ends[f] = c.fluid.back_end[f]
-                    if f in c.fluid.wrapper_kwargs:
-                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
-
+                any_fluids_set += list(c.fluid.is_set)
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
                 if c.mixing_rule is not None:
                     mixing_rules += [c.mixing_rule]
+
+            for c in all_connections:
+                for f in set(any_fluids):
+                    if f in c.fluid.engine:
+                        if f in engines and engines[f] != c.fluid.engine[f]:
+                            raise ValueError("")
+                        engines[f] = c.fluid.engine[f]
+
+                    if f in c.fluid.back_end:
+                        if f in back_ends and back_ends[f] != c.fluid.back_end[f]:
+                            raise ValueError("")
+                        back_ends[f] = c.fluid.back_end[f]
+
+                    if f in c.fluid.wrapper_kwargs:
+                        if f in wrapper_kwargs and wrapper_kwargs[f] != c.fluid.wrapper_kwargs[f]:
+                            raise ValueError("")
+                        wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
 
             mixing_rule = list(set(mixing_rules))
             if len(mixing_rule) > 1:
@@ -952,10 +964,6 @@ class Network:
 
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
-
-            all_components = [c for c in branch_data["components"]]
-            for cp in all_components:
-                any_fluids += cp._add_missing_fluids(all_connections)
 
             potential_fluids = set(any_fluids_set + any_fluids + any_fluids0)
             self.all_fluids += list(potential_fluids)
@@ -2135,6 +2143,14 @@ class Network:
 
             c._guess_starting_values(self.units)
 
+        # here reference values can be updated, e.g. a reference temperature
+        # if the starting value of the reference connection is not yet updated
+        # then the calculation of the reference can cause issues, therefore:
+        # first update all of the starting values and only then to
+        # precalculation of reference values
+        for c in self.conns["object"]:
+            c._precalc_guess_values_for_references()
+
         for cp in self.comps["object"]:
             for key, variable in cp.get_variables().items():
                 # for components every variable should be an actual variable
@@ -2835,10 +2851,10 @@ class Network:
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
         m = [k for k, v in self.variables_dict.items() if v["variable"] == "m"]
-        p = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         p = [k for k, v in self.variables_dict.items() if v["variable"] == "p"]
         h = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         fl = [k for k, v in self.variables_dict.items() if v["variable"] == "fluid"]
+        e = [k for k, v in self.variables_dict.items() if v["variable"] == "E"]
         cp = [k for k in self.variables_dict if k not in m + p + h + fl]
 
         iter_str = str(self.iter + 1)
@@ -2849,6 +2865,7 @@ class Network:
         pressure = 'NaN'
         enthalpy = 'NaN'
         fluid = 'NaN'
+        energy = 'NaN'
         component = 'NaN'
 
         progress_val = -1
@@ -2861,6 +2878,7 @@ class Network:
                 pressure = '{:.2e}'.format(norm(self.increment[p]))
                 enthalpy = '{:.2e}'.format(norm(self.increment[h]))
                 fluid = '{:.2e}'.format(norm(self.increment[fl]))
+                energy  = '{:.2e}'.format(norm(self.increment[e]))
                 component  = '{:.2e}'.format(norm(self.increment[cp]))
 
             # This should not be hardcoded here.
@@ -2889,6 +2907,7 @@ class Network:
             pressure=pressure,
             enthalpy=enthalpy,
             fluid=fluid,
+            energy=energy,
             component=component
         )
         logger.progress(progress_val, msg)
@@ -3250,11 +3269,12 @@ class Network:
 
         # this could be in a different place, its kind of in between
         # network and connection
-        for idx, data in self.variables_dict.items():
-            if type(data["obj"]) == dc_vecvar:
-                total_mass_fractions = sum(data["obj"].val.values())
-                for fluid in data["obj"].is_var:
-                    data["obj"]._val[fluid] /= total_mass_fractions
+        if self.iter < 10:
+            for data in self.variables_dict.values():
+                if type(data["obj"]) == dc_vecvar:
+                    total_mass_fractions = sum(data["obj"].val.values())
+                    for fluid in data["obj"].is_var:
+                        data["obj"]._val[fluid] /= total_mass_fractions
 
         if norm(self.increment) > 1e-1:
             for c in self.conns['object']:
@@ -3560,12 +3580,11 @@ class Network:
             if not colored:
                 return str(val)
             # else part
-            if (val_SI < comp.get_attr(param).min_val - ERR or
-                    val_SI > comp.get_attr(param).max_val + ERR ):
+            if val_SI < param_obj.min_val - ERR or val_SI > param_obj.max_val + ERR:
                 return f"{coloring['err']}{val}{coloring['end']}"
-            if comp.get_attr(args[0]).is_var:
+            if param_obj.is_var:
                 return f"{coloring['var']}{val}{coloring['end']}"
-            if comp.get_attr(args[0]).is_set:
+            if param_obj.is_set:
                 return f"{coloring['set']}{val}{coloring['end']}"
             return str(val)
         else:
@@ -3688,7 +3707,8 @@ class Network:
         >>> import os
         >>> nw = Network(iterinfo=False)
         >>> nw.units.set_defaults(**{
-        ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+        ...     "pressure": "bar", "pressure_difference": "bar",
+        ...     "temperature": "degC", "enthalpy": "kJ/kg",
         ...     "power": "MW"
         ... })
         >>> air = Source('air')

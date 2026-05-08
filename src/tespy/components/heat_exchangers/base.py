@@ -133,13 +133,13 @@ class HeatExchanger(Component):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minimum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -185,7 +185,8 @@ class HeatExchanger(Component):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg",
     ...     "heat_transfer_coefficient": "kW/K"
     ... })
     >>> exhaust_hot = Source('Exhaust air outlet')
@@ -1008,21 +1009,21 @@ class HeatExchanger(Component):
 
         .. math::
 
-            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{in}^\mathrm{out} v
-            \cdot dp - \int_\mathrm{in}^\mathrm{out} T \cdot ds
+            h_\text{out} - h_\text{in} = \int_\text{in}^\text{out} v
+            \cdot dp - \int_\text{in}^\text{out} T \cdot ds
 
-        As solving :math:`\int_\mathrm{in}^\mathrm{out} v \cdot dp` for non
+        As solving :math:`\int_\text{in}^\text{out} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
         on how specific volume and pressure change throughout the component, the
         heat transfer is split into three separate virtual processes for
         both sides:
 
         - in->in*: decrease pressure to
-          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          :math:`p_\text{in*}=p_\text{in}\cdot\sqrt{\frac{p_\text{out}}{p_\text{in}}}`
           without changing enthalpy.
         - in*->out* transfer heat without changing pressure.
-          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
-        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          :math:`h_\text{out*}-h_\text{in*}=h_\text{out}-h_\text{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\text{out}`
           without changing enthalpy.
 
         Note
@@ -1031,16 +1032,16 @@ class HeatExchanger(Component):
 
         .. math::
 
-            \text{S\_Q1}=\dot{m} \cdot \left(s_\mathrm{out*,1}-s_\mathrm{in*,1}
+            \text{S\_Q1}=\dot{m} \cdot \left(s_\text{out*,1}-s_\text{in*,1}
             \right)\\
-            \text{S\_Q2}=\dot{m} \cdot \left(s_\mathrm{out*,2}-s_\mathrm{in*,2}
+            \text{S\_Q2}=\dot{m} \cdot \left(s_\text{out*,2}-s_\text{in*,2}
             \right)\\
             \text{S\_Qirr}=\text{S\_Q2} - \text{S\_Q1}\\
-            \text{S\_irr1}=\dot{m} \cdot \left(s_\mathrm{out,1}-s_\mathrm{in,1}
+            \text{S\_irr1}=\dot{m} \cdot \left(s_\text{out,1}-s_\text{in,1}
             \right) - \text{S\_Q1}\\
-            \text{S\_irr2}=\dot{m} \cdot \left(s_\mathrm{out,2}-s_\mathrm{in,2}
+            \text{S\_irr2}=\dot{m} \cdot \left(s_\text{out,2}-s_\text{in,2}
             \right) - \text{S\_Q2}\\
-            \text{S\_irr}=\sum \dot{S}_\mathrm{irr}\\
+            \text{S\_irr}=\sum \dot{S}_\text{irr}\\
             \text{T\_mQ1}=\frac{\dot{Q}}{\text{S\_Q1}}\\
             \text{T\_mQ2}=\frac{\dot{Q}}{\text{S\_Q2}}
         """

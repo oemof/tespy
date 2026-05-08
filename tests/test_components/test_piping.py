@@ -53,23 +53,12 @@ class TestPiping:
         )
         assert pr == round(instance.pr.val, 2), msg
 
-        # test variable zeta value
-        zeta = round(instance.zeta.val, 0)
-        instance.set_attr(zeta='var', pr=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        msg = (
-            f'Value of dimension independent zeta value must be {zeta}, is '
-            f'{instance.zeta.val}.'
-        )
-        assert zeta == round(instance.zeta.val, 0), msg
-
         # dp char
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
         dp_char = CharLine(x, y)
         instance.set_attr(
-            zeta=None,
+            pr=None,
             dp_char={"char_func": dp_char, "is_set": True}
         )
         m = 11

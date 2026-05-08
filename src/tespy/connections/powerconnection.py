@@ -1,10 +1,8 @@
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
-from tespy.tools.data_containers import DataContainer as dc
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.logger import logger
-from tespy.tools.units import SI_UNITS
 
 
 @connection_registry
@@ -83,27 +81,6 @@ class PowerConnection(ConnectionBase):
         self.E.set_val0_from_SI(units)
         return True
 
-    def _get_design_state_SI(self, data, units):
-        state = {}
-        for var in self._result_attributes():
-            param = self.get_attr(var)
-            state[var] = units.ureg.Quantity(
-                float(data[var]), data[f"{var}_unit"]
-            ).to(SI_UNITS[param.quantity]).magnitude
-        return state
-
-    def _set_design_params(self, data, units):
-        for var, val in self._get_design_state_SI(data, units).items():
-            self.get_attr(var).design = val
-
-    def _set_starting_values(self, data, units):
-        for prop in self.get_variables():
-            var = self.get_attr(prop)
-            var.val0 = units.ureg.Quantity(
-                float(data[prop]),
-                data[f"{prop}_unit"]
-            )
-
     @classmethod
     def _print_attributes(cls):
         return ["E"]
@@ -119,16 +96,3 @@ class PowerConnection(ConnectionBase):
     def collect_results(self, all_fluids):
         return [self.E.val, self.E.unit]
 
-    def _deserialize(self, data, all_connections):
-        arglist = [
-            _ for _ in data
-            if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
-            and "ref" not in _
-        ]
-
-        for arg in arglist:
-            container = self.get_attr(arg)
-            if isinstance(container, dc):
-                container.set_attr(**data[arg])
-            else:
-                self.set_attr(**{arg: data[arg]})

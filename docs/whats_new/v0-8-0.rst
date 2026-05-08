@@ -106,7 +106,7 @@ New Features
 
     >>> nw = Network()
     >>> nw.units.set_defaults(
-    ...     pressure"bar",
+    ...     pressure="bar",
     ...     temperature="°C",
     ...     enthalpy="kJ / kg"
     ... )

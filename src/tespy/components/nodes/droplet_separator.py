@@ -88,7 +88,8 @@ class DropletSeparator(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
@@ -106,11 +107,11 @@ class DropletSeparator(NodeBase):
 
     .. math::
 
-        \dot{m}_\mathrm{out,1} = \left(1 - \frac{h_\mathrm{in} - h'}{h'' - h'}
-        \right) \cdot \dot{m}_\mathrm{in}
+        \dot{m}_\text{out,1} = \left(1 - \frac{h_\text{in} - h'}{h'' - h'}
+        \right) \cdot \dot{m}_\text{in}
 
-        \dot{m}_\mathrm{out,2} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
-        \dot{m}_\mathrm{in}
+        \dot{m}_\text{out,2} = \frac{h_\text{in} - h'}{h'' - h'} \cdot
+        \dot{m}_\text{in}
 
     >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
     >>> nw.solve('design')

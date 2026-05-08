@@ -42,7 +42,8 @@ create an instance with the respective data. First, we set up the TESPy model.
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ...     pressure='bar', temperature='degC', enthalpy='kJ/kg'
+    ...     pressure='bar', pressure_difference='bar', temperature='degC',
+    ...     enthalpy='kJ/kg'
     ... )
 
     >>> so1 = Source('source 1')
@@ -413,7 +414,9 @@ a condenser, a valve and a cycle closer.
     >>> from tespy.tools.fluid_properties.functions import T_dew_p
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(pressure='bar', temperature='degC')
+    >>> nw.units.set_defaults(
+    ...     pressure='bar', pressure_difference='bar', temperature='degC'
+    ... )
 
     >>> evaporator = SimpleHeatExchanger('evaporator')
     >>> superheater = SimpleHeatExchanger('superheater')

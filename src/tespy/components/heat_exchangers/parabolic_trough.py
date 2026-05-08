@@ -154,7 +154,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     -------
     A parabolic trough is installed using S800 as thermo-fluid.
     First, the operation conditions from :cite:`Janotte2014` are reproduced.
-    Therefore, the direct normal irradiance :math:`\dot{E}_\mathrm{DNI}` is at
+    Therefore, the direct normal irradiance :math:`\dot{E}_\text{DNI}` is at
     1000 :math:`\frac{\text{W}}{\text{m}^2}` at an angle of incidence
     :math:`aoi` at 20 °. This means, the direct irradiance to the parabolic
     trough :math:`E` is at
@@ -166,7 +166,8 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> import math
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')

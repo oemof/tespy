@@ -35,7 +35,8 @@ class TestHeatPump:
     def setup_method(self):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         # sources & sinks

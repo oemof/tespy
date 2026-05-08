@@ -110,10 +110,10 @@ class Desuperheater(HeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,
@@ -140,8 +140,8 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
-    ...     "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg", "volumetric_flow": "l/s"
     ... })
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')

@@ -149,6 +149,7 @@ Customizing model behavior
             >>> nw.units.set_defaults(
             ...     temperature="°C",
             ...     pressure="bar",
+            ...     pressure_difference="bar",
             ...     heat="kW"
             ... )
 

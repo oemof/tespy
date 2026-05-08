@@ -560,8 +560,8 @@ class Component:
         -------
         dict
             Keys are ``"inlets"``, ``"outlets"``, ``"powerinlets"``,
-            ``"poweroutlets"``.  Each value is a dict with at least a
-            ``"type"`` key:
+            ``"poweroutlets"``, ``"heatinlets"``, ``"heatoutlets"``.
+            Each value is a dict with at least a ``"type"`` key:
 
             ``{"type": "fixed", "ports": [...]}``
                 The port list is static.
@@ -570,13 +570,14 @@ class Component:
                 Port count is controlled by *parameter*.  *pattern* is a
                 Python format string where ``{n}`` is replaced by the
                 1-based port index (e.g. ``"in{n}"``).
-
-            ``{"type": "conditional", "parameter": str, "when": str, "ports": [...]}``
-                The listed ports exist only when *parameter* equals *when*.
         """
         import inspect
         result = {}
-        for port_type in ("inlets", "outlets", "powerinlets", "poweroutlets"):
+        for port_type in (
+            "inlets", "outlets",
+            "powerinlets", "poweroutlets",
+            "heatinlets", "heatoutlets",
+        ):
             attr = inspect.getattr_static(cls, port_type, None)
             if isinstance(attr, staticmethod):
                 result[port_type] = {

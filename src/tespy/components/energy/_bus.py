@@ -25,6 +25,18 @@ class _EnergyBus(Component):
 
     _energy_port: str = None
 
+    @classmethod
+    def port_schema(cls):
+        is_power = cls._energy_port == "power"
+        return {
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "variable", "parameter": "num_in", "pattern": "power_in{n}", "min": 1} if is_power else {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "variable", "parameter": "num_out", "pattern": "power_out{n}", "min": 1} if is_power else {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []} if is_power else {"type": "variable", "parameter": "num_in", "pattern": "heat_in{n}", "min": 1},
+            "heatoutlets": {"type": "fixed", "ports": []} if is_power else {"type": "variable", "parameter": "num_out", "pattern": "heat_out{n}", "min": 1},
+        }
+
     def powerinlets(self):
         if self._energy_port == "power":
             return [f"power_in{i + 1}" for i in range(self.num_in.val)]

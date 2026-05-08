@@ -160,6 +160,8 @@ class SubsystemInterface(Component):
             "outlets": {"type": "variable", "parameter": "num_inter", "pattern": "out{n}", "min": 1},
             "powerinlets": {"type": "fixed", "ports": []},
             "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
 
     def inlets(self):

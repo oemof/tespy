@@ -167,4 +167,6 @@ class Motor(_EnergyConverter):
             "outlets": {"type": "fixed", "ports": []},
             "powerinlets": {"type": "fixed", "ports": ["power_in"]},
             "poweroutlets": {"type": "fixed", "ports": ["power_out"]},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }

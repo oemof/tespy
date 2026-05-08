@@ -142,6 +142,8 @@ class Node(Splitter, Merge):
             "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
             "powerinlets": {"type": "fixed", "ports": []},
             "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
 
     def get_mandatory_constraints(self):

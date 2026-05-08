@@ -158,6 +158,8 @@ def generate_component_schema(
             "outlets": ports["outlets"],
             "powerinlets": ports["powerinlets"],
             "poweroutlets": ports["poweroutlets"],
+            "heatinlets": ports["heatinlets"],
+            "heatoutlets": ports["heatoutlets"],
             "parameters": params_list,
         }
 

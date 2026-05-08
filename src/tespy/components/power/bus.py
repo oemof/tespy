@@ -126,6 +126,8 @@ class PowerBus(_EnergyBus):
             "outlets": {"type": "fixed", "ports": []},
             "powerinlets": {"type": "variable", "parameter": "num_in", "pattern": "power_in{n}", "min": 1},
             "poweroutlets": {"type": "variable", "parameter": "num_out", "pattern": "power_out{n}", "min": 1},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
 
     _energy_port = "power"

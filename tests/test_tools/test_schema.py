@@ -76,8 +76,10 @@ class TestComponentSchemaStructure:
 
     def test_component_entry_has_required_keys(self, component_schema):
         required = {
-            "module", "submodule", "inlets", "outlets", "powerinlets",
-            "poweroutlets", "parameters"
+            "module", "submodule", "inlets", "outlets",
+            "powerinlets", "poweroutlets",
+            "heatinlets", "heatoutlets",
+            "parameters"
         }
         for name, entry in component_schema.items():
             assert required <= entry.keys(), (
@@ -188,12 +190,16 @@ class TestPortSchema:
         assert outlets["type"] == "variable"
         assert outlets["parameter"] == "num_out"
 
-    def test_motor_has_fixed_power_ports(self, component_schema):
+    def test_motor_has_power_ports_only(self, component_schema):
         entry = component_schema["Motor"]
+        assert entry["inlets"]["ports"] == []
+        assert entry["outlets"]["ports"] == []
         assert entry["powerinlets"]["type"] == "fixed"
         assert entry["powerinlets"]["ports"] == ["power_in"]
         assert entry["poweroutlets"]["type"] == "fixed"
         assert entry["poweroutlets"]["ports"] == ["power_out"]
+        assert entry["heatinlets"]["ports"] == []
+        assert entry["heatoutlets"]["ports"] == []
 
     def test_source_has_no_inlets(self, component_schema):
         inlets = component_schema["Source"]["inlets"]
@@ -205,14 +211,43 @@ class TestPortSchema:
         assert outlets["type"] == "fixed"
         assert outlets["ports"] == []
 
-    def test_simple_heat_exchanger_conditional_power_ports(self, component_schema):
+    def test_simple_heat_exchanger_heat_and_power_ports(self, component_schema):
         entry = component_schema["SimpleHeatExchanger"]
-        # One of powerinlets/poweroutlets must be conditional
-        port_types = {
-            entry["powerinlets"]["type"],
-            entry["poweroutlets"]["type"],
-        }
-        assert "conditional" in port_types
+        assert entry["powerinlets"]["ports"] == ["heat"]
+        assert entry["poweroutlets"]["ports"] == ["heat"]
+        assert entry["heatinlets"]["ports"] == ["heat"]
+        assert entry["heatoutlets"]["ports"] == ["heat"]
+
+    def test_heat_sink_has_heat_inlet(self, component_schema):
+        entry = component_schema["HeatSink"]
+        assert entry["heatinlets"]["type"] == "fixed"
+        assert entry["heatinlets"]["ports"] == ["heat"]
+        assert entry["powerinlets"]["ports"] == []
+
+    def test_heat_source_has_heat_outlet(self, component_schema):
+        entry = component_schema["HeatSource"]
+        assert entry["heatoutlets"]["type"] == "fixed"
+        assert entry["heatoutlets"]["ports"] == ["heat"]
+        assert entry["poweroutlets"]["ports"] == []
+
+    def test_power_sink_has_power_inlet(self, component_schema):
+        entry = component_schema["PowerSink"]
+        assert entry["powerinlets"]["ports"] == ["power"]
+        assert entry["heatinlets"]["ports"] == []
+
+    def test_power_source_has_power_outlet(self, component_schema):
+        entry = component_schema["PowerSource"]
+        assert entry["poweroutlets"]["ports"] == ["power"]
+        assert entry["heatoutlets"]["ports"] == []
+
+    def test_heat_bus_has_variable_heat_ports(self, component_schema):
+        entry = component_schema["HeatBus"]
+        assert entry["heatinlets"]["type"] == "variable"
+        assert entry["heatinlets"]["pattern"] == "heat_in{n}"
+        assert entry["heatoutlets"]["type"] == "variable"
+        assert entry["heatoutlets"]["pattern"] == "heat_out{n}"
+        assert entry["powerinlets"]["ports"] == []
+        assert entry["poweroutlets"]["ports"] == []
 
     def test_turbine_has_no_power_ports_by_default(self, component_schema):
         entry = component_schema["Turbine"]

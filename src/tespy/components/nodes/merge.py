@@ -175,6 +175,8 @@ class Merge(NodeBase):
             "outlets": {"type": "fixed", "ports": ["out1"]},
             "powerinlets": {"type": "fixed", "ports": []},
             "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
 
     def _update_num_eq(self):

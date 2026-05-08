@@ -92,6 +92,8 @@ Other Changes
   respectively, so the two-phase dome is always fully visible when no explicit
   :code:`ylim` is passed
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+- Change outlet 1 description to saturated gas constraint for DropletSeparator (`PR #977 <https://github.com/oemof/tespy/pull/977>`__).
+
 
 Bug Fixes
 #########

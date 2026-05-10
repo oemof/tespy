@@ -174,7 +174,7 @@ class DropletSeparator(NodeBase):
                 'dependents': self.saturated_outlet_dependents,
                 'num_eq_sets': 1,
                 'func_params': {'outconn': 1, 'quality': 1},
-                'description': 'outlet 1 is saturated liquid constraint'
+                'description': 'outlet 1 is saturated gas constraint'
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,

@@ -142,7 +142,7 @@ def _physical_exergy_at_min_temperature(h, s, pamb, Tamb, fluid_data, fluid):
     Returns
     -------
     tuple
-        :code:`(e_ph, 0.0)` — total physical exergy and zero mechanical share,
+        :code:`(e_ph, 0.0)` - total physical exergy and zero mechanical share,
         both in J/kg.
     """
     Tmin = fluid["wrapper"]._T_min

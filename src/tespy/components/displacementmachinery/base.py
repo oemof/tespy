@@ -82,6 +82,9 @@ class DisplacementMachine(Component):
     - :class:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
     - :class:`tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling`
     """
+    def _calc_P(self):
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
     def get_parameters(self):
         return {
             'P': dc_cp(
@@ -89,21 +92,24 @@ class DisplacementMachine(Component):
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 quantity="power",
-                description="power input of the component"
+                description="power input of the component",
+                calc=self._calc_P
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
                 quantity="ratio",
-                description="outlet to inlet pressure ratio"
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
                 quantity="pressure_difference",
-                description="inlet to outlet absolute pressure change"
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             )
         }
 
@@ -152,10 +158,7 @@ class DisplacementMachine(Component):
 
                 0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
         """
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val_SI
-        )
+        return self._calc_P() - self.P.val_SI
 
     def energy_balance_dependents(self):
         return [
@@ -163,14 +166,6 @@ class DisplacementMachine(Component):
             self.inl[0].h,
             self.outl[0].h,
         ]
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.P.val_SI = self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
 
     def entropy_balance(self):
         r"""

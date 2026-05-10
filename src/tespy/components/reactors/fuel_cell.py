@@ -161,6 +161,15 @@ class FuelCell(Component):
     0.45
     """
 
+    def _calc_Q(self):
+        return -self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_e(self):
+        return self.P.val_SI / self.inl[2].m.val_SI
+
+    def _calc_eta(self):
+        return self.e.val_SI / self.e0
+
     def get_parameters(self):
         return {
             'P': dc_cp(
@@ -172,14 +181,16 @@ class FuelCell(Component):
                 func=self.heat_func,
                 dependents=self.heat_dependents,
                 quantity="heat",
-                description="heat output of the cooling port"
+                description="heat output of the cooling port",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="cooling port outlet to inlet pressure ratio"
+                description="cooling port outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -187,7 +198,8 @@ class FuelCell(Component):
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure_difference",
-                description="cooling inlet to outlet absolute pressure change"
+                description="cooling inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'zeta': dc_cp(
                 min_val=0,
@@ -195,14 +207,8 @@ class FuelCell(Component):
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
                 func_params={'zeta': 'zeta'},
-                description="cooling port non-dimensional friction coefficient for pressure loss calculation"
-            ),
-            'eta': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1,
-                func=self.eta_func,
-                dependents=self.eta_dependents,
-                quantity="efficiency",
-                description="efficiency of the fuel cell"
+                description="cooling port non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
@@ -210,8 +216,17 @@ class FuelCell(Component):
                 dependents=self.specific_energy_dependents,
                 quantity="specific_energy",
                 _potential_var=True,
-                description="equation for specified specific energy consumption of the fuel cell"
-            )
+                description="equation for specified specific energy consumption of the fuel cell",
+                calc=self._calc_e
+            ),
+            'eta': dc_cp(
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eta_func,
+                dependents=self.eta_dependents,
+                quantity="efficiency",
+                description="efficiency of the fuel cell",
+                calc=self._calc_eta, calc_deps=['e']
+            ),
         }
 
     def get_mandatory_constraints(self):
@@ -391,9 +406,7 @@ class FuelCell(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
-        return self.Q.val_SI + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
+        return self.Q.val_SI - self._calc_Q()
 
     def heat_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -688,13 +701,3 @@ class FuelCell(Component):
             temp = 50 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = -self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
-        self.e.val_SI = self.P.val_SI / self.inl[2].m.val_SI
-        self.eta.val_SI = self.e.val_SI / self.e0

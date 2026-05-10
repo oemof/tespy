@@ -330,6 +330,13 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     efficiencies for these components.
     """
 
+    def _calc_td_minimal(self):
+        o = self.outl[0]
+        return (
+            T_mix_ph(o.p.val_SI, self._calc_h2(), o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+            - self.outl[1].T.val_SI
+        )
+
     def _preprocess(self, row_idx):
         if not self.eta_recovery.is_set:
             msg = (
@@ -370,7 +377,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             min_val=0,
             quantity="temperature_difference",
             is_result=True,
-            description="theoretical minimal temperature difference between working and cooling fluid"
+            description="theoretical minimal temperature difference between working and cooling fluid",
+            calc=self._calc_td_minimal
         )
         params["dp_cooling"] = dc_cp(
             min_val=0,
@@ -378,7 +386,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
             quantity="pressure_difference",
             num_eq_sets=1,
-            description="cooling port inlet to outlet absolute pressure change"
+            description="cooling port inlet to outlet absolute pressure change",
+            calc=self._calc_dp, calc_params={"inconn": 1, "outconn": 1}
         )
         params["pr_cooling"] = dc_cp(
             min_val=0,
@@ -386,7 +395,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             func_params={"inconn": 1, "outconn": 1, "pr": "pr_cooling"},
             quantity="ratio",
             num_eq_sets=1,
-            description="cooling port outlet to inlet pressure ratio"
+            description="cooling port outlet to inlet pressure ratio",
+            calc=self._calc_pr, calc_params={"inconn": 1, "outconn": 1}
         )
         return params
 
@@ -425,26 +435,3 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             self.outl[0].h, self.outl[1].h
         ]
 
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        h_2 = (
-            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-        )
-        T_max_compressor_internal = T_mix_ph(
-            self.outl[0].p.val_SI,
-            h_2,
-            self.outl[0].fluid_data,
-            self.outl[0].mixing_rule,
-            T0=self.outl[0].T.val_SI
-        )
-        self.td_minimal.val_SI = (
-            T_max_compressor_internal
-            - self.outl[1].T.val_SI
-        )
-
-        self.dp_cooling.val_SI = self.inl[1].p.val_SI - self.outl[1].p.val_SI
-        self.pr_cooling.val_SI = self.outl[1].p.val_SI / self.inl[1].p.val_SI

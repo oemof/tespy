@@ -34,6 +34,12 @@ class _EnergyConverter(Component):
     def get_mandatory_constraints():
         return {}
 
+    def _calc_eta(self):
+        return self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
+
+    def _calc_delta_power(self):
+        return self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
+
     def get_parameters(self):
         return {
             "eta": dc_cp(**{
@@ -44,7 +50,8 @@ class _EnergyConverter(Component):
                 "max_val": 1,
                 "min_val": 0,
                 "quantity": "efficiency",
-                "description": "efficiency"
+                "description": "efficiency",
+                "calc": self._calc_eta
             }),
             "delta_power": dc_cp(**{
                 "structure_matrix": self.delta_power_structure_matrix,
@@ -53,7 +60,8 @@ class _EnergyConverter(Component):
                 "num_eq_sets": 1,
                 "min_val": 0,
                 "quantity": "power",
-                "description": "inlet to outlet power difference"
+                "description": "inlet to outlet power difference",
+                "calc": self._calc_delta_power
             }),
             "eta_char": dc_cc(**{
                 "func": self.eta_char_func,
@@ -144,8 +152,3 @@ class _EnergyConverter(Component):
     def eta_char_dependents(self):
         return [self.power_inl[0].E, self.power_outl[0].E]
 
-    def calc_parameters(self):
-        self.eta.val_SI = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
-        self.delta_power.val_SI = (
-            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-        )

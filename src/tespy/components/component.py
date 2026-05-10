@@ -819,6 +819,12 @@ class Component:
                 else:
                     self.get_attr(key).design = np.nan
 
+    def _calc_pr(self, inconn=0, outconn=0):
+        return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
+
+    def _calc_dp(self, inconn=0, outconn=0):
+        return self.inl[inconn].p.val_SI - self.outl[outconn].p.val_SI
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation.
 
@@ -955,7 +961,9 @@ class Component:
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
-    def calc_zeta(self, i, o):
+    def _calc_zeta(self, inconn=0, outconn=0):
+        i, o = self.inl[inconn], self.outl[outconn]
+
         if abs(i.m.val_SI) <= 1e-4:
             return 0
         else:

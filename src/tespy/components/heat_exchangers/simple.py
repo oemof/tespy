@@ -244,6 +244,18 @@ class SimpleHeatExchanger(Component):
             )
         super().set_attr(**kwargs)
 
+    def _calc_Q(self):
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_kA(self):
+        if not self.Tamb.is_set:
+            return np.nan
+        ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
+        ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
+        if ttd_1 / ttd_2 < 0:
+            return np.nan
+        return abs(self.Q.val_SI / self._calculate_td_log())
+
     def get_parameters(self):
         return {
             'power_connector_location': dc_simple(),
@@ -252,28 +264,32 @@ class SimpleHeatExchanger(Component):
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 quantity="heat",
-                description="heat transfer"
+                description="heat transfer",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet to inlet pressure ratio"
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
                 quantity="pressure_difference",
-                description="inlet to outlet absolute pressure change"
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'},
-                description="non-dimensional friction coefficient for pressure loss calculation"
+                description="non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
             ),
             'D': dc_cp(
                 min_val=1e-2, max_val=2, d=1e-5, quantity="length",
@@ -298,7 +314,8 @@ class SimpleHeatExchanger(Component):
             'kA': dc_cp(
                 min_val=0, quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering ambient temperature",
-                _potential_var=True
+                _potential_var=True,
+                calc=self._calc_kA, calc_deps=['Q']
             ),
             'kA_char': dc_cc(
                 param='m',
@@ -438,9 +455,7 @@ class SimpleHeatExchanger(Component):
 
                 0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        ) - self.Q.val_SI
+        return self._calc_Q() - self.Q.val_SI
 
     def energy_balance_dependents(self):
         return [
@@ -823,25 +838,10 @@ class SimpleHeatExchanger(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        if self.Tamb.is_set:
-            ttd_1 = i.T.val_SI - self.Tamb.val_SI
-            ttd_2 = o.T.val_SI - self.Tamb.val_SI
-            if ttd_1 / ttd_2 < 0:
-                self.kA.val_SI = np.nan
-            else:
-                self.kA.val_SI = abs(self.Q.val_SI / self._calculate_td_log())
-
-            self.kA.is_result = True
-        else:
-            self.kA.is_result = False
+        super().calc_parameters()
+        if "kA" not in self.parameters:
+            return
+        self.kA.is_result = self.Tamb.is_set
 
     def entropy_balance(self):
         r"""

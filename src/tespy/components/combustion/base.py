@@ -188,7 +188,8 @@ class CombustionChamber(Component):
                 dependents=self.lambda_dependents,
                 num_eq_sets=1,
                 quantity="ratio",
-                description="available oxygen to stoichiometric oxygen ratio"
+                description="available oxygen to stoichiometric oxygen ratio",
+                calc=self._calc_lambda
             ),
             "ti": dc_cp(
                 min_val=0,
@@ -197,7 +198,8 @@ class CombustionChamber(Component):
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
                 quantity="heat",
-                description="thermal input of fuel: lower heating value multipled with mass flow"
+                description="thermal input of fuel: lower heating value multipled with mass flow",
+                calc=self._calc_ti
             ),
             "f_nox": dc_cp(
                 quantity="ratio",
@@ -857,7 +859,7 @@ class CombustionChamber(Component):
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        res += self.calc_ti()
+        res += self._calc_ti()
         if self.f_nox.is_set:
             # NO is endothermal reaction 90.3 kJ/mol
             NO_in = sum(i.fluid.val.get(self.no, 0) * i.m.val_SI for i in inl)
@@ -895,7 +897,7 @@ class CombustionChamber(Component):
                 \dot{m}_{fluid,m} = \sum_i \frac{x_{fluid,i} \cdot \dot{m}_{i}}
                 {M_{fluid}}\\ \forall i \in inlets
         """
-        return self.calc_lambda() - self.lamb.val_SI
+        return self._calc_lambda() - self.lamb.val_SI
 
     def lambda_dependents(self):
         inl, _ = self._get_combustion_connections()
@@ -907,7 +909,7 @@ class CombustionChamber(Component):
             }]
         }
 
-    def calc_lambda(self):
+    def _calc_lambda(self):
         r"""
         Calculate oxygen to stoichimetric oxygen ration
 
@@ -959,9 +961,9 @@ class CombustionChamber(Component):
 
             .. math::
 
-                0 = ti - \dot{m}_{fuel} \cdot LHV
+                0 = \dot{m}_{fuel} \cdot LHV - ti
         """
-        return self.ti.val_SI - self.calc_ti()
+        return self._calc_ti() - self.ti.val_SI
 
     def ti_deriv(self, increment_filter, k, dependents=None):
         """
@@ -980,19 +982,19 @@ class CombustionChamber(Component):
             if i.m.is_var:
                 deriv = 0
                 for f in self.fuel_list:
-                    deriv -= i.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
+                    deriv += i.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
                 self.jacobian[k, i.m.J_col] = deriv
             for f in (self.fuel_list & i.fluid.is_var):
-                self.jacobian[k, i.fluid.J_col[f]] = -i.m.val_SI * self.fuels[f]["LHV"]
+                self.jacobian[k, i.fluid.J_col[f]] = i.m.val_SI * self.fuels[f]["LHV"]
 
         o = outl[0]
         if o.m.is_var:
             deriv = 0
             for f in self.fuel_list:
-                deriv += o.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
+                deriv -= o.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
             self.jacobian[k, o.m.J_col] = deriv
         for f in (self.fuel_list & o.fluid.is_var):
-            self.jacobian[k, o.fluid.J_col[f]] = o.m.val_SI * self.fuels[f]["LHV"]
+            self.jacobian[k, o.fluid.J_col[f]] = - o.m.val_SI * self.fuels[f]["LHV"]
 
     def ti_dependents(self):
         inl, outl = self._get_combustion_connections()
@@ -1003,7 +1005,7 @@ class CombustionChamber(Component):
             }]
         }
 
-    def calc_ti(self):
+    def _calc_ti(self):
         r"""
         Calculate the thermal input of the combustion chamber.
 
@@ -1184,11 +1186,6 @@ class CombustionChamber(Component):
         elif key == "h":
             return 5e5
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.ti.val_SI = self.calc_ti()
-        self.lamb.val_SI = self.calc_lambda()
-
     def entropy_balance(self):
         r"""
         Calculate entropy balance of combustion chamber.
@@ -1236,4 +1233,4 @@ class CombustionChamber(Component):
             )
 
         self.S_irr = 0
-        self.T_mcomb = self.calc_ti() / self.S_comb
+        self.T_mcomb = self._calc_ti() / self.S_comb

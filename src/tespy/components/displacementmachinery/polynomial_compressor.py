@@ -336,15 +336,18 @@ class PolynomialCompressor(DisplacementMachine):
         params.update({
             "Q_diss": dc_cp(
                 max_val=0, val=0, is_result=True, quantity="heat",
-                description="heat dissipation"
+                description="heat dissipation",
+                calc=self._calc_Q_diss
             ),
             "P": dc_cp(
                 min_val=0, is_result=True, quantity="power",
-                description="power consumption"
+                description="power consumption",
+                calc=self._calc_P
             ),
             "eta_vol": dc_cp(
                 min_val=0, max_val=1, is_result=True, quantity="efficiency",
-                description="volumetric efficiency"
+                description="volumetric efficiency",
+                calc=self._calc_eta_vol
             ),
             "dissipation_ratio": dc_cp(
                 min_val=0, max_val=1, val=0, quantity="ratio",
@@ -379,7 +382,8 @@ class PolynomialCompressor(DisplacementMachine):
             ),
             "eta_s": dc_cp(
                 min_val=0, max_val=1, is_result=True, quantity="efficiency",
-                description="isentropic efficiency"
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
             ),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
@@ -405,15 +409,46 @@ class PolynomialCompressor(DisplacementMachine):
         })
         return params
 
+    def _calc_h2(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
+            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
+        )
+
+    def _calc_P(self):
+        i = self.inl[0]
+        return i.m.val_SI * (self._calc_h2() - i.h.val_SI)
+
+    def _calc_Q_diss(self):
+        i, o = self.inl[0], self.outl[0]
+        return i.m.val_SI * (o.h.val_SI - self._calc_h2())
+
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        h2 = self._calc_h2()
+        return (
+            isentropic(
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
+        ) / (h2 - i.h.val_SI)
+
+    def _calc_eta_vol(self):
+        if not self.reference_state.is_set:
+            return self.eta_vol.val_SI
+        i = self.inl[0]
+        displacement = (
+            self.reference_state.val["displacement"] / 3600
+            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
+        )
+        return i.m.val_SI * i.vol.val_SI / displacement
+
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-            - self.power_inl[0].E.val_SI
-        )
+        return self._calc_P() - self.power_inl[0].E.val_SI
 
     def energy_connector_dependents(self):
         return [
@@ -434,12 +469,7 @@ class PolynomialCompressor(DisplacementMachine):
         float
             residual
         """
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-            - self.P.val_SI
-        )
+        return self._calc_P() - self.P.val_SI
 
     def energy_balance_group_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -481,8 +511,7 @@ class PolynomialCompressor(DisplacementMachine):
         )
 
         return (
-            self.eta_s.val_SI
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            self.eta_s.val_SI * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -527,8 +556,7 @@ class PolynomialCompressor(DisplacementMachine):
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -612,40 +640,6 @@ class PolynomialCompressor(DisplacementMachine):
             self.outl[0].p,
             self.rpm
         ]
-
-    def calc_parameters(self):
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-
-        h_2 = (
-            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-        )
-        self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
-        self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
-        self.eta_s.val_SI = (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - i.h.val_SI
-        ) / (
-            (h_2 - i.h.val_SI)
-        )
-
-        if self.reference_state.is_set:
-            displacement = (
-                self.reference_state.val["displacement"] / 3600
-                * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-            )
-            self.eta_vol.val_SI = i.m.val_SI * i.calc_vol() / displacement
 
 
 def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:

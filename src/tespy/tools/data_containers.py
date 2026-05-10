@@ -241,7 +241,7 @@ class DataContainer:
         Parameters
         ----------
         value :
-            The value supplied by the user (numeric, string, dict, None, …).
+            The value supplied by the user (numeric, string, dict, None, ...).
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not implement accept()."
@@ -546,6 +546,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "num_eq_sets": 0,
             "_num_eq": None,
             "func_params": {},
+            "calc": None,
+            "calc_params": {},
+            "calc_deps": [],
             "_reference_container": None,
             "_offset": None,
             "_factor": None,

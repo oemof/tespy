@@ -142,6 +142,35 @@ specified range.
     >>> round(my_pipe.D.max_val, 1)
     0.3
 
+.. _component_result_parameters_label:
+
+Results
+^^^^^^^
+
+Some component parameters are not specified by the user but instead computed
+automatically after the solver converges. These result parameters are always
+available via :code:`.val` (or :code:`.val_SI`) on the component after a
+successful solve.
+
+For example, the pressure ratio :code:`pr1`, terminal temperature difference
+:code:`ttd_u`, and heat transfer coefficient :code:`kA` of a heat exchanger
+are present in the results:
+
+.. code-block:: python
+
+    >>> round(he.pr1.val, 4)
+    1.0
+    >>> round(he.ttd_u.val, 2)
+    7.5
+
+Result parameters are declared with a :code:`calc` method on the
+:code:`ComponentProperties` data container. The base class
+:py:meth:`~tespy.components.component.Component.calc_parameters` dispatches
+all such methods automatically in the correct order after convergence. For
+details on defining :code:`calc`, :code:`calc_params` and :code:`calc_deps`
+when extending or creating components, see the
+:ref:`custom components documentation <custom_components_label>`.
+
 .. _component_characteristic_specification_label:
 
 Component characteristics

@@ -240,18 +240,10 @@ And, we can make the specification of :code:`eta_recovery` mandatory if we
 want. This can be done by overriding the default :code:`_preprocess` method
 like this:
 
-.. code-block:: python
-
-        def _preprocess(self, row_idx):
-            if not self.eta_recovery.is_set:
-                msg = (
-                    f"The component {self.label} of type {self.__class__.__name__}"
-                    "requires you to specify the share of heat recovery "
-                    "eta_recovery."
-                )
-                raise TESPyComponentError(msg)
-
-            return super()._preprocess(row_idx)
+.. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
+    :language: python
+    :start-after: [sec_6]
+    :end-before: [sec_7]
 
 Once a again, it is recommended to test the code.
 
@@ -297,37 +289,22 @@ Further expansion of parameter definition
 +++++++++++++++++++++++++++++++++++++++++
 
 The next step is to define the parameter for the minimum temperature difference
-:code:`td_minimal` between the compressor and the cooling medium. In this case,
-the attribute :code:`min_val=0` means that this value must not be negative. If
-it is, a warning is put out in the postprocessing automatically.
-
-.. code-block:: python
-
-    from tespy.tools.data_containers import ComponentProperties as dc_cp
-    from tespy.tools.helpers import TESPyComponentError
-
-        def get_parameters(self):
-            params = super().get_parameters()
-            params["eta_recovery"] = dc_cp()
-            params["td_minimal"] = dc_cp(
-                min_val=0
-            )
-            return params
-
-In addition, :code:`calc_parameters()` is used to calculate the derived
-properties after the simulation. In this case, the internal maximum temperature
-in the compressor (:code:`T_max_compressor_internal`) and the minimum
-temperature difference between the compressor and the cooling fluid
-(:code:`td_minimal`) are calculated using the outlet enthalpy of the
-compressor.
+:code:`td_minimal` between the compressor and the cooling medium. The attribute
+:code:`min_val=0` means that this value must not be negative - a warning is
+issued in postprocessing automatically if it is. The parameter will only be
+implemented as a postprocessing result. For this a :code:`calc` method on the
+:code:`dc_cp` is declared. The base class dispatches the method automatically
+after convergence. The corresponding :code:`_calc_td_minimal` method computes
+the internal maximum temperature in the compressor and returns the temperature difference to the
+cooling fluid outlet.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
     :start-after: [sec_7]
     :end-before: [sec_8]
 
-Further tests are being carried out at this point to examine the further
-expansion of the parameter definition.
+Further tests are being carried out to check the additional parameter
+definitions.
 
 .. dropdown:: Display source code for testing the model
 
@@ -349,26 +326,14 @@ expansion of the parameter definition.
 Final expansion of parameter definition
 +++++++++++++++++++++++++++++++++++++++
 
-To take the energy and pressure balance system of the component into account,
-the parameter definition is extended one last time. For this purpose, the
-pressure loss in the cooling circuit :code:`dp_cooling` is described. As in
-the previous step, the value has not to be negative due to the
-:code:`min_val=0` attribute. Instead of a :code:`func` we can use the
-:code:`structure matrix` for this parameter. The :code:`structure_matrix` is
-used in the preprocessing to make a linear connection between inlet and outlet
-pressure in a way, that these two variables can then be mapped into a single
-one in the numerical solution finding. The :code:`func_params` attribute
-specifies the assignment for the internal calculation. Finally, the
-:code:`quantity` specified indicates the physical unit.
-
-.. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
-    :language: python
-    :start-after: [sec_6]
-    :end-before: [sec_7]
-
-Subsequent to the simulation, the calculation of the derived thermodynamic
-variables is also required for the pressure loss :code:`dp_cooling` in the
-cooling flow.
+To take the pressure balance of the cooling circuit into account, the parameter
+definition is extended one last time with :code:`dp_cooling`. The
+:code:`structure_matrix` links inlet and outlet pressure linearly so they can
+be mapped to a single variable during presolving. The :code:`func_params`
+attribute specifies the assignment for the internal calculation and
+:code:`quantity` indicates the physical unit. To retrieve the value in the
+postprocessing :code:`_calc_dp` is used, which is available from the base
+component class.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python

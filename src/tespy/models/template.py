@@ -71,14 +71,24 @@ class ModelTemplate():
         if parameter not in self.parameter_lookup:
             raise KeyError(f"'{parameter}' is not in parameter_lookup.")
         mapped = self.parameter_lookup[parameter]
-        if isinstance(mapped, dict):
-            if "get" not in mapped:
+        if isinstance(mapped[0], list):
+            parameter_ref_list=[]
+            for parameter_ref in mapped:
+                parameter_ref_list.append(self._get_parameter_ref(parameter, parameter_ref))
+            return parameter_ref_list
+        else:
+            return(self._get_parameter_ref(parameter, mapped))
+
+    def _get_parameter_ref(self, parameter, parameter_ref) -> None:
+        if isinstance(parameter_ref, dict):
+            if "get" not in parameter_ref:
                 raise AttributeError(f"'{parameter}' is write-only.")
-            return mapped["get"]()
-        if mapped[0] == "Connections":
-            return self.nw.get_conn(mapped[1]).get_attr(mapped[2]).val
-        elif mapped[0] == "Components":
-            return self.nw.get_comp(mapped[1]).get_attr(mapped[2]).val
+            return parameter_ref["get"]()
+        
+        if parameter_ref[0] == "Connections":
+            return self.nw.get_conn(parameter_ref[1]).get_attr(parameter_ref[2]).val
+        elif parameter_ref[0] == "Components":
+            return self.nw.get_comp(parameter_ref[1]).get_attr(parameter_ref[2]).val
 
     def set_parameters(self, **kwargs) -> None:
         conn_params = {}
@@ -90,21 +100,35 @@ class ModelTemplate():
                     f"Available: {', '.join(self.parameter_lookup)}."
                 )
             mapped = self.parameter_lookup[param]
-            if isinstance(mapped, dict):
-                if "set" not in mapped:
-                    raise AttributeError(f"'{param}' is read-only.")
-                mapped["set"](value)
+            if isinstance(mapped[0], list):
+                for parameter_ref in mapped:
+                    if isinstance(mapped, dict):
+                        if "set" not in parameter_ref:
+                            raise AttributeError(f"'{param}' is read-only.")
+                        parameter_ref["set"](value)
+                    else:
+                        obj_type, label, attr = parameter_ref
+                        if obj_type == "Connections":
+                            conn_params.setdefault(label, {})[attr] = value
+                        elif obj_type == "Components":
+                            comp_params.setdefault(label, {})[attr] = value
             else:
-                obj_type, label, attr = mapped
-                if obj_type == "Connections":
-                    conn_params.setdefault(label, {})[attr] = value
-                elif obj_type == "Components":
-                    comp_params.setdefault(label, {})[attr] = value
+                if isinstance(mapped, dict):
+                    if "set" not in mapped:
+                        raise AttributeError(f"'{param}' is read-only.")
+                    mapped["set"](value)
+                else:
+                    obj_type, label, attr = mapped
+                    if obj_type == "Connections":
+                        conn_params.setdefault(label, {})[attr] = value
+                    elif obj_type == "Components":
+                        comp_params.setdefault(label, {})[attr] = value
 
         for label, params in conn_params.items():
             self.nw.get_conn(label).set_attr(**params)
         for label, params in comp_params.items():
             self.nw.get_comp(label).set_attr(**params)
+
 
     def solve_model_design(self, **kwargs) -> None:
         self.set_parameters(**kwargs)

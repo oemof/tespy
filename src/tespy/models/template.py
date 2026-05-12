@@ -75,7 +75,11 @@ class ModelTemplate():
             parameter_ref_list=[]
             for parameter_ref in mapped:
                 parameter_ref_list.append(self._get_parameter_ref(parameter, parameter_ref))
-            return parameter_ref_list
+            if len(set(parameter_ref_list)) ==1:
+                return parameter_ref_list[0]
+            else:
+                raise Exception(f'Tespy Object parameters of the parameter {parameter} not equal.')
+        
         else:
             return(self._get_parameter_ref(parameter, mapped))
 

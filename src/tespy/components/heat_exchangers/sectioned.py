@@ -166,21 +166,60 @@ class SectionedHeatExchanger(HeatExchanger):
         :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func`.
         This method can only be used in offdesign simulations!
 
-    alpha_ration: float
-        Secondary fluid to refrigerant heat transfer coefficient ratio.
+    alpha1_sc : float
+        Hot-side heat transfer coefficient in subcooled zone,
+        :math:`\alpha_{h,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    area_ration: float
-        Secondary fluid to refrigerant heat transfer area ratio.
+    alpha1_tp : float
+        Hot-side heat transfer coefficient in two-phase zone,
+        :math:`\alpha_{h,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    re_exp_r: float
-        Reynolds exponent for refrigerant side.
+    alpha1_sh : float
+        Hot-side heat transfer coefficient in superheated zone,
+        :math:`\alpha_{h,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    re_exp_sf: float
-        Reynolds exponent for secondary fluid side.
+    alpha2_sc : float
+        Cold-side heat transfer coefficient in subcooled zone,
+        :math:`\alpha_{c,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    refrigerant_index: int
-        Connection index for the refrigerant side, 0 if refrigerant is on hot
-        side, 1 if refrigerant is on cold side.
+    alpha2_tp : float
+        Cold-side heat transfer coefficient in two-phase zone,
+        :math:`\alpha_{c,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+
+    alpha2_sh : float
+        Cold-side heat transfer coefficient in superheated zone,
+        :math:`\alpha_{c,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+
+    A_ratio : float
+        Cold- to hot-side heat transfer area ratio :math:`A_c/A_h`.
+
+    R_cond : float
+        Total wall thermal resistance :math:`R_k/(\text{K}/\text{W})`.
+
+    A_h : float
+        Hot-side heat transfer area :math:`A_h/\text{m}^2`, Bell (2015)
+        area-based constraint.
+
+    alpha_ratio : float
+        Secondary to refrigerant side convective heat transfer coefficient
+        ratio (used by :code:`UA_cecchinato`).
+
+    area_ratio : float
+        Secondary to refrigerant side heat transfer area ratio (used by
+        :code:`UA_cecchinato`).
+
+    re_exp_r : float
+        Reynolds exponent for refrigerant side (used by
+        :code:`UA_cecchinato`).
+
+    re_exp_sf : float
+        Reynolds exponent for secondary fluid side (used by
+        :code:`UA_cecchinato`).
+
+    refrigerant_index : int
+        Connection index for the refrigerant side, 0 if refrigerant is on
+        hot side, 1 if refrigerant is on cold side (used by
+        :code:`UA_cecchinato`).
 
     Note
     ----
@@ -189,7 +228,7 @@ class SectionedHeatExchanger(HeatExchanger):
     Example
     -------
     Water vapor should be cooled down, condensed and then further subcooled.
-    For his air is heated up from 15 °C to 25 °C.
+    For this, air is heated up from 15 °C to 25 °C.
 
     >>> from tespy.components import Source, Sink, SectionedHeatExchanger
     >>> from tespy.connections import Connection
@@ -568,20 +607,17 @@ class SectionedHeatExchanger(HeatExchanger):
 
     @staticmethod
     def _get_steps(num_steps=51):
-        """Get the steps as fraction of enthalpy change for either side
+        """Return :code:`num_steps` evenly-spaced fractions in [0, 1].
 
         Parameters
         ----------
-        c1 : tespy.connections.connection.Connection
-            Inlet connection.
-
-        c2 : tespy.connections.connection.Connection
-            Outlet connection.
+        num_steps : int
+            Number of points (equals number of sections + 1).
 
         Returns
         -------
-        list
-            Steps of enthalpy of the specified connections
+        numpy.ndarray
+            Uniformly spaced step fractions from 0 to 1.
         """
         return np.linspace(0, 1, num_steps)
 
@@ -996,6 +1032,11 @@ class SectionedHeatExchanger(HeatExchanger):
             Phase-boundary steps for this side from :py:meth:`_get_moving_steps`.
         zone_phases : list
             Zone phase list returned by :py:meth:`_get_moving_steps`.
+
+        Returns
+        -------
+        list
+            Phase index (0=SC, 1=TP, 2=SH) for each section.
         """
         boundaries = steps_ref[1:-1]
         return [
@@ -1007,9 +1048,9 @@ class SectionedHeatExchanger(HeatExchanger):
         r"""
         Residual for the Bell (2015) area-based heat exchanger constraint.
 
-        Divides the heat exchanger into phase zones (SC, TP, SH) on the
-        refrigerant side and requires that the sum of the zone areas equals
-        the specified hot-side area :math:`A_h`:
+        Zones both fluid sides independently (SC, TP, SH) and requires that
+        the sum of the zone areas equals the specified hot-side area
+        :math:`A_h`:
 
         .. math::
 
@@ -1021,8 +1062,12 @@ class SectionedHeatExchanger(HeatExchanger):
 
         .. math::
 
-            U_j = \frac{1}{\frac{1}{\alpha_{h,j}} + A_h R_\text{cond}
+            U_j = \frac{1}{\frac{1}{\alpha_{h,j}} + A_h R_k
             + \frac{A_h}{\alpha_{c,j} A_c}}
+
+        with :math:`R_k` the total wall thermal resistance in
+        :math:`\text{K}/\text{W}` (:code:`R_cond`) and
+        :math:`A_c = A_h \cdot` :code:`A_ratio`.
 
         Returns
         -------

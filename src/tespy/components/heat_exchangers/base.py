@@ -1092,8 +1092,8 @@ class HeatExchanger(Component):
 
         Returns
         -------
-        float
-            Heat exchanged between defined steps of enthalpy.
+        numpy.ndarray
+            Heat exchanged per section.
         """
         return np.diff(h_at_steps) * mass_flow
 
@@ -1102,13 +1102,19 @@ class HeatExchanger(Component):
         return start + steps * (end - start)
 
     def _get_Q_cumsum_steps(self, steps):
-        """Assign the sections of the heat exchanger
+        """Return cumulative heat transferred from the hot-side outlet up to
+        each step, starting from zero.
+
+        Parameters
+        ----------
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps`.
 
         Returns
         -------
-        list
-            List of cumulative sum of heat exchanged defining the heat exchanger
-            sections.
+        numpy.ndarray
+            Cumulative heat values with a leading zero, length
+            :code:`len(steps)`.
         """
         start = self.outl[0].h.val_SI
         end = self.inl[0].h.val_SI
@@ -1118,29 +1124,29 @@ class HeatExchanger(Component):
         return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
 
     def _assign_steps(self):
-        """Assign the sections of the heat exchanger
+        """Return the normalized step fractions defining section boundaries.
 
         Returns
         -------
-        list
-            List of cumulative sum of heat exchanged defining the heat exchanger
-            sections.
+        numpy.ndarray
+            Step fractions; base class returns :code:`[0, 1]` (inlet and
+            outlet only).
         """
         return np.array([0, 1])
 
     def _get_T_at_steps(self, steps):
-        """Calculate the temperature values for the provided sections.
+        """Calculate hot- and cold-side temperatures at each step.
 
         Parameters
         ----------
-        Q_sections : list
-            Cumulative heat exchanged from the hot side to the cold side
-            defining the sections of the heat exchanger.
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps`.
 
         Returns
         -------
         tuple
-            Lists of cold side and hot side temperature
+            :code:`(T_steps_hot, T_steps_cold)` as numpy arrays, length
+            :code:`len(steps)`.
         """
         h_steps_hot = self._assign_to_steps(
             self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
@@ -1168,21 +1174,24 @@ class HeatExchanger(Component):
 
     @staticmethod
     def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
-        """Calculate the logarithmic temperature difference values per section
-        of heat exchanged.
+        """Calculate the logarithmic mean temperature difference per section.
 
         Parameters
         ----------
-        T_steps_hot : list
-            Temperature hot side at beginning and end of sections.
-
-        T_steps_cold : list
-            Temperature cold side at beginning and end of sections.
+        T_steps_hot : numpy.ndarray
+            Hot-side temperatures at each step boundary.
+        T_steps_cold : numpy.ndarray
+            Cold-side temperatures at each step boundary.
+        postprocess : bool
+            When :code:`True`, returns an array of :code:`nan` if any
+            temperature difference is non-positive (used for result reporting).
+            When :code:`False` (default), clips negative differences to 1e-3 K
+            so the solver can continue iterating.
 
         Returns
         -------
-        list
-            Lists of temperature differences per section of heat exchanged.
+        numpy.ndarray
+            Logarithmic mean temperature difference for each section.
         """
         td_at_steps = T_steps_hot - T_steps_cold
         if postprocess:

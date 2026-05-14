@@ -152,21 +152,60 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :py:meth:`tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger.UA_cecchinato_func`.
         This method can only be used in offdesign simulations!
 
-    alpha_ration: float
-        Secondary fluid to refrigerant heat transfer coefficient ratio.
+    alpha1_sc : float
+        Hot-side heat transfer coefficient in subcooled zone,
+        :math:`\alpha_{h,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    area_ration: float
-        Secondary fluid to refrigerant heat transfer area ratio.
+    alpha1_tp : float
+        Hot-side heat transfer coefficient in two-phase zone,
+        :math:`\alpha_{h,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    re_exp_r: float
-        Reynolds exponent for refrigerant side.
+    alpha1_sh : float
+        Hot-side heat transfer coefficient in superheated zone,
+        :math:`\alpha_{h,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    re_exp_sf: float
-        Reynolds exponent for secondary fluid side.
+    alpha2_sc : float
+        Cold-side heat transfer coefficient in subcooled zone,
+        :math:`\alpha_{c,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
 
-    refrigerant_index: int
-        Connection index for the refrigerant side, 0 if refrigerant is on hot
-        side, 1 if refrigerant is on cold side.
+    alpha2_tp : float
+        Cold-side heat transfer coefficient in two-phase zone,
+        :math:`\alpha_{c,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+
+    alpha2_sh : float
+        Cold-side heat transfer coefficient in superheated zone,
+        :math:`\alpha_{c,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+
+    A_ratio : float
+        Cold- to hot-side heat transfer area ratio :math:`A_c/A_h`.
+
+    R_cond : float
+        Total wall thermal resistance :math:`R_k/(\text{K}/\text{W})`.
+
+    A_h : float
+        Hot-side heat transfer area :math:`A_h/\text{m}^2`, Bell (2015)
+        area-based constraint.
+
+    alpha_ratio : float
+        Secondary to refrigerant side convective heat transfer coefficient
+        ratio (used by :code:`UA_cecchinato`).
+
+    area_ratio : float
+        Secondary to refrigerant side heat transfer area ratio (used by
+        :code:`UA_cecchinato`).
+
+    re_exp_r : float
+        Reynolds exponent for refrigerant side (used by
+        :code:`UA_cecchinato`).
+
+    re_exp_sf : float
+        Reynolds exponent for secondary fluid side (used by
+        :code:`UA_cecchinato`).
+
+    refrigerant_index : int
+        Connection index for the refrigerant side, 0 if refrigerant is on
+        hot side, 1 if refrigerant is on cold side (used by
+        :code:`UA_cecchinato`).
 
     Note
     ----

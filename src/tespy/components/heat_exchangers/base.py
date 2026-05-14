@@ -1211,10 +1211,10 @@ class HeatExchanger(Component):
             logarithmic temperature per section
         """
         steps = self._assign_steps()
-        Q_sections = self._get_Q_cumsum_steps(steps)
         T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
-        Q_per_section = np.diff(Q_sections)
         td_log_per_section = self._calc_td_log_per_section(
             T_steps_hot, T_steps_cold, postprocess
         )
+        Q_sections = self._get_Q_cumsum_steps(steps)
+        Q_per_section = np.diff(Q_sections)
         return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section

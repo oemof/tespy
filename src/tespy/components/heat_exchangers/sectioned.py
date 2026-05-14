@@ -26,6 +26,8 @@ from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
 
+_PHASE_TO_INT = {"l": 0, "tp": 1}  # anything else (g, sc, ...) maps to 2
+
 
 @component_registry
 class SectionedHeatExchanger(HeatExchanger):
@@ -522,7 +524,45 @@ class SectionedHeatExchanger(HeatExchanger):
                 dependents=self.td_pinch_dependents,
                 quantity="temperature_difference",
                 description="equation for minimum pinch"
-            )
+            ),
+            'alpha1_sc': dc_cp(
+                min_val=0,
+                description="hot-side heat transfer coefficient in subcooled zone"
+            ),
+            'alpha1_tp': dc_cp(
+                min_val=0,
+                description="hot-side heat transfer coefficient in two-phase zone"
+            ),
+            'alpha1_sh': dc_cp(
+                min_val=0,
+                description="hot-side heat transfer coefficient in superheated zone"
+            ),
+            'alpha2_sc': dc_cp(
+                min_val=0,
+                description="cold-side heat transfer coefficient in subcooled zone"
+            ),
+            'alpha2_tp': dc_cp(
+                min_val=0,
+                description="cold-side heat transfer coefficient in two-phase zone"
+            ),
+            'alpha2_sh': dc_cp(
+                min_val=0,
+                description="cold-side heat transfer coefficient in superheated zone"
+            ),
+            'A_ratio': dc_cp(
+                min_val=0,
+                description="cold to hot area ratio A_c/A_h"
+            ),
+            'R_cond': dc_cp(
+                min_val=0,
+                description="wall conduction thermal resistance"
+            ),
+            'A_h': dc_cp(
+                min_val=0, num_eq_sets=1,
+                func=self.area_zones_func,
+                dependents=self.area_zones_dependents,
+                description="hot-side heat exchange area, Bell (2015) area-based constraint"
+            ),
         })
         return params
 
@@ -560,8 +600,9 @@ class SectionedHeatExchanger(HeatExchanger):
 
         Returns
         -------
-        list
-            Steps of enthalpy of the specified connections
+        tuple
+            Steps of enthalpy of the specified connections and a list of phase
+            indices (0=SC, 1=TP, 2=SH) for each zone between consecutive steps.
         """
         if c1.fluid.val != c2.fluid.val:
             msg = (
@@ -582,6 +623,7 @@ class SectionedHeatExchanger(HeatExchanger):
             c1, c2 = c2, c1
 
         h_at_steps = [0, 1]
+        zone_phases = [2]
         fluid = single_fluid(c1.fluid_data)
         # this should be generalized to "supports two-phase" because it does
         # not work with incompressibles
@@ -592,7 +634,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
                 phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
             except NotImplementedError:
-                return h_at_steps
+                return h_at_steps, zone_phases
 
             delta_h = c2.h.val_SI - c1.h.val_SI
             # we can round delta p here because we only need it in case it is
@@ -604,12 +646,15 @@ class SectionedHeatExchanger(HeatExchanger):
                     h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
                     x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_gas, 1]
+                    zone_phases = [1, 2]
                 else:
                     h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
                     if np.isclose(h_sat_gas, c1.h.val_SI):
                         h_at_steps = [0, 1]
+                        zone_phases = [2]
                     elif np.isclose(h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data), c2.h.val_SI):
                         h_at_steps = [0, 1]
+                        zone_phases = [1]
                     else:
                         x_gas = brentq(
                             identify_step_at_saturation,
@@ -621,6 +666,7 @@ class SectionedHeatExchanger(HeatExchanger):
                             )
                         )
                         h_at_steps = [0, x_gas, 1]
+                        zone_phases = [1, 2]
 
             elif phase_h_high == "g" and phase_h_low == "l":
                 if delta_p == 0:
@@ -629,11 +675,13 @@ class SectionedHeatExchanger(HeatExchanger):
                     h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
                     x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_liq, x_gas, 1]
+                    zone_phases = [0, 1, 2]
                 else:
                     # c2 is the higher enthalpy, we have to check if it is
                     # at saturated gas
                     h_sat_gas = h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data)
-                    if np.isclose(h_sat_gas, c2.h.val_SI):
+                    x_gas_is_one = np.isclose(h_sat_gas, c2.h.val_SI)
+                    if x_gas_is_one:
                         x_gas = 1
                     else:
                         x_gas = brentq(
@@ -648,7 +696,8 @@ class SectionedHeatExchanger(HeatExchanger):
                     # c1 is the lower enthalpy, we have to check if it is
                     # at saturated liquid
                     h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    if np.isclose(h_sat_liquid, c1.h.val_SI):
+                    x_liq_is_zero = np.isclose(h_sat_liquid, c1.h.val_SI)
+                    if x_liq_is_zero:
                         x_liq = 0
                     else:
                         x_liq = brentq(
@@ -661,18 +710,29 @@ class SectionedHeatExchanger(HeatExchanger):
                             )
                         )
                     h_at_steps = [0, x_liq, x_gas, 1]
+                    if x_liq_is_zero and x_gas_is_one:
+                        zone_phases = [1]
+                    elif x_liq_is_zero:
+                        zone_phases = [1, 2]
+                    elif x_gas_is_one:
+                        zone_phases = [0, 1]
+                    else:
+                        zone_phases = [0, 1, 2]
 
             elif phase_h_high == "tp" and phase_h_low == "l":
                 if delta_p == 0:
                     h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
                     x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
                     h_at_steps = [0, x_liq, 1]
+                    zone_phases = [0, 1]
                 else:
                     h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
                     if np.isclose(h_sat_liquid, c1.h.val_SI):
                         h_at_steps = [0, 1]
+                        zone_phases = [1]
                     elif np.isclose(h_mix_pQ(c2.p.val_SI, 0, c2.fluid_data), c2.h.val_SI):
                         h_at_steps = [0, 1]
+                        zone_phases = [0]
                     else:
                         x_liq = brentq(
                             identify_step_at_saturation,
@@ -684,11 +744,24 @@ class SectionedHeatExchanger(HeatExchanger):
                             )
                         )
                         h_at_steps = [0, x_liq, 1]
+                        zone_phases = [0, 1]
 
-        return h_at_steps
+            else:
+                zone_phases = [_PHASE_TO_INT.get(phase_h_low, 2)]
 
-    def _assign_steps(self):
+        return h_at_steps, zone_phases
+
+    def _assign_steps(self, steps_hot=None, steps_cold=None):
         """Assign the sections of the heat exchanger
+
+        Parameters
+        ----------
+        steps_hot : list, optional
+            Pre-computed phase-boundary steps for the hot side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
+        steps_cold : list, optional
+            Pre-computed phase-boundary steps for the cold side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
 
         Returns
         -------
@@ -697,13 +770,11 @@ class SectionedHeatExchanger(HeatExchanger):
             sections.
         """
         num_steps = self.num_sections.val + 1
-        steps = self._get_steps(num_steps)
-        steps_hot = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps_cold = self._get_moving_steps(self.inl[1], self.outl[1])
-
-        # unique throws out duplicates and sorts at the same time
-        steps = np.unique(np.r_[steps, steps_hot, steps_cold])
-        return steps
+        if steps_hot is None:
+            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+        if steps_cold is None:
+            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+        return np.unique(np.r_[self._get_steps(num_steps), steps_hot, steps_cold])
 
     def calc_UA(self, sections):
         """Calculate the sum of UA for all sections in the heat exchanger
@@ -911,6 +982,83 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].p,
             self.outl[1].h
         ]
+
+    @staticmethod
+    def _section_phases(steps_all, steps_ref, zone_phases):
+        """Return the phase index (0=SC, 1=TP, 2=SH) for each section on one
+        fluid side.
+
+        Parameters
+        ----------
+        steps_all : numpy.ndarray
+            Combined step array from :py:meth:`_assign_steps`.
+        steps_ref : numpy.ndarray
+            Phase-boundary steps for this side from :py:meth:`_get_moving_steps`.
+        zone_phases : list
+            Zone phase list returned by :py:meth:`_get_moving_steps`.
+        """
+        boundaries = steps_ref[1:-1]
+        return [
+            zone_phases[int(np.searchsorted(boundaries, (steps_all[i] + steps_all[i + 1]) / 2))]
+            for i in range(len(steps_all) - 1)
+        ]
+
+    def area_zones_func(self, **kwargs):
+        r"""
+        Residual for the Bell (2015) area-based heat exchanger constraint.
+
+        Divides the heat exchanger into phase zones (SC, TP, SH) on the
+        refrigerant side and requires that the sum of the zone areas equals
+        the specified hot-side area :math:`A_h`:
+
+        .. math::
+
+            0 = A_h - \sum_j \frac{\dot{Q}_j}{U_j \cdot \text{LMTD}_j}
+
+        where the overall heat transfer coefficient for zone :math:`j` is
+        built from the individual convective coefficients following
+        :cite:`bell2015`:
+
+        .. math::
+
+            U_j = \frac{1}{\frac{1}{\alpha_{h,j}} + A_h R_\text{cond}
+            + \frac{A_h}{\alpha_{c,j} A_c}}
+
+        Returns
+        -------
+        float
+            Residual value of the equation.
+        """
+        steps1, zone_phases1 = self._get_moving_steps(self.inl[0], self.outl[0])
+        steps2, zone_phases2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps_all = self._assign_steps(steps1, steps2)
+        T_hot, T_cold = self._get_T_at_steps(steps_all)
+        td_log_per_section = self._calc_td_log_per_section(T_hot, T_cold, postprocess=False)
+        Q_per_section = np.diff(self._get_Q_cumsum_steps(steps_all))
+        min_td = float(np.min(T_hot - T_cold))
+        phases1 = self._section_phases(steps_all, np.array(steps1), zone_phases1)
+        phases2 = self._section_phases(steps_all, np.array(steps2), zone_phases2)
+
+        A_h = self.A_h.val_SI
+        A_c = A_h * self.A_ratio.val_SI
+        alpha1 = [self.alpha1_sc.val_SI, self.alpha1_tp.val_SI, self.alpha1_sh.val_SI]
+        alpha2 = [self.alpha2_sc.val_SI, self.alpha2_tp.val_SI, self.alpha2_sh.val_SI]
+        A_req = 0.0
+        for Q_j, lmtd_j, ph1, ph2 in zip(Q_per_section, td_log_per_section, phases1, phases2):
+            U_j = 1.0 / (
+                1.0 / alpha1[ph1]
+                + A_h * self.R_cond.val_SI
+                + A_h / (alpha2[ph2] * A_c)
+            )
+            A_req += abs(Q_j) / (U_j * lmtd_j)
+
+        residual = A_h - A_req
+        if min_td <= 0.0:
+            return residual + min_td
+        return residual
+
+    def area_zones_dependents(self):
+        return self.UA_dependents()
 
     def calc_parameters(self):
         super().calc_parameters()

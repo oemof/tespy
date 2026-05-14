@@ -309,8 +309,17 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         del params["num_sections"]
         return params
 
-    def _assign_steps(self):
+    def _assign_steps(self, steps_hot=None, steps_cold=None):
         """Assign the sections of the heat exchanger
+
+        Parameters
+        ----------
+        steps_hot : list, optional
+            Pre-computed phase-boundary steps for the hot side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
+        steps_cold : list, optional
+            Pre-computed phase-boundary steps for the cold side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
 
         Returns
         -------
@@ -318,9 +327,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
             List of cumulative sum of heat exchanged defining the heat exchanger
             sections.
         """
-        steps_hot = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps_cold = self._get_moving_steps(self.inl[1], self.outl[1])
-
-        # unique throws out duplicates and sorts at the same time
-        steps = np.unique(np.r_[steps_hot, steps_cold])
-        return steps
+        if steps_hot is None:
+            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+        if steps_cold is None:
+            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+        return np.unique(np.r_[steps_hot, steps_cold])

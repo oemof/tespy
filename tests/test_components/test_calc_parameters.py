@@ -20,7 +20,6 @@ from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 
-
 # ---------------------------------------------------------------------------
 # Minimal stub for unit tests – only needs the calc_deps attribute
 # ---------------------------------------------------------------------------

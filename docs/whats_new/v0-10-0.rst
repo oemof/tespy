@@ -94,6 +94,9 @@ Other Changes
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
 - Change outlet 1 description to saturated gas constraint for DropletSeparator
   (`PR #977 <https://github.com/oemof/tespy/pull/977>`__).
+- Component parameters can now have a :code:`calc` method, which is
+  automatically executed in postprocessing to assign the respective SI value to
+  the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
 
 
 Bug Fixes

@@ -236,7 +236,8 @@ class HeatExchanger(Component):
                 func=self.energy_balance_hot_func,
                 dependents=self.energy_balance_hot_dependents,
                 quantity="heat",
-                description="heat transfer from hot side"
+                description="heat transfer from hot side",
+                calc=self._calc_Q
             ),
             'kA': dc_cp(
                 min_val=0, num_eq_sets=1,
@@ -244,75 +245,85 @@ class HeatExchanger(Component):
                 dependents=self.kA_dependents,
                 deriv=self.kA_deriv,
                 quantity="heat_transfer_coefficient",
-                description="heat transfer coefficient considering terminal temperature differences"
+                description="heat transfer coefficient considering terminal temperature differences",
+                calc=self._calc_kA, calc_deps=['Q', 'td_log']
             ),
             'td_log': dc_cp(
                 min_val=0, is_result=True, quantity="temperature_difference",
-                description="logarithmic temperature difference"
+                description="logarithmic temperature difference",
+                calc=self._calc_td_log, calc_deps=['ttd_u', 'ttd_l']
             ),
             'ttd_u': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_u_func,
                 dependents=self.ttd_u_dependents,
                 quantity="temperature_difference",
-                description="terminal temperature difference at hot side inlet to cold side outlet"
+                description="terminal temperature difference at hot side inlet to cold side outlet",
+                calc=self._calc_ttd_u
             ),
             'ttd_l': dc_cp(
-                min_val=0,
-                num_eq_sets=1,
+                min_val=0, num_eq_sets=1,
                 func=self.ttd_l_func,
                 dependents=self.ttd_l_dependents,
                 quantity="temperature_difference",
-                description="terminal temperature difference at hot side outlet to cold side inlet"
+                description="terminal temperature difference at hot side outlet to cold side inlet",
+                calc=self._calc_ttd_l
             ),
             'ttd_min': dc_cp(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_min_func,
                 dependents=self.ttd_min_dependents,
                 quantity="temperature_difference",
-                description="minimum terminal temperature difference"
+                description="minimum terminal temperature difference",
+                calc=self._calc_ttd_min, calc_deps=['ttd_u', 'ttd_l']
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
                 quantity="ratio",
-                description="hot side outlet to inlet pressure ratio"
+                description="hot side outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
                 quantity="ratio",
-                description="cold side outlet to inlet pressure ratio"
+                description="cold side outlet to inlet pressure ratio",
+                calc=self._calc_pr, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'dp1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
                 quantity="pressure_difference",
-                description="hot side inlet to outlet absolute pressure change"
+                description="hot side inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'dp2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
                 quantity="pressure_difference",
-                description="cold side inlet to outlet absolute pressure change"
+                description="cold side inlet to outlet absolute pressure change",
+                calc=self._calc_dp, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta1': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta1'},
-                description="hot side non-dimensional friction coefficient for pressure loss calculation"
+                description="hot side non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
             ),
             'zeta2': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1},
-                description="cold side non-dimensional friction coefficient for pressure loss calculation"
+                description="cold side non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'kA_char': dc_gcc(
                 elements=['kA_char1', 'kA_char2'],
@@ -330,26 +341,29 @@ class HeatExchanger(Component):
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
                 description="cold side kA modification lookup table for offdesign"
             ),
-            'eff_cold': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1,
-                func=self.eff_cold_func,
-                dependents=self.eff_cold_dependents,
-                quantity="efficiency",
-                description="heat exchanger effectiveness for cold side"
-            ),
             'eff_hot': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_hot_func,
                 dependents=self.eff_hot_dependents,
                 quantity="efficiency",
-                description="heat exchanger effectiveness for hot side"
+                description="heat exchanger effectiveness for hot side",
+                calc=self._calc_eff_hot
+            ),
+            'eff_cold': dc_cp(
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eff_cold_func,
+                dependents=self.eff_cold_dependents,
+                quantity="efficiency",
+                description="heat exchanger effectiveness for cold side",
+                calc=self._calc_eff_cold
             ),
             'eff_max': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_max_func,
                 dependents=self.eff_max_dependents,
                 quantity="efficiency",
-                description="maximum heat exchanger effectiveness"
+                description="maximum heat exchanger effectiveness",
+                calc=self._calc_eff_max, calc_deps=['eff_hot', 'eff_cold']
             )
         }
 
@@ -441,9 +455,7 @@ class HeatExchanger(Component):
 
                 0 =\dot{m}_{in,1} \cdot \left(h_{out,1}-h_{in,1}\right)-\dot{Q}
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        ) - self.Q.val_SI
+        return self._calc_Q() - self.Q.val_SI
 
     def energy_balance_hot_dependents(self):
         return [
@@ -452,40 +464,83 @@ class HeatExchanger(Component):
             self.outl[0].h
         ]
 
-    def _min_ttd(self):
-        """Return the minimum of the two terminal temperature differences."""
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-        return min(i1.calc_T() - o2.calc_T(), o1.calc_T() - i2.calc_T())
+    def _calc_Q(self):
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_ttd_u(self):
+        return self.inl[0].T.val_SI - self.outl[1].T.val_SI
+
+    def _calc_ttd_l(self):
+        return self.outl[0].T.val_SI - self.inl[1].T.val_SI
+
+    def _calc_ttd_min(self):
+        return min(self.ttd_u.val_SI, self.ttd_l.val_SI)
+
+    def _calc_td_log(self):
+        """Postprocessing method for logarithmic temperature difference"""
+        ttd_u = self.ttd_u.val_SI
+        ttd_l = self.ttd_l.val_SI
+        if ttd_u < 0 or ttd_l < 0:
+            return np.nan
+        elif round(ttd_l, 6) == round(ttd_u, 6):
+            return ttd_l
+        elif round(ttd_l, 6) == 0 or round(ttd_u, 6) == 0:
+            return np.nan
+        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+
+    def _calc_kA(self):
+        return -self.Q.val_SI / self.td_log.val_SI
+
+    def _calc_eff_hot(self):
+        try:
+            return (
+                (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+                / self.calc_dh_max_hot()
+            )
+        except ValueError:
+            logger.debug(
+                f"Cannot calculate {self.label} hot side effectiveness "
+                "because cold side inlet temperature is out of bounds for hot "
+                "side fluid."
+            )
+            return np.nan
+
+    def _calc_eff_cold(self):
+        try:
+            return (
+                (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
+                / self.calc_dh_max_cold()
+            )
+        except ValueError:
+            logger.debug(
+                f"Cannot calculate {self.label} cold side effectiveness "
+                "because hot side inlet temperature is out of bounds for cold "
+                "side fluid."
+            )
+            return np.nan
+
+    def _calc_eff_max(self):
+        return max(self.eff_hot.val_SI, self.eff_cold.val_SI)
 
     def calculate_td_log(self):
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-
-        # temperature value manipulation for convergence stability
-        T_i1 = i1.calc_T()
-        T_i2 = i2.calc_T()
-        T_o1 = o1.calc_T()
-        T_o2 = o2.calc_T()
-
-        if T_i1 <= T_o2:
-            T_o2 = T_i1 - 0.1
-        if T_o1 <= T_i2:
-            T_o1 = T_i2 + 0.1
+        """Method to calculate logarithmic temperature difference during
+        iteration. It returns the minimal temperature difference value instead
+        of the logarithmic temperature difference if the minimal temperature
+        difference is negative during iteration to progress in convergence
+        """
+        T_i1 = self.inl[0].calc_T()
+        T_i2 = self.inl[1].calc_T()
+        T_o1 = self.outl[0].calc_T()
+        T_o2 = self.outl[1].calc_T()
 
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2
-
+        min_ttd = min(ttd_u, ttd_l)
+        if min_ttd <= 0:
+            return min_ttd
         if round(ttd_u, 6) == round(ttd_l, 6):
-            td_log = ttd_l
-        else:
-            td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
-
-        return td_log
+            return ttd_l
+        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
     def kA_func(self):
         r"""
@@ -504,15 +559,6 @@ class HeatExchanger(Component):
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        min_ttd = self._min_ttd()
-        if min_ttd <= 0:
-            # Temperature profile invalid: one terminal ΔT has gone negative.
-            # Q < 0 and kA·min_ttd < 0 -> combined residual is never zero,
-            # preventing false convergence.  The min_ttd term provides a
-            # temperature-based gradient independent of the energy balance row.
-            # The residual is continuous at min_ttd = 0 because td_log -> 0
-            # as min(ttd_u, ttd_l) -> 0, so both branches give Q there.
-            return Q + self.kA.val_SI * min_ttd
         return Q + self.kA.val_SI * self.calculate_td_log()
 
     def kA_deriv(self, increment_filter, k, dependents=None):
@@ -593,9 +639,6 @@ class HeatExchanger(Component):
         fkA = 2 / (1 / fkA1 + 1 / fkA2)
 
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        min_ttd = self._min_ttd()
-        if min_ttd <= 0:
-            return Q + self.kA.design * fkA * min_ttd
         return Q + self.kA.design * fkA * self.calculate_td_log()
 
     def kA_char_dependents(self):
@@ -934,71 +977,6 @@ class HeatExchanger(Component):
 
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.ttd_u.val_SI = self.inl[0].T.val_SI - self.outl[1].T.val_SI
-        self.ttd_l.val_SI = self.outl[0].T.val_SI - self.inl[1].T.val_SI
-        self.ttd_min.val_SI = min(self.ttd_u.val_SI, self.ttd_l.val_SI)
-
-        # pr and zeta
-        for i in range(2):
-            self.get_attr(f'pr{i + 1}').val_SI = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI
-            )
-            self.get_attr(f'zeta{i + 1}').val_SI = self.calc_zeta(
-                self.inl[i], self.outl[i]
-            )
-            self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI
-            )
-
-        # kA and logarithmic temperature difference
-        if self.ttd_u.val_SI < 0 or self.ttd_l.val_SI < 0:
-            self.td_log.val_SI = np.nan
-        elif round(self.ttd_l.val_SI, 6) == round(self.ttd_u.val_SI, 6):
-            self.td_log.val_SI = self.ttd_l.val_SI
-        elif round(self.ttd_l.val_SI, 6) == 0 or round(self.ttd_u.val_SI, 6) == 0:
-            self.td_log.val_SI = np.nan
-        else:
-            self.td_log.val_SI = (
-                (self.ttd_l.val_SI - self.ttd_u.val_SI)
-                / math.log(self.ttd_l.val_SI / self.ttd_u.val_SI)
-            )
-
-        self.kA.val_SI = -self.Q.val_SI / self.td_log.val_SI
-
-        # heat exchanger efficiencies
-        try:
-            self.eff_hot.val_SI = (
-                (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                / self.calc_dh_max_hot()
-            )
-        except ValueError:
-            self.eff_hot.val_SI = np.nan
-            msg = (
-                f"Cannot calculate {self.label} hot side effectiveness "
-                "because cold side inlet temperature is out of bounds for hot "
-                "side fluid."
-            )
-            logger.debug(msg)
-        try:
-            self.eff_cold.val_SI = (
-                (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-                / self.calc_dh_max_cold()
-            )
-        except ValueError:
-            self.eff_cold.val_SI = np.nan
-            msg = (
-                f"Cannot calculate {self.label} cold side effectiveness "
-                "because hot side inlet temperature is out of bounds for cold "
-                "side fluid."
-            )
-            logger.debug(msg)
-        self.eff_max.val_SI = max(self.eff_hot.val_SI, self.eff_cold.val_SI)
-
     def entropy_balance(self):
         r"""
         Calculate entropy balance of a heat exchanger.
@@ -1229,7 +1207,8 @@ class HeatExchanger(Component):
         -------
         tuple
             Cumulated heat transfer over sections, temperature at steps hot
-            side, temperature at steps cold side, heat transfer per section
+            side, temperature at steps cold side, heat transfer per section,
+            logarithmic temperature per section
         """
         steps = self._assign_steps()
         Q_sections = self._get_Q_cumsum_steps(steps)

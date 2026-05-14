@@ -206,7 +206,8 @@ class Turbine(Turbomachine):
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv,
                 quantity="efficiency",
-                description="isentropic efficiency"
+                description="isentropic efficiency",
+                calc=self.calc_eta_s
             ),
             "eta_s_char": dc_cc(
                 param='m', num_eq_sets=1,
@@ -485,7 +486,3 @@ class Turbine(Turbomachine):
                 temp = 500
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        self.eta_s.val_SI = self.calc_eta_s()

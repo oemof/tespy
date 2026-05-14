@@ -200,7 +200,8 @@ class Valve(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet to inlet pressure ratio"
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -208,14 +209,16 @@ class Valve(Component):
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure_difference",
-                description="inlet to outlet absolute pressure change"
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'zeta': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_func,
                 dependents=self.zeta_dependents,
                 func_params={'zeta': 'zeta'},
-                description="non-dimensional friction coefficient for pressure loss calculation"
+                description="non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -229,6 +232,7 @@ class Valve(Component):
                 func=self.Kv_func,
                 dependents=self.Kv_dependents,
                 description="flow coefficient in m3/h",
+                calc=self._calc_Kv
             ),
             'Kv_char': dc_cc(
                 description="lookup-table data for flow coefficient as function of opening"
@@ -453,24 +457,12 @@ class Valve(Component):
             self.opening
         ]
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
+    def _calc_Kv(self):
         i = self.inl[0]
-        o = self.outl[0]
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        # prevent Kv calculation for mixtures
-        # TODO: support incompressible mixtures
         fluid = single_fluid(i.fluid_data)
-        self.Kv.val_SI = np.nan
-        if fluid is not None:
-            if self.dp.val_SI > 0 and i.calc_phase() == "l":
-                self.Kv.val_SI = (
-                    i.v.val_SI * 3600
-                    * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
-                )
+        if fluid is not None and self.dp.val_SI > 0 and i.calc_phase() == "l":
+            return i.v.val_SI * 3600 * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
+        return np.nan
 
     def entropy_balance(self):
         r"""

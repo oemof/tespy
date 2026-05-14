@@ -191,7 +191,8 @@ class Compressor(Turbomachine):
                 deriv=self.eta_s_deriv,
                 dependents=self.eta_s_dependents,
                 quantity="efficiency",
-                description="isentropic efficiency"
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -566,22 +567,14 @@ class Compressor(Turbomachine):
                 temp = 350
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.eta_s.val_SI =  (
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
             isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - self.inl[0].h.val_SI
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
 
     def check_parameter_bounds(self):

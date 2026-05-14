@@ -378,7 +378,8 @@ class Pump(Turbomachine):
                 description=(
                     "efficiency defined as specific incompressible flow work "
                     "over increase of enthalpy"
-                )
+                ),
+                calc=self._calc_eta
             ),
             'eta_s': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
@@ -386,7 +387,8 @@ class Pump(Turbomachine):
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv,
                 quantity="efficiency",
-                description="isentropic efficiency"
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
             ),
             'eta_s_char': dc_cc(
                 param='v', num_eq_sets=1,
@@ -444,7 +446,8 @@ class Pump(Turbomachine):
                 func=self.hydraulic_head_func,
                 dependents=self.hydraulic_head_dependents,
                 quantity="length",
-                description="hydraulic head of the pump"
+                description="hydraulic head of the pump",
+                calc=self.calc_hydraulic_head
             )
         })
         return parameters
@@ -689,7 +692,7 @@ class Pump(Turbomachine):
         flow = i.m.val_SI * i.calc_vol()
         frequency = self.frequency.val_SI
         head = self.head_flow_map.char_func.evaluate(frequency, flow)
-        return head - self.calc_hydraulic_head()
+        return self.calc_hydraulic_head() - head
 
     def head_flow_frequency_group_dependents(self):
         i = self.inl[0]
@@ -707,10 +710,9 @@ class Pump(Turbomachine):
 
             .. math::
 
-                0 = \frac{H \cdot g}{v}
-                - \left( p_\text{out} - p_\text{in} \right)
+                0 = \frac{\left(p_\text{out}-p_\text{in}\right)\cdot v}{g}-H
         """
-        return self.head.val_SI - self.calc_hydraulic_head()
+        return self.calc_hydraulic_head() - self.head.val_SI
 
     def hydraulic_head_dependents(self):
         i = self.inl[0]
@@ -732,9 +734,7 @@ class Pump(Turbomachine):
         """
         i = self.inl[0]
         o = self.outl[0]
-        return (
-            (o.p.val_SI - i.p.val_SI) * i.calc_vol() / GRAVITY
-        )
+        return (o.p.val_SI - i.p.val_SI) * i.calc_vol() / GRAVITY
 
     def convergence_check(self):
         r"""
@@ -859,26 +859,18 @@ class Pump(Turbomachine):
                 temp = 300
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.eta_s.val_SI =  (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - self.inl[0].h.val_SI
-        ) / (o.h.val_SI - i.h.val_SI)
-
-        self.head.val_SI = self.calc_hydraulic_head()
-        self.eta.val_SI = (
-            i.vol.val_SI * (o.p.val_SI - i.p.val_SI)
-            / (o.h.val_SI - i.h.val_SI)
+    def _calc_eta(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
+            i.vol.val_SI * (o.p.val_SI - i.p.val_SI) / (o.h.val_SI - i.h.val_SI)
         )
+
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
+            isentropic(
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
+        ) / (o.h.val_SI - i.h.val_SI)

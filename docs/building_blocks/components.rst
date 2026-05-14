@@ -85,6 +85,7 @@ not be implemented by the solver.
     >>> nw.units.set_defaults(
     ...     temperature="degC", pressure="bar", pressure_difference="bar"
     ... )
+    >>> nw.iterinfo = False
 
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -94,11 +95,11 @@ not be implemented by the solver.
     >>> c2 = Connection(my_pipe, 'out1', si, 'in1')
     >>> nw.add_conns(c1, c2)
     >>> c1.set_attr(fluid={"CH4": 1}, m=1, p=10, T=25)
-    >>> c2.set_attr(p0=10, T=25)
+    >>> c2.set_attr(T=25)
 
     >>> # specify grouped parameters
     >>> my_pipe.set_attr(D=0.1, L=20, ks=0.00005)
-    >>> nw.solve('design', init_only=True)
+    >>> nw.solve('design')
     >>> my_pipe.darcy_group.is_set
     True
 
@@ -106,7 +107,7 @@ not be implemented by the solver.
     >>> # pipe's length is now missing (by removing it as follows).
     >>> c2.set_attr(p=10)
     >>> my_pipe.set_attr(L=None)
-    >>> nw.solve('design', init_only=True)
+    >>> nw.solve('design')
     >>> my_pipe.darcy_group.is_set
     False
 
@@ -127,7 +128,7 @@ diameter the following way.
     >>> # make diameter variable of system
     >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
     >>> c2.set_attr(p=None)
-    >>> nw.solve("design", init_only=True)
+    >>> nw.solve("design")
     >>> my_pipe.darcy_group.is_set
     True
 
@@ -141,6 +142,34 @@ specified range.
     >>> my_pipe.D.max_val = 0.3
     >>> round(my_pipe.D.max_val, 1)
     0.3
+
+.. _component_result_parameters_label:
+
+Results
+^^^^^^^
+
+Some component parameters are not specified by the user but instead computed
+automatically after the solver converges. These result parameters are always
+available via :code:`.val` (or :code:`.val_SI`) on the component after a
+successful solve.
+
+For example, the pressure drop :code:`dp` or flow speed :code:`flow_speed` of
+a pipe are present in the results:
+
+.. code-block:: python
+
+    >>> round(my_pipe.dp.val, 4)
+    0.2
+    >>> round(my_pipe.flow_speed.val, 2)
+    20.09
+
+Result parameters are declared with a :code:`calc` method on the
+:code:`ComponentProperties` data container. The base class
+:py:meth:`~tespy.components.component.Component.calc_parameters` dispatches
+all such methods automatically in the correct order after convergence. For
+details on defining :code:`calc`, :code:`calc_params` and :code:`calc_deps`
+when extending or creating components, see the
+:ref:`custom components documentation <custom_components_label>`.
 
 .. _component_characteristic_specification_label:
 

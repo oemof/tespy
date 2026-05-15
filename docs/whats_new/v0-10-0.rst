@@ -46,6 +46,22 @@ New Features
 
 Other Changes
 #############
+- Internal Newton solver improvements
+  (`PR #987 <https://github.com/oemof/tespy/pull/987>`__):
+
+  - The CPU Jacobian solve now uses row- and column-scaled
+    :code:`numpy.linalg.solve` instead of explicit matrix inversion via
+    :code:`numpy.linalg.inv`, improving numerical stability and performance.
+  - The dense incidence matrix is now built once before the Newton loop instead
+    of being rebuilt on every iteration.
+  - Jacobian singularity diagnosis has been extracted into a dedicated
+    :code:`_diagnose_singularity` method, separated from the matrix solve in
+    :code:`_invert_jacobian`.
+  - Structural singularity detection now uses :code:`numpy.linalg.matrix_rank`
+    instead of :code:`numpy.linalg.det`, which is numerically stable for
+    arbitrarily sized matrices.
+
+-
 - Support for Python 3.10 has been dropped.
 
 - Installation instructions now recommend

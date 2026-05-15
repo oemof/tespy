@@ -3125,7 +3125,7 @@ class Network:
 
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""
-        if self.iter == 0 and np.linalg.det(self._incidence_matrix_dense) == 0.0:
+        if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
             self.singularity_msg = (
                 "Detected singularity in Jacobian matrix. This singularity "
                 "is most likely caused by the parametrization of your "

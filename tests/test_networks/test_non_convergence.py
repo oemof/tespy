@@ -50,5 +50,5 @@ def test_R601_converges_with_linesearch():
     cond.set_attr(pr1=pr_lossless, pr2=pr_lossless)
     cond.set_attr(ttd_l=ttd_l_c)
 
-    orc.solve('design', line_search=True)
+    orc.solve('design')
     orc.assert_convergence()

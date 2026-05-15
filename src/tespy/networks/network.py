@@ -2681,6 +2681,11 @@ class Network:
 
         self._check_determination()
 
+        n = self.variable_counter
+        self._incidence_matrix_dense = np.zeros((n, n))
+        for row, cols in self._incidence_matrix.items():
+            self._incidence_matrix_dense[row, cols] = 1
+
         try:
             self._solve_loop(print_results=print_results)
         except ValueError as e:
@@ -2782,9 +2787,6 @@ class Network:
             )
             logger.warning(msg)
             self.status = 2
-
-    def solve_determination(self):
-        self._check_determination()
 
     def _check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -3040,7 +3042,7 @@ class Network:
             try:
                 tol = max(abs(x0) * 1e-6, 1e-10)
                 x_root = brentq(
-                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=10
+                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=5
                 )
                 return x_root - x0
             except Exception:
@@ -3705,7 +3707,8 @@ class Network:
         >>> from tespy.connections import Connection, Ref, PowerConnection
         >>> from tespy.networks import Network
         >>> import os
-        >>> nw = Network(iterinfo=False)
+        >>> nw = Network()
+        >>> nw.iterinfo = False
         >>> nw.units.set_defaults(**{
         ...     "pressure": "bar", "pressure_difference": "bar",
         ...     "temperature": "degC", "enthalpy": "kJ/kg",

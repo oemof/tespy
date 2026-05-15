@@ -204,11 +204,14 @@ class HeatExchanger(Component):
     it is possible to predict the temperature at different flow rates or
     different inlet temperatures of the exhaust air.
 
-    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
-    ... offdesign=['m'])
-    >>> he_cw.set_attr(h0=1e2)
+    >>> he.set_attr(
+    ...     pr1=0.98, pr2=0.98, ttd_u=5,
+    ...     design=['pr1', 'pr2', 'ttd_u'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
+    >>> cw_he.set_attr(
+    ...     fluid={'water': 1}, T=10, p=3, offdesign=['m']
+    ... )
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')

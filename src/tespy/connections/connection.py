@@ -1123,7 +1123,7 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
-                msg = f"Determined h by known p and td_bubble at {self.label}."
+                msg = f"Determined h by known p and td_dew at {self.label}."
                 logger.info(msg)
 
             elif self.x.is_set:

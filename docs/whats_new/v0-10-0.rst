@@ -20,6 +20,19 @@ API Changes
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- The :code:`rpm` parameter of
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  is deprecated in favour of :code:`frequency`, which integrates with TESPy's
+  unit framework (e.g. set :code:`"1/min"` as the network frequency unit).
+  The :code:`rpm_displacement` and :code:`rpm_poly` keys in
+  :code:`reference_state` are deprecated in favour of
+  :code:`frequency_displacement` (Hz) and :code:`frequency_poly` (Hz). The
+  :code:`displacement` key (m³/h) paired with :code:`frequency_displacement`
+  remains supported, or :code:`swept_volume` (m³ per revolution) can be
+  provided directly. A helper function
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.swept_volume_from_displacement`
+  is available to convert manufacturer displacement data to swept volume
+  (`PR #826 <https://github.com/oemof/tespy/pull/826>`__).
 - Several previously deprecated features have been removed: the
   :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
   parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,

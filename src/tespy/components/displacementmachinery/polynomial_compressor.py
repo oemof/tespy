@@ -165,8 +165,9 @@ class PolynomialCompressor(DisplacementMachine):
 
     - superheating at suction
     - subcooling after the condensation
-    - the rpm belonging to the original data
-    - a displacement value (kg/h) with the respective rpm for this displacement
+    - the frequency (Hz) at which the polynomial data applies
+    - the swept volume per revolution (m³) - or equivalently a displacement
+      (m³/h) together with a reference frequency (Hz)
 
     .. tip::
 
@@ -176,11 +177,11 @@ class PolynomialCompressor(DisplacementMachine):
         retrieved from :cite:`bitzer2025_HSK`.
 
     >>> reference_state = {
-    ...     "T_sh": 20,  # superheating
-    ...     "T_sc": 0,  # subcooling
-    ...     "rpm_poly": 50 * 60,  # rpm belonging to the polynomial data
-    ...     "rpm_displacement": 20 * 60,  # rpm belonging to the displacement
-    ...     "displacement": 214  # kg / h
+    ...     "T_sh": 20,  # superheating, K
+    ...     "T_sc": 0,  # subcooling, K
+    ...     "frequency_poly": 50.0,  # Hz, frequency at which the polynomial applies
+    ...     "displacement": 214,  # m³/h, at the reference frequency below
+    ...     "frequency_displacement": 20.0,  # Hz
     ... }
     >>> power = pd.DataFrame(
     ...     columns=[10,7.5,5,0,-5,-10], index=[30, 40, 50], dtype=float
@@ -233,7 +234,7 @@ class PolynomialCompressor(DisplacementMachine):
     same displacement value as inputted into the reference.
 
     >>> c1.set_attr(fluid={"R134a": 1}, T=0, td_dew=10)  # T_evap=-10°C
-    >>> compressor.set_attr(rpm=1200)
+    >>> compressor.set_attr(frequency=20)  # Hz, equals 1200 RPM
     >>> p_sat = PropsSI("P", "Q", 0, "T", 50 + 273.15, "R134a")  # T_cond=50°C
     >>> c2.set_attr(p=p_sat / 1e5)
     >>> nw.solve("design")
@@ -287,17 +288,17 @@ class PolynomialCompressor(DisplacementMachine):
     >>> round(compressor.eta_vol.val, 3)
     0.924
 
-    It is also possible, to make the rpm a variable. This is useful, in case
-    mass flow through the compressor is governed from external. Usually, this
-    could be the case, if a specific heat transfer is required to be provided
-    by the condenser or from the evaporator. In this case, we just fix the
-    displacement to mimic that.
+    It is also possible, to make the frequency a variable. This is useful, in
+    case mass flow through the compressor is governed from external. Usually,
+    this could be the case, if a specific heat transfer is required to be
+    provided by the condenser or from the evaporator. In this case, we just
+    fix the volumetric flow to mimic that.
 
-    >>> compressor.set_attr(rpm="var")
+    >>> compressor.set_attr(frequency="var")
     >>> c1.set_attr(v=400/3600)
     >>> nw.solve("design")
-    >>> round(compressor.rpm.val)
-    2427
+    >>> round(compressor.frequency.val)
+    40
 
     As final remarks: You can also set fixed isentropic and fixed volumetric
     efficiencies for these components.
@@ -313,6 +314,44 @@ class PolynomialCompressor(DisplacementMachine):
             )
             logger.error(msg)
             raise TESPyComponentError(msg)
+
+        if self.rpm.is_set or self.rpm.is_var:
+            msg = (
+                f"The 'rpm' parameter of component {self.label} of type "
+                f"{self.__class__.__name__} will be deprecated with the next "
+                "major release. Please use 'frequency' instead. Note, to "
+                "specify the rounds per minute use the unit 1/min as 'rpm' "
+                "is '1/min' divided by 2π in the unit conversion framework."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        if self.reference_state.is_set:
+            rs = self.reference_state.val
+            if "swept_volume" not in rs:
+                if "frequency_displacement" in rs:
+                    rs["swept_volume"] = swept_volume_from_displacement(
+                        rs["displacement"], rs["frequency_displacement"]
+                    )
+                else:
+                    msg = (
+                        f"The 'rpm_displacement' key in 'reference_state' of "
+                        f"component {self.label} is deprecated. Use "
+                        "'frequency_displacement' in Hz (1/s) together with "
+                        "'displacement' in m³/h, or provide 'swept_volume' "
+                        "directly in m³. See swept_volume_from_displacement()."
+                    )
+                    warnings.warn(msg, FutureWarning, stacklevel=2)
+                    rs["swept_volume"] = swept_volume_from_displacement(
+                        rs["displacement"], rs["rpm_displacement"] / 60
+                    )
+            if "frequency_poly" not in rs and "rpm_poly" in rs:
+                msg = (
+                    f"The 'rpm_poly' key in 'reference_state' of component "
+                    f"{self.label} is deprecated. Use 'frequency_poly' in Hz "
+                    "(1/s) instead: frequency_poly = rpm_poly / 60."
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
+                rs["frequency_poly"] = rs["rpm_poly"] / 60
 
         return super()._preprocess(row_idx)
 
@@ -349,9 +388,19 @@ class PolynomialCompressor(DisplacementMachine):
                 description="volumetric efficiency",
                 calc=self._calc_eta_vol
             ),
+            "eta_s": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
+            ),
             "dissipation_ratio": dc_cp(
                 min_val=0, max_val=1, val=0, quantity="ratio",
                 description="heat dissipation ratio relative to power consumption"
+            ),
+            "frequency": dc_cp(
+                min_val=0, max_val=10000, is_result=True, _potential_var=True,
+                quantity="frequency",
+                description="compressor frequency"
             ),
             "rpm": dc_cp(
                 min_val=0, is_result=True, _potential_var=True,
@@ -366,24 +415,32 @@ class PolynomialCompressor(DisplacementMachine):
             "eta_vol_poly": dc_simple(
                 description="polynomial coefficients for volumetric efficiency"
             ),
-            "eta_vol_poly_group": dc_gcp(
+            "eta_vol_poly_group_rpm": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
                 num_eq_sets=1,
                 description="displacement equation based on polynomial coefficients for volumetric efficiency"
             ),
-            "eta_vol_group": dc_gcp(
+            "eta_vol_poly_group": dc_gcp(
+                elements=["reference_state", "eta_vol_poly", "frequency"],
+                func=self.eta_vol_poly_frequency_group_func,
+                dependents=self.eta_vol_poly_frequency_group_dependents,
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
+            ),
+            "eta_vol_group_rpm": dc_gcp(  # will be deprecated
                 elements=["reference_state", "eta_vol", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1,
                 description="displacement equation based on fixed volumetric efficiency"
             ),
-            "eta_s": dc_cp(
-                min_val=0, max_val=1, is_result=True, quantity="efficiency",
-                description="isentropic efficiency",
-                calc=self._calc_eta_s
+            "eta_vol_group": dc_gcp(
+                elements=["reference_state", "eta_vol", "frequency"],
+                func=self.eta_vol_frequency_group_func,
+                dependents=self.eta_vol_frequency_group_dependents,
+                num_eq_sets=1
             ),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
@@ -439,10 +496,11 @@ class PolynomialCompressor(DisplacementMachine):
         if not self.reference_state.is_set:
             return self.eta_vol.val_SI
         i = self.inl[0]
-        displacement = (
-            self.reference_state.val["displacement"] / 3600
-            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-        )
+        rs = self.reference_state.val
+        if self.frequency.is_set or self.frequency.is_var:
+            displacement = rs["swept_volume"] * self.frequency.val_SI
+        else:
+            displacement = rs["swept_volume"] * self.rpm.val_SI / 60
         return i.m.val_SI * i.vol.val_SI / displacement
 
     # this is a bit different that in other cases, because the power cannot
@@ -569,13 +627,13 @@ class PolynomialCompressor(DisplacementMachine):
         ]
 
     def eta_vol_group_func(self):
-        r"""Volumetric efficiency function.
+        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
 
         .. math::
 
             0 = \dot m_\text{in} -
-            \eta_\text{vol} \cdot \frac{\dot V_\text{ref}}{3600} \cdot
-            \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
+            \eta_\text{vol} \cdot V_\text{swept} \cdot
+            \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
 
         Returns
         -------
@@ -583,15 +641,8 @@ class PolynomialCompressor(DisplacementMachine):
             residual value
         """
         i = self.inl[0]
-
-        displacement = (
-            self.reference_state.val["displacement"] / 3600
-            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-        )
-
-        return (
-            i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
-        )
+        displacement = self.reference_state.val["swept_volume"] * self.rpm.val_SI / 60
+        return i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
 
     def eta_vol_group_dependents(self):
         return [
@@ -601,15 +652,40 @@ class PolynomialCompressor(DisplacementMachine):
             self.rpm
         ]
 
-    def eta_vol_poly_group_func(self):
+    def eta_vol_frequency_group_func(self):
         r"""Volumetric efficiency function.
 
         .. math::
 
             0 = \dot m_\text{in} -
+            \eta_\text{vol} \cdot V_\text{swept} \cdot
+            f \cdot \frac{1}{v_\text{in}}
+
+        Returns
+        -------
+        float
+            residual value
+        """
+        i = self.inl[0]
+        displacement = self.reference_state.val["swept_volume"] * self.frequency.val_SI
+        return i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
+
+    def eta_vol_frequency_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.frequency
+        ]
+
+    def eta_vol_poly_group_func(self):
+        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
+
+        .. math::
+
+            0 = \dot m_\text{in} -
             \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
-            \frac{\dot V_\text{ref}}{3600} \cdot
-            \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
+            V_\text{swept} \cdot \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
 
         Returns
         -------
@@ -623,14 +699,8 @@ class PolynomialCompressor(DisplacementMachine):
         t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
-        displacement = (
-            self.reference_state.val["displacement"] / 3600
-            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-        )
-
-        return (
-            i.m.val_SI - eta_vol * displacement / i.calc_vol()
-        )
+        displacement = self.reference_state.val["swept_volume"] * self.rpm.val_SI / 60
+        return i.m.val_SI - eta_vol * displacement / i.calc_vol()
 
     def eta_vol_poly_group_dependents(self):
         return [
@@ -640,6 +710,62 @@ class PolynomialCompressor(DisplacementMachine):
             self.outl[0].p,
             self.rpm
         ]
+
+    def eta_vol_poly_frequency_group_func(self):
+        r"""Volumetric efficiency function.
+
+        .. math::
+
+            0 = \dot m_\text{in} -
+            \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
+            V_\text{swept} \cdot f \cdot \frac{1}{v_\text{in}}
+
+        Returns
+        -------
+        float
+            residual value
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+
+        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        # here .val is fine, because it just holds the coefficients
+        eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
+        displacement = self.reference_state.val["swept_volume"] * self.frequency.val_SI
+        return i.m.val_SI - eta_vol * displacement / i.calc_vol()
+
+    def eta_vol_poly_frequency_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.frequency
+        ]
+
+
+def swept_volume_from_displacement(displacement: float, frequency: float) -> float:
+    """Calculate swept volume per revolution from displacement and reference frequency.
+
+    Parameters
+    ----------
+    displacement : float
+        Volumetric displacement in m³/h at the reference frequency.
+    frequency : float
+        Reference frequency in Hz (1/s).
+
+    Returns
+    -------
+    float
+        Swept volume per revolution in m³.
+
+    Example
+    -------
+    >>> round(swept_volume_from_displacement(214, 20.0), 6)
+    0.002972
+    """
+    return displacement / 3600 / frequency
 
 
 def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:
@@ -655,12 +781,15 @@ def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference
     T_cond : float
         Evaporation temperature in K
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
+
     polynomes : dict
         Dictionary containing the power and the evaporator heat polynomial
 
@@ -698,12 +827,33 @@ def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference
     dot_m = Q_evap / (h_evap_out - h_cond_out)
     eta_s = dot_m * (h_comp_s - h_evap_out) / P_comp
 
-    rpm_poly = reference_state["rpm_poly"]
-    rpm_displacement = reference_state["rpm_displacement"]
-    displacement = (
-        (reference_state["displacement"] / 3600)
-        * (rpm_poly / rpm_displacement)
-    )
+    if "swept_volume" in reference_state:
+        swept_vol = reference_state["swept_volume"]
+    elif "frequency_displacement" in reference_state:
+        swept_vol = swept_volume_from_displacement(
+            reference_state["displacement"], reference_state["frequency_displacement"]
+        )
+    else:
+        warnings.warn(
+            "The 'rpm_displacement' key in 'reference_state' is deprecated. "
+            "Use 'frequency_displacement' in Hz (1/s) together with "
+            "'displacement' in m³/h, or provide 'swept_volume' directly in m³. "
+            "See swept_volume_from_displacement().",
+            FutureWarning, stacklevel=3
+        )
+        swept_vol = swept_volume_from_displacement(
+            reference_state["displacement"], reference_state["rpm_displacement"] / 60
+        )
+    if "frequency_poly" in reference_state:
+        freq_poly = reference_state["frequency_poly"]
+    else:
+        warnings.warn(
+            "The 'rpm_poly' key in 'reference_state' is deprecated. "
+            "Use 'frequency_poly' in Hz (1/s) instead: frequency_poly = rpm_poly / 60.",
+            FutureWarning, stacklevel=3
+        )
+        freq_poly = reference_state["rpm_poly"] / 60
+    displacement = swept_vol * freq_poly
     rho_comp_in = PSI("D", "P", p_evap, "H", h_evap_out, fluid)
     eta_vol = dot_m / (rho_comp_in * displacement)
 
@@ -823,12 +973,14 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
     fluid : str
         Name of fluid
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
 
     Returns
     -------
@@ -870,12 +1022,14 @@ def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_sta
     fluid : str
         Name of fluid
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
 
     Returns
     -------

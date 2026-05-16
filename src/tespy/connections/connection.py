@@ -9,8 +9,6 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
-import warnings
-
 import numpy as np
 
 from tespy.components import Subsystem
@@ -140,41 +138,12 @@ class ConnectionBase:
                 msg = f"Referencing {key} is not implemented."
                 logger.error(msg)
                 raise NotImplementedError(msg)
-            if self.get_attr(key).is_set:
-                msg = (
-                    f"You have specified a Ref for the parameter '{key}' "
-                    "while having a numerical value specified at the same "
-                    f"time at connection {self.label}. In the moment, "
-                    "this does not overwrite setting the numerical value. "
-                    "To unset the specified value before setting the Ref, "
-                    f"run .set_attr({key}=None) before "
-                    f".set_attr({key}=Ref(...)). With the next major "
-                    "release of TESPy setting a Ref will automatically "
-                    "replace a previously specified numerical value "
-                    "making it impossible to set a numerical value and a "
-                    "Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            self.get_attr(key).is_set = False
             self.get_attr(ref_key).set_attr(ref=value, is_set=True)
 
         else:
-            if has_ref_sibling and self.get_attr(ref_key).is_set:
-                msg = (
-                    f"You have specified a numerical value for the "
-                    f"parameter '{key}' while having a Ref specified "
-                    f"at the same time at connection {self.label}. In "
-                    "the moment, this does not overwrite setting the "
-                    "Ref. To unset the Ref before setting the "
-                    f"numerical value, run .set_attr({key}=None) "
-                    f"before .set_attr({key}={value}). With the next "
-                    "major release of TESPy setting a numerical value "
-                    "will always replace a previously specified Ref "
-                    "making it impossible to set a numerical value "
-                    "and a Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            if has_ref_sibling:
+                self.get_attr(ref_key).is_set = False
             self.get_attr(key).accept(value)
 
     def get_attr(self, key):

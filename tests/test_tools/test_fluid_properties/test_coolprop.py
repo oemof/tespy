@@ -315,3 +315,86 @@ class TestFluidPropertyBackEnds:
                 f'{fluid}.'
             )
             assert value == round(1 / 0.95, 5), msg
+
+
+class TestCoolPropWrapperUpdateCache:
+    """Test that the CoolPropWrapper state cache produces correct results."""
+
+    def setup_method(self):
+        from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
+        self.w = CoolPropWrapper("Water")
+        # reference wrapper with no prior state (fresh per call via direct AS.update)
+        self.ref = CoolPropWrapper("Water")
+
+    def _ref(self, input_pair, a, b, prop):
+        """Return property value from a fresh update, bypassing cache."""
+        import CoolProp as CP
+        self.ref.AS.update(input_pair, a, b)
+        return getattr(self.ref.AS, prop)()
+
+    def test_T_ph_cache_hit_same_result(self):
+        """Second call with identical inputs returns the same T."""
+        p, h = 1e5, 2.7e6
+        t1 = self.w.T_ph(p, h)
+        t2 = self.w.T_ph(p, h)
+        assert t1 == t2
+
+    def test_T_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct T."""
+        import CoolProp as CP
+        p, h = 5e5, 3e6
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "T")
+        assert self.w.T_ph(p, h) == pytest.approx(ref)
+        assert self.w.T_ph(p, h) == pytest.approx(ref)
+
+    def test_cache_miss_on_different_inputs(self):
+        """Different (p, h) inputs return different temperatures."""
+        t1 = self.w.T_ph(1e5, 2.7e6)
+        t2 = self.w.T_ph(2e5, 2.7e6)
+        assert t1 != t2
+
+    def test_alternating_inputs_correct(self):
+        """Alternating between two states always returns the right value."""
+        import CoolProp as CP
+        pairs = [(1e5, 2.7e6), (10e5, 3.2e6)]
+        refs = [self._ref(CP.HmassP_INPUTS, h, p, "T") for p, h in pairs]
+        for _ in range(3):
+            for (p, h), ref in zip(pairs, refs):
+                assert self.w.T_ph(p, h) == pytest.approx(ref)
+
+    def test_cache_invalidated_after_failed_update(self):
+        """After a crashing AS.update the old state is re-fetched correctly."""
+        import CoolProp as CP
+        p, h = 1e5, 2.7e6
+        expected = self.w.T_ph(p, h)
+
+        # provoke a crash in AS.update with nonsense inputs
+        with pytest.raises(Exception):
+            self.w.T_ph(-1, -1)
+
+        # old inputs must still return the correct value
+        assert self.w.T_ph(p, h) == pytest.approx(expected)
+
+    def test_h_pQ_two_phase(self):
+        """Both the first and second (cached) call return the correct h in two-phase."""
+        import CoolProp as CP
+        p, Q = 1e5, 0.5
+        ref = self._ref(CP.PQ_INPUTS, p, Q, "hmass")
+        assert self.w.h_pQ(p, Q) == pytest.approx(ref)
+        assert self.w.h_pQ(p, Q) == pytest.approx(ref)
+
+    def test_s_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct s."""
+        import CoolProp as CP
+        p, h = 3e5, 2.9e6
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "smass")
+        assert self.w.s_ph(p, h) == pytest.approx(ref)
+        assert self.w.s_ph(p, h) == pytest.approx(ref)
+
+    def test_d_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct density."""
+        import CoolProp as CP
+        p, h = 2e5, 5e5
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "rhomass")
+        assert self.w.d_ph(p, h) == pytest.approx(ref)
+        assert self.w.d_ph(p, h) == pytest.approx(ref)

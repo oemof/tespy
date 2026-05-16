@@ -204,11 +204,14 @@ class HeatExchanger(Component):
     it is possible to predict the temperature at different flow rates or
     different inlet temperatures of the exhaust air.
 
-    >>> he.set_attr(pr1=0.98, pr2=0.98, ttd_u=5,
-    ... design=['pr1', 'pr2', 'ttd_u'], offdesign=['zeta1', 'zeta2', 'kA_char'])
-    >>> cw_he.set_attr(fluid={'water': 1}, T=10, p=3,
-    ... offdesign=['m'])
-    >>> he_cw.set_attr(h0=1e2)
+    >>> he.set_attr(
+    ...     pr1=0.98, pr2=0.98, ttd_u=5,
+    ...     design=['pr1', 'pr2', 'ttd_u'],
+    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ... )
+    >>> cw_he.set_attr(
+    ...     fluid={'water': 1}, T=10, p=3, offdesign=['m']
+    ... )
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
@@ -1134,6 +1137,11 @@ class HeatExchanger(Component):
         """
         return np.array([0, 1])
 
+    def _preprocess(self, row_idx):
+        self._T_cache_hot = {}
+        self._T_cache_cold = {}
+        super()._preprocess(row_idx)
+
     def _get_T_at_steps(self, steps):
         """Calculate hot- and cold-side temperatures at each step.
 
@@ -1154,7 +1162,6 @@ class HeatExchanger(Component):
         p_steps_hot = self._assign_to_steps(
             self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
         )
-
         h_steps_cold = self._assign_to_steps(
             self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
         )
@@ -1162,14 +1169,24 @@ class HeatExchanger(Component):
             self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
         )
 
-        T_steps_hot = np.array([
-            T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
-            for p, h in zip(p_steps_hot, h_steps_hot)
-        ])
-        T_steps_cold = np.array([
-            T_mix_ph(p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-            for p, h in zip(p_steps_cold, h_steps_cold)
-        ])
+        T_steps_hot = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_hot, h_steps_hot)):
+            key = (p, h)
+            if key not in self._T_cache_hot:
+                self._T_cache_hot[key] = T_mix_ph(
+                    p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule,
+                )
+            T_steps_hot[i] = self._T_cache_hot[key]
+
+        T_steps_cold = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_cold, h_steps_cold)):
+            key = (p, h)
+            if key not in self._T_cache_cold:
+                self._T_cache_cold[key] = T_mix_ph(
+                    p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule,
+                )
+            T_steps_cold[i] = self._T_cache_cold[key]
+
         return T_steps_hot, T_steps_cold
 
     @staticmethod

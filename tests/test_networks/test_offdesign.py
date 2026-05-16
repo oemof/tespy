@@ -7,8 +7,6 @@ available from its original location
 tests/test_networks/test_local_offdesign.py
 SPDX-License-Identifier: MIT
 """
-import json
-
 import numpy as np
 from pytest import approx
 from pytest import raises

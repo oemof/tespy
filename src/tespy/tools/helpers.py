@@ -398,6 +398,12 @@ def solve(obj, increment_filter):
         _solve_jacobian(obj, data, increment_filter, eq_num)
 
 
+def solve_residuals(obj):
+    """Calculate residuals of a component without recomputing derivatives."""
+    for data in obj.equations.values():
+        _solve_residual(obj, data, data._first_eq_index)
+
+
 def _solve_residual(obj, data, eq_num):
     result = data.func(**data.func_params)
     if isinstance(result, Iterable):

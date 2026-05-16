@@ -680,6 +680,7 @@ class Connection(ConnectionBase):
         self.state = dc_simple()
         self.phase = dc_simple()
         self.mixing_rule = None
+        self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
 
     def _reset_design(self, redesign):
@@ -905,6 +906,14 @@ class Connection(ConnectionBase):
             self.fluid.wrapper[fluid] = self.fluid.engine[fluid](
                 fluid, back_end, **wrapper_kwargs
             )
+
+        self._fluid_data = {
+            fluid: {
+                "wrapper": self.fluid.wrapper[fluid],
+                "mass_fraction": self.fluid.val[fluid],
+            }
+            for fluid in self.fluid.val
+        }
 
     def _guess_starting_values(self, units):
         # the below part does not work for PowerConnection right now
@@ -1311,12 +1320,19 @@ class Connection(ConnectionBase):
         }
 
     def get_fluid_data(self):
-        return {
-            fluid: {
-                "wrapper": self.fluid.wrapper[fluid],
-                "mass_fraction": self.fluid.val[fluid]
-            } for fluid in self.fluid.val
-        }
+        fluid_val = self.fluid.val
+        if self._fluid_data is None or fluid_val.keys() != self._fluid_data.keys():
+            self._fluid_data = {
+                fluid: {
+                    "wrapper": self.fluid.wrapper[fluid],
+                    "mass_fraction": fluid_val[fluid],
+                }
+                for fluid in fluid_val
+            }
+            return self._fluid_data
+        for f, data in self._fluid_data.items():
+            data["mass_fraction"] = fluid_val[f]
+        return self._fluid_data
 
     fluid_data = property(get_fluid_data)
 

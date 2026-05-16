@@ -1,4 +1,6 @@
 
+from pytest import mark
+
 from tespy.components import HeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
@@ -6,7 +8,6 @@ from tespy.components import Turbine
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
-from pytest import mark
 
 
 @mark.skip(

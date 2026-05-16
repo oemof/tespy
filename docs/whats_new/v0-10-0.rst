@@ -60,6 +60,20 @@ Other Changes
   - Structural singularity detection now uses :code:`numpy.linalg.matrix_rank`
     instead of :code:`numpy.linalg.det`, which is numerically stable for
     arbitrarily sized matrices.
+  - :py:class:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper` now
+    caches the last :code:`AS.update` call and skips redundant updates when
+    the same input pair and values are requested consecutively.
+  - :py:meth:`~tespy.connections.connection.Connection.get_fluid_data` now
+    caches and reuses the fluid data dict across calls, only rebuilding it
+    when the fluid set changes (e.g. in combustion components).
+  - :py:meth:`~tespy.connections.connection.Connection.calc_results` now skips
+    the unit conversion for parameters that have not been fixed by the user,
+    avoiding redundant pint conversions during postprocessing.
+  - :py:class:`~tespy.components.heat_exchangers.base.HeatExchanger` now
+    caches temperature values computed in :code:`_get_T_at_steps` by
+    :code:`(p, h)` key, so that unperturbed sides of the heat exchanger are
+    not recomputed during finite-difference Jacobian evaluation. The cache is
+    cleared at the start of each solve via :code:`_preprocess`.
 
 -
 - Support for Python 3.10 has been dropped.

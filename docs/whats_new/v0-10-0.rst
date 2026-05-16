@@ -39,6 +39,17 @@ API Changes
   the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
   :code:`fluid_property_data` from :code:`global_vars`
   (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
+- Setting a :code:`Ref` on a :py:class:`~tespy.connections.connection.Connection`
+  parameter now automatically unsets any previously specified numerical value
+  for that parameter, and setting a numerical value automatically unsets any
+  previously set :code:`Ref`. Both could be set simultaneously before, which
+  raised a :code:`FutureWarning`.
+- The pygmo compatibility interface of
+  :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
+  The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,
+  :code:`run` and :code:`_process_generation_data` methods are no longer
+  available. Use pymoo-based workflows instead (install via
+  :code:`pip install tespy[opt]`).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use
@@ -88,7 +99,6 @@ Other Changes
     not recomputed during finite-difference Jacobian evaluation. The cache is
     cleared at the start of each solve via :code:`_preprocess`.
 
--
 - Support for Python 3.10 has been dropped.
 
 - Installation instructions now recommend

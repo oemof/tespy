@@ -2681,6 +2681,11 @@ class Network:
 
         self._check_determination()
 
+        n = self.variable_counter
+        self._incidence_matrix_dense = np.zeros((n, n))
+        for row, cols in self._incidence_matrix.items():
+            self._incidence_matrix_dense[row, cols] = 1
+
         try:
             self._solve_loop(print_results=print_results)
         except ValueError as e:
@@ -2782,9 +2787,6 @@ class Network:
             )
             logger.warning(msg)
             self.status = 2
-
-    def solve_determination(self):
-        self._check_determination()
 
     def _check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -3040,7 +3042,7 @@ class Network:
             try:
                 tol = max(abs(x0) * 1e-6, 1e-10)
                 x_root = brentq(
-                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=10
+                    eval_r, min(a, b), max(a, b), xtol=tol, maxiter=5
                 )
                 return x_root - x0
             except Exception:
@@ -3090,79 +3092,71 @@ class Network:
         return overrides
 
     def _invert_jacobian(self):
-        """Invert matrix of derivatives and calculate increment."""
-        self.lin_dep = True
+        """Compute Newton step, storing result in self.increment. Sets self.lin_dep."""
+        self.lin_dep = False
+        self.increment = self.residual * 0
+        if len(self.variables_dict) == 0:
+            return
 
         overrides = self._fill_jacobian_surrogates()
 
         try:
-            # Let the matrix inversion be computed by the GPU if use_cuda in
-            # global_vars.py is true.
             if self.use_cuda:
                 self.increment = cu.asnumpy(cu.dot(
                     cu.linalg.inv(cu.asarray(self.jacobian)),
                     -cu.asarray(self.residual)
                 ))
             else:
-                self.increment = np.linalg.inv(
-                    self.jacobian
-                ).dot(-self.residual)
-            self.lin_dep = False
-        except np.linalg.LinAlgError:
-            self.increment = self.residual * 0
+                row_scales = np.abs(self.jacobian).max(axis=1)
+                row_scales[row_scales == 0] = 1.0
+                J_eq = self.jacobian / row_scales[:, None]
 
-        # Override stuck-variable increments with the search-based steps found
-        # before the inversion.  These bypass the ill-conditioning that the
-        # full Newton step would produce for zero-derivative rows.
+                col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
+                J_sc = J_eq / col_scales[None, :]
+                r_eq = -self.residual / row_scales
+
+                self.increment = np.linalg.solve(J_sc, r_eq) / col_scales
+        except np.linalg.LinAlgError:
+            self.lin_dep = True
+            return
+
         for col, step in overrides.items():
             self.increment[col] = step
 
-        n = self.variable_counter
-        self._incidence_matrix_dense = np.zeros((n, n))
-        for row, cols in self._incidence_matrix.items():
-            self._incidence_matrix_dense[row, cols] = 1
-
-        if self.lin_dep:
-            if self.iter == 0 and np.linalg.det(self._incidence_matrix_dense) == 0.0:
-                self.singularity_msg = (
-                    "Detected singularity in Jacobian matrix. This singularity "
-                    "is most likely caused by the parametrization of your "
-                    "problem and NOT a numerical issue. Double check your "
-                    "setup.\n"
-                )
-                self._find_linear_dependencies(self.jacobian)
-                return
-
-            # here we can analyse the same things as above but on the
-            # Jacobian to give hints what equations/variables are causing
-            # the issue.
-
-            # On top it is possible to compare the contents
-            # of the Jacobian with the contents of the incidence matrix
-            # to maybe pinpoint in more detail, what causes the trouble
-            expected_entries = self._incidence_matrix_dense.astype(bool)
-            actual_entries = self.jacobian.astype(bool)
-            rows, cols = np.where(expected_entries != actual_entries)
-
-            missing_entries = []
-            for row, col in zip(rows, cols):
-                lbl, eq_name = self._equation_lookup[row]
-                eq_str = f"{lbl}.{self._format_eq_name(eq_name)}"
-                var_str = self._format_var_label(col)
-                missing_entries += [f"{eq_str}: {var_str}"]
-
-            entries_str = ", ".join(missing_entries)
+    def _diagnose_singularity(self):
+        """Build singularity_msg after a failed matrix solve."""
+        if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
             self.singularity_msg = (
-                "Found singularity in Jacobian matrix, calculation aborted! "
-                "The setup of your problem seems to be solvable. It failed "
-                "due to partial derivatives in the Jacobian being zero where "
-                "a non-zero was expected, or vice versa. This usually lies in "
-                "starting value selection or bad convergence.\n"
-                "  The following equation/variable pairs may have an "
-                f"unexpected zero/non-zero partial derivative:  {entries_str}\n"
+                "Detected singularity in Jacobian matrix. This singularity "
+                "is most likely caused by the parametrization of your "
+                "problem and NOT a numerical issue. Double check your "
+                "setup.\n"
             )
             self._find_linear_dependencies(self.jacobian)
             return
+
+        expected_entries = self._incidence_matrix_dense.astype(bool)
+        actual_entries = self.jacobian.astype(bool)
+        rows, cols = np.where(expected_entries != actual_entries)
+
+        missing_entries = []
+        for row, col in zip(rows, cols):
+            lbl, eq_name = self._equation_lookup[row]
+            eq_str = f"{lbl}.{self._format_eq_name(eq_name)}"
+            var_str = self._format_var_label(col)
+            missing_entries += [f"{eq_str}: {var_str}"]
+
+        entries_str = ", ".join(missing_entries)
+        self.singularity_msg = (
+            "Found singularity in Jacobian matrix, calculation aborted! "
+            "The setup of your problem seems to be solvable. It failed "
+            "due to partial derivatives in the Jacobian being zero where "
+            "a non-zero was expected, or vice versa. This usually lies in "
+            "starting value selection or bad convergence.\n"
+            "  The following equation/variable pairs may have an "
+            f"unexpected zero/non-zero partial derivative:  {entries_str}\n"
+        )
+        self._find_linear_dependencies(self.jacobian)
 
     def _find_linear_dependencies(self, matrix):
         all_zero_cols = self._check_all_zero_columns(matrix)
@@ -3309,8 +3303,8 @@ class Network:
         self._solve_equations()
         self._invert_jacobian()
 
-        # check for linear dependency
         if self.lin_dep:
+            self._diagnose_singularity()
             return
 
         self._update_variables()
@@ -3705,7 +3699,8 @@ class Network:
         >>> from tespy.connections import Connection, Ref, PowerConnection
         >>> from tespy.networks import Network
         >>> import os
-        >>> nw = Network(iterinfo=False)
+        >>> nw = Network()
+        >>> nw.iterinfo = False
         >>> nw.units.set_defaults(**{
         ...     "pressure": "bar", "pressure_difference": "bar",
         ...     "temperature": "degC", "enthalpy": "kJ/kg",

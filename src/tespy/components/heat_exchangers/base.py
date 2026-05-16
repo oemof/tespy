@@ -1131,6 +1131,11 @@ class HeatExchanger(Component):
         """
         return np.array([0, 1])
 
+    def _preprocess(self, row_idx):
+        self._T_cache_hot = {}
+        self._T_cache_cold = {}
+        super()._preprocess(row_idx)
+
     def _get_T_at_steps(self, steps):
         """Calculate the temperature values for the provided sections.
 
@@ -1151,7 +1156,6 @@ class HeatExchanger(Component):
         p_steps_hot = self._assign_to_steps(
             self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
         )
-
         h_steps_cold = self._assign_to_steps(
             self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
         )
@@ -1159,14 +1163,24 @@ class HeatExchanger(Component):
             self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
         )
 
-        T_steps_hot = np.array([
-            T_mix_ph(p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule)
-            for p, h in zip(p_steps_hot, h_steps_hot)
-        ])
-        T_steps_cold = np.array([
-            T_mix_ph(p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule)
-            for p, h in zip(p_steps_cold, h_steps_cold)
-        ])
+        T_steps_hot = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_hot, h_steps_hot)):
+            key = (p, h)
+            if key not in self._T_cache_hot:
+                self._T_cache_hot[key] = T_mix_ph(
+                    p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule,
+                )
+            T_steps_hot[i] = self._T_cache_hot[key]
+
+        T_steps_cold = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_cold, h_steps_cold)):
+            key = (p, h)
+            if key not in self._T_cache_cold:
+                self._T_cache_cold[key] = T_mix_ph(
+                    p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule,
+                )
+            T_steps_cold[i] = self._T_cache_cold[key]
+
         return T_steps_hot, T_steps_cold
 
     @staticmethod

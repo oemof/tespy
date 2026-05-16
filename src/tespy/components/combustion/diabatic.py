@@ -42,6 +42,14 @@ class DiabaticCombustionChamber(CombustionChamber):
 
     - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
 
+    .. tip::
+
+        You can add more fluids by importing :code:`COMBUSTION_FLUIDS` from
+        the :code:`tespy.tools` module and passing the respective information.
+        See in the example of
+        :py:class:`tespy.components.combustion.base.CombustionChamber`, how to
+        do that.
+
     Inlets/Outlets
 
     - in1, in2
@@ -124,7 +132,8 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> from tespy.tools.fluid_properties import T_sat_p
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> amb = Source('ambient air')
     >>> sf = Source('fuel')
@@ -200,23 +209,33 @@ class DiabaticCombustionChamber(CombustionChamber):
                 num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "pr": "pr"},
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet 0 to inlet 0 pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure_difference",
+                description="inlet 0 to outlet 0 absolute pressure change",
+                calc=self._calc_dp
             ),
             'eta': dc_cp(
                 max_val=1, min_val=0,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 num_eq_sets=1,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="heat dissipation ratio relative to thermal input",
+                calc=self._calc_eta, calc_deps=['ti']
             ),
-            'Qloss': dc_cp(max_val=0, is_result=True, quantity="heat")
+            'Qloss': dc_cp(
+                max_val=0, is_result=True, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Qloss, calc_deps=['ti', 'eta']
+            )
         })
         return params
 
@@ -274,52 +293,31 @@ class DiabaticCombustionChamber(CombustionChamber):
                 - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
             )
 
-        res += self.calc_ti() * self.eta.val_SI
+        res += self._calc_ti() * self.eta.val_SI
         return res
+
+    def _calc_eta(self):
+        T_ref, p_ref = 298.15, 1e5
+        res = sum(
+            i.m.val_SI * (i.h.val_SI - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas"))
+            for i in self.inl
+        )
+        res -= sum(
+            o.m.val_SI * (o.h.val_SI - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas"))
+            for o in self.outl
+        )
+        return -res / self.ti.val_SI
+
+    def _calc_Qloss(self):
+        return -(1 - self.eta.val_SI) * self.ti.val_SI
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
-
-        T_ref = 298.15
-        p_ref = 1e5
-
-        res = 0
-        for i in self.inl:
-            res += i.m.val_SI * (
-                i.h.val_SI
-                - h_mix_pT(p_ref, T_ref, i.fluid_data, mixing_rule="forced-gas")
-            )
-
-        for o in self.outl:
-            res -= o.m.val_SI * (
-                o.h.val_SI
-                - h_mix_pT(p_ref, T_ref, o.fluid_data, mixing_rule="forced-gas")
-            )
-
-        self.eta.val_SI = -res / self.ti.val_SI
-        self.Qloss.val_SI = -(1 - self.eta.val_SI) * self.ti.val_SI
-
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
         for num, i in enumerate(self.inl):
-            if i.p.val < self.outl[0].p.val:
+            if i.p.val_SI < self.outl[0].p.val_SI:
                 msg = (
                     f"The pressure at inlet {num + 1} is lower than the "
                     f"pressure at the outlet of component {self.label}."
                 )
                 logger.warning(msg)
-
-    def exergy_balance(self, T0):
-
-        self.E_P = self.outl[0].Ex_physical - (
-            self.inl[0].Ex_physical + self.inl[1].Ex_physical
-        )
-        self.E_F = (
-            self.inl[0].Ex_chemical + self.inl[1].Ex_chemical -
-            self.outl[0].Ex_chemical
-        )
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = {"chemical": np.nan, "physical": np.nan, "massless": np.nan}

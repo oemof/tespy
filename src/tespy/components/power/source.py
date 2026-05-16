@@ -10,12 +10,12 @@ available from its original location tespy/components/power/source.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.components.energy._source import _EnergySource
 
 
 @component_registry
-class PowerSource(Component):
+class PowerSource(_EnergySource):
     r"""
     A power flow emerges from a PowerSource.
 
@@ -55,10 +55,4 @@ class PowerSource(Component):
     'a labeled source'
     """
 
-    @staticmethod
-    def poweroutlets():
-        return ["power"]
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
+    _energy_port = "power"

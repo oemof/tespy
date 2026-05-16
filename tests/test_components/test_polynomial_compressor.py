@@ -99,8 +99,8 @@ class TestPolynomialCompressor:
     def setup_network(self, instance):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC",
-            "volumetric_flow": "m3/s"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "volumetric_flow": "m3/s"
         })
         self.source = Source('source')
         self.sink = Sink('sink')
@@ -135,29 +135,6 @@ class TestPolynomialCompressor:
         instance.set_attr(
             eta_vol=0.8, rpm=1500, reference_state=reference_state,
             dissipation_ratio=0
-        )
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-
-        assert round(self.c1.v.val, 2) == round(
-            reference_state["displacement"] / 3600
-            * instance.rpm.val / reference_state["rpm_displacement"]
-            * instance.eta_vol.val,
-            2
-        )
-
-    def test_eta_vol_with_Q_diss_rel(self, reference_state):
-        """Test component properties of compressors."""
-        instance = PolynomialCompressor('compressor')
-        self.setup_network(instance)
-
-        # compress NH3, other fluids in network are for turbine, pump, ...
-        fl = {'R134a': 1}
-        self.c1.set_attr(fluid=fl, x=1, T=5)
-        self.c2.set_attr(p=6, T=150)
-        instance.set_attr(
-            eta_vol=0.8, rpm=1500, reference_state=reference_state,
-            Q_diss_rel=0
         )
         self.nw.solve('design')
         self.nw.assert_convergence()

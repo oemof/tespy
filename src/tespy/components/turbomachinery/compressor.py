@@ -120,11 +120,10 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
-    ...     "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -140,16 +139,15 @@ class Compressor(Turbomachine):
     >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.79
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):
@@ -192,26 +190,38 @@ class Compressor(Turbomachine):
                 func=self.eta_s_func,
                 deriv=self.eta_s_deriv,
                 dependents=self.eta_s_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
+                description="isentropic efficiency lookup table for offdesign"
             ),
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
-            'char_map_eta_s': dc_cm(),
+            'igva': dc_cp(
+                min_val=-90, max_val=90, val=0, quantity="angle",
+                description="inlet guide vane angle", _potential_var=True
+            ),
+            'char_map_eta_s': dc_cm(
+                description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
+            ),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
-            'char_map_pr': dc_cm(),
+            'char_map_pr': dc_cm(
+                description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
+            ),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
                 num_eq_sets=1,
                 func=self.char_map_pr_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for pressure ratio over speedlines and non-dimensional mass flow"
             )
         })
         return parameters
@@ -263,7 +273,8 @@ class Compressor(Turbomachine):
                     o.p.val_SI,
                     i.fluid_data,
                     i.mixing_rule,
-                    T0=None
+                    T0=i.T.val_SI,
+                    T0_out=o.T.val_SI
                 ) - self.inl[0].h.val_SI
             )
         )
@@ -337,7 +348,8 @@ class Compressor(Turbomachine):
                     o.p.val_SI,
                     i.fluid_data,
                     i.mixing_rule,
-                    T0=None
+                    T0=i.T.val_SI,
+                    T0_out=o.T.val_SI
                 ) - i.h.val_SI
             )
         )
@@ -370,20 +382,20 @@ class Compressor(Turbomachine):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             0 = \frac{p_{out} \cdot p_{in,design}}
-            {p_\mathrm{in} \cdot p_\mathrm{out,design}}-
+            {p_\text{in} \cdot p_\text{out,design}}-
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
         o = self.outl[0]
 
-        beta = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
+        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
@@ -411,19 +423,19 @@ class Compressor(Turbomachine):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
-            0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
+            0 = \frac{\eta_\text{s}}{\eta_\text{s,design}} -
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
@@ -439,7 +451,8 @@ class Compressor(Turbomachine):
                 o.p.val_SI,
                 i.fluid_data,
                 i.mixing_rule,
-                T0=i.T.val_SI
+                T0=i.T.val_SI,
+                T0_out=o.T.val_SI
             ) - i.h.val_SI)
             / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
         )
@@ -554,21 +567,14 @@ class Compressor(Turbomachine):
                 temp = 350
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.eta_s.val_SI =  (
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
             isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=None
-            ) - self.inl[0].h.val_SI
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
 
     def check_parameter_bounds(self):
@@ -577,70 +583,11 @@ class Compressor(Turbomachine):
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
-                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
-                y = (self.inl[0].m.val_SI * self.inl[0].p.design) / (
-                    self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
+                y = (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p')) / (
+                    self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
                 yarr *= (1 - self.igva.val_SI / 100)
                 data.char_func.get_domain_errors_y(y, yarr, self.label)
 
         return _no_limit_violations
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a compressor.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
-            \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} = P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-            self.E_F = self.P.val
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm + (
-                self.outl[0].Ex_mech - self.inl[0].Ex_mech)
-            self.E_F = self.P.val + self.inl[0].Ex_therm
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_mech - self.inl[0].Ex_mech
-            self.E_F = self.P.val + (
-                self.inl[0].Ex_therm - self.outl[0].Ex_therm)
-        else:
-            msg = ('Exergy balance of a compressor, where outlet temperature '
-                   'is smaller than inlet temperature is not implmented.')
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": 0, "physical": 0, "massless": self.P.val
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

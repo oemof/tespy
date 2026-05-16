@@ -4,10 +4,11 @@ working_fluid = "NH3"
 
 nw = Network()
 nw.units.set_defaults(
-    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW"
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", power="kW", heat="kW",
+    pressure_difference="bar"
 )
 # %%[sec_2]
-from tespy.components import Condenser
+from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import CycleCloser
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Pump
@@ -20,7 +21,7 @@ cons_closer = CycleCloser("consumer cycle closer")
 va = Sink("valve")
 
 # consumer system
-cd = Condenser("condenser")
+cd = MovingBoundaryHeatExchanger("condenser")
 rp = Pump("recirculation pump")
 cons = SimpleHeatExchanger("consumer")
 # %%[sec_3]
@@ -40,9 +41,8 @@ cd.set_attr(pr1=0.99, pr2=0.99)
 rp.set_attr(eta_s=0.75)
 cons.set_attr(pr=0.99)
 # %%[sec_5]
-from CoolProp.CoolProp import PropsSI as PSI
-p_cond = PSI("P", "Q", 1, "T", 273.15 + 95, working_fluid) / 1e5
-c0.set_attr(T=170, p=p_cond, fluid={working_fluid: 1})
+c0.set_attr(T=170, T_dew=85, fluid={working_fluid: 1})
+c1.set_attr(x=0)
 c20.set_attr(T=60, p=2, fluid={"water": 1})
 c22.set_attr(T=90)
 
@@ -88,11 +88,12 @@ nw.add_conns(c17, c18, c19)
 ev.set_attr(pr1=0.99)
 su.set_attr(pr1=0.99, pr2=0.99)
 # %%[sec_10]
+# condenser outlet state
+c1.set_attr(x=0)
 # evaporator system cold side
 c4.set_attr(x=0.9, T=5)
 
-h_sat = PSI("H", "Q", 1, "T", 273.15 + 15, working_fluid) / 1e3
-c6.set_attr(h=h_sat)
+c6.set_attr(td_dew=5)
 
 # evaporator system hot side
 c17.set_attr(T=15, fluid={"water": 1})
@@ -139,10 +140,10 @@ cp1.set_attr(pr=pr)
 ic.set_attr(pr1=0.99, pr2=0.98)
 hsp.set_attr(eta_s=0.75)
 # %%[sec_15]
-c0.set_attr(p=p_cond, fluid={working_fluid: 1})
+c0.set_attr(T_dew=85, fluid={working_fluid: 1})
 
-c6.set_attr(h=c5.h.val + 10)
-c8.set_attr(h=c5.h.val + 10)
+c6.set_attr(td_dew=5)
+c8.set_attr(td_dew=5)
 
 c7.set_attr(h=c5.h.val * 1.2)
 c9.set_attr(h=c5.h.val * 1.2)
@@ -152,13 +153,13 @@ c14.set_attr(T=30)
 # %% [sec_16]
 nw.solve("design")
 
-c0.set_attr(p=None)
-cd.set_attr(ttd_u=5)
+c0.set_attr(T_dew=None)
+cd.set_attr(td_pinch=10)
 
 c4.set_attr(T=None)
 ev.set_attr(ttd_l=5)
 
-c6.set_attr(h=None)
+c6.set_attr(td_dew=None)
 su.set_attr(ttd_u=5)
 
 c7.set_attr(h=None)
@@ -169,7 +170,7 @@ cp2.set_attr(eta_s=0.8)
 
 c8.set_attr(h=None, td_dew=4)
 nw.solve("design")
-nw.save("system_design.json")
+design_state = nw.save(as_dict=True)
 # %% [sec_17]
 cp1.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
 cp2.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
@@ -179,7 +180,9 @@ hsp.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
 cons.set_attr(design=["pr"], offdesign=["zeta"])
 
 cd.set_attr(
-    design=["pr2", "ttd_u"], offdesign=["zeta2", "kA_char"]
+    design=["pr2", "td_pinch"], offdesign=["zeta2", "UA_cecchinato"],
+    alpha_ratio=1, area_ratio=1, re_exp_r=0.8, re_exp_sf=0.50,
+    refrigerant_index=0
 )
 
 from tespy.tools.characteristics import CharLine
@@ -200,15 +203,15 @@ ic.set_attr(
     design=["pr1", "pr2"], offdesign=["zeta1", "zeta2", "kA_char"]
 )
 c14.set_attr(design=["T"])
-nw.solve("offdesign", design_path="system_design.json")
+nw.solve("offdesign", design_path=design_state)
 nw.print_results()
 # %% [sec_18]
 import numpy as np
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 
 for Q in np.linspace(1, 0.6, 5) * cons.Q.val:
     cons.set_attr(Q=Q)
-    nw.solve("offdesign", design_path="system_design.json")
+    nw.solve("offdesign", design_path=design_state)
     print(
         "COP:",
         abs(cons.Q.val) / (cp1.P.val + cp2.P.val + hsp.P.val + rp.P.val)

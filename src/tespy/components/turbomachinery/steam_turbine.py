@@ -16,6 +16,7 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -119,17 +120,18 @@ class SteamTurbine(Turbine):
     Example
     -------
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
-    to 0,5 bar at the outlet. For example, it is possible to calulate the power
-    output and vapour content at the outlet for a given isentropic efficiency.
-    The :code:`SteamTurbine` class follows the implementation of the Baumann
-    rule :cite:`Tanuma2017`
+    to 0,5 bar at the outlet. For example, it is possible to calculate the
+    power output and vapour content at the outlet for a given isentropic
+    efficiency. The :code:`SteamTurbine` class follows the implementation of
+    the Baumann rule :cite:`Tanuma2017`
 
     >>> from tespy.components import Sink, Source, SteamTurbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -162,14 +164,19 @@ class SteamTurbine(Turbine):
     def get_parameters(self):
 
         params = super().get_parameters()
-        params["alpha"] = dc_cp(min_val=0.4, max_val=2.5, quantity="ratio")
+        params["alpha"] = dc_cp(
+            min_val=0.4, max_val=2.5, quantity="ratio",
+            description="influence factor for wetness efficiency modifier"
+        )
         params["eta_s_dry"] = dc_cp(
-            min_val=0.0, max_val=1.0, quantity="efficiency"
+            min_val=0.0, max_val=1.0, quantity="efficiency",
+            description="isentropic efficiency of dry expansion"
         )
         params["eta_s_dry_group"] = dc_gcp(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
-            dependents=self.eta_s_dependents  # same depedents!
+            dependents=self.eta_s_dependents,  # same dependents!
+            description="method to apply Baumann rule"
         )
 
         return params
@@ -251,13 +258,16 @@ class SteamTurbine(Turbine):
 
                 return hout - hsat
 
-            frac = brentq(find_sat, 1, 0)
+            frac = 1
+            if round(outl.calc_Q(), 3) != 1:
+                frac = brentq(find_sat, 1, 0)
+
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)
 
             # calculate the isentropic efficiency for wet expansion
             ym = 1 - (1.0 + outl.calc_x()) / 2  # average wetness
-            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val * ym)
+            eta_s = self.eta_s_dry.val_SI * (1 - self.alpha.val_SI * ym)
 
             # calculate the final outlet enthalpy
             hout_isen = isentropic(

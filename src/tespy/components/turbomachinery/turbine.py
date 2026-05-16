@@ -115,18 +115,18 @@ class Turbine(Turbomachine):
     Example
     -------
     A steam turbine expands 10 kg/s of superheated steam at 550 °C and 110 bar
-    to 0,5 bar at the outlet. For example, it is possible to calulate the power
-    output and vapour content at the outlet for a given isentropic efficiency.
+    to 0,5 bar at the outlet. For example, it is possible to calculate the
+    power output and vapour content at the outlet for a given isentropic
+    efficiency.
 
     >>> from tespy.components import Sink, Source, Turbine
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
-    ...     "mass_flow": "t/h"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg", "mass_flow": "t/h"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -144,18 +144,17 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=36, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)
     0.914
     >>> inc.set_attr(m=28.8)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(t.eta_s.val, 3)
     0.898
     >>> round(inc.p.val, 1)
     88.6
-    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -201,22 +200,26 @@ class Turbine(Turbomachine):
         parameters["pr"].min_val = 0
         parameters["dp"].min_val = 0
         parameters.update({
-            'eta_s': dc_cp(
+            "eta_s": dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
                 deriv=self.eta_s_deriv,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="isentropic efficiency",
+                calc=self.calc_eta_s
             ),
-            'eta_s_char': dc_cc(
+            "eta_s_char": dc_cc(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
-                dependents=self.eta_s_char_dependents
+                dependents=self.eta_s_char_dependents,
+                description="isentropic efficiency lookup table for offdesign"
             ),
-            'cone': dc_simple(
+            "cone": dc_simple(
                 num_eq_sets=1,
                 func=self.cone_func,
-                dependents=self.cone_dependents
+                dependents=self.cone_dependents,
+                description="cone law equation for offdesign"
             )
         })
         return parameters
@@ -246,7 +249,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=outl.T.val_SI
                 )
                 - inl.h.val_SI
             ) * self.eta_s.val_SI
@@ -269,7 +273,7 @@ class Turbine(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        if o.h.is_var and not i.h.is_var:
+        if o.h._reference_container != i.h._reference_container:
             self._partial_derivative(o.h, k, -1, increment_filter)
             # remove o.h from the dependents
             dependents = dependents.difference(_get_dependents([o.h])[0])
@@ -307,8 +311,8 @@ class Turbine(Turbomachine):
         o = self.outl[0]
         vol = i.calc_vol(T0=i.T.val_SI)
         residual = (
-            - i.m.val_SI + i.m.design * i.p.val_SI / i.p.design
-            * (i.p.design * i.vol.design / (i.p.val_SI * vol)) ** 0.5
+            - i.m.val_SI + self._conn_design(i, 'm') * i.p.val_SI / self._conn_design(i, 'p')
+            * (self._conn_design(i, 'p') * self._conn_design(i, 'vol') / (i.p.val_SI * vol)) ** 0.5
             * abs(
                     (1 - (o.p.val_SI / i.p.val_SI) ** ((n + 1) / n))
                     / (1 - (self.pr.design) ** ((n + 1) / n))
@@ -335,9 +339,9 @@ class Turbine(Turbomachine):
 
             .. math::
 
-                0 = - \left( h_\mathrm{out} - h_\mathrm{in} \right) +
-                \eta_\mathrm{s,design} \cdot f\left( expr \right) \cdot
-                \left(h_\mathrm{out,s}-h_\mathrm{in}\right)
+                0 = - \left( h_\text{out} - h_\text{in} \right) +
+                \eta_\text{s,design} \cdot f\left( expr \right) \cdot
+                \left(h_\text{out,s}-h_\text{in}\right)
         """
         p = self.eta_s_char.param
         expr = self.get_char_expr(p)
@@ -361,7 +365,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=outl.T.val_SI
                 ) - inl.h.val_SI
             )
         )
@@ -386,7 +391,8 @@ class Turbine(Turbomachine):
                     outl.p.val_SI,
                     inl.fluid_data,
                     inl.mixing_rule,
-                    T0=inl.T.val_SI
+                    T0=inl.T.val_SI,
+                    T0_out=outl.T.val_SI
                 ) - inl.h.val_SI
             )
         )
@@ -480,64 +486,3 @@ class Turbine(Turbomachine):
                 temp = 500
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        self.eta_s.val_SI = self.calc_eta_s()
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a turbine.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            -P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            -P + \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            -P +\dot{E}_\mathrm{out}^\mathrm{T}- \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-           \dot{E}_\mathrm{F} =
-           \begin{cases}
-           \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-           & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-           \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
-           \dot{E}_\mathrm{out}^\mathrm{M}
-           & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-           \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
-           & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-           \end{cases}
-
-           \dot{E}_\mathrm{bus} = -P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = -self.P.val
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = -self.P.val + self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_therm + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = -self.P.val + (
-                self.outl[0].Ex_therm - self.inl[0].Ex_therm)
-            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-        else:
-            msg = ('Exergy balance of a turbine, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

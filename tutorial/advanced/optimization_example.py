@@ -1,6 +1,6 @@
 # %%[sec_1]
 import numpy as np
-import pygmo as pg
+from pymoo.algorithms.soo.nonconvex.de import DE  # https://pymoo.org/algorithms/index.html
 
 from tespy.components import CycleCloser
 from tespy.components import Sink
@@ -12,26 +12,24 @@ from tespy.components import Merge
 from tespy.components import Splitter
 from tespy.components import PowerBus
 from tespy.components import PowerSink
-from tespy.components import PowerSource
+from tespy.components import HeatSource
 from tespy.components import Pump
 from tespy.components import Turbine
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
-from tespy.networks import Network
-
-from tespy.tools.optimization import OptimizationProblem
+from tespy.models import ModelTemplate
 
 
-class SamplePlant:
-    """Class template for TESPy model usage in optimization module."""
-    def __init__(self):
-        self._create_network()
+class SamplePlant(ModelTemplate):
 
     def _create_network(self):
+        super()._create_network()
 
-        self.nw = Network(iterinfo=False)
+        self.nw.iterinfo = False
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
+            "pressure_difference": "bar"
         })
         # components
         # main cycle
@@ -106,11 +104,10 @@ class SamplePlant:
         e6 = PowerConnection(electricity, "power_out3", pu3, "power", label="e6")
         e7 = PowerConnection(electricity, "power_out4", grid, "power", label="e7")
 
-        # heating bus
-        sg.set_attr(power_connector_location="inlet")
-        heat_source = PowerSource("heat source")
+        # heating
+        heat_source = HeatSource("heat source")
 
-        h1 = PowerConnection(heat_source, "power", sg, "heat", label="h1")
+        h1 = HeatConnection(heat_source, "heat", sg, "heat", label="h1")
 
         self.nw.add_conns(e1, e2, e3, e4, e5, e6, e7, h1)
 
@@ -137,191 +134,96 @@ class SamplePlant:
         c41.set_attr(T=20, p=3, fluid={"INCOMP::Water": 1})
         c42.set_attr(T=28)
 
-        # parametrization
-        # components
         self.nw.solve("design")
         con.set_attr(ttd_u=5)
         c6.set_attr(p=None)
 
         self.nw.solve("design")
-        self.stable = "_stable.json"
-        self.nw.save(self.stable)
-        self.solved = True
+        self._stable_solution = self.nw.save(as_dict=True)
+        self._solved = True
         self.nw.print_results()
+# %%[sec_2]
+    def _parameter_lookup(self):
+        return {
+            "extraction pressure 1": ["Connections", "2", "p"],
+            "extraction pressure 2": ["Connections", "4", "p"],
+            "hpt power": ["Components", "high pressure turbine", "P"],
+            "hpt pressure ratio": ["Components", "high pressure turbine", "pr"],
+            "efficiency": {"get": self.calc_efficiency},
+        }
 
-    def _reset_component_boundary_conditions(self):
-        self.nw.get_comp("feed water preheater 1").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water preheater 2").set_attr(ttd_u=5)
-        self.nw.get_comp("condenser").set_attr(ttd_u=5)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("feed water pump").set_attr(eta_s=0.8)
-        self.nw.get_comp("high pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("mid pressure turbine").set_attr(eta_s=0.9)
-        self.nw.get_comp("low pressure turbine").set_attr(eta_s=0.9)
-
-    # %%[sec_2]
-
-    def get_param(self, obj, label, parameter):
-        """Get the value of a parameter in the network"s unit system.
-
-        Parameters
-        ----------
-        obj : str
-            Object to get parameter for (Components/Connections).
-
-        label : str
-            Label of the object in the TESPy model.
-
-        parameter : str
-            Name of the parameter of the object.
-
-        Returns
-        -------
-        value : float
-            Value of the parameter.
-        """
-        if obj == "Components":
-            return self.nw.get_comp(label).get_attr(parameter).val
-        elif obj == "Connections":
-            return self.nw.get_conn(label).get_attr(parameter).val
-
-    def set_params(self, **kwargs):
-
-        if "Connections" in kwargs:
-            for c, params in kwargs["Connections"].items():
-                self.nw.get_conn(c).set_attr(**params)
-
-        if "Components" in kwargs:
-            for c, params in kwargs["Components"].items():
-                self.nw.get_comp(c).set_attr(**params)
+    def calc_efficiency(self):
+        if self._solved:
+            return (
+                self.nw.get_conn("e7").E.val
+                / self.nw.get_conn("h1").E.val
+            )
+        return np.nan
 
     def solve_model(self, **kwargs):
-        """
-        Solve the TESPy model given the the input parameters
-        """
-        self.set_params(**kwargs)
-
-        self.solved = False
-        try:
-            self.nw.solve("design")
-            if self.nw.status != 0:
-                self._reset_component_boundary_conditions()
-                self.nw.solve("design", init_only=True, init_path=self.stable)
-            else:
-                self.solved = True
-        except ValueError as e:
-            self._reset_component_boundary_conditions()
-            self.nw.solve("design", init_only=True, init_path=self.stable)
-
-    def get_objectives(self, objective_list):
-        """Get the objective values
-
-        Parameters
-        ----------
-        objective_list : list
-            Names of the objectives
-
-        Returns
-        -------
-        list
-            Values of the objectives
-        """
-        return [self.get_objective(obj) for obj in objective_list]
-
-    def get_objective(self, objective=None):
-        """
-        Get the current objective function evaluation.
-
-        Parameters
-        ----------
-        objective : str
-            Name of the objective function.
-
-        Returns
-        -------
-        objective_value : float
-            Evaluation of the objective function.
-        """
-        if self.solved:
-            if objective == "efficiency":
-                return (
-                    self.nw.get_conn("e7").E.val
-                    / self.nw.get_conn("h1").E.val
-                )
-            else:
-                msg = f"Objective {objective} not implemented."
-                raise NotImplementedError(msg)
-        else:
-            return np.nan
-
-    # %%[sec_3]
-
+        self.solve_model_design(**kwargs)
+# %%[sec_3]
 plant = SamplePlant()
-plant.get_objective("efficiency")
-variables = {
-    "Connections": {
-        "2": {"p": {"min": 1, "max": 40}},
-        "4": {"p": {"min": 1, "max": 40}}
-    }
-}
-constraints = {
-    "lower limits": {
-        "Connections": {
-            "2": {"p": "ref1"}
-        },
-    },
-    "ref1": ["Connections", "4", "p"]
-}
+plant.get_parameter("efficiency")
 
-optimize = OptimizationProblem(
-    plant, variables, constraints, objective=["efficiency"], minimize=[False]
-)
+num_evo = 20
 # %%[sec_4]
-num_ind = 40
-num_gen = 15
+import os
 
-# for algorithm selection and parametrization please consider the pygmo
-# documentation! The number of generations indicated in the algorithm is
-# the number of evolutions we undertake within each generation defined in
-# num_gen
-algo = pg.algorithm(pg.ihs(gen=num_gen, seed=42))
-# create starting population
-pop = pg.population(pg.problem(optimize), size=num_ind, seed=42)
-
-optimize.run(algo, pop, num_ind, num_gen)
+if os.getenv("GITHUB_ACTIONS") == "true" or "PYTEST_CURRENT_TEST" in os.environ:
+    num_evo = 2
 # %%[sec_5]
-# To access the results
-print(optimize.individuals)
-# check pygmo documentation to see, what you can get from the population
-pop
+algorithm = DE(pop_size=20)
+
+result = plant.optimize(
+    algorithm=algorithm,
+    termination=("n_gen", num_evo),
+    variables={
+        "extraction pressure 1": {"min": 1, "max": 40},
+        "extraction pressure 2": {"min": 1, "max": 40},
+    },
+    constraints={
+        "extraction pressure 1": {"min": "extraction pressure 2"},
+    },
+    objective=["efficiency"],
+    minimize_flags=[False],
+    kpi=["hpt power", "hpt pressure ratio"],
+)
+# %%[sec_6]
+print(result)
+
 # plot the results
 import matplotlib.pyplot as plt
 
-
-# make text reasonably sized
 plt.rc("font", **{"size": 18})
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 
-mask_constraint = optimize.individuals["Connections-2-p>=Connections-4-p"] < 0
-mask_objective = ~np.isnan(optimize.individuals["efficiency"].values)
-data = optimize.individuals.loc[mask_constraint & mask_objective]
+mask_constraint = result["extraction pressure 1>=extraction pressure 2"] < 0
+mask_objective = ~np.isnan(result["efficiency"].values)
+data = result.loc[mask_constraint & mask_objective]
 
 sc = ax.scatter(
-    data["Connections-2-p"],
-    data["Connections-4-p"],
+    data["extraction pressure 1"],
+    data["extraction pressure 2"],
     c=data["efficiency"] * 100,
-    s=100
+    s=100,
+)
+best = data.loc[data["efficiency"].values == data["efficiency"].max()]
+ax.scatter(
+    x=best["extraction pressure 1"],
+    y=best["extraction pressure 2"],
+    c="red",
+    marker="x",
 )
 cbar = plt.colorbar(sc)
 cbar.set_label("Thermal efficiency in %")
 
 ax.set_axisbelow(True)
-ax.set_xlabel("Pressure at connection 2 in bar")
-ax.set_ylabel("Pressure at connection 4 in bar")
+ax.set_xlabel("Extraction pressure 1 in bar")
+ax.set_ylabel("Extraction pressure 2 in bar")
 plt.tight_layout()
 
-fig.savefig("pygmo_optimization.svg")
-print(data.loc[data["efficiency"].values == data["efficiency"].max()])
-# %%[sec_6]
+fig.savefig("optimization_result.svg")
+print(best)
+# %%[sec_7]

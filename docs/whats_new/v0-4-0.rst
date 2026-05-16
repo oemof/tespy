@@ -151,7 +151,7 @@ New Features
       Figure: Ts diagram of NH3 with a simple heat pump cycle.
 
   For more information see the respective
-  :ref:`documentation section <FluProDia_label>`
+  :ref:`documentation section <fluprodia_label>`
   (`PR #234 <https://github.com/oemof/tespy/pull/234>`_).
 
 - Add a flag to deactivate calculation of all component equations in every

@@ -94,7 +94,8 @@ class Node(Splitter, Merge):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so1 = Source("source1")
     >>> so2 = Source("source2")
@@ -109,7 +110,7 @@ class Node(Splitter, Merge):
     >>> nw.add_conns(c1, c2, c3, c4)
 
     We can parametrize the system, for example, to preheat 50 kg/s of water.
-    The system will then identify, what amout of extraction steam is required
+    The system will then identify, what amount of extraction steam is required
     to preheat the water to the saturated liquid state. Apart from the inlet
     states we have to add one mass flow specification to define the split
     ratio between the two outlets.
@@ -117,7 +118,7 @@ class Node(Splitter, Merge):
     .. note::
 
         The enthalpy of the fluid will be identical at all exits. If you want
-        to have separation of phasey, you have to use a `DropletSeparator`
+        to have separation of phases, you have to use a `DropletSeparator`
         downstream of this component.
 
     >>> c1.set_attr(fluid={"water": 1}, m=50, p=3, T=50)
@@ -130,8 +131,8 @@ class Node(Splitter, Merge):
     @staticmethod
     def get_parameters():
         return {
-            'num_out': dc_simple(),
-            'num_in': dc_simple()
+            'num_out': dc_simple(description="number of outlets"),
+            'num_in': dc_simple(description="number of inlets")
         }
 
     def get_mandatory_constraints(self):
@@ -139,30 +140,36 @@ class Node(Splitter, Merge):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1,
+                'description': 'pressure equality constraints'
             }),
             'outlet_enthalpy_constraints': dc_cmc(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
-                'num_eq_sets': self.num_o - 1
+                'num_eq_sets': self.num_o - 1,
+                'description': 'equal enthalpy at all outlets constraint(s)'
             }),
             'outlet_fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq_sets': self.num_o - 1
+                'num_eq_sets': self.num_o - 1,
+                'description': 'equal fluid at all outlets constraint(s)'
             }),
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'dependents': self.fluid_dependents
+                'dependents': self.fluid_dependents,
+                'description': 'fluid mass fraction constraints'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                'description': 'energy balance constraint'
             })
         }
 

@@ -8,10 +8,32 @@ available from its original location tespy/tools/plotting.py
 
 SPDX-License-Identifier: MIT
 """
+import importlib.metadata
+
 import numpy as np
 
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
+
+_FLUPRODIA_MIN_VERSION = "4.1"
+
+
+def _parse_version(v):
+    return tuple(int(x) for x in v.split(".")[:3])
+
+
+def _check_fluprodia_version():
+    try:
+        installed = importlib.metadata.version("fluprodia")
+    except importlib.metadata.PackageNotFoundError:
+        return  # fluprodia not installed; let it fail naturally later
+    if _parse_version(installed) < _parse_version(_FLUPRODIA_MIN_VERSION):
+        raise ImportError(
+            f"fluprodia {installed} is installed, but tespy requires "
+            f">= {_FLUPRODIA_MIN_VERSION} for plotting (the 'vol' key "
+            f"replaced the deprecated 'v' key for specific volume). "
+            f"Upgrade with: pip install --upgrade fluprodia"
+        )
 
 
 def get_plotting_data(nw, connection_label):
@@ -33,6 +55,8 @@ def get_plotting_data(nw, connection_label):
         :code:`calc_individual_isoline` method of :code:`fluprodia` and process
         points dictionary with the state information.
     """
+    _check_fluprodia_version()
+
     # these need to be imported here as there will be circular imports
     # otherwise
     from tespy.components.basics.source import Source
@@ -80,7 +104,7 @@ def get_plotting_data(nw, connection_label):
 
     points = {
         c.label: {
-            key.replace("vol", "v"): c.get_attr(key).val
+            key: c.get_attr(key).val
             for key in ["p", "h", "T", "s", "vol"]
         }
         for c in connections

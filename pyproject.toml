@@ -4,9 +4,10 @@ build-backend = "flit_core.buildapi"
 
 [tool.flit.sdist]
 include = [
-    "CHANGELOG.rst",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
+    "CHANGELOG.rst",
+    "CITATION.cff",
     "LICENSE*",
     "PULL_REQUEST_TEMPLATE.md",
     ".coveragerc",
@@ -26,7 +27,7 @@ exclude = [
 
 [project]
 name = "tespy"
-version = "0.9.9.dev0"
+version = "0.10.0.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -41,14 +42,15 @@ classifiers = [
     "Operating System :: POSIX",
     "Operating System :: Unix",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "CoolProp>=6.8",
+    "fluprodia>=4.1.2",
     "jinja2",
     "matplotlib>=3.2.1",
     "numpy>=1.13.3",
@@ -68,19 +70,26 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 [project.optional-dependencies]
 dev = [
     "build",
+    "exerpy",
     "flit",
-    "fluprodia",
+    "fluprodia>=4",
     "furo",
     "iapws",
     "isort",
+    "myst-nb",
+    "pymoo",
     "pyromat",
     "pytest",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
     "sphinx-design",
+    "sphinx-notfound-page>=1.1.0",
     "sphinxcontrib.bibtex",
     "tox",
     "twine"
+]
+opt = [
+    "pymoo"
 ]
 
 [tool.pytest.ini_options]

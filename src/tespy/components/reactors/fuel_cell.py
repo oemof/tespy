@@ -123,7 +123,8 @@ class FuelCell(Component):
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s"
     ... })
     >>> fc = FuelCell('fuel cell')
     >>> oxygen_source = Source('oxygen_source')
@@ -160,78 +161,116 @@ class FuelCell(Component):
     0.45
     """
 
+    def _calc_Q(self):
+        return -self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_e(self):
+        return self.P.val_SI / self.inl[2].m.val_SI
+
+    def _calc_eta(self):
+        return self.e.val_SI / self.e0
+
     def get_parameters(self):
         return {
-            'P': dc_cp(max_val=0, quantity="power"),
+            'P': dc_cp(
+                max_val=0, quantity="power", _potential_var=True,
+                description="power output of the fuel cell"
+            ),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
                 dependents=self.heat_dependents,
-                quantity="heat"
+                quantity="heat",
+                description="heat output of the cooling port",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="cooling port outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure_difference",
+                description="cooling inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'zeta': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
-                func_params={'zeta': 'zeta'}
-            ),
-            'eta': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1,
-                func=self.eta_func,
-                dependents=self.eta_dependents,
-                quantity="efficiency"
+                func_params={'zeta': 'zeta'},
+                description="cooling port non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
-                quantity="specific_energy"
-            )
+                quantity="specific_energy",
+                _potential_var=True,
+                description="equation for specified specific energy consumption of the fuel cell",
+                calc=self._calc_e
+            ),
+            'eta': dc_cp(
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eta_func,
+                dependents=self.eta_dependents,
+                quantity="efficiency",
+                description="efficiency of the fuel cell",
+                calc=self._calc_eta, calc_deps=['e']
+            ),
         }
 
     def get_mandatory_constraints(self):
-        return {
+        constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
                 'constant_deriv': True,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "equations for oxygen and hydrogen mass flow relation"
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid mass flow equality equation"
             }),
             'cooling_fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_fluid_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid composition equality equation"
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
                 'constant_deriv': False,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "energy balance equation of the reactor"
             }),
             'reactor_pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "reactor pressure equality equations"
             })
         }
+        if len(self.power_outl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     @staticmethod
     def get_bypass_constraints():
@@ -244,6 +283,10 @@ class FuelCell(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    @staticmethod
+    def poweroutlets():
+        return ["power"]
 
     def _add_missing_fluids(self, connections):
         if self.inl[1] in connections:
@@ -310,6 +353,28 @@ class FuelCell(Component):
 
         return e0
 
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power. Since the power of the FuelCell is negative by
+        definition of the system, the two quantities are added in the residual
+        so the power on the PowerConnection is positive again.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E + P
+        """
+        return self.power_outl[0].E.val_SI + self.P.val_SI
+
+    def energy_connector_dependents(self):
+        return [self.power_outl[0].E, self.P]
+
+
     def eta_func(self):
         r"""
         Equation for efficiency.
@@ -323,7 +388,7 @@ class FuelCell(Component):
 
                 0 = P - \eta \cdot \dot{m}_{H_2,in} \cdot e_0
         """
-        return self.P.val - self.eta.val * self.inl[2].m.val_SI * self.e0
+        return self.P.val_SI - self.eta.val_SI * self.inl[2].m.val_SI * self.e0
 
     def eta_dependents(self):
         return [self.inl[2].m, self.P]
@@ -341,9 +406,7 @@ class FuelCell(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
-        return self.Q.val + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
+        return self.Q.val_SI - self._calc_Q()
 
     def heat_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -361,7 +424,7 @@ class FuelCell(Component):
 
                 0 = P - \dot{m}_{H_2,in} \cdot e
         """
-        return self.P.val - self.inl[2].m.val_SI * self.e.val_SI
+        return self.P.val_SI - self.inl[2].m.val_SI * self.e.val_SI
 
     def specific_energy_dependents(self):
         return [self.inl[2].m, self.P, self.e]
@@ -378,14 +441,14 @@ class FuelCell(Component):
             .. math::
 
                 \begin{split}
-                0=&P + \dot{m}_\mathrm{out,2}\cdot\left(h_\mathrm{out,2}-
-                h_\mathrm{out,2,ref}\right)\\
-                &+\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -
-                h_\mathrm{in,1} \right)\\
-                & -\dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{in,2} -
-                h_\mathrm{in,2,ref} \right)\\
-                & -\dot{m}_\mathrm{in,3} \cdot \left( h_\mathrm{in,3} -
-                h_\mathrm{in,3,ref} - e_0\right)\\
+                0=&P + \dot{m}_\text{out,2}\cdot\left(h_\text{out,2}-
+                h_\text{out,2,ref}\right)\\
+                &+\dot{m}_\text{in,1}\cdot\left( h_\text{out,1} -
+                h_\text{in,1} \right)\\
+                & -\dot{m}_\text{in,2} \cdot \left( h_\text{in,2} -
+                h_\text{in,2,ref} \right)\\
+                & -\dot{m}_\text{in,3} \cdot \left( h_\text{in,3} -
+                h_\text{in,3,ref} - e_0\right)\\
                 \end{split}
 
             - Reference temperature: 298.15 K.
@@ -439,7 +502,7 @@ class FuelCell(Component):
 
         # derivatives for variable P
         if self.P.is_var:
-            self.jacobian[k, self.p.J_col] = 1
+            self.jacobian[k, self.P.J_col] = 1
 
     def energy_balance_dependents(self):
         return [
@@ -458,10 +521,10 @@ class FuelCell(Component):
             .. math::
 
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,out,1}-
-                \dot{m}_\mathrm{O_2,in,2}\\
-                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,out,1} -
-                \dot{m}_\mathrm{H_2,in,1}
+                0=O_2\cdot\dot{m}_\text{H_{2}O,out,1}-
+                \dot{m}_\text{O_2,in,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\text{H_{2}O,out,1} -
+                \dot{m}_\text{H_2,in,1}
         """
         # calculate the ratio of o2 in water
         M_o2 = self.inl[1].fluid.wrapper[self.o2]._molar_mass
@@ -519,8 +582,8 @@ class FuelCell(Component):
 
         .. math::
 
-            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\text{in,2} - p_\text{out,2}\\
+            0 = p_\text{in,3} - p_\text{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1
@@ -638,13 +701,3 @@ class FuelCell(Component):
             temp = 50 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = -self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
-        self.e.val_SI = self.P.val_SI / self.inl[2].m.val_SI
-        self.eta.val_SI = self.e.val_SI / self.e0

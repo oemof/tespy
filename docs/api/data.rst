@@ -1,4 +1,4 @@
-.. _tespy_data_label:
+.. _data_label:
 
 tespy.data module
 =================

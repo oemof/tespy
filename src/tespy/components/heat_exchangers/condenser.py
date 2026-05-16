@@ -13,11 +13,8 @@ SPDX-License-Identifier: MIT
 
 import math
 
-import numpy as np
-
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools import logger
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -130,14 +127,14 @@ class Condenser(HeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
         Upper terminal temperature difference (referring to saturation
-        temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+        temperature of condensing fluid) :math:`ttd_\text{u}/\text{K}`.
 
     ttd_min : float, dict
-        Minumum terminal temperature difference :math:`ttd_\mathrm{min}/\text{K}`.
+        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
 
     eff_cold : float, dict
         Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
@@ -186,10 +183,10 @@ class Condenser(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import os
     >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')
@@ -212,7 +209,7 @@ class Condenser(HeatExchanger):
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(amb_he.v.val, 2)
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
@@ -221,7 +218,7 @@ class Condenser(HeatExchanger):
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
@@ -232,12 +229,11 @@ class Condenser(HeatExchanger):
 
     >>> cond.set_attr(subcooling=True)
     >>> he_c.set_attr(td_bubble=5)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):
@@ -247,6 +243,7 @@ class Condenser(HeatExchanger):
                 _val=False, num_eq_sets=1,
                 func=self.subcooling_func,
                 dependents=self.subcooling_dependents,
+                description="allow subcooling in the condenser"
             )
         })
         return params
@@ -284,34 +281,19 @@ class Condenser(HeatExchanger):
         ]
 
     def calculate_td_log(self):
-
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-
-        T_i1 = i1.calc_T_sat()
-        T_i2 = i2.calc_T()
-        T_o1 = o1.calc_T()
-        T_o2 = o2.calc_T()
-
-        if T_i1 <= T_o2 and not i1.T.is_set:
-            T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.is_set:
-            T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.is_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.is_set:
-            T_i2 = T_o1 - 1
+        T_i1 = self.inl[0].calc_T_sat()
+        T_i2 = self.inl[1].calc_T()
+        T_o1 = self.outl[0].calc_T()
+        T_o2 = self.outl[1].calc_T()
 
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2
+        min_ttd = min(ttd_u, ttd_l)
+        if min_ttd <= 0:
+            return min_ttd
         if round(ttd_u, 6) == round(ttd_l, 6):
-            td_log = ttd_l
-        else:
-            td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
-
-        return td_log
+            return ttd_l
+        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
     def kA_char_func(self):
         r"""
@@ -336,7 +318,7 @@ class Condenser(HeatExchanger):
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :ref:`tespy.data <tespy_data_label>`.
+        module :ref:`tespy.data <data_label>`.
         """
         return super().kA_char_func()
 
@@ -362,7 +344,7 @@ class Condenser(HeatExchanger):
         o = self.outl[1]
         T_i1 = i.calc_T_sat()
         T_o2 = o.calc_T()
-        return self.ttd_u.val - T_i1 + T_o2
+        return self.ttd_u.val_SI - T_i1 + T_o2
 
     def ttd_u_dependents(self):
         return [
@@ -371,70 +353,8 @@ class Condenser(HeatExchanger):
             self.outl[1].h,
         ]
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.ttd_u.val_SI = self.inl[0].calc_T_sat() - self.outl[1].T.val_SI
-        self.ttd_l.val_SI = self.outl[0].T.val_SI - self.inl[1].T.val_SI
-        self.ttd_min.val_SI = min(self.ttd_u.val_SI, self.ttd_l.val_SI)
-
-        # pr and zeta
-        for i in range(2):
-            self.get_attr(f'pr{i + 1}').val_SI = (
-                self.outl[i].p.val_SI / self.inl[i].p.val_SI
-            )
-            self.get_attr(f'zeta{i + 1}').val_SI = self.calc_zeta(
-                self.inl[i], self.outl[i]
-            )
-            self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI
-            )
-
-        # kA and logarithmic temperature difference
-        if self.ttd_u.val_SI < 0 or self.ttd_l.val_SI < 0:
-            self.td_log.val_SI = np.nan
-        elif round(self.ttd_l.val_SI, 6) == round(self.ttd_u.val_SI, 6):
-            self.td_log.val_SI = self.ttd_l.val_SI
-        elif round(self.ttd_l.val_SI, 6) == 0 or round(self.ttd_u.val_SI, 6) == 0:
-            self.td_log.val_SI = np.nan
-        else:
-            self.td_log.val_SI = (
-                (self.ttd_l.val_SI - self.ttd_u.val_SI)
-                / math.log(self.ttd_l.val_SI / self.ttd_u.val_SI)
-            )
-
-        self.kA.val_SI = -self.Q.val_SI / self.td_log.val_SI
-
-        # heat exchanger efficiencies
-        try:
-            self.eff_hot.val_SI = (
-                (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-                / self.calc_dh_max_hot()
-            )
-        except ValueError:
-            self.eff_hot.val_SI = np.nan
-            msg = (
-                f"Cannot calculate {self.label} hot side effectiveness "
-                "because cold side inlet temperature is out of bounds for hot "
-                "side fluid."
-            )
-            logger.warning(msg)
-        try:
-            self.eff_cold.val_SI = (
-                (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-                / self.calc_dh_max_cold()
-            )
-        except ValueError:
-            self.eff_cold.val_SI = np.nan
-            msg = (
-                f"Cannot calculate {self.label} cold side effectiveness "
-                "because hot side inlet temperature is out of bounds for cold "
-                "side fluid."
-            )
-            logger.warning(msg)
-        self.eff_max.val_SI = max(self.eff_hot.val_SI, self.eff_cold.val_SI)
+    def _calc_ttd_u(self):
+        return self.inl[0].T_dew.val_SI - self.outl[1].T.val_SI
 
     def convergence_check(self):
         o = self.outl[0]

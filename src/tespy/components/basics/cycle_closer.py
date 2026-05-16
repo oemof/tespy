@@ -77,7 +77,8 @@ class CycleCloser(Component):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
@@ -94,26 +95,41 @@ class CycleCloser(Component):
     True
     """
 
-    @staticmethod
-    def get_parameters():
+    def _calc_mass_deviation(self):
+        return abs(self.inl[0].m.val_SI - self.outl[0].m.val_SI)
+
+    def _calc_fluid_deviation(self):
+        d1 = self.inl[0].fluid.val
+        d2 = self.outl[0].fluid.val
+        return np.linalg.norm([d1[k] - d2[k] for k in d1])
+
+    def get_parameters(self):
         return {
             'mass_deviation': dc_cp(
-                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow"
+                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
+                description="absolute deviation of mass flow between inlet and outlet",
+                calc=self._calc_mass_deviation
             ),
-            'fluid_deviation': dc_cp(_val=0, max_val=1e-5, is_result=True)
+            'fluid_deviation': dc_cp(
+                _val=0, max_val=1e-5, is_result=True,
+                description="norm of absolute deviation of fluid composition between inlet and outlet",
+                calc=self._calc_fluid_deviation
+            )
         }
 
     def get_mandatory_constraints(self):
         return {
-            'pressure_equality_constraint': dc_cmc(**{
-                'num_eq_sets': 1,
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'func_params': {'variable': 'p'}
+            "pressure_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "p"},
+                "description": "pressure equality constraint"
             }),
-            'enthalpy_equality_constraint': dc_cmc(**{
-                'num_eq_sets': 1,
-                'structure_matrix': self.variable_equality_structure_matrix,
-                'func_params': {'variable': 'h'}
+            "enthalpy_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "h"},
+                "description": "enthalpy equality constraint"
             })
         }
 
@@ -139,15 +155,3 @@ class CycleCloser(Component):
         branch["components"] += [self]
         return
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        # calculate deviation in mass flow
-        self.mass_deviation.val_SI = abs(
-            self.inl[0].m.val_SI - self.outl[0].m.val_SI
-        )
-
-        # calculate deviation in fluid composition
-        d1 = self.inl[0].fluid.val
-        d2 = self.outl[0].fluid.val
-        diff = [d1[key] - d2[key] for key in d1.keys()]
-        self.fluid_deviation.val_SI = np.linalg.norm(diff)

@@ -110,10 +110,10 @@ class Desuperheater(HeatExchanger):
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\mathrm{u}/\text{K}`.
+        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
     kA : float, dict
         Area independent heat transfer coefficient,
@@ -138,11 +138,10 @@ class Desuperheater(HeatExchanger):
     >>> from tespy.components import Sink, Source, Desuperheater
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg",
-    ...     "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg", "volumetric_flow": "l/s"
     ... })
     >>> et_in = Source('ethanol inlet')
     >>> et_out = Sink('ethanol outlet')
@@ -171,20 +170,19 @@ class Desuperheater(HeatExchanger):
     >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)
     1.0
     >>> et_de.set_attr(v=12)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(cw_de.v.val, 2)
     1.94
     >>> et_de.set_attr(v=7)
-    >>> nw.solve('offdesign', init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve('offdesign', init_path=design_state, design_path=design_state)
     >>> round(cw_de.v.val, 2)
     0.41
-    >>> os.remove('tmp.json')
     """
 
     def get_mandatory_constraints(self):
@@ -194,7 +192,8 @@ class Desuperheater(HeatExchanger):
                 'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,
-                'dependents': self.saturated_gas_dependents
+                'dependents': self.saturated_gas_dependents,
+                "description": "equation for saturated gas at hot side outlet"
             })
         })
         return constraints

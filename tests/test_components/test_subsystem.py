@@ -1,9 +1,12 @@
 from pytest import raises
 
 from tespy.components import SimpleHeatExchanger
+from tespy.components import Sink
+from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.connections import Connection
+from tespy.networks import Network
 from tespy.tools.helpers import TESPyComponentError
 
 
@@ -68,3 +71,30 @@ class SubsystemWithDuplicateComponentLabel(Subsystem):
 def test_subsystem_duplicated_component_label():
     with raises(TESPyComponentError):
         SubsystemWithDuplicateComponentLabel("test")
+
+
+def test_del_subsystems():
+    nw = Network()
+    source = Source("source")
+    sink1 = Sink("sink1")
+    sink2 = Sink("sink2")
+
+    sub = MySubsystem("my subsystem")
+
+    c_in = Connection(source, "out1", sub.inlet, "in1", label="c_in")
+    c_out1 = Connection(sub.outlet, "out1", sink1, "in1", label="c_out1")
+    c_out2 = Connection(sub.outlet, "out2", sink2, "in1", label="c_out2")
+    nw.add_conns(c_in, c_out1, c_out2)
+    nw.add_subsystems(sub)
+
+    assert "my subsystem" in nw.subsystems
+    assert len(nw.conns) == 6  # 3 subsystem-internal + 3 external
+
+    nw.del_subsystems(sub)
+
+    assert "my subsystem" not in nw.subsystems
+    # the three internal connections are gone; the three external ones remain
+    assert len(nw.conns) == 3
+    assert "c_in" in nw.conns.index
+    assert "c_out1" in nw.conns.index
+    assert "c_out2" in nw.conns.index

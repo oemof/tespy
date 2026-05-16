@@ -88,7 +88,7 @@ class Merge(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar"
+    ...     "pressure": "bar", "pressure_difference": "bar"
     ... })
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
@@ -166,7 +166,7 @@ class Merge(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_in': dc_simple()}
+        return {'num_in': dc_simple(description="number of inlets")}
 
     def _update_num_eq(self):
         self.variable_fluids = set(
@@ -192,21 +192,25 @@ class Merge(NodeBase):
                 'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
+                'description': 'mass balance constraint'
             }),
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'deriv': self.fluid_deriv,
-                'dependents': self.fluid_dependents
+                'dependents': self.fluid_dependents,
+                'description': 'fluid mass fraction balance constraints'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                'description': 'energy balance constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1,
+                'description': 'pressure equality constraints'
             })
         }
 
@@ -337,10 +341,10 @@ class Merge(NodeBase):
 
         .. math::
 
-            \dot{S}_\mathrm{irr}= \dot{m}_\mathrm{out} \cdot
-            \left( s_\mathrm{out} - s_\mathrm{out,ref} \right)
-            - \sum_{i} \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\text{irr}= \dot{m}_\text{out} \cdot
+            \left( s_\text{out} - s_\text{out,ref} \right)
+            - \sum_{i} \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
         """
         T_ref = 298.15
         p_ref = 1e5
@@ -352,110 +356,6 @@ class Merge(NodeBase):
             self.S_irr -= i.m.val_SI * (
                 i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, i.mixing_rule)
             )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a merge.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        Please note, that the exergy balance accounts for physical exergy only.
-
-        .. math ::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
-            e_{\mathrm{in,}i}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} > T_0\\
-
-            \text{not defined (nan)} & T_\mathrm{out} = T_0\\
-
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
-            e_{\mathrm{in,}i}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} < T_0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
-            e_\mathrm{out}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \\
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} > T_0\\
-
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH} & T_\mathrm{out} = T_0\\
-
-            \begin{cases}
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
-            e_\mathrm{out}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \\
-            \end{cases} & T_\mathrm{out} < T_0\\
-            \end{cases}
-
-            \forall i \in \text{merge inlets}
-
-            \dot{E}_\mathrm{bus} = \text{not defined (nan)}
-        """
-        self.E_P = 0
-        self.E_F = 0
-        if self.outl[0].T.val_SI > T0:
-            for i in self.inl:
-                if i.T.val_SI < self.outl[0].T.val_SI:
-                    if i.T.val_SI >= T0:
-                        self.E_P += i.m.val_SI * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                    else:
-                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
-                        self.E_F += i.Ex_physical
-                else:
-                    self.E_F += i.m.val_SI * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        elif self.outl[0].T.val_SI == T0:
-            self.E_P = np.nan
-            for i in self.inl:
-                self.E_F += i.Ex_physical
-        else:
-            for i in self.inl:
-                if i.T.val_SI > self.outl[0].T.val_SI:
-                    if i.T.val_SI >= T0:
-                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
-                        self.E_F += i.Ex_physical
-                    else:
-                        self.E_P += i.m.val_SI * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                else:
-                    self.E_F += i.m.val_SI * (
-                        i.ex_physical - self.outl[0].ex_physical)
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -473,8 +373,8 @@ class Merge(NodeBase):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[i].p.val,
                 'isoline_value_end': self.outl[0].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[i].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             } for i in range(self.num_i)}

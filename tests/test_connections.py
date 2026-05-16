@@ -23,16 +23,18 @@ from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
+from tespy.connections.humidairconnection import HAConnection
 from tespy.networks import Network
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
+from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.units import SI_UNITS
 
 
@@ -43,8 +45,8 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
-            # TODO: replace C with degC in next major version
-            "temperature": "C",
+            "pressure_difference": "bar",
+            "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
         })
@@ -166,7 +168,8 @@ def simple_test_network():
     nw = Network()
     nw.units.set_defaults(
         temperature="degC",
-        pressure="bar"
+        pressure="bar",
+        pressure_difference="bar"
     )
 
     so = Source("source")
@@ -179,6 +182,44 @@ def simple_test_network():
 
     nw.add_conns(c1, c2)
     return nw
+
+
+def test_td_dew_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
+
+
+def test_td_bubble_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
 
 
 @mark.skipif(
@@ -502,7 +543,7 @@ ALL_CONNECTION_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.connections"])
     # exclude the Subsystem component as it is just a wrapper
     if inspect.isclass(obj)
-    and obj not in {ConnectionBase, Bus, Ref}
+    and obj not in {ConnectionBase, Ref}
 ]
 
 @mark.parametrize("obj", ALL_CONNECTION_CLASSES)
@@ -515,10 +556,14 @@ def test_all_classes_in_registry(obj):
 
 
 def make_connection(cls):
-    if cls == Connection:
+    if cls == Connection or cls == HAConnection:
         return cls(Source(""), "out1", Sink(""), "in1")
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")
+    elif cls == HeatConnection:
+        from tespy.components import HeatSink
+        from tespy.components import HeatSource
+        return cls(HeatSource(""), "heat", HeatSink(""), "heat")
     else:
         raise NotImplementedError(
             f"The connection class {cls} is not implemented in testing"
@@ -527,12 +572,14 @@ def make_connection(cls):
 
 QUANTITY_EXEMPTIONS = {}
 
+
 def properties_of(instance):
     return [
         prop
         for prop, container in instance.get_parameters().items()
         if isinstance(container, dc_prop)
     ]
+
 
 def pytest_generate_tests(metafunc):
     if "cls_name" in metafunc.fixturenames and "prop" in metafunc.fixturenames:
@@ -542,6 +589,7 @@ def pytest_generate_tests(metafunc):
             for prop in properties_of(instance):
                 params.append(pytest.param(name, prop, id=f"{cls.__name__}::{prop}"))
         metafunc.parametrize("cls_name,prop", params)
+
 
 def test_property_value_not_none(cls_name, prop):
 
@@ -554,3 +602,17 @@ def test_property_value_not_none(cls_name, prop):
     )
 
     assert condition, f"Quantity for {prop} of {cls_name} must not be None"
+
+
+def test_wrapper_kwargs_injection():
+    so = Source("source")
+    si = Sink("sink")
+    c = Connection(so, "out1", si, "in1", label="c")
+    c.set_attr(
+        fluid={"H2O": 1},
+        fluid_wrapper_kwargs={"H2O": {"testkeyword": "data"}},
+        fluid_engines={"H2O": FluidPropertyWrapper}
+    )
+    # if kwargs could not be passed to the Wrapper instantiation this would
+    # raise an error
+    c._create_fluid_wrapper()

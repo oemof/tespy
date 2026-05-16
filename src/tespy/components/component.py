@@ -13,10 +13,10 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+from collections import deque
 
 import numpy as np
 import pandas as pd
-import pint
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -28,15 +28,12 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
+from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import bus_char_derivative
-from tespy.tools.helpers import bus_char_evaluation
-from tespy.tools.helpers import newton_with_kwargs
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
@@ -47,6 +44,35 @@ def component_registry(type):
 
 
 component_registry.items = {}
+
+
+def _topological_sort(calc_items):
+    """Return keys of calc_items in topological order based on calc_deps.
+
+    Raises ValueError if a dependency cycle is detected.
+    """
+    successors = {k: [] for k in calc_items}
+    in_degree = {k: 0 for k in calc_items}
+    for k, dc in calc_items.items():
+        for dep in dc.calc_deps:
+            if dep in calc_items:
+                successors[dep].append(k)
+                in_degree[k] += 1
+
+    queue = deque(k for k in calc_items if in_degree[k] == 0)
+    ordered = []
+    while queue:
+        k = queue.popleft()
+        ordered.append(k)
+        for succ in successors[k]:
+            in_degree[succ] -= 1
+            if in_degree[succ] == 0:
+                queue.append(succ)
+
+    if len(ordered) != len(calc_items):
+        cycle = set(calc_items) - set(ordered)
+        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
+    return ordered
 
 
 @component_registry
@@ -107,18 +133,8 @@ class Component:
 
     def __init__(self, label, **kwargs):
 
-        # check if components label is of type str and for prohibited chars
-        _forbidden = [';', ',', '.']
         if not isinstance(label, str):
             msg = 'Component label must be of type str!'
-            logger.error(msg)
-            raise ValueError(msg)
-
-        elif any([True for x in _forbidden if x in label]):
-            msg = (
-                f"You cannot use any of {', '.join(_forbidden)} in a "
-                f"component label ({self.__class__.__name__})"
-            )
             logger.error(msg)
             raise ValueError(msg)
 
@@ -136,11 +152,19 @@ class Component:
         self.printout = True
         self.bypass = False
         self.fkt_group = self.label
+        self._local_connection_design_state = {}
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
+
+        self.num_i = len(self.inlets())
+        self.num_o = len(self.outlets())
+        self.num_power_i = len(self.powerinlets())
+        self.num_power_o = len(self.poweroutlets())
+        self.num_heat_i = len(self.heatinlets())
+        self.num_heat_o = len(self.heatoutlets())
 
     def set_attr(self, **kwargs):
         r"""
@@ -167,116 +191,67 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
-        # set specified values
-        for key in kwargs:
+        for key, value in kwargs.items():
             if key in self.parameters:
-                data = self.get_attr(key)
-                if kwargs[key] is None:
-                    data.set_attr(is_set=False)
-                    try:
-                        data.set_attr(is_var=False)
-                    except KeyError:
-                        pass
-                    continue
-
-
-                is_numeric = False
-                is_quantity = False
-
-                if isinstance(kwargs[key], pint.Quantity):
-                    is_quantity = True
-                else:
-                    try:
-                        float(kwargs[key])
-                        is_numeric = True
-                    except (TypeError, ValueError):
-                        pass
-
-                # dict specification
-                if (isinstance(kwargs[key], dict) and
-                        not isinstance(data, dc_simple)):
-                    data.set_attr(**kwargs[key])
-
-                # value specification for component properties
-                elif isinstance(data, dc_cp) or isinstance(data, dc_simple):
-                    if is_numeric or is_quantity:
-                        data.set_attr(val=kwargs[key], is_set=True)
-                        if isinstance(data, dc_cp):
-                            data.set_attr(is_var=False)
-
-                    elif isinstance(data, dc_simple):
-                        data.set_attr(val=kwargs[key], is_set=True)
-
-                    elif kwargs[key] == 'var' and isinstance(data, dc_cp):
-                        data.set_attr(is_set=True, is_var=True)
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            f"Bad datatype for keyword argument {key} for "
-                            f"component {self.label}."
-                        )
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-                elif isinstance(data, dc_cc) or isinstance(data, dc_cm):
-                    # value specification for characteristics
-                    if (isinstance(kwargs[key], CharLine) or
-                            isinstance(kwargs[key], CharMap)):
-                        data.char_func = kwargs[key]
-
-                    # invalid datatype for keyword
-                    else:
-                        msg = (
-                            f"Bad datatype for keyword argument {key} for "
-                            f"component {self.label}."
-                        )
-                        logger.error(msg)
-                        raise TypeError(msg)
-
-            elif key in ['design', 'offdesign']:
-                if not isinstance(kwargs[key], list):
-                    msg = (
-                        f"Please provide the {key} parameters as list for "
-                        f"component {self.label}."
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
-                if set(kwargs[key]).issubset(list(self.parameters.keys())):
-                    self.__dict__.update({key: kwargs[key]})
-
-                else:
-                    keys = ", ".join(self.parameters.keys())
-                    msg = (
-                        "Available parameters for (off-)design specification "
-                        f"of component {self.label} are: {keys}."
-                    )
-                    logger.error(msg)
-                    raise ValueError(msg)
-
-            elif key in ['local_design', 'local_offdesign',
-                         'printout', 'char_warnings', 'bypass']:
-                if not isinstance(kwargs[key], bool):
-                    msg = (
-                        f"Please provide the {key} parameters as bool for "
-                        f"component {self.label}."
-                    )
-                    logger.error(msg)
-                    raise TypeError(msg)
-
-                else:
-                    self.__dict__.update({key: kwargs[key]})
-
-            elif key == 'design_path' or key == 'fkt_group':
-                self.__dict__.update({key: kwargs[key]})
-
-                self.new_design = True
-
-            # invalid keyword
+                self._set_parameter(key, value)
+            elif key in ('design', 'offdesign'):
+                self._set_design_list(key, value)
+            elif key in ('local_design', 'local_offdesign',
+                         'printout', 'char_warnings', 'bypass'):
+                self._set_bool_attr(key, value)
+            elif key in ('design_path', 'fkt_group'):
+                self._set_path_attr(key, value)
             else:
                 msg = f"Component {self.label} has no attribute {key}."
                 logger.error(msg)
                 raise KeyError(msg)
+
+    def _set_parameter(self, key, value):
+        try:
+            self.parameters[key].accept(value)
+        except TypeError as e:
+            msg = (
+                f"Bad datatype for keyword argument '{key}' on "
+                f"component {self.label}: {e}"
+            )
+            logger.error(msg)
+            raise TypeError(msg) from e
+
+    def _set_design_list(self, key, value):
+        if not isinstance(value, list):
+            msg = (
+                f"Please provide the {key} parameters as list for "
+                f"component {self.label}."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        if not set(value).issubset(self.parameters.keys()):
+            keys = ", ".join(self.parameters.keys())
+            msg = (
+                "Available parameters for (off-)design specification "
+                f"of component {self.label} are: {keys}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        self.__dict__[key] = value
+
+    def _set_bool_attr(self, key, value):
+        if not isinstance(value, bool):
+            msg = (
+                f"Please provide the {key} parameter as bool for "
+                f"component {self.label}."
+            )
+            logger.error(msg)
+            raise TypeError(msg)
+        self.__dict__[key] = value
+        if key == 'local_offdesign' and not value:
+            self._local_connection_design_state = {}
+
+    def _set_path_attr(self, key, value):
+        self.__dict__[key] = value
+        self.new_design = True
+        if key == 'design_path' and value is None:
+            self._local_connection_design_state = {}
 
     def get_attr(self, key):
         r"""
@@ -420,7 +395,7 @@ class Component:
                             self.__class__.__name__, key, 'DEFAULT', CharLine
                         )
                     except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                        data.char_func = CharLine()
 
             # component characteristics
             elif isinstance(data, dc_cm):
@@ -432,7 +407,7 @@ class Component:
                             self.__class__.__name__, key, 'DEFAULT', CharMap
                         )
                     except KeyError:
-                        data.char_func = CharLine(x=[0, 1], y=[1, 1])
+                        data.char_func = CharMap()
 
             # grouped component properties
             elif type(data) == dc_gcp:
@@ -449,12 +424,13 @@ class Component:
 
                 elif data.is_set:
                     msg = (
-                        'All parameters of the component group have to be '
-                        'specified! This component group uses the following '
-                        f'parameters: {", ".join(data.elements)} at '
-                        f'{self.label}. Group will be set to False.'
+                        f"Not all parameters of the component group {key} "
+                        f"of component {self.label} have to been specified, "
+                        "the group equation will not be applied. This "
+                        "component group uses the following "
+                        f"parameters: {', '.join(data.elements)}."
                     )
-                    logger.warning(msg)
+                    logger.debug(msg)
                     data.set_attr(is_set=False)
                 else:
                     data.set_attr(is_set=False)
@@ -578,12 +554,14 @@ class Component:
             'mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'm'}
+                'func_params': {'variable': 'm'},
+                'description': "mass flow equality constraint(s)"
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
-                'func_params': {'variable': 'fluid'}
+                'func_params': {'variable': 'fluid'},
+                'description': "fluid composition equality constraint(s)"
             })
         }
 
@@ -610,6 +588,46 @@ class Component:
     @staticmethod
     def poweroutlets():
         return []
+
+    @staticmethod
+    def heatinlets():
+        return []
+
+    @staticmethod
+    def heatoutlets():
+        return []
+
+    @property
+    def all_connections(self):
+        return self.all_inlets + self.all_outlets
+
+    @property
+    def all_inlets(self):
+        return self.inl + self.power_inl + self.heat_inl
+
+    @property
+    def all_outlets(self):
+        return self.outl + self.power_outl + self.heat_outl
+
+    def _validate_connections(self):
+        if len(self.outl) != self.num_o:
+            msg = (
+                f"The component {self.label} is missing "
+                f"{self.num_o - len(self.outl)} outgoing connections. "
+                "Make sure all outlets are connected and all connections "
+                "have been added to the network."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+        if len(self.inl) != self.num_i:
+            msg = (
+                f"The component {self.label} is missing "
+                f"{self.num_i - len(self.inl)} incoming connections. "
+                "Make sure all inlets are connected and all connections "
+                "have been added to the network."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
 
     def _partial_derivative(self, var, eq_num, value, increment_filter=None, **kwargs):
         result = _partial_derivative(var, value, increment_filter, **kwargs)
@@ -652,16 +670,16 @@ class Component:
         """
         if type == 'rel':
             if param == 'm':
-                return self.inl[inconn].m.val_SI / self.inl[inconn].m.design
+                return self.inl[inconn].m.val_SI / self._conn_design(self.inl[inconn], 'm')
             elif param == 'm_out':
-                return self.outl[outconn].m.val_SI / self.outl[outconn].m.design
+                return self.outl[outconn].m.val_SI / self._conn_design(self.outl[outconn], 'm')
             elif param == 'v':
                 v = self.inl[inconn].m.val_SI * self.inl[inconn].calc_vol()
-                return v / self.inl[inconn].v.design
+                return v / self._conn_design(self.inl[inconn], 'v')
             elif param == 'pr':
                 return (
-                    (self.outl[outconn].p.val_SI * self.inl[inconn].p.design)
-                    / (self.inl[inconn].p.val_SI * self.outl[outconn].p.design)
+                    (self.outl[outconn].p.val_SI * self._conn_design(self.inl[inconn], 'p'))
+                    / (self.inl[inconn].p.val_SI * self._conn_design(self.outl[outconn], 'p'))
                 )
             else:
                 msg = (
@@ -682,135 +700,37 @@ class Component:
             else:
                 return False
 
-    def bus_func(self, bus):
+    def _conn_design(self, conn, param):
         r"""
-        Base method for calculation of the value of the bus function.
+        Return the design point value of a connection parameter.
+
+        When a component has an individual :code:`design_path` (either because
+        it has :code:`local_offdesign=True` in a design-mode solve, or because
+        it carries its own :code:`design_path` in an offdesign solve), the
+        adjacent connection design values are stored in
+        :code:`_local_connection_design_state` during preprocessing.  This
+        method returns those local values when available and falls back to the
+        connection's own :code:`.design` attribute otherwise.
 
         Parameters
         ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
+        conn : tespy.connections.connection.Connection
+            Adjacent connection object.
+
+        param : str
+            Connection parameter name, e.g. :code:`'m'`, :code:`'p'`, :code:`'h'`,
+            :code:`'T'`, :code:`'v'`, :code:`'vol'`.
 
         Returns
         -------
-        residual : float
-            Residual value of bus equation.
+        float
+            Design point value in SI units.
         """
-        return 0
-
-    def calc_bus_expr(self, bus):
-        r"""
-        Return the busses' characteristic line input expression.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate the characteristic function expression for.
-
-        Returns
-        -------
-        expr : float
-            Ratio of power to power design depending on the bus base
-            specification.
-        """
-        b = bus.comps.loc[self]
-        if np.isnan(b['P_ref']) or b['P_ref'] == 0:
-            return 1
-        else:
-            comp_val = self.bus_func(b)
-            if b['base'] == 'component':
-                return abs(comp_val / b['P_ref'])
-            else:
-                kwargs = {
-                    "function": bus_char_evaluation,
-                    "parameter": "bus_value",
-                    "component_value": comp_val,
-                    "reference_value": b["P_ref"],
-                    "char_func": b["char"]
-                }
-                bus_value = newton_with_kwargs(
-                    derivative=bus_char_derivative,
-                    target_value=0,
-                    val0=b['P_ref'],
-                    valmin=-1e15,
-                    valmax=1e15,
-                    **kwargs
-                )
-                return bus_value / b['P_ref']
-
-    def calc_bus_efficiency(self, bus):
-        r"""
-        Return the busses' efficiency.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate the efficiency value on.
-
-        Returns
-        -------
-        efficiency : float
-            Efficiency value of the bus.
-
-            .. math::
-
-                \eta_\mathrm{bus} = \begin{cases}
-                \eta\left(
-                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right) &
-                \text{bus base = 'bus'}\\
-                \eta\left(
-                \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component,ref}}\right) &
-                \text{bus base = 'component'}
-                \end{cases}
-
-        Note
-        ----
-        If the base value of the bus is the bus value itself, a newton
-        iteration is used to find the bus value satisfying the corresponding
-        equation (case 1).
-        """
-        return bus.comps.loc[self, 'char'].evaluate(self.calc_bus_expr(bus))
-
-    def calc_bus_value(self, bus):
-        r"""
-        Return the busses' value of the component's energy transfer.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            Bus to calculate energy transfer on.
-
-        Returns
-        -------
-        bus_value : float
-            Value of the energy transfer on the specified bus.
-
-            .. math::
-
-                \dot{E}_\mathrm{bus} = \begin{cases}
-                \frac{\dot{E}_\mathrm{component}}{f\left(
-                \frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{bus,ref}}\right)} &
-                \text{bus base = 'bus'}\\
-                \dot{E}_\mathrm{component} \cdot f\left(
-                \frac{\dot{E}_\mathrm{component}}
-                {\dot{E}_\mathrm{component,ref}}\right) &
-                \text{bus base = 'component'}
-                \end{cases}
-
-        Note
-        ----
-        If the base value of the bus is the bus value itself, a newton
-        iteration is used to find the bus value satisfying the corresponding
-        equation (case 1).
-        """
-        b = bus.comps.loc[self]
-        comp_val = self.bus_func(b)
-        expr = self.calc_bus_expr(bus)
-        if b['base'] == 'component':
-            return comp_val * b['char'].evaluate(expr)
-        else:
-            return comp_val / b['char'].evaluate(expr)
+        if self._local_connection_design_state:
+            local_state = self._local_connection_design_state.get(conn.label)
+            if local_state is not None and param in local_state:
+                return local_state[param]
+        return getattr(conn, param).design
 
     def initialise_source(self, c, key):
         r"""
@@ -886,7 +806,7 @@ class Component:
                 if (
                         ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)) and
-                        (data[key] is not None)
+                        (data.get(key) is not None)
                     ):
                     if f"{key}_unit" in data:
                         value = _UNITS.ureg.Quantity(
@@ -899,9 +819,47 @@ class Component:
                 else:
                     self.get_attr(key).design = np.nan
 
+    def _calc_pr(self, inconn=0, outconn=0):
+        return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
+
+    def _calc_dp(self, inconn=0, outconn=0):
+        return self.inl[inconn].p.val_SI - self.outl[outconn].p.val_SI
+
     def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        return
+        r"""Postprocessing parameter calculation.
+
+        Each :py:class:`~tespy.tools.data_containers.ComponentProperties`
+        whose :code:`calc` attribute is set is called here in topological
+        order (respecting :code:`calc_deps` dependencies).
+
+        .. note::
+
+            Two patterns exist for :code:`calc` methods, and it is important
+            to keep them distinct:
+
+            **Pattern A - solver variables only** (p, h, m, fluid composition,
+            connection energies E): methods like :py:meth:`_calc_P` read only
+            quantities that are unknowns of the solver, therefore these methods
+            can also be used in the residual calculations during iterations.
+
+            **Pattern B - derived properties** (T, v, x, ...): methods like
+            :code:`_calc_ttd_u` or :code:`_calc_td_log` call helpers such as
+            :code:`calc_T()` which rely on values that are computed during
+            connection postprocessing (e.g. :code:`connection.T.val_SI`). These
+            methods must **only** be called in postprocessing, never during
+            iteration, because the derived values are not yet available.
+
+            When adding a new :code:`calc` method, choose Pattern A if the
+            result depends solely on solver variables; choose Pattern B
+            otherwise, and make sure no caller invokes it during iteration.
+        """
+        calc_items = {
+            k: dc for k, dc in self.parameters.items()
+            if isinstance(dc, dc_cp) and dc.calc is not None
+        }
+        for k in _topological_sort(calc_items):
+            dc = calc_items[k]
+            dc.val_SI = dc.calc(**dc.calc_params)
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
@@ -947,29 +905,6 @@ class Component:
     def entropy_balance(self):
         r"""Entropy balance calculation method."""
         return
-
-    def exergy_balance(self, T0):
-        r"""
-        Exergy balance calculation method.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-        """
-        self.E_P = np.nan
-        self.E_F = np.nan
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = np.nan
-        self.epsilon = self._calc_epsilon()
-
-    def _calc_epsilon(self):
-        if self.E_F == 0:
-            return np.nan
-        else:
-            return self.E_P / self.E_F
 
     def get_plotting_data(self):
         return
@@ -1026,7 +961,9 @@ class Component:
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
-    def calc_zeta(self, i, o):
+    def _calc_zeta(self, inconn=0, outconn=0):
+        i, o = self.inl[inconn], self.outl[outconn]
+
         if abs(i.m.val_SI) <= 1e-4:
             return 0
         else:
@@ -1068,7 +1005,7 @@ class Component:
 
         Note
         ----
-        The zeta value is caluclated on the basis of a given pressure loss at
+        The zeta value is calculated on the basis of a given pressure loss at
         a given flow rate in the design case. As the cross sectional area A
         will not change, it is possible to handle the equation in this way:
 
@@ -1099,7 +1036,6 @@ class Component:
             self.inl[inconn].h,
             self.outl[outconn].p,
             self.outl[outconn].h,
-            self.get_attr(zeta)
         ]
 
     def dp_structure_matrix(self, k, dp=None, inconn=0, outconn=0):

@@ -141,7 +141,8 @@ class PolynomialCompressor(DisplacementMachine):
     >>> from CoolProp.CoolProp import PropsSI
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
@@ -303,19 +304,6 @@ class PolynomialCompressor(DisplacementMachine):
     """
 
     def _preprocess(self, row_idx):
-        if self.Q_diss_rel.is_set:
-            msg = (
-                "The parameter Q_diss_rel has been renamed, please use "
-                "'dissipation_ratio' instead."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-            # this only injects to .val and not to .val_SI, the calculation
-            # of .val_SI from .val in preprocessing already happened before
-            # this point
-            self.set_attr(dissipation_ratio=self.Q_diss_rel.val)
-            self.dissipation_ratio.val_SI = self.Q_diss_rel.val_SI
-
         if not self.dissipation_ratio.is_set:
             msg = (
                 f"The component {self.label} of type {self.__class__.__name__} "
@@ -356,33 +344,63 @@ class PolynomialCompressor(DisplacementMachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0, val=0, is_result=True, quantity="heat"),
-            "P": dc_cp(min_val=0, is_result=True, quantity="power"),
-            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
-            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "rpm": dc_cp(min_val=0, is_result=True),
-            "frequency": dc_cp(min_val=0, is_result=True, quantity="frequency"),
-            "reference_state": dc_simple(),
-            "eta_s_poly": dc_simple(),
-            "eta_vol_poly": dc_simple(),
-            "eta_vol_poly_group_rpm": dc_gcp(  # will be deprecated
+            "Q_diss": dc_cp(
+                max_val=0, val=0, is_result=True, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Q_diss
+            ),
+            "P": dc_cp(
+                min_val=0, is_result=True, quantity="power",
+                description="power consumption",
+                calc=self._calc_P
+            ),
+            "eta_vol": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="volumetric efficiency",
+                calc=self._calc_eta_vol
+            ),
+            "eta_s": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
+            ),
+            "dissipation_ratio": dc_cp(
+                min_val=0, max_val=1, val=0, quantity="ratio",
+                description="heat dissipation ratio relative to power consumption"
+            ),
+            "rpm": dc_cp(
+                min_val=0, is_result=True, _potential_var=True,
+                description="compressor frequency"
+            ),
+            "reference_state": dc_simple(
+                description="reference state definition for the scaling of displacement with compressor rpm"
+            ),
+            "eta_s_poly": dc_simple(
+                description="polynomial coefficients for isentropic efficiency"
+            ),
+            "eta_vol_poly": dc_simple(
+                description="polynomial coefficients for volumetric efficiency"
+            ),
+            "eta_vol_poly_group_rpm": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
             ),
             "eta_vol_poly_group": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "frequency"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
             ),
             "eta_vol_group_rpm": dc_gcp(  # will be deprecated
                 elements=["reference_state", "eta_vol", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on fixed volumetric efficiency"
             ),
             "eta_vol_group": dc_gcp(
                 elements=["reference_state", "eta_vol", "frequency"],
@@ -390,37 +408,70 @@ class PolynomialCompressor(DisplacementMachine):
                 dependents=self.eta_vol_group_dependents,
                 num_eq_sets=1
             ),
-            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation based on polynomial coefficients"
             ),
             "eta_s_group": dc_gcp(
                 elements=["eta_s", "dissipation_ratio"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation with fixed efficiency"
             ),
             "energy_balance_group": dc_gcp(
                 elements=["P", "dissipation_ratio"],
                 func=self.energy_balance_group_func,
                 dependents=self.energy_balance_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="energy balance equation for fixed power and dissipation ratio"
             )
         })
         return params
 
+    def _calc_h2(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
+            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
+        )
+
+    def _calc_P(self):
+        i = self.inl[0]
+        return i.m.val_SI * (self._calc_h2() - i.h.val_SI)
+
+    def _calc_Q_diss(self):
+        i, o = self.inl[0], self.outl[0]
+        return i.m.val_SI * (o.h.val_SI - self._calc_h2())
+
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        h2 = self._calc_h2()
+        return (
+            isentropic(
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
+        ) / (h2 - i.h.val_SI)
+
+    def _calc_eta_vol(self):
+        if not self.reference_state.is_set:
+            return self.eta_vol.val_SI
+        i = self.inl[0]
+        displacement = (
+            self.reference_state.val["displacement"] / 3600
+            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
+        )
+        return i.m.val_SI * i.vol.val_SI / displacement
+
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val)
-            - self.power_inl[0].E.val_SI
-        )
+        return self._calc_P() - self.power_inl[0].E.val_SI
 
     def energy_connector_dependents(self):
         return [
@@ -441,12 +492,7 @@ class PolynomialCompressor(DisplacementMachine):
         float
             residual
         """
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-            - self.P.val_SI
-        )
+        return self._calc_P() - self.P.val_SI
 
     def energy_balance_group_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -483,12 +529,12 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
-            self.eta_s.val_SI
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            self.eta_s.val_SI * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -528,12 +574,12 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -617,39 +663,6 @@ class PolynomialCompressor(DisplacementMachine):
             self.outl[0].p,
             self.rpm
         ]
-
-    def calc_parameters(self):
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-
-        h_2 = (
-            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-        )
-        self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
-        self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
-        self.eta_s.val_SI = (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=None
-            ) - i.h.val_SI
-        ) / (
-            (h_2 - i.h.val_SI)
-        )
-
-        if self.reference_state.is_set:
-            displacement = (
-                self.reference_state.val["displacement"] / 3600
-                * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-            )
-            self.eta_vol.val_SI = i.m.val_SI * i.calc_vol() / displacement
 
 
 def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:

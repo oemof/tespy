@@ -10,3 +10,51 @@ figure figcaption p {
     text-align: center;
     font-weight: bold;
 }
+
+/* Let the content of the page (usually 46em) use the right sidebar space (15em) */
+
+.page:has(.toc-drawer.no-toc) .content {
+    width: 61em;
+}
+
+/* This is to style the cards on the landing page */
+
+.sd-material-icon {
+  background: var(--color-background-secondary);
+  border-radius: 50%;
+  padding: 0.25em;
+  overflow: visible;
+}
+
+/* Add the color of the logo */
+
+:root {
+  --color-logo-main: #1f567d;
+  --color-logo-main-transparent: #1f567d0d;
+}
+
+.sd-text-logo-main {
+  color: var(--color-logo-main);
+}
+
+/* This is to change the labels of tabs and make a nice rounded box around them  */
+
+.sd-card {
+    background-color: var(--color-logo-main-transparent) !important;
+    border-color: var(--color-logo-main-transparent) !important;
+    margin: 0.25em;
+}
+
+/* This is to change the text on the landing page card grid */
+
+.sd-card.landing-card:hover ul.simple {
+    color: var(--color-foreground-primary);
+}
+
+.sd-card.landing-card ul.simple {
+    color: var(--color-foreground-secondary);
+}
+
+span.backrefs {
+    display: none !important;
+}

@@ -10,6 +10,7 @@ tests/test_components/test_piping.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+from pytest import approx
 
 from tespy.components import Pipe
 from tespy.components import Sink
@@ -25,7 +26,8 @@ class TestPiping:
     def setup_piping_network(self, instance):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "temperature": "degC",
+            "pressure_difference": "bar"
         })
         self.source = Source('source')
         self.sink = Sink('sink')
@@ -51,23 +53,14 @@ class TestPiping:
         )
         assert pr == round(instance.pr.val, 2), msg
 
-        # test variable zeta value
-        zeta = round(instance.zeta.val, 0)
-        instance.set_attr(zeta='var', pr=None)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        msg = (
-            f'Value of dimension independent zeta value must be {zeta}, is '
-            f'{instance.zeta.val}.'
-        )
-        assert zeta == round(instance.zeta.val, 0), msg
-
         # dp char
         x = np.array([8, 9, 10, 11, 12])
         y = np.array([5, 8, 9, 9.5, 9.6]) * 1e5
         dp_char = CharLine(x, y)
-        instance.set_attr(zeta=None, dp_char={
-            'char_func': dp_char, 'is_set': True})
+        instance.set_attr(
+            pr=None,
+            dp_char={"char_func": dp_char, "is_set": True}
+        )
         m = 11
         self.c1.set_attr(m=m)
         self.c2.set_attr(p=None)
@@ -76,9 +69,73 @@ class TestPiping:
         self.nw.print_results()
         dp = round(-dp_char.evaluate(m), 0)
         dp_act = round(self.c2.p.val_SI - self.c1.p.val_SI)
-        msg = ('The pressure drop at the valve should be ' + str(dp) + ' but '
-               'is ' + str(dp_act) + '.')
+        msg = f"The pressure drop at the valve should be {dp} but is {dp_act}."
         assert dp == dp_act, msg
+
+    def test_Valve_Kv_mixture(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'N2': 0.8, 'O2': 0.2}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        self.nw.solve("design")
+
+        # volumetric flow must then be exactly equal to Kv
+        assert np.isnan(instance.Kv.val_SI)
+
+    def test_Valve_Kv(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'H2O': 1}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        self.nw.solve("design")
+
+        # volumetric flow must then be exactly equal to Kv
+        assert approx(self.c1.v.val * 3600) == instance.Kv.val_SI
+
+        # data from online available resource:
+        # https://www.samsongroup.com/document/t80003en.pdf
+        kv_data = np.array([
+            0.09,0.63,1.1,2.1,3.1,4.2,5.2,6.2,7.2,8.2,9.2,10.3,11.3
+        ])
+        opening_data = np.array([0,5,10,20,30,40,50,60,70,80,90,100,110]) / 100
+        Kv_char = {
+            "char_func": CharLine(x=opening_data, y=kv_data) , "is_set": True
+        }
+        # 5 -> 0.4 + (5 - 4.2) / (5.2 - 4.2) * (0.5 - 0.4)
+        instance.set_attr(Kv_char=Kv_char, opening="var")
+        self.nw.solve("design")
+        assert approx(instance.opening.val) == 0.48
+
+    def test_Valve_Kv_analytical(self):
+        instance = Valve('valve')
+        self.setup_piping_network(instance)
+
+        def analytical_Kv(opening, param):
+            return param * opening
+
+        # parameter specification
+        # mass and volumetric flow 5 at the same time to find temperature that
+        # exactly is according to 1000 kg/m3 density
+        self.c1.set_attr(fluid={'H2O': 1}, p=5, m=5000 / 3600, v=5 / 3600)
+        # one bar pressure loss
+        self.c2.set_attr(p=4)
+        instance.set_attr(
+            opening="var",
+            Kv_analytical={"method": analytical_Kv, "params": [10]}
+        )
+
+        self.nw.solve("design")
+        assert approx(instance.opening.val_SI) == 0.5
 
     def test_Pipe(self):
         """Test component properties of pipe."""
@@ -114,3 +171,28 @@ class TestPiping:
             f"{round(instance.Q.val, 1)}."
         )
         assert Q == round(instance.Q.val, 1), msg
+
+    def test_Pipe_flow_speed(self):
+        """Test flow speed specification of pipe."""
+        instance = Pipe('pipe')
+        self.setup_piping_network(instance)
+
+        # parameter specification
+        self.c1.set_attr(fluid={'H2O': 1}, v=2, p=10, T=50)
+
+        # find the diameter corresponding to flow speed of 2 m/s
+        instance.set_attr(dp=0.5, Q=0, D="var", flow_speed=2)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+        # v=2, flow_speed=2 -> area = 1m2 -> D = (4 / pi) ** 0.5
+        assert approx(instance.D.val) == (4 / np.pi) ** 0.5
+
+        # find flow volume based on diameter and flow speed
+        self.c1.set_attr(v=None)
+        instance.set_attr(D=0.25)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+        # reverse order: v = speed * area
+        assert approx(self.c1.v.val) == 2 * np.pi * (0.25 / 2) ** 2

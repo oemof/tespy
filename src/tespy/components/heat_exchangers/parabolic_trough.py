@@ -154,7 +154,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     -------
     A parabolic trough is installed using S800 as thermo-fluid.
     First, the operation conditions from :cite:`Janotte2014` are reproduced.
-    Therefore, the direct normal irradiance :math:`\dot{E}_\mathrm{DNI}` is at
+    Therefore, the direct normal irradiance :math:`\dot{E}_\text{DNI}` is at
     1000 :math:`\frac{\text{W}}{\text{m}^2}` at an angle of incidence
     :math:`aoi` at 20 °. This means, the direct irradiance to the parabolic
     trough :math:`E` is at
@@ -166,7 +166,8 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> import math
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -226,16 +227,35 @@ class ParabolicTrough(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
-            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
-            'c_1': dc_cp(min_val=0),
-            'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(),
-            'iam_2': dc_cp(),
-            'aoi': dc_cp(min_val=-90, max_val=90, quantity="angle"),
-            'doc': dc_cp(min_val=0, max_val=1, quantity="ratio"),
-            'Q_loss': dc_cp(max_val=0, _val=0, quantity="heat"),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _potential_var=True,
+                description="solar irradiation to the parabolic trough"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _potential_var=True,
+                description="area of the parabolic trough"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'c_1': dc_cp(min_val=0, description="thermal loss coefficient 1"),
+            'c_2': dc_cp(min_val=0, description="thermal loss coefficient 2"),
+            'iam_1': dc_cp(description="incidence angle modifier 1"),
+            'iam_2': dc_cp(description="incidence angle modifier 2"),
+            'aoi': dc_cp(
+                min_val=-90, max_val=90, quantity="angle",
+                description="angle of incidence"
+            ),
+            'doc': dc_cp(
+                min_val=0, max_val=1, quantity="ratio",
+                description="degree of cleanliness"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Q_loss, calc_deps=['Q']
+            ),
             'energy_group': dc_gcp(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
@@ -243,7 +263,8 @@ class ParabolicTrough(SimpleHeatExchanger):
                 ],
                 num_eq_sets=1,
                 func=self.energy_group_func,
-                dependents=self.energy_group_dependents
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the parabolic trough"
             )
         })
         return data
@@ -297,23 +318,15 @@ class ParabolicTrough(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
 
     def convergence_check(self):
         pass
 
+    def _calc_Q_loss(self):
+        return -self.E.val_SI * self.A.val_SI + self.Q.val_SI
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        if self.energy_group.is_set:
-            self.Q_loss.val_SI = - self.E.val_SI * self.A.val_SI + self.Q.val_SI
-            self.Q_loss.is_result = True
-        else:
-            self.Q_loss.is_result = False
+        super().calc_parameters()
+        self.Q_loss.is_result = self.energy_group.is_set

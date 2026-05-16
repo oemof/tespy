@@ -27,9 +27,10 @@ class TestGasMixingRules:
 
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
-        self.nwk.set_attr(iterinfo=False)
+        self.nwk.iterinfo = False
 
         so1 = Source("air")
         so2 = Source("Other gases")
@@ -109,7 +110,8 @@ class TestIncompressibleMixingRule:
 
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
         })
 
         source = Source('source')

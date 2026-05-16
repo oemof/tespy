@@ -146,10 +146,10 @@ class SolarCollector(SimpleHeatExchanger):
     >>> from tespy.components import Sink, Source, SolarCollector
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -164,22 +164,21 @@ class SolarCollector(SimpleHeatExchanger):
     is determined in the design calculation. In offdesign operation (at a
     different irradiance) using the calculated surface area and mass flow, it
     is possible to predict the outlet temperature. It would instead be
-    possible to calulate the change in mass flow required to hold the
+    possible to calculate the change in mass flow required to hold the
     specified outlet temperature, too.
 
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(sc.A.val, 1)
     14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(sc.Q.val, 1)
     6083.8
     >>> round(outg.T.val, 1)
     70.5
-    >>> os.remove('tmp.json')
     """
 
     def get_parameters(self):
@@ -188,18 +187,41 @@ class SolarCollector(SimpleHeatExchanger):
             del data[k]
 
         data.update({
-            'E': dc_cp(min_val=0, quantity="heat"),
-            'A': dc_cp(min_val=0, quantity="area"),
-            'eta_opt': dc_cp(min_val=0, max_val=1, quantity="efficiency"),
-            'lkf_lin': dc_cp(min_val=0),
-            'lkf_quad': dc_cp(min_val=0),
-            'Tamb': dc_cp(quantity="temperature"),
-            'Q_loss': dc_cp(max_val=0, _val=0, quantity="temperature"),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _potential_var=True,
+                description="solar irradiation to the solar collector"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _potential_var=True,
+                description="area of the solar collector"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'lkf_lin': dc_cp(
+                min_val=0,
+                description="linear heat loss factor"
+            ),
+            'lkf_quad': dc_cp(
+                min_val=0,
+                description="quadratic heat loss factor"
+            ),
+            'Tamb': dc_cp(
+                quantity="temperature",
+                description="ambient air temperature"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Q_loss, calc_deps=['Q']
+            ),
             'energy_group': dc_gcp(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq_sets=1,
                 func=self.energy_group_func,
-                dependents=self.energy_group_dependents
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the solar collector"
             )
         })
         return data
@@ -246,23 +268,15 @@ class SolarCollector(SimpleHeatExchanger):
             self.inl[0].h,
             self.outl[0].p,
             self.outl[0].h,
-        ] + [self.get_attr(element) for element in self.energy_group.elements]
+        ] + [self.E, self.A]
 
     def convergence_check(self):
         pass
 
+    def _calc_Q_loss(self):
+        return -(self.E.val_SI * self.A.val_SI - self.Q.val_SI)
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        if self.energy_group.is_set:
-            self.Q_loss.val_SI = -(self.E.val_SI * self.A.val_SI - self.Q.val_SI)
-            self.Q_loss.is_result = True
-        else:
-            self.Q_loss.is_result = False
+        super().calc_parameters()
+        self.Q_loss.is_result = self.energy_group.is_set

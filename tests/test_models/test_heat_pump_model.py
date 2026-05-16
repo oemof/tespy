@@ -16,13 +16,15 @@ from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import HeatExchanger
+from tespy.components import PowerBus
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
@@ -33,7 +35,8 @@ class TestHeatPump:
     def setup_method(self):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         # sources & sinks
@@ -60,15 +63,6 @@ class TestHeatPump:
         cp1 = Compressor('compressor 1')
         cp2 = Compressor('compressor 2')
         he = HeatExchanger('intercooler')
-
-        # busses
-        self.power = Bus('total compressor power')
-        self.power.add_comps(
-            {'comp': cp1, 'base': 'bus'},
-            {'comp': cp2, 'base': 'bus'})
-        self.heat = Bus('total delivered heat')
-        self.heat.add_comps({'comp': cd, 'char': -1})
-        self.nw.add_busses(self.power, self.heat)
 
         # consumer system
         c_in_cd = Connection(cc_refrigerant, 'out1', cd, 'in1')
@@ -115,6 +109,16 @@ class TestHeatPump:
 
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
+        # power network
+        grid = PowerSource('grid')
+        distribution = PowerBus('power distribution', num_in=1, num_out=2)
+
+        self.e_grid = PowerConnection(grid, 'power', distribution, 'power_in1')
+        e_cp1 = PowerConnection(distribution, 'power_out1', cp1, 'power')
+        e_cp2 = PowerConnection(distribution, 'power_out2', cp2, 'power')
+
+        self.nw.add_conns(self.e_grid, e_cp1, e_cp2)
+
         # condenser system
         x = np.array([
             0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
@@ -154,7 +158,7 @@ class TestHeatPump:
         ])
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, design=['ttd_l'], offdesign=['kA_char'],
+            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
             kA_char1=kA_char1, kA_char2=kA_char2
         )
 
@@ -265,7 +269,6 @@ class TestHeatPump:
         # evaporator system hot side
         self.amb_in_su.set_attr(m=20, T=12, p=1, fluid={'water': 1})
         su_ev.set_attr(p=Ref(self.amb_in_su, 1, -0.001), design=['p'])
-        ev_amb_out.set_attr(T=7)
 
         # compressor-system
         cp1_he.set_attr(p=15)
@@ -273,23 +276,17 @@ class TestHeatPump:
         ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1})
         he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
-    def test_model(self, tmp_path):
+    def test_model(self):
         """
         Test the operating points of the heat pump against a different model.
 
         By now, not all characteristic functions of the original model are
         available in detail, thus perfect matching is not possible!
         """
-        tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
-        # the model does not consistently solve!!
-        self.nw.assert_convergence()
-        dr_su = self.nw.get_conn("drum:out2_superheater:in2")
-        self.nw.get_conn("evaporator:out1_sink ambient:in1").set_attr(T=None)
-        self.nw.get_comp("evaporator").set_attr(ttd_l=5)
-        self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         self.nw.print_results()
+        self.nw.assert_convergence()
 
         # input values from ebsilon
         T_range = [105, 100, 90, 80]
@@ -314,19 +311,20 @@ class TestHeatPump:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
                     self.nw.solve(
-                        'offdesign', design_path=tmp_path, init_path=tmp_path
+                        'offdesign', design_path=design_state, init_path=design_state
                     )
 
                 else:
-                    self.nw.solve('offdesign', design_path=tmp_path)
+                    self.nw.solve('offdesign', design_path=design_state)
 
                 self.nw.assert_convergence()
                 # relative deviation should not exceed 6.5 %
                 # this should be much less, unfortunately not all ebsilon
                 # characteristics are available, thus it is
                 # difficult/impossible to match the models perfectly!
+                cd = self.nw.get_comp('condenser')
                 d_rel_COP = abs(
-                    self.heat.P.val / self.power.P.val - cop_array[i, j]
+                    (-cd.Q.val) / self.e_grid.E.val - cop_array[i, j]
                 ) / cop_array[i, j]
                 msg = (
                     'The deviation in COP should be less than 0.07, is '

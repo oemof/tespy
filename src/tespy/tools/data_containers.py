@@ -16,8 +16,54 @@ import numpy as np
 import pint
 
 from tespy.tools import logger
+from tespy.tools.characteristics import CharLine
+from tespy.tools.characteristics import CharMap
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
+
+
+def _is_numeric(potentially_a_number):
+    """Checks if the value provided is a number by trying to convert it to
+    float
+
+    Parameters
+    ----------
+    potentially_a_number : any
+        Value to check
+
+    Returns
+    -------
+    bool
+        True if the value is a number
+
+    Example
+    -------
+    >>> from tespy.tools.data_containers import _is_numeric
+    >>> _is_numeric(5)
+    True
+    >>> _is_numeric("var")
+    False
+    """
+    try:
+        float(potentially_a_number)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+class _NumEqMixin:
+    """Mixin that provides the num_eq property for data containers."""
+
+    def get_num_eq(self):
+        if self._num_eq is None:
+            return self.num_eq_sets
+        else:
+            return self._num_eq
+
+    def set_num_eq(self, value):
+        self._num_eq = value
+
+    num_eq = property(get_num_eq, set_num_eq)
 
 
 class DataContainer:
@@ -43,7 +89,7 @@ class DataContainer:
       :py:class:`tespy.tools.data_containers.ComponentCharacteristicMaps`
     - component properties
       :py:class:`tespy.tools.data_containers.ComponentProperties`
-    - grouped component properites
+    - grouped component properties
       :py:class:`tespy.tools.data_containers.GroupedComponentProperties`
     - fluid composition
       :py:class:`tespy.tools.data_containers.FluidComposition`
@@ -184,8 +230,25 @@ class DataContainer:
     def _serialize(self):
         return {}
 
+    def accept(self, value):
+        """
+        Interpret a user-supplied value and update this container's state.
 
-class ComponentCharacteristics(DataContainer):
+        Each subclass implements this to encapsulate the validation and
+        assignment logic that formerly lived in Component.set_attr /
+        Connection.set_attr.
+
+        Parameters
+        ----------
+        value :
+            The value supplied by the user (numeric, string, dict, None, ...).
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement accept()."
+        )
+
+
+class ComponentCharacteristics(_NumEqMixin, DataContainer):
     """
     Data container for component characteristics.
 
@@ -215,18 +278,19 @@ class ComponentCharacteristics(DataContainer):
             values.
         """
         return {
-            'char_func': None,
-            'is_set': False,
-            'param': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'char_params': {'type': 'rel', 'inconn': 0, 'outconn': 0},
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'structure_matrix': None,
-            'dependents': None,
-            'constant_deriv': False
+            "char_func": None,
+            "is_set": False,
+            "param": None,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "char_params": {"type": "rel", "inconn": 0, "outconn": 0},
+            "num_eq_sets": 0,
+            "_num_eq": None,
+            "structure_matrix": None,
+            "dependents": None,
+            "constant_deriv": False,
+            "description": None
         }
 
     def _serialize(self):
@@ -238,19 +302,21 @@ class ComponentCharacteristics(DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, CharLine):
+            self.char_func = value
         else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
+            raise TypeError(
+                f"Expected a CharLine, dict, or None for a "
+                f"ComponentCharacteristics parameter, got {type(value).__name__}."
+            )
 
 
-class ComponentCharacteristicMaps(DataContainer):
+class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
     """
     Data container for characteristic maps.
 
@@ -280,16 +346,18 @@ class ComponentCharacteristicMaps(DataContainer):
             values.
         """
         return {
-            'char_func': None,
-            'is_set': False,
-            'param': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'num_eq_sets': 0,
-            'structure_matrix': None,
-            'constant_deriv': False,
-            'dependents': None
+            "char_func": None,
+            "is_set": False,
+            "param": None,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "num_eq_sets": 0,
+            "_num_eq": None,
+            "structure_matrix": None,
+            "constant_deriv": False,
+            "dependents": None,
+            "description": None
         }
 
     def _serialize(self):
@@ -301,19 +369,21 @@ class ComponentCharacteristicMaps(DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, CharMap):
+            self.char_func = value
         else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
+            raise TypeError(
+                f"Expected a CharMap, dict, or None for a "
+                f"ComponentCharacteristicMaps parameter, got {type(value).__name__}."
+            )
 
 
-class ComponentMandatoryConstraints(DataContainer):
+class ComponentMandatoryConstraints(_NumEqMixin, DataContainer):
     """
     Data container for component mandatory constraints.
     """
@@ -330,39 +400,19 @@ class ComponentMandatoryConstraints(DataContainer):
             values.
         """
         return {
-            'num_eq_sets': 0,
-            '_num_eq': None,
-            'func_params': {},
-            'func': None,
-            'deriv': None,
-            'constant_deriv': False,
-            'structure_matrix': None,
-            'dependents': None
+            "num_eq_sets": 0,
+            "_num_eq": None,
+            "func_params": {},
+            "func": None,
+            "deriv": None,
+            "constant_deriv": False,
+            "structure_matrix": None,
+            "dependents": None,
+            "description": None
         }
 
-    def _serialize(self):
-        keys = self._serializable_keys()
-        return {k: self.get_attr(k) for k in keys}
 
-    @staticmethod
-    def _serializable_keys():
-        return [
-            "val", "val_SI", "is_set", "d", "min_val", "max_val", "is_var",
-        ]
-
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
-        else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
-
-
-class GroupedComponentProperties(DataContainer):
+class GroupedComponentProperties(_NumEqMixin, DataContainer):
     """
     Data container for grouped component parameters.
 
@@ -394,28 +444,31 @@ class GroupedComponentProperties(DataContainer):
             values.
         """
         return {
-            'is_set': False,
-            'elements': [],
-            '_num_eq': None,
-            'func': None,
-            'deriv': None,
-            'num_eq_sets': 0,
-            'func_params': {},
-            'structure_matrix': None,
-            'constant_deriv': False,
-            'dependents': None
+            "is_set": False,
+            "elements": [],
+            "_num_eq": None,
+            "func": None,
+            "deriv": None,
+            "num_eq_sets": 0,
+            "func_params": {},
+            "structure_matrix": None,
+            "constant_deriv": False,
+            "dependents": None,
+            "description": None
         }
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, bool):
+            self.is_set = value
+        elif isinstance(value, dict):
+            self.set_attr(**value)
         else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
-
-    num_eq = property(get_num_eq, set_num_eq)
+            raise TypeError(
+                f"Expected a bool, dict, or None for a grouped parameter, "
+                f"got {type(value).__name__}."
+            )
 
 
 class GroupedComponentCharacteristics(GroupedComponentProperties):
@@ -434,7 +487,7 @@ class GroupedComponentCharacteristics(GroupedComponentProperties):
     """
     pass
 
-class FluidProperties(DataContainer):
+class FluidProperties(_NumEqMixin, DataContainer):
     """
     Data container for fluid properties.
 
@@ -478,11 +531,13 @@ class FluidProperties(DataContainer):
             "_val": np.nan,
             "_val0": np.nan,
             "_val_SI": np.nan,
+            "_val_is_quantity": False,
+            "_val0_is_quantity": False,
             "_is_var": False,
             "is_result": False,
             "min_val": -1e12,
             "max_val": 1e12,
-            "d": 1e-1,
+            "d": 1e-4,
             "_unit": None,
             "is_set": False,
             "_potential_var": False,
@@ -493,25 +548,34 @@ class FluidProperties(DataContainer):
             "num_eq_sets": 0,
             "_num_eq": None,
             "func_params": {},
+            "calc": None,
+            "calc_params": {},
+            "calc_deps": [],
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
             'dependents': None,
-            "quantity": None
+            "quantity": None,
+            "description": None
         }
 
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
+        elif isinstance(value, dict):
+            self.set_attr(**value)
+        elif isinstance(value, pint.Quantity) or _is_numeric(value):
+            self.val = value
+            self.is_set = True
         else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
+            raise TypeError(
+                f"Expected a numeric value, pint.Quantity, dict, or None, "
+                f"got {type(value).__name__}."
+            )
 
     def get_reference_val_SI(self):
         """Get value of the reference corresponding to own value
@@ -585,23 +649,18 @@ class FluidProperties(DataContainer):
             return self._unit
 
     def set_SI_from_val(self, units):
-
-        if not isinstance(self._val, pint.Quantity):
+        if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-
         self.val_SI = self._val.to(SI_UNITS[self.quantity]).magnitude
 
     def set_SI_from_val0(self, units):
-        if not isinstance(self._val0, pint.Quantity):
+        if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-
         self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
 
     def _get_val_from_SI(self, units):
-        # intermediate fix
-        if not isinstance(self._val, pint.Quantity):
+        if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-
         return units.ureg.Quantity(
             self.val_SI, self._get_val_base_unit()
         ).to(self._val.units)
@@ -610,28 +669,27 @@ class FluidProperties(DataContainer):
         self.val = self._get_val_from_SI(units)
 
     def set_val0_from_SI(self, units):
-        # intermediate fix
-        if not isinstance(self.val0, pint.Quantity):
+        if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-
         self.val0 = units.ureg.Quantity(
             self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
 
     def get_val(self):
-        if not isinstance(self._val, pint.Quantity):
-            return float(self._val)
-        else:
+        if self._val_is_quantity:
             return float(self._val.magnitude)
+        return float(self._val)
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
+        self._val_is_quantity = isinstance(self._val, pint.Quantity)
 
     def get_val0(self):
         return self._val0
 
     def set_val0(self, value):
         self._val0 = self._handle_value_with_quantity(value)
+        self._val0_is_quantity = isinstance(self._val0, pint.Quantity)
 
     def _handle_value_with_quantity(self, value):
         if isinstance(value, pint.Quantity):
@@ -660,11 +718,9 @@ class FluidProperties(DataContainer):
             return _UNITS._quantities[self.quantity].is_compatible_with(unit)
 
     def get_unit(self):
-        if not isinstance(self._val, pint.Quantity):
-            # if a unit was never attached from the network
+        if not self._val_is_quantity:
             return _UNITS.default[self.quantity]
-        else:
-            return str(self.val_with_unit.units)
+        return str(self.val_with_unit.units)
 
     def _replace_unit_for_compatibility(self, value):
         if value == "C":
@@ -688,11 +744,21 @@ class FluidProperties(DataContainer):
     val_with_unit = property(get_val_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
-    num_eq = property(get_num_eq, set_num_eq)
 
 
 class ComponentProperties(FluidProperties):
-    pass
+
+    def _serialize(self):
+        keys = ["val", "val_SI", "is_set", "unit", "is_var"]
+        return {k: getattr(self, k) for k in keys}
+
+    def accept(self, value):
+        if value == "var":
+            self.is_set = True
+            self.is_var = True
+        else:
+            super().accept(value)
+            self.is_var = False
 
 
 class ScalarVariable(DataContainer):
@@ -789,19 +855,22 @@ class FluidComposition(DataContainer):
             values.
         """
         return {
-            '_val': dict(),
-            'val0': dict(),
-            'd': 1e-5,
-            '_is_set': set(),
-            'design': dict(),
-            'wrapper': dict(),
-            'back_end': dict(),
-            'engine': dict(),
-            '_is_var': set(),
-            '_J_col': dict(),
-            '_reference_container': None,
-            '_offset': None,
-            '_factor': None
+            "_val": dict(),
+            "val0": dict(),
+            "d": 1e-5,
+            "_is_set": set(),
+            "design": dict(),
+            "wrapper": dict(),
+            "back_end": dict(),
+            "engine": dict(),
+            "wrapper_kwargs": dict(),
+            "description": None,
+            "quantity": None,
+            "_is_var": set(),
+            "_J_col": dict(),
+            "_reference_container": None,
+            "_offset": None,
+            "_factor": None
         }
 
     def _serialize(self):
@@ -853,6 +922,12 @@ class FluidComposition(DataContainer):
             }
         else:
             return self._val
+
+    def set_reference_val(self, key, value):
+        if self._reference_container is not None:
+            self._reference_container.val[key] = value
+        else:
+            raise ValueError()
 
     val = property(get_val, set_val)
     is_set = property(get_is_set, set_is_set)
@@ -957,12 +1032,13 @@ class ReferencedFluidProperties(DataContainer):
             "func": None,
             "deriv": None,
             "structure_matrix": None,
-            'constant_deriv': False,
+            "constant_deriv": False,
             "num_eq": 0,
             "func_params": {},
             "_solved": False,
             "dependents": None,
-            "quantity": None
+            "quantity": None,
+            "description": None
         }
 
     def _serialize(self):
@@ -977,7 +1053,7 @@ class ReferencedFluidProperties(DataContainer):
             return {}
 
 
-class SimpleDataContainer(DataContainer):
+class SimpleDataContainer(_NumEqMixin, DataContainer):
     """
     Simple data container without data type restrictions to val field.
 
@@ -1012,20 +1088,19 @@ class SimpleDataContainer(DataContainer):
             "_num_eq": None,
             "structure_matrix": None,
             "_solved": False,
-            'dependents': None
+            'dependents': None,
+            "description": None
         }
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
 
-    def get_num_eq(self):
-        if self._num_eq is None:
-            return self.num_eq_sets
+    def accept(self, value):
+        if value is None:
+            self.is_set = False
         else:
-            return self._num_eq
-
-    def set_num_eq(self, value):
-        self._num_eq = value
+            self.val = value
+            self.is_set = True
 
     def get_val(self):
         return self._val
@@ -1033,5 +1108,4 @@ class SimpleDataContainer(DataContainer):
     def set_val(self, value):
         self._val = value
 
-    num_eq = property(get_num_eq, set_num_eq)
     val = property(get_val, set_val)

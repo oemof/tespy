@@ -135,10 +135,10 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s"
     ... })
     >>> fw = Source('feed water')
     >>> oxy = Sink('oxygen sink')
@@ -155,7 +155,7 @@ class WaterElectrolyzer(Component):
     compressor isentropic efficiency at 85 %. After designing the plant the
     offdesign electrolysis efficiency is predicted by the characteristic line.
     The default characteristic line can be found here:
-    :ref:`tespy.data <tespy_data_label>`.
+    :ref:`tespy.data <data_label>`.
 
     >>> fw_el = Connection(fw, 'out1', el, 'in2')
     >>> el_o = Connection(el, 'out2', oxy, 'in1')
@@ -173,57 +173,87 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val
     >>> round(P_design / 1e6, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.2)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 2)
     0.84
-    >>> os.remove('tmp.json')
     """
+
+    def _calc_Q(self):
+        return -self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_e(self):
+        return self.P.val_SI / self.outl[2].m.val_SI
+
+    def _calc_eta(self):
+        return self.e0 / self.e.val_SI
 
     def get_parameters(self):
         return {
-            'P': dc_cp(min_val=0, quantity="power"),
+            'P': dc_cp(
+                min_val=0, quantity="power", _potential_var=True,
+                description="power consumption of the electrolyzer"
+            ),
             'Q': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
                 dependents=self.heat_dependents,
-                quantity="heat"
+                quantity="heat",
+                description="heat output of the cooling port",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
-                quantity="ratio"
+                quantity="ratio",
+                description="cooling port outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
-                quantity="pressure"
+                quantity="pressure_difference",
+                description="cooling inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'zeta': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
                 dependents=self.zeta_dependents,
                 func=self.zeta_func,
-                func_params={'zeta': 'zeta'}
+                func_params={'zeta': 'zeta'},
+                description="cooling port non-dimensional friction coefficient for pressure loss calculation",
+                calc=self._calc_zeta
+            ),
+            'e': dc_cp(
+                min_val=0, num_eq_sets=1,
+                func=self.specific_energy_func,
+                dependents=self.specific_energy_dependents,
+                quantity="specific_energy",
+                _potential_var=True,
+                description="equation for specified specific energy consumption of the electrolyzer",
+                calc=self._calc_e
             ),
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
                 dependents=self.eta_dependents,
-                quantity="efficiency"
+                quantity="efficiency",
+                description="efficiency of the fuel cell",
+                calc=self._calc_eta, calc_deps=['e']
             ),
             'eta_char': dc_cc(
                 deriv=self.eta_char_deriv,
@@ -231,49 +261,58 @@ class WaterElectrolyzer(Component):
                 dependents=self.eta_char_dependents,
                 num_eq_sets=1,
                 param='m_out',
-                char_params={'type': 'rel', 'outconn': 2}
+                char_params={'type': 'rel', 'outconn': 2},
+                description="efficiency lookup table for offdesign"
             ),
-            'e': dc_cp(
-                min_val=0, num_eq_sets=1,
-                func=self.specific_energy_func,
-                dependents=self.specific_energy_dependents,
-                quantity="specific_energy"
-            )
         }
 
     def get_mandatory_constraints(self):
-        return {
+        constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
                 'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
                 'constant_deriv': True,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "equations for oxygen and hydrogen mass flow relation"
             }),
             'cooling_mass_flow_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid mass flow equality equation"
             }),
             'cooling_fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.cooling_fluid_structure_matrix,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "cooling fluid composition equality equation"
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "energy balance equation of the reactor"
             }),
             'reactor_pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.reactor_pressure_structure_matrix,
-                'num_eq_sets': 2
+                'num_eq_sets': 2,
+                "description": "reactor pressure equality equations"
             }),
             'gas_temperature_constraints': dc_cmc(**{
                 'func': self.gas_temperature_func,
                 'dependents': self.gas_temperature_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                "description": "equation for same temperature of product gases"
             })
         }
+        if len(self.power_inl) > 0:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
 
     @staticmethod
     def get_bypass_constraints():
@@ -286,6 +325,10 @@ class WaterElectrolyzer(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2', 'out3']
+
+    @staticmethod
+    def powerinlets():
+        return ["power"]
 
     def _add_missing_fluids(self, connections):
         if self.inl[1] in connections:
@@ -324,7 +367,6 @@ class WaterElectrolyzer(Component):
         self.h_refo2 = h_mix_pT(p_ref, T_ref, self.outl[1].fluid_data, self.outl[1].mixing_rule)
         self.h_refh2 = h_mix_pT(p_ref, T_ref, self.outl[2].fluid_data, self.outl[2].mixing_rule)
 
-
         super()._preprocess(num_nw_vars)
 
     def calc_e0(self):
@@ -353,6 +395,25 @@ class WaterElectrolyzer(Component):
 
         return e0
 
+    def energy_connector_balance_func(self):
+        r"""
+        (optional) energy balance equation connecting the power connector to
+        the component's power
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation
+
+            .. math::
+
+                0=\dot E - P
+        """
+        return self.power_inl[0].E.val_SI - self.P.val_SI
+
+    def energy_connector_dependents(self):
+        return [self.power_inl[0].E, self.P]
+
     def gas_temperature_func(self):
         r"""
         Equation for temperature equality of product gases.
@@ -364,7 +425,7 @@ class WaterElectrolyzer(Component):
 
             .. math::
 
-                0 = T_\mathrm{out,2} - T_\mathrm{out,3}
+                0 = T_\text{out,2} - T_\text{out,3}
         """
         return self.outl[1].calc_T() -  self.outl[2].calc_T()
 
@@ -407,9 +468,7 @@ class WaterElectrolyzer(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{in,1}-h_{out,1}\right)
         """
-        return self.Q.val_SI + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
+        return self.Q.val_SI - self._calc_Q()
 
     def heat_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -444,14 +503,14 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 \begin{split}
-                0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-
-                h_\mathrm{in,2,ref}\right)\\
-                &-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -
-                h_\mathrm{in,1} \right)\\
-                & -\dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -
-                h_\mathrm{out,2,ref} \right)\\
-                & +\dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -
-                h_\mathrm{out,3,ref} + e_0\right)\\
+                0=&P + \dot{m}_\text{in,2}\cdot\left(h_\text{in,2}-
+                h_\text{in,2,ref}\right)\\
+                &-\dot{m}_\text{in,1}\cdot\left( h_\text{out,1} -
+                h_\text{in,1} \right)\\
+                & -\dot{m}_\text{out,2} \cdot \left( h_\text{out,2} -
+                h_\text{out,2,ref} \right)\\
+                & +\dot{m}_\text{out,3} \cdot \left( h_\text{out,3} -
+                h_\text{out,3,ref} + e_0\right)\\
                 \end{split}
 
             - Reference temperature: 298.15 K.
@@ -576,11 +635,11 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-                0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}\\
-                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,in,2}-
-                \dot{m}_\mathrm{O_2,out,2}\\
-                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,in,2} -
-                \dot{m}_\mathrm{H_2,out,3}
+                0 =\dot{m}_\text{in,1}-\dot{m}_\text{out,1}\\
+                0=O_2\cdot\dot{m}_\text{H_{2}O,in,2}-
+                \dot{m}_\text{O_2,out,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\text{H_{2}O,in,2} -
+                \dot{m}_\text{H_2,out,3}
         """
         # calculate the ratio of o2 in water
         M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
@@ -641,8 +700,8 @@ class WaterElectrolyzer(Component):
 
         .. math::
 
-            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\text{in,2} - p_\text{out,2}\\
+            0 = p_\text{in,3} - p_\text{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1
@@ -691,116 +750,6 @@ class WaterElectrolyzer(Component):
             + self.outl[2].m.val_SI * (self.outl[2].h.val_SI - self.h_refh2 + self.e0)
         )
         return val
-
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \begin{cases}
-                P & \text{key = 'P'}\\
-                - \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1} \right) &
-                \text{key = 'Q'}\\
-                \end{cases}
-        """
-        ######################################################################
-        # equations for power on bus
-        if bus['param'] == 'P':
-            val = self.calc_P()
-
-        ######################################################################
-        # equations for heat on bus
-
-        elif bus['param'] == 'Q':
-            val = -self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            )
-
-        ######################################################################
-        # missing/invalid bus parameter
-
-        else:
-            msg = (
-                f'The parameter {bus["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}. Please specify '
-                f'a bus parameter (P/Q) for component {self.label}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-
-        return val
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        b = bus.comps.loc[self]
-
-        ######################################################################
-        # derivatives for power on bus
-        if b['param'] == 'P':
-            for c in self.inl + self.outl:
-                if c.m.is_var and c != self.outl[0]:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
-
-                if c.h.is_var:
-                    if c.h.J_col not in bus.jacobian:
-                        bus.jacobian[c.h.J_col] = 0
-                    bus.jacobian[c.h.J_col] -= _numeric_deriv(c.h._reference_container, f, bus=bus)
-
-            # variable power
-            if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= _numeric_deriv(self.P._reference_container, f, bus=bus)
-
-        ######################################################################
-        # derivatives for heat on bus
-        elif b['param'] == 'Q':
-
-            i = self.inl[0]
-            o = self.outl[0]
-            if i.m.is_var:
-                if i.m.J_col not in bus.jacobian:
-                    bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
-
-            if i.h.is_var:
-                if i.h.J_col not in bus.jacobian:
-                    bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
-
-            if o.h.is_var:
-                if o.h.J_col not in bus.jacobian:
-                    bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
 
     def start_fluid_wrapper_branch(self):
         branches = {}
@@ -874,25 +823,3 @@ class WaterElectrolyzer(Component):
             temp = 20 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = -self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
-        self.e.val_SI = self.P.val_SI / self.outl[2].m.val_SI
-        self.eta.val_SI = self.e0 / self.e.val_SI
-
-    def exergy_balance(self, T0):
-        self.E_P = (
-            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
-            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
-            + self.inl[0].Ex_physical
-        )
-        self.E_F = self.P.val_SI
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = self.P.val_SI

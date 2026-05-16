@@ -120,11 +120,10 @@ class TurboCompressor(Compressor):
     >>> from tespy.components import Sink, Source, TurboCompressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
-    ...     "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -145,14 +144,14 @@ class TurboCompressor(Compressor):
     ... )
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
     >>> comp.set_attr(igva='var')
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.77
     >>> round(comp.igva.val, 2)
@@ -164,11 +163,10 @@ class TurboCompressor(Compressor):
 
     >>> comp.set_attr(igva=10)
     >>> inc.set_attr(v=None)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> nw.assert_convergence()
     >>> round(inc.v.val, 2)
     44.31
-    >>> os.remove('tmp.json')
     """
 
     def _preprocess(self, row_idx):
@@ -178,19 +176,28 @@ class TurboCompressor(Compressor):
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({
-            'igva': dc_cp(min_val=-90, max_val=90, d=1e-4, val=0, quantity="angle"),
-            'char_map_eta_s': dc_cm(),
+            'igva': dc_cp(
+                min_val=-90, max_val=90, val=0, quantity="angle",
+                description="inlet guide vane angle", _potential_var=True
+            ),
+            'char_map_eta_s': dc_cm(
+                description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
+            ),
             'char_map_eta_s_group': dc_gcp(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
-            'char_map_pr': dc_cm(),
+            'char_map_pr': dc_cm(
+                description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
+            ),
             'char_map_pr_group': dc_gcp(
                 elements=['char_map_pr', 'igva'],
                 num_eq_sets=1,
                 func=self.char_map_pr_func,
-                dependents=self.char_map_dependents
+                dependents=self.char_map_dependents,
+                description="map for pressure ratio over speedlines and non-dimensional mass flow"
             )
         })
         del parameters["eta_s_char"]
@@ -215,20 +222,20 @@ class TurboCompressor(Compressor):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             0 = \frac{p_{out} \cdot p_{in,design}}
-            {p_\mathrm{in} \cdot p_\mathrm{out,design}}-
+            {p_\text{in} \cdot p_\text{out,design}}-
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
         o = self.outl[0]
 
-        beta = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * beta)
+        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
 
         yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
         # value manipulation with igva
@@ -256,19 +263,19 @@ class TurboCompressor(Compressor):
 
         .. math::
 
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
             \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
             \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
-            0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
+            0 = \frac{\eta_\text{s}}{\eta_\text{s,design}} -
             f\left(Y,\vec{Y},\vec{Z}\right)
         """
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(i.T.design / i.calc_T())
-        y = (i.m.val_SI * i.p.design) / (i.m.design * i.p.val_SI * x)
+        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
 
         yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
         # value manipulation with igva
@@ -284,7 +291,8 @@ class TurboCompressor(Compressor):
                 o.p.val_SI,
                 i.fluid_data,
                 i.mixing_rule,
-                T0=i.T.val_SI
+                T0=i.T.val_SI,
+                T0_out=o.T.val_SI
             ) - i.h.val_SI)
             / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
         )
@@ -305,10 +313,10 @@ class TurboCompressor(Compressor):
 
         for data in [self.char_map_pr, self.char_map_eta_s]:
             if data.is_set:
-                x = np.sqrt(self.inl[0].T.design / self.inl[0].T.val_SI)
+                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
                 y = (
-                    (self.inl[0].m.val_SI * self.inl[0].p.design)
-                    / (self.inl[0].m.design * self.inl[0].p.val_SI * x)
+                    (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p'))
+                    / (self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
                 )
                 yarr = data.char_func.get_domain_errors_x(x, self.label)
                 yarr *= (1 - self.igva.val_SI / 100)

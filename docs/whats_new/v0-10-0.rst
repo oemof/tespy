@@ -127,7 +127,8 @@ Other Changes
 - Component parameters can now have a :code:`calc` method, which is
   automatically executed in postprocessing to assign the respective SI value to
   the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
-
+- Fix logging message in connection preprocessing
+  (`PR #988 <https://github.com/oemof/tespy/pull/988>`__).
 
 Bug Fixes
 #########
@@ -148,3 +149,4 @@ Contributors
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@HaSchneider <https://github.com/HaSchneider>`__
 - `@ronitd07 <https://github.com/ronitd07>`__
+- `@Flefays <https://github.com/Flefays>`__

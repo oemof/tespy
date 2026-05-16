@@ -1726,29 +1726,28 @@ class Connection(ConnectionBase):
 
         for prop in self._result_attributes():
             param = self.get_attr(prop)
-            result = param._get_val_from_SI(units)
-            converged = np.isclose(result.magnitude, param.val, 1e-3, 1e-3)
-            if param.is_set and not converged:
-                _converged = False
-                msg = (
-                    "The simulation converged but the calculated result "
-                    f"{result} for the fixed input parameter {prop} of "
-                    f"connection {self.label} is not equal to the originally "
-                    f"specified value of {param.val}. Usually, this can "
-                    "happen, when a method internally manipulates the "
-                    "associated equation during iteration in order to allow "
-                    "progress in situations, when the equation is otherwise "
-                    "not well defined for the current values of the "
-                    "variables, e.g. in case a negative root would need to be "
-                    "evaluated. Often, this can happen during the first "
-                    "iterations and then will resolve itself as convergence "
-                    "progresses. In this case it did not, meaning convergence "
-                    "was not actually achieved."
-                )
-                logger.warning(msg)
+            if param.is_set:
+                result = param._get_val_from_SI(units)
+                if not np.isclose(result.magnitude, param.val, 1e-3, 1e-3):
+                    _converged = False
+                    msg = (
+                        "The simulation converged but the calculated result "
+                        f"{result} for the fixed input parameter {prop} of "
+                        f"connection {self.label} is not equal to the originally "
+                        f"specified value of {param.val}. Usually, this can "
+                        "happen, when a method internally manipulates the "
+                        "associated equation during iteration in order to allow "
+                        "progress in situations, when the equation is otherwise "
+                        "not well defined for the current values of the "
+                        "variables, e.g. in case a negative root would need to be "
+                        "evaluated. Often, this can happen during the first "
+                        "iterations and then will resolve itself as convergence "
+                        "progresses. In this case it did not, meaning convergence "
+                        "was not actually achieved."
+                    )
+                    logger.warning(msg)
             else:
-                if not param.is_set:
-                    param.set_val_from_SI(units)
+                param.set_val_from_SI(units)
 
         return _converged
 

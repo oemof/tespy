@@ -34,8 +34,8 @@ class Desuperheater(HeatExchanger):
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
@@ -115,14 +115,14 @@ class Desuperheater(HeatExchanger):
     ttd_u : float, dict
         Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
 
-    kA : float, dict
+    UA : float, dict
         Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+        :math:`UA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for cold side heat transfer coefficient.
 
     Note

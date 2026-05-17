@@ -43,8 +43,8 @@ class Pipe(SimpleHeatExchanger):
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func`
     - :py:meth:`tespy.components.piping.pipe.Pipe.ohc_surface_group_func`
     - :py:meth:`tespy.components.piping.pipe.Pipe.ohc_subsurface_group_func`
 
@@ -128,20 +128,20 @@ class Pipe(SimpleHeatExchanger):
         Parametergroup for pressure drop calculation based on pipes dimensions
         using hazen williams equation.
 
-    kA : float, dict, :code:`"var"`
+    UA : float, dict, :code:`"var"`
         Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+        :math:`UA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.characteristics.CharLine, dict
+    UA_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line for heat transfer coefficient.
 
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature
         unit, :math:`Tamb/\text{K}`.
 
-    kA_group : str, dict
+    UA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
-        and area independent heat transfer coefficient kA.
+        and area independent heat transfer coefficient UA.
 
     insulation_thickness: float
         thickness of insulation, :math:`insulation_thickness/\text{m}`.

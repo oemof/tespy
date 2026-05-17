@@ -224,7 +224,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     def get_parameters(self):
         data = super().get_parameters()
         for k in ["UA_group", "UA_char_group", "UA", "UA_char",
-                   "kA_group", "kA_char_group", "kA", "kA_char"]:
+                   "kA_group", "kA_char_group", "kA", "kA_char", "lmtd"]:
             data.pop(k, None)
 
         data.update({

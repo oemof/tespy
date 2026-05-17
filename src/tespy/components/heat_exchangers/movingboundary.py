@@ -50,7 +50,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
 
     Inlets/Outlets
 

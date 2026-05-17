@@ -59,7 +59,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
 
     Inlets/Outlets
 
@@ -322,7 +322,7 @@ class SectionedHeatExchanger(HeatExchanger):
     -------
     A transcritical gas cooler designed to cool CO2 from 160°C to approximately 50°C
     while water is heated from 10°C to 60°C. The heat exchanger uses characteristic
-    lines (`kA_char1` and `kA_char2`) to scale the heat transfer coefficient in
+    lines (`UA_char1` and `UA_char2`) to scale the heat transfer coefficient in
     offdesign operation as mass flow varies.
 
     This two-stage approach improves convergence:
@@ -418,7 +418,7 @@ class SectionedHeatExchanger(HeatExchanger):
     characteristic line for heat exchangers:
 
     >>> UA_char = load_default_char(
-    ...     "HeatExchanger", "kA_char1", "DEFAULT", CharLine
+    ...     "HeatExchanger", "UA_char1", "DEFAULT", CharLine
     ... )
 
     Reconfigure heat exchanger to use characteristic lines for UA scaling in
@@ -758,7 +758,7 @@ class SectionedHeatExchanger(HeatExchanger):
     def UA_char_func(self):
         r"""
         Calculate offdesign UA from characteristic lines analogous to standard
-        heat exchanger kA_char, but for the sectioned heat exchanger.
+        heat exchanger UA_char, but for the sectioned heat exchanger.
 
         Returns
         -------
@@ -924,6 +924,8 @@ class SectionedHeatExchanger(HeatExchanger):
         sections = self.calc_sections()
         self.UA.val_SI = self.calc_UA(sections)
         self.td_pinch.val_SI = self.calc_td_pinch(sections[1], sections[2])
+        self.lmtd.val_SI = abs(self.Q.val_SI) / self.UA.val_SI
+        self.td_log.val_SI = self.lmtd.val_SI
 
 
 def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):

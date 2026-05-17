@@ -55,8 +55,8 @@ class SimpleHeatExchanger(Component):
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func`
+    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func`
 
     Inlets/Outlets
 
@@ -140,6 +140,10 @@ class SimpleHeatExchanger(Component):
 
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature unit.
+
+    lmtd : float
+        Effective logarithmic mean temperature difference :math:`lmtd/\text{K}`,
+        defined as :math:`|\dot{Q}|/UA`.
 
     UA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
@@ -264,14 +268,8 @@ class SimpleHeatExchanger(Component):
             return np.nan
         return abs(self.Q.val_SI / self._calculate_td_log())
 
-    def _calc_kA(self):
-        if not self.Tamb.is_set:
-            return np.nan
-        ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
-        ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
-        if ttd_1 / ttd_2 < 0:
-            return np.nan
-        return abs(self.Q.val_SI / self._calculate_td_log())
+    def _calc_lmtd(self):
+        return abs(self.Q.val_SI) / self.UA.val_SI
 
     def get_parameters(self):
         return {
@@ -343,7 +341,12 @@ class SimpleHeatExchanger(Component):
                 min_val=0, quantity="heat_transfer_coefficient",
                 description="deprecated, use :code:`UA` instead",
                 _potential_var=True,
-                calc=self._calc_kA, calc_deps=['Q']
+                calc=self._calc_UA, calc_deps=['Q']
+            ),
+            'lmtd': dc_cp(
+                min_val=0, is_result=True, quantity="temperature_difference",
+                description="effective logarithmic mean temperature difference |Q|/UA",
+                calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
             'UA_char': dc_cc(
                 param='m',
@@ -670,108 +673,6 @@ class SimpleHeatExchanger(Component):
 
         return td_log
 
-    def kA_group_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA \cdot \Delta T_{log}
-
-                \Delta T_{log} = \begin{cases}
-                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
-                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
-                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
-                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
-                0 & T_{in} = T_{out}
-                \end{cases}
-
-                T_{amb}: \text{ambient temperature}
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-        if ttd_1 * ttd_2 <= 0:
-            # Outlet has crossed ambient: td_log undefined (log of negative).
-            # Replace with ttd_2 directly: signs ensure the residual is never
-            # zero (Q and kA·ttd_2 have the same sign when invalid), and
-            # continuity holds because td_log -> 0 as ttd_2 -> 0 from the valid
-            # side, so both branches give Q at the boundary.
-            return Q + self.kA.val_SI * ttd_2
-        return Q + self.kA.val_SI * self._calculate_td_log()
-
-    def kA_group_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-            self.kA
-        ]
-
-    def kA_char_group_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA_{design} \cdot f_{kA} \cdot \Delta T_{log}
-
-                \Delta T_{log} = \begin{cases}
-                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
-                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
-                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
-                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
-                0 & T_{in} = T_{out}
-                \end{cases}
-
-                f_{kA} = \frac{2}{1 + \frac{1}{f\left( expr\right)}}
-
-                T_{amb}: \text{ambient temperature}
-
-        Note
-        ----
-        For standard function of f\ :subscript:`kA` \ see module
-        :ref:`tespy.data <data_label>`.
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        p = self.kA_char.param
-
-        expr = self.get_char_expr(p, **self.kA_char.char_params)
-        fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
-
-        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-        if ttd_1 * ttd_2 <= 0:
-            return Q + self.kA.design * fkA * ttd_2
-        return Q + self.kA.design * fkA * self._calculate_td_log()
-
-    def kA_char_group_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-        ]
-
     def UA_group_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient.
@@ -953,6 +854,7 @@ class SimpleHeatExchanger(Component):
             return
         self.UA.is_result = self.Tamb.is_set
         self.kA.is_result = self.Tamb.is_set
+        self.lmtd.is_result = self.Tamb.is_set
 
     def entropy_balance(self):
         r"""

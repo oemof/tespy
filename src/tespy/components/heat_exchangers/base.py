@@ -49,8 +49,8 @@ class HeatExchanger(Component):
     **Optional Equations**
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
@@ -164,6 +164,10 @@ class HeatExchanger(Component):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for cold side heat transfer coefficient.
 
+    lmtd : float
+        Effective logarithmic mean temperature difference :math:`lmtd/\text{K}`,
+        defined as :math:`|\dot{Q}|/UA`.
+
     Note
     ----
     The HeatExchanger and subclasses (
@@ -239,6 +243,7 @@ class HeatExchanger(Component):
         'kA_char2': 'UA_char2',
         'zeta1': 'zeta1_d4',
         'zeta2': 'zeta2_d4',
+        'td_log': 'lmtd',
     }
 
     def get_parameters(self):
@@ -258,18 +263,23 @@ class HeatExchanger(Component):
                 deriv=self.UA_deriv,
                 quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering terminal temperature differences",
-                calc=self._calc_UA, calc_deps=['Q', 'td_log']
+                calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
             'kA': dc_cp(
                 min_val=0, is_result=True,
                 quantity="heat_transfer_coefficient",
                 description="deprecated, use :code:`UA` instead",
-                calc=self._calc_kA, calc_deps=['Q', 'td_log']
+                calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
             'td_log': dc_cp(
                 min_val=0, is_result=True, quantity="temperature_difference",
-                description="logarithmic temperature difference",
-                calc=self._calc_td_log, calc_deps=['ttd_u', 'ttd_l']
+                description="deprecated, use :code:`lmtd` instead",
+                calc=self._calc_lmtd, calc_deps=['lmtd']
+            ),
+            'lmtd': dc_cp(
+                min_val=0, is_result=True, quantity="temperature_difference",
+                description="effective logarithmic mean temperature difference |Q|/UA",
+                calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
             'ttd_u': dc_cp(
                 min_val=0, num_eq_sets=1,
@@ -530,10 +540,10 @@ class HeatExchanger(Component):
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
     def _calc_UA(self):
-        return -self.Q.val_SI / self.td_log.val_SI
+        return -self.Q.val_SI / self._calc_td_log()
 
-    def _calc_kA(self):
-        return -self.Q.val_SI / self.td_log.val_SI
+    def _calc_lmtd(self):
+        return abs(self.Q.val_SI) / self.UA.val_SI
 
     def _calc_eff_hot(self):
         try:
@@ -585,119 +595,6 @@ class HeatExchanger(Component):
         if round(ttd_u, 6) == round(ttd_l, 6):
             return ttd_l
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
-
-    def kA_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
-                kA \cdot \frac{T_{out,1} -
-                T_{in,2} - T_{in,1} + T_{out,2}}
-                {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
-        """
-        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.kA.val_SI * self.calculate_td_log()
-
-    def kA_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Partial derivatives of heat transfer coefficient function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        dependents = dependents["scalars"][0]
-        f = self.kA_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-
-        for var in dependents.difference(_get_dependents([i.m])[0]):
-            self._partial_derivative(var, k, f, increment_filter)
-
-    def kA_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-            self.inl[1].p,
-            self.inl[1].h,
-            self.outl[1].p,
-            self.outl[1].h,
-        ]
-
-    def kA_char_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-            .. math::
-
-                0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
-                kA_{design} \cdot f_{kA} \cdot \frac{T_{out,1} -
-                T_{in,2} - T_{in,1} + T_{out,2}}
-                {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
-
-                f_{kA} = \frac{2}{\frac{1}{f_1\left( expr_1\right)} +
-                \frac{1}{f_2\left( expr_2\right)}}
-
-        Note
-        ----
-        For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :ref:`tespy.data <data_label>`.
-        """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
-        if self.local_offdesign:
-            design_value = self._connection_offdesign[self.inl[0].label][p1]
-            actual_value = getattr(self.inl[0], p1).val_SI
-            f1 = actual_value / design_value
-
-            design_value = self._connection_offdesign[self.inl[1].label][p2]
-            actual_value = getattr(self.inl[1], p2).val_SI
-            f2 = actual_value / design_value
-        else:
-            f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
-            f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
-
-        fkA1 = self.kA_char1.char_func.evaluate(f1)
-        fkA2 = self.kA_char2.char_func.evaluate(f2)
-        fkA = 2 / (1 / fkA1 + 1 / fkA2)
-
-        Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.kA.design * fkA * self.calculate_td_log()
-
-    def kA_char_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-            self.inl[1].m,
-            self.inl[1].p,
-            self.inl[1].h,
-            self.outl[1].p,
-            self.outl[1].h,
-        ]
 
     def UA_func(self):
         r"""

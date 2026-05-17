@@ -43,8 +43,8 @@ class Condenser(HeatExchanger):
     calculation of the logarithmic temperature difference
 
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_func`
+    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
     - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
@@ -146,17 +146,17 @@ class Condenser(HeatExchanger):
         Max value of hot and cold side heat exchanger effectiveness values
         :math:`eff_\text{max}/\text{1}`.
 
-    kA : float, dict
+    UA : float, dict
         Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+        :math:`UA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.data_containers.SimpleDataContainer
+    UA_char : tespy.tools.data_containers.SimpleDataContainer
         Area independent heat transfer coefficient characteristic.
 
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for hot side heat transfer coefficient.
 
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
         Characteristic line for cold side heat transfer coefficient.
 
     subcooling : boolean
@@ -295,7 +295,7 @@ class Condenser(HeatExchanger):
             return ttd_l
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
-    def kA_char_func(self):
+    def UA_char_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
 
@@ -307,12 +307,12 @@ class Condenser(HeatExchanger):
             .. math::
 
                 0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
-                kA_{design} \cdot f_{kA} \cdot \frac{T_{out,1} -
+                UA_{design} \cdot f_{UA} \cdot \frac{T_{out,1} -
                 T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}
                 {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
 
-                f_{kA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
+                f_{UA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
                 \frac{1}{f_2 \left( expr_2\right)}}
 
         Note
@@ -320,7 +320,7 @@ class Condenser(HeatExchanger):
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
         module :ref:`tespy.data <data_label>`.
         """
-        return super().kA_char_func()
+        return super().UA_char_func()
 
     def ttd_u_func(self):
         r"""

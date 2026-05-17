@@ -209,13 +209,13 @@ class Component:
     def _set_parameter(self, key, value):
         try:
             self.parameters[key].accept(value)
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             msg = (
-                f"Bad datatype for keyword argument '{key}' on "
+                f"Bad value for keyword argument '{key}' on "
                 f"component {self.label}: {e}"
             )
             logger.error(msg)
-            raise TypeError(msg) from e
+            raise type(e)(msg) from e
 
     def _set_design_list(self, key, value):
         if not isinstance(value, list):

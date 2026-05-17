@@ -173,7 +173,7 @@ class FuelCell(Component):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                max_val=0, quantity="power", _potential_var=True,
+                max_val=0, quantity="power", _allows_var=True,
                 description="power output of the fuel cell"
             ),
             'Q': dc_cp(
@@ -215,7 +215,7 @@ class FuelCell(Component):
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
                 quantity="specific_energy",
-                _potential_var=True,
+                _allows_var=True,
                 description="equation for specified specific energy consumption of the fuel cell",
                 calc=self._calc_e
             ),

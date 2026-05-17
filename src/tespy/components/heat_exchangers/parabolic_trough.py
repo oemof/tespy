@@ -228,11 +228,11 @@ class ParabolicTrough(SimpleHeatExchanger):
 
         data.update({
             'E': dc_cp(
-                min_val=0, quantity="heat", _potential_var=True,
+                min_val=0, quantity="heat", _allows_var=True,
                 description="solar irradiation to the parabolic trough"
             ),
             'A': dc_cp(
-                min_val=0, quantity="area", _potential_var=True,
+                min_val=0, quantity="area", _allows_var=True,
                 description="area of the parabolic trough"
             ),
             'eta_opt': dc_cp(

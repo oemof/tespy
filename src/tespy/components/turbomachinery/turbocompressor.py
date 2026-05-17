@@ -178,7 +178,7 @@ class TurboCompressor(Compressor):
         parameters.update({
             'igva': dc_cp(
                 min_val=-90, max_val=90, val=0, quantity="angle",
-                description="inlet guide vane angle", _potential_var=True
+                description="inlet guide vane angle", _allows_var=True
             ),
             'char_map_eta_s': dc_cm(
                 description="2D lookup table for efficiency over non-dimensional mass flow and speed line"

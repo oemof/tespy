@@ -108,7 +108,7 @@ def collect_component_parameters(instance):
         eq_reference = _get_eq_reference(value)
 
         if isinstance(value, dc_cp):
-            if value._potential_var:
+            if value._allows_var:
                 key = key + " [1]_"
             parameters_with_equation[key] = {
                 "eq_reference": eq_reference,

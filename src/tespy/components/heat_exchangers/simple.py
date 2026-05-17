@@ -294,27 +294,27 @@ class SimpleHeatExchanger(Component):
             'D': dc_cp(
                 min_val=1e-2, max_val=2, d=1e-5, quantity="length",
                 description="diameter of channel",
-                _potential_var=True
+                _allows_var=True
             ),
             'L': dc_cp(
                 min_val=1e-1, quantity="length",
                 description="length of channel",
-                _potential_var=True
+                _allows_var=True
             ),
             'ks': dc_cp(
                 _val=1e-4, min_val=1e-7, max_val=1e-3,
                 quantity="length", description="roughness of wall material",
-                _potential_var=True
+                _allows_var=True
             ),
             'ks_HW': dc_cp(
                 _val=10, min_val=1e-1, max_val=1e3,
                 description="Hazen-Williams roughness",
-                _potential_var=True
+                _allows_var=True
             ),
             'kA': dc_cp(
                 min_val=0, quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering ambient temperature",
-                _potential_var=True,
+                _allows_var=True,
                 calc=self._calc_kA, calc_deps=['Q']
             ),
             'kA_char': dc_cc(

@@ -405,7 +405,7 @@ class Pump(Turbomachine):
             ),
             "frequency": dc_cp(
                 min_val=0, max_val=10000,
-                _potential_var=True,
+                _allows_var=True,
                 quantity="frequency",
                 description="frequency of the pump"
             ),

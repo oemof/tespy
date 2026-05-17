@@ -201,7 +201,7 @@ class WaterElectrolyzer(Component):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                min_val=0, quantity="power", _potential_var=True,
+                min_val=0, quantity="power", _allows_var=True,
                 description="power consumption of the electrolyzer"
             ),
             'Q': dc_cp(
@@ -243,7 +243,7 @@ class WaterElectrolyzer(Component):
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
                 quantity="specific_energy",
-                _potential_var=True,
+                _allows_var=True,
                 description="equation for specified specific energy consumption of the electrolyzer",
                 calc=self._calc_e
             ),

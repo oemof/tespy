@@ -240,7 +240,7 @@ class Valve(Component):
             'opening': dc_cp(
                 # opening can be more than 100 % sometimes
                 min_val=0, max_val=1.1,
-                _potential_var=True,
+                _allows_var=True,
                 description="opening ratio of the valve",
                 quantity="ratio"
             ),

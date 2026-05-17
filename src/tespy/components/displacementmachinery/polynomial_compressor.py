@@ -399,12 +399,12 @@ class PolynomialCompressor(DisplacementMachine):
                 description="heat dissipation ratio relative to power consumption"
             ),
             "frequency": dc_cp(
-                min_val=0, max_val=10000, is_result=True, _potential_var=True,
+                min_val=0, max_val=10000, is_result=True, _allows_var=True,
                 quantity="frequency",
                 description="compressor frequency"
             ),
             "rpm": dc_cp(
-                min_val=0, is_result=True, _potential_var=True,
+                min_val=0, is_result=True, _allows_var=True,
                 description="compressor frequency"
             ),
             "reference_state": dc_simple(

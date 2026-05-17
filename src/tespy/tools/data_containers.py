@@ -748,12 +748,22 @@ class FluidProperties(_NumEqMixin, DataContainer):
 
 class ComponentProperties(FluidProperties):
 
+    @staticmethod
+    def attr():
+        attrs = FluidProperties.attr()
+        attrs["_allows_var"] = False
+        return attrs
+
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit", "is_var"]
         return {k: getattr(self, k) for k in keys}
 
     def accept(self, value):
         if value == "var":
+            if not self._allows_var:
+                raise ValueError(
+                    "This parameter cannot be made a system variable."
+                )
             self.is_set = True
             self.is_var = True
         else:

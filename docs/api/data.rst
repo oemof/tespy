@@ -305,36 +305,6 @@ Characteristic lines
 Characteristic maps
 ^^^^^^^^^^^^^^^^^^^
 
-**Compressor**
-
-.. figure:: /api/_images/characteristics/Compressor_char_map_pr_DEFAULT.svg
-    :alt: Characteristic map "DEFAULT" for parameter "char_map_pr".
-    :align: center
-    :figclass: only-light
-
-    Reference: :cite:`Plis2016`.
-
-.. figure:: /api/_images/characteristics/Compressor_char_map_pr_DEFAULT_darkmode.svg
-    :alt: Characteristic map "DEFAULT" for parameter "char_map_pr".
-    :align: center
-    :figclass: only-dark
-
-    Reference: :cite:`Plis2016`.
-
-.. figure:: /api/_images/characteristics/Compressor_char_map_eta_s_DEFAULT.svg
-    :alt: Characteristic map "DEFAULT" for parameter "char_map_eta_s".
-    :align: center
-    :figclass: only-light
-
-    Reference: :cite:`Plis2016`.
-
-.. figure:: /api/_images/characteristics/Compressor_char_map_eta_s_DEFAULT_darkmode.svg
-    :alt: Characteristic map "DEFAULT" for parameter "char_map_eta_s".
-    :align: center
-    :figclass: only-dark
-
-    Reference: :cite:`Plis2016`.
-
 **TurboCompressor**
 
 .. figure:: /api/_images/characteristics/TurboCompressor_char_map_pr_DEFAULT.svg

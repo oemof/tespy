@@ -149,21 +149,6 @@ class Compressor(Turbomachine):
     >>> round(comp.eta_s.val, 2)
     0.79
     """
-
-    def _preprocess(self, row_idx):
-        if self.char_map_pr.is_set or self.char_map_eta_s.is_set or self.igva.is_set:
-            msg = (
-                "The scope of the component 'Compressor' will change in the "
-                "next major release. The availability of the compressor maps "
-                "in context of offdesign simulations has moved to the new "
-                "component 'TurboCompressor'. If you want to make use of "
-                "these parameters, please use that component class instead."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-
-        return super()._preprocess(row_idx)
-
     @staticmethod
     def powerinlets():
         return ["power"]
@@ -204,25 +189,6 @@ class Compressor(Turbomachine):
                 min_val=-90, max_val=90, val=0, quantity="angle",
                 description="inlet guide vane angle", _allows_var=True
             ),
-            'char_map_eta_s': dc_cm(
-                description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
-            ),
-            'char_map_eta_s_group': dc_gcp(
-                elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
-                func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents,
-                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
-            ),
-            'char_map_pr': dc_cm(
-                description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
-            ),
-            'char_map_pr_group': dc_gcp(
-                elements=['char_map_pr', 'igva'],
-                num_eq_sets=1,
-                func=self.char_map_pr_func,
-                dependents=self.char_map_dependents,
-                description="map for pressure ratio over speedlines and non-dimensional mass flow"
-            )
         })
         return parameters
 
@@ -363,110 +329,6 @@ class Compressor(Turbomachine):
             self.outl[0].h,
         ]
 
-    def char_map_pr_func(self):
-
-        r"""
-        Calculate pressure ratio from characteristic map.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equations.
-
-        Note
-        ----
-        - X: speedline index (rotational speed is constant)
-        - Y: nondimensional mass flow
-        - igva: variable inlet guide vane angle for value manipulation
-          according to :cite:`GasTurb2018`.
-
-        .. math::
-
-            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
-            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
-            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
-            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            0 = \frac{p_{out} \cdot p_{in,design}}
-            {p_\text{in} \cdot p_\text{out,design}}-
-            f\left(Y,\vec{Y},\vec{Z}\right)
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
-
-        yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
-        # value manipulation with igva
-        yarr *= (1 - self.igva.val_SI / 100)
-        zarr *= (1 - self.igva.val_SI / 100)
-        pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
-
-        return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
-
-    def char_map_eta_s_func(self):
-        r"""
-        Calculate isentropic efficiency from characteristic map.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-        Note
-        ----
-        - X: speedline index (rotational speed is constant)
-        - Y: nondimensional mass flow
-        - igva: variable inlet guide vane angle for value manipulation
-          according to :cite:`GasTurb2018`.
-
-        .. math::
-
-            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
-            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
-            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}\\
-            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
-            0 = \frac{\eta_\text{s}}{\eta_\text{s,design}} -
-            f\left(Y,\vec{Y},\vec{Z}\right)
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
-
-        yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
-        # value manipulation with igva
-        yarr *= (1 - self.igva.val_SI / 100)
-        zarr *= (1 - self.igva.val_SI ** 2 / 10000)
-        eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
-
-        return (
-            (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - i.h.val_SI)
-            / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
-        )
-
-    def char_map_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-            self.igva
-        ]
-
     def convergence_check(self):
         r"""
         Perform a convergence check.
@@ -576,18 +438,3 @@ class Compressor(Turbomachine):
                 T0=i.T.val_SI, T0_out=o.T.val_SI
             ) - i.h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
-
-    def check_parameter_bounds(self):
-        r"""Check parameter value limits."""
-        _no_limit_violations = super().check_parameter_bounds()
-
-        for data in [self.char_map_pr, self.char_map_eta_s]:
-            if data.is_set:
-                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
-                y = (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p')) / (
-                    self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
-                yarr = data.char_func.get_domain_errors_x(x, self.label)
-                yarr *= (1 - self.igva.val_SI / 100)
-                data.char_func.get_domain_errors_y(y, yarr, self.label)
-
-        return _no_limit_violations

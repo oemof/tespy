@@ -667,11 +667,11 @@ class TestNetworkIndividualOffdesign:
         )
         self.sc1.set_attr(
             pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
         )
         self.sc2.set_attr(
             pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
         )
 
         fl = {'H2O': 1}
@@ -703,7 +703,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design1 = self.nw.save(as_dict=True)
         v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
+        zeta_sc1_design = self.sc1.zeta_d4.val
 
         self.sc2_v2.set_attr(T=95, state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
@@ -711,7 +711,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design2 = self.nw.save(as_dict=True)
         v2_design = self.sc2_v2.v.val_SI
-        zeta_sc2_design = self.sc2.zeta.val
+        zeta_sc2_design = self.sc2.zeta_d4.val
 
         self.sc1_v1.set_attr(m=None)
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -751,14 +751,14 @@ class TestNetworkIndividualOffdesign:
 
         # zeta value of solar collector comparison
         msg = (
-            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
+            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta_d4.val}."
         )
-        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
+        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta_d4.val, 0), msg
 
         msg = (
-            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
+            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta_d4.val}."
         )
-        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
+        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta_d4.val, 0), msg
 
     def test_local_offdesign_on_connections_and_components(self):
         """Test local offdesign feature."""

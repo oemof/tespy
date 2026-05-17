@@ -60,11 +60,13 @@ def _get_eq_reference(datacontainer):
 def _collect_constraints(instance):
     """Return (unconditional, conditional) constraint dicts.
 
-    Conditional constraints are those that only appear when a power connector
-    is attached (i.e. power_inl / power_outl is non-empty).
+    Conditional constraints are those that only appear when an energy connector
+    (power or heat) is attached.
     """
     instance.power_outl = []
     instance.power_inl = []
+    instance.heat_outl = []
+    instance.heat_inl = []
     base = instance.get_mandatory_constraints()
 
     # A single sentinel object is enough — get_mandatory_constraints() only
@@ -72,11 +74,15 @@ def _collect_constraints(instance):
     _sentinel = [object()]
     instance.power_outl = _sentinel
     instance.power_inl = _sentinel
+    instance.heat_outl = _sentinel
+    instance.heat_inl = _sentinel
     with_power = instance.get_mandatory_constraints()
 
     # Restore to empty so the instance is left in a neutral state.
     instance.power_outl = []
     instance.power_inl = []
+    instance.heat_outl = []
+    instance.heat_inl = []
 
     unconditional = {}
     conditional = {}
@@ -200,12 +206,12 @@ def create_tabular_component_views():
         modules[parent_module][cls_name] = _indent_block("\n", 4)
         modules[parent_module][cls_name] += _indent_block(f".. dropdown:: {cls_name}" + "\n" * 2, 8)
         modules[parent_module][cls_name] += _indent_block(
-            f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`", 8
+            f"**Class documentation and example:** :py:class:`{cls_name} <{cls_module}.{cls_name}>`", 8
         )
 
         outputs = {
             "Table of constraints": constraints,
-            "Table of constraints (active when power connector is attached)": conditional_constraints,
+            "Table of constraints (active when energy connector is attached)": conditional_constraints,
             "Table of parameters": parameters,
             "Table of parameter groups": parameter_groups,
             "Table of characteristic lines and maps": characteristic_lines,
@@ -267,7 +273,7 @@ def create_tabular_connection_views():
         parameters = collect_connection_parameters(instance)
 
         classes[cls_name] = "\n"
-        classes[cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
+        classes[cls_name] += (f"**Class documentation and example:** :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
 
         outputs = {
             "Table of parameters": parameters

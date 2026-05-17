@@ -843,16 +843,16 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
 
     c1.set_attr(fluid={"H2O": 1}, T=30, p=1)
     c2.set_attr(T=19.5)
-    instance.set_attr(Tamb=20, kA=500, pr=1)
+    instance.set_attr(Tamb=20, UA=500, pr=1)
     nw.solve("design")
 
     assert nw.residual < 1e-3  # residual shows convergence
     assert nw.status == 2  # status shows non-convergence
 
-    assert np.isnan(instance.kA.val_SI)  # calculated SI value is not equal to inputted value
-    assert instance.kA.val == 500  # inputted value stays the same
+    assert np.isnan(instance.UA.val_SI)  # calculated SI value is not equal to inputted value
+    assert instance.UA.val == 500  # inputted value stays the same
 
-    # recalculation works, because old kA input is correctly retained
+    # recalculation works, because old UA input is correctly retained
     c2.set_attr(T=20.2)
     nw.solve("design")
     assert nw.status == 0

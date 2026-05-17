@@ -143,7 +143,7 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.array([
             0.0100, 0.0400, 0.0700, 0.1100, 0.1500, 0.2000, 0.2500, 0.3000,
@@ -156,28 +156,28 @@ class TestHeatPump:
             0.7942, 0.9400, 0.9883, 0.9913, 0.9936, 0.9953, 0.9966, 0.9975,
             0.9983, 0.9988, 0.9992, 0.9996, 0.9998, 1.0000, 1.0008, 1.0014
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
-            kA_char1=kA_char1, kA_char2=kA_char2
+            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['UA_char'],
+            UA_char1=UA_char1, UA_char2=UA_char2
         )
 
-        # no kA modification for hot side!
+        # no UA modification for hot side!
         x = np.array([0, 1])
         y = np.array([1, 1])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
-        # characteristic line for superheater kA
+        # characteristic line for superheater UA
         x = np.array([
             0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2
         ])
         y = np.array([
             0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         su.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1_d4', 'zeta2_d4', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2,
+            offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
         )
 
         x = np.array([
@@ -208,7 +208,7 @@ class TestHeatPump:
             eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
         )
 
-        # characteristic line for intercooler kA
+        # characteristic line for intercooler UA
         x = np.linspace(0, 2.5, 26)
         y = np.array([
             0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
@@ -216,7 +216,7 @@ class TestHeatPump:
             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
             1.7058, 1.7488
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
         y = np.array([
@@ -224,14 +224,14 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         he.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1_d4', 'zeta2_d4', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2,
+            offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
         )
 
-        # characteristic line for condenser kA
+        # characteristic line for condenser UA
         x = np.linspace(0, 2.5, 26)
         y = np.array([
             0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
@@ -239,7 +239,7 @@ class TestHeatPump:
             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
             1.7058, 1.7488
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
         y = np.array([
@@ -247,11 +247,11 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         cd.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
-            design=['pr2'], offdesign=['zeta2_d4', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2, pr2=0.9998,
+            design=['pr2'], offdesign=['zeta2_d4', 'UA_char']
         )
 
         # condenser system

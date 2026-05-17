@@ -316,12 +316,12 @@ The heat transfer coefficient is calculated in the preprocessing of the
 offdesign case based on the results from the design-case. Of course, this
 applies to all other parameters in the same way. Also, the pressure drop is a
 result of the geometry for the offdesign case, thus we swap the pressure ratios
-with zeta values.
+with geometry independent zeta :math:`\frac{\zeta}{D^4}` values.
 
 .. code-block:: python
 
     mycomponent.set_attr(
-        design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2']
+        design=['ttd_u', 'pr1', 'pr2'], offdesign=['UA', 'zeta1_d4', 'zeta2_d4']
     )
 
 .. note::

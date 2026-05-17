@@ -140,17 +140,17 @@ different tespy classes required.
     >>> # %% component parameters
     >>> sg.get_comp('economizer').set_attr(
     ...     pr1=0.999,  pr2=0.97, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ...     offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
     ... )
 
     >>> sg.get_comp('evaporator').set_attr(
     ...     pr1=0.999, ttd_l=20, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA_char']
+    ...     offdesign=['zeta1_d4', 'UA_char']
     ... )
 
     >>> sg.get_comp('superheater').set_attr(
     ...     pr1=0.999,  pr2=0.99, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ...     offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
     ... )
 
     >>> sg.get_conn('2').set_attr(td_bubble=5, design=['td_bubble'])

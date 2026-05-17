@@ -84,7 +84,7 @@ In the second step we can fix the diameter to its resulting value and
 therefore unset the desired pressure loss first. Then, we set the ambient
 temperature of the pipes (we assume the temperature of the ambient is not
 affected by the heat loss of the pipe). With the given heat loss, the
-:code:`kA` value can be calculated. It is the area independent heat transfer
+:code:`UA` value can be calculated. It is the area independent heat transfer
 coefficient.
 
 .. literalinclude:: /../tutorial/basics/district_heating.py
@@ -107,7 +107,7 @@ Next, we want to investigate what happens, in case the
 - overall temperature level in the heating system is reduced.
 
 To do that, we will use similar setups as show in the Rankine cycle
-introduction. The :code:`kA` value of both pipes is assumed to be fixed, the
+introduction. The :code:`UA` value of both pipes is assumed to be fixed, the
 efficiency of the pump and pressure losses in consumer and heat source are
 constant as well.
 

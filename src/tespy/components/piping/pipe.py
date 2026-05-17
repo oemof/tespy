@@ -39,7 +39,7 @@ class Pipe(SimpleHeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -101,7 +101,7 @@ class Pipe(SimpleHeatExchanger):
     pr : float, dict
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : float, dict
+    zeta_d4 : float, dict
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

@@ -112,11 +112,11 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Inlet to outlet pressure delta at cold side, unit is the network's
         pressure unit!.
 
-    zeta1 : float, dict, :code:`"var"`
+    zeta1_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict, :code:`"var"`
+    zeta2_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 

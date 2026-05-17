@@ -38,7 +38,7 @@ class ParallelFlowHeatExchanger(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
 
     Inlets/Outlets
 
@@ -98,11 +98,11 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     dp2 : float, dict
         Inlet to outlet pressure delta at cold side, :math:`dp\text{Pa}`.
 
-    zeta1 : float, dict
+    zeta1_d4 : float, dict
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict
+    zeta2_d4 : float, dict
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -197,13 +197,13 @@ class ParallelFlowHeatExchanger(HeatExchanger):
 
     Now, it might be interesting to see what happens under different operation
     conditions after we have designed the system. For that, we can assume that
-    the heat transfer coefficient is constant. First we just fix the :code:`kA`
+    the heat transfer coefficient is constant. First we just fix the :code:`UA`
     value instead of the final pinch and then resolve again.
 
-    >>> he.set_attr(design=["ttd_u"], offdesign=["kA"])
+    >>> he.set_attr(design=["ttd_u"], offdesign=["UA"])
     >>> design_state = nw.save(as_dict=True)
     >>> nw.solve("offdesign", design_path=design_state)
-    >>> round(he.kA.val_SI / he.kA.design, 1)
+    >>> round(he.UA.val_SI / he.UA.design, 1)
     1.0
 
     Now, let's see what happens under different operating conditions. First

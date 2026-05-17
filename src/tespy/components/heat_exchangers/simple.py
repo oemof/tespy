@@ -51,7 +51,7 @@ class SimpleHeatExchanger(Component):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -107,7 +107,7 @@ class SimpleHeatExchanger(Component):
     pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : float, dict, :code:`"var"`
+    zeta_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -131,19 +131,19 @@ class SimpleHeatExchanger(Component):
         Parametergroup for pressure drop calculation based on pipes dimensions
         using hazen williams equation.
 
-    kA : float, dict, :code:`"var"`
+    UA : float, dict, :code:`"var"`
         Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+        :math:`UA/\frac{\text{W}}{\text{K}}`.
 
-    kA_char : tespy.tools.characteristics.CharLine, dict
+    UA_char : tespy.tools.characteristics.CharLine, dict
         Characteristic line for heat transfer coefficient.
 
     Tamb : float, dict
         Ambient temperature, provide parameter in network's temperature unit.
 
-    kA_group : str, dict
+    UA_group : str, dict
         Parametergroup for heat transfer calculation from ambient temperature
-        and area independent heat transfer coefficient kA.
+        and area independent heat transfer coefficient UA.
 
     Example
     -------
@@ -166,7 +166,7 @@ class SimpleHeatExchanger(Component):
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
-    ... offdesign=['zeta', 'kA_char'])
+    ... offdesign=['zeta_d4', 'UA_char'])
     >>> inc = Connection(so1, 'out1', heat_sink, 'in1')
     >>> outg = Connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -222,6 +222,14 @@ class SimpleHeatExchanger(Component):
     True
     """
 
+    _parameter_aliases = {
+        'kA': 'UA',
+        'kA_char': 'UA_char',
+        'kA_group': 'UA_group',
+        'kA_char_group': 'UA_char_group',
+        'zeta': 'zeta_d4',
+    }
+
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
@@ -246,6 +254,15 @@ class SimpleHeatExchanger(Component):
 
     def _calc_Q(self):
         return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_UA(self):
+        if not self.Tamb.is_set:
+            return np.nan
+        ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
+        ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
+        if ttd_1 / ttd_2 < 0:
+            return np.nan
+        return abs(self.Q.val_SI / self._calculate_td_log())
 
     def _calc_kA(self):
         if not self.Tamb.is_set:
@@ -283,13 +300,18 @@ class SimpleHeatExchanger(Component):
                 description="inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta': dc_cp(
+            'zeta_d4': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.zeta_func,
-                dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'},
-                description="non-dimensional friction coefficient for pressure loss calculation",
-                calc=self._calc_zeta
+                func=self.zeta_d4_func,
+                dependents=self.zeta_d4_dependents,
+                func_params={'zeta': 'zeta_d4'},
+                description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
             ),
             'D': dc_cp(
                 min_val=1e-2, max_val=2, d=1e-5, quantity="length",
@@ -311,15 +333,25 @@ class SimpleHeatExchanger(Component):
                 description="Hazen-Williams roughness",
                 _potential_var=True
             ),
-            'kA': dc_cp(
+            'UA': dc_cp(
                 min_val=0, quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering ambient temperature",
                 _potential_var=True,
+                calc=self._calc_UA, calc_deps=['Q']
+            ),
+            'kA': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient",
+                description="deprecated, use :code:`UA` instead",
+                _potential_var=True,
                 calc=self._calc_kA, calc_deps=['Q']
+            ),
+            'UA_char': dc_cc(
+                param='m',
+                description="heat transfer coefficient lookup table for offdesign"
             ),
             'kA_char': dc_cc(
                 param='m',
-                description="heat transfer coefficient lookup table for offdesign"
+                description="deprecated, use :code:`UA_char` instead"
             ),
             'Tamb': dc_cp(
                 quantity="temperature",
@@ -338,17 +370,25 @@ class SimpleHeatExchanger(Component):
                 dependents=self.hazen_williams_dependents,
                 description="Hazen-Williams equation for pressure loss"
             ),
-            'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'], num_eq_sets=1,
-                func=self.kA_group_func,
-                dependents=self.kA_group_dependents,
+            'UA_group': dc_gcp(
+                elements=['UA', 'Tamb'], num_eq_sets=1,
+                func=self.UA_group_func,
+                dependents=self.UA_group_dependents,
                 description="equation for heat transfer based on ambient temperature and heat transfer coefficient"
             ),
-            'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'], num_eq_sets=1,
-                func=self.kA_char_group_func,
-                dependents=self.kA_char_group_dependents,
+            'kA_group': dc_gcp(
+                elements=['kA', 'Tamb'],
+                description="deprecated, use :code:`UA_group` instead"
+            ),
+            'UA_char_group': dc_gcp(
+                elements=['UA_char', 'Tamb'], num_eq_sets=1,
+                func=self.UA_char_group_func,
+                dependents=self.UA_char_group_dependents,
                 description="heat transfer from design heat transfer coefficient, modifier lookup table and ambient temperature"
+            ),
+            'kA_char_group': dc_gcp(
+                elements=['kA_char', 'Tamb'],
+                description="deprecated, use :code:`UA_char_group` instead"
             )
         }
 
@@ -732,8 +772,78 @@ class SimpleHeatExchanger(Component):
             self.outl[0].h,
         ]
 
+    def UA_group_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
+                UA \cdot \Delta T_{log}
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            return Q + self.UA.val_SI * ttd_2
+        return Q + self.UA.val_SI * self._calculate_td_log()
+
+    def UA_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.UA
+        ]
+
+    def UA_char_group_func(self):
+        r"""
+        Calculate heat transfer from heat transfer coefficient characteristic.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
+                UA_{design} \cdot f_{UA} \cdot \Delta T_{log}
+        """
+        i = self.inl[0]
+        o = self.outl[0]
+        p = self.UA_char.param
+
+        expr = self.get_char_expr(p, **self.UA_char.char_params)
+        fkA = 2 / (1 + 1 / self.UA_char.char_func.evaluate(expr))
+
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            return Q + self.UA.design * fkA * ttd_2
+        return Q + self.UA.design * fkA * self._calculate_td_log()
+
+    def UA_char_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
+
     def convergence_check(self):
-        if self.kA_group.is_set:
+        if self.UA_group.is_set:
             i = self.inl[0]
             o = self.outl[0]
             T_in = i.calc_T()
@@ -839,8 +949,9 @@ class SimpleHeatExchanger(Component):
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
         super().calc_parameters()
-        if "kA" not in self.parameters:
+        if "UA" not in self.parameters:
             return
+        self.UA.is_result = self.Tamb.is_set
         self.kA.is_result = self.Tamb.is_set
 
     def entropy_balance(self):

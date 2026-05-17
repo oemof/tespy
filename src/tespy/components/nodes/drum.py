@@ -129,9 +129,9 @@ class Drum(DropletSeparator):
 
     >>> char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
     >>> char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
-    ...     kA_char2=char2, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA_char']
+    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, UA_char1=char1,
+    ...     UA_char2=char2, design=['pr1', 'ttd_l'],
+    ...     offdesign=['zeta1_d4', 'UA_char']
     ... )
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)

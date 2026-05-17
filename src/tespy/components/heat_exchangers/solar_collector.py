@@ -31,7 +31,7 @@ class SolarCollector(SimpleHeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
     - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
@@ -86,7 +86,7 @@ class SolarCollector(SimpleHeatExchanger):
     pr : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio, :math:`pr/1`.
 
-    zeta : float, dict, :code:`"var"`
+    zeta_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -154,7 +154,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> sc = SolarCollector('solar collector')
-    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta'],
+    >>> sc.set_attr(pr=0.95, Q=1e4, design=['pr', 'Q'], offdesign=['zeta_d4'],
     ...     Tamb=25, A='var', eta_opt=0.92, lkf_lin=1, lkf_quad=0.005, E=8e2)
     >>> inc = Connection(so, 'out1', sc, 'in1')
     >>> outg = Connection(sc, 'out1', si, 'in1')
@@ -183,8 +183,9 @@ class SolarCollector(SimpleHeatExchanger):
 
     def get_parameters(self):
         data = super().get_parameters()
-        for k in ["kA_group", "kA_char_group", "kA", "kA_char"]:
-            del data[k]
+        for k in ["UA_group", "UA_char_group", "UA", "UA_char",
+                   "kA_group", "kA_char_group", "kA", "kA_char"]:
+            data.pop(k, None)
 
         data.update({
             'E': dc_cp(

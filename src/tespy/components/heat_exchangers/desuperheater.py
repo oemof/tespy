@@ -47,7 +47,7 @@ class Desuperheater(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
 
     Inlets/Outlets
 
@@ -101,11 +101,11 @@ class Desuperheater(HeatExchanger):
     pr2 : float, dict, :code:`"var"`
         Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
 
-    zeta1 : float, dict, :code:`"var"`
+    zeta1_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict, :code:`"var"`
+    zeta2_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -163,7 +163,7 @@ class Desuperheater(HeatExchanger):
 
     >>> desu.set_attr(
     ...     pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ...     offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
     ... )
     >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)

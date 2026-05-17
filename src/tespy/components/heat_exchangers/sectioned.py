@@ -121,11 +121,11 @@ class SectionedHeatExchanger(HeatExchanger):
         Inlet to outlet pressure delta at cold side, unit is the network's
         pressure unit!.
 
-    zeta1 : float, dict, :code:`"var"`
+    zeta1_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict, :code:`"var"`
+    zeta2_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -412,12 +412,12 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(c2.T.val, 1)
     30.0
 
-    **Stage 2: Offdesign analysis with kA_char characteristic scaling**
+    **Stage 2: Offdesign analysis with UA_char characteristic scaling**
 
     Now we activate characteristic line-based scaling. Load the default
     characteristic line for heat exchangers:
 
-    >>> kA_char = load_default_char(
+    >>> UA_char = load_default_char(
     ...     "HeatExchanger", "kA_char1", "DEFAULT", CharLine
     ... )
 
@@ -425,8 +425,8 @@ class SectionedHeatExchanger(HeatExchanger):
     offdesign operation:
 
     >>> hx.set_attr(
-    ...     kA_char1=kA_char,
-    ...     kA_char2=kA_char,
+    ...     UA_char1=UA_char,
+    ...     UA_char2=UA_char,
     ...     design=['td_pinch'],
     ...     offdesign=['UA_char']
     ... )
@@ -461,14 +461,20 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(hx.td_pinch.val, 1)
     15.3
 
-    The :code:`kA_char` parameter allows automatic part-load scaling of UA,
+    The :code:`UA_char` parameter allows automatic part-load scaling of UA,
     following the same principle as the standard HeatExchanger component
-    (:py:class:`tespy.components.heat_exchangers.base.HeatExchanger`). The
-    difference to the :code:`UA_char` usage is that :code:`kA_char` uses a
-    characteristic line lookup table to define the scaling relationship.
+    (:py:class:`tespy.components.heat_exchangers.base.HeatExchanger`).
     :code:`UA_cecchinato` requires the specification of Reynolds number
     exponents, area ratio and alpha ratio of the involved fluids.
     """
+
+    _parameter_aliases = {
+        'kA_char': 'UA_char',
+        'kA_char1': 'UA_char1',
+        'kA_char2': 'UA_char2',
+        'zeta1': 'zeta1_d4',
+        'zeta2': 'zeta2_d4',
+    }
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -484,13 +490,13 @@ class SectionedHeatExchanger(HeatExchanger):
                 quantity="heat_transfer_coefficient",
                 description="sum of UA values of all sections of heat exchanger"
             ),
-             'UA_char': dc_gcc(
-                    elements=['kA_char1', 'kA_char2'],
-                    num_eq_sets=1,
-                    func=self.UA_char_func,
-                    dependents=self.UA_dependents,
-                    description="equation for sectioned UA modification based on characteristic lines"
-         ),
+            'UA_char': dc_gcc(
+                elements=['UA_char1', 'UA_char2'],
+                num_eq_sets=1,
+                func=self.UA_char_func,
+                dependents=self.UA_dependents,
+                description="equation for sectioned UA modification based on characteristic lines"
+            ),
             'refrigerant_index': dc_simple(
                 val=0,
                 description="side on which the refrigerant is flowing (0: hot, 1:cold)"
@@ -764,14 +770,14 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA_\text{design} * f_\text{UA} - \sum\left(UA_{i}\right)
 
         """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
+        p1 = self.UA_char1.param
+        p2 = self.UA_char2.param
 
-        f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
+        f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
+        f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.kA_char1.char_func.evaluate(f1)
-        fUA2 = self.kA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.char_func.evaluate(f1)
+        fUA2 = self.UA_char2.char_func.evaluate(f2)
 
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 

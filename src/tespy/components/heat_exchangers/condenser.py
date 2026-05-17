@@ -56,7 +56,7 @@ class Condenser(HeatExchanger):
 
     - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
     - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
+    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
 
     Inlets/Outlets
 
@@ -118,11 +118,11 @@ class Condenser(HeatExchanger):
         Inlet to outlet pressure delta at cold side, unit is the network's
         pressure unit!.
 
-    zeta1 : float, dict, :code:`"var"`
+    zeta1_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at hot side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
-    zeta2 : float, dict, :code:`"var"`
+    zeta2_d4 : float, dict, :code:`"var"`
         Geometry independent friction coefficient at cold side,
         :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
 
@@ -204,7 +204,7 @@ class Condenser(HeatExchanger):
     change, the outlet temperature of the air will change, too.
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
-    ... offdesign=['zeta2', 'kA_char'])
+    ... offdesign=['zeta2_d4', 'UA_char'])
     >>> ws_he.set_attr(fluid={'water': 1}, h=2700, m=1)
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])

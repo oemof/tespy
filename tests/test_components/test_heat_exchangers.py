@@ -390,6 +390,19 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert round(instance.Tamb.val - self.c2.T.val, 3) == 0.008
 
+    def test_SimpleHeatExchanger_lmtd_zero_Q(self):
+        """lmtd must be nan when Q=0 (UA=0), not raise ZeroDivisionError."""
+        instance = SimpleHeatExchanger("heatexchanger")
+        self.setup_SimpleHeatExchanger_network(instance)
+
+        instance.set_attr(Q=0, Tamb=20, pr=1)
+        self.c1.set_attr(fluid={"water": 1}, T=100, m=1, p=10)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert instance.UA.val_SI == 0
+        assert np.isnan(instance.lmtd.val_SI)
+
     def test_ParabolicTrough(self):
         """Test component properties of parabolic trough."""
         instance = ParabolicTrough('parabolic trough')

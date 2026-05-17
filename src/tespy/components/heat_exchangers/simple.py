@@ -269,6 +269,8 @@ class SimpleHeatExchanger(Component):
         return abs(self.Q.val_SI / self._calculate_td_log())
 
     def _calc_lmtd(self):
+        if self.UA.val_SI == 0:
+            return np.nan
         return abs(self.Q.val_SI) / self.UA.val_SI
 
     def get_parameters(self):

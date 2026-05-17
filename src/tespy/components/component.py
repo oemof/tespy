@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import math
-import warnings
+from collections import deque
 
 import numpy as np
 import pandas as pd
@@ -28,14 +28,12 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
-from tespy.tools.helpers import newton_with_kwargs
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
@@ -46,6 +44,35 @@ def component_registry(type):
 
 
 component_registry.items = {}
+
+
+def _topological_sort(calc_items):
+    """Return keys of calc_items in topological order based on calc_deps.
+
+    Raises ValueError if a dependency cycle is detected.
+    """
+    successors = {k: [] for k in calc_items}
+    in_degree = {k: 0 for k in calc_items}
+    for k, dc in calc_items.items():
+        for dep in dc.calc_deps:
+            if dep in calc_items:
+                successors[dep].append(k)
+                in_degree[k] += 1
+
+    queue = deque(k for k in calc_items if in_degree[k] == 0)
+    ordered = []
+    while queue:
+        k = queue.popleft()
+        ordered.append(k)
+        for succ in successors[k]:
+            in_degree[succ] -= 1
+            if in_degree[succ] == 0:
+                queue.append(succ)
+
+    if len(ordered) != len(calc_items):
+        cycle = set(calc_items) - set(ordered)
+        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
+    return ordered
 
 
 @component_registry
@@ -836,9 +863,47 @@ class Component:
                 else:
                     self.get_attr(key).design = np.nan
 
+    def _calc_pr(self, inconn=0, outconn=0):
+        return self.outl[outconn].p.val_SI / self.inl[inconn].p.val_SI
+
+    def _calc_dp(self, inconn=0, outconn=0):
+        return self.inl[inconn].p.val_SI - self.outl[outconn].p.val_SI
+
     def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        return
+        r"""Postprocessing parameter calculation.
+
+        Each :py:class:`~tespy.tools.data_containers.ComponentProperties`
+        whose :code:`calc` attribute is set is called here in topological
+        order (respecting :code:`calc_deps` dependencies).
+
+        .. note::
+
+            Two patterns exist for :code:`calc` methods, and it is important
+            to keep them distinct:
+
+            **Pattern A - solver variables only** (p, h, m, fluid composition,
+            connection energies E): methods like :py:meth:`_calc_P` read only
+            quantities that are unknowns of the solver, therefore these methods
+            can also be used in the residual calculations during iterations.
+
+            **Pattern B - derived properties** (T, v, x, ...): methods like
+            :code:`_calc_ttd_u` or :code:`_calc_td_log` call helpers such as
+            :code:`calc_T()` which rely on values that are computed during
+            connection postprocessing (e.g. :code:`connection.T.val_SI`). These
+            methods must **only** be called in postprocessing, never during
+            iteration, because the derived values are not yet available.
+
+            When adding a new :code:`calc` method, choose Pattern A if the
+            result depends solely on solver variables; choose Pattern B
+            otherwise, and make sure no caller invokes it during iteration.
+        """
+        calc_items = {
+            k: dc for k, dc in self.parameters.items()
+            if isinstance(dc, dc_cp) and dc.calc is not None
+        }
+        for k in _topological_sort(calc_items):
+            dc = calc_items[k]
+            dc.val_SI = dc.calc(**dc.calc_params)
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
@@ -940,7 +1005,9 @@ class Component:
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
-    def calc_zeta(self, i, o):
+    def _calc_zeta(self, inconn=0, outconn=0):
+        i, o = self.inl[inconn], self.outl[outconn]
+
         if abs(i.m.val_SI) <= 1e-4:
             return 0
         else:

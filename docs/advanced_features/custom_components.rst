@@ -101,6 +101,7 @@ The starting lines of your file should look like this:
     from tespy.tools import ComponentMandatoryConstraints as dc_cmc
     from tespy.tools import ComponentProperties as dc_cp
 
+
     class MyCustomComponent(Component):
         """
         This is a custom component.
@@ -110,9 +111,6 @@ The starting lines of your file should look like this:
         are applied and which optional equations can be applied using the
         component parameters.
         """
-
-        def component(self):
-            return 'name of your component'
 
 Mandatory Constraints
 +++++++++++++++++++++
@@ -272,8 +270,9 @@ with some life, i.e. how to define
 
 - the :code:`structure_matrix` (optional),
 - the :code:`func`,
-- the :code:`dependents` and
-- the :code:`deriv` (optional) methods.
+- the :code:`dependents`,
+- the :code:`deriv` (optional) and
+- the :code:`calc` (optional) methods.
 
 Define a structure matrix
 +++++++++++++++++++++++++
@@ -421,6 +420,72 @@ method and pass
     this is not an issue except for the extra computational effort. But if you
     have determined the derivatives analytically, then their value might change
     if two variables are mapped to a single one.
+
+Define postprocessing
++++++++++++++++++++++
+
+After the solver converges, :py:meth:`~tespy.components.component.Component.calc_parameters`
+computes all result values (e.g. :code:`kA`, :code:`ttd_u`, :code:`pr1`).
+Instead of overriding :code:`calc_parameters` directly, the recommended
+approach is to declare a :code:`calc` callable on the :code:`dc_cp` data
+container. The base class will then automatically dispatch all :code:`calc`
+methods in topological order, respecting any declared dependencies.
+
+Three keyword arguments of :code:`dc_cp` control postprocessing:
+
+- :code:`calc`: a bound method that returns the SI value for this parameter.
+- :code:`calc_params`: a dictionary of keyword arguments forwarded to
+  :code:`calc` on every call. Use this to share a single helper across
+  multiple ports, e.g. :code:`calc_params={'inconn': 1, 'outconn': 1}` for a
+  second cooling loop.
+- :code:`calc_deps`: a list of parameter names that must be computed before
+  this one. Use this when one result depends on another result value.
+
+Two patterns exist for :code:`calc` methods — see
+:py:meth:`~tespy.components.component.Component.calc_parameters` for the
+full explanation:
+
+- **Pattern A - solver variables only**: the method reads only primary
+  solver unknowns (:code:`p.val_SI`, :code:`h.val_SI`, :code:`m.val_SI`,
+  fluid composition, or connection energies :code:`E.val_SI`). Because all
+  values the method touches are updated by the solver on every iteration, it
+  can also be called as part of residual calculations during iteration.
+- **Pattern B - derived properties**: the method calls helpers such as
+  :code:`calc_T()` that rely on values computed during connection
+  postprocessing. These methods must only be invoked during postprocessing.
+
+One pattern A example is the energy balance of the turbomachinery base class.
+The :code:`_calc_P` method uses only solver variables (:code:`m.val_SI`,
+:code:`h.val_SI`) and is therefore also called as the residual function
+:code:`energy_balance_func` during iteration:
+
+.. literalinclude:: /../src/tespy/components/turbomachinery/base.py
+    :pyobject: Turbomachine.energy_balance_func
+
+.. literalinclude:: /../src/tespy/components/turbomachinery/base.py
+    :pyobject: Turbomachine._calc_P
+
+One pattern B example is the upper terminal temperature difference of the heat
+exchanger. It reads :code:`T.val_SI`, which is only available after connection
+postprocessing. During iterations :code:`calc_T()` needs to be called. This is
+avoided in postprocessing to reduce computational overhead in that step.
+
+.. literalinclude:: /../src/tespy/components/heat_exchangers/base.py
+    :pyobject: HeatExchanger.ttd_u_func
+
+.. literalinclude:: /../src/tespy/components/heat_exchangers/base.py
+    :pyobject: HeatExchanger._calc_ttd_u
+
+When one result depends on another, declare the dependency via
+:code:`calc_deps` so the topological sort fires them in the correct order.
+The minimum terminal temperature difference :code:`ttd_min` depends on both
+:code:`ttd_u` and :code:`ttd_l` having been computed first:
+
+.. literalinclude:: /../src/tespy/components/heat_exchangers/base.py
+    :pyobject: HeatExchanger._calc_ttd_min
+
+If :code:`calc=` is insufficient override :code:`calc_parameters` and call
+:code:`super().calc_parameters()` first.
 
 Need assistance?
 ^^^^^^^^^^^^^^^^

@@ -12,7 +12,7 @@ you!
     :gutter: 1
 
     .. grid-item-card:: Overview on available classes for heat exchangers
-        :link: tutorial_heat_exchanger
+        :link: tutorial_heat_exchanger_label
         :link-type: ref
 
         .. image:: /_static/images/thumbnails/advanced_tutorials/SectionedHeatExchanger_vs_HeatExchanger.svg
@@ -94,7 +94,7 @@ you!
     :glob:
     :hidden:
 
-    advanced_tutorials/heat_exchangers.rst
+    advanced_tutorials/heat_exchangers.ipynb
     advanced_tutorials/heat_pump_steps.rst
     advanced_tutorials/starting_values.rst
     advanced_tutorials/debugging.ipynb

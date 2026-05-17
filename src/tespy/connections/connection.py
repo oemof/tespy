@@ -9,8 +9,6 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
-import warnings
-
 import numpy as np
 
 from tespy.components import Subsystem
@@ -140,41 +138,12 @@ class ConnectionBase:
                 msg = f"Referencing {key} is not implemented."
                 logger.error(msg)
                 raise NotImplementedError(msg)
-            if self.get_attr(key).is_set:
-                msg = (
-                    f"You have specified a Ref for the parameter '{key}' "
-                    "while having a numerical value specified at the same "
-                    f"time at connection {self.label}. In the moment, "
-                    "this does not overwrite setting the numerical value. "
-                    "To unset the specified value before setting the Ref, "
-                    f"run .set_attr({key}=None) before "
-                    f".set_attr({key}=Ref(...)). With the next major "
-                    "release of TESPy setting a Ref will automatically "
-                    "replace a previously specified numerical value "
-                    "making it impossible to set a numerical value and a "
-                    "Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            self.get_attr(key).is_set = False
             self.get_attr(ref_key).set_attr(ref=value, is_set=True)
 
         else:
-            if has_ref_sibling and self.get_attr(ref_key).is_set:
-                msg = (
-                    f"You have specified a numerical value for the "
-                    f"parameter '{key}' while having a Ref specified "
-                    f"at the same time at connection {self.label}. In "
-                    "the moment, this does not overwrite setting the "
-                    "Ref. To unset the Ref before setting the "
-                    f"numerical value, run .set_attr({key}=None) "
-                    f"before .set_attr({key}={value}). With the next "
-                    "major release of TESPy setting a numerical value "
-                    "will always replace a previously specified Ref "
-                    "making it impossible to set a numerical value "
-                    "and a Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            if has_ref_sibling:
+                self.get_attr(ref_key).is_set = False
             self.get_attr(key).accept(value)
 
     def get_attr(self, key):
@@ -680,6 +649,7 @@ class Connection(ConnectionBase):
         self.state = dc_simple()
         self.phase = dc_simple()
         self.mixing_rule = None
+        self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
 
     def _reset_design(self, redesign):
@@ -906,6 +876,14 @@ class Connection(ConnectionBase):
                 fluid, back_end, **wrapper_kwargs
             )
 
+        self._fluid_data = {
+            fluid: {
+                "wrapper": self.fluid.wrapper[fluid],
+                "mass_fraction": self.fluid.val[fluid],
+            }
+            for fluid in self.fluid.val
+        }
+
     def _guess_starting_values(self, units):
         # the below part does not work for PowerConnection right now
         if sum(self.fluid.val.values()) == 0:
@@ -1123,7 +1101,7 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
-                msg = f"Determined h by known p and td_bubble at {self.label}."
+                msg = f"Determined h by known p and td_dew at {self.label}."
                 logger.info(msg)
 
             elif self.x.is_set:
@@ -1311,12 +1289,19 @@ class Connection(ConnectionBase):
         }
 
     def get_fluid_data(self):
-        return {
-            fluid: {
-                "wrapper": self.fluid.wrapper[fluid],
-                "mass_fraction": self.fluid.val[fluid]
-            } for fluid in self.fluid.val
-        }
+        fluid_val = self.fluid.val
+        if self._fluid_data is None or fluid_val.keys() != self._fluid_data.keys():
+            self._fluid_data = {
+                fluid: {
+                    "wrapper": self.fluid.wrapper[fluid],
+                    "mass_fraction": fluid_val[fluid],
+                }
+                for fluid in fluid_val
+            }
+            return self._fluid_data
+        for f, data in self._fluid_data.items():
+            data["mass_fraction"] = fluid_val[f]
+        return self._fluid_data
 
     fluid_data = property(get_fluid_data)
 
@@ -1710,29 +1695,28 @@ class Connection(ConnectionBase):
 
         for prop in self._result_attributes():
             param = self.get_attr(prop)
-            result = param._get_val_from_SI(units)
-            converged = np.isclose(result.magnitude, param.val, 1e-3, 1e-3)
-            if param.is_set and not converged:
-                _converged = False
-                msg = (
-                    "The simulation converged but the calculated result "
-                    f"{result} for the fixed input parameter {prop} of "
-                    f"connection {self.label} is not equal to the originally "
-                    f"specified value of {param.val}. Usually, this can "
-                    "happen, when a method internally manipulates the "
-                    "associated equation during iteration in order to allow "
-                    "progress in situations, when the equation is otherwise "
-                    "not well defined for the current values of the "
-                    "variables, e.g. in case a negative root would need to be "
-                    "evaluated. Often, this can happen during the first "
-                    "iterations and then will resolve itself as convergence "
-                    "progresses. In this case it did not, meaning convergence "
-                    "was not actually achieved."
-                )
-                logger.warning(msg)
+            if param.is_set:
+                result = param._get_val_from_SI(units)
+                if not np.isclose(result.magnitude, param.val, 1e-3, 1e-3):
+                    _converged = False
+                    msg = (
+                        "The simulation converged but the calculated result "
+                        f"{result} for the fixed input parameter {prop} of "
+                        f"connection {self.label} is not equal to the originally "
+                        f"specified value of {param.val}. Usually, this can "
+                        "happen, when a method internally manipulates the "
+                        "associated equation during iteration in order to allow "
+                        "progress in situations, when the equation is otherwise "
+                        "not well defined for the current values of the "
+                        "variables, e.g. in case a negative root would need to be "
+                        "evaluated. Often, this can happen during the first "
+                        "iterations and then will resolve itself as convergence "
+                        "progresses. In this case it did not, meaning convergence "
+                        "was not actually achieved."
+                    )
+                    logger.warning(msg)
             else:
-                if not param.is_set:
-                    param.set_val_from_SI(units)
+                param.set_val_from_SI(units)
 
         return _converged
 

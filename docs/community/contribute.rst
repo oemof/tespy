@@ -81,7 +81,7 @@ Install the developer version
 
 Fork the repository and clone your forked TESPy GitHub repository. We
 recommend `uv <https://docs.astral.sh/uv/>`_ for managing the development
-environment — it creates a virtual environment and installs all dependencies
+environment - it creates a virtual environment and installs all dependencies
 in one step:
 
 .. code:: bash

@@ -241,7 +241,7 @@ class DataContainer:
         Parameters
         ----------
         value :
-            The value supplied by the user (numeric, string, dict, None, …).
+            The value supplied by the user (numeric, string, dict, None, ...).
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not implement accept()."
@@ -531,6 +531,8 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "_val": np.nan,
             "_val0": np.nan,
             "_val_SI": np.nan,
+            "_val_is_quantity": False,
+            "_val0_is_quantity": False,
             "_is_var": False,
             "is_result": False,
             "min_val": -1e12,
@@ -546,6 +548,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "num_eq_sets": 0,
             "_num_eq": None,
             "func_params": {},
+            "calc": None,
+            "calc_params": {},
+            "calc_deps": [],
             "_reference_container": None,
             "_offset": None,
             "_factor": None,
@@ -644,23 +649,18 @@ class FluidProperties(_NumEqMixin, DataContainer):
             return self._unit
 
     def set_SI_from_val(self, units):
-
-        if not isinstance(self._val, pint.Quantity):
+        if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-
         self.val_SI = self._val.to(SI_UNITS[self.quantity]).magnitude
 
     def set_SI_from_val0(self, units):
-        if not isinstance(self._val0, pint.Quantity):
+        if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-
         self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
 
     def _get_val_from_SI(self, units):
-        # intermediate fix
-        if not isinstance(self._val, pint.Quantity):
+        if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-
         return units.ureg.Quantity(
             self.val_SI, self._get_val_base_unit()
         ).to(self._val.units)
@@ -669,28 +669,27 @@ class FluidProperties(_NumEqMixin, DataContainer):
         self.val = self._get_val_from_SI(units)
 
     def set_val0_from_SI(self, units):
-        # intermediate fix
-        if not isinstance(self.val0, pint.Quantity):
+        if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-
         self.val0 = units.ureg.Quantity(
             self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
 
     def get_val(self):
-        if not isinstance(self._val, pint.Quantity):
-            return float(self._val)
-        else:
+        if self._val_is_quantity:
             return float(self._val.magnitude)
+        return float(self._val)
 
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
+        self._val_is_quantity = isinstance(self._val, pint.Quantity)
 
     def get_val0(self):
         return self._val0
 
     def set_val0(self, value):
         self._val0 = self._handle_value_with_quantity(value)
+        self._val0_is_quantity = isinstance(self._val0, pint.Quantity)
 
     def _handle_value_with_quantity(self, value):
         if isinstance(value, pint.Quantity):
@@ -719,11 +718,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
             return _UNITS._quantities[self.quantity].is_compatible_with(unit)
 
     def get_unit(self):
-        if not isinstance(self._val, pint.Quantity):
-            # if a unit was never attached from the network
+        if not self._val_is_quantity:
             return _UNITS.default[self.quantity]
-        else:
-            return str(self.val_with_unit.units)
+        return str(self.val_with_unit.units)
 
     def _replace_unit_for_compatibility(self, value):
         if value == "C":

@@ -162,6 +162,28 @@ class TestConnections:
         )
         assert m_is == m_expected, msg
 
+    def test_ref_and_numerical_value_are_mutually_exclusive(self):
+        """Setting a Ref clears any numerical value and vice versa."""
+        c1, c2 = self.nw.get_conn(
+            ['Some example label', 'source 2:out1_sink 2:in1']
+        )
+        # numerical value → Ref: numerical value must be unset
+        c2.set_attr(m=0.5)
+        c2.set_attr(m=Ref(c1, 1, 0))
+        assert not c2.m.is_set
+        assert c2.m_ref.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val_SI, 4) == round(c1.m.val_SI, 4)
+
+        # Ref → numerical value: Ref must be unset
+        c2.set_attr(m=0.3)
+        assert not c2.m_ref.is_set
+        assert c2.m.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val, 4) == round(0.3, 4)
+
 
 @fixture
 def simple_test_network():

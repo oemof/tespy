@@ -302,7 +302,8 @@ class Pipe(SimpleHeatExchanger):
         )
         parameters["flow_speed"]= dc_cp(
             min_val=1e-2, max_val=1e2, quantity="speed",
-            description="flow speed at inlet of pipe"
+            description="flow speed at inlet of pipe",
+            calc=self._calc_flow_speed
         )
         parameters["flow_speed_group"]= dc_gcp(
             elements=["D", "flow_speed"],
@@ -512,10 +513,7 @@ class Pipe(SimpleHeatExchanger):
     def flow_speed_dependents(self):
         return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.D]
 
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        if self.D.is_set or self.D.is_var:
-            self.flow_speed.val_SI = (
-                self.inl[0].v.val_SI * 4 / (math.pi * self.D.val_SI ** 2)
-            )
+    def _calc_flow_speed(self):
+        if not (self.D.is_set or self.D.is_var):
+            return self.flow_speed.val_SI
+        return self.inl[0].v.val_SI * 4 / (math.pi * self.D.val_SI ** 2)

@@ -181,8 +181,9 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 
     - superheating at suction
     - subcooling after the condensation
-    - the rpm belonging to the original data
-    - a displacement value (kg/h) with the respective rpm for this displacement
+    - the frequency (Hz) at which the polynomial data applies
+    - the swept volume per revolution (m³) - or equivalently a displacement
+      (m³/h) together with a reference frequency (Hz)
 
     .. tip::
 
@@ -192,11 +193,11 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         retrieved from :cite:`bitzer2025_HSK`.
 
     >>> reference_state = {
-    ...     "T_sh": 20,  # superheating
-    ...     "T_sc": 0,  # subcooling
-    ...     "rpm_poly": 50 * 60,  # rpm belonging to the polynomial data
-    ...     "rpm_displacement": 20 * 60,  # rpm belonging to the displacement
-    ...     "displacement": 214  # kg / h
+    ...     "T_sh": 20,  # superheating, K
+    ...     "T_sc": 0,  # subcooling, K
+    ...     "frequency_poly": 50.0,  # Hz, frequency at which the polynomial applies
+    ...     "displacement": 214,  # m³/h, at the reference frequency below
+    ...     "frequency_displacement": 20.0,  # Hz
     ... }
     >>> power = pd.DataFrame(
     ...     columns=[10,7.5,5,0,-5,-10], index=[30, 40, 50], dtype=float
@@ -252,7 +253,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     same displacement value as inputted into the reference.
 
     >>> c1.set_attr(fluid={"R134a": 1}, T=0, td_dew=10)  # T_evap=-10°C
-    >>> compressor.set_attr(rpm=1200)
+    >>> compressor.set_attr(frequency=20)  # Hz, equals 1200 RPM
     >>> c2.set_attr(T_dew=50)
     >>> b1.set_attr(fluid={"water": 1}, T=20, p=1)
     >>> b2.set_attr(T=40)
@@ -314,21 +315,28 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     >>> round(compressor.eta_vol.val, 3)
     0.924
 
-    It is also possible, to make the rpm a variable. This is useful, in case
-    mass flow through the compressor is governed from external. Usually, this
-    could be the case, if a specific heat transfer is required to be provided
-    by the condenser or from the evaporator. In this case, we just fix the
-    displacement to mimic that.
+    It is also possible, to make the frequency a variable. This is useful, in
+    case mass flow through the compressor is governed from external. Usually,
+    this could be the case, if a specific heat transfer is required to be
+    provided by the condenser or from the evaporator. In this case, we just
+    fix the volumetric flow to mimic that.
 
-    >>> compressor.set_attr(rpm="var")
+    >>> compressor.set_attr(frequency="var")
     >>> c1.set_attr(v=400/3600)
     >>> nw.solve("design")
-    >>> round(compressor.rpm.val)
-    2427
+    >>> round(compressor.frequency.val)
+    40
 
     As final remarks: You can also set fixed isentropic and fixed volumetric
     efficiencies for these components.
     """
+
+    def _calc_td_minimal(self):
+        o = self.outl[0]
+        return (
+            T_mix_ph(o.p.val_SI, self._calc_h2(), o.fluid_data, o.mixing_rule, T0=o.T.val_SI)
+            - self.outl[1].T.val_SI
+        )
 
     def _preprocess(self, row_idx):
         if not self.eta_recovery.is_set:
@@ -370,7 +378,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             min_val=0,
             quantity="temperature_difference",
             is_result=True,
-            description="theoretical minimal temperature difference between working and cooling fluid"
+            description="theoretical minimal temperature difference between working and cooling fluid",
+            calc=self._calc_td_minimal
         )
         params["dp_cooling"] = dc_cp(
             min_val=0,
@@ -378,7 +387,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
             quantity="pressure_difference",
             num_eq_sets=1,
-            description="cooling port inlet to outlet absolute pressure change"
+            description="cooling port inlet to outlet absolute pressure change",
+            calc=self._calc_dp, calc_params={"inconn": 1, "outconn": 1}
         )
         params["pr_cooling"] = dc_cp(
             min_val=0,
@@ -386,7 +396,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             func_params={"inconn": 1, "outconn": 1, "pr": "pr_cooling"},
             quantity="ratio",
             num_eq_sets=1,
-            description="cooling port outlet to inlet pressure ratio"
+            description="cooling port outlet to inlet pressure ratio",
+            calc=self._calc_pr, calc_params={"inconn": 1, "outconn": 1}
         )
         return params
 
@@ -425,26 +436,3 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             self.outl[0].h, self.outl[1].h
         ]
 
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        h_2 = (
-            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-        )
-        T_max_compressor_internal = T_mix_ph(
-            self.outl[0].p.val_SI,
-            h_2,
-            self.outl[0].fluid_data,
-            self.outl[0].mixing_rule,
-            T0=self.outl[0].T.val_SI
-        )
-        self.td_minimal.val_SI = (
-            T_max_compressor_internal
-            - self.outl[1].T.val_SI
-        )
-
-        self.dp_cooling.val_SI = self.inl[1].p.val_SI - self.outl[1].p.val_SI
-        self.pr_cooling.val_SI = self.outl[1].p.val_SI / self.inl[1].p.val_SI

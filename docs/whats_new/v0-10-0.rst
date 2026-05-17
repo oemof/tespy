@@ -20,12 +20,36 @@ API Changes
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- The :code:`rpm` parameter of
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  is deprecated in favour of :code:`frequency`, which integrates with TESPy's
+  unit framework (e.g. set :code:`"1/min"` as the network frequency unit).
+  The :code:`rpm_displacement` and :code:`rpm_poly` keys in
+  :code:`reference_state` are deprecated in favour of
+  :code:`frequency_displacement` (Hz) and :code:`frequency_poly` (Hz). The
+  :code:`displacement` key (m³/h) paired with :code:`frequency_displacement`
+  remains supported, or :code:`swept_volume` (m³ per revolution) can be
+  provided directly. A helper function
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.swept_volume_from_displacement`
+  is available to convert manufacturer displacement data to swept volume
+  (`PR #826 <https://github.com/oemof/tespy/pull/826>`__).
 - Several previously deprecated features have been removed: the
   :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
   parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,
   the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
   :code:`fluid_property_data` from :code:`global_vars`
   (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
+- Setting a :code:`Ref` on a :py:class:`~tespy.connections.connection.Connection`
+  parameter now automatically unsets any previously specified numerical value
+  for that parameter, and setting a numerical value automatically unsets any
+  previously set :code:`Ref`. Both could be set simultaneously before, which
+  raised a :code:`FutureWarning`.
+- The pygmo compatibility interface of
+  :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
+  The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,
+  :code:`run` and :code:`_process_generation_data` methods are no longer
+  available. Use pymoo-based workflows instead (install via
+  :code:`pip install tespy[opt]`).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use
@@ -46,6 +70,35 @@ New Features
 
 Other Changes
 #############
+- Internal Newton solver improvements
+  (`PR #987 <https://github.com/oemof/tespy/pull/987>`__):
+
+  - The CPU Jacobian solve now uses row- and column-scaled
+    :code:`numpy.linalg.solve` instead of explicit matrix inversion via
+    :code:`numpy.linalg.inv`, improving numerical stability and performance.
+  - The dense incidence matrix is now built once before the Newton loop instead
+    of being rebuilt on every iteration.
+  - Jacobian singularity diagnosis has been extracted into a dedicated
+    :code:`_diagnose_singularity` method, separated from the matrix solve in
+    :code:`_invert_jacobian`.
+  - Structural singularity detection now uses :code:`numpy.linalg.matrix_rank`
+    instead of :code:`numpy.linalg.det`, which is numerically stable for
+    arbitrarily sized matrices.
+  - :py:class:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper` now
+    caches the last :code:`AS.update` call and skips redundant updates when
+    the same input pair and values are requested consecutively.
+  - :py:meth:`~tespy.connections.connection.Connection.get_fluid_data` now
+    caches and reuses the fluid data dict across calls, only rebuilding it
+    when the fluid set changes (e.g. in combustion components).
+  - :py:meth:`~tespy.connections.connection.Connection.calc_results` now skips
+    the unit conversion for parameters that have not been fixed by the user,
+    avoiding redundant pint conversions during postprocessing.
+  - :py:class:`~tespy.components.heat_exchangers.base.HeatExchanger` now
+    caches temperature values computed in :code:`_get_T_at_steps` by
+    :code:`(p, h)` key, so that unperturbed sides of the heat exchanger are
+    not recomputed during finite-difference Jacobian evaluation. The cache is
+    cleared at the start of each solve via :code:`_preprocess`.
+
 - Support for Python 3.10 has been dropped.
 
 - Installation instructions now recommend
@@ -92,6 +145,13 @@ Other Changes
   respectively, so the two-phase dome is always fully visible when no explicit
   :code:`ylim` is passed
   (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+- Change outlet 1 description to saturated gas constraint for DropletSeparator
+  (`PR #977 <https://github.com/oemof/tespy/pull/977>`__).
+- Component parameters can now have a :code:`calc` method, which is
+  automatically executed in postprocessing to assign the respective SI value to
+  the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
+- Fix logging message in connection preprocessing
+  (`PR #988 <https://github.com/oemof/tespy/pull/988>`__).
 
 Bug Fixes
 #########
@@ -111,3 +171,5 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@HaSchneider <https://github.com/HaSchneider>`__
+- `@ronitd07 <https://github.com/ronitd07>`__
+- `@Flefays <https://github.com/Flefays>`__

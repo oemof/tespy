@@ -253,7 +253,8 @@ class ParabolicTrough(SimpleHeatExchanger):
             ),
             'Q_loss': dc_cp(
                 max_val=0, _val=0, quantity="heat",
-                description="heat dissipation"
+                description="heat dissipation",
+                calc=self._calc_Q_loss, calc_deps=['Q']
             ),
             'energy_group': dc_gcp(
                 elements=[
@@ -322,18 +323,10 @@ class ParabolicTrough(SimpleHeatExchanger):
     def convergence_check(self):
         pass
 
+    def _calc_Q_loss(self):
+        return -self.E.val_SI * self.A.val_SI + self.Q.val_SI
+
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val_SI = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        if self.energy_group.is_set:
-            self.Q_loss.val_SI = - self.E.val_SI * self.A.val_SI + self.Q.val_SI
-            self.Q_loss.is_result = True
-        else:
-            self.Q_loss.is_result = False
+        super().calc_parameters()
+        self.Q_loss.is_result = self.energy_group.is_set

@@ -218,7 +218,7 @@ def test_td_dew_convergence_helper(simple_test_network):
     c2.set_attr(td_bubble=0)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
     nw.assert_convergence()
@@ -237,7 +237,7 @@ def test_td_bubble_convergence_helper(simple_test_network):
     c2.set_attr(td_bubble=0)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
     nw.assert_convergence()
@@ -258,7 +258,7 @@ def test_td_bubble_and_td_dew_in_iterations(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
 
@@ -291,7 +291,7 @@ def test_td_bubble_larger_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -308,7 +308,7 @@ def test_td_bubble_equals_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 

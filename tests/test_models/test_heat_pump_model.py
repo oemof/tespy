@@ -177,7 +177,7 @@ class TestHeatPump:
         kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         su.set_attr(
             kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1', 'zeta2', 'kA_char']
+            offdesign=['zeta1_d4', 'zeta2_d4', 'kA_char']
         )
 
         x = np.array([
@@ -228,7 +228,7 @@ class TestHeatPump:
 
         he.set_attr(
             kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1', 'zeta2', 'kA_char']
+            offdesign=['zeta1_d4', 'zeta2_d4', 'kA_char']
         )
 
         # characteristic line for condenser kA
@@ -251,7 +251,7 @@ class TestHeatPump:
 
         cd.set_attr(
             kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
-            design=['pr2'], offdesign=['zeta2', 'kA_char']
+            design=['pr2'], offdesign=['zeta2_d4', 'kA_char']
         )
 
         # condenser system

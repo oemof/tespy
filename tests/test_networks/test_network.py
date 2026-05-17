@@ -812,13 +812,13 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_1():
     nw.add_conns(c1, c2)
     c1.set_attr(m=0.1, fluid={"N2": 0.7, "O2": 0.15, "Water": 0.15})
     c2.set_attr(p=1, T=20)
-    instance.set_attr(Q=1e4, zeta=1e6)
+    instance.set_attr(Q=1e4, zeta_d4=1e6)
 
     nw.solve("design")
     assert nw.status == 2
     assert np.isnan(c1.T.val_SI)
-    assert instance.zeta.val == 1e6
-    assert np.isnan(instance.zeta.val_SI)
+    assert instance.zeta_d4.val == 1e6
+    assert np.isnan(instance.zeta_d4.val_SI)
 
 
 def test_nonconverged_simulation_does_not_overwrite_component_specification_2():

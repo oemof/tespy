@@ -212,7 +212,7 @@ class TestHeatExchanger:
 
         zeta = 100
         c2.set_attr(p=None)
-        instance.set_attr(zeta1=zeta)
+        instance.set_attr(zeta1_d4=zeta)
 
         nw.solve('design')
         nw.assert_convergence()
@@ -252,7 +252,7 @@ class TestHeatExchanger:
 
         zeta = 100
         c4.set_attr(p=None)
-        instance.set_attr(zeta2=zeta)
+        instance.set_attr(zeta2_d4=zeta)
 
         nw.solve('design')
         nw.assert_convergence()
@@ -510,7 +510,7 @@ class TestHeatExchangers:
         instance.set_attr(
             pr1=0.98, pr2=0.98, ttd_u=5,
             design=['pr1', 'pr2', 'ttd_u'],
-            offdesign=['zeta1', 'zeta2', 'kA_char']
+            offdesign=['zeta1_d4', 'zeta2_d4', 'kA_char']
         )
         self.c1.set_attr(T=120, p=3, fluid={'H2O': 1})
         self.c2.set_attr(T=70)
@@ -716,7 +716,7 @@ class TestHeatExchangers:
 
         # design specification
         instance.set_attr(
-            pr1=0.98, pr2=0.98, ttd_u=5, offdesign=['zeta2', 'kA_char']
+            pr1=0.98, pr2=0.98, ttd_u=5, offdesign=['zeta2_d4', 'kA_char']
         )
         self.c1.set_attr(T=100, p0=0.5, fluid={'H2O': 1})
         self.c2.set_attr(p0=0.5)
@@ -993,7 +993,7 @@ class TestHeatExchangers:
         self.c2.set_attr(x=1.0)
         self.c3.set_attr(fluid={"water": 1}, p=1, T=10)
         self.c4.set_attr(T=20)
-        instance.set_attr(zeta1=2000, pr2=0.99, Q=-1e6)
+        instance.set_attr(zeta1_d4=2000, pr2=0.99, Q=-1e6)
 
         self.nw.solve("design")
 
@@ -1008,7 +1008,7 @@ class TestHeatExchangers:
         self.c2.set_attr(T=10)
         self.c3.set_attr(fluid={"NH3": 1}, x=1.0)
         self.c4.set_attr(td_dew=5, T=-19.597989949748744)
-        instance.set_attr(pr1=0.99, zeta2=2000, Q=-1e6)
+        instance.set_attr(pr1=0.99, zeta2_d4=2000, Q=-1e6)
 
         self.nw.solve("design")
 

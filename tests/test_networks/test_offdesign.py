@@ -667,11 +667,11 @@ class TestNetworkIndividualOffdesign:
         )
         self.sc1.set_attr(
             pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
         )
         self.sc2.set_attr(
             pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
         )
 
         fl = {'H2O': 1}

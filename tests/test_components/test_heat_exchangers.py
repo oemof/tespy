@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 import math
 
 import numpy as np
+import pytest
 from CoolProp.CoolProp import PropsSI as PSI
 from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
@@ -1259,3 +1260,99 @@ class TestHeatExchangers:
             )
         )
         assert approx(instance.UA.val_SI) == instance.UA.design * fUA
+
+
+# ---------------------------------------------------------------------------
+# Tests for _parameter_aliases / deprecation-renaming feature
+# ---------------------------------------------------------------------------
+
+class TestParameterAliases:
+    """Unit tests for the _parameter_aliases deprecation/renaming feature.
+
+    The HeatExchanger._parameter_aliases maps, among others:
+        'zeta1' -> 'zeta1_d4'
+        'zeta2' -> 'zeta2_d4'
+        'kA'    -> 'UA'
+    """
+
+    @pytest.fixture(autouse=True)
+    def _build_network(self):
+        nw = Network()
+        nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC",
+        })
+        inl1 = Source('inlet 1')
+        outl1 = Sink('outlet 1')
+        inl2 = Source('inlet 2')
+        outl2 = Sink('outlet 2')
+        self.he = HeatExchanger('heat exchanger')
+        c1 = Connection(inl1, 'out1', self.he, 'in1', label='1')
+        c2 = Connection(self.he, 'out1', outl1, 'in1', label='2')
+        c3 = Connection(inl2, 'out1', self.he, 'in2', label='3')
+        c4 = Connection(self.he, 'out2', outl2, 'in1', label='4')
+        nw.add_conns(c1, c2, c3, c4)
+        self.nw = nw
+        self.c1, self.c2, self.c3, self.c4 = c1, c2, c3, c4
+
+    def _solve_design(self):
+        self.c1.set_attr(T=120, p=1, fluid={'H2O': 1}, m=1)
+        self.c2.set_attr(T=105, p=0.95)
+        self.c3.set_attr(T=40, p=5, fluid={'Ar': 1})
+        self.c4.set_attr(T=90, p=4.9)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+
+    def test_set_attr_old_name_raises_future_warning(self):
+        """set_attr with a deprecated name emits FutureWarning."""
+        with pytest.warns(FutureWarning, match="zeta1"):
+            self.he.set_attr(zeta1=500)
+
+    def test_set_attr_old_name_sets_new_parameter(self):
+        """set_attr with 'zeta1' marks 'zeta1_d4' as set with the given value."""
+        with pytest.warns(FutureWarning):
+            self.he.set_attr(zeta1=500)
+        assert self.he.zeta1_d4.val == pytest.approx(500)
+        assert self.he.zeta1_d4.is_set
+
+    def test_set_attr_new_name_does_not_warn(self):
+        """Setting the new canonical name directly does not emit a FutureWarning."""
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", FutureWarning)
+            self.he.set_attr(zeta1_d4=500)
+        assert self.he.zeta1_d4.val == pytest.approx(500)
+        assert self.he.zeta1_d4.is_set
+
+    def test_offdesign_list_alias_replaced_during_preprocess(self):
+        """Old name in offdesign list is remapped to the new name during solve."""
+        self._solve_design()
+        # set_attr itself does not warn – the alias check for list entries
+        # happens inside _preprocess (i.e. during nw.solve)
+        self.he.set_attr(offdesign=['zeta1'])
+        design_state = self.nw.save(as_dict=True)
+        self.c2.set_attr(p=None)
+        with pytest.warns(FutureWarning, match="zeta1"):
+            self.nw.solve('offdesign', design_path=design_state)
+        self.nw.assert_convergence()
+        assert 'zeta1_d4' in self.he.offdesign
+
+    def test_design_list_alias_replaced_during_preprocess(self):
+        """Old name in design list is remapped to the new name during solve."""
+        # set_attr itself does not warn for list entries
+        self.he.set_attr(design=['zeta1'])
+        with pytest.warns(FutureWarning, match="zeta1"):
+            self._solve_design()
+        assert 'zeta1_d4' in self.he.design
+
+    def test_network_solves_with_old_zeta_name(self):
+        """Network converges when 'zeta1' is used instead of 'zeta1_d4'."""
+        zeta = 500
+        # Establish a baseline solve, then free c2's pressure
+        self._solve_design()
+        self.c2.set_attr(p=None)
+        with pytest.warns(FutureWarning):
+            self.he.set_attr(zeta1=zeta)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert approx(zeta) == _calc_zeta(self.c1, self.c2)

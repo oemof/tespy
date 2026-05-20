@@ -67,8 +67,8 @@ class _EnergyBus(Component):
 
     def get_parameters(self):
         return {
-            "num_in": dc_simple(val=0, description="number of inlets"),
-            "num_out": dc_simple(val=0, description="number of outlets"),
+            "num_in": dc_simple(val=0, dtype="int", description="number of inlets"),
+            "num_out": dc_simple(val=0, dtype="int", description="number of outlets"),
         }
 
     def get_mandatory_constraints(self):

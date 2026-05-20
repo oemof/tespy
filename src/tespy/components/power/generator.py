@@ -19,72 +19,66 @@ class Generator(_EnergyConverter):
     r"""
     A generator converts mechanical energy into electrical energy.
 
-    **Mandatory Equations**
-
-    - None
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.power.generator.Generator.eta_func`
-    - :py:meth:`tespy.components.power.generator.Generator.delta_power_func`
-    - :py:meth:`tespy.components.power.generator.Generator.eta_char_func`
-
-    Inlets/Outlets
-
-    - None
-
-    Optional inlets/outlets
-
-    - power_in
-    - power_out
-
-    Image
-
-    .. image:: /api/_images/Generator.svg
+    .. image:: /api/_images/components/Generator.svg
        :alt: flowsheet of the generator
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Generator_darkmode.svg
+    .. image:: /api/_images/components/Generator_darkmode.svg
        :alt: flowsheet of the generator
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    Power inlets: power_in
+
+    Power outlets: power_out
+
+    Mandatory Equations
+    -------------------
+
+    None
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    delta_power : float, dict
+        Inlet to outlet power difference. Quantity: :code:`power`.
+        Equation: :py:meth:`delta_power_func <tespy.components.energy._converter._EnergyConverter.delta_power_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
     eta : float, dict
-        Outlet to inlet efficiency, :math:`\eta/1`
-
-    delta_power : float, dict
-        Fixed power offset, :math:`\text{delta_power}/\text{W}`
+        Efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.energy._converter._EnergyConverter.eta_func>`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for efficiency to power as function of design
-        efficiency.
+        Efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_char_func <tespy.components.energy._converter._EnergyConverter.eta_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------

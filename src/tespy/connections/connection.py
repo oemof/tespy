@@ -646,8 +646,8 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.state = dc_simple()
-        self.phase = dc_simple()
+        self.state = dc_simple(dtype="str")
+        self.phase = dc_simple(dtype="str")
         self.mixing_rule = None
         self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
@@ -1280,6 +1280,7 @@ class Connection(ConnectionBase):
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"
             ),
             "fluid_balance": dc_simple(
+                dtype="bool",
                 func=self.fluid_balance_func,
                 deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,

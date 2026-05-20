@@ -24,93 +24,106 @@ class FuelCell(Component):
     r"""
     The fuel cell produces power by oxidation of hydrogen.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
-
-    **Optional Equations**
-
-    - cooling loop:
-
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.zeta_func`
-
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.specific_energy_func`
-
-    Inlets/Outlets
-
-    - in1 (cooling inlet), in2 (oxygen inlet), in3 (hydrogen inlet)
-    - out1 (cooling outlet), out2 (water outlet)
-
-    Image
-
-    .. image:: _images/FuelCell.svg
-       :alt: alternative text
+    .. image:: /api/_images/components/FuelCell.svg
+       :alt: flowsheet of the fuelcell
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/components/FuelCell_darkmode.svg
+       :alt: flowsheet of the fuelcell
+       :align: center
+       :class: only-dark
+
+    Ports
+    -----
+
+    Fluid inlets: in1, in2, in3
+
+    Fluid outlets: out1, out2
+
+    Power outlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - equations for oxygen and hydrogen mass flow relation: :py:meth:`reactor_mass_flow_func <tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func>`
+    - cooling fluid mass flow equality equation: :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix>`
+    - cooling fluid composition equality equation: :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix>`
+    - energy balance equation of the reactor: :py:meth:`energy_balance_func <tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func>`
+    - reactor pressure equality equations: :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.reactors.fuel_cell.FuelCell.energy_connector_balance_func>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict, :code:`"var"`
-        Power input, :math:`P/\text{W}`.
-
-    Q : float, dict
-        Heat output of cooling, :math:`Q/\text{W}`
+    dp : float, dict
+        Cooling inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     e : float, dict, :code:`"var"`
-        Electrolysis specific energy consumption,
-        :math:`e/(\text{J}/\text{m}^3)`.
+        Equation for specified specific energy consumption of the fuel cell.
+        Quantity: :code:`specific_energy`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+        Equation: :py:meth:`specific_energy_func <tespy.components.reactors.fuel_cell.FuelCell.specific_energy_func>`.
 
     eta : float, dict
-        Electrolysis efficiency, :math:`\eta/1`.
+        Efficiency of the fuel cell. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.reactors.fuel_cell.FuelCell.eta_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Power output of the fuel cell. Quantity: :code:`power`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
 
     pr : float, dict
-        Cooling loop pressure ratio, :math:`pr/1`.
+        Cooling port outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference of cooling loop,
-        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
 
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient for cooling loop pressure
-        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    Q : float, dict
+        Heat output of the cooling port. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.reactors.fuel_cell.FuelCell.heat_func>`.
 
-    Note
-    ----
-    Other than usual components, the fuel cell has the fluid composition
-    built into its equations for the feed hydrogen and oxygen inlets as well
-    as the water outlet. Thus, the user must not specify the fluid composition
-    at these connections!
+    zeta : float, dict
+        Cooling port non-dimensional friction coefficient for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+
+    Notes
+    -----
+
+    .. note::
+
+        Other than usual components, the fuel cell has the fluid composition
+        built into its equations for the feed hydrogen and oxygen inlets as well
+        as the water outlet. Thus, the user must not specify the fluid composition
+        at these connections!
 
     Example
     -------

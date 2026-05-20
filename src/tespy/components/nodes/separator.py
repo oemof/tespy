@@ -23,63 +23,58 @@ class Separator(NodeBase):
     r"""
     A separator separates fluid components from a mass flow.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.separator.Separator.fluid_func`
-    - :py:meth:`tespy.components.nodes.separator.Separator.energy_balance_func`
+    Fluid inlets: in1
 
-    Inlets/Outlets
+    Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
 
-    - in1
-    - specify number of outlets with :code:`num_out` (default value: 2)
+    Mandatory Equations
+    -------------------
 
-    Image
-
-    .. image:: /api/_images/Splitter.svg
-       :alt: flowsheet of the splitter
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/Splitter_darkmode.svg
-       :alt: flowsheet of the splitter
-       :align: center
-       :class: only-dark
-
-    Note
-    ----
-    Fluid separation requires power and cooling, equations have not been
-    implemented, yet!
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - fluid mass fraction balance constraints: :py:meth:`fluid_func <tespy.components.nodes.separator.Separator.fluid_func>`
+    - equal temperature at all outlets constraints: :py:meth:`energy_balance_func <tespy.components.nodes.separator.Separator.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_out : int
+        Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    num_out : float, dict
-        Number of outlets for this component, default value: 2.
+    Notes
+    -----
+
+    .. note::
+
+        Fluid separation requires power and cooling, equations have not been
+        implemented, yet!
 
     Example
     -------
@@ -134,7 +129,7 @@ class Separator(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple(description="number of outlets")}
+        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
 
     @classmethod
     def port_schema(cls):

@@ -114,6 +114,9 @@ def _dc_type(dc):
     if isinstance(dc, (dc_gcp, dc_gcc)):
         return type(dc).__name__
     if isinstance(dc, dc_simple):
+        dtype = getattr(dc, "dtype", None)
+        if dtype:
+            return dtype
         val = getattr(dc, "val", None)
         if isinstance(val, bool):
             return "bool"
@@ -123,7 +126,7 @@ def _dc_type(dc):
             return "int, float"
         if isinstance(val, str):
             return "str"
-        return "dict"
+        return "any"
     return "any"
 
 
@@ -189,10 +192,10 @@ def _mandatory_section(instance):
 
 
 def _parameters_section(instance):
-    lines = ["Parameters\n----------"]
+    entries = []
 
     for name, ptype, desc in _BASE_PARAMETERS:
-        lines.append(f"\n{name} : {ptype}\n    {desc}")
+        entries.append((name, f"\n{name} : {ptype}\n    {desc}"))
 
     try:
         params = instance.get_parameters()
@@ -203,7 +206,6 @@ def _parameters_section(instance):
         ptype = _dc_type(dc)
 
         raw_desc = getattr(dc, "description", None) or ""
-        # Capitalise and strip trailing punctuation before we add our own
         desc = (raw_desc[0].upper() + raw_desc[1:]).rstrip(".") if raw_desc else ""
 
         meta_parts = []
@@ -224,8 +226,6 @@ def _parameters_section(instance):
 
         ref = _eq_reference(dc)
 
-        # Build the body: description + metadata on wrapped lines,
-        # then equation reference on its own line (never wrapped, preserves RST link)
         desc_body = (desc + "." if desc else "") + (
             " " + " ".join(meta_parts) if meta_parts else ""
         )
@@ -235,11 +235,13 @@ def _parameters_section(instance):
         )
         if ref:
             eq_line = f"    Equation: {ref}."
-            lines.append(f"\n{name} : {ptype}\n{body_line}\n{eq_line}")
+            entries.append((name, f"\n{name} : {ptype}\n{body_line}\n{eq_line}"))
         else:
-            lines.append(f"\n{name} : {ptype}\n{body_line}")
+            entries.append((name, f"\n{name} : {ptype}\n{body_line}"))
 
-    return "\n".join(lines)
+    entries.sort(key=lambda x: x[0].lower())
+
+    return "\n".join(["Parameters\n----------"] + [e for _, e in entries])
 
 
 def _image_block(cls):

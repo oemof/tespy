@@ -23,46 +23,64 @@ class CycleCloser(Component):
     r"""
     Component for closing cycles.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    Fluid inlets: in1
 
-    Image not available
+    Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - pressure equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - enthalpy equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    fluid_deviation : float, dict
+        Norm of absolute deviation of fluid composition between inlet and
+        outlet.
 
-    local_design : boolean
+    label : str
+        The label of the component.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    mass_deviation : float, dict
+        Absolute deviation of mass flow between inlet and outlet. Quantity:
+        :code:`mass_flow`.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    Note
-    ----
-    This component can be used to close a cycle process. The system of
-    equations describing your plant will overdetermined, if you close a cycle
-    without this component or a cut the cycle with a sink and a source at
-    some point of the cycle. This component can be used instead of cutting
-    the cycle.
+    Notes
+    -----
+
+    .. note::
+
+        This component can be used to close a cycle process. The system of
+        equations describing your plant will overdetermined, if you close a cycle
+        without this component or a cut the cycle with a sink and a source at
+        some point of the cycle. This component can be used instead of cutting
+        the cycle.
 
     Example
     -------

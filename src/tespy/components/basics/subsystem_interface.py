@@ -22,63 +22,68 @@ class SubsystemInterface(Component):
     r"""
     The subsystem interface does not change fluid properties.
 
-    **Mandatory Equations**
-
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    Inlets/Outlets
-
-    - Specify number of inlets and outlets with :code:`num_inter`,
-      default value: 1.
-
-    Image
-
-    .. image:: /api/_images/SubsystemInterface.svg
-       :alt: flowsheet of the subsystem interface
+    .. image:: /api/_images/components/SubsystemInterface.svg
+       :alt: flowsheet of the subsysteminterface
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/SubsystemInterface_darkmode.svg
-       :alt: flowsheet of the subsystem interface
+    .. image:: /api/_images/components/SubsystemInterface_darkmode.svg
+       :alt: flowsheet of the subsysteminterface
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    Fluid inlets: in1, in2, ... (variable, count set by :code:`num_inter`)
+
+    Fluid outlets: out1, out2, ... (variable, count set by :code:`num_inter`)
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - pressure equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - enthalpy equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_inter : int
+        Number of interfacing connections.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    num_inter : float, dict
-        Number of interfaces for subsystem.
+    Notes
+    -----
 
-    Note
-    ----
-    This component passes all fluid properties and mass flow from its inlet to
-    the outlet.
+    .. note::
+
+        This component passes all fluid properties and mass flow from its inlet to
+        the outlet.
 
     Example
     -------
@@ -149,7 +154,7 @@ class SubsystemInterface(Component):
     def get_parameters():
         return {
             "num_inter": dc_simple(
-                description="number of interfacing connections"
+                dtype="int", description="number of interfacing connections"
             )
         }
 

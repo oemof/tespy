@@ -35,82 +35,86 @@ class Compressor(Turbomachine):
     r"""
     Class for a basic compressor.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional inlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Compressor.svg
+    .. image:: /api/_images/components/Compressor.svg
        :alt: flowsheet of the compressor
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Compressor_darkmode.svg
+    .. image:: /api/_images/components/Compressor_darkmode.svg
        :alt: flowsheet of the compressor
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    Fluid inlets: in1
+
+    Fluid outlets: out1
+
+    Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.turbomachinery.compressor.Compressor.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Power, :math:`P/\text{W}`
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_s/1`
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_s_func <tespy.components.turbomachinery.compressor.Compressor.eta_s_func>`.
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic curve for isentropic efficiency, provide CharLine as
-        function :code:`func`.
+        Isentropic efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_s_char_func <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`.
+
+    igva : float, dict, :code:`"var"`
+        Inlet guide vane angle. Quantity: :code:`angle`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------

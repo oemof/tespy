@@ -21,58 +21,60 @@ class Splitter(NodeBase):
     r"""
     Split up a mass flow in parts of identical enthalpy and fluid composition.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_structure_matrix`
-
-    Inlets/Outlets
-
-    - in1
-    - specify number of outlets with :code:`num_out` (default value: 2)
-
-    Image
-
-    .. image:: /api/_images/Splitter.svg
+    .. image:: /api/_images/components/Splitter.svg
        :alt: flowsheet of the splitter
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Splitter_darkmode.svg
+    .. image:: /api/_images/components/Splitter_darkmode.svg
        :alt: flowsheet of the splitter
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    Fluid inlets: in1
+
+    Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - equal enthalpy at all outlets constraint: :py:meth:`enthalpy_structure_matrix <tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+    - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.splitter.Splitter.fluid_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_out : int
+        Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_out : float, dict
-        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -118,7 +120,7 @@ class Splitter(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple(description="number of outlets")}
+        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
 
     @classmethod
     def port_schema(cls):

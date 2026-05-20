@@ -1099,7 +1099,8 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
             "structure_matrix": None,
             "_solved": False,
             'dependents': None,
-            "description": None
+            "description": None,
+            "dtype": None,
         }
 
     def _serialize(self):

@@ -44,6 +44,12 @@ API Changes
   for that parameter, and setting a numerical value automatically unsets any
   previously set :code:`Ref`. Both could be set simultaneously before, which
   raised a :code:`FutureWarning`.
+- The :code:`char_map_pr` and :code:`char_map_eta_s` parameters of
+  :py:class:`~tespy.components.turbomachinery.compressor.Compressor` are
+  deprecated. Use
+  :py:class:`~tespy.components.turbomachinery.turbocompressor.TurboCompressor`
+  instead, which is the dedicated class providing characteristic map offdesign
+  capability.
 - The pygmo compatibility interface of
   :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
   The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,

@@ -76,6 +76,19 @@ New Features
 
 Other Changes
 #############
+- A docstring updater script has been added at
+  :code:`docs/scripts/docstring_updater.py`. It regenerates the Ports,
+  Mandatory Equations, and Parameters sections of all registered component and
+  connection class docstrings from live introspection of
+  :py:meth:`port_schema`, :py:meth:`get_mandatory_constraints`, and
+  :py:meth:`get_parameters`, while preserving the introductory paragraph,
+  :code:`Notes` sections, and :code:`Example` blocks verbatim. Parameters are
+  listed in alphabetical order. Run with :code:`--dry-run` to preview changes
+  or :code:`--force` to overwrite files that have uncommitted changes.
+  :py:class:`~tespy.tools.data_containers.SimpleDataContainer` gains a
+  :code:`dtype` field that carries an explicit type hint for documentation
+  purposes and is read by the updater before falling back to value inference.
+
 - Internal Newton solver improvements
   (`PR #987 <https://github.com/oemof/tespy/pull/987>`__):
 

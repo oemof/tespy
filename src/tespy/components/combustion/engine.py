@@ -203,7 +203,7 @@ class CombustionEngine(CombustionChamber):
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. In this example a mixture of methane, hydrogen and
-    carbondioxide is used as fuel. There are two cooling ports, the cooling
+    carbon dioxide is used as fuel. There are two cooling ports, the cooling
     water will flow through them in parallel.
 
     >>> from tespy.components import (Sink, Source, CombustionEngine, Merge,
@@ -971,7 +971,7 @@ class CombustionEngine(CombustionChamber):
         reaction, we need to define the same reference state for the entropy
         balance of the combustion. The temperature for the reference state is
         set to 25 °C and reference pressure is 1 bar. As the water in the flue
-        gas may be liquid but the thermodynmic temperature of heat of
+        gas may be liquid but the thermodynamic temperature of heat of
         combustion refers to the lower heating value, the water is forced to
         gas at the reference point by considering evaporation.
 

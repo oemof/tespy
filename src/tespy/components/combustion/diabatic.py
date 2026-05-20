@@ -181,8 +181,8 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> round(comb_fg.p.val, 2)
     1.14
 
-    Instead of the pressure ration, we can also specify the outlet pressure.
-    The pressure ratio is the ratio or pressure at the outlet to the pressure
+    Instead of the pressure ratio, we can also specify the outlet pressure.
+    The pressure ratio is the ratio of pressure at the outlet to the pressure
     at the inlet 1 (ambient air inlet in this example).
 
     >>> comb.set_attr(pr=None)
@@ -283,7 +283,7 @@ class DiabaticCombustionChamber(CombustionChamber):
         The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the state of the water in the
-        flue gas is fored to gaseous.
+        flue gas is forced to gaseous.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.

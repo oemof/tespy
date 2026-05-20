@@ -1,23 +1,30 @@
 # -*- coding: utf-8
 
-"""On-demand updater for component class docstrings.
+"""On-demand updater for component and connection class docstrings.
 
 Rewrites the middle sections (image block, Ports, Mandatory Equations,
 Parameters) of every registered component docstring from live introspection
 of :py:meth:`port_schema`, :py:meth:`get_mandatory_constraints`, and
-:py:meth:`get_parameters`.  The first paragraph(s) and the :code:`Example`
-section are preserved verbatim.
+:py:meth:`get_parameters`.  For connection classes only the Parameters section
+is regenerated.  The first paragraph(s) and the :code:`Example` section are
+preserved verbatim.
 
 Usage
 -----
-    # Update all registered components in-place
-    python -m tespy.tools.docstring_updater
+    # Update all registered components and connections in-place
+    python docs/scripts/docstring_updater.py
 
     # Preview without writing files
-    python -m tespy.tools.docstring_updater --dry-run
+    python docs/scripts/docstring_updater.py --dry-run
 
     # Update specific classes only
-    python -m tespy.tools.docstring_updater Turbine Compressor --dry-run
+    python docs/scripts/docstring_updater.py Turbine Compressor --dry-run
+
+    # Update connections only
+    python docs/scripts/docstring_updater.py --connections-only
+
+    # Update components only
+    python docs/scripts/docstring_updater.py --components-only
 """
 
 import ast
@@ -29,8 +36,11 @@ import textwrap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import FluidComposition as dc_flu
+from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 # ---------------------------------------------------------------------------
@@ -49,6 +59,22 @@ _BASE_PARAMETERS = [
     ("char_warnings", "bool",
      "Ignore warnings on default characteristics usage for this component."),
     ("printout", "bool", "Include this component in the network's results printout."),
+]
+
+# ---------------------------------------------------------------------------
+# Base parameters shared by every connection
+# ---------------------------------------------------------------------------
+
+_CONNECTION_BASE_PARAMETERS = [
+    ("label", "str", "The label of the connection."),
+    ("design", "list", "List containing design parameters (stated as String)."),
+    ("offdesign", "list", "List containing offdesign parameters (stated as String)."),
+    ("design_path", "str", "Path to the individual design case for this connection."),
+    ("local_offdesign", "bool",
+     "Treat this connection in offdesign mode in a design calculation."),
+    ("local_design", "bool",
+     "Treat this connection in design mode in an offdesign calculation."),
+    ("printout", "bool", "Include this connection in the network's results printout."),
 ]
 
 
@@ -113,6 +139,12 @@ def _dc_type(dc):
         return "tespy.tools.characteristics.CharMap, dict"
     if isinstance(dc, (dc_gcp, dc_gcc)):
         return type(dc).__name__
+    if isinstance(dc, dc_ref):
+        return "Ref"
+    if isinstance(dc, dc_prop):
+        return "float, Ref"
+    if isinstance(dc, dc_flu):
+        return "dict"
     if isinstance(dc, dc_simple):
         dtype = getattr(dc, "dtype", None)
         if dtype:
@@ -191,10 +223,12 @@ def _mandatory_section(instance):
     return "\n".join(parts)
 
 
-def _parameters_section(instance):
+def _parameters_section(instance, base_params=None):
+    if base_params is None:
+        base_params = _BASE_PARAMETERS
     entries = []
 
-    for name, ptype, desc in _BASE_PARAMETERS:
+    for name, ptype, desc in base_params:
         entries.append((name, f"\n{name} : {ptype}\n    {desc}"))
 
     try:
@@ -285,7 +319,8 @@ _SECTION_START = re.compile(
     r"|Optional\s+Equations"
     r"|Inlets/Outlets"
     r"|Image\n"
-    r"|\.\.\ image::)",
+    r"|\.\.\ image::"
+    r"|Parameters\n[-])",
     re.MULTILINE,
 )
 _EXAMPLE_START = re.compile(r"(?:^|\n\n)Examples?\n[-]+", re.MULTILINE)
@@ -435,6 +470,84 @@ def _has_uncommitted_changes(filepath):
 
 
 # ---------------------------------------------------------------------------
+# Connection docstring generation
+# ---------------------------------------------------------------------------
+
+def generate_connection_docstring(cls):
+    """Return the complete new docstring body for a connection class."""
+    intro, suffix, example = _split_docstring(cls)
+
+    instance = cls.__new__(cls)
+
+    parts = []
+    if intro:
+        parts.append(intro)
+    parts.append(_parameters_section(instance, base_params=_CONNECTION_BASE_PARAMETERS))
+    if suffix:
+        if re.match(r"^\.\.", suffix):
+            parts.append("Notes\n-----\n\n" + suffix)
+        else:
+            parts.append(suffix)
+    if example:
+        parts.append(example)
+
+    return "\n\n".join(parts)
+
+
+def update_connection_docstrings(classes=None, dry_run=False, force=False):
+    """Update docstrings for *classes* (defaults to all registered connections).
+
+    Parameters
+    ----------
+    classes : list of str, optional
+        Class names to process.  Defaults to every entry in the connection
+        registry.
+    dry_run : bool
+        When :code:`True`, print the generated docstrings to stdout instead of
+        writing files.
+    force : bool
+        When :code:`True`, write files even if they have uncommitted changes.
+    """
+    from tespy.connections.connection import connection_registry
+
+    registry = {
+        k: v for k, v in connection_registry.items.items()
+        if classes is None or k in classes
+    }
+
+    pending = {}
+
+    for cls_name, cls in registry.items():
+        try:
+            new_body = generate_connection_docstring(cls)
+        except Exception as exc:
+            print(f"[SKIP] {cls_name}: {exc}")
+            continue
+
+        if dry_run:
+            sep = "=" * 72
+            print(f"\n{sep}\n=== {cls_name}\n{sep}")
+            print(new_body)
+            continue
+
+        filepath = inspect.getfile(cls)
+        if filepath not in pending:
+            with open(filepath, encoding="utf-8") as fh:
+                pending[filepath] = fh.read()
+
+        pending[filepath] = _patch_file(pending[filepath], cls_name, new_body)
+        print(f"[OK] {cls_name}")
+
+    for filepath, content in pending.items():
+        if not force and _has_uncommitted_changes(filepath):
+            print(f"[SKIP] {filepath}: has uncommitted changes (pass --force to override)")
+            continue
+        with open(filepath, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        print(f"[WRITE] {filepath}")
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -497,5 +610,11 @@ if __name__ == "__main__":
     argv = sys.argv[1:]
     dry_run = "--dry-run" in argv
     force = "--force" in argv
+    components_only = "--components-only" in argv
+    connections_only = "--connections-only" in argv
     names = [a for a in argv if not a.startswith("--")] or None
-    update_component_docstrings(classes=names, dry_run=dry_run, force=force)
+
+    if not connections_only:
+        update_component_docstrings(classes=names, dry_run=dry_run, force=force)
+    if not components_only:
+        update_connection_docstrings(classes=names, dry_run=dry_run, force=force)

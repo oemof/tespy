@@ -589,7 +589,7 @@ class CombustionChamber(Component):
             0 = res + \left( \dot{m}_{H_m} - \dot{m}_{H_{exc,m}} \right)
             \cdot 0.5 \cdot M_{H_2O}
 
-        Equation for carbondioxide
+        Equation for carbon dioxide
 
         .. math::
 
@@ -688,7 +688,7 @@ class CombustionChamber(Component):
                 )
 
         ###################################################################
-        # equation for carbondioxide
+        # equation for carbon dioxide
         if fluid == self.co2:
             dm = (n_c - n_c_exc) * inl[0].fluid.wrapper[self.co2]._molar_mass
 
@@ -916,12 +916,12 @@ class CombustionChamber(Component):
 
     def _calc_lambda(self):
         r"""
-        Calculate oxygen to stoichimetric oxygen ration
+        Calculate oxygen to stoichiometric oxygen ratio
 
         Returns
         -------
         lambda : float
-            Oxygent to stoichiometric oxygen ratio.
+            Oxygen to stoichiometric oxygen ratio.
 
             .. math::
 
@@ -1208,7 +1208,7 @@ class CombustionChamber(Component):
         reaction, we need to define the same reference state for the entropy
         balance of the combustion. The temperature for the reference state is
         set to 25 °C and reference pressure is 1 bar. As the water in the flue
-        gas may be liquid but the thermodynmic temperature of heat of
+        gas may be liquid but the thermodynamic temperature of heat of
         combustion refers to the lower heating value, the water is forced to
         gas at the reference point by considering evaporation.
 

@@ -245,7 +245,7 @@ like this:
     :start-after: [sec_6]
     :end-before: [sec_7]
 
-Once a again, it is recommended to test the code.
+Once again, it is recommended to test the code.
 
 .. dropdown:: Display source code for testing the model
 

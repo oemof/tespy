@@ -460,10 +460,6 @@ class Connection(ConnectionBase):
     h : float, Ref
         Mass specific enthalpy of the fluid (system variable).
 
-    h_ref : Ref
-        Equation for linear relationship between two enthalpy values.
-        Equation: :py:meth:`primary_ref_structure_matrix <tespy.connections.connection.Connection.primary_ref_structure_matrix>`.
-
     label : str
         The label of the connection.
 
@@ -476,19 +472,11 @@ class Connection(ConnectionBase):
     m : float, Ref
         Mass flow of the fluid (system variable).
 
-    m_ref : Ref
-        Equation for linear relationship between two mass flows.
-        Equation: :py:meth:`primary_ref_structure_matrix <tespy.connections.connection.Connection.primary_ref_structure_matrix>`.
-
     offdesign : list
         List containing offdesign parameters (stated as String).
 
     p : float, Ref
         Absolute pressure of the fluid (system variable).
-
-    p_ref : Ref
-        Equation for linear relationship between two pressure values.
-        Equation: :py:meth:`primary_ref_structure_matrix <tespy.connections.connection.Connection.primary_ref_structure_matrix>`.
 
     printout : bool
         Include this connection in the network's results printout.
@@ -507,10 +495,6 @@ class Connection(ConnectionBase):
     T_dew : float, Ref
         Determine pressure based on the provided dew temperature of the fluid.
 
-    T_ref : Ref
-        Equation for linear relationship between two temperature values.
-        Equation: :py:meth:`T_ref_func <tespy.connections.connection.Connection.T_ref_func>`.
-
     td_bubble : float, Ref
         Subcooling temperature difference to bubble line temperature.
         Equation: :py:meth:`td_bubble_func <tespy.connections.connection.Connection.td_bubble_func>`.
@@ -522,10 +506,6 @@ class Connection(ConnectionBase):
     v : float, Ref
         Volumetric flow of the fluid.
         Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
-
-    v_ref : Ref
-        Equation for linear relationship between two volumetric flows.
-        Equation: :py:meth:`v_ref_func <tespy.connections.connection.Connection.v_ref_func>`.
 
     vol : float, Ref
         Specific volume of the fluid (output only).

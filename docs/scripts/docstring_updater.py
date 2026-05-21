@@ -223,7 +223,7 @@ def _mandatory_section(instance):
     return "\n".join(parts)
 
 
-def _parameters_section(instance, base_params=None):
+def _parameters_section(instance, base_params=None, param_filter=None):
     if base_params is None:
         base_params = _BASE_PARAMETERS
     entries = []
@@ -237,6 +237,8 @@ def _parameters_section(instance, base_params=None):
         params = {}
 
     for name, dc in params.items():
+        if param_filter is not None and not param_filter(name, dc):
+            continue
         ptype = _dc_type(dc)
 
         raw_desc = getattr(dc, "description", None) or ""
@@ -482,7 +484,11 @@ def generate_connection_docstring(cls):
     parts = []
     if intro:
         parts.append(intro)
-    parts.append(_parameters_section(instance, base_params=_CONNECTION_BASE_PARAMETERS))
+    parts.append(_parameters_section(
+        instance,
+        base_params=_CONNECTION_BASE_PARAMETERS,
+        param_filter=lambda name, _: not name.endswith("_ref"),
+    ))
     if suffix:
         if re.match(r"^\.\.", suffix):
             parts.append("Notes\n-----\n\n" + suffix)

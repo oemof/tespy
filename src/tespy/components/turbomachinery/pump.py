@@ -33,102 +33,113 @@ class Pump(Turbomachine):
     r"""
     Class for axial or radial pumps.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-    - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_func`
-    - :py:meth:`tespy.components.turbomachinery.pump.Pump.eta_s_char_func`
-    - :py:meth:`tespy.components.turbomachinery.pump.Pump.flow_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional inlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Pump.svg
+    .. image:: /api/_images/components/Pump.svg
        :alt: flowsheet of the pump
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Pump_darkmode.svg
+    .. image:: /api/_images/components/Pump_darkmode.svg
        :alt: flowsheet of the pump
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.turbomachinery.pump.Pump.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Power, :math:`P/\text{W}`
-
-    eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_s/1`
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     eta : float, dict
-        Efficiency based on flow work :math:`v\cdot dp`, :math:`\eta/1`
+        Efficiency defined as specific incompressible flow work over increase of
+        enthalpy. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.turbomachinery.pump.Pump.eta_func>`.
 
-    frequency : float, dict
-        Frequency of the pump, :math:`\omega/(1/)`
+    eta_flow_group : GroupedComponentProperties
+        Map function for efficiency over volumetric flow and frequency.
+        Elements: :code:`eta_flow_map`, :code:`frequency`.
+        Equation: :py:meth:`eta_flow_frequency_group_func <tespy.components.turbomachinery.pump.Pump.eta_flow_frequency_group_func>`.
 
     eta_flow_map : tespy.tools.characteristics.CharMap, dict
-        Characteristic map for efficiency vs. volumetric flow and frequency
+        2D lookup table for pump efficiency over volumetric flow and frequency.
 
-    head_flow_map : tespy.tools.characteristics.CharMap, dict
-        Characteristic map for hydraulic head vs. volumetric flow and frequency
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
-
-    head : float, dict
-        Hydraulic head, :math:`H/m`
+    eta_s : float, dict
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_s_func <tespy.components.turbomachinery.pump.Pump.eta_s_func>`.
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic curve for isentropic efficiency, provide CharLine as
-        function :code:`func`
+        Isentropic efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_s_char_func <tespy.components.turbomachinery.pump.Pump.eta_s_char_func>`.
 
     flow_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic curve for pressure rise as function of volumetric flow
-        :math:`x/\frac{\text{m}^3}{\text{s}} \, y/\text{Pa}`
+        Pressure rise over volumetric flow lookup table.
+        Equation: :py:meth:`flow_char_func <tespy.components.turbomachinery.pump.Pump.flow_char_func>`.
+
+    frequency : float, dict, :code:`"var"`
+        Frequency of the pump. Quantity: :code:`frequency`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    head : float, dict
+        Hydraulic head of the pump. Quantity: :code:`length`.
+        Equation: :py:meth:`hydraulic_head_func <tespy.components.turbomachinery.pump.Pump.hydraulic_head_func>`.
+
+    head_flow_map : tespy.tools.characteristics.CharMap, dict
+        2D lookup table for hydraulic head over volumetric flow and frequency.
+
+    head_flow_map_group : GroupedComponentProperties
+        Map function for efficiency over volumetric flow and frequency.
+        Elements: :code:`head_flow_map`, :code:`frequency`.
+        Equation: :py:meth:`head_flow_frequency_group_func <tespy.components.turbomachinery.pump.Pump.head_flow_frequency_group_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -405,7 +416,7 @@ class Pump(Turbomachine):
             ),
             "frequency": dc_cp(
                 min_val=0, max_val=10000,
-                _potential_var=True,
+                _allows_var=True,
                 quantity="frequency",
                 description="frequency of the pump"
             ),

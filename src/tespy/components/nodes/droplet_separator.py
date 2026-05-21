@@ -26,56 +26,57 @@ class DropletSeparator(NodeBase):
 
     This component is the parent component of the Drum.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1, out2 (index 1: saturated liquid, index 2: saturated gas)
-
-    Image
-
-    .. image:: /api/_images/DropletSeparator.svg
-       :alt: flowsheet of the droplet separator
+    .. image:: /api/_images/components/DropletSeparator.svg
+       :alt: flowsheet of the dropletseparator
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/DropletSeparator_darkmode.svg
-       :alt: flowsheet of the droplet separator
+    .. image:: /api/_images/components/DropletSeparator_darkmode.svg
+       :alt: flowsheet of the dropletseparator
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+    - outlet 0 is saturated liquid constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - outlet 1 is saturated gas constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
     Example

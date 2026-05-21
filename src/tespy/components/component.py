@@ -222,13 +222,13 @@ class Component:
     def _set_parameter(self, key, value):
         try:
             self.parameters[key].accept(value)
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             msg = (
-                f"Bad datatype for keyword argument '{key}' on "
+                f"Bad value for keyword argument '{key}' on "
                 f"component {self.label}: {e}"
             )
             logger.error(msg)
-            raise TypeError(msg) from e
+            raise type(e)(msg) from e
 
     def _set_design_list(self, key, value):
         if not isinstance(value, list):
@@ -604,6 +604,50 @@ class Component:
         )
         logger.exception(msg)
         raise NotImplementedError(msg)
+
+    @classmethod
+    def port_schema(cls):
+        """
+        Return a description of the component's port topology for UI tooling.
+
+        The default implementation derives fixed-port descriptions from the
+        ``@staticmethod`` ``inlets``/``outlets``/``powerinlets``/
+        ``poweroutlets`` methods.  Subclasses with variable or conditional
+        port counts must override this method.
+
+        Returns
+        -------
+        dict
+            Keys are ``"inlets"``, ``"outlets"``, ``"powerinlets"``,
+            ``"poweroutlets"``, ``"heatinlets"``, ``"heatoutlets"``.
+            Each value is a dict with at least a ``"type"`` key:
+
+            ``{"type": "fixed", "ports": [...]}``
+                The port list is static.
+
+            ``{"type": "variable", "parameter": str, "pattern": str, "min": int}``
+                Port count is controlled by *parameter*.  *pattern* is a
+                Python format string where ``{n}`` is replaced by the
+                1-based port index (e.g. ``"in{n}"``).
+        """
+        import inspect
+        result = {}
+        for port_type in (
+            "inlets", "outlets",
+            "powerinlets", "poweroutlets",
+            "heatinlets", "heatoutlets",
+        ):
+            attr = inspect.getattr_static(cls, port_type, None)
+            if isinstance(attr, staticmethod):
+                result[port_type] = {
+                    "type": "fixed",
+                    "ports": getattr(cls, port_type)(),
+                }
+            else:
+                # Instance method — subclass should override port_schema()
+                # but provide a safe fallback so schema generation never crashes.
+                result[port_type] = {"type": "unknown"}
+        return result
 
     @staticmethod
     def inlets():

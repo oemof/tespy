@@ -23,24 +23,91 @@ from tespy.tools.fluid_properties import h_mix_pT
 @component_registry
 class DiabaticCombustionChamber(CombustionChamber):
     r"""
-    The class CombustionChamber is parent class of all combustion components.
+    An extension of the adiabatic combustion chamber with pressure drop and heat loss.
 
-    **Mandatory Equations**
+    .. image:: /api/_images/components/CombustionChamber.svg
+       :alt: flowsheet of the diabaticcombustionchamber
+       :align: center
+       :class: only-light
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
+    .. image:: /api/_images/components/CombustionChamber_darkmode.svg
+       :alt: flowsheet of the diabaticcombustionchamber
+       :align: center
+       :class: only-dark
 
-    **Optional Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
-    - :py:meth:`tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1
 
-    Available fuels
+    Mandatory Equations
+    -------------------
 
-    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
+    - mass flow balance over all inflows and outflows: :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+    - constraints for stoichiometry of the reaction: :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+
+    Parameters
+    ----------
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    dp : float, dict
+        Inlet 0 to outlet 0 absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    eta : float, dict
+        Heat dissipation ratio relative to thermal input. Quantity:
+        :code:`efficiency`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.combustion.diabatic.DiabaticCombustionChamber.energy_balance_func>`.
+
+    f_nox : float, dict
+        Mass-based nitric oxide (NO) generation rate in flue gas in mass of
+        created NO per mass of fuel and air input. Only active if value is
+        explicitly set. Quantity: :code:`ratio`.
+
+    label : str
+        The label of the component.
+
+    lamb : float, dict
+        Available oxygen to stoichiometric oxygen ratio. Quantity:
+        :code:`ratio`.
+        Equation: :py:meth:`lambda_func <tespy.components.combustion.base.CombustionChamber.lambda_func>`.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    pr : float, dict
+        Outlet 0 to inlet 0 pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Qloss : float, dict
+        Heat dissipation. Quantity: :code:`heat`.
+
+    ti : float, dict
+        Thermal input of fuel: lower heating value multiplied with mass flow.
+        Quantity: :code:`heat`.
+        Equation: :py:meth:`ti_func <tespy.components.combustion.base.CombustionChamber.ti_func>`.
+
+    Notes
+    -----
 
     .. tip::
 
@@ -48,24 +115,12 @@ class DiabaticCombustionChamber(CombustionChamber):
         the :code:`tespy.tools` module and passing the respective information.
         See in the example of
         :py:class:`tespy.components.combustion.base.CombustionChamber`, how to
-        do that.
+        do that. To retrieve the fluids available by default run:
 
-    Inlets/Outlets
+        .. code-block:: python
 
-    - in1, in2
-    - out1
-
-    Image
-
-    .. image:: /api/_images/CombustionChamber.svg
-       :alt: flowsheet of the combustion chamber
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/CombustionChamber_darkmode.svg
-       :alt: flowsheet of the combustion chamber
-       :align: center
-       :class: only-dark
+            from tespy.tools.global_vars import COMBUSTION_FLUIDS
+            COMBUSTION_FLUIDS.fluids.keys()
 
     .. note::
 
@@ -74,57 +129,12 @@ class DiabaticCombustionChamber(CombustionChamber):
         inlet 1. A warning is prompted, if the pressure at inlet 2 is lower than
         the pressure at inlet 1.
 
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    design_path : str
-        Path to the components design case.
-
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    lamb : float, dict
-        Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
-
-    ti : float, dict
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
-
-    eta : float, dict
-        Combustion thermal efficiency, :math:`\eta`. Heat loss calculation based
-        on share of thermal input.
-
-    pr : float, dict
-        Pressure ratio of outlet 1 to inlet 1, :math:`pr`.
-
-    Note
-    ----
-    For more information on the usage of the combustion chamber see the
-    examples section on github or look for the combustion chamber tutorials
-    at tespy.readthedocs.io.
-
     Example
     -------
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. In this example a mixture of methane, hydrogen and
-    carbondioxide is used as fuel.
+    carbon dioxide is used as fuel.
 
     >>> from tespy.components import Sink, Source, DiabaticCombustionChamber
     >>> from tespy.connections import Connection
@@ -170,8 +180,8 @@ class DiabaticCombustionChamber(CombustionChamber):
     >>> round(comb_fg.p.val, 2)
     1.14
 
-    Instead of the pressure ration, we can also specify the outlet pressure.
-    The pressure ratio is the ratio or pressure at the outlet to the pressure
+    Instead of the pressure ratio, we can also specify the outlet pressure.
+    The pressure ratio is the ratio of pressure at the outlet to the pressure
     at the inlet 1 (ambient air inlet in this example).
 
     >>> comb.set_attr(pr=None)
@@ -272,7 +282,7 @@ class DiabaticCombustionChamber(CombustionChamber):
         The temperature for the reference state is set to 25 °C, thus
         the water may be liquid. In order to make sure, the state is
         referring to the lower heating value, the state of the water in the
-        flue gas is fored to gaseous.
+        flue gas is forced to gaseous.
 
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.

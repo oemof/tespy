@@ -20,122 +20,152 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     r"""
     Class for parallel flow heat exchanger.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-
-    For hot and cold side individually:
-
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
-
-    Inlets/Outlets
-
-    - in1, in2 (index 1: hot side, index 2: cold side)
-    - out1, out2 (index 1: hot side, index 2: cold side)
-
-    Image
-
-    .. image:: /api/_images/HeatExchanger.svg
-       :alt: flowsheet of the heat exchanger
+    .. image:: /api/_images/components/HeatExchanger.svg
+       :alt: flowsheet of the parallelflowheatexchanger
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/HeatExchanger_darkmode.svg
-       :alt: flowsheet of the heat exchanger
+    .. image:: /api/_images/components/HeatExchanger_darkmode.svg
+       :alt: flowsheet of the parallelflowheatexchanger
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - hot side to cold side heat transfer equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dp1 : float, dict
+        Hot side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    local_design : boolean
+    dp2 : float, dict
+        Cold side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    kA : float, dict
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`.
+
+    kA_char : GroupedComponentCharacteristics
+        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
+        :code:`kA_char2`.
+
+    kA_char1 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char1` instead.
+
+    kA_char2 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char2` instead.
+
+    label : str
+        The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    pr1 : float, dict
+        Hot side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    pr2 : float, dict
+        Cold side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
         Include this component in the network's results printout.
 
     Q : float, dict
-        Heat transfer, :math:`Q/\text{W}`.
+        Heat transfer from hot side. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
-    pr1 : float, dict
-        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
-
-    pr2 : float, dict
-        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
-
-    dp1 : float, dict,
-        Inlet to outlet pressure delta at hot side, :math:`dp/\text{Pa}`
-
-    dp2 : float, dict
-        Inlet to outlet pressure delta at cold side, :math:`dp\text{Pa}`.
-
-    zeta1_d4 : float, dict
-        Geometry independent friction coefficient at hot side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    zeta2_d4 : float, dict
-        Geometry independent friction coefficient at cold side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    td_log : float, dict
+        Deprecated, use :code:`lmtd` instead. Quantity:
+        :code:`temperature_difference`.
 
     ttd_l : float, dict
-        Initial terminal temperature difference, referring to the temperature
-        difference between the two inlets of the heat exchanger,
-        :math:`ttd_\text{l}/\text{K}`.
+        Terminal temperature difference at hot side outlet to cold side inlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_l_func>`.
 
     ttd_u : float, dict
-        Final terminal temperature difference, referring to the temperature
-        difference between the two outlets of the heat exchanger,
-        :math:`ttd_\text{u}/\text{K}`.
+        Terminal temperature difference at hot side inlet to cold side outlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_u_func>`.
 
     UA : float, dict
-        Area independent heat transfer coefficient,
-        :math:`UA/\frac{\text{W}}{\text{K}}`.
+        Heat transfer coefficient considering terminal temperature differences.
+        Quantity: :code:`heat_transfer_coefficient`.
+        Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : dict
-        Area independent heat transfer coefficient characteristic.
+    UA_char : GroupedComponentCharacteristics
+        Equation for heat transfer based on UA and modification factor.
+        Elements: :code:`UA_char1`, :code:`UA_char2`.
+        Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func>`.
 
     UA_char1 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for hot side heat transfer coefficient.
+        Hot side UA modification lookup table for offdesign.
 
     UA_char2 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for cold side heat transfer coefficient.
+        Cold side UA modification lookup table for offdesign.
 
-    Note
-    ----
-    The :code:`ParallelFlowHeatExchanger` implements parallel flow of both
-    streams, meaning the streams enter with a high temperature difference and
-    then gradually reduce their temperature difference to each other. The
-    initial temperature difference is the maximum temperature difference, the
-    final temperature difference is the minimum temperature difference.
+    zeta1 : float, dict
+        Deprecated, use :code:`zeta1_d4` instead.
+
+    zeta1_d4 : float, dict
+        Hot side geometry-independent friction coefficient zeta/D^4 for pressure
+        loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    zeta2 : float, dict
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Cold side geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    Notes
+    -----
+
+    .. note::
+
+        The :code:`ParallelFlowHeatExchanger` implements parallel flow of both
+        streams, meaning the streams enter with a high temperature difference and
+        then gradually reduce their temperature difference to each other. The
+        initial temperature difference is the maximum temperature difference, the
+        final temperature difference is the minimum temperature difference.
 
     Example
     -------
@@ -263,4 +293,3 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         if round(ttd_u, 6) == round(ttd_l, 6):
             return ttd_l
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
-

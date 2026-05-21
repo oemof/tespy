@@ -24,58 +24,59 @@ class Merge(NodeBase):
     r"""
     Class for merge points with multiple inflows and one outflow.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
-    - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
-
-    Inlets/Outlets
-
-    - specify number of inlets with :code:`num_in` (default value: 2)
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Merge.svg
+    .. image:: /api/_images/components/Merge.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Merge_darkmode.svg
+    .. image:: /api/_images/components/Merge_darkmode.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2, ... (variable, count set by :code:`num_in`)
+    - Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - fluid mass fraction balance constraints: :py:meth:`fluid_func <tespy.components.nodes.merge.Merge.fluid_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.merge.Merge.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_in : int
+        Number of inlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_in : float, dict
-        Number of inlets for this component, default value: 2.
 
     Example
     -------
@@ -166,7 +167,18 @@ class Merge(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_in': dc_simple(description="number of inlets")}
+        return {'num_in': dc_simple(dtype="int", description="number of inlets")}
+
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_in", "pattern": "in{n}", "min": 2},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
 
     def _update_num_eq(self):
         self.variable_fluids = set(

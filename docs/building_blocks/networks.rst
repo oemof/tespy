@@ -643,7 +643,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid component never exceeds oxygenthese boundaries.
+  mass fraction of a single fluid component never exceeds these boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -748,14 +748,14 @@ connections to the network.
 
 **Presolving**
 
-In the first part of the presovling phase, the variable space reduction is
+In the first part of the presolving phase, the variable space reduction is
 performed. TESPy will prompt errors, in case the parameter specifications in
 context of the topology lead to an infeasibility in any of the variables. This
 can be, for example
 
 - a circular linear dependency between a set of variables. Typically, the mass
   flow can be over-determined by not including a :code:`CycleCloser` component
-  in a circular network. For example, ff you are modeling a cycle, e.g. the
+  in a circular network. For example, if you are modeling a cycle, e.g. the
   Clausius Rankine cycle, you need to make a cut in the cycle using the
   :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
   over-determine the system. Have a look in the

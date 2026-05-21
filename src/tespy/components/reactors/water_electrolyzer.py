@@ -26,105 +26,112 @@ class WaterElectrolyzer(Component):
     r"""
     The water electrolyzer produces hydrogen and oxygen from water and power.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func`
-
-    **Optional Equations**
-
-    - cooling loop:
-
-      - :py:meth:`tespy.components.component.Component.zeta_d4_func`
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_func`
-
-    Inlets/Outlets
-
-    - in1 (cooling inlet), in2 (feed water inlet)
-    - out1 (cooling outlet), out2 (oxygen outlet), out3 (hydrogen outlet)
-
-    Image
-
-    .. image:: /api/_images/WaterElectrolyzer.svg
-       :alt: flowsheet of the water electrolyzer
+    .. image:: /api/_images/components/WaterElectrolyzer.svg
+       :alt: flowsheet of the waterelectrolyzer
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/WaterElectrolyzer_darkmode.svg
-       :alt: flowsheet of the water electrolyzer
+    .. image:: /api/_images/components/WaterElectrolyzer_darkmode.svg
+       :alt: flowsheet of the waterelectrolyzer
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2, out3
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - equations for oxygen and hydrogen mass flow relation: :py:meth:`reactor_mass_flow_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func>`
+    - cooling fluid mass flow equality equation: :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix>`
+    - cooling fluid composition equality equation: :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix>`
+    - energy balance equation of the reactor: :py:meth:`energy_balance_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func>`
+    - reactor pressure equality equations: :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix>`
+    - equation for same temperature of product gases: :py:meth:`gas_temperature_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict, :code:`"var"`
-        Power input, :math:`P/\text{W}`.
-
-    Q : float, dict
-        Heat output of cooling, :math:`Q/\text{W}`
+    dp : float, dict
+        Cooling inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     e : float, dict, :code:`"var"`
-        Electrolysis specific energy consumption,
-        :math:`e/(\text{J}/\text{m}^3)`.
+        Equation for specified specific energy consumption of the electrolyzer.
+        Quantity: :code:`specific_energy`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+        Equation: :py:meth:`specific_energy_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_func>`.
 
     eta : float, dict
-        Electrolysis efficiency (referring to H2 higher heating value),
-        :math:`\eta/1`.
+        Efficiency of the electrolyzer. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func>`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
-        Electrolysis efficiency characteristic line.
+        Efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_char_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Power consumption of the electrolyzer. Quantity: :code:`power`. Can be
+        set as a system variable by passing :code:`"var"` as its value.
 
     pr : float, dict
-        Cooling loop pressure ratio, :math:`pr/1`.
+        Cooling port outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference of cooling loop,
-        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat output of the cooling port. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func>`.
+
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
 
     zeta_d4 : float, dict
-        Geometry independent friction coefficient for cooling loop pressure
-        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+        Cooling port geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
-    Note
-    ----
-    Other than usual components, the water electrolyzer has the fluid
-    composition built into its equations for the feed water inlet and the
-    hydrogen and oxygen outlet. Thus, the user must not specify the fluid
-    composition at these connections!
+    Notes
+    -----
+
+    .. note::
+
+        Other than usual components, the water electrolyzer has the fluid
+        composition built into its equations for the feed water inlet and the
+        hydrogen and oxygen outlet. Thus, the user must not specify the fluid
+        composition at these connections!
 
     Example
     -------
@@ -203,7 +210,7 @@ class WaterElectrolyzer(Component):
     def get_parameters(self):
         return {
             'P': dc_cp(
-                min_val=0, quantity="power", _potential_var=True,
+                min_val=0, quantity="power", _allows_var=True,
                 description="power consumption of the electrolyzer"
             ),
             'Q': dc_cp(
@@ -250,7 +257,7 @@ class WaterElectrolyzer(Component):
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
                 quantity="specific_energy",
-                _potential_var=True,
+                _allows_var=True,
                 description="equation for specified specific energy consumption of the electrolyzer",
                 calc=self._calc_e
             ),
@@ -259,7 +266,7 @@ class WaterElectrolyzer(Component):
                 func=self.eta_func,
                 dependents=self.eta_dependents,
                 quantity="efficiency",
-                description="efficiency of the fuel cell",
+                description="efficiency of the electrolyzer",
                 calc=self._calc_eta, calc_deps=['e']
             ),
             'eta_char': dc_cc(
@@ -829,4 +836,3 @@ class WaterElectrolyzer(Component):
         elif key == 'h':
             temp = 20 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
-

@@ -34,93 +34,138 @@ class PolynomialCompressor(DisplacementMachine):
 
     See the example for the intended use of the component.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional inlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Compressor.svg
-       :alt: flowsheet of the compressor
+    .. image:: /api/_images/components/PolynomialCompressor.svg
+       :alt: flowsheet of the polynomialcompressor
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Compressor_darkmode.svg
-       :alt: flowsheet of the compressor
+    .. image:: /api/_images/components/PolynomialCompressor_darkmode.svg
+       :alt: flowsheet of the polynomialcompressor
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy balance between for power connector and the power consumption of the compressor: :py:meth:`energy_connector_balance_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Compressor power, :math:`P/\text{W}`
-
     dissipation_ratio : float, dict
-        Relative heat loss of compressor, :math:`Q_\text{diss,rel}/1`
-
-    eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_\text{s}/1`
-
-    eta_s_poly : array, dict
-        Polynomial coefficients for isentropic efficiency
-
-    eta_vol : float, dict
-        Volumetric efficiency, :math:`\eta_\text{vol}/1`
-
-    eta_vol_poly : array, dict
-        Polynomial coefficients for volumetric efficiency
-
-    reference_state: dict
-        Reference state for the polynomial and displacement.
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
+        Heat dissipation ratio relative to power consumption. Quantity:
+        :code:`ratio`.
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    energy_balance_group : GroupedComponentProperties
+        Energy balance equation for fixed power and dissipation ratio. Elements:
+        :code:`P`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`energy_balance_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func>`.
+
+    eta_s : float, dict
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+
+    eta_s_group : GroupedComponentProperties
+        Isentropic efficiency equation with fixed efficiency. Elements:
+        :code:`eta_s`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`eta_s_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func>`.
+
+    eta_s_poly : list
+        Polynomial coefficients for isentropic efficiency.
+
+    eta_s_poly_group : GroupedComponentProperties
+        Isentropic efficiency equation based on polynomial coefficients.
+        Elements: :code:`eta_s_poly`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`eta_s_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`.
+
+    eta_vol : float, dict
+        Volumetric efficiency. Quantity: :code:`efficiency`.
+
+    eta_vol_group : GroupedComponentProperties
+        Elements: :code:`reference_state`, :code:`eta_vol`, :code:`frequency`.
+        Equation: :py:meth:`eta_vol_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_frequency_group_func>`.
+
+    eta_vol_group_rpm : GroupedComponentProperties
+        Displacement equation based on fixed volumetric efficiency. Elements:
+        :code:`reference_state`, :code:`eta_vol`, :code:`rpm`.
+        Equation: :py:meth:`eta_vol_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func>`.
+
+    eta_vol_poly : list
+        Polynomial coefficients for volumetric efficiency.
+
+    eta_vol_poly_group : GroupedComponentProperties
+        Displacement equation based on polynomial coefficients for volumetric
+        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        :code:`frequency`.
+        Equation: :py:meth:`eta_vol_poly_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_frequency_group_func>`.
+
+    eta_vol_poly_group_rpm : GroupedComponentProperties
+        Displacement equation based on polynomial coefficients for volumetric
+        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        :code:`rpm`.
+        Equation: :py:meth:`eta_vol_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`.
+
+    frequency : float, dict, :code:`"var"`
+        Compressor frequency. Quantity: :code:`frequency`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power consumption. Quantity: :code:`power`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q_diss : float, dict
+        Heat dissipation. Quantity: :code:`heat`.
+
+    reference_state : dict
+        Reference state definition for the scaling of displacement with
+        compressor rpm.
+
+    rpm : float, dict, :code:`"var"`
+        Compressor frequency. Can be set as a system variable by passing
+        :code:`"var"` as its value.
 
     Example
     -------
@@ -365,6 +410,7 @@ class PolynomialCompressor(DisplacementMachine):
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "description": "energy balance between for power connector and the power consumption of the compressor.",
                 "num_eq_sets": 1
             })
 
@@ -398,21 +444,24 @@ class PolynomialCompressor(DisplacementMachine):
                 description="heat dissipation ratio relative to power consumption"
             ),
             "frequency": dc_cp(
-                min_val=0, max_val=10000, is_result=True, _potential_var=True,
+                min_val=0, max_val=10000, is_result=True, _allows_var=True,
                 quantity="frequency",
                 description="compressor frequency"
             ),
             "rpm": dc_cp(
-                min_val=0, is_result=True, _potential_var=True,
+                min_val=0, is_result=True, _allows_var=True,
                 description="compressor frequency"
             ),
             "reference_state": dc_simple(
+                dtype="dict",
                 description="reference state definition for the scaling of displacement with compressor rpm"
             ),
             "eta_s_poly": dc_simple(
+                dtype="list",
                 description="polynomial coefficients for isentropic efficiency"
             ),
             "eta_vol_poly": dc_simple(
+                dtype="list",
                 description="polynomial coefficients for volumetric efficiency"
             ),
             "eta_vol_poly_group_rpm": dc_gcp(
@@ -506,6 +555,20 @@ class PolynomialCompressor(DisplacementMachine):
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
+        r"""Equation for equality of power connector power with component drawn
+        power.
+
+        .. math::
+
+            0 = \dot m \cdot
+            \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
+            - \dot E
+
+        Returns
+        -------
+        float
+            residual
+        """
         return self._calc_P() - self.power_inl[0].E.val_SI
 
     def energy_connector_dependents(self):

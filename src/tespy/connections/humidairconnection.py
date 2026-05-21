@@ -87,6 +87,7 @@ class HAConnection(Connection):
                 description="relative humidity"
             ),
             "fluid_balance": dc_simple(
+                dtype="bool",
                 func=self.fluid_balance_func,
                 deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,

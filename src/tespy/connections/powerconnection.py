@@ -95,4 +95,3 @@ class PowerConnection(ConnectionBase):
 
     def collect_results(self, all_fluids):
         return [self.E.val, self.E.unit]
-

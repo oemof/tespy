@@ -32,87 +32,91 @@ class CombustionChamber(Component):
     r"""
     The class CombustionChamber is parent class of all combustion components.
 
-    **Mandatory Equations**
+    .. image:: /api/_images/components/CombustionChamber.svg
+       :alt: flowsheet of the combustionchamber
+       :align: center
+       :class: only-light
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.energy_balance_func`
+    .. image:: /api/_images/components/CombustionChamber_darkmode.svg
+       :alt: flowsheet of the combustionchamber
+       :align: center
+       :class: only-dark
 
-    **Optional Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1
 
-    Available fuels
+    Mandatory Equations
+    -------------------
 
-    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
+    - mass flow balance over all inflows and outflows: :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+    - pressure equality constraints: :py:meth:`combustion_pressure_structure_matrix <tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix>`
+    - constraints for stoichiometry of the reaction: :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+    - constraint for energy balance: :py:meth:`energy_balance_func <tespy.components.combustion.base.CombustionChamber.energy_balance_func>`
+
+    Parameters
+    ----------
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    f_nox : float, dict
+        Mass-based nitric oxide (NO) generation rate in flue gas in mass of
+        created NO per mass of fuel and air input. Only active if value is
+        explicitly set. Quantity: :code:`ratio`.
+
+    label : str
+        The label of the component.
+
+    lamb : float, dict
+        Available oxygen to stoichiometric oxygen ratio. Quantity:
+        :code:`ratio`.
+        Equation: :py:meth:`lambda_func <tespy.components.combustion.base.CombustionChamber.lambda_func>`.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    ti : float, dict
+        Thermal input of fuel: lower heating value multiplied with mass flow.
+        Quantity: :code:`heat`.
+        Equation: :py:meth:`ti_func <tespy.components.combustion.base.CombustionChamber.ti_func>`.
+
+    Notes
+    -----
 
     .. tip::
 
         You can add more fluids by importing :code:`COMBUSTION_FLUIDS` from
         the :code:`tespy.tools` module and passing the respective information.
-        See in the example below, how to do that.
+        See in the example below, how to do that. To retrieve the fluids
+        available by default run:
 
-    Inlets/Outlets
+        .. code-block:: python
 
-    - in1, in2
-    - out1
-
-    Image
-
-    .. image:: /api/_images/CombustionChamber.svg
-       :alt: flowsheet of the combustion chamber
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/CombustionChamber_darkmode.svg
-       :alt: flowsheet of the combustion chamber
-       :align: center
-       :class: only-dark
+            from tespy.tools.global_vars import COMBUSTION_FLUIDS
+            COMBUSTION_FLUIDS.fluids.keys()
 
     .. note::
 
         The fuel and the air components can be connected to either of the
         inlets.
-
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    design_path : str
-        Path to the components design case.
-
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    lamb : float, dict
-        Actual oxygen to stoichiometric oxygen ratio, :math:`\lambda/1`.
-
-    ti : float, dict
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
-
-    Note
-    ----
-    For more information on the usage of the combustion chamber see the
-    examples section on github or look for the combustion chamber tutorials
-    at tespy.readthedocs.io.
 
     Example
     -------
@@ -198,7 +202,7 @@ class CombustionChamber(Component):
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
                 quantity="heat",
-                description="thermal input of fuel: lower heating value multipled with mass flow",
+                description="thermal input of fuel: lower heating value multiplied with mass flow",
                 calc=self._calc_ti
             ),
             "f_nox": dc_cp(
@@ -584,7 +588,7 @@ class CombustionChamber(Component):
             0 = res + \left( \dot{m}_{H_m} - \dot{m}_{H_{exc,m}} \right)
             \cdot 0.5 \cdot M_{H_2O}
 
-        Equation for carbondioxide
+        Equation for carbon dioxide
 
         .. math::
 
@@ -683,7 +687,7 @@ class CombustionChamber(Component):
                 )
 
         ###################################################################
-        # equation for carbondioxide
+        # equation for carbon dioxide
         if fluid == self.co2:
             dm = (n_c - n_c_exc) * inl[0].fluid.wrapper[self.co2]._molar_mass
 
@@ -911,12 +915,12 @@ class CombustionChamber(Component):
 
     def _calc_lambda(self):
         r"""
-        Calculate oxygen to stoichimetric oxygen ration
+        Calculate oxygen to stoichiometric oxygen ratio
 
         Returns
         -------
         lambda : float
-            Oxygent to stoichiometric oxygen ratio.
+            Oxygen to stoichiometric oxygen ratio.
 
             .. math::
 
@@ -1203,7 +1207,7 @@ class CombustionChamber(Component):
         reaction, we need to define the same reference state for the entropy
         balance of the combustion. The temperature for the reference state is
         set to 25 °C and reference pressure is 1 bar. As the water in the flue
-        gas may be liquid but the thermodynmic temperature of heat of
+        gas may be liquid but the thermodynamic temperature of heat of
         combustion refers to the lower heating value, the water is forced to
         gas at the reference point by considering evaporation.
 

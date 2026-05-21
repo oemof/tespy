@@ -25,46 +25,49 @@ class HeatBus(_EnergyBus):
     :class:`~tespy.components.PowerSource` / :class:`~tespy.components.PowerSink`
     with :class:`~tespy.components.HeatSource` / :class:`~tespy.components.HeatSink`.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.energy._bus._EnergyBus.energy_balance_func`
+    - Heat inlets: heat_in1, heat_in2, ... (variable, count set by :code:`num_in`)
+    - Heat outlets: heat_out1, heat_out2, ... (variable, count set by :code:`num_out`)
 
-    HeatConnection inlets/outlets
+    Mandatory Equations
+    -------------------
 
-    - specify number of inlets with :code:`num_in`: 'heat_in1', ...
-    - specify number of outlets with :code:`num_out`: 'heat_out1', ...
+    - energy balance over all inflows and outflows: :py:meth:`energy_balance_func <tespy.components.energy._bus._EnergyBus.energy_balance_func>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
-        Include this component in the network's results printout.
-
-    num_in : float
+    num_in : int
         Number of inlets.
 
-    num_out : float
+    num_out : int
         Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------

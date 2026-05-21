@@ -22,118 +22,144 @@ class SolarCollector(SimpleHeatExchanger):
     r"""
     The solar collector calculates heat output from irradiance.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_d4_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func`
-    - :py:meth:`tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/SolarCollector.svg
-       :alt: flowsheet of the solar collector
+    .. image:: /api/_images/components/SolarCollector.svg
+       :alt: flowsheet of the solarcollector
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/SolarCollector_darkmode.svg
-       :alt: flowsheet of the solar collector
+    .. image:: /api/_images/components/SolarCollector_darkmode.svg
+       :alt: flowsheet of the solarcollector
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: heat
+    - Power outlets: heat
+    - Heat inlets: heat
+    - Heat outlets: heat
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    A : float, dict, :code:`"var"`
+        Area of the solar collector. Quantity: :code:`area`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    D : float, dict, :code:`"var"`
+        Diameter of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    darcy_group : GroupedComponentProperties
+        Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
+        :code:`ks`, :code:`D`.
+        Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dissipative : bool
+        Description missing.
 
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    Q : float, dict, :code:`"var"`
-        Heat transfer, :math:`Q/\text{W}`.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`.
-
-    zeta_d4 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    D : float, dict, :code:`"var"`
-        Diameter of the pipes, :math:`D/\text{m}`.
-
-    L : float, dict, :code:`"var"`
-        Length of the pipes, :math:`L/\text{m}`.
-
-    ks : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{m}`.
-
-    darcy_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using darcy weissbach equation.
-
-    ks_HW : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{1}`.
-
-    hw_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using hazen williams equation.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     E : float, dict, :code:`"var"`
-        irradiance at tilted collector surface area,
-        :math:`E/\frac{\text{W}}{\text{m}^2}`.
+        Solar irradiation to the solar collector. Quantity: :code:`heat`. Can be
+        set as a system variable by passing :code:`"var"` as its value.
 
-    eta_opt : float, dict, :code:`"var"`
-        optical loss at surface cover,
-        :math:`\eta_{opt}`.
+    energy_group : GroupedComponentProperties
+        Energy balance equation of the solar collector. Elements: :code:`E`,
+        :code:`eta_opt`, :code:`lkf_lin`, :code:`lkf_quad`, :code:`A`,
+        :code:`Tamb`.
+        Equation: :py:meth:`energy_group_func <tespy.components.heat_exchangers.solar_collector.SolarCollector.energy_group_func>`.
 
-    lkf_lin : float, dict, :code:`"var"`
-        Linear thermal loss key figure,
-        :math:`\alpha_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
+    eta_opt : float, dict
+        Optical efficiency. Quantity: :code:`efficiency`.
 
-    lkf_quad : float, dict, :code:`"var"`
-        Quadratic thermal loss key figure,
-        :math:`\alpha_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
+    hw_group : GroupedComponentProperties
+        Hazen-Williams equation for pressure loss. Elements: :code:`L`,
+        :code:`ks_HW`, :code:`D`.
+        Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
 
-    A : float, dict, :code:`"var"`
-        Collector surface area :math:`A/\text{m}^2`.
+    ks : float, dict, :code:`"var"`
+        Roughness of wall material. Quantity: :code:`length`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    ks_HW : float, dict, :code:`"var"`
+        Hazen-Williams roughness. Can be set as a system variable by passing
+        :code:`"var"` as its value.
+
+    L : float, dict, :code:`"var"`
+        Length of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    lkf_lin : float, dict
+        Linear heat loss factor.
+
+    lkf_quad : float, dict
+        Quadratic heat loss factor.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    power_connector_location : str
+        Description missing.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat transfer. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
+
+    Q_loss : float, dict
+        Heat dissipation. Quantity: :code:`heat`.
 
     Tamb : float, dict
-        Ambient temperature, provide parameter in network's temperature unit.
+        Ambient air temperature. Quantity: :code:`temperature`.
 
-    energy_group : str, dict
-        Parametergroup for energy balance of solarthermal collector.
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -189,11 +215,11 @@ class SolarCollector(SimpleHeatExchanger):
 
         data.update({
             'E': dc_cp(
-                min_val=0, quantity="heat", _potential_var=True,
+                min_val=0, quantity="heat", _allows_var=True,
                 description="solar irradiation to the solar collector"
             ),
             'A': dc_cp(
-                min_val=0, quantity="area", _potential_var=True,
+                min_val=0, quantity="area", _allows_var=True,
                 description="area of the solar collector"
             ),
             'eta_opt': dc_cp(

@@ -28,70 +28,98 @@ class Valve(Component):
     r"""
     The Valve throttles a fluid without changing enthalpy.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Valve.svg
+    .. image:: /api/_images/components/Valve.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Valve_darkmode.svg
+    .. image:: /api/_images/components/Valve_darkmode.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    Fluid inlets: in1
+
+    Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - equation for enthalpy equality: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     dp_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for difference pressure to mass flow.
+        Inlet to outlet absolute pressure change as function of mass flow lookup
+        table.
+        Equation: :py:meth:`dp_char_func <tespy.components.piping.valve.Valve.dp_char_func>`.
+
+    Kv : float, dict
+        Flow coefficient in m3/h.
+        Equation: :py:meth:`Kv_func <tespy.components.piping.valve.Valve.Kv_func>`.
+
+    Kv_analytical : dict
+        Fitting parameters and method for the analytical Kv evaluation provided
+        in a dictionary with keys 'method' (callable) and 'params' (list).
+
+    Kv_char : tespy.tools.characteristics.CharLine, dict
+        Lookup-table data for flow coefficient as function of opening.
+
+    Kv_char_analytical_group : GroupedComponentProperties
+        Elements: :code:`Kv_analytical`, :code:`opening`.
+        Equation: :py:meth:`Kv_char_analytical_func <tespy.components.piping.valve.Valve.Kv_char_analytical_func>`.
+
+    Kv_char_group : GroupedComponentProperties
+        Equation for flow coefficient over opening. Elements: :code:`Kv_char`,
+        :code:`opening`.
+        Equation: :py:meth:`Kv_char_func <tespy.components.piping.valve.Valve.Kv_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    opening : float, dict, :code:`"var"`
+        Opening ratio of the valve. Quantity: :code:`ratio`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    zeta : float, dict
+        Non-dimensional friction coefficient for pressure loss calculation.
+        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
 
     Example
     -------
@@ -240,7 +268,7 @@ class Valve(Component):
             'opening': dc_cp(
                 # opening can be more than 100 % sometimes
                 min_val=0, max_val=1.1,
-                _potential_var=True,
+                _allows_var=True,
                 description="opening ratio of the valve",
                 quantity="ratio"
             ),
@@ -252,6 +280,7 @@ class Valve(Component):
                 description="equation for flow coefficient over opening"
             ),
             'Kv_analytical': dc_simple(
+                dtype="dict",
                 description=(
                     "fitting parameters and method for the analytical Kv "
                     "evaluation provided in a dictionary with keys 'method' "

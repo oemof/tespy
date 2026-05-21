@@ -450,7 +450,7 @@ class ModelTemplate():
         results["_idx"] = order
         return results.sort_values(by="_idx").drop(columns="_idx").reset_index(drop=True)
 
-    # Method for checking the parameter lenghts
+    # Method for checking the parameter lengths
     def _check_parameter_lengths(self, param_dict=None):
         lengths = [len(v) for v in param_dict.values()]
         if len(set(lengths)) != 1:

@@ -442,67 +442,77 @@ class Connection(ConnectionBase):
 
     Parameters
     ----------
-    m : float, tespy.connections.connection.Ref
-        Mass flow specification.
-
-    m0 : float
-        Starting value specification for mass flow.
-
-    p : float, tespy.connections.connection.Ref
-        Pressure specification.
-
-    p0 : float
-        Starting value specification for pressure.
-
-    h : float, tespy.connections.connection.Ref
-        Enthalpy specification.
-
-    h0 : float
-        Starting value specification for enthalpy.
-
-    fluid : dict
-        Fluid compostition specification.
-
-    fluid0 : dict
-        Starting value specification for fluid compostition.
-
-    fluid_balance : boolean
-        Fluid balance equation specification.
-
-    x : float
-        Gas phase mass fraction specification.
-
-    T : float, tespy.connections.connection.Ref
-        Temperature specification.
-
-    v : float
-        Volumetric flow specification.
-
-    state : str
-        State of the pure fluid on this connection: liquid ('l') or gaseous
-        ('g').
 
     design : list
-        List containing design parameters (stated as string).
-
-    offdesign : list
-        List containing offdesign parameters (stated as string).
+        List containing design parameters (stated as String).
 
     design_path : str
-        Path to individual design case for this connection.
+        Path to the individual design case for this connection.
 
-    local_offdesign : boolean
-        Treat this connection in offdesign mode in a design calculation.
+    fluid : dict
+        Mass fractions of the fluid composition (system variable).
 
-    local_design : boolean
-        Treat this connection in design mode in an offdesign calculation.
+    fluid_balance : bool
+        Apply an equation which closes the fluid balance with at least two
+        unknown fluid mass fractions.
+        Equation: :py:meth:`fluid_balance_func <tespy.connections.connection.Connection.fluid_balance_func>`.
 
-    printout : boolean
-        Include this connection in the network's results printout.
+    h : float, Ref
+        Mass specific enthalpy of the fluid (system variable).
 
     label : str
-        Label of the connection. The default value is:
-        :code:`'source:source_id_target:target_id'`.
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    m : float, Ref
+        Mass flow of the fluid (system variable).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    p : float, Ref
+        Absolute pressure of the fluid (system variable).
+
+    printout : bool
+        Include this connection in the network's results printout.
+
+    s : float, Ref
+        Specific entropy of the fluid (output only).
+
+    T : float, Ref
+        Temperature of the fluid.
+        Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    T_bubble : float, Ref
+        Determine pressure based on the provided bubble temperature of the
+        fluid.
+
+    T_dew : float, Ref
+        Determine pressure based on the provided dew temperature of the fluid.
+
+    td_bubble : float, Ref
+        Subcooling temperature difference to bubble line temperature.
+        Equation: :py:meth:`td_bubble_func <tespy.connections.connection.Connection.td_bubble_func>`.
+
+    td_dew : float, Ref
+        Superheating temperature difference to dew line temperature.
+        Equation: :py:meth:`td_dew_func <tespy.connections.connection.Connection.td_dew_func>`.
+
+    v : float, Ref
+        Volumetric flow of the fluid.
+        Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
+
+    vol : float, Ref
+        Specific volume of the fluid (output only).
+
+    x : float, Ref
+        Vapor mass fraction/quality of the two-phase fluid.
+        Equation: :py:meth:`x_func <tespy.connections.connection.Connection.x_func>`.
 
     Note
     ----
@@ -646,8 +656,8 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.state = dc_simple()
-        self.phase = dc_simple()
+        self.state = dc_simple(dtype="str")
+        self.phase = dc_simple(dtype="str")
         self.mixing_rule = None
         self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
@@ -1280,6 +1290,7 @@ class Connection(ConnectionBase):
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"
             ),
             "fluid_balance": dc_simple(
+                dtype="bool",
                 func=self.fluid_balance_func,
                 deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,

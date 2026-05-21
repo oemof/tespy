@@ -44,6 +44,12 @@ API Changes
   for that parameter, and setting a numerical value automatically unsets any
   previously set :code:`Ref`. Both could be set simultaneously before, which
   raised a :code:`FutureWarning`.
+- The :code:`char_map_pr` and :code:`char_map_eta_s` parameters of
+  :py:class:`~tespy.components.turbomachinery.compressor.Compressor` are
+  deprecated. Use
+  :py:class:`~tespy.components.turbomachinery.turbocompressor.TurboCompressor`
+  instead, which is the dedicated class providing characteristic map offdesign
+  capability.
 - The pygmo compatibility interface of
   :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
   The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,
@@ -152,6 +158,19 @@ Other Changes
   the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
 - Fix logging message in connection preprocessing
   (`PR #988 <https://github.com/oemof/tespy/pull/988>`__).
+- :py:func:`~tespy.tools.schema.generate_component_schema` and
+  :py:func:`~tespy.tools.schema.generate_connection_schema` export a JSON
+  description of all registered component and connection parameters - including
+  container type, physical quantity and description - for use in external
+  tooling (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+- A docstring updater script has been added at
+  :code:`docs/scripts/docstring_updater.py`. It regenerates the Ports,
+  Mandatory Equations, and Parameters sections of all registered component and
+  connection class docstrings from live introspection of
+  :py:meth:`port_schema`, :py:meth:`get_mandatory_constraints`, and
+  :py:meth:`get_parameters`, while preserving the introductory paragraph,
+  :code:`Notes` sections, and :code:`Example` blocks verbatim
+  (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
 
 Bug Fixes
 #########

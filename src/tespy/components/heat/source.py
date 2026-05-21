@@ -19,30 +19,41 @@ class HeatSource(_EnergySource):
     r"""
     A heat flow emerges from a HeatSource.
 
+    Ports
+    -----
+
+    Heat outlets: heat
+
+    Mandatory Equations
+    -------------------
+
+    None
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
     Example

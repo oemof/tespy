@@ -19,18 +19,11 @@ from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.schema import _instantiate_component
 
 DOCS_ROOT_PATH = os.path.join(os.path.dirname(__file__))
 API_PATH = os.path.join(DOCS_ROOT_PATH, "api")
 TESPY_PATH = os.path.join(DOCS_ROOT_PATH, "..",  "src", "tespy")
-
-
-def _create_component_instances() -> dict:
-    instances = {}
-    for cls_name, cls_ref in component_registry.items.items():
-        instances[cls_name] = cls_ref(cls_name)
-
-    return instances
 
 
 def _create_connection_instances() -> dict:
@@ -64,24 +57,58 @@ def _get_eq_reference(datacontainer):
     return ":py:meth:`" + basename.split(".")[-1] + " <" + eq_reference + ">`"
 
 
+def _collect_constraints(instance):
+    """Return (unconditional, conditional) constraint dicts.
+
+    Conditional constraints are those that only appear when an energy connector
+    (power or heat) is attached.
+    """
+    instance.power_outl = []
+    instance.power_inl = []
+    instance.heat_outl = []
+    instance.heat_inl = []
+    base = instance.get_mandatory_constraints()
+
+    # A single sentinel object is enough — get_mandatory_constraints() only
+    # checks len(self.power_outl/inl) > 0, it never accesses list elements.
+    _sentinel = [object()]
+    instance.power_outl = _sentinel
+    instance.power_inl = _sentinel
+    instance.heat_outl = _sentinel
+    instance.heat_inl = _sentinel
+    with_power = instance.get_mandatory_constraints()
+
+    # Restore to empty so the instance is left in a neutral state.
+    instance.power_outl = []
+    instance.power_inl = []
+    instance.heat_outl = []
+    instance.heat_inl = []
+
+    unconditional = {}
+    conditional = {}
+    for key, value in with_power.items():
+        eq_reference = _get_eq_reference(value)
+        entry = {"eq_reference": eq_reference, "description": value.description}
+        if key in base:
+            unconditional[key] = entry
+        else:
+            conditional[key] = entry
+
+    return unconditional, conditional
+
+
 def collect_component_parameters(instance):
     grouped_parameters = {}
     parameters_with_equation = {}
     characteristic_lines_and_maps = {}
-    constraints = {}
 
-    for key, value in instance.get_mandatory_constraints().items():
-        eq_reference = _get_eq_reference(value)
-        constraints[key] = {
-            "eq_reference": eq_reference,
-            "description": value.description
-        }
+    unconditional_constraints, conditional_constraints = _collect_constraints(instance)
 
     for key, value in instance.parameters.items():
         eq_reference = _get_eq_reference(value)
 
         if isinstance(value, dc_cp):
-            if value._potential_var:
+            if value._allows_var:
                 key = key + " [1]_"
             parameters_with_equation[key] = {
                 "eq_reference": eq_reference,
@@ -107,7 +134,7 @@ def collect_component_parameters(instance):
                 "elements": ", ".join([f":code:`{element}`" for element in value.elements])
             }
 
-    return constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
+    return unconditional_constraints, conditional_constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
 
 
 def collect_connection_parameters(instance):
@@ -154,37 +181,37 @@ def _indent_block(s: str, spaces: int) -> str:
 
 
 def create_tabular_component_views():
-    instances = _create_component_instances()
+    from tespy.components.component import Component
+
     path = os.path.join(DOCS_ROOT_PATH, "building_blocks", "_components_overview.rst")
 
     modules = {}
 
-    for cls_name, instance in instances.items():
-        # this is required to collect the mandatory constraints
-        # it will keep the power balance equation between the component and the
-        # (optionally) attached PowerConnection out of the list of equations
-        # TODO: Find a better solution
-        instance.power_outl = []
-        instance.power_inl = []
-        instance.heat_outl = []
-        instance.heat_inl = []
+    for cls_name, cls_ref in component_registry.items.items():
+        # _instantiate_component returns None for classes with a static
+        # get_parameters(); in that case we still need a probe instance for
+        # get_mandatory_constraints(), so we create one the same way.
+        instance = _instantiate_component(cls_ref)
+        if instance is None:
+            instance = cls_ref.__new__(cls_ref)
+            Component.__init__(instance, "_docs_probe_")
 
-        cls_ref = instance.__class__
         cls_module = cls_ref.__module__
         parent_module = ".".join(cls_ref.__module__.split(".")[:-1])
         if parent_module not in modules:
             modules[parent_module] = {}
 
-        constraints, parameters, parameter_groups, characteristic_lines = collect_component_parameters(instance)
+        constraints, conditional_constraints, parameters, parameter_groups, characteristic_lines = collect_component_parameters(instance)
 
         modules[parent_module][cls_name] = _indent_block("\n", 4)
         modules[parent_module][cls_name] += _indent_block(f".. dropdown:: {cls_name}" + "\n" * 2, 8)
         modules[parent_module][cls_name] += _indent_block(
-            f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`", 8
+            f"**Class documentation and example:** :py:class:`{cls_name} <{cls_module}.{cls_name}>`", 8
         )
 
         outputs = {
             "Table of constraints": constraints,
+            "Table of constraints (active when energy connector is attached)": conditional_constraints,
             "Table of parameters": parameters,
             "Table of parameter groups": parameter_groups,
             "Table of characteristic lines and maps": characteristic_lines,
@@ -246,7 +273,7 @@ def create_tabular_connection_views():
         parameters = collect_connection_parameters(instance)
 
         classes[cls_name] = "\n"
-        classes[cls_name] += (f"Class documentation and example: :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
+        classes[cls_name] += (f"**Class documentation and example:** :py:class:`{cls_name} <{cls_module}.{cls_name}>`")
 
         outputs = {
             "Table of parameters": parameters

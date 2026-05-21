@@ -36,38 +36,149 @@ class CombustionEngine(CombustionChamber):
     chamber. Thermal input and power output, heat output and heat losses are
     linked with an individual characteristic line for each property.
 
-    **Mandatory Equations**
+    .. image:: /api/_images/components/CombustionEngine.svg
+       :alt: flowsheet of the combustionengine
+       :align: center
+       :class: only-light
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.tiP_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Qloss_char_func`
+    .. image:: /api/_images/components/CombustionEngine_darkmode.svg
+       :alt: flowsheet of the combustionengine
+       :align: center
+       :class: only-dark
 
-    - for each cooling loop:
+    Ports
+    -----
 
-      - mass flow: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
-      - fluid: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
+    Fluid inlets: in1, in2, in3, in4
 
-    **Optional Equations**
+    Fluid outlets: out1, out2, out3
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_func`
+    Power outlets: power
 
-    - for each cooling loop:
+    Mandatory Equations
+    -------------------
 
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.zeta_func`
+    - mass flow balance over all inflows and outflows: :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+    - pressure equality constraints: :py:meth:`combustion_pressure_structure_matrix <tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix>`
+    - constraints for stoichiometry of the reaction: :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+    - constraint for energy balance: :py:meth:`energy_balance_func <tespy.components.combustion.engine.CombustionEngine.energy_balance_func>`
+    - equation for thermal input to power generation relation: :py:meth:`tiP_char_func <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`
+    - equation for thermal input to heating port 1 heat generation relation: :py:meth:`Q1_char_func <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`
+    - equation for thermal input to heating port 2 heat generation relation: :py:meth:`Q2_char_func <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`
+    - equation for thermal input to heat dissipation relation: :py:meth:`Qloss_char_func <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`
+    - equation for mass flow equality at heating ports: :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
+    - equation for fluid composition equality at heating ports: :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
 
-    Available fuels
+    When a power or heat connector is attached:
 
-    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.combustion.engine.CombustionEngine.energy_connector_balance_func>`
+
+    Parameters
+    ----------
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    dp1 : float, dict
+        Heating port 1 inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    dp2 : float, dict
+        Heating port 2 inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    eta_mech : float
+
+
+    f_nox : float, dict
+        Mass-based nitric oxide (NO) generation rate in flue gas in mass of
+        created NO per mass of fuel and air input. Only active if value is
+        explicitly set. Quantity: :code:`ratio`.
+
+    label : str
+        The label of the component.
+
+    lamb : float, dict
+        Available oxygen to stoichiometric oxygen ratio. Quantity:
+        :code:`ratio`.
+        Equation: :py:meth:`lambda_func <tespy.components.combustion.base.CombustionChamber.lambda_func>`.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Mechanical power generated by the engine. Quantity: :code:`power`. Can
+        be set as a system variable by passing :code:`"var"` as its value.
+
+    pr1 : float, dict
+        Heating port 1 outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    pr2 : float, dict
+        Heating port 2 outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q1 : float, dict
+        Heating port 1 heat production. Quantity: :code:`heat`.
+        Equation: :py:meth:`Q1_func <tespy.components.combustion.engine.CombustionEngine.Q1_func>`.
+
+    Q1_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat production of port 1 lookup table.
+
+    Q2 : float, dict
+        Heating port 2 heat production. Quantity: :code:`heat`.
+        Equation: :py:meth:`Q2_func <tespy.components.combustion.engine.CombustionEngine.Q2_func>`.
+
+    Q2_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat production of port 2 lookup table.
+
+    Qloss : float, dict, :code:`"var"`
+        Heat dissipation. Quantity: :code:`heat`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    Qloss_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat dissipation lookup table.
+
+    T_v_inner : float
+
+
+    ti : float, dict
+        Thermal input of fuel: lower heating value multiplied with mass flow.
+        Quantity: :code:`heat`.
+        Equation: :py:meth:`ti_func <tespy.components.combustion.base.CombustionChamber.ti_func>`.
+
+    tiP_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to power lookup table.
+
+    zeta1 : float, dict
+        Heating port 1 non-dimensional friction coefficient for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+
+    zeta2 : float, dict
+        Heating port 2 non-dimensional friction coefficient for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+
+    Notes
+    -----
 
     .. tip::
 
@@ -75,123 +186,24 @@ class CombustionEngine(CombustionChamber):
         the :code:`tespy.tools` module and passing the respective information.
         See in the example of
         :py:class:`tespy.components.combustion.base.CombustionChamber`, how to
-        do that.
+        do that. To retrieve the fluids available by default run:
 
-    Inlets/Outlets
+        .. code-block:: python
 
-    - in1, in2 (cooling water), in3, in4 (air and fuel)
-    - out1, out2 (cooling water), out3 (flue gas)
-
-    Power outlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/CombustionEngine.svg
-       :alt: flowsheet of the combustion engine
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/CombustionEngine_darkmode.svg
-       :alt: flowsheet of the combustion engine
-       :align: center
-       :class: only-dark
+            from tespy.tools.global_vars import COMBUSTION_FLUIDS
+            COMBUSTION_FLUIDS.fluids.keys()
 
     .. note::
 
         The fuel and the air components can be connected to either of the
         inlets.
 
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    design_path : str
-        Path to the components design case.
-
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    lamb : float, dict
-        Air to stoichiometric air ratio, :math:`\lambda/1`.
-
-    ti : float, dict
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
-
-    P : float, dict, :code:`"var"`
-        Power output, :math:`P/\text{W}`.
-
-    Q1 : float, dict
-        Heat output 1, :math:`\dot Q/\text{W}`.
-
-    Q2 : float, dict
-        Heat output 2, :math:`\dot Q/\text{W}`.
-
-    Qloss : float, dict, :code:`"var"`
-        Heat loss, :math:`\dot Q_{loss}/\text{W}`.
-
-    pr1 : float, dict, :code:`"var"`
-        Pressure ratio heat outlet 1, :math:`pr/1`.
-
-    pr2 : float, dict, :code:`"var"`
-        Pressure ratio heat outlet 2, :math:`pr/1`.
-
-    zeta1 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient heating loop 1,
-        :math:`\zeta_1/\frac{1}{\text{m}^4}`.
-
-    zeta2 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient heating loop 2,
-        :math:`\zeta_2/\frac{1}{\text{m}^4}`.
-
-    tiP_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking fuel input to power output.
-
-    Q1_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat output 1 to power output.
-
-    Q2_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat output 2 to power output.
-
-    Qloss_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat loss to power output.
-
-    eta_mech : float
-        Value of internal efficiency of the combustion engine. This value is
-        required to determine the (virtual) thermodynamic temperature of heat
-        inside the combustion engine for the entropy balance calculation.
-        Default value is 0.85.
-
-    Note
-    ----
-    Parameters available through entropy balance are listed in the respective
-    method:
-
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.entropy_balance`
-
     Example
     -------
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. In this example a mixture of methane, hydrogen and
-    carbondioxide is used as fuel. There are two cooling ports, the cooling
+    carbon dioxide is used as fuel. There are two cooling ports, the cooling
     water will flow through them in parallel.
 
     >>> from tespy.components import (Sink, Source, CombustionEngine, Merge,
@@ -263,7 +275,7 @@ class CombustionEngine(CombustionChamber):
         params = super().get_parameters()
         params.update({
             'P': dc_cp(
-                _val=-1e6, max_val=-1, quantity="power", _potential_var=True,
+                _val=-1e6, max_val=-1, quantity="power", _allows_var=True,
                 description="mechanical power generated by the engine",
                 calc=self._calc_P
             ),
@@ -286,7 +298,7 @@ class CombustionEngine(CombustionChamber):
                 calc=self._calc_Q2
             ),
             'Qloss': dc_cp(
-                _val=-1e5, max_val=-1, quantity="heat", _potential_var=True,
+                _val=-1e5, max_val=-1, quantity="heat", _allows_var=True,
                 description="heat dissipation",
                 calc=self._calc_Qloss
             ),
@@ -350,8 +362,8 @@ class CombustionEngine(CombustionChamber):
             'Qloss_char': dc_cc(
                 description="thermal input to heat dissipation lookup table"
             ),
-            'eta_mech': dc_simple(_val=0.85),
-            'T_v_inner': dc_simple()
+            'eta_mech': dc_simple(_val=0.85, dtype="float"),
+            'T_v_inner': dc_simple(dtype="float")
         })
         return params
 
@@ -959,7 +971,7 @@ class CombustionEngine(CombustionChamber):
         reaction, we need to define the same reference state for the entropy
         balance of the combustion. The temperature for the reference state is
         set to 25 °C and reference pressure is 1 bar. As the water in the flue
-        gas may be liquid but the thermodynmic temperature of heat of
+        gas may be liquid but the thermodynamic temperature of heat of
         combustion refers to the lower heating value, the water is forced to
         gas at the reference point by considering evaporation.
 

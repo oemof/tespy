@@ -21,6 +21,18 @@ class _EnergySink(Component):
 
     _energy_port: str = None
 
+    @classmethod
+    def port_schema(cls):
+        is_power = cls._energy_port == "power"
+        return {
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "fixed", "ports": ["power"] if is_power else []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": [] if is_power else ["heat"]},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
+
     def powerinlets(self):
         return ["power"] if self._energy_port == "power" else []
 

@@ -6,6 +6,7 @@ physical quantity and description.
 """
 
 import json
+import warnings
 
 from tespy.tools.data_containers import ComponentCharacteristicMaps
 from tespy.tools.data_containers import ComponentCharacteristics
@@ -125,6 +126,11 @@ def generate_component_schema(
     str | dict
         JSON string or dict depending on *as_json*.
     """
+    warnings.warn(
+        "tespy.tools.schema is not yet stable and may change without notice in future releases.",
+        FutureWarning,
+        stacklevel=2,
+    )
     from tespy.components.component import component_registry
 
     schema = {}
@@ -192,6 +198,11 @@ def generate_connection_schema(
     str | dict
         JSON string or dict depending on *as_json*.
     """
+    warnings.warn(
+        "tespy.tools.schema is not yet stable and may change without notice in future releases.",
+        FutureWarning,
+        stacklevel=2,
+    )
     from tespy.connections.connection import connection_registry
 
     schema = {}

@@ -17,6 +17,15 @@ API Changes
   with the new :code:`HeatSource` and :code:`HeatSink` components instead -
   the inlet or outlet side is detected automatically from the connection
   (`PR #961 <https://github.com/oemof/tespy/pull/961>`__).
+- Several component parameters have been renamed for clarity
+  (`PR #989 <https://github.com/oemof/tespy/pull/989>`__). Old names remain
+  available as deprecated aliases: :code:`zeta` → :code:`zeta_d4`
+  (:code:`zeta1`/:code:`zeta2` → :code:`zeta1_d4`/:code:`zeta2_d4`),
+  :code:`kA` → :code:`UA` (:code:`kA_char` → :code:`UA_char`,
+  :code:`kA_group` → :code:`UA_group`, :code:`kA_char_group` →
+  :code:`UA_char_group`; :code:`kA_char1`/:code:`kA_char2` →
+  :code:`UA_char1`/:code:`UA_char2` for two-sided exchangers), and
+  :code:`td_log` → :code:`lmtd` (logarithmic mean temperature difference).
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).

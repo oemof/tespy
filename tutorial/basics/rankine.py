@@ -217,7 +217,7 @@ plt.tight_layout()
 fig.savefig('rankine_parametric-darkmode.svg')
 plt.close()
 # %%[sec_9]
-mc.set_attr(design=["ttd_u"], offdesign=["kA"])
+mc.set_attr(design=["ttd_u"], offdesign=["UA"])
 c11.set_attr(offdesign=["v"])
 c12.set_attr(design=["T"])
 c1.set_attr(design=["p"])

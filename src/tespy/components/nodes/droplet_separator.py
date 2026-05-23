@@ -39,9 +39,8 @@ class DropletSeparator(NodeBase):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1, out2
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2
 
     Mandatory Equations
     -------------------

@@ -45,9 +45,8 @@ class CombustionChamber(Component):
     Ports
     -----
 
-    Fluid inlets: in1, in2
-
-    Fluid outlets: out1
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1
 
     Mandatory Equations
     -------------------

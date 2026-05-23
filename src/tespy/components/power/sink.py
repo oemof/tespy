@@ -22,7 +22,7 @@ class PowerSink(_EnergySink):
     Ports
     -----
 
-    Power inlets: power
+    - Power inlets: power
 
     Mandatory Equations
     -------------------

@@ -26,9 +26,8 @@ class Turbomachine(Component):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
     Mandatory Equations
     -------------------

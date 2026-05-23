@@ -22,7 +22,7 @@ class PowerSource(_EnergySource):
     Ports
     -----
 
-    Power outlets: power
+    - Power outlets: power
 
     Mandatory Equations
     -------------------

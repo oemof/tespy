@@ -43,17 +43,12 @@ class Pipe(SimpleHeatExchanger):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1
-
-    Power inlets: heat
-
-    Power outlets: heat
-
-    Heat inlets: heat
-
-    Heat outlets: heat
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: heat
+    - Power outlets: heat
+    - Heat inlets: heat
+    - Heat outlets: heat
 
     Mandatory Equations
     -------------------
@@ -87,7 +82,7 @@ class Pipe(SimpleHeatExchanger):
         Path to the components design case.
 
     dissipative : bool
-
+        Description missing.
 
     dp : float, dict
         Inlet to outlet absolute pressure change. Quantity:
@@ -95,7 +90,7 @@ class Pipe(SimpleHeatExchanger):
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     environment_media : str
-
+        Description missing.
 
     flow_speed : float, dict
         Flow speed at inlet of pipe. Quantity: :code:`speed`.
@@ -118,22 +113,20 @@ class Pipe(SimpleHeatExchanger):
         Thickness of pipe insulation. Quantity: :code:`length`.
 
     kA : float, dict, :code:`"var"`
-        Heat transfer coefficient considering ambient temperature. Quantity:
+        Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`. Can be set as a system variable by
         passing :code:`"var"` as its value.
 
     kA_char : tespy.tools.characteristics.CharLine, dict
-        Heat transfer coefficient lookup table for offdesign.
+        Deprecated, use :code:`UA_char` instead.
 
     kA_char_group : GroupedComponentProperties
-        Heat transfer from design heat transfer coefficient, modifier lookup
-        table and ambient temperature. Elements: :code:`kA_char`, :code:`Tamb`.
-        Equation: :py:meth:`kA_char_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func>`.
+        Deprecated, use :code:`UA_char_group` instead. Elements:
+        :code:`kA_char`, :code:`Tamb`.
 
     kA_group : GroupedComponentProperties
-        Equation for heat transfer based on ambient temperature and heat
-        transfer coefficient. Elements: :code:`kA`, :code:`Tamb`.
-        Equation: :py:meth:`kA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func>`.
+        Deprecated, use :code:`UA_group` instead. Elements: :code:`kA`,
+        :code:`Tamb`.
 
     ks : float, dict, :code:`"var"`
         Roughness of wall material. Quantity: :code:`length`. Can be set as a
@@ -150,6 +143,10 @@ class Pipe(SimpleHeatExchanger):
     label : str
         The label of the component.
 
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
+
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
@@ -157,7 +154,7 @@ class Pipe(SimpleHeatExchanger):
         Treat this component in offdesign mode in a design calculation.
 
     material : str
-
+        Description missing.
 
     offdesign : list
         List containing offdesign parameters (stated as String).
@@ -169,7 +166,7 @@ class Pipe(SimpleHeatExchanger):
         Wall thickness of pipe. Quantity: :code:`length`.
 
     power_connector_location : str
-
+        Description missing.
 
     pr : float, dict
         Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
@@ -199,12 +196,34 @@ class Pipe(SimpleHeatExchanger):
     Tamb : float, dict
         Ambient temperature. Quantity: :code:`temperature`.
 
+    UA : float, dict, :code:`"var"`
+        Heat transfer coefficient considering ambient temperature. Quantity:
+        :code:`heat_transfer_coefficient`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+
+    UA_char : tespy.tools.characteristics.CharLine, dict
+        Heat transfer coefficient lookup table for offdesign.
+
+    UA_char_group : GroupedComponentProperties
+        Heat transfer from design heat transfer coefficient, modifier lookup
+        table and ambient temperature. Elements: :code:`UA_char`, :code:`Tamb`.
+        Equation: :py:meth:`UA_char_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func>`.
+
+    UA_group : GroupedComponentProperties
+        Equation for heat transfer based on ambient temperature and heat
+        transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
+        Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
+
     wind_velocity : float, dict
         Velocity of wind at insulation surface. Quantity: :code:`speed`.
 
     zeta : float, dict
-        Non-dimensional friction coefficient for pressure loss calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------

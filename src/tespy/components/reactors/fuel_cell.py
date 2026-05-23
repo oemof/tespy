@@ -37,11 +37,9 @@ class FuelCell(Component):
     Ports
     -----
 
-    Fluid inlets: in1, in2, in3
-
-    Fluid outlets: out1, out2
-
-    Power outlets: power
+    - Fluid inlets: in1, in2, in3
+    - Fluid outlets: out1, out2
+    - Power outlets: power
 
     Mandatory Equations
     -------------------
@@ -111,9 +109,12 @@ class FuelCell(Component):
         Equation: :py:meth:`heat_func <tespy.components.reactors.fuel_cell.FuelCell.heat_func>`.
 
     zeta : float, dict
-        Cooling port non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Cooling port geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Notes
     -----
@@ -180,6 +181,8 @@ class FuelCell(Component):
     def _calc_e(self):
         return self.P.val_SI / self.inl[2].m.val_SI
 
+    _parameter_aliases = {'zeta': 'zeta_d4'}
+
     def _calc_eta(self):
         return self.e.val_SI / self.e0
 
@@ -214,14 +217,19 @@ class FuelCell(Component):
                 description="cooling inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta': dc_cp(
+            'zeta_d4': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta'},
-                description="cooling port non-dimensional friction coefficient for pressure loss calculation",
-                calc=self._calc_zeta
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta_d4'},
+                description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
@@ -713,4 +721,3 @@ class FuelCell(Component):
         elif key == 'h':
             temp = 50 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
-

@@ -35,9 +35,8 @@ class PowerBus(_EnergyBus):
     Ports
     -----
 
-    Power inlets: power_in1, power_in2, ... (variable, count set by :code:`num_in`)
-
-    Power outlets: power_out1, power_out2, ... (variable, count set by :code:`num_out`)
+    - Power inlets: power_in1, power_in2, ... (variable, count set by :code:`num_in`)
+    - Power outlets: power_out1, power_out2, ... (variable, count set by :code:`num_out`)
 
     Mandatory Equations
     -------------------

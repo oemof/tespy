@@ -32,9 +32,8 @@ class Motor(_EnergyConverter):
     Ports
     -----
 
-    Power inlets: power_in
-
-    Power outlets: power_out
+    - Power inlets: power_in
+    - Power outlets: power_out
 
     Mandatory Equations
     -------------------

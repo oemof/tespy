@@ -34,9 +34,8 @@ class Splitter(NodeBase):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
 
     Mandatory Equations
     -------------------

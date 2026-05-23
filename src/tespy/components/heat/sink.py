@@ -22,7 +22,7 @@ class HeatSink(_EnergySink):
     Ports
     -----
 
-    Heat inlets: heat
+    - Heat inlets: heat
 
     Mandatory Equations
     -------------------

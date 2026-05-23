@@ -25,7 +25,7 @@ class Source(Component):
     Ports
     -----
 
-    Fluid outlets: out1
+    - Fluid outlets: out1
 
     Mandatory Equations
     -------------------

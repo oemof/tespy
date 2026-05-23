@@ -30,8 +30,8 @@ Modeling best practices
         - discretized 1D models, which allow the specification of internal
           pinch.
 
-        We have created an :ref:`overview <tutorial_heat_exchanger>` on the
-        different 0D and 1D types available and when to use which model.
+        We have created an :ref:`overview <tutorial_heat_exchanger_label>` on
+        the different 0D and 1D types available and when to use which model.
 
 .. _faq_errors_label:
 

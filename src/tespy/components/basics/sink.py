@@ -24,7 +24,7 @@ class Sink(Component):
     Ports
     -----
 
-    Fluid inlets: in1
+    - Fluid inlets: in1
 
     Mandatory Equations
     -------------------

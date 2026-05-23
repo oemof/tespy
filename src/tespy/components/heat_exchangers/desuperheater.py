@@ -37,9 +37,8 @@ class Desuperheater(HeatExchanger):
     Ports
     -----
 
-    Fluid inlets: in1, in2
-
-    Fluid outlets: out1, out2
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
 
     Mandatory Equations
     -------------------
@@ -85,23 +84,25 @@ class Desuperheater(HeatExchanger):
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
     kA : float, dict
-        Heat transfer coefficient considering terminal temperature differences.
-        Quantity: :code:`heat_transfer_coefficient`.
-        Equation: :py:meth:`kA_func <tespy.components.heat_exchangers.base.HeatExchanger.kA_func>`.
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`.
 
     kA_char : GroupedComponentCharacteristics
-        Equation for heat transfer based on kA and modification factor.
-        Elements: :code:`kA_char1`, :code:`kA_char2`.
-        Equation: :py:meth:`kA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`.
+        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
+        :code:`kA_char2`.
 
     kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Hot side kA modification lookup table for offdesign.
+        Deprecated, use :code:`UA_char1` instead.
 
     kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Cold side kA modification lookup table for offdesign.
+        Deprecated, use :code:`UA_char2` instead.
 
     label : str
         The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -128,7 +129,7 @@ class Desuperheater(HeatExchanger):
         Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
     td_log : float, dict
-        Logarithmic temperature difference. Quantity:
+        Deprecated, use :code:`lmtd` instead. Quantity:
         :code:`temperature_difference`.
 
     ttd_l : float, dict
@@ -146,15 +147,37 @@ class Desuperheater(HeatExchanger):
         Quantity: :code:`temperature_difference`.
         Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func>`.
 
+    UA : float, dict
+        Heat transfer coefficient considering terminal temperature differences.
+        Quantity: :code:`heat_transfer_coefficient`.
+        Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
+
+    UA_char : GroupedComponentCharacteristics
+        Equation for heat transfer based on UA and modification factor.
+        Elements: :code:`UA_char1`, :code:`UA_char2`.
+        Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func>`.
+
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
+        Hot side UA modification lookup table for offdesign.
+
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
+        Cold side UA modification lookup table for offdesign.
+
     zeta1 : float, dict
-        Hot side non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta1_d4` instead.
+
+    zeta1_d4 : float, dict
+        Hot side geometry-independent friction coefficient zeta/D^4 for pressure
+        loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Cold side non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Cold side geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Notes
     -----
@@ -197,7 +220,7 @@ class Desuperheater(HeatExchanger):
 
     >>> desu.set_attr(
     ...     pr1=0.99, pr2=0.98, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1', 'zeta2', 'kA_char']
+    ...     offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
     ... )
     >>> cw_de.set_attr(fluid={'water': 1}, T=15, v=1, design=['v'])
     >>> de_cw.set_attr(p=1)

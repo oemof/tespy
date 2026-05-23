@@ -245,7 +245,7 @@ In order to apply these specifications, we can use the :code:`design` and
 data in the list in an offdesign calculation. The keyword :code:`offdesign`
 automatically sets the respective parameter for the offdesign calculation. In
 case the specification refers to a value, the value is taken from the design
-mode calculation. In the example, the main condenser's kA value is calculated
+mode calculation. In the example, the main condenser's UA value is calculated
 in the design simulation and its value will be kept constant through the
 offdesign simulations.
 

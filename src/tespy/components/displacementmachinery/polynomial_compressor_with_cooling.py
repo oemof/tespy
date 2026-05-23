@@ -40,11 +40,9 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     Ports
     -----
 
-    Fluid inlets: in1, in2
-
-    Fluid outlets: out1, out2
-
-    Power inlets: power
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
+    - Power inlets: power
 
     Mandatory Equations
     -------------------

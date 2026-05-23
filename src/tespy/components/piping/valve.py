@@ -41,9 +41,8 @@ class Valve(Component):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
     Mandatory Equations
     -------------------
@@ -118,8 +117,12 @@ class Valve(Component):
         Include this component in the network's results printout.
 
     zeta : float, dict
-        Non-dimensional friction coefficient for pressure loss calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -141,7 +144,7 @@ class Valve(Component):
     >>> so_v = Connection(so, 'out1', v, 'in1')
     >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
-    >>> v.set_attr(offdesign=['zeta'])
+    >>> v.set_attr(offdesign=['zeta_d4'])
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
@@ -151,10 +154,10 @@ class Valve(Component):
     >>> round(v.pr.val, 3)
     0.188
 
-    The simulation determined the area independent zeta value
-    :math:`\frac{\zeta}{D^4}`. This zeta remains constant if the cross
-    sectional area of the valve opening does not change. Using the zeta value
-    we can determine the pressure ratio at a different feed pressure.
+    The simulation determined the area independent zeta_d4 value
+    :math:`\frac{\zeta}{D^4}`. This value remains constant if the cross
+    sectional area of the valve opening does not change. Using zeta_d4 we can
+    determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
     >>> nw.solve('offdesign', design_path=design_state)
@@ -221,6 +224,9 @@ class Valve(Component):
     >>> round(v.Kv.val, 1)
     5.2
     """
+
+    _parameter_aliases = {'zeta': 'zeta_d4'}
+
     def get_parameters(self):
         return {
             'pr': dc_cp(
@@ -240,13 +246,18 @@ class Valve(Component):
                 description="inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta': dc_cp(
+            'zeta_d4': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.zeta_func,
-                dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'},
-                description="non-dimensional friction coefficient for pressure loss calculation",
-                calc=self._calc_zeta
+                func=self.zeta_d4_func,
+                dependents=self.zeta_d4_dependents,
+                func_params={'zeta': 'zeta_d4'},
+                description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,

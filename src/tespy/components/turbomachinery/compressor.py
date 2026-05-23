@@ -48,11 +48,9 @@ class Compressor(Turbomachine):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1
-
-    Power inlets: power
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: power
 
     Mandatory Equations
     -------------------

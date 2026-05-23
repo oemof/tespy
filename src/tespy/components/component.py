@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+import warnings
 from collections import deque
 
 import numpy as np
@@ -131,6 +132,8 @@ class Component:
     <class 'tespy.components.component.Component'>
     """
 
+    _parameter_aliases = {}
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
@@ -191,6 +194,16 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
+        for old, new in self._parameter_aliases.items():
+            if old in kwargs:
+                warnings.warn(
+                    f"The parameter '{old}' of component {self.label!r} is "
+                    f"deprecated. Use '{new}' instead.",
+                    FutureWarning, stacklevel=2
+                )
+                kwargs[new] = kwargs[old]
+                if kwargs[old] == 'var':
+                    del kwargs[old]
         for key, value in kwargs.items():
             if key in self.parameters:
                 self._set_parameter(key, value)
@@ -368,6 +381,25 @@ class Component:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
 
             sum_eq += constraint.num_eq_sets
+
+        for old, new in self._parameter_aliases.items():
+            if old not in self.parameters or new not in self.parameters:
+                continue
+            for lst_name in ('design', 'offdesign'):
+                lst = getattr(self, lst_name)
+                if old in lst:
+                    warnings.warn(
+                        f"Parameter '{old}' of component {self.label!r} is "
+                        f"deprecated. Use '{new}' instead.",
+                        FutureWarning, stacklevel=2
+                    )
+                    lst[lst.index(old)] = new
+            old_p = self.get_attr(old)
+            new_p = self.get_attr(new)
+            if old_p.is_set and not new_p.is_set:
+                new_p.is_set = True
+            if hasattr(old_p, 'design') and old_p.design and not getattr(new_p, 'design', None):
+                new_p.design = old_p.design
 
         if not self.bypass:
             sum_eq = self._setup_user_imposed_constraints(row_idx, sum_eq)
@@ -1005,7 +1037,7 @@ class Component:
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
-    def _calc_zeta(self, inconn=0, outconn=0):
+    def _calc_zeta_d4(self, inconn=0, outconn=0):
         i, o = self.inl[inconn], self.outl[outconn]
 
         if abs(i.m.val_SI) <= 1e-4:
@@ -1016,15 +1048,15 @@ class Component:
                 / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
             )
 
-    def zeta_func(self, zeta=None, inconn=0, outconn=0):
+    def zeta_d4_func(self, zeta=None, inconn=0, outconn=0):
         r"""
-        Calculate residual value of :math:`\zeta`-function.
+        Calculate residual value of the :math:`\zeta/D^4` pressure loss equation.
 
         Parameters
         ----------
         zeta : str
-            Component parameter to evaluate the zeta_func on, e.g.
-            :code:`zeta1`.
+            Component parameter to evaluate the zeta_d4_func on, e.g.
+            :code:`zeta1_d4`.
 
         inconn : int
             Connection index of inlet.
@@ -1049,9 +1081,10 @@ class Component:
 
         Note
         ----
-        The zeta value is calculated on the basis of a given pressure loss at
-        a given flow rate in the design case. As the cross sectional area A
-        will not change, it is possible to handle the equation in this way:
+        The :math:`\zeta/D^4` value is calculated on the basis of a given
+        pressure loss at a given flow rate in the design case. As the cross
+        sectional area A will not change, it is possible to handle the equation
+        in this way:
 
         .. math::
 
@@ -1073,7 +1106,7 @@ class Component:
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 
-    def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
+    def zeta_d4_dependents(self, zeta=None, inconn=0, outconn=0):
         return [
             self.inl[inconn].m,
             self.inl[inconn].p,

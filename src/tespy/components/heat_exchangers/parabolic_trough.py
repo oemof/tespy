@@ -35,17 +35,12 @@ class ParabolicTrough(SimpleHeatExchanger):
     Ports
     -----
 
-    Fluid inlets: in1
-
-    Fluid outlets: out1
-
-    Power inlets: heat
-
-    Power outlets: heat
-
-    Heat inlets: heat
-
-    Heat outlets: heat
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: heat
+    - Power outlets: heat
+    - Heat inlets: heat
+    - Heat outlets: heat
 
     Mandatory Equations
     -------------------
@@ -92,7 +87,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         Path to the components design case.
 
     dissipative : bool
-
+        Description missing.
 
     doc : float, dict
         Degree of cleanliness. Quantity: :code:`ratio`.
@@ -151,7 +146,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         List containing offdesign parameters (stated as String).
 
     power_connector_location : str
-
+        Description missing.
 
     pr : float, dict
         Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
@@ -171,8 +166,12 @@ class ParabolicTrough(SimpleHeatExchanger):
         Ambient temperature. Quantity: :code:`temperature`.
 
     zeta : float, dict
-        Non-dimensional friction coefficient for pressure loss calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -247,8 +246,9 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     def get_parameters(self):
         data = super().get_parameters()
-        for k in ["kA_group", "kA_char_group", "kA", "kA_char"]:
-            del data[k]
+        for k in ["UA_group", "UA_char_group", "UA", "UA_char",
+                   "kA_group", "kA_char_group", "kA", "kA_char", "lmtd"]:
+            data.pop(k, None)
 
         data.update({
             'E': dc_cp(

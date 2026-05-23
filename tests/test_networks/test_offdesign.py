@@ -64,12 +64,12 @@ def _build_network_and_designs():
     c1.set_attr(fluid={"R290": 1}, T_dew=50, m=1)
     c2.set_attr(x=0)
     c3.set_attr(fluid={"water": 1}, p=2, T=30)
-    kA_char = load_default_char(
-        "HeatExchanger", "kA_char1", "DEFAULT", CharLine
+    UA_char = load_default_char(
+        "HeatExchanger", "UA_char1", "DEFAULT", CharLine
     )
     heatex.set_attr(
         dp1=2, dp2=10, td_pinch=5, design=["td_pinch"], offdesign=["UA_char"],
-        kA_char1=kA_char, kA_char2=kA_char
+        UA_char1=UA_char, UA_char2=UA_char
     )
 
     # design case 1: m = 1 kg/s
@@ -432,11 +432,11 @@ def test_UA_char_char_expr_offdesign_design_reference():
     nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
-    f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
-    f2 = heatex.get_char_expr("m", **heatex.kA_char2.char_params)
+    f1 = heatex.get_char_expr("m", **heatex.UA_char1.char_params)
+    f2 = heatex.get_char_expr("m", **heatex.UA_char2.char_params)
 
-    fUA1 = heatex.kA_char1.char_func.evaluate(f1)
-    fUA2 = heatex.kA_char2.char_func.evaluate(f2)
+    fUA1 = heatex.UA_char1.char_func.evaluate(f1)
+    fUA2 = heatex.UA_char2.char_func.evaluate(f2)
 
     fUA_a = 2 / (1 / fUA1 + 1 / fUA2)
 
@@ -447,11 +447,11 @@ def test_UA_char_char_expr_offdesign_design_reference():
     nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
-    f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
-    f2 = heatex.get_char_expr("m", **heatex.kA_char2.char_params)
+    f1 = heatex.get_char_expr("m", **heatex.UA_char1.char_params)
+    f2 = heatex.get_char_expr("m", **heatex.UA_char2.char_params)
 
-    fUA1 = heatex.kA_char1.char_func.evaluate(f1)
-    fUA2 = heatex.kA_char2.char_func.evaluate(f2)
+    fUA1 = heatex.UA_char1.char_func.evaluate(f1)
+    fUA2 = heatex.UA_char2.char_func.evaluate(f2)
 
     fUA_b = 2 / (1 / fUA1 + 1 / fUA2)
 
@@ -703,7 +703,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design1 = self.nw.save(as_dict=True)
         v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
+        zeta_sc1_design = self.sc1.zeta_d4.val
 
         self.sc2_v2.set_attr(T=95, state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
@@ -711,7 +711,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design2 = self.nw.save(as_dict=True)
         v2_design = self.sc2_v2.v.val_SI
-        zeta_sc2_design = self.sc2.zeta.val
+        zeta_sc2_design = self.sc2.zeta_d4.val
 
         self.sc1_v1.set_attr(m=None)
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -751,14 +751,14 @@ class TestNetworkIndividualOffdesign:
 
         # zeta value of solar collector comparison
         msg = (
-            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
+            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta_d4.val}."
         )
-        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
+        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta_d4.val, 0), msg
 
         msg = (
-            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
+            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta_d4.val}."
         )
-        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
+        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta_d4.val, 0), msg
 
     def test_local_offdesign_on_connections_and_components(self):
         """Test local offdesign feature."""

@@ -37,9 +37,8 @@ class Merge(NodeBase):
     Ports
     -----
 
-    Fluid inlets: in1, in2, ... (variable, count set by :code:`num_in`)
-
-    Fluid outlets: out1
+    - Fluid inlets: in1, in2, ... (variable, count set by :code:`num_in`)
+    - Fluid outlets: out1
 
     Mandatory Equations
     -------------------

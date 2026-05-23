@@ -36,9 +36,8 @@ class Drum(DropletSeparator):
     Ports
     -----
 
-    Fluid inlets: in1, in2
-
-    Fluid outlets: out1, out2
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
 
     Mandatory Equations
     -------------------
@@ -132,11 +131,12 @@ class Drum(DropletSeparator):
     transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
     design it is possible to calculate offdesign performance at 75 % part load.
 
-    >>> char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
-    >>> char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
-    ...     kA_char2=char2, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA_char']
+    >>> char1 = ldc('HeatExchanger', 'UA_char1', 'DEFAULT', CharLine)
+    >>> char2 = ldc('HeatExchanger', 'UA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> ev.set_attr(
+    ...     pr1=0.999, pr2=0.99, ttd_l=5, UA_char1=char1,
+    ...     UA_char2=char2, design=['pr1', 'ttd_l'],
+    ...     offdesign=['zeta1_d4', 'UA_char']
     ... )
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)

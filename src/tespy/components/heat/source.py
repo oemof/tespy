@@ -22,7 +22,7 @@ class HeatSource(_EnergySource):
     Ports
     -----
 
-    Heat outlets: heat
+    - Heat outlets: heat
 
     Mandatory Equations
     -------------------

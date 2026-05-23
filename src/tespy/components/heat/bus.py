@@ -28,9 +28,8 @@ class HeatBus(_EnergyBus):
     Ports
     -----
 
-    Heat inlets: heat_in1, heat_in2, ... (variable, count set by :code:`num_in`)
-
-    Heat outlets: heat_out1, heat_out2, ... (variable, count set by :code:`num_out`)
+    - Heat inlets: heat_in1, heat_in2, ... (variable, count set by :code:`num_in`)
+    - Heat outlets: heat_out1, heat_out2, ... (variable, count set by :code:`num_out`)
 
     Mandatory Equations
     -------------------

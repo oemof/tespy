@@ -40,9 +40,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     Ports
     -----
 
-    Fluid inlets: in1, in2
-
-    Fluid outlets: out1, out2
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
 
     Mandatory Equations
     -------------------
@@ -95,23 +94,25 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
     kA : float, dict
-        Heat transfer coefficient considering terminal temperature differences.
-        Quantity: :code:`heat_transfer_coefficient`.
-        Equation: :py:meth:`kA_func <tespy.components.heat_exchangers.base.HeatExchanger.kA_func>`.
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`.
 
     kA_char : GroupedComponentCharacteristics
-        Equation for heat transfer based on kA and modification factor.
-        Elements: :code:`kA_char1`, :code:`kA_char2`.
-        Equation: :py:meth:`kA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.kA_char_func>`.
+        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
+        :code:`kA_char2`.
 
     kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Hot side kA modification lookup table for offdesign.
+        Deprecated, use :code:`UA_char1` instead.
 
     kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Cold side kA modification lookup table for offdesign.
+        Deprecated, use :code:`UA_char2` instead.
 
     label : str
         The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -149,7 +150,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Side on which the refrigerant is flowing (0: hot, 1:cold).
 
     td_log : float, dict
-        Logarithmic temperature difference. Quantity:
+        Deprecated, use :code:`lmtd` instead. Quantity:
         :code:`temperature_difference`.
 
     td_pinch : float, dict
@@ -183,18 +184,30 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     UA_char : GroupedComponentCharacteristics
         Equation for sectioned UA modification based on characteristic lines.
-        Elements: :code:`kA_char1`, :code:`kA_char2`.
+        Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
 
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
+        Hot side UA modification lookup table for offdesign.
+
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
+        Cold side UA modification lookup table for offdesign.
+
     zeta1 : float, dict
-        Hot side non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta1_d4` instead.
+
+    zeta1_d4 : float, dict
+        Hot side geometry-independent friction coefficient zeta/D^4 for pressure
+        loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Cold side non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Cold side geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Notes
     -----

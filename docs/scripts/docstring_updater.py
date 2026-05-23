@@ -185,18 +185,18 @@ def _ports_section(cls):
         if kind == "fixed":
             ports = entry.get("ports", [])
             if ports:
-                lines.append(f"{label}: {', '.join(ports)}")
+                lines.append(f"- {label}: {', '.join(ports)}")
         elif kind == "variable":
             param = entry["parameter"]
             pattern = entry["pattern"]
             lines.append(
-                f"{label}: {pattern.replace('{n}', '1')}, "
+                f"- {label}: {pattern.replace('{n}', '1')}, "
                 f"{pattern.replace('{n}', '2')}, ... "
                 f"(variable, count set by :code:`{param}`)"
             )
     if not lines:
         return ""
-    return "Ports\n-----\n\n" + "\n\n".join(lines)
+    return "Ports\n-----\n\n" + "\n".join(lines)
 
 
 def _mandatory_section(instance):
@@ -266,8 +266,8 @@ def _parameters_section(instance, base_params=None, param_filter=None):
             " " + " ".join(meta_parts) if meta_parts else ""
         )
         body_line = textwrap.fill(
-            desc_body.strip(), width=76, initial_indent="    ",
-            subsequent_indent="    "
+            desc_body.strip() or "Description missing.",
+            width=76, initial_indent="    ", subsequent_indent="    "
         )
         if ref:
             eq_line = f"    Equation: {ref}."

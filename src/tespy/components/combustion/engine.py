@@ -49,11 +49,9 @@ class CombustionEngine(CombustionChamber):
     Ports
     -----
 
-    Fluid inlets: in1, in2, in3, in4
-
-    Fluid outlets: out1, out2, out3
-
-    Power outlets: power
+    - Fluid inlets: in1, in2, in3, in4
+    - Fluid outlets: out1, out2, out3
+    - Power outlets: power
 
     Mandatory Equations
     -------------------
@@ -96,7 +94,7 @@ class CombustionEngine(CombustionChamber):
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     eta_mech : float
-
+        Description missing.
 
     f_nox : float, dict
         Mass-based nitric oxide (NO) generation rate in flue gas in mass of
@@ -157,7 +155,7 @@ class CombustionEngine(CombustionChamber):
         Thermal input to heat dissipation lookup table.
 
     T_v_inner : float
-
+        Description missing.
 
     ti : float, dict
         Thermal input of fuel: lower heating value multiplied with mass flow.
@@ -168,14 +166,20 @@ class CombustionEngine(CombustionChamber):
         Thermal input to power lookup table.
 
     zeta1 : float, dict
-        Heating port 1 non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta1_d4` instead.
+
+    zeta1_d4 : float, dict
+        Heating port 1 geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Heating port 2 non-dimensional friction coefficient for pressure loss
-        calculation.
-        Equation: :py:meth:`zeta_func <tespy.components.component.Component.zeta_func>`.
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Heating port 2 geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Notes
     -----
@@ -242,7 +246,7 @@ class CombustionEngine(CombustionChamber):
     to be split in half.
 
     >>> chp.set_attr(pr1=0.99, P=-10e6, lamb=1.0,
-    ... design=['pr1'], offdesign=['zeta1'])
+    ... design=['pr1'], offdesign=['zeta1_d4'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'CO2': 0.0004, 'O2': 0.2314})
     >>> sf_comb.set_attr(T=30, fluid={'CH4': 1})
@@ -270,6 +274,8 @@ class CombustionEngine(CombustionChamber):
     >>> round(chp.P.val / chp.P.design, 3)
     0.75
     """
+
+    _parameter_aliases = {'zeta1': 'zeta1_d4', 'zeta2': 'zeta2_d4'}
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -334,21 +340,31 @@ class CombustionEngine(CombustionChamber):
                 description="heating port 2 inlet to outlet absolute pressure change",
                 calc=self._calc_dp, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'zeta1': dc_cp(
+            'zeta1_d4': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta1'},
-                description="heating port 1 non-dimensional friction coefficient for pressure loss calculation",
-                calc=self._calc_zeta
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta1_d4'},
+                description="heating port 1 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta1': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta1_d4` instead",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta2_d4': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta2_d4', 'inconn': 1, 'outconn': 1},
+                description="heating port 2 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1},
-                description="heating port 2 non-dimensional friction coefficient for pressure loss calculation",
-                calc=self._calc_zeta, calc_params={'inconn': 1, 'outconn': 1}
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta2_d4` instead",
+                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'tiP_char': dc_cc(
                 description="thermal input to power lookup table"

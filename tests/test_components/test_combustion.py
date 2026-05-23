@@ -304,7 +304,7 @@ class TestCombustion:
         # connection parametrisation
         instance.set_attr(
             pr1=0.99, pr2=0.99, lamb=1.0,
-            design=['pr1', 'pr2'], offdesign=['zeta1', 'zeta2']
+            design=['pr1', 'pr2'], offdesign=['zeta1_d4', 'zeta2_d4']
         )
         self.c1.set_attr(p=5, T=30, fluid=air)
         self.c2.set_attr(T=30, fluid=fuel)

@@ -33,8 +33,9 @@ class SectionedHeatExchanger(HeatExchanger):
     Class for counter flow heat exchanger with UA sections.
 
     The heat exchanger is internally discretized into 51 sections of equal heat
-    transfer. The number of section can be adjusted by the user. It is based on
-    the model implemented by :cite:`Quoilin2020`.
+    transfer. The number of section can be adjusted by the user. It is based a
+    combination of the moving boundary approach by :cite:`bell2015` and
+    discretization in :cite:`Quoilin2020`.
 
     .. image:: /api/_images/components/HeatExchanger.svg
        :alt: flowsheet of the sectionedheatexchanger

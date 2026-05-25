@@ -518,7 +518,40 @@ class ModelTemplate():
     def get_objectives(self, objective_list: list) -> list:
         return [self.get_parameter(obj) for obj in objective_list]
 
-    def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> pd.DataFrame:
+    def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> tuple:
+        """Run a pymoo optimization and return the full evaluation log and the pymoo result.
+
+        Parameters
+        ----------
+        algorithm :
+            A pymoo algorithm instance, e.g. :code:`PSO(pop_size=20)`.
+        termination :
+            Pymoo termination criterion, e.g. :code:`("n_gen", 50)`.
+        variables : dict
+            Decision variables mapping parameter name to :code:`{"min": ..., "max": ...}`.
+        constraints : dict, optional
+            Inequality constraints mapping parameter name to a bound, e.g.
+            :code:`{"p_extraction_1": "p_extraction_2"}` enforces
+            :code:`p_extraction_1 > p_extraction_2`.
+        objective : list, optional
+            Names of model parameters to use as objectives.
+        minimize_flags : list, optional
+            One :code:`bool` per objective; :code:`True` minimizes,
+            :code:`False` maximizes. Defaults to minimization for all.
+        kpi : list, optional
+            Additional parameter names to record in the log alongside the
+            objectives.
+
+        Returns
+        -------
+        tuple
+            A :code:`(log, result)` tuple where :code:`log` is a
+            :code:`pandas.DataFrame` of every evaluated individual (including
+            infeasible ones) and :code:`result` is the pymoo result object.
+            When constraints are active, filter :code:`log` for feasibility
+            before selecting the optimum. :code:`result.X` and
+            :code:`result.F` already contain only feasible solutions.
+        """
         from pymoo.optimize import minimize as pymoo_minimize
 
         problem = OptimizationProblem(
@@ -530,9 +563,9 @@ class ModelTemplate():
             kpi=kpi,
         )
 
-        pymoo_minimize(
+        result = pymoo_minimize(
             problem=problem,
             algorithm=algorithm,
             termination=termination,
         )
-        return pd.DataFrame(problem.log)
+        return pd.DataFrame(problem.log), result

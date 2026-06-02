@@ -173,7 +173,6 @@ class Node(Splitter, Merge):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction constraints'
             }),

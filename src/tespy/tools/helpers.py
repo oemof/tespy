@@ -428,19 +428,31 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             **data.func_params
         )
     else:
-        # these can only be parameters with a single equation for now
-        for dependent in data._scalar_dependents[0]:
-            f = data.func
-            obj._partial_derivative(
-                dependent, eq_num, f, increment_filter, **data.func_params
-            )
+        all_scalar_deps = set().union(*data._scalar_dependents)
+        for dependent in all_scalar_deps:
+            result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
+            if result is None:
+                continue
+            for eq_idx, dep_set in enumerate(data._scalar_dependents):
+                if dependent in dep_set:
+                    obj.jacobian[eq_num + eq_idx, dependent.J_col] = (
+                        result[eq_idx] if isinstance(result, np.ndarray) else result
+                    )
 
-        for dependent, dx in data._vector_dependents[0].items():
-            f = data.func
-            for dx in dx:
-                obj._partial_derivative_fluid(
-                    dependent, eq_num, f, dx, increment_filter, **data.func_params
-                )
+        all_vector_deps = {}
+        for eq_vec_deps in data._vector_dependents:
+            for var, dxs in eq_vec_deps.items():
+                all_vector_deps.setdefault(var, set()).update(dxs)
+        for var, dxs in all_vector_deps.items():
+            for dx in dxs:
+                result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
+                if result is None:
+                    continue
+                for eq_idx, eq_vec_deps in enumerate(data._vector_dependents):
+                    if var in eq_vec_deps and dx in eq_vec_deps[var]:
+                        obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
+                            result[eq_idx] if isinstance(result, np.ndarray) else result
+                        )
 
 
 def _is_variable(var, increment_filter=None):
@@ -495,7 +507,7 @@ def _numeric_deriv(variable, func, **kwargs):
 
     Returns
     -------
-    deriv : float/list
+    deriv : float/ndarray
         Partial derivative(s) of the function :math:`f` to variable(s)
         :math:`x`.
 
@@ -506,15 +518,14 @@ def _numeric_deriv(variable, func, **kwargs):
     d = variable.d
     tol = max(variable.val_SI * d, d)
     variable.val_SI += tol
-    exp = func(**kwargs)
+    upper = np.asarray(func(**kwargs))
 
     variable.val_SI -= 2 * tol
-    exp -= func(**kwargs)
-    deriv = exp / (2 * tol)
+    lower = np.asarray(func(**kwargs))
 
     variable.val_SI += tol
-
-    return deriv
+    result = (upper - lower) / (2 * tol)
+    return result.item() if result.ndim == 0 else result
 
 
 def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
@@ -549,16 +560,16 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
     # this is specific to fluids right now (upper limit of 1, lower limit of 0)
     d1 = min(variable.d, 1 - variable.val[dx])
     variable.val[dx] += d1
-    exp = func(**kwargs)
+    upper = np.asarray(func(**kwargs))
     d2 = min(variable.d * 2, variable.val[dx])
     variable.val[dx] -= d2
-    exp -= func(**kwargs)
+    lower = np.asarray(func(**kwargs))
 
     variable.val = original_vector
     # d2 is the complete delta of the central difference no matter how big
     # d1 is actually
-    deriv = exp / d2
-    return deriv
+    result = (upper - lower) / d2
+    return result.item() if result.ndim == 0 else result
 
 
 

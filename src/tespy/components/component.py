@@ -965,6 +965,9 @@ class Component:
     def convergence_check(self):
         return
 
+    def _adjust_to_property_limits(self):
+        return
+
     def entropy_balance(self):
         r"""Entropy balance calculation method."""
         return

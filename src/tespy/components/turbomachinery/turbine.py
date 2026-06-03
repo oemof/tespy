@@ -155,6 +155,9 @@ class Turbine(Turbomachine):
     88.6
     """
 
+    _p_in_adj = 1 / 0.9   # expand: i.p just above o.p
+    _p_out_adj = 0.9       # expand: o.p just below i.p
+
     @staticmethod
     def poweroutlets():
         return ["power"]

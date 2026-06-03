@@ -23,46 +23,63 @@ class CycleCloser(Component):
     r"""
     Component for closing cycles.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - pressure: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - enthalpy: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
-    Image not available
+    Mandatory Equations
+    -------------------
+
+    - pressure equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - enthalpy equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    fluid_deviation : float, dict
+        Norm of absolute deviation of fluid composition between inlet and
+        outlet.
 
-    local_design : boolean
+    label : str
+        The label of the component.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    mass_deviation : float, dict
+        Absolute deviation of mass flow between inlet and outlet. Quantity:
+        :code:`mass_flow`.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    Note
-    ----
-    This component can be used to close a cycle process. The system of
-    equations describing your plant will overdetermined, if you close a cycle
-    without this component or a cut the cycle with a sink and a source at
-    some point of the cycle. This component can be used instead of cutting
-    the cycle.
+    Notes
+    -----
+
+    .. note::
+
+        This component can be used to close a cycle process. The system of
+        equations describing your plant will overdetermined, if you close a cycle
+        without this component or a cut the cycle with a sink and a source at
+        some point of the cycle. This component can be used instead of cutting
+        the cycle.
 
     Example
     -------
@@ -77,7 +94,8 @@ class CycleCloser(Component):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
@@ -94,16 +112,25 @@ class CycleCloser(Component):
     True
     """
 
-    @staticmethod
-    def get_parameters():
+    def _calc_mass_deviation(self):
+        return abs(self.inl[0].m.val_SI - self.outl[0].m.val_SI)
+
+    def _calc_fluid_deviation(self):
+        d1 = self.inl[0].fluid.val
+        d2 = self.outl[0].fluid.val
+        return np.linalg.norm([d1[k] - d2[k] for k in d1])
+
+    def get_parameters(self):
         return {
             'mass_deviation': dc_cp(
                 _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
-                description="absolute deviation of mass flow between inlet and outlet"
+                description="absolute deviation of mass flow between inlet and outlet",
+                calc=self._calc_mass_deviation
             ),
             'fluid_deviation': dc_cp(
                 _val=0, max_val=1e-5, is_result=True,
-                description="norm of absolute deviation of fluid composition between inlet and outlet"
+                description="norm of absolute deviation of fluid composition between inlet and outlet",
+                calc=self._calc_fluid_deviation
             )
         }
 
@@ -145,15 +172,3 @@ class CycleCloser(Component):
         branch["components"] += [self]
         return
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        # calculate deviation in mass flow
-        self.mass_deviation.val_SI = abs(
-            self.inl[0].m.val_SI - self.outl[0].m.val_SI
-        )
-
-        # calculate deviation in fluid composition
-        d1 = self.inl[0].fluid.val
-        d2 = self.outl[0].fluid.val
-        diff = [d1[key] - d2[key] for key in d1.keys()]
-        self.fluid_deviation.val_SI = np.linalg.norm(diff)

@@ -160,6 +160,18 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self.AS = SerializableAbstractState(self.back_end, self.fluid)
         self._set_mixture_fractions()
         self._set_constants()
+        self._last_ip = None
+        self._last_a = None
+        self._last_b = None
+
+    def _update(self, input_pair, a, b):
+        if input_pair == self._last_ip and a == self._last_a and b == self._last_b:
+            return
+        self._last_ip = None
+        self.AS.update(input_pair, a, b)
+        self._last_ip = input_pair
+        self._last_a = a
+        self._last_b = b
 
     def _identify_mixture(self):
         """Parse the fluid name to identify, if and what kind of mixture we are
@@ -262,59 +274,59 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
     def T_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.T()
 
     def T_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
+        self._update(CP.PSmass_INPUTS, p, s)
         return self.AS.T()
 
     def h_pQ(self, p, Q):
-        self.AS.update(CP.PQ_INPUTS, p, Q)
+        self._update(CP.PQ_INPUTS, p, Q)
         return self.AS.hmass()
 
     def h_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
+        self._update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
     def h_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
 
     def h_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.hmass()
 
     def s_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.smass()
 
     def T_sat(self, p):
-        self.AS.update(CP.PQ_INPUTS, p, 0)
+        self._update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
     def T_dew(self, p):
-        self.AS.update(CP.PQ_INPUTS, p, 1)
+        self._update(CP.PQ_INPUTS, p, 1)
         return self.AS.T()
 
     def T_bubble(self, p):
-        self.AS.update(CP.PQ_INPUTS, p, 0)
+        self._update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
     def p_sat(self, T):
-        self.AS.update(CP.QT_INPUTS, 0.5, T)
+        self._update(CP.QT_INPUTS, 0.5, T)
         return self.AS.p()
 
     def p_dew(self, T):
-        self.AS.update(CP.QT_INPUTS, 1, T)
+        self._update(CP.QT_INPUTS, 1, T)
         return self.AS.p()
 
     def p_bubble(self, T):
-        self.AS.update(CP.QT_INPUTS, 0, T)
+        self._update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         if len(self.fractions) > 1:
             return self.AS.Q()
 
@@ -332,7 +344,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
         if self.back_end == "INCOMP":
             return "state not recognized"
 
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         phase = self.AS.phase()
         if phase == CP.iphase_twophase:
             return "tp"
@@ -346,39 +358,39 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return "state not recognised"
 
     def d_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.rhomass()
 
     def d_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.rhomass()
 
     def d_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.rhomass()
 
     def viscosity_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.viscosity()
 
     def viscosity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.viscosity()
 
     def conductivity_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.conductivity()
 
     def conductivity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.conductivity()
 
     def s_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.smass()
 
     def s_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.smass()
 
 
@@ -808,21 +820,18 @@ class PyromatWrapper(FluidPropertyWrapper):
 
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
-        self._T_crit, self._p_crit = self.AS.critical()
         self._T_min, self._T_max = self.AS.Tlim()
+
+        if self.back_end == "mp":
+            self._T_crit, self._p_crit = self.AS.critical()
+        else:
+            self._T_crit = self._T_max
+            self._p_crit = self._p_max
+
         self._molar_mass = self.AS.mw()
 
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
-
-    def T_ph(self, p, h):
-        return self.AS.T(p=p, h=h)[0]
-
-    def T_ps(self, p, s):
-        return self.AS.T(p=p, s=s)[0]
-
-    def h_pT(self, p, T):
-        return self.AS.h(p=p, T=T)[0]
 
     def T_ph(self, p, h):
         return self.AS.T(p=p, h=h)[0]
@@ -846,8 +855,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         return self.AS.s(p=p, h=h)[0]
 
     def s_pT(self, p, T):
-        if self.back_end == "ig":
-            self._not_implemented()
         return self.AS.s(p=p, T=T)[0]
 
     def h_QT(self, Q, T):
@@ -864,16 +871,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.s(x=Q, T=T)[0]
-
-    def T_boiling(self, p):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.T(x=1, p=p)[0]
-
-    def p_boiling(self, T):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.p(x=1, T=T)[0]
 
     def Q_ph(self, p, h):
         if self.back_end == "ig":

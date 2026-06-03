@@ -26,105 +26,112 @@ class WaterElectrolyzer(Component):
     r"""
     The water electrolyzer produces hydrogen and oxygen from water and power.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func`
-
-    **Optional Equations**
-
-    - cooling loop:
-
-      - :py:meth:`tespy.components.component.Component.zeta_func`
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func`
-    - :py:meth:`tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_func`
-
-    Inlets/Outlets
-
-    - in1 (cooling inlet), in2 (feed water inlet)
-    - out1 (cooling outlet), out2 (oxygen outlet), out3 (hydrogen outlet)
-
-    Image
-
-    .. image:: /api/_images/WaterElectrolyzer.svg
-       :alt: flowsheet of the water electrolyzer
+    .. image:: /api/_images/components/WaterElectrolyzer.svg
+       :alt: flowsheet of the waterelectrolyzer
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/WaterElectrolyzer_darkmode.svg
-       :alt: flowsheet of the water electrolyzer
+    .. image:: /api/_images/components/WaterElectrolyzer_darkmode.svg
+       :alt: flowsheet of the waterelectrolyzer
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2, out3
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - equations for oxygen and hydrogen mass flow relation: :py:meth:`reactor_mass_flow_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_mass_flow_func>`
+    - cooling fluid mass flow equality equation: :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_mass_flow_structure_matrix>`
+    - cooling fluid composition equality equation: :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.cooling_fluid_structure_matrix>`
+    - energy balance equation of the reactor: :py:meth:`energy_balance_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_balance_func>`
+    - reactor pressure equality equations: :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.reactor_pressure_structure_matrix>`
+    - equation for same temperature of product gases: :py:meth:`gas_temperature_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.gas_temperature_func>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict, :code:`"var"`
-        Power input, :math:`P/\text{W}`.
-
-    Q : float, dict
-        Heat output of cooling, :math:`Q/\text{W}`
+    dp : float, dict
+        Cooling inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     e : float, dict, :code:`"var"`
-        Electrolysis specific energy consumption,
-        :math:`e/(\text{J}/\text{m}^3)`.
+        Equation for specified specific energy consumption of the electrolyzer.
+        Quantity: :code:`specific_energy`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+        Equation: :py:meth:`specific_energy_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.specific_energy_func>`.
 
     eta : float, dict
-        Electrolysis efficiency (referring to H2 higher heating value),
-        :math:`\eta/1`.
+        Efficiency of the electrolyzer. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_func>`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
-        Electrolysis efficiency characteristic line.
+        Efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_char_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.eta_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Power consumption of the electrolyzer. Quantity: :code:`power`. Can be
+        set as a system variable by passing :code:`"var"` as its value.
 
     pr : float, dict
-        Cooling loop pressure ratio, :math:`pr/1`.
+        Cooling port outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference of cooling loop,
-        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat output of the cooling port. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func>`.
 
     zeta : float, dict
-        Geometry independent friction coefficient for cooling loop pressure
-        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+        Deprecated, use :code:`zeta_d4` instead.
 
-    Note
-    ----
-    Other than usual components, the water electrolyzer has the fluid
-    composition built into its equations for the feed water inlet and the
-    hydrogen and oxygen outlet. Thus, the user must not specify the fluid
-    composition at these connections!
+    zeta_d4 : float, dict
+        Cooling port geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    Notes
+    -----
+
+    .. note::
+
+        Other than usual components, the water electrolyzer has the fluid
+        composition built into its equations for the feed water inlet and the
+        hydrogen and oxygen outlet. Thus, the user must not specify the fluid
+        composition at these connections!
 
     Example
     -------
@@ -135,10 +142,10 @@ class WaterElectrolyzer(Component):
     ... WaterElectrolyzer)
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s"
     ... })
     >>> fw = Source('feed water')
     >>> oxy = Sink('oxygen sink')
@@ -170,30 +177,40 @@ class WaterElectrolyzer(Component):
     >>> cmp_h.set_attr(p=25)
     >>> el_cmp.set_attr(v=100, T=50)
     >>> el.set_attr(eta=0.8, pr=0.99, design=['eta', 'pr'],
-    ... offdesign=['eta_char', 'zeta'])
+    ... offdesign=['eta_char', 'zeta_d4'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val
     >>> round(P_design / 1e6, 1)
     13.2
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 1)
     0.8
     >>> el_cmp.set_attr(v=None)
     >>> el.set_attr(P=P_design * 0.2)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(el.eta.val, 2)
     0.84
-    >>> os.remove('tmp.json')
     """
+
+    def _calc_Q(self):
+        return -self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_e(self):
+        return self.P.val_SI / self.outl[2].m.val_SI
+
+    _parameter_aliases = {'zeta': 'zeta_d4'}
+
+    def _calc_eta(self):
+        return self.e0 / self.e.val_SI
 
     def get_parameters(self):
         return {
             'P': dc_cp(
-                min_val=0, quantity="power", _potential_var=True,
+                min_val=0, quantity="power", _allows_var=True,
                 description="power consumption of the electrolyzer"
             ),
             'Q': dc_cp(
@@ -201,14 +218,16 @@ class WaterElectrolyzer(Component):
                 func=self.heat_func,
                 dependents=self.heat_dependents,
                 quantity="heat",
-                description="heat output of the cooling port"
+                description="heat output of the cooling port",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="cooling port outlet to inlet pressure ratio"
+                description="cooling port outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -216,22 +235,39 @@ class WaterElectrolyzer(Component):
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure_difference",
-                description="cooling inlet to outlet absolute pressure change"
+                description="cooling inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
-            'zeta': dc_cp(
+            'zeta_d4': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta'},
-                description="cooling port non-dimensional friction coefficient for pressure loss calculation"
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta_d4'},
+                description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
+            ),
+            'e': dc_cp(
+                min_val=0, num_eq_sets=1,
+                func=self.specific_energy_func,
+                dependents=self.specific_energy_dependents,
+                quantity="specific_energy",
+                _allows_var=True,
+                description="equation for specified specific energy consumption of the electrolyzer",
+                calc=self._calc_e
             ),
             'eta': dc_cp(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
                 dependents=self.eta_dependents,
                 quantity="efficiency",
-                description="efficiency of the fuel cell"
+                description="efficiency of the electrolyzer",
+                calc=self._calc_eta, calc_deps=['e']
             ),
             'eta_char': dc_cc(
                 deriv=self.eta_char_deriv,
@@ -242,23 +278,13 @@ class WaterElectrolyzer(Component):
                 char_params={'type': 'rel', 'outconn': 2},
                 description="efficiency lookup table for offdesign"
             ),
-            'e': dc_cp(
-                min_val=0, num_eq_sets=1,
-                func=self.specific_energy_func,
-                dependents=self.specific_energy_dependents,
-                quantity="specific_energy",
-                _potential_var=True,
-                description="equation for specified specific energy consumption of the electrolyzer"
-            )
         }
 
     def get_mandatory_constraints(self):
         constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
-                'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
-                'constant_deriv': True,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),
@@ -411,7 +437,7 @@ class WaterElectrolyzer(Component):
 
             .. math::
 
-                0 = T_\mathrm{out,2} - T_\mathrm{out,3}
+                0 = T_\text{out,2} - T_\text{out,3}
         """
         return self.outl[1].calc_T() -  self.outl[2].calc_T()
 
@@ -454,9 +480,7 @@ class WaterElectrolyzer(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{in,1}-h_{out,1}\right)
         """
-        return self.Q.val_SI + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
+        return self.Q.val_SI - self._calc_Q()
 
     def heat_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -491,14 +515,14 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 \begin{split}
-                0=&P + \dot{m}_\mathrm{in,2}\cdot\left(h_\mathrm{in,2}-
-                h_\mathrm{in,2,ref}\right)\\
-                &-\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -
-                h_\mathrm{in,1} \right)\\
-                & -\dot{m}_\mathrm{out,2} \cdot \left( h_\mathrm{out,2} -
-                h_\mathrm{out,2,ref} \right)\\
-                & +\dot{m}_\mathrm{out,3} \cdot \left( h_\mathrm{out,3} -
-                h_\mathrm{out,3,ref} + e_0\right)\\
+                0=&P + \dot{m}_\text{in,2}\cdot\left(h_\text{in,2}-
+                h_\text{in,2,ref}\right)\\
+                &-\dot{m}_\text{in,1}\cdot\left( h_\text{out,1} -
+                h_\text{in,1} \right)\\
+                & -\dot{m}_\text{out,2} \cdot \left( h_\text{out,2} -
+                h_\text{out,2,ref} \right)\\
+                & +\dot{m}_\text{out,3} \cdot \left( h_\text{out,3} -
+                h_\text{out,3,ref} + e_0\right)\\
                 \end{split}
 
             - Reference temperature: 298.15 K.
@@ -623,11 +647,11 @@ class WaterElectrolyzer(Component):
             .. math::
 
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-                0 =\dot{m}_\mathrm{in,1}-\dot{m}_\mathrm{out,1}\\
-                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,in,2}-
-                \dot{m}_\mathrm{O_2,out,2}\\
-                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,in,2} -
-                \dot{m}_\mathrm{H_2,out,3}
+                0 =\dot{m}_\text{in,1}-\dot{m}_\text{out,1}\\
+                0=O_2\cdot\dot{m}_\text{H_{2}O,in,2}-
+                \dot{m}_\text{O_2,out,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\text{H_{2}O,in,2} -
+                \dot{m}_\text{H_2,out,3}
         """
         # calculate the ratio of o2 in water
         M_o2 = self.outl[1].fluid.wrapper[self.o2]._molar_mass
@@ -688,8 +712,8 @@ class WaterElectrolyzer(Component):
 
         .. math::
 
-            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\text{in,2} - p_\text{out,2}\\
+            0 = p_\text{in,3} - p_\text{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1
@@ -738,116 +762,6 @@ class WaterElectrolyzer(Component):
             + self.outl[2].m.val_SI * (self.outl[2].h.val_SI - self.h_refh2 + self.e0)
         )
         return val
-
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \begin{cases}
-                P & \text{key = 'P'}\\
-                - \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1} \right) &
-                \text{key = 'Q'}\\
-                \end{cases}
-        """
-        ######################################################################
-        # equations for power on bus
-        if bus['param'] == 'P':
-            val = self.calc_P()
-
-        ######################################################################
-        # equations for heat on bus
-
-        elif bus['param'] == 'Q':
-            val = -self.inl[0].m.val_SI * (
-                self.outl[0].h.val_SI - self.inl[0].h.val_SI
-            )
-
-        ######################################################################
-        # missing/invalid bus parameter
-
-        else:
-            msg = (
-                f'The parameter {bus["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}. Please specify '
-                f'a bus parameter (P/Q) for component {self.label}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-
-        return val
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        b = bus.comps.loc[self]
-
-        ######################################################################
-        # derivatives for power on bus
-        if b['param'] == 'P':
-            for c in self.inl + self.outl:
-                if c.m.is_var and c != self.outl[0]:
-                    if c.m.J_col not in bus.jacobian:
-                        bus.jacobian[c.m.J_col] = 0
-                    bus.jacobian[c.m.J_col] -= _numeric_deriv(c.m._reference_container, f, bus=bus)
-
-                if c.h.is_var:
-                    if c.h.J_col not in bus.jacobian:
-                        bus.jacobian[c.h.J_col] = 0
-                    bus.jacobian[c.h.J_col] -= _numeric_deriv(c.h._reference_container, f, bus=bus)
-
-            # variable power
-            if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= _numeric_deriv(self.P._reference_container, f, bus=bus)
-
-        ######################################################################
-        # derivatives for heat on bus
-        elif b['param'] == 'Q':
-
-            i = self.inl[0]
-            o = self.outl[0]
-            if i.m.is_var:
-                if i.m.J_col not in bus.jacobian:
-                    bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
-
-            if i.h.is_var:
-                if i.h.J_col not in bus.jacobian:
-                    bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
-
-            if o.h.is_var:
-                if o.h.J_col not in bus.jacobian:
-                    bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
 
     def start_fluid_wrapper_branch(self):
         branches = {}
@@ -920,26 +834,3 @@ class WaterElectrolyzer(Component):
         elif key == 'h':
             temp = 20 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = -self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
-        self.e.val_SI = self.P.val_SI / self.outl[2].m.val_SI
-        self.eta.val_SI = self.e0 / self.e.val_SI
-
-    def exergy_balance(self, T0):
-        self.E_P = (
-            self.outl[1].Ex_chemical + self.outl[2].Ex_chemical
-            - self.inl[1].Ex_chemical + self.outl[0].Ex_physical
-            + self.inl[0].Ex_physical
-        )
-        self.E_F = self.P.val_SI
-
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = self.P.val_SI

@@ -24,93 +24,107 @@ class FuelCell(Component):
     r"""
     The fuel cell produces power by oxidation of hydrogen.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func`
-
-    **Optional Equations**
-
-    - cooling loop:
-
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.zeta_func`
-
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.eta_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.heat_func`
-    - :py:meth:`tespy.components.reactors.fuel_cell.FuelCell.specific_energy_func`
-
-    Inlets/Outlets
-
-    - in1 (cooling inlet), in2 (oxygen inlet), in3 (hydrogen inlet)
-    - out1 (cooling outlet), out2 (water outlet)
-
-    Image
-
-    .. image:: _images/FuelCell.svg
-       :alt: alternative text
+    .. image:: /api/_images/components/FuelCell.svg
+       :alt: flowsheet of the fuelcell
        :align: center
+       :class: only-light
+
+    .. image:: /api/_images/components/FuelCell_darkmode.svg
+       :alt: flowsheet of the fuelcell
+       :align: center
+       :class: only-dark
+
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2, in3
+    - Fluid outlets: out1, out2
+    - Power outlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - equations for oxygen and hydrogen mass flow relation: :py:meth:`reactor_mass_flow_func <tespy.components.reactors.fuel_cell.FuelCell.reactor_mass_flow_func>`
+    - cooling fluid mass flow equality equation: :py:meth:`cooling_mass_flow_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_mass_flow_structure_matrix>`
+    - cooling fluid composition equality equation: :py:meth:`cooling_fluid_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.cooling_fluid_structure_matrix>`
+    - energy balance equation of the reactor: :py:meth:`energy_balance_func <tespy.components.reactors.fuel_cell.FuelCell.energy_balance_func>`
+    - reactor pressure equality equations: :py:meth:`reactor_pressure_structure_matrix <tespy.components.reactors.fuel_cell.FuelCell.reactor_pressure_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.reactors.fuel_cell.FuelCell.energy_connector_balance_func>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict, :code:`"var"`
-        Power input, :math:`P/\text{W}`.
-
-    Q : float, dict
-        Heat output of cooling, :math:`Q/\text{W}`
+    dp : float, dict
+        Cooling inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     e : float, dict, :code:`"var"`
-        Electrolysis specific energy consumption,
-        :math:`e/(\text{J}/\text{m}^3)`.
+        Equation for specified specific energy consumption of the fuel cell.
+        Quantity: :code:`specific_energy`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+        Equation: :py:meth:`specific_energy_func <tespy.components.reactors.fuel_cell.FuelCell.specific_energy_func>`.
 
     eta : float, dict
-        Electrolysis efficiency, :math:`\eta/1`.
+        Efficiency of the fuel cell. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.reactors.fuel_cell.FuelCell.eta_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Power output of the fuel cell. Quantity: :code:`power`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
 
     pr : float, dict
-        Cooling loop pressure ratio, :math:`pr/1`.
+        Cooling port outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference of cooling loop,
-        :math:`dp/\text{p}_\text{unit}` Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
 
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient for cooling loop pressure
-        drop, :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    Q : float, dict
+        Heat output of the cooling port. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.reactors.fuel_cell.FuelCell.heat_func>`.
 
-    Note
-    ----
-    Other than usual components, the fuel cell has the fluid composition
-    built into its equations for the feed hydrogen and oxygen inlets as well
-    as the water outlet. Thus, the user must not specify the fluid composition
-    at these connections!
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Cooling port geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    Notes
+    -----
+
+    .. note::
+
+        Other than usual components, the fuel cell has the fluid composition
+        built into its equations for the feed hydrogen and oxygen inlets as well
+        as the water outlet. Thus, the user must not specify the fluid composition
+        at these connections!
 
     Example
     -------
@@ -123,7 +137,8 @@ class FuelCell(Component):
     >>> from tespy.tools import ComponentCharacteristics as dc_cc
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s"
     ... })
     >>> fc = FuelCell('fuel cell')
     >>> oxygen_source = Source('oxygen_source')
@@ -160,10 +175,21 @@ class FuelCell(Component):
     0.45
     """
 
+    def _calc_Q(self):
+        return -self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_e(self):
+        return self.P.val_SI / self.inl[2].m.val_SI
+
+    _parameter_aliases = {'zeta': 'zeta_d4'}
+
+    def _calc_eta(self):
+        return self.e.val_SI / self.e0
+
     def get_parameters(self):
         return {
             'P': dc_cp(
-                max_val=0, quantity="power", _potential_var=True,
+                max_val=0, quantity="power", _allows_var=True,
                 description="power output of the fuel cell"
             ),
             'Q': dc_cp(
@@ -171,14 +197,16 @@ class FuelCell(Component):
                 func=self.heat_func,
                 dependents=self.heat_dependents,
                 quantity="heat",
-                description="heat output of the cooling port"
+                description="heat output of the cooling port",
+                calc=self._calc_Q
             ),
             'pr': dc_cp(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="cooling port outlet to inlet pressure ratio"
+                description="cooling port outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -186,40 +214,47 @@ class FuelCell(Component):
                 num_eq_sets=1,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure_difference",
-                description="cooling inlet to outlet absolute pressure change"
+                description="cooling inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
-            'zeta': dc_cp(
+            'zeta_d4': dc_cp(
                 min_val=0,
                 num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta'},
-                description="cooling port non-dimensional friction coefficient for pressure loss calculation"
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta_d4'},
+                description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
             ),
-            'eta': dc_cp(
-                min_val=0, max_val=1, num_eq_sets=1,
-                func=self.eta_func,
-                dependents=self.eta_dependents,
-                quantity="efficiency",
-                description="efficiency of the fuel cell"
+            'zeta': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
             ),
             'e': dc_cp(
                 max_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
                 quantity="specific_energy",
-                _potential_var=True,
-                description="equation for specified specific energy consumption of the fuel cell"
-            )
+                _allows_var=True,
+                description="equation for specified specific energy consumption of the fuel cell",
+                calc=self._calc_e
+            ),
+            'eta': dc_cp(
+                min_val=0, max_val=1, num_eq_sets=1,
+                func=self.eta_func,
+                dependents=self.eta_dependents,
+                quantity="efficiency",
+                description="efficiency of the fuel cell",
+                calc=self._calc_eta, calc_deps=['e']
+            ),
         }
 
     def get_mandatory_constraints(self):
         constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
-                'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
-                'constant_deriv': True,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),
@@ -235,9 +270,7 @@ class FuelCell(Component):
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "energy balance equation of the reactor"
             }),
@@ -390,9 +423,7 @@ class FuelCell(Component):
 
                 0 = \dot{Q}-\dot{m}_{in,1}\cdot \left(h_{out,1}-h_{in,1}\right)
         """
-        return self.Q.val_SI + self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
+        return self.Q.val_SI - self._calc_Q()
 
     def heat_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -427,14 +458,14 @@ class FuelCell(Component):
             .. math::
 
                 \begin{split}
-                0=&P + \dot{m}_\mathrm{out,2}\cdot\left(h_\mathrm{out,2}-
-                h_\mathrm{out,2,ref}\right)\\
-                &+\dot{m}_\mathrm{in,1}\cdot\left( h_\mathrm{out,1} -
-                h_\mathrm{in,1} \right)\\
-                & -\dot{m}_\mathrm{in,2} \cdot \left( h_\mathrm{in,2} -
-                h_\mathrm{in,2,ref} \right)\\
-                & -\dot{m}_\mathrm{in,3} \cdot \left( h_\mathrm{in,3} -
-                h_\mathrm{in,3,ref} - e_0\right)\\
+                0=&P + \dot{m}_\text{out,2}\cdot\left(h_\text{out,2}-
+                h_\text{out,2,ref}\right)\\
+                &+\dot{m}_\text{in,1}\cdot\left( h_\text{out,1} -
+                h_\text{in,1} \right)\\
+                & -\dot{m}_\text{in,2} \cdot \left( h_\text{in,2} -
+                h_\text{in,2,ref} \right)\\
+                & -\dot{m}_\text{in,3} \cdot \left( h_\text{in,3} -
+                h_\text{in,3,ref} - e_0\right)\\
                 \end{split}
 
             - Reference temperature: 298.15 K.
@@ -507,10 +538,10 @@ class FuelCell(Component):
             .. math::
 
                 O_2 = \frac{M_{O_2}}{M_{O_2} + 2 \cdot M_{H_2}}\\
-                0=O_2\cdot\dot{m}_\mathrm{H_{2}O,out,1}-
-                \dot{m}_\mathrm{O_2,in,2}\\
-                0 = \left(1 - O_2\right) \cdot \dot{m}_\mathrm{H_{2}O,out,1} -
-                \dot{m}_\mathrm{H_2,in,1}
+                0=O_2\cdot\dot{m}_\text{H_{2}O,out,1}-
+                \dot{m}_\text{O_2,in,2}\\
+                0 = \left(1 - O_2\right) \cdot \dot{m}_\text{H_{2}O,out,1} -
+                \dot{m}_\text{H_2,in,1}
         """
         # calculate the ratio of o2 in water
         M_o2 = self.inl[1].fluid.wrapper[self.o2]._molar_mass
@@ -568,8 +599,8 @@ class FuelCell(Component):
 
         .. math::
 
-            0 = p_\mathrm{in,2} - p_\mathrm{out,2}\\
-            0 = p_\mathrm{in,3} - p_\mathrm{out,2}
+            0 = p_\text{in,2} - p_\text{out,2}\\
+            0 = p_\text{in,3} - p_\text{out,2}
         """
         self._structure_matrix[k, self.inl[1].p.sm_col] = 1
         self._structure_matrix[k, self.outl[1].p.sm_col] = -1
@@ -686,14 +717,3 @@ class FuelCell(Component):
         elif key == 'h':
             temp = 50 + 273.15
             return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.Q.val_SI = -self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
-        self.zeta.val_SI = self.calc_zeta(self.inl[0], self.outl[0])
-        self.e.val_SI = self.P.val_SI / self.inl[2].m.val_SI
-        self.eta.val_SI = self.e.val_SI / self.e0

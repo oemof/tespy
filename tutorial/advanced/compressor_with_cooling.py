@@ -63,7 +63,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             raise TESPyComponentError(msg)
 
         return super()._preprocess(row_idx)
-
+# %%[sec_7]
     def get_parameters(self):
         params = super().get_parameters()
         params["eta_recovery"] = dc_cp(
@@ -71,19 +71,12 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         )
         params["td_minimal"] = dc_cp(
             min_val=0,
-            quantity="temperature_difference"
-        )
-        params["dp_cooling"] = dc_cp(
-            min_val=0,
-            structure_matrix=self.dp_structure_matrix,
-            func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
-            quantity="pressure"
+            quantity="temperature_difference",
+            calc=self._calc_td_minimal
         )
         return params
-# %%[sec_7]
-    def calc_parameters(self):
-        super().calc_parameters()
 
+    def _calc_td_minimal(self):
         i = self.inl[0]
         o = self.outl[0]
         h_2 = (
@@ -91,18 +84,33 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             / (1 - self.dissipation_ratio.val_SI)
         )
         T_max_compressor_internal = T_mix_ph(
-            self.outl[0].p.val_SI,
+            o.p.val_SI,
             h_2,
-            self.outl[0].fluid_data,
-            self.outl[0].mixing_rule,
-            T0=self.outl[0].T.val_SI
+            o.fluid_data,
+            o.mixing_rule,
+            T0=o.T.val_SI
         )
-        self.td_minimal.val_SI = (
-            T_max_compressor_internal
-            - self.outl[1].T.val_SI
-        )
+        return T_max_compressor_internal - self.outl[1].T.val_SI
 # %%[sec_8]
-        self.dp_cooling.val_SI = self.inl[1].p.val_SI - self.outl[1].p.val_SI
+    def get_parameters(self):
+        params = super().get_parameters()
+        params["eta_recovery"] = dc_cp(
+            quantity="efficiency"
+        )
+        params["td_minimal"] = dc_cp(
+            min_val=0,
+            quantity="temperature_difference",
+            calc=self._calc_td_minimal
+        )
+        params["dp_cooling"] = dc_cp(
+            min_val=0,
+            structure_matrix=self.dp_structure_matrix,
+            func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
+            quantity="pressure",
+            calc=self._calc_dp,
+            calc_params={"inconn": 1, "outconn": 1}
+        )
+        return params
 # %%[sec_9]
 nw = Network()
 nw.units.set_defaults(

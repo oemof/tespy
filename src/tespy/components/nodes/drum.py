@@ -23,67 +23,71 @@ class Drum(DropletSeparator):
     r"""
     A drum separates saturated gas from saturated liquid.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-
-    Inlets/Outlets
-
-    - in1, in2 (index 1: from economiser, index 2: from evaporator)
-    - out1, out2 (index 1: saturated liquid, index 2: saturated gas)
-
-    Image
-
-    .. image:: /api/_images/Drum.svg
+    .. image:: /api/_images/components/Drum.svg
        :alt: flowsheet of the drum
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Drum_darkmode.svg
+    .. image:: /api/_images/components/Drum_darkmode.svg
        :alt: flowsheet of the drum
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+    - outlet 0 is saturated liquid constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - outlet 1 is saturated gas constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    Note
-    ----
-    If you are using a drum in a network with multiple fluids, it is likely
-    the fluid propagation causes trouble. If this is the case, try to
-    specify the fluid composition at another connection of your network.
+    Notes
+    -----
 
-    This component assumes, that the fluid composition between outlet 1 and
-    inlet 2 does not change, thus there is no equation for the fluid mass
-    fraction at the inlet 2!
+    .. note::
+
+        If you are using a drum in a network with multiple fluids, it is likely
+        the fluid propagation causes trouble. If this is the case, try to
+        specify the fluid composition at another connection of your network.
+
+        This component assumes, that the fluid composition between outlet 1 and
+        inlet 2 does not change, thus there is no equation for the fluid mass
+        fraction at the inlet 2!
 
     Example
     -------
@@ -100,10 +104,10 @@ class Drum(DropletSeparator):
     >>> from tespy.networks import Network
     >>> from tespy.tools.characteristics import CharLine
     >>> from tespy.tools.characteristics import load_default_char as ldc
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> fa = Source('feed ammonia')
     >>> amb_in = Source('air inlet')
@@ -111,7 +115,7 @@ class Drum(DropletSeparator):
     >>> s = Sink('steam')
     >>> dr = Drum('drum')
     >>> ev = HeatExchanger('evaporator')
-    >>> erp = Pump('evaporator reciculation pump')
+    >>> erp = Pump('evaporator recirculation pump')
     >>> f_dr = Connection(fa, 'out1', dr, 'in1')
     >>> dr_erp = Connection(dr, 'out1', erp, 'in1')
     >>> erp_ev = Connection(erp, 'out1', ev, 'in2')
@@ -127,11 +131,12 @@ class Drum(DropletSeparator):
     transferred. State of ammonia at the inlet is at -5 °C and 5 bar. From this
     design it is possible to calculate offdesign performance at 75 % part load.
 
-    >>> char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
-    >>> char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    >>> ev.set_attr(pr1=0.999, pr2=0.99, ttd_l=5, kA_char1=char1,
-    ...     kA_char2=char2, design=['pr1', 'ttd_l'],
-    ...     offdesign=['zeta1', 'kA_char']
+    >>> char1 = ldc('HeatExchanger', 'UA_char1', 'DEFAULT', CharLine)
+    >>> char2 = ldc('HeatExchanger', 'UA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> ev.set_attr(
+    ...     pr1=0.999, pr2=0.99, ttd_l=5, UA_char1=char1,
+    ...     UA_char2=char2, design=['pr1', 'ttd_l'],
+    ...     offdesign=['zeta1_d4', 'UA_char']
     ... )
     >>> ev.set_attr(Q=-1e6)
     >>> erp.set_attr(eta_s=0.8)
@@ -141,7 +146,7 @@ class Drum(DropletSeparator):
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.assert_convergence()
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)
@@ -153,12 +158,11 @@ class Drum(DropletSeparator):
     >>> round(f_dr.m.val, 2)
     0.78
     >>> ev.set_attr(Q=-0.75e6)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(f_dr.m.val, 2)
     0.58
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     3.0
-    >>> os.remove('tmp.json')
     """
 
     @staticmethod
@@ -196,33 +200,6 @@ class Drum(DropletSeparator):
 
     def propagate_wrapper_to_target(self, branch):
         return super().propagate_wrapper_to_target(branch)
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a merge.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        Please note, that the exergy balance accounts for physical exergy only.
-
-        .. math::
-
-            \dot{E}_\mathrm{P} = \sum \dot{E}_{\mathrm{out,}j}^\mathrm{PH}\\
-            \dot{E}_\mathrm{F} = \sum \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-        """
-        self.E_P = self.outl[0].Ex_physical + self.outl[1].Ex_physical
-        self.E_F = self.inl[0].Ex_physical + self.inl[1].Ex_physical
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """

@@ -28,70 +28,101 @@ class Valve(Component):
     r"""
     The Valve throttles a fluid without changing enthalpy.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Valve.svg
+    .. image:: /api/_images/components/Valve.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Valve_darkmode.svg
+    .. image:: /api/_images/components/Valve_darkmode.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - equation for enthalpy equality: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     dp_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for difference pressure to mass flow.
+        Inlet to outlet absolute pressure change as function of mass flow lookup
+        table.
+        Equation: :py:meth:`dp_char_func <tespy.components.piping.valve.Valve.dp_char_func>`.
+
+    Kv : float, dict
+        Flow coefficient in m3/h.
+        Equation: :py:meth:`Kv_func <tespy.components.piping.valve.Valve.Kv_func>`.
+
+    Kv_analytical : dict
+        Fitting parameters and method for the analytical Kv evaluation provided
+        in a dictionary with keys 'method' (callable) and 'params' (list).
+
+    Kv_char : tespy.tools.characteristics.CharLine, dict
+        Lookup-table data for flow coefficient as function of opening.
+
+    Kv_char_analytical_group : GroupedComponentProperties
+        Elements: :code:`Kv_analytical`, :code:`opening`.
+        Equation: :py:meth:`Kv_char_analytical_func <tespy.components.piping.valve.Valve.Kv_char_analytical_func>`.
+
+    Kv_char_group : GroupedComponentProperties
+        Equation for flow coefficient over opening. Elements: :code:`Kv_char`,
+        :code:`opening`.
+        Equation: :py:meth:`Kv_char_func <tespy.components.piping.valve.Valve.Kv_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    opening : float, dict, :code:`"var"`
+        Opening ratio of the valve. Quantity: :code:`ratio`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -102,10 +133,10 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -113,28 +144,27 @@ class Valve(Component):
     >>> so_v = Connection(so, 'out1', v, 'in1')
     >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
-    >>> v.set_attr(offdesign=['zeta'])
+    >>> v.set_attr(offdesign=['zeta_d4'])
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
     0.188
 
-    The simulation determined the area independent zeta value
-    :math:`\frac{\zeta}{D^4}`. This zeta remains constant if the cross
-    sectional area of the valve opening does not change. Using the zeta value
-    we can determine the pressure ratio at a different feed pressure.
+    The simulation determined the area independent zeta_d4 value
+    :math:`\frac{\zeta}{D^4}`. This value remains constant if the cross
+    sectional area of the valve opening does not change. Using zeta_d4 we can
+    determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> os.remove('tmp.json')
 
     You can also specify the flow coefficient of the valve :code:`Kv` which is
     used in context of liquids. For this there are several methods available:
@@ -147,7 +177,8 @@ class Valve(Component):
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -193,6 +224,9 @@ class Valve(Component):
     >>> round(v.Kv.val, 1)
     5.2
     """
+
+    _parameter_aliases = {'zeta': 'zeta_d4'}
+
     def get_parameters(self):
         return {
             'pr': dc_cp(
@@ -200,7 +234,8 @@ class Valve(Component):
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
                 quantity="ratio",
-                description="outlet to inlet pressure ratio"
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 min_val=0,
@@ -208,14 +243,21 @@ class Valve(Component):
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
                 quantity="pressure_difference",
-                description="inlet to outlet absolute pressure change"
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
+            ),
+            'zeta_d4': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.zeta_d4_func,
+                dependents=self.zeta_d4_dependents,
+                func_params={'zeta': 'zeta_d4'},
+                description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
             ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1,
-                func=self.zeta_func,
-                dependents=self.zeta_dependents,
-                func_params={'zeta': 'zeta'},
-                description="non-dimensional friction coefficient for pressure loss calculation"
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
             ),
             'dp_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -229,6 +271,7 @@ class Valve(Component):
                 func=self.Kv_func,
                 dependents=self.Kv_dependents,
                 description="flow coefficient in m3/h",
+                calc=self._calc_Kv
             ),
             'Kv_char': dc_cc(
                 description="lookup-table data for flow coefficient as function of opening"
@@ -236,7 +279,7 @@ class Valve(Component):
             'opening': dc_cp(
                 # opening can be more than 100 % sometimes
                 min_val=0, max_val=1.1,
-                _potential_var=True,
+                _allows_var=True,
                 description="opening ratio of the valve",
                 quantity="ratio"
             ),
@@ -248,6 +291,7 @@ class Valve(Component):
                 description="equation for flow coefficient over opening"
             ),
             'Kv_analytical': dc_simple(
+                dtype="dict",
                 description=(
                     "fitting parameters and method for the analytical Kv "
                     "evaluation provided in a dictionary with keys 'method' "
@@ -317,7 +361,7 @@ class Valve(Component):
 
             .. math::
 
-                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
+                0=p_\text{in}-p_\text{out}-f\left( expr \right)
         """
         p = self.dp_char.param
         expr = self.get_char_expr(p, **self.dp_char.char_params)
@@ -453,24 +497,12 @@ class Valve(Component):
             self.opening
         ]
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
+    def _calc_Kv(self):
         i = self.inl[0]
-        o = self.outl[0]
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
-        self.zeta.val_SI = self.calc_zeta(i, o)
-
-        # prevent Kv calculation for mixtures
-        # TODO: support incompressible mixtures
         fluid = single_fluid(i.fluid_data)
-        self.Kv.val_SI = np.nan
-        if fluid is not None:
-            if self.dp.val_SI > 0 and i.calc_phase() == "l":
-                self.Kv.val_SI = (
-                    i.v.val_SI * 3600
-                    * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
-                )
+        if fluid is not None and self.dp.val_SI > 0 and i.calc_phase() == "l":
+            return i.v.val_SI * 3600 * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
+        return np.nan
 
     def entropy_balance(self):
         r"""
@@ -482,73 +514,12 @@ class Valve(Component):
 
         .. math::
 
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (
             self.outl[0].s.val_SI - self.inl[0].s.val_SI
         )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a valve.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \text{not defined (nan)} & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M}-
-            \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-        """
-        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_therm + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-        else:
-            msg = (
-                'Exergy balance of a valve, where outlet temperature is '
-                'larger than inlet temperature is not implemented.'
-            )
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

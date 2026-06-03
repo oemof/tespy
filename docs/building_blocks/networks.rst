@@ -72,7 +72,7 @@ We can change the default units as follows:
     >>> nw.units.get_default("power")
     'hp'
     >>> nw.units.set_defaults(efficiency="%")  # percent
-    >>> nw.units.set_defaults(pressure="bar")
+    >>> nw.units.set_defaults(pressure="bar", pressure_difference="bar")
 
 The unit specification then applies to all parameters with the same quantity.
 For example, let's set up a model of a compressor.
@@ -251,9 +251,11 @@ available keywords:
 
 - :code:`mode` is the calculation mode (:code:`'design'`-calculation or
   :code:`'offdesign'`-calculation).
-- :code:`init_path` is the path to the network folder you want to use for
+- :code:`init_path` is the path to a saved network state (json file path or
+  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) to use for
   initialisation.
-- :code:`design_path` is the path to the network folder which holds the
+- :code:`design_path` is the path to a saved network state (json file path or
+  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) which holds the
   information of your plant's design point.
 - :code:`max_iter` is the maximum amount of iterations performed by the
   solver.
@@ -314,12 +316,12 @@ The heat transfer coefficient is calculated in the preprocessing of the
 offdesign case based on the results from the design-case. Of course, this
 applies to all other parameters in the same way. Also, the pressure drop is a
 result of the geometry for the offdesign case, thus we swap the pressure ratios
-with zeta values.
+with geometry independent zeta :math:`\frac{\zeta}{D^4}` values.
 
 .. code-block:: python
 
     mycomponent.set_attr(
-        design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2']
+        design=['ttd_u', 'pr1', 'pr2'], offdesign=['UA', 'zeta1_d4', 'zeta2_d4']
     )
 
 .. note::
@@ -434,11 +436,19 @@ calculation can not start without a successful check. The design/offdesign
 switch is described in the network setup section. For offdesign calculation the
 :code:`design_path` argument is required. The design point information is
 extracted from that path in preprocessing. For this, you will need to save
-your network's design point information using:
+your network's design point information. Three approaches are available:
 
 .. code-block:: python
 
-    nw.save('path/for/savestate')
+    # 1. Save to a json file - pass the file path as design_path / init_path
+    nw.save('path/to/design.json')
+
+    # 2. Save as an in-memory dict - pass the dict directly, no file I/O needed
+    state = nw.save(as_dict=True)
+    nw.solve('offdesign', design_path=state)
+
+    # 3. Save to csv files in a folder (for inspection or post-processing)
+    nw.save_csv('path/to/folder')
 
 **Simplifying the variable space**
 
@@ -530,10 +540,11 @@ results of a previous calculation, you need to specify
 
 Last step in starting value generation is the initialisation from a saved
 network state. In order to initialise your calculation with this method, you
-need to provide the path to the saved network in the :code:`init_path` argument
-of the `solve` method. TESPy searches through the connections.csv file. If a
-connection with the respective label is found, the starting values for the
-system variables are taken over from that file.
+need to provide a saved network state via the :code:`init_path` argument of
+the :code:`solve` method - either a file path to a json file or a :code:`dict`
+returned by :code:`nw.save(as_dict=True)`. TESPy searches through the
+connection entries. If a connection with the respective label is found, the
+starting values for the system variables are taken over from that state.
 
 .. note::
 
@@ -610,9 +621,9 @@ power :math:`P` to be 1000 W, the set of equations will look like this:
 
 .. math::
 
-    \forall i \in \mathrm{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
+    \forall i \in \text{network.fluids} \, &0 = fluid_{i,in} -fluid_{i,out}\\
     &0 = \dot{m}_{in} - \dot{m}_{out}\\
-    \mathrm{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
+    \text{additional:} \, &0 = 1000 - \dot{m}_{in} (\cdot {h_{out} - h_{in}})
 
 .. _module_convergence_label:
 
@@ -632,7 +643,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid component never exceeds oxygenthese boundaries.
+  mass fraction of a single fluid component never exceeds these boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -737,14 +748,14 @@ connections to the network.
 
 **Presolving**
 
-In the first part of the presovling phase, the variable space reduction is
+In the first part of the presolving phase, the variable space reduction is
 performed. TESPy will prompt errors, in case the parameter specifications in
 context of the topology lead to an infeasibility in any of the variables. This
 can be, for example
 
 - a circular linear dependency between a set of variables. Typically, the mass
   flow can be over-determined by not including a :code:`CycleCloser` component
-  in a circular network. For example, ff you are modeling a cycle, e.g. the
+  in a circular network. For example, if you are modeling a cycle, e.g. the
   Clausius Rankine cycle, you need to make a cut in the cycle using the
   :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
   over-determine the system. Have a look in the
@@ -787,42 +798,42 @@ To help you with debugging, you can use a couple of methods to inspect the
 mathematical problem. To do this, you have to start the simulation with
 :code:`init_only=True`. This can also be applied in case the number of
 parameters passed to your problem is incorrect and you might be unsure why.
-Then you can use the following methods to obtain information on your problem:
+Then you can use the following print methods to obtain formatted tabular output
+on your problem:
 
 .. code-block:: python
 
     nw.solve("design", init_only=True)
-    print(nw.get_presolved_variables())
-    print(nw.get_presolved_equations())
-    print(nw.get_variables())
-    print(nw.get_equations())
+    nw.print_presolved_variables()
+    nw.print_presolved_equations()
+    nw.print_variables()
+    nw.print_equations()
+    nw.print_equations_with_dependents()
+    nw.print_incidence_matrix()
 
-- :code:`get_presolved_variables`: A list of all variables of the system, that
-  have already been solved in the preprocessing. The list contains tuples of
-  labels and attributes, e.g. :code:`("1", "p")` for the pressure of the
-  connection with label "1".
-- :code:`get_presolved_equations`: A list of equations of the system, that were
-  applied to presolved the aforementioned variables. These come in a similar
-  form as tuples, e.g. :code:`("3", "T")` for the temperature equation of the
-  connection with label "3".
-- :code:`get_variables`: A dictionary of the actual variables remaining for the
-  solver to solve for. The keys of the dictionary are again tuples, with an
-  index number and the variable type, e.g. :code:`(0, "h")` for a variable
-  representing enthalpy. The values corresponding to each key are again a list,
-  which show all of the variables the are representing, e.g.
-  :code:`[("2", "h"), ("7", "h")]` in case the variable represents the enthalpy
-  of the connections with the labels "2" and "7".
-- :code:`get_equations`: A dictionary with the actual equations remaining for
-  the solver to be solved after the presolving. The key is an integer index and
-  the value is a tuple containing the label of the component or connection,
-  from which the equation originates and a second tuple with the name of the
-  constraint as well as an index (which is used, when one constraint comes
-  with more than a single equation), e.g. :code:`("compressor", ("eta_s", 0))`
-  for the first equation coming of the constraint "eta_s" of a component named
-  "compressor".
+- :py:meth:`~tespy.networks.network.Network.print_presolved_variables`: prints
+  a table of all variables already solved during preprocessing, identified by
+  their object label and property, e.g. :code:`c1 (p)`.
+- :py:meth:`~tespy.networks.network.Network.print_presolved_equations`: prints
+  a table of the equations used to resolve those variables, identified by object
+  label and equation name, e.g. :code:`c1.T`.
+- :py:meth:`~tespy.networks.network.Network.print_variables`: prints a table of
+  the remaining variables passed to the solver, each shown with a short label
+  (e.g. :code:`h1`) and the original variables it represents.
+- :py:meth:`~tespy.networks.network.Network.print_equations`: prints a table of
+  the remaining equations passed to the solver, identified by object label and
+  equation name, e.g. :code:`compressor.eta_s`.
+- :py:meth:`~tespy.networks.network.Network.print_equations_with_dependents`:
+  extends the equations table with the variables each equation depends on.
+- :py:meth:`~tespy.networks.network.Network.print_incidence_matrix`: prints the
+  incidence matrix with equations as rows and variables as columns, using
+  :code:`x` for a dependency and :code:`-` for none.
 
-These methods will help you in finding which of your specifications might be
-the reason for over- order under-determination of the problem.
+The underlying data can also be retrieved programmatically via the corresponding
+:code:`get_*` methods. These methods will help you in finding which of your
+specifications might be the reason for over- or under-determination of the
+problem. See the :ref:`debugging tutorial <tutorial_debugging_label>` for a
+worked example.
 
 If you have the correct number of specifications and run the simulation, it
 can still happen that the calculation crashes after or even before the first
@@ -966,18 +977,18 @@ and similar for connection parameters:
     Mass fractions of the fluid composition are always SI values!
 
 On top of that, you can access pandas DataFrames containing grouped results
-for the components, connections and busses. The instance of class Network
-provides a results dictionary.
+for the components and connections. The instance of class Network provides a
+results dictionary.
 
 .. code:: python
 
-    # key for connections is 'Connection'
+    # key for fluid connections is 'Connection'
     results_for_conns = my_plant.results['Connection']
+    # key for power connections is 'PowerConnection'
+    results_for_power_conns = my_plant.results['PowerConnection']
     # keys for components are the respective class name, e.g.
     results_for_turbines = my_plant.results['Turbine']
     results_for_heat_exchangers = my_plant.results['HeatExchanger']
-    # keys for busses are the labels, e.g. a Bus labeled 'power input'
-    results_for_mybus = my_plant.results['power input']
 
 The index of the DataFrames is the connection's or component's label.
 
@@ -985,41 +996,46 @@ The index of the DataFrames is the connection's or component's label.
 
     results_for_specific_conn = my_plant.results['Connection'].loc['myconn']
     results_for_specific_turbine = my_plant.results['Turbine'].loc['turbine 1']
-    results_for_component_on_bus = my_plant.results['power input'].loc['turbine 1']
 
 The full list of connection and component parameters can be obtained from the
 respective API documentation.
 
 Serialization and deserialization
 ---------------------------------
-The network reader is a useful tool to import networks from a data structure
-using .csv-files. In order to re-import an exported TESPy network, you must
-save the network first.
+The network export/import is a useful tool to persist and restore the full
+network parametrisation. :py:meth:`~tespy.networks.network.Network.export`
+always returns the data as a :code:`dict` and optionally writes it to a json
+file at the same time. The network can be restored from either a json file or
+the dict directly.
+
+**Export to file and re-import:**
 
 .. code:: python
 
     my_plant.export('mynetwork.json')
 
-This exports a json file containing all relevant information defining your
-network (general network information, components, connections, busses,
-characteristics) holding the parametrisation of that network. You can re-import
-the network using following code with the path to the saved document. The
-generated network object contains the same information as a TESPy network
-created by a python script.
+    from tespy.networks import Network
+    imported_plant = Network.from_json('mynetwork.json')
+    imported_plant.solve('design')
+
+**Export as in-memory dict and re-import without file I/O:**
 
 .. code:: python
 
+    data = my_plant.export()
+
     from tespy.networks import Network
-    imported_plant = Network.from_json('path/to/mynetwork.json')
+    imported_plant = Network.from_dict(data)
     imported_plant.solve('design')
 
 .. note::
 
-    Imported busses, components and connections are accessible by their label,
-    e.g. :code:`imported_plant.busses['total heat output']`,
-    :code:`imported_plant.get_comp('condenser')` and
+    Imported components and connections are accessible by their label,
+    e.g. :code:`imported_plant.get_comp('condenser')` and
     :code:`imported_plant.get_conn('myconnectionlabel')` respectively. If
     you did not provide labels for your connections, by default, the
     connection's label will be according to this principle:
     :code:`'source-label:source-id_target-label:target-id'`, where source and
-    target are the labels of the connected components.
+    target are the labels of the connected components. User defined equations
+    can be retrieved in the same way with
+    :code:`imported_plant.get_ude('my ude label')`.

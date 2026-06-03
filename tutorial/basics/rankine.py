@@ -81,7 +81,7 @@ fig, ax = plt.subplots(1, figsize=(20, 10))
 isolines = {
     'Q': np.linspace(0, 1, 2),
     'p': np.array([1, 2, 5, 10, 20, 50, 100, 300]),
-    'v': np.array([]),
+    'vol': np.array([]),
     'h': np.arange(500, 3501, 500)
 }
 
@@ -217,21 +217,21 @@ plt.tight_layout()
 fig.savefig('rankine_parametric-darkmode.svg')
 plt.close()
 # %%[sec_9]
-mc.set_attr(design=["ttd_u"], offdesign=["kA"])
+mc.set_attr(design=["ttd_u"], offdesign=["UA"])
 c11.set_attr(offdesign=["v"])
 c12.set_attr(design=["T"])
 c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
 # %%[sec_10]
 my_plant.solve("design")
-my_plant.save("rankine_design.json")
+design_state = my_plant.save(as_dict=True)
 # %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)
 
 for m in partload_m_range:
     c1.set_attr(m=m)
-    my_plant.solve("offdesign", design_path="rankine_design.json")
+    my_plant.solve("offdesign", design_path=design_state)
     partload_efficiency += [e5.E.val / sg.Q.val * 100]
 
 

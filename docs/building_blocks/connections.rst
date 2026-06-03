@@ -33,7 +33,8 @@ A :code:`Connection` always connects two components:
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ...     temperature="°C", power="kW", pressure="bar", enthalpy="kJ/kg"
+    ...     temperature="°C", power="kW", pressure="bar",
+    ...     pressure_difference="bar", enthalpy="kJ/kg"
     ... )
     >>> source = Source('source')
     >>> heatexchanger = SimpleHeatExchanger('heat exchanger')
@@ -292,7 +293,8 @@ electricity. First we can set up a system as we are used to do without any
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ... temperature="degC", pressure="bar", power="kW"
+    ...     temperature="degC", pressure="bar", pressure_difference="bar",
+    ...     power="kW"
     ... )
     >>> so = Source("source")
     >>> turbine = Turbine("turbine")

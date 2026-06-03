@@ -35,82 +35,84 @@ class Compressor(Turbomachine):
     r"""
     Class for a basic compressor.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_func`
-    - :py:meth:`tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional inlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Compressor.svg
+    .. image:: /api/_images/components/Compressor.svg
        :alt: flowsheet of the compressor
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Compressor_darkmode.svg
+    .. image:: /api/_images/components/Compressor_darkmode.svg
        :alt: flowsheet of the compressor
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.turbomachinery.compressor.Compressor.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Power, :math:`P/\text{W}`
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_s/1`
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_s_func <tespy.components.turbomachinery.compressor.Compressor.eta_s_func>`.
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic curve for isentropic efficiency, provide CharLine as
-        function :code:`func`.
+        Isentropic efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_s_char_func <tespy.components.turbomachinery.compressor.Compressor.eta_s_char_func>`.
+
+    igva : float, dict, :code:`"var"`
+        Inlet guide vane angle. Quantity: :code:`angle`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -120,11 +122,10 @@ class Compressor(Turbomachine):
     >>> from tespy.components import Sink, Source, Compressor
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "volumetric_flow": "l/s",
-    ...     "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "volumetric_flow": "l/s", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -140,32 +141,16 @@ class Compressor(Turbomachine):
     >>> comp.set_attr(pr=5, eta_s=0.8, design=['eta_s'], offdesign=['eta_s_char'])
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)
     0.8
     >>> inc.set_attr(v=45)
-    >>> nw.solve('offdesign', design_path='tmp.json')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(comp.eta_s.val, 2)
     0.79
-    >>> os.remove('tmp.json')
     """
-
-    def _preprocess(self, row_idx):
-        if self.char_map_pr.is_set or self.char_map_eta_s.is_set or self.igva.is_set:
-            msg = (
-                "The scope of the component 'Compressor' will change in the "
-                "next major release. The availability of the compressor maps "
-                "in context of offdesign simulations has moved to the new "
-                "component 'TurboCompressor'. If you want to make use of "
-                "these parameters, please use that component class instead."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-
-        return super()._preprocess(row_idx)
-
     @staticmethod
     def powerinlets():
         return ["power"]
@@ -193,7 +178,8 @@ class Compressor(Turbomachine):
                 deriv=self.eta_s_deriv,
                 dependents=self.eta_s_dependents,
                 quantity="efficiency",
-                description="isentropic efficiency"
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
             ),
             'eta_s_char': dc_cc(
                 param='m', num_eq_sets=1,
@@ -203,27 +189,8 @@ class Compressor(Turbomachine):
             ),
             'igva': dc_cp(
                 min_val=-90, max_val=90, val=0, quantity="angle",
-                description="inlet guide vane angle", _potential_var=True
+                description="inlet guide vane angle", _allows_var=True
             ),
-            'char_map_eta_s': dc_cm(
-                description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
-            ),
-            'char_map_eta_s_group': dc_gcp(
-                elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
-                func=self.char_map_eta_s_func,
-                dependents=self.char_map_dependents,
-                description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
-            ),
-            'char_map_pr': dc_cm(
-                description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
-            ),
-            'char_map_pr_group': dc_gcp(
-                elements=['char_map_pr', 'igva'],
-                num_eq_sets=1,
-                func=self.char_map_pr_func,
-                dependents=self.char_map_dependents,
-                description="map for pressure ratio over speedlines and non-dimensional mass flow"
-            )
         })
         return parameters
 
@@ -364,109 +331,8 @@ class Compressor(Turbomachine):
             self.outl[0].h,
         ]
 
-    def char_map_pr_func(self):
-
-        r"""
-        Calculate pressure ratio from characteristic map.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equations.
-
-        Note
-        ----
-        - X: speedline index (rotational speed is constant)
-        - Y: nondimensional mass flow
-        - igva: variable inlet guide vane angle for value manipulation
-          according to :cite:`GasTurb2018`.
-
-        .. math::
-
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
-            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            \vec{Z} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            0 = \frac{p_{out} \cdot p_{in,design}}
-            {p_\mathrm{in} \cdot p_\mathrm{out,design}}-
-            f\left(Y,\vec{Y},\vec{Z}\right)
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
-
-        yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
-        # value manipulation with igva
-        yarr *= (1 - self.igva.val_SI / 100)
-        zarr *= (1 - self.igva.val_SI / 100)
-        pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
-
-        return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
-
-    def char_map_eta_s_func(self):
-        r"""
-        Calculate isentropic efficiency from characteristic map.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
-
-        Note
-        ----
-        - X: speedline index (rotational speed is constant)
-        - Y: nondimensional mass flow
-        - igva: variable inlet guide vane angle for value manipulation
-          according to :cite:`GasTurb2018`.
-
-        .. math::
-
-            X = \sqrt{\frac{T_\mathrm{in,design}}{T_\mathrm{in}}}\\
-            Y = \frac{\dot{m}_\mathrm{in} \cdot p_\mathrm{in,design}}
-            {\dot{m}_\mathrm{in,design} \cdot p_\mathrm{in} \cdot X}\\
-            \vec{Y} = f\left(X,Y\right)\cdot\left(1-\frac{igva}{100}\right)\\
-            \vec{Z}=f\left(X,Y\right)\cdot\left(1-\frac{igva^2}{10000}\right)\\
-            0 = \frac{\eta_\mathrm{s}}{\eta_\mathrm{s,design}} -
-            f\left(Y,\vec{Y},\vec{Z}\right)
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
-
-        yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
-        # value manipulation with igva
-        yarr *= (1 - self.igva.val_SI / 100)
-        zarr *= (1 - self.igva.val_SI ** 2 / 10000)
-        eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
-
-        return (
-            (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - i.h.val_SI)
-            / (o.h.val_SI - i.h.val_SI) - eta * self.eta_s.design
-        )
-
-    def char_map_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.outl[0].h,
-            self.igva
-        ]
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set
 
     def convergence_check(self):
         r"""
@@ -568,96 +434,12 @@ class Compressor(Turbomachine):
                 temp = 350
                 return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-
-        i = self.inl[0]
-        o = self.outl[0]
-        self.eta_s.val_SI =  (
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
             isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=i.T.val_SI,
-                T0_out=o.T.val_SI
-            ) - self.inl[0].h.val_SI
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
         ) / (o.h.val_SI - i.h.val_SI)
-
-    def check_parameter_bounds(self):
-        r"""Check parameter value limits."""
-        _no_limit_violations = super().check_parameter_bounds()
-
-        for data in [self.char_map_pr, self.char_map_eta_s]:
-            if data.is_set:
-                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
-                y = (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p')) / (
-                    self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
-                yarr = data.char_func.get_domain_errors_x(x, self.label)
-                yarr *= (1 - self.igva.val_SI / 100)
-                data.char_func.get_domain_errors_y(y, yarr, self.label)
-
-        return _no_limit_violations
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a compressor.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{M} -
-            \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            P & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \leq T_\mathrm{in}\\
-            P + \dot{E}_\mathrm{in}^\mathrm{T} -\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} = P
-        """
-        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-            self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-            self.E_F = self.P.val
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm + (
-                self.outl[0].Ex_mech - self.inl[0].Ex_mech)
-            self.E_F = self.P.val + self.inl[0].Ex_therm
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_mech - self.inl[0].Ex_mech
-            self.E_F = self.P.val + (
-                self.inl[0].Ex_therm - self.outl[0].Ex_therm)
-        else:
-            msg = (
-                'Exergy balance of a compressor, where outlet temperature '
-                'is smaller than inlet temperature is not implmented.'
-            )
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": 0, "physical": 0, "massless": self.P.val
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()

@@ -54,15 +54,15 @@ at the example of the heat transfer coefficient of an evaporator.
     >>> he = HeatExchanger('evaporator')
 
     >>> # specify the value
-    >>> he.set_attr(kA=1e5)
-    >>> he.kA.val
+    >>> he.set_attr(UA=1e5)
+    >>> he.UA.val
     100000.0
-    >>> he.kA.is_set
+    >>> he.UA.is_set
     True
 
     >>> # possibilities to unset a value
-    >>> he.set_attr(kA=None)
-    >>> he.kA.is_set
+    >>> he.set_attr(UA=None)
+    >>> he.UA.is_set
     False
 
 Grouped parameters
@@ -82,7 +82,10 @@ not be implemented by the solver.
     >>> from tespy.connections import Connection
 
     >>> nw = Network()
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
+    >>> nw.iterinfo = False
 
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -92,11 +95,11 @@ not be implemented by the solver.
     >>> c2 = Connection(my_pipe, 'out1', si, 'in1')
     >>> nw.add_conns(c1, c2)
     >>> c1.set_attr(fluid={"CH4": 1}, m=1, p=10, T=25)
-    >>> c2.set_attr(p0=10, T=25)
+    >>> c2.set_attr(T=25)
 
     >>> # specify grouped parameters
     >>> my_pipe.set_attr(D=0.1, L=20, ks=0.00005)
-    >>> nw.solve('design', init_only=True)
+    >>> nw.solve('design')
     >>> my_pipe.darcy_group.is_set
     True
 
@@ -104,7 +107,7 @@ not be implemented by the solver.
     >>> # pipe's length is now missing (by removing it as follows).
     >>> c2.set_attr(p=10)
     >>> my_pipe.set_attr(L=None)
-    >>> nw.solve('design', init_only=True)
+    >>> nw.solve('design')
     >>> my_pipe.darcy_group.is_set
     False
 
@@ -125,7 +128,7 @@ diameter the following way.
     >>> # make diameter variable of system
     >>> my_pipe.set_attr(pr=0.98, L=100, ks=0.00002, D='var')
     >>> c2.set_attr(p=None)
-    >>> nw.solve("design", init_only=True)
+    >>> nw.solve("design")
     >>> my_pipe.darcy_group.is_set
     True
 
@@ -139,6 +142,34 @@ specified range.
     >>> my_pipe.D.max_val = 0.3
     >>> round(my_pipe.D.max_val, 1)
     0.3
+
+.. _component_result_parameters_label:
+
+Results
+^^^^^^^
+
+Some component parameters are not specified by the user but instead computed
+automatically after the solver converges. These result parameters are always
+available via :code:`.val` (or :code:`.val_SI`) on the component after a
+successful solve.
+
+For example, the pressure drop :code:`dp` or flow speed :code:`flow_speed` of
+a pipe are present in the results:
+
+.. code-block:: python
+
+    >>> round(my_pipe.dp.val, 4)
+    0.2
+    >>> round(my_pipe.flow_speed.val, 2)
+    20.09
+
+Result parameters are declared with a :code:`calc` method on the
+:code:`ComponentProperties` data container. The base class
+:py:meth:`~tespy.components.component.Component.calc_parameters` dispatches
+all such methods automatically in the correct order after convergence. For
+details on defining :code:`calc`, :code:`calc_params` and :code:`calc_deps`
+when extending or creating components, see the
+:ref:`custom components documentation <custom_components_label>`.
 
 .. _component_characteristic_specification_label:
 
@@ -155,8 +186,8 @@ is possible to specify your own data for these characteristic functions.
     **There are two different characteristics specifications**
 
     The characteristic function can be an auxiliary parameter of a different
-    component property. This is the case for :code:`kA_char1`
-    and :code:`kA_char2` of heat exchangers as well as the characteristics of a
+    component property. This is the case for :code:`UA_char1`
+    and :code:`UA_char2` of heat exchangers as well as the characteristics of a
     combustion engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
     and :code:`Qloss_char`.
 
@@ -165,13 +196,13 @@ is possible to specify your own data for these characteristic functions.
 
     **What does this mean?**
 
-    For the auxiliary functionality the main parameter, e.g. :code:`kA_char`
-    of a heat exchanger must be set :code:`.kA_char.is_set=True`.
+    For the auxiliary functionality the main parameter, e.g. :code:`UA_char`
+    of a heat exchanger must be set :code:`.UA_char.is_set=True`.
 
     For the other functionality the characteristics parameter must be
     set e.g. :code:`.eta_s_char.is_set=True`.
 
-For example, :code:`kA_char` specification for heat exchangers:
+For example, :code:`UA_char` specification for heat exchangers:
 
 .. code-block:: python
 
@@ -180,7 +211,9 @@ For example, :code:`kA_char` specification for heat exchangers:
     >>> from tespy.tools.characteristics import CharLine
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
 
     >>> he = HeatExchanger('evaporator')
     >>> cond = Source('condensate')
@@ -202,49 +235,49 @@ For example, :code:`kA_char` specification for heat exchangers:
 
     >>> nw.solve("design")
     >>> nw.save("design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     503013
 
     >>> # the characteristic function is made for offdesign calculation.
-    >>> he.set_attr(offdesign=["kA_char"])
+    >>> he.set_attr(offdesign=["UA_char"])
     >>> c4.set_attr(design=["T"])
     >>> nw.solve("offdesign", design_path="design_case.json")
     >>> # since we did not change any property, the offdesign case yields the
-    >>> # same value as the design kA value
-    >>> round(he.kA.val)
+    >>> # same value as the design UA value
+    >>> round(he.UA.val)
     503013
 
     >>> c1.set_attr(m=9)
     >>> # use a characteristic line from the defaults: specify the component, the
     >>> # parameter and the name of the characteristic function. Also, specify,
     >>> # what type of characteristic function you want to use.
-    >>> kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
-    >>> kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    >>> he.set_attr(kA_char2=kA_char2)
+    >>> UA_char1 = ldc('HeatExchanger', 'UA_char1', 'DEFAULT', CharLine)
+    >>> UA_char2 = ldc('HeatExchanger', 'UA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> he.set_attr(UA_char2=UA_char2)
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     481745
 
     >>> # specification of a data container yields the same result. It is
     >>> # additionally possible to specify the characteristics parameter, e.g.
-    >>> # mass flow for kA_char1 (identical to default case) and volumetric
-    >>> # flow for kA_char2
+    >>> # mass flow for UA_char1 (identical to default case) and volumetric
+    >>> # flow for UA_char2
     >>> he.set_attr(
-    ...     kA_char1={'char_func': kA_char1, 'param': 'm'},
-    ...     kA_char2={'char_func': kA_char2, 'param': 'v'}
+    ...     UA_char1={'char_func': UA_char1, 'param': 'm'},
+    ...     UA_char2={'char_func': UA_char2, 'param': 'v'}
     ... )
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     481745
 
-    >>> # or use custom values for the characteristic line e.g. kA vs volumetric
+    >>> # or use custom values for the characteristic line e.g. UA vs volumetric
     >>> # flow
     >>> x = np.array([0, 0.5, 1, 2])
     >>> y = np.array([0, 0.8, 1, 1.2])
-    >>> kA_char2 = CharLine(x, y)
-    >>> he.set_attr(kA_char2={'char_func': kA_char2, 'param': 'v'})
+    >>> UA_char2 = CharLine(x, y)
+    >>> he.set_attr(UA_char2={'char_func': UA_char2, 'param': 'v'})
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     475107
 
 Full working example for :code:`eta_s_char` specification of a turbine.
@@ -259,7 +292,8 @@ Full working example for :code:`eta_s_char` specification of a turbine.
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ...     temperature="degC", pressure="bar", enthalpy="kJ/kg"
+    ...     temperature="degC", pressure="bar", pressure_difference="bar",
+    ...     enthalpy="kJ/kg"
     ... )
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -313,13 +347,13 @@ extrapolation parameter to :code:`True`.
     # use custom specification parameters
     >>> x = np.array([0, 0.5, 1, 2])
     >>> y = np.array([0, 0.8, 1, 1.2])
-    >>> kA_char1 = CharLine(x, y, extrapolate=True)
-    >>> kA_char1.extrapolate
+    >>> UA_char1 = CharLine(x, y, extrapolate=True)
+    >>> UA_char1.extrapolate
     True
 
     >>> # set extrapolation to True for existing lines, e.g.
-    >>> he.kA_char1.char_func.extrapolate = True
-    >>> he.kA_char1.char_func.extrapolate
+    >>> he.UA_char1.char_func.extrapolate = True
+    >>> he.UA_char1.char_func.extrapolate
     True
 
 For more information on how the characteristic functions work

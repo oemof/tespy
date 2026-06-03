@@ -16,6 +16,7 @@ from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -28,93 +29,96 @@ class SteamTurbine(Turbine):
     r"""
     Class for steam turbines with wet expansion.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-    - :py:meth:`tespy.components.turbomachinery.steam_turbine.SteamTurbine.eta_s_wet_func`
-    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_func`
-    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func`
-    - :py:meth:`tespy.components.turbomachinery.turbine.Turbine.cone_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional outlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Turbine.svg
-       :alt: flowsheet of the turbine
+    .. image:: /api/_images/components/Turbine.svg
+       :alt: flowsheet of the steamturbine
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Turbine_darkmode.svg
-       :alt: flowsheet of the turbine
+    .. image:: /api/_images/components/Turbine_darkmode.svg
+       :alt: flowsheet of the steamturbine
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power outlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.turbomachinery.turbine.Turbine.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    alpha : float, dict
+        Influence factor for wetness efficiency modifier. Quantity:
+        :code:`ratio`.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    cone : bool
+        Cone law equation for offdesign.
+        Equation: :py:meth:`cone_func <tespy.components.turbomachinery.turbine.Turbine.cone_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Power, :math:`P/\text{W}`
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_s/1`
-
-    eta_s_dry : float, dict
-        Dry isentropic efficiency, :math:`\eta_s/1`
-
-    alpha: float, dict
-        Influence factor on wetness efficiency modifier, :math:`\alpha/1`
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_s_func <tespy.components.turbomachinery.turbine.Turbine.eta_s_func>`.
 
     eta_s_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic curve for isentropic efficiency, provide CharLine as
-        function :code:`func`.
+        Isentropic efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_s_char_func <tespy.components.turbomachinery.turbine.Turbine.eta_s_char_func>`.
 
-    cone : dict
-        Apply Stodola's cone law (works in offdesign only).
+    eta_s_dry : float, dict
+        Isentropic efficiency of dry expansion. Quantity: :code:`efficiency`.
+
+    eta_s_dry_group : GroupedComponentProperties
+        Method to apply Baumann rule. Elements: :code:`alpha`,
+        :code:`eta_s_dry`.
+        Equation: :py:meth:`eta_s_wet_func <tespy.components.turbomachinery.steam_turbine.SteamTurbine.eta_s_wet_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -129,7 +133,8 @@ class SteamTurbine(Turbine):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> si = Sink('sink')
     >>> so = Source('source')
@@ -158,6 +163,9 @@ class SteamTurbine(Turbine):
     >>> round(outg.x.val, 3)
     0.84
     """
+
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set or self.eta_s_dry_group.is_set
 
     def get_parameters(self):
 
@@ -256,7 +264,10 @@ class SteamTurbine(Turbine):
 
                 return hout - hsat
 
-            frac = brentq(find_sat, 1, 0)
+            frac = 1
+            if round(outl.calc_Q(), 3) != 1:
+                frac = brentq(find_sat, 1, 0)
+
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)
 

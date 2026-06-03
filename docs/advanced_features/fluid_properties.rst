@@ -74,15 +74,18 @@ with the :code:`IncompressibleFluidWrapper`. See
 
 Fluid mixtures
 ++++++++++++++
-TESPy provides support for three types of mixtures:
+TESPy provides support for the following built-in mixture rules:
 
-- ideal: Mixtures for gases only.
-- ideal-cond: Mixture for gases with condensation calculation for water share.
-- incompressible: Mixtures for CoolProp-based incompressible fluids.
+- :code:`ideal-cond`: gaseous mixtures **with flash calculations for water** (default).
+- :code:`ideal`: gaseous mixtures **without flash calculations**.
+- :code:`incompressible`: mass-weighted mixtures of CoolProp incompressible fluids.
+- :code:`humidair`: humid-air mixtures via CoolProp's :code:`HAPropsSI`.
+- :code:`forced-gas`: like :code:`ideal`, but forces the gas phase for water at saturation.
 
 These mixtures are handled externally by TESPy by using the pure fluid
 properties of CoolProp and then applying the respective mixing rules, read more
-about it :ref:`here <mixture_routines_label>`.
+about it :ref:`here <mixture_routines_label>`.  Custom mixing rules can also be
+registered at runtime - see the same section for details.
 
 More accurate formulations are available directly through CoolProp, which
 provides a back end for predefined mixtures. This back end is rather instable
@@ -127,6 +130,7 @@ a very simple system, just a flow of fluid through a heat exchanger.
     >>> nw.units.set_defaults(
     ...     temperature="°C",
     ...     pressure="bar",
+    ...     pressure_difference="bar",
     ...     heat="kW"
     ... )
 
@@ -257,7 +261,7 @@ class. Below we will use the polynomial formulation for **gaseous water** from
 
     >>> import numpy as np
     >>> from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
-    >>> from tespy.tools.global_vars import gas_constants
+    >>> from tespy.tools.global_vars import GAS_CONSTANT_UNI
 
 Then we set up a new class and implement the methods to calculate enthalpy and
 entropy from (pressure and) temperature. The structure and names of the
@@ -292,6 +296,7 @@ isentropic change of pressure for an ideal gas.
     ...
     ...         self.coefficients = COEF[fluid]
     ...         self.h_ref = self._h_pT(None, reference_temperature)
+    ...         self.s_ref = self._s_pT(None, reference_temperature)
     ...         self._molar_mass = self.coefficients[-1] * 1e-3
     ...         self._T_min = 100
     ...         self._T_max = 2000
@@ -322,13 +327,35 @@ isentropic change of pressure for an ideal gas.
     ...             + self.coefficients[5] / 3 * y ** 3
     ...         ) / self.coefficients[6]
     ...
+    ...     def _s_pT(self, p, T):
+    ...         y = T * 1e-3
+    ...         return 1e3 * (
+    ...             self.coefficients[1]
+    ...             + self.coefficients[2] * np.log(y)
+    ...             + self.coefficients[3] * y
+    ...             - self.coefficients[4] / (2 * y ** 2)
+    ...             + self.coefficients[5] / 2 * y ** 2
+    ...         ) / self.coefficients[6]
+    ...
+    ...     def s_pT(self, p, T):
+    ...         return self._s_pT(p, T) - self.s_ref
+    ...
     ...     def T_ph(self, p, h):
     ...         return newton(self.h_pT, self.cp_pT, h, p)
+    ...
+    ...     def T_ps(self, p, s):
+    ...         return newton(self.s_pT, lambda p, T: self.cp_pT(p, T) / T, s, p)
+    ...
+    ...     def s_ph(self, p, h):
+    ...         return self.s_pT(p, self.T_ph(p, h))
+    ...
+    ...     def h_ps(self, p, s):
+    ...         return self.h_pT(p, self.T_ps(p, s))
     ...
     ...     def isentropic(self, p_1, h_1, p_2):
     ...         T_1 = self.T_ph(p_1, h_1)
     ...         cp = self.cp_pT(p_1, T_1)
-    ...         kappa = cp / (cp - gas_constants["uni"] / self._molar_mass)
+    ...         kappa = cp / (cp - GAS_CONSTANT_UNI / self._molar_mass)
     ...         T_2 = T_1 * (p_2 / p_1) ** ((kappa - 1) / kappa)
     ...         return self.h_pT(p_2, T_2)
 
@@ -378,6 +405,12 @@ them to CoolProp.
     400.0
     >>> round(h)
     189769
+    >>> s = kkh_water.s_pT(1e5, 400)
+    >>> T = kkh_water.T_ps(1e5, s)
+    >>> float(round(T, 1))
+    400.0
+    >>> round(float(s))
+    546
 
     >>> from tespy.tools.fluid_properties import CoolPropWrapper
 
@@ -401,7 +434,9 @@ the previous section:
     >>> from tespy.networks import Network
 
     >>> nwk = Network(iterinfo=False)
-    >>> nwk.units.set_defaults(temperature="degC", pressure="MPa")
+    >>> nwk.units.set_defaults(
+    ...     temperature="degC", pressure="MPa", pressure_difference="MPa"
+    ... )
 
     >>> so = Source("Source")
     >>> tu = Turbine("Turbine")
@@ -430,24 +465,44 @@ the previous section:
 
 Mixture routines in TESPy
 -------------------------
-Different types of mixture routines are implemented in TESPy. You can select,
-which routine should be applied in each separated subnetwork of your system by
-specifying a mixing rule. `ideal-cond` is the default mixing rule. The following
-mixing rules are available at the moment:
-
-- `ideal-cond`: gaseous fluids **with flash calculations for water**.
-- `ideal`: gaseous fluids **without flash calculations**.
-- `incompressible`: mass based mixtures of individual incompressible fluids.
-
-The mixtures are calculated by using the pure fluid properties from the selected
-fluid property engines and combining them through corresponding equations. The
+Mixing rules define how pure-fluid properties are combined into mixture
+properties. You select one per subnetwork via the :code:`mixing_rule` argument.
+:code:`ideal-cond` is the default. The built-in rules are listed in the
+:ref:`Fluid Mixtures <fluid_properties_label>` section above; the underlying
 equations are documented in the
 :py:mod:`fluid_properties.mixtures <tespy.tools.fluid_properties.mixtures>`
 module.
 
-.. note::
+Custom mixing rules
++++++++++++++++++++
+New mixing rules can be registered at runtime through the
+:py:obj:`MIXING_RULES <tespy.tools.fluid_properties.MIXING_RULES>` registry.
+Each property function must accept :code:`(p, T, fluid_data, **kwargs)` and
+return a scalar value in SI units.
 
-    Similarly to the custom fluid property engine, you can implement your own
-    mixture routines. If you are interested in doing so, you can get in contact
-    via the :ref:`user meeting <community_label>` or the GitHub
-    `discussion forum <https://github.com/oemof/tespy/discussions>`__.
+.. code-block:: python
+
+    >>> from tespy.tools.fluid_properties import MIXING_RULES
+
+    >>> def my_h_pT(p, T, fluid_data, **kwargs):
+    ...     h = 0
+    ...     for data in fluid_data.values():
+    ...         h += data["wrapper"].h_pT(p, T) * data["mass_fraction"]
+    ...     return h
+
+    >>> def my_s_pT(p, T, fluid_data, **kwargs):
+    ...     s = 0
+    ...     for data in fluid_data.values():
+    ...         s += data["wrapper"].s_pT(p, T) * data["mass_fraction"]
+    ...     return s
+
+    >>> MIXING_RULES.register(
+    ...     "my-rule",
+    ...     h_pT=my_h_pT,
+    ...     s_pT=my_s_pT,
+    ... )
+
+The :code:`T_ph_inversion` and :code:`T_ps_inversion` keyword arguments
+(both default to :code:`True`) control whether the registered :code:`h_pT`
+and :code:`s_pT` functions are also used as Newton residuals for the
+:code:`T(p, h)` and :code:`T(p, s)` inversions.

@@ -116,7 +116,9 @@ consumption.
     >>> from tespy.connections import Connection, PowerConnection
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> cond = Source("condensate")
     >>> fwp = Pump("feed water pump")
     >>> feedwater = Sink("feedwater")
@@ -159,7 +161,9 @@ intermediate pressure is variable.
     >>> from tespy.networks import Network
     >>> from tespy.tools import UserDefinedEquation
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> so = Source("air source")
     >>> compressor1 = Compressor("compressor 1")
     >>> compressor2 = Compressor("compressor 2")
@@ -213,7 +217,9 @@ instance.
     >>> from tespy.tools import CharLine
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(temperature="degC", pressure="bar")
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
     >>> so = Source("evaporated refrigerant")
     >>> compressor = Compressor("compressor")
     >>> si = Sink("compressed refrigerant")
@@ -238,7 +244,7 @@ method in the model of the motor.
     >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
     >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])
     >>> nw.solve("design")
-    >>> nw.save("design.json")
+    >>> design_state = nw.save(as_dict=True)
     >>> nw.assert_convergence()
 
 After performing the design simulation we can change the fluid mass flow and
@@ -247,10 +253,10 @@ observe the change in efficiency of the motor:
 .. code-block:: python
 
     >>> c1.set_attr(m=0.8)
-    >>> nw.solve("offdesign", design_path="design.json", init_path="design.json")
+    >>> nw.solve("offdesign", design_path=design_state, init_path=design_state)
     >>> nw.assert_convergence()
     >>> round(motor.eta.val, 3)
-    0.966
+    0.965
 
 .. note::
 

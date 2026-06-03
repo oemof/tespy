@@ -36,38 +36,153 @@ class CombustionEngine(CombustionChamber):
     chamber. Thermal input and power output, heat output and heat losses are
     linked with an individual characteristic line for each property.
 
-    **Mandatory Equations**
+    .. image:: /api/_images/components/CombustionEngine.svg
+       :alt: flowsheet of the combustionengine
+       :align: center
+       :class: only-light
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.mass_flow_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.stoichiometry`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.energy_balance_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.tiP_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_char_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Qloss_char_func`
+    .. image:: /api/_images/components/CombustionEngine_darkmode.svg
+       :alt: flowsheet of the combustionengine
+       :align: center
+       :class: only-dark
 
-    - for each cooling loop:
+    Ports
+    -----
 
-      - mass flow: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
-      - fluid: :py:meth:`tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix`
+    - Fluid inlets: in1, in2, in3, in4
+    - Fluid outlets: out1, out2, out3
+    - Power outlets: power
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.lambda_func`
-    - :py:meth:`tespy.components.combustion.base.CombustionChamber.ti_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q1_func`
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.Q2_func`
+    - mass flow balance over all inflows and outflows: :py:meth:`mass_flow_func <tespy.components.combustion.base.CombustionChamber.mass_flow_func>`
+    - pressure equality constraints: :py:meth:`combustion_pressure_structure_matrix <tespy.components.combustion.base.CombustionChamber.combustion_pressure_structure_matrix>`
+    - constraints for stoichiometry of the reaction: :py:meth:`stoichiometry_func <tespy.components.combustion.base.CombustionChamber.stoichiometry_func>`
+    - constraint for energy balance: :py:meth:`energy_balance_func <tespy.components.combustion.engine.CombustionEngine.energy_balance_func>`
+    - equation for thermal input to power generation relation: :py:meth:`tiP_char_func <tespy.components.combustion.engine.CombustionEngine.tiP_char_func>`
+    - equation for thermal input to heating port 1 heat generation relation: :py:meth:`Q1_char_func <tespy.components.combustion.engine.CombustionEngine.Q1_char_func>`
+    - equation for thermal input to heating port 2 heat generation relation: :py:meth:`Q2_char_func <tespy.components.combustion.engine.CombustionEngine.Q2_char_func>`
+    - equation for thermal input to heat dissipation relation: :py:meth:`Qloss_char_func <tespy.components.combustion.engine.CombustionEngine.Qloss_char_func>`
+    - equation for mass flow equality at heating ports: :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
+    - equation for fluid composition equality at heating ports: :py:meth:`variable_equality_structure_matrix <tespy.components.combustion.engine.CombustionEngine.variable_equality_structure_matrix>`
 
-    - for each cooling loop:
+    When a power or heat connector is attached:
 
-      - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-      - :py:meth:`tespy.components.component.Component.zeta_func`
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.combustion.engine.CombustionEngine.energy_connector_balance_func>`
 
-    Available fuels
+    Parameters
+    ----------
 
-    - methane, ethane, propane, butane, hydrogen, carbon monoxide, nDodecane
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    dp1 : float, dict
+        Heating port 1 inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    dp2 : float, dict
+        Heating port 2 inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    eta_mech : float
+        Description missing.
+
+    f_nox : float, dict
+        Mass-based nitric oxide (NO) generation rate in flue gas in mass of
+        created NO per mass of fuel and air input. Only active if value is
+        explicitly set. Quantity: :code:`ratio`.
+
+    label : str
+        The label of the component.
+
+    lamb : float, dict
+        Available oxygen to stoichiometric oxygen ratio. Quantity:
+        :code:`ratio`.
+        Equation: :py:meth:`lambda_func <tespy.components.combustion.base.CombustionChamber.lambda_func>`.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict, :code:`"var"`
+        Mechanical power generated by the engine. Quantity: :code:`power`. Can
+        be set as a system variable by passing :code:`"var"` as its value.
+
+    pr1 : float, dict
+        Heating port 1 outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    pr2 : float, dict
+        Heating port 2 outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q1 : float, dict
+        Heating port 1 heat production. Quantity: :code:`heat`.
+        Equation: :py:meth:`Q1_func <tespy.components.combustion.engine.CombustionEngine.Q1_func>`.
+
+    Q1_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat production of port 1 lookup table.
+
+    Q2 : float, dict
+        Heating port 2 heat production. Quantity: :code:`heat`.
+        Equation: :py:meth:`Q2_func <tespy.components.combustion.engine.CombustionEngine.Q2_func>`.
+
+    Q2_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat production of port 2 lookup table.
+
+    Qloss : float, dict, :code:`"var"`
+        Heat dissipation. Quantity: :code:`heat`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    Qloss_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to heat dissipation lookup table.
+
+    T_v_inner : float
+        Description missing.
+
+    ti : float, dict
+        Thermal input of fuel: lower heating value multiplied with mass flow.
+        Quantity: :code:`heat`.
+        Equation: :py:meth:`ti_func <tespy.components.combustion.base.CombustionChamber.ti_func>`.
+
+    tiP_char : tespy.tools.characteristics.CharLine, dict
+        Thermal input to power lookup table.
+
+    zeta1 : float, dict
+        Deprecated, use :code:`zeta1_d4` instead.
+
+    zeta1_d4 : float, dict
+        Heating port 1 geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    zeta2 : float, dict
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Heating port 2 geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    Notes
+    -----
 
     .. tip::
 
@@ -75,133 +190,34 @@ class CombustionEngine(CombustionChamber):
         the :code:`tespy.tools` module and passing the respective information.
         See in the example of
         :py:class:`tespy.components.combustion.base.CombustionChamber`, how to
-        do that.
+        do that. To retrieve the fluids available by default run:
 
-    Inlets/Outlets
+        .. code-block:: python
 
-    - in1, in2 (cooling water), in3, in4 (air and fuel)
-    - out1, out2 (cooling water), out3 (flue gas)
-
-    Power outlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/CombustionEngine.svg
-       :alt: flowsheet of the combustion engine
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/CombustionEngine_darkmode.svg
-       :alt: flowsheet of the combustion engine
-       :align: center
-       :class: only-dark
+            from tespy.tools.global_vars import COMBUSTION_FLUIDS
+            COMBUSTION_FLUIDS.fluids.keys()
 
     .. note::
 
         The fuel and the air components can be connected to either of the
         inlets.
 
-    Parameters
-    ----------
-    label : str
-        The label of the component.
-
-    design : list
-        List containing design parameters (stated as String).
-
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
-    design_path : str
-        Path to the components design case.
-
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    lamb : float, dict
-        Air to stoichiometric air ratio, :math:`\lambda/1`.
-
-    ti : float, dict
-        Thermal input, (:math:`{LHV \cdot \dot{m}_f}`), :math:`ti/\text{W}`.
-
-    P : float, dict, :code:`"var"`
-        Power output, :math:`P/\text{W}`.
-
-    Q1 : float, dict
-        Heat output 1, :math:`\dot Q/\text{W}`.
-
-    Q2 : float, dict
-        Heat output 2, :math:`\dot Q/\text{W}`.
-
-    Qloss : float, dict, :code:`"var"`
-        Heat loss, :math:`\dot Q_{loss}/\text{W}`.
-
-    pr1 : float, dict, :code:`"var"`
-        Pressure ratio heat outlet 1, :math:`pr/1`.
-
-    pr2 : float, dict, :code:`"var"`
-        Pressure ratio heat outlet 2, :math:`pr/1`.
-
-    zeta1 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient heating loop 1,
-        :math:`\zeta_1/\frac{1}{\text{m}^4}`.
-
-    zeta2 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient heating loop 2,
-        :math:`\zeta_2/\frac{1}{\text{m}^4}`.
-
-    tiP_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking fuel input to power output.
-
-    Q1_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat output 1 to power output.
-
-    Q2_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat output 2 to power output.
-
-    Qloss_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line linking heat loss to power output.
-
-    eta_mech : float
-        Value of internal efficiency of the combustion engine. This value is
-        required to determine the (virtual) thermodynamic temperature of heat
-        inside the combustion engine for the entropy balance calculation.
-        Default value is 0.85.
-
-    Note
-    ----
-    Parameters available through entropy balance are listed in the respective
-    method:
-
-    - :py:meth:`tespy.components.combustion.engine.CombustionEngine.entropy_balance`
-
     Example
     -------
     The combustion chamber calculates energy input due to combustion as well as
     the flue gas composition based on the type of fuel and the amount of
     oxygen supplied. In this example a mixture of methane, hydrogen and
-    carbondioxide is used as fuel. There are two cooling ports, the cooling
+    carbon dioxide is used as fuel. There are two cooling ports, the cooling
     water will flow through them in parallel.
 
     >>> from tespy.components import (Sink, Source, CombustionEngine, Merge,
     ... Splitter)
     >>> from tespy.connections import Connection, Ref
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> amb = Source('ambient')
     >>> sf = Source('fuel')
@@ -230,7 +246,7 @@ class CombustionEngine(CombustionChamber):
     to be split in half.
 
     >>> chp.set_attr(pr1=0.99, P=-10e6, lamb=1.0,
-    ... design=['pr1'], offdesign=['zeta1'])
+    ... design=['pr1'], offdesign=['zeta1_d4'])
     >>> amb_comb.set_attr(p=5, T=30, fluid={'Ar': 0.0129, 'N2': 0.7553,
     ... 'CO2': 0.0004, 'O2': 0.2314})
     >>> sf_comb.set_attr(T=30, fluid={'CH4': 1})
@@ -238,34 +254,36 @@ class CombustionEngine(CombustionChamber):
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
-    >>> nw.save('tmp.json')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(chp.ti.val, 0)
     25300000.0
     >>> round(chp.Q1.val, 0)
     -4980000.0
     >>> chp.set_attr(Q1=-4e6, P=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve(mode=mode, init_path=design_state, design_path=design_state)
     >>> round(chp.ti.val, 0)
     17794554.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.617
     >>> chp.set_attr(P=chp.P.design * 0.75, Q1=None)
     >>> mode = 'offdesign'
-    >>> nw.solve(mode=mode, init_path='tmp.json', design_path='tmp.json')
+    >>> nw.solve(mode=mode, init_path=design_state, design_path=design_state)
     >>> round(chp.ti.val, 0)
     20550000.0
     >>> round(chp.P.val / chp.P.design, 3)
     0.75
-    >>> os.remove('tmp.json')
     """
+
+    _parameter_aliases = {'zeta1': 'zeta1_d4', 'zeta2': 'zeta2_d4'}
 
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
             'P': dc_cp(
-                _val=-1e6, max_val=-1, quantity="power", _potential_var=True,
-                description="mechanical power generated by the engine"
+                _val=-1e6, max_val=-1, quantity="power", _allows_var=True,
+                description="mechanical power generated by the engine",
+                calc=self._calc_P
             ),
             'Q1': dc_cp(
                 max_val=-1,
@@ -273,7 +291,8 @@ class CombustionEngine(CombustionChamber):
                 dependents=self.Q1_dependents,
                 func=self.Q1_func,
                 quantity="heat",
-                description="heating port 1 heat production"
+                description="heating port 1 heat production",
+                calc=self._calc_Q1
             ),
             'Q2': dc_cp(
                 max_val=-1,
@@ -281,53 +300,71 @@ class CombustionEngine(CombustionChamber):
                 dependents=self.Q2_dependents,
                 func=self.Q2_func,
                 quantity="heat",
-                description="heating port 2 heat production"
+                description="heating port 2 heat production",
+                calc=self._calc_Q2
             ),
             'Qloss': dc_cp(
-                _val=-1e5, max_val=-1, quantity="heat", _potential_var=True,
-                description="heat dissipation"
+                _val=-1e5, max_val=-1, quantity="heat", _allows_var=True,
+                description="heat dissipation",
+                calc=self._calc_Qloss
             ),
             'pr1': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
                 quantity="ratio",
-                description="heating port 1 outlet to inlet pressure ratio"
+                description="heating port 1 outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'pr2': dc_cp(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
                 quantity="ratio",
-                description="heating port 2 outlet to inlet pressure ratio"
+                description="heating port 2 outlet to inlet pressure ratio",
+                calc=self._calc_pr, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'dp1': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 0, "outconn": 0, "dp": "dp1"},
                 quantity="pressure_difference",
-                description="heating port 1 inlet to outlet absolute pressure change"
+                description="heating port 1 inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             ),
             'dp2': dc_cp(
                 min_val=0, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={"inconn": 1, "outconn": 1, "dp": "dp2"},
                 quantity="pressure_difference",
-                description="heating port 2 inlet to outlet absolute pressure change"
+                description="heating port 2 inlet to outlet absolute pressure change",
+                calc=self._calc_dp, calc_params={'inconn': 1, 'outconn': 1}
+            ),
+            'zeta1_d4': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta1_d4'},
+                description="heating port 1 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
             ),
             'zeta1': dc_cp(
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta1_d4` instead",
+                calc=self._calc_zeta_d4
+            ),
+            'zeta2_d4': dc_cp(
                 min_val=0, max_val=1e15, num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta1'},
-                description="heating port 1 non-dimensional friction coefficient for pressure loss calculation"
+                dependents=self.zeta_d4_dependents,
+                func=self.zeta_d4_func,
+                func_params={'zeta': 'zeta2_d4', 'inconn': 1, 'outconn': 1},
+                description="heating port 2 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq_sets=1,
-                dependents=self.zeta_dependents,
-                func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1},
-                description="heating port 2 non-dimensional friction coefficient for pressure loss calculation"
+                min_val=0, is_result=True,
+                description="deprecated, use :code:`zeta2_d4` instead",
+                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'tiP_char': dc_cc(
                 description="thermal input to power lookup table"
@@ -341,8 +378,8 @@ class CombustionEngine(CombustionChamber):
             'Qloss_char': dc_cc(
                 description="thermal input to heat dissipation lookup table"
             ),
-            'eta_mech': dc_simple(_val=0.85),
-            'T_v_inner': dc_simple()
+            'eta_mech': dc_simple(_val=0.85, dtype="float"),
+            'T_v_inner': dc_simple(dtype="float")
         })
         return params
 
@@ -597,11 +634,9 @@ class CombustionEngine(CombustionChamber):
             .. math::
 
                 0 = \dot{m}_1 \cdot \left(h_{out,1} +
-                h_{in,1} \right) + \dot{Q}_1
+                h_{in,1} \right) - \dot{Q}_1
         """
-        i = self.inl[0]
-        o = self.outl[0]
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q1.val_SI
+        return  self._calc_Q1() - self.Q1.val_SI
 
     def Q1_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -617,12 +652,10 @@ class CombustionEngine(CombustionChamber):
 
             .. math::
 
-                0 = \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) +
+                0 = \dot{m}_2 \cdot \left(h_{out,2} - h_{in,2} \right) -
                 \dot{Q}_2
         """
-        i = self.inl[1]
-        o = self.outl[1]
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.Q2.val_SI
+        return self._calc_Q2() - self.Q2.val_SI
 
     def Q2_dependents(self):
         return [self.inl[1].m, self.inl[1].h, self.outl[1].h]
@@ -645,7 +678,7 @@ class CombustionEngine(CombustionChamber):
         """
         expr = self._calc_char_expr()
         return (
-            self.calc_ti()
+            self._calc_ti()
             + self.tiP_char.char_func.evaluate(expr) * self.P.val_SI
         )
 
@@ -684,9 +717,8 @@ class CombustionEngine(CombustionChamber):
 
         expr = self._calc_char_expr()
         return (
-            self.calc_ti() * self.Q1_char.char_func.evaluate(expr)
-            - self.tiP_char.char_func.evaluate(expr) * i.m.val_SI
-            * (o.h.val_SI - i.h.val_SI)
+            self._calc_ti() * self.Q1_char.char_func.evaluate(expr)
+            + self.tiP_char.char_func.evaluate(expr) * self._calc_Q1()
         )
 
     def Q1_char_dependents(self):
@@ -726,9 +758,8 @@ class CombustionEngine(CombustionChamber):
 
         expr = self._calc_char_expr()
         return (
-            self.calc_ti() * self.Q2_char.char_func.evaluate(expr)
-            - self.tiP_char.char_func.evaluate(expr) * i.m.val_SI
-            * (o.h.val_SI - i.h.val_SI)
+            self._calc_ti() * self.Q2_char.char_func.evaluate(expr)
+            + self.tiP_char.char_func.evaluate(expr) * self._calc_Q2()
         )
 
     def Q2_char_dependents(self):
@@ -765,7 +796,7 @@ class CombustionEngine(CombustionChamber):
         """
         expr = self._calc_char_expr()
         return (
-            self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
+            self._calc_ti() * self.Qloss_char.char_func.evaluate(expr)
             + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val_SI
         )
 
@@ -778,7 +809,15 @@ class CombustionEngine(CombustionChamber):
             }]
         }
 
-    def calc_P(self):
+    def _calc_Q1(self):
+        i, o = self.inl[0], self.outl[0]
+        return -i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+    def _calc_Q2(self):
+        i, o = self.inl[1], self.outl[1]
+        return -i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+
+    def _calc_P(self):
         r"""
         Calculate the power output of the combustion engine.
 
@@ -794,9 +833,9 @@ class CombustionEngine(CombustionChamber):
 
         """
         expr = self._calc_char_expr()
-        return -self.calc_ti() / self.tiP_char.char_func.evaluate(expr)
+        return -self._calc_ti() / self.tiP_char.char_func.evaluate(expr)
 
-    def calc_Qloss(self):
+    def _calc_Qloss(self):
         r"""
         Calculate the heat loss of the combustion engine.
 
@@ -813,7 +852,7 @@ class CombustionEngine(CombustionChamber):
         """
         expr = self._calc_char_expr()
         return (
-            -self.calc_ti() * self.Qloss_char.char_func.evaluate(expr)
+            -self._calc_ti() * self.Qloss_char.char_func.evaluate(expr)
             / self.tiP_char.char_func.evaluate(expr)
         )
 
@@ -822,161 +861,6 @@ class CombustionEngine(CombustionChamber):
             return 1
         else:
             return self.P.val_SI / self.P.design
-
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        residual : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \begin{cases}
-                LHV \cdot \dot{m}_{f} & \text{key = 'TI'}\\
-                P & \text{key = 'P'}\\
-                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right)
-                -\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
-                \text{key = 'Q'}\\
-                -\dot{m}_1 \cdot \left( h_{1,out} - h_{1,in} \right) &
-                \text{key = 'Q1'}\\
-                -\dot{m}_2 \cdot \left( h_{2,out} - h_{2,in} \right) &
-                \text{key = 'Q2'}\\
-                \dot{Q}_{loss} & \text{key = 'Qloss'}
-                \end{cases}
-        """
-        ######################################################################
-        # value for bus parameter of thermal input (TI)
-        if bus['param'] == 'TI':
-            val = self.calc_ti()
-
-        ######################################################################
-        # value for bus parameter of power output (P)
-        elif bus['param'] == 'P':
-            val = self.calc_P()
-
-        ######################################################################
-        # value for bus parameter of total heat production (Q)
-        elif bus['param'] == 'Q':
-            val = 0
-            for j in range(2):
-                i = self.inl[j]
-                o = self.outl[j]
-                val -= i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-
-        ######################################################################
-        # value for bus parameter of heat production 1 (Q1)
-        elif bus['param'] == 'Q1':
-            i = self.inl[0]
-            o = self.outl[0]
-            val = -i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-
-        ######################################################################
-        # value for bus parameter of heat production 2 (Q2)
-        elif bus['param'] == 'Q2':
-            i = self.inl[1]
-            o = self.outl[1]
-            val = -i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-
-        ######################################################################
-        # value for bus parameter of heat loss (Qloss)
-        elif bus['param'] == 'Qloss':
-            val = self.calc_Qloss()
-
-        ######################################################################
-        # missing/invalid bus parameter
-        else:
-            msg = (
-                f'The parameter {bus["param"]} is not a valid parameter for a '
-                f'component of type {self.__class__.__name__}.'
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-
-        return val
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate the matrix of partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        b = bus.comps.loc[self]
-
-        ######################################################################
-        # derivatives for bus parameter of thermal input (TI)
-        if b['param'] == 'TI':
-            # ti deriv is identical to super ti deriv
-            super().bus_deriv(bus)
-
-        ######################################################################
-        # derivatives for bus parameter of power production (P) or
-        # heat loss (Qloss)
-        elif b['param'] == 'P' or b['param'] == 'Qloss':
-            super().bus_deriv(bus)
-
-            # variable power
-            if self.P.is_var:
-                if self.P.J_col not in bus.jacobian:
-                    bus.jacobian[self.P.J_col] = 0
-                bus.jacobian[self.P.J_col] -= _numeric_deriv(self.P._reference_container, f, bus=bus)
-
-        ######################################################################
-        # derivatives for bus parameter of total heat production (Q)
-        elif b['param'] == 'Q':
-            for i, o in  zip(self.inl[:2], self.outl[:2]):
-                if i.m.is_var:
-                    if i.m.J_col not in bus.jacobian:
-                        bus.jacobian[i.m.J_col] = 0
-                    bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
-                if i.h.is_var:
-                    if i.h.J_col not in bus.jacobian:
-                        bus.jacobian[i.h.J_col] = 0
-                    bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
-
-                if o.h.is_var:
-                    if o.h.J_col not in bus.jacobian:
-                        bus.jacobian[o.h.J_col] = 0
-                    bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
-
-        ######################################################################
-        # derivatives for bus parameter of heat production 1 and 2 (Q1, Q2)
-        elif b['param'] in ['Q1', 'Q2']:
-            i = self.inl[int(b["param"][-1]) - 1]
-            o = self.outl[int(b["param"][-1]) - 1]
-
-            if i.m.is_var:
-                if i.m.J_col not in bus.jacobian:
-                    bus.jacobian[i.m.J_col] = 0
-                bus.jacobian[i.m.J_col] -= _numeric_deriv(i.m._reference_container, f, bus=bus)
-            if i.h.is_var:
-                if i.h.J_col not in bus.jacobian:
-                    bus.jacobian[i.h.J_col] = 0
-                bus.jacobian[i.h.J_col] -= _numeric_deriv(i.h._reference_container, f, bus=bus)
-
-            if o.h.is_var:
-                if o.h.J_col not in bus.jacobian:
-                    bus.jacobian[o.h.J_col] = 0
-                bus.jacobian[o.h.J_col] -= _numeric_deriv(o.h._reference_container, f, bus=bus)
 
     @staticmethod
     def initialise_source(c, key):
@@ -1038,25 +922,6 @@ class CombustionEngine(CombustionChamber):
         elif key == 'h':
             return 5e5
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        # Q, pr and zeta
-        for i in range(2):
-            self.get_attr(f'Q{i + 1}').val_SI = -self.inl[i].m.val_SI * (
-                self.outl[i].h.val_SI - self.inl[i].h.val_SI
-            )
-            self.get_attr(f'dp{i + 1}').val_SI = (
-                self.inl[i].p.val_SI - self.outl[i].p.val_SI
-            )
-            self.get_attr(f'zeta{i + 1}').val_SI = self.calc_zeta(
-                self.inl[i], self.outl[i]
-            )
-
-        self.P.val_SI = self.calc_P()
-        self.Qloss.val_SI = self.calc_Qloss()
-
-        super().calc_parameters()
-
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""
         _no_limit_violations = super().check_parameter_bounds()
@@ -1085,7 +950,7 @@ class CombustionEngine(CombustionChamber):
 
           .. math::
 
-              P_\mathrm{irr,inner}=\left(1 - \frac{1}{\eta_\mathrm{mech}}
+              P_\text{irr,inner}=\left(1 - \frac{1}{\eta_\text{mech}}
               \right) \cdot P
 
         The default values are:
@@ -1122,7 +987,7 @@ class CombustionEngine(CombustionChamber):
         reaction, we need to define the same reference state for the entropy
         balance of the combustion. The temperature for the reference state is
         set to 25 °C and reference pressure is 1 bar. As the water in the flue
-        gas may be liquid but the thermodynmic temperature of heat of
+        gas may be liquid but the thermodynamic temperature of heat of
         combustion refers to the lower heating value, the water is forced to
         gas at the reference point by considering evaporation.
 
@@ -1132,26 +997,26 @@ class CombustionEngine(CombustionChamber):
         .. math::
 
             \begin{split}
-            T_\mathrm{m,comb}= & \frac{\dot{m}_\mathrm{fuel} \cdot LHV}
-            {\dot{S}_\mathrm{comb}}\\
-            \dot{S}_\mathrm{comb} =&\dot{S}_\mathrm{Q,comb}-\left(
-            \dot{S}_\mathrm{Q,11} + \dot{S}_\mathrm{Q,21} +
-            \dot{S}_\mathrm{Q,loss} +\dot{S}_\mathrm{irr,i}\right)\\
-            \dot{S}_\mathrm{Q,comb}= & \dot{m}_\mathrm{fluegas} \cdot
-            \left(s_\mathrm{fluegas}-s_\mathrm{fluegas,ref}\right)\\
-            & - \sum_{i=3}^4 \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
-            \dot{S}_\mathrm{Q,11}= & \frac{\dot{Q}_1}{T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{Q,21}= & \frac{\dot{Q}_2}{T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{Q,loss}= & \frac{\dot{Q}_\mathrm{loss}}
-            {T_\mathrm{v,inner}}\\
-            \dot{S}_\mathrm{irr,i}= & \frac{\left(1 -
-            \frac{1}{\eta_\mathrm{mech}}\right) \cdot P}{T_\mathrm{v,inner}}\\
-            T_\mathrm{Q,12} = &\frac{-\dot{Q}_1}{\dot{m}_1 \cdot \left(
-            s_\mathrm{out,1} - s_\mathrm{in,1}\right)}\\
-            T_\mathrm{Q,22} = &\frac{-\dot{Q}_2}{\dot{m}_2 \cdot \left(
-            s_\mathrm{out,2} - s_\mathrm{in,2}\right)}\\
-            \dot{S}_\mathrm{irr} = &\sum \dot{S}_\mathrm{irr}\\
+            T_\text{m,comb}= & \frac{\dot{m}_\text{fuel} \cdot LHV}
+            {\dot{S}_\text{comb}}\\
+            \dot{S}_\text{comb} =&\dot{S}_\text{Q,comb}-\left(
+            \dot{S}_\text{Q,11} + \dot{S}_\text{Q,21} +
+            \dot{S}_\text{Q,loss} +\dot{S}_\text{irr,i}\right)\\
+            \dot{S}_\text{Q,comb}= & \dot{m}_\text{fluegas} \cdot
+            \left(s_\text{fluegas}-s_\text{fluegas,ref}\right)\\
+            & - \sum_{i=3}^4 \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
+            \dot{S}_\text{Q,11}= & \frac{\dot{Q}_1}{T_\text{v,inner}}\\
+            \dot{S}_\text{Q,21}= & \frac{\dot{Q}_2}{T_\text{v,inner}}\\
+            \dot{S}_\text{Q,loss}= & \frac{\dot{Q}_\text{loss}}
+            {T_\text{v,inner}}\\
+            \dot{S}_\text{irr,i}= & \frac{\left(1 -
+            \frac{1}{\eta_\text{mech}}\right) \cdot P}{T_\text{v,inner}}\\
+            T_\text{Q,12} = &\frac{-\dot{Q}_1}{\dot{m}_1 \cdot \left(
+            s_\text{out,1} - s_\text{in,1}\right)}\\
+            T_\text{Q,22} = &\frac{-\dot{Q}_2}{\dot{m}_2 \cdot \left(
+            s_\text{out,2} - s_\text{in,2}\right)}\\
+            \dot{S}_\text{irr} = &\sum \dot{S}_\text{irr}\\
             \end{split}\\
         """
         T_ref = 298.15
@@ -1219,25 +1084,9 @@ class CombustionEngine(CombustionChamber):
         )
 
         # thermodynamic temperature of heat input
-        self.T_mcomb = self.calc_ti() / self.S_comb
+        self.T_mcomb = self._calc_ti() / self.S_comb
         # total irreversibilty production
         self.S_irr = (
             self.S_irr_i + self.S_irr2 + self.S_irr1
             + self.S_Q1irr + self.S_Q2irr
         )
-
-    def exergy_balance(self, T0):
-
-        self.E_P = (
-            self.outl[2].Ex_physical - (self.inl[3].Ex_physical + self.inl[2].Ex_physical)
-            - self.P.val_SI + (self.outl[1] - self.inl[1]) + (self.outl[0] - self.inl[0])
-        )
-        self.E_F = (
-            self.inl[3].Ex_chemical + self.inl[2].Ex_chemical
-            - self.outl[2].Ex_chemical
-        )
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": -self.P.val_SI
-        }

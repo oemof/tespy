@@ -16,13 +16,15 @@ from tespy.components import Compressor
 from tespy.components import CycleCloser
 from tespy.components import Drum
 from tespy.components import HeatExchanger
+from tespy.components import PowerBus
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
@@ -33,7 +35,8 @@ class TestHeatPump:
     def setup_method(self):
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
 
         # sources & sinks
@@ -60,15 +63,6 @@ class TestHeatPump:
         cp1 = Compressor('compressor 1')
         cp2 = Compressor('compressor 2')
         he = HeatExchanger('intercooler')
-
-        # busses
-        self.power = Bus('total compressor power')
-        self.power.add_comps(
-            {'comp': cp1, 'base': 'bus'},
-            {'comp': cp2, 'base': 'bus'})
-        self.heat = Bus('total delivered heat')
-        self.heat.add_comps({'comp': cd, 'char': -1})
-        self.nw.add_busses(self.power, self.heat)
 
         # consumer system
         c_in_cd = Connection(cc_refrigerant, 'out1', cd, 'in1')
@@ -115,6 +109,16 @@ class TestHeatPump:
 
         self.nw.add_conns(cp1_he, he_cp2, ic_in_he, he_ic_out, cp2_c_out)
 
+        # power network
+        grid = PowerSource('grid')
+        distribution = PowerBus('power distribution', num_in=1, num_out=2)
+
+        self.e_grid = PowerConnection(grid, 'power', distribution, 'power_in1')
+        e_cp1 = PowerConnection(distribution, 'power_out1', cp1, 'power')
+        e_cp2 = PowerConnection(distribution, 'power_out2', cp2, 'power')
+
+        self.nw.add_conns(self.e_grid, e_cp1, e_cp2)
+
         # condenser system
         x = np.array([
             0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5,
@@ -139,7 +143,7 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.array([
             0.0100, 0.0400, 0.0700, 0.1100, 0.1500, 0.2000, 0.2500, 0.3000,
@@ -152,28 +156,28 @@ class TestHeatPump:
             0.7942, 0.9400, 0.9883, 0.9913, 0.9936, 0.9953, 0.9966, 0.9975,
             0.9983, 0.9988, 0.9992, 0.9996, 0.9998, 1.0000, 1.0008, 1.0014
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         ev.set_attr(
-            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['kA_char'],
-            kA_char1=kA_char1, kA_char2=kA_char2
+            pr1=1, pr2=.999, ttd_l=5, design=['ttd_l'], offdesign=['UA_char'],
+            UA_char1=UA_char1, UA_char2=UA_char2
         )
 
-        # no kA modification for hot side!
+        # no UA modification for hot side!
         x = np.array([0, 1])
         y = np.array([1, 1])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
-        # characteristic line for superheater kA
+        # characteristic line for superheater UA
         x = np.array([
             0, 0.045, 0.136, 0.244, 0.43, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2
         ])
         y = np.array([
             0, 0.037, 0.112, 0.207, 0.5, 0.8, 0.85, 0.9, 0.95, 1, 1.04, 1.07
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
         su.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1', 'zeta2', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2,
+            offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
         )
 
         x = np.array([
@@ -204,7 +208,7 @@ class TestHeatPump:
             eta_s_char={'char_func': CharLine(x, y), 'param': 'm'}
         )
 
-        # characteristic line for intercooler kA
+        # characteristic line for intercooler UA
         x = np.linspace(0, 2.5, 26)
         y = np.array([
             0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
@@ -212,7 +216,7 @@ class TestHeatPump:
             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
             1.7058, 1.7488
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
         y = np.array([
@@ -220,14 +224,14 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         he.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            offdesign=['zeta1', 'zeta2', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2,
+            offdesign=['zeta1_d4', 'zeta2_d4', 'UA_char']
         )
 
-        # characteristic line for condenser kA
+        # characteristic line for condenser UA
         x = np.linspace(0, 2.5, 26)
         y = np.array([
             0.0000, 0.2455, 0.3747, 0.4798, 0.5718, 0.6552, 0.7323, 0.8045,
@@ -235,7 +239,7 @@ class TestHeatPump:
             1.3320, 1.3822, 1.4313, 1.4792, 1.5263, 1.5724, 1.6176, 1.6621,
             1.7058, 1.7488
         ])
-        kA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char1 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         x = np.linspace(0, 2.5, 26)
         y = np.array([
@@ -243,11 +247,11 @@ class TestHeatPump:
             0.921, 1.000, 1.078, 1.154, 1.228, 1.302, 1.374, 1.446, 1.516,
             1.585, 1.654, 1.722, 1.789, 1.855, 1.921, 1.986, 2.051
         ])
-        kA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
+        UA_char2 = {'char_func': CharLine(x, y), 'param': 'm'}
 
         cd.set_attr(
-            kA_char1=kA_char1, kA_char2=kA_char2, pr2=0.9998,
-            design=['pr2'], offdesign=['zeta2', 'kA_char']
+            UA_char1=UA_char1, UA_char2=UA_char2, pr2=0.9998,
+            design=['pr2'], offdesign=['zeta2_d4', 'UA_char']
         )
 
         # condenser system
@@ -272,16 +276,15 @@ class TestHeatPump:
         ic_in_he.set_attr(p=1, T=20, m=5, fluid={'water': 1})
         he_ic_out.set_attr(p=Ref(ic_in_he, 1, -0.002), design=['p'])
 
-    def test_model(self, tmp_path):
+    def test_model(self):
         """
         Test the operating points of the heat pump against a different model.
 
         By now, not all characteristic functions of the original model are
         available in detail, thus perfect matching is not possible!
         """
-        tmp_path = f'{tmp_path}.json'
         self.nw.solve('design')
-        self.nw.save(tmp_path)
+        design_state = self.nw.save(as_dict=True)
         self.nw.print_results()
         self.nw.assert_convergence()
 
@@ -308,19 +311,20 @@ class TestHeatPump:
                 self.amb_in_su.set_attr(m=m)
                 if j == 0:
                     self.nw.solve(
-                        'offdesign', design_path=tmp_path, init_path=tmp_path
+                        'offdesign', design_path=design_state, init_path=design_state
                     )
 
                 else:
-                    self.nw.solve('offdesign', design_path=tmp_path)
+                    self.nw.solve('offdesign', design_path=design_state)
 
                 self.nw.assert_convergence()
                 # relative deviation should not exceed 6.5 %
                 # this should be much less, unfortunately not all ebsilon
                 # characteristics are available, thus it is
                 # difficult/impossible to match the models perfectly!
+                cd = self.nw.get_comp('condenser')
                 d_rel_COP = abs(
-                    self.heat.P.val / self.power.P.val - cop_array[i, j]
+                    (-cd.Q.val) / self.e_grid.E.val - cop_array[i, j]
                 ) / cop_array[i, j]
                 msg = (
                     'The deviation in COP should be less than 0.07, is '

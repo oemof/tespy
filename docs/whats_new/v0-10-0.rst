@@ -1,0 +1,216 @@
+v0.10.0 - Rankine's Renaissance (May, 23, 2026)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+API Changes
+###########
+- Passing per-quantity unit keyword arguments to
+  :py:meth:`~tespy.networks.network.Network.set_attr` (e.g.
+  :code:`T_unit`, :code:`p_unit`, :code:`h_unit`, ...) now raises a
+  :code:`TypeError`. Use
+  :py:meth:`~tespy.tools.units.Units.set_defaults` instead, e.g.
+  :code:`nw.units.set_defaults(temperature='degC', pressure='bar')`.
+  The shorthand :code:`"C"` for Celsius is no longer accepted; use
+  :code:`"degC"` or :code:`"°C"` instead
+  (`PR #968 <https://github.com/oemof/tespy/pull/968>`__).
+- The :code:`power_connector_location` attribute of :code:`SimpleHeatExchanger`
+  is deprecated and no longer required. Use :code:`HeatConnection` together
+  with the new :code:`HeatSource` and :code:`HeatSink` components instead -
+  the inlet or outlet side is detected automatically from the connection
+  (`PR #961 <https://github.com/oemof/tespy/pull/961>`__).
+- Several component parameters have been renamed for clarity
+  (`PR #989 <https://github.com/oemof/tespy/pull/989>`__). Old names remain
+  available as deprecated aliases: :code:`zeta` → :code:`zeta_d4`
+  (:code:`zeta1`/:code:`zeta2` → :code:`zeta1_d4`/:code:`zeta2_d4`),
+  :code:`kA` → :code:`UA` (:code:`kA_char` → :code:`UA_char`,
+  :code:`kA_group` → :code:`UA_group`, :code:`kA_char_group` →
+  :code:`UA_char_group`; :code:`kA_char1`/:code:`kA_char2` →
+  :code:`UA_char1`/:code:`UA_char2` for two-sided exchangers), and
+  :code:`td_log` → :code:`lmtd` (logarithmic mean temperature difference).
+- The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
+  with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
+  (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- The :code:`rpm` parameter of
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  is deprecated in favour of :code:`frequency`, which integrates with TESPy's
+  unit framework (e.g. set :code:`"1/min"` as the network frequency unit).
+  The :code:`rpm_displacement` and :code:`rpm_poly` keys in
+  :code:`reference_state` are deprecated in favour of
+  :code:`frequency_displacement` (Hz) and :code:`frequency_poly` (Hz). The
+  :code:`displacement` key (m³/h) paired with :code:`frequency_displacement`
+  remains supported, or :code:`swept_volume` (m³ per revolution) can be
+  provided directly. A helper function
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.swept_volume_from_displacement`
+  is available to convert manufacturer displacement data to swept volume
+  (`PR #826 <https://github.com/oemof/tespy/pull/826>`__).
+- Several previously deprecated features have been removed: the
+  :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
+  parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,
+  the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
+  :code:`fluid_property_data` from :code:`global_vars`
+  (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
+- Setting a :code:`Ref` on a :py:class:`~tespy.connections.connection.Connection`
+  parameter now automatically unsets any previously specified numerical value
+  for that parameter, and setting a numerical value automatically unsets any
+  previously set :code:`Ref`. Both could be set simultaneously before, which
+  raised a :code:`FutureWarning`.
+- The :code:`char_map_pr` and :code:`char_map_eta_s` parameters of
+  :py:class:`~tespy.components.turbomachinery.compressor.Compressor` are
+  deprecated. Use
+  :py:class:`~tespy.components.turbomachinery.turbocompressor.TurboCompressor`
+  instead, which is the dedicated class providing characteristic map offdesign
+  capability.
+- The pygmo compatibility interface of
+  :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
+  The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,
+  :code:`run` and :code:`_process_generation_data` methods are no longer
+  available. Use pymoo-based workflows instead (install via
+  :code:`pip install tespy[opt]`).
+- The built-in :code:`ExergyAnalysis` class has been removed and its
+  functionality moved to the external library
+  `exerpy <https://github.com/oemof/exerpy>`__. Use
+  :py:meth:`tespy.models.template.ModelTemplate.run_exergy_analysis` or call
+  :code:`ExergyAnalysis.from_tespy(nw, Tamb, pamb)` directly from exerpy
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+
+New Features
+############
+- A new :code:`f_nox` parameter has been added to
+  :py:class:`~tespy.components.combustion.base.CombustionChamber` and derived
+  combustion components. Setting it enables nitric oxide (NO) formation
+  modelling: the value represents the mass-based NO generation rate (mass of NO
+  created per unit mass of total fuel and air input). Requires
+  `pyromat <https://github.com/chmarti1/PYroMat>`__ being installed as fluid
+  property backend
+  (`PR #904 <https://github.com/oemof/tespy/pull/904>`__).
+
+Other Changes
+#############
+- Internal Newton solver improvements
+  (`PR #987 <https://github.com/oemof/tespy/pull/987>`__):
+
+  - The CPU Jacobian solve now uses row- and column-scaled
+    :code:`numpy.linalg.solve` instead of explicit matrix inversion via
+    :code:`numpy.linalg.inv`, improving numerical stability and performance.
+  - The dense incidence matrix is now built once before the Newton loop instead
+    of being rebuilt on every iteration.
+  - Jacobian singularity diagnosis has been extracted into a dedicated
+    :code:`_diagnose_singularity` method, separated from the matrix solve in
+    :code:`_invert_jacobian`.
+  - Structural singularity detection now uses :code:`numpy.linalg.matrix_rank`
+    instead of :code:`numpy.linalg.det`, which is numerically stable for
+    arbitrarily sized matrices.
+  - :py:class:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper` now
+    caches the last :code:`AS.update` call and skips redundant updates when
+    the same input pair and values are requested consecutively.
+  - :py:meth:`~tespy.connections.connection.Connection.get_fluid_data` now
+    caches and reuses the fluid data dict across calls, only rebuilding it
+    when the fluid set changes (e.g. in combustion components).
+  - :py:meth:`~tespy.connections.connection.Connection.calc_results` now skips
+    the unit conversion for parameters that have not been fixed by the user,
+    avoiding redundant pint conversions during postprocessing.
+  - :py:class:`~tespy.components.heat_exchangers.base.HeatExchanger` now
+    caches temperature values computed in :code:`_get_T_at_steps` by
+    :code:`(p, h)` key, so that unperturbed sides of the heat exchanger are
+    not recomputed during finite-difference Jacobian evaluation. The cache is
+    cleared at the start of each solve via :code:`_preprocess`.
+
+- Support for Python 3.10 has been dropped.
+
+- Installation instructions now recommend
+  `uv <https://docs.astral.sh/uv/>`__ as the primary package manager
+  (`PR #967 <https://github.com/oemof/tespy/pull/967>`__).
+- Companion :code:`print_*` methods have been added for all debugging
+  inspection methods on :py:class:`~tespy.networks.network.Network`:
+  :py:meth:`~tespy.networks.network.Network.print_variables_before_presolve`,
+  :py:meth:`~tespy.networks.network.Network.print_presolved_variables`,
+  :py:meth:`~tespy.networks.network.Network.print_variables`,
+  :py:meth:`~tespy.networks.network.Network.print_presolved_equations`,
+  :py:meth:`~tespy.networks.network.Network.print_equations`,
+  :py:meth:`~tespy.networks.network.Network.print_equations_with_dependents`,
+  and :py:meth:`~tespy.networks.network.Network.print_incidence_matrix`.
+  Error messages that reference variables or equations now use the same
+  human-readable formatting as these print methods
+  (`PR #969 <https://github.com/oemof/tespy/pull/969>`__).
+- :py:meth:`~tespy.networks.network.Network.get_ude` has been added,
+  analogous to :py:meth:`~tespy.networks.network.Network.get_comp` and
+  :py:meth:`~tespy.networks.network.Network.get_conn`, to retrieve a
+  :code:`UserDefinedEquation` by label. Not found labels currently return
+  :code:`None`, they will raise a :code:`KeyError` in a future version
+  (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
+- :py:meth:`~tespy.networks.network.Network.save` now accepts an
+  :code:`as_dict=True` flag to return the network state as a plain
+  :code:`dict`, which can be passed directly as :code:`design_path` or
+  :code:`init_path` in a subsequent :meth:`~tespy.networks.network.Network.solve`
+  call without writing to disk. Passing :code:`None` without :code:`as_dict=True`
+  still works but is deprecated
+  (`PR #962 <https://github.com/oemof/tespy/pull/962>`__).
+- Mixing rules are now registered via a :code:`MixingRuleRegistry`, making it
+  possible to add custom mixing rules at runtime
+  (`PR #960 <https://github.com/oemof/tespy/pull/960>`__).
+- You can now pass a :code:`postproc_func` argument to
+  :py:meth:`~tespy.models.template.ModelTemplate.sensitivity_analysis`, which
+  accepts any callable :code:`postproc_func(model) -> dict | None` to be
+  executed after each solve step
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+- The automatic y-axis limits of
+  :py:meth:`~tespy.models.template.ModelTemplate.plot_Ts_diagram_matplotlib`
+  and
+  :py:meth:`~tespy.models.template.ModelTemplate.plot_logph_diagram_matplotlib`
+  now extend to at least the fluid's critical temperature or critical pressure
+  respectively, so the two-phase dome is always fully visible when no explicit
+  :code:`ylim` is passed
+  (`PR #963 <https://github.com/oemof/tespy/pull/963>`__).
+- Change outlet 1 description to saturated gas constraint for DropletSeparator
+  (`PR #977 <https://github.com/oemof/tespy/pull/977>`__).
+- Component parameters can now have a :code:`calc` method, which is
+  automatically executed in postprocessing to assign the respective SI value to
+  the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
+- Fix logging message in connection preprocessing
+  (`PR #988 <https://github.com/oemof/tespy/pull/988>`__).
+- :py:func:`~tespy.tools.schema.generate_component_schema` and
+  :py:func:`~tespy.tools.schema.generate_connection_schema` export a JSON
+  description of all registered component and connection parameters - including
+  container type, physical quantity and description - for use in external
+  tooling (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+- A docstring updater script has been added at
+  :code:`docs/scripts/docstring_updater.py`. It regenerates the Ports,
+  Mandatory Equations, and Parameters sections of all registered component and
+  connection class docstrings from live introspection of
+  :py:meth:`port_schema`, :py:meth:`get_mandatory_constraints`, and
+  :py:meth:`get_parameters`, while preserving the introductory paragraph,
+  :code:`Notes` sections, and :code:`Example` blocks verbatim
+  (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+
+- The isentropic calculation in compressor, pump, turbine and displacement
+  machine components is now guarded against fluid property backend errors in
+  the same way fluid property boundaries already are
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
+- Component parameters whose Jacobian depends on multiple equations can now
+  declare their scalar and vector dependents as separate keys
+  (:code:`{"scalars": [...], "vectors": [...]}`) in addition to the flat list
+  form. The derivative dispatcher in
+  :py:meth:`~tespy.components.component.Component._assign_dependents_and_eq_mapping`
+  routes each form correctly, enabling selective finite-difference increments
+  for grouped parameters with mixed scalar/vector dependencies
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
+
+Bug Fixes
+#########
+- :py:meth:`~tespy.networks.network.Network.export` and
+  :py:meth:`~tespy.networks.network.Network.save` now create the target
+  directory if it does not exist yet
+  (`PR #965 <https://github.com/oemof/tespy/pull/965>`__).
+- :py:meth:`~tespy.networks.network.Network.save_csv` no longer writes
+  :code:`Component` CSV files inside the :code:`Connection` subdirectory
+  when both are exported together
+  (`PR #966 <https://github.com/oemof/tespy/pull/966>`__).
+- :py:meth:`~tespy.connections.connection.Connection._adjust_to_two_phase` was
+  not working correctly with :code:`td_dew` or :code:`td_bubble` equal to zero
+  (`PR #971 <https://github.com/oemof/tespy/pull/971>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@HaSchneider <https://github.com/HaSchneider>`__
+- `@ronitd07 <https://github.com/ronitd07>`__
+- `@Flefays <https://github.com/Flefays>`__

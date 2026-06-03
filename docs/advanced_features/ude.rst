@@ -42,7 +42,8 @@ create an instance with the respective data. First, we set up the TESPy model.
 
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(
-    ...     pressure='bar', temperature='degC', enthalpy='kJ/kg'
+    ...     pressure='bar', pressure_difference='bar', temperature='degC',
+    ...     enthalpy='kJ/kg'
     ... )
 
     >>> so1 = Source('source 1')
@@ -165,6 +166,13 @@ And a couple of optional arguments:
     >>> nw.add_ude(ude)
     >>> nw.solve('design')
     >>> round(c2.m.val_SI ** 2, 2) == round(c1.m.val_SI, 2)
+    True
+
+A registered equation can be retrieved by its label at any time:
+
+.. code-block:: python
+
+    >>> nw.get_ude('my ude') is ude
     True
 
 Activating and deactivating
@@ -406,7 +414,9 @@ a condenser, a valve and a cycle closer.
     >>> from tespy.tools.fluid_properties.functions import T_dew_p
 
     >>> nw = Network(iterinfo=False)
-    >>> nw.units.set_defaults(pressure='bar', temperature='degC')
+    >>> nw.units.set_defaults(
+    ...     pressure='bar', pressure_difference='bar', temperature='degC'
+    ... )
 
     >>> evaporator = SimpleHeatExchanger('evaporator')
     >>> superheater = SimpleHeatExchanger('superheater')

@@ -116,7 +116,7 @@ solution can be found. We might run in some error, like
         setting enthalpy instead or provide accurate starting value for
         pressure.
 
-        -> given logarithmic temperature differences or kA-values for heat
+        -> given logarithmic temperature differences or UA-values for heat
         exchangers,
 
         -> support better starting values.

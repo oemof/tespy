@@ -49,12 +49,20 @@ Key Features
 Quick installation
 ==================
 
-If you have a working Python3 environment, use pypi to install the latest
-tespy version.
+The recommended way to install TESPy is with
+`uv <https://docs.astral.sh/uv/>`_:
+
+.. code:: bash
+
+    uv add tespy
+
+Alternatively, use pip or conda:
 
 .. code:: bash
 
     pip install tespy
+    # or
+    conda install -c conda-forge tespy
 
 We provide more detailed
 :ref:`installation instructions <installation_and_setup_label>`, too.

@@ -23,8 +23,8 @@ from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.connections import Bus
 from tespy.connections import Connection
+from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.connections.connection import ConnectionBase
@@ -45,8 +45,8 @@ class TestConnections:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar",
-            # TODO: replace C with degC in next major version
-            "temperature": "C",
+            "pressure_difference": "bar",
+            "temperature": "°C",
             "volumetric_flow": "l/s",
             "mass_flow": "t/h"
         })
@@ -162,13 +162,36 @@ class TestConnections:
         )
         assert m_is == m_expected, msg
 
+    def test_ref_and_numerical_value_are_mutually_exclusive(self):
+        """Setting a Ref clears any numerical value and vice versa."""
+        c1, c2 = self.nw.get_conn(
+            ['Some example label', 'source 2:out1_sink 2:in1']
+        )
+        # numerical value → Ref: numerical value must be unset
+        c2.set_attr(m=0.5)
+        c2.set_attr(m=Ref(c1, 1, 0))
+        assert not c2.m.is_set
+        assert c2.m_ref.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val_SI, 4) == round(c1.m.val_SI, 4)
+
+        # Ref → numerical value: Ref must be unset
+        c2.set_attr(m=0.3)
+        assert not c2.m_ref.is_set
+        assert c2.m.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val, 4) == round(0.3, 4)
+
 
 @fixture
 def simple_test_network():
     nw = Network()
     nw.units.set_defaults(
         temperature="degC",
-        pressure="bar"
+        pressure="bar",
+        pressure_difference="bar"
     )
 
     so = Source("source")
@@ -181,6 +204,44 @@ def simple_test_network():
 
     nw.add_conns(c1, c2)
     return nw
+
+
+def test_td_dew_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
+
+
+def test_td_bubble_convergence_helper(simple_test_network):
+    """The old convergence helper for td_dew led to temporarily oscillating
+    residuals"""
+    nw = simple_test_network
+
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    heatexchanger = nw.get_comp("heatexchanger")
+
+    c1.set_attr(m=1, p=10, fluid={"water": 1})
+    c2.set_attr(td_bubble=0)
+
+    # settings to prevent preprocessing of temperatures
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+    assert nw.iter < 10
 
 
 @mark.skipif(
@@ -197,7 +258,7 @@ def test_td_bubble_and_td_dew_in_iterations(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
 
@@ -230,7 +291,7 @@ def test_td_bubble_larger_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -247,7 +308,7 @@ def test_td_bubble_equals_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -504,7 +565,7 @@ ALL_CONNECTION_CLASSES = [
     obj for _, obj in inspect.getmembers(sys.modules["tespy.connections"])
     # exclude the Subsystem component as it is just a wrapper
     if inspect.isclass(obj)
-    and obj not in {ConnectionBase, Bus, Ref}
+    and obj not in {ConnectionBase, Ref}
 ]
 
 @mark.parametrize("obj", ALL_CONNECTION_CLASSES)
@@ -521,6 +582,10 @@ def make_connection(cls):
         return cls(Source(""), "out1", Sink(""), "in1")
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")
+    elif cls == HeatConnection:
+        from tespy.components import HeatSink
+        from tespy.components import HeatSource
+        return cls(HeatSource(""), "heat", HeatSink(""), "heat")
     else:
         raise NotImplementedError(
             f"The connection class {cls} is not implemented in testing"

@@ -442,7 +442,7 @@ The changes we want to apply can be summarized as follows:
 
 - All heat exchangers should be calculated based on their heat transfer
   coefficient with a characteristic for correction of that value depending
-  on the change of mass flow (:code:`kA_char` and :code:`UA_cecchinato` for the
+  on the change of mass flow (:code:`UA_char` and :code:`UA_cecchinato` for the
   condenser). Therefore, pinch temperature difference and terminal temperature
   difference value specifications need to be design parameters. Also, the
   temperature at connection 14 cannot be specified anymore, since it will be a
@@ -451,8 +451,8 @@ The changes we want to apply can be summarized as follows:
   isentropic efficiency instead of a constant value (:code:`eta_s_char`).
 - Pressure drops in components will be a result of the changing mass flow
   through that component given the diameter in the design. The pressure ratio
-  will therefore be replaced by :code:`zeta` for all heat exchangers. The zeta
-  value is a geometry independent value.
+  will therefore be replaced by :code:`zeta_d4` for all heat exchangers. The
+  zeta_d4 value is a geometry independent value (:math:`\zeta/D^4`).
 
 On top of that, for the evaporator the characteristic function of the heat
 transfer coefficient should follow different data than the default

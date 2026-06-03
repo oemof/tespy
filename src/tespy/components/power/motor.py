@@ -10,83 +10,74 @@ available from its original location tespy/components/power/motor.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.components.energy._converter import _EnergyConverter
 
 
 @component_registry
-class Motor(Component):
+class Motor(_EnergyConverter):
     r"""
     A motor converts electrical energy into mechanical energy.
 
-    **Mandatory Equations**
-
-    - None
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.power.motor.Motor.eta_func`
-    - :py:meth:`tespy.components.power.motor.Motor.delta_power_func`
-    - :py:meth:`tespy.components.power.motor.Motor.eta_char_func`
-
-    Inlets/Outlets
-
-    - None
-
-    Optional inlets/outlets
-
-    - power_in
-    - power_out
-
-    Image
-
-    .. image:: /api/_images/Motor.svg
+    .. image:: /api/_images/components/Motor.svg
        :alt: flowsheet of the motor
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Motor_darkmode.svg
+    .. image:: /api/_images/components/Motor_darkmode.svg
        :alt: flowsheet of the motor
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Power inlets: power_in
+    - Power outlets: power_out
+
+    Mandatory Equations
+    -------------------
+
+    None
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    delta_power : float, dict
+        Inlet to outlet power difference. Quantity: :code:`power`.
+        Equation: :py:meth:`delta_power_func <tespy.components.energy._converter._EnergyConverter.delta_power_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
     eta : float, dict
-        Outlet to inlet efficiency, :math:`\eta/1`
-
-    delta_power : float, dict
-        Fixed power offset, :math:`\text{delta_power}/\text{W}`
+        Efficiency. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eta_func <tespy.components.energy._converter._EnergyConverter.eta_func>`.
 
     eta_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for efficiency to power as function of design
-        efficiency.
+        Efficiency lookup table for offdesign.
+        Equation: :py:meth:`eta_char_func <tespy.components.energy._converter._EnergyConverter.eta_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -96,10 +87,10 @@ class Motor(Component):
     >>> from tespy.components import Sink, Source, Compressor, Motor, PowerSource
     >>> from tespy.connections import Connection, PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -162,127 +153,13 @@ class Motor(Component):
     >>> round(motor.eta.val, 3)
     0.95
     """
-
-    def powerinlets(self):
-        return ["power_in"]
-
-    def poweroutlets(self):
-        return ["power_out"]
-
-    @staticmethod
-    def get_mandatory_constraints():
-        return {}
-
-    def get_parameters(self):
+    @classmethod
+    def port_schema(cls):
         return {
-            "eta": dc_cp(**{
-                "structure_matrix": self.eta_structure_matrix,
-                "func": self.eta_func,
-                "dependents": self.eta_dependents,
-                "num_eq_sets": 1,
-                "max_val": 1,
-                "min_val": 0,
-                "quantity": "efficiency",
-                "description": "efficiency"
-            }),
-            "delta_power": dc_cp(**{
-                "structure_matrix": self.delta_power_structure_matrix,
-                "func": self.delta_power_func,
-                "dependents": self.delta_power_dependents,
-                "num_eq_sets": 1,
-                "min_val": 0,
-                "quantity": "power",
-                "description": "inlet to outlet power difference"
-            }),
-            "eta_char": dc_cc(**{
-                "func": self.eta_char_func,
-                "dependents": self.eta_char_dependents,
-                "num_eq_sets": 1,
-                "description": "efficiency lookup table for offdesign"
-            })
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "fixed", "ports": ["power_in"]},
+            "poweroutlets": {"type": "fixed", "ports": ["power_out"]},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
-
-    def eta_func(self):
-        r"""
-        Equation for efficiency of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} \cdot \eta - \dot E_\text{out}
-        """
-        return (
-            self.power_inl[0].E.val_SI * self.eta.val_SI
-            - self.power_outl[0].E.val_SI
-        )
-
-    def eta_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].E.sm_col] = self.eta.val_SI
-        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
-
-    def eta_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def delta_power_func(self):
-        r"""
-        Equation for power delta of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} - \dot E_\text{out} - \Delta \dot E
-        """
-        return (
-            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-            - self.delta_power.val_SI
-        )
-
-    def delta_power_structure_matrix(self, k):
-        self._structure_matrix[k, self.power_inl[0].E.sm_col] = 1
-        self._structure_matrix[k, self.power_outl[0].E.sm_col] = -1
-        self._rhs[k] = self.delta_power.val_SI
-
-    def delta_power_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def eta_char_func(self):
-        r"""
-        Equation for efficiency characteristics of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\dot E_\text{in} \cdot \eta_\text{design} \cdot
-                f\left(\frac{\dot E_\text{in}}{\dot E_\text{in,design}}\right)
-                - \dot E_\text{out}
-        """
-        expr = (
-            self.power_inl[0].E.val_SI
-            / self._conn_design(self.power_inl[0], "E")
-        )
-        f = self.eta_char.char_func.evaluate(expr)
-        return (
-            self.power_inl[0].E.val_SI * self.eta.design * f
-            - self.power_outl[0].E.val_SI
-        )
-
-    def eta_char_dependents(self):
-        return [self.power_inl[0].E, self.power_outl[0].E]
-
-    def calc_parameters(self):
-        self.eta.val_SI = self.power_outl[0].E.val_SI / self.power_inl[0].E.val_SI
-        self.delta_power.val_SI = (
-            self.power_inl[0].E.val_SI - self.power_outl[0].E.val_SI
-        )

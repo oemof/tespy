@@ -24,58 +24,59 @@ class Merge(NodeBase):
     r"""
     Class for merge points with multiple inflows and one outflow.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
-    - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
-
-    Inlets/Outlets
-
-    - specify number of inlets with :code:`num_in` (default value: 2)
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Merge.svg
+    .. image:: /api/_images/components/Merge.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Merge_darkmode.svg
+    .. image:: /api/_images/components/Merge_darkmode.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2, ... (variable, count set by :code:`num_in`)
+    - Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - fluid mass fraction balance constraints: :py:meth:`fluid_func <tespy.components.nodes.merge.Merge.fluid_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.merge.Merge.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_in : int
+        Number of inlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_in : float, dict
-        Number of inlets for this component, default value: 2.
 
     Example
     -------
@@ -88,7 +89,7 @@ class Merge(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar"
+    ...     "pressure": "bar", "pressure_difference": "bar"
     ... })
     >>> so1 = Source('source1')
     >>> so2 = Source('source2')
@@ -166,7 +167,18 @@ class Merge(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_in': dc_simple(description="number of inlets")}
+        return {'num_in': dc_simple(dtype="int", description="number of inlets")}
+
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_in", "pattern": "in{n}", "min": 2},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
 
     def _update_num_eq(self):
         self.variable_fluids = set(
@@ -197,7 +209,6 @@ class Merge(NodeBase):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
@@ -251,42 +262,13 @@ class Merge(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of fluid balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        # we take the total mass flow to handle more than one outlet if necessary
-        total_mass_flow = sum([c.m.val_SI for c in self.outl])
-        for fluid in self.all_fluids:
-            for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = i.fluid.val.get(fluid, 0)
-                if fluid in i.fluid.is_var:
-                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-            for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -self.outl[0].fluid.val.get(fluid, 0)
-            if fluid in self.outl[0].fluid.is_var:
-                self.jacobian[k, self.outl[0].fluid.J_col[fluid]] = -total_mass_flow
-            k += 1
-
     def fluid_dependents(self):
         return {
             "scalars": [
                 [c.m for c in self.inl + self.outl] for f in self.all_fluids
             ],
             "vectors": [{
-                # only depends on first outlet (there is only one in merge)
-                # but there may be more in inheriting components
-                c.fluid: c.fluid.is_var for c in self.inl + self.outl[:1]
+                c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl[:1]
             } for f in self.all_fluids]
         }
 
@@ -341,10 +323,10 @@ class Merge(NodeBase):
 
         .. math::
 
-            \dot{S}_\mathrm{irr}= \dot{m}_\mathrm{out} \cdot
-            \left( s_\mathrm{out} - s_\mathrm{out,ref} \right)
-            - \sum_{i} \dot{m}_{\mathrm{in,}i} \cdot
-            \left( s_{\mathrm{in,}i} - s_{\mathrm{in,ref,}i} \right)\\
+            \dot{S}_\text{irr}= \dot{m}_\text{out} \cdot
+            \left( s_\text{out} - s_\text{out,ref} \right)
+            - \sum_{i} \dot{m}_{\text{in,}i} \cdot
+            \left( s_{\text{in,}i} - s_{\text{in,ref,}i} \right)\\
         """
         T_ref = 298.15
         p_ref = 1e5
@@ -356,110 +338,6 @@ class Merge(NodeBase):
             self.S_irr -= i.m.val_SI * (
                 i.s.val_SI - s_mix_pT(p_ref, T_ref, i.fluid_data, i.mixing_rule)
             )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a merge.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        Please note, that the exergy balance accounts for physical exergy only.
-
-        .. math ::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
-            e_{\mathrm{in,}i}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} > T_0\\
-
-            \text{not defined (nan)} & T_\mathrm{out} = T_0\\
-
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot e_\mathrm{out}^\mathrm{PH}
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot \left(e_\mathrm{out}^\mathrm{PH} -
-            e_{\mathrm{in,}i}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} < T_0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \begin{cases}
-            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
-            e_\mathrm{out}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \\
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} < T_0 \\
-            \end{cases} & T_\mathrm{out} > T_0\\
-
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH} & T_\mathrm{out} = T_0\\
-
-            \begin{cases}
-            \sum_i \dot{E}_{\mathrm{in,}i}^\mathrm{PH}
-            & T_{\mathrm{in,}i} > T_\mathrm{out} \text{ \& }
-            T_{\mathrm{in,}i} \geq T_0 \\
-            \sum_i \dot{m}_i \cdot \left(e_{\mathrm{in,}i}^\mathrm{PH} -
-            e_\mathrm{out}^\mathrm{PH}\right)
-            & T_{\mathrm{in,}i} < T_\mathrm{out} \\
-            \end{cases} & T_\mathrm{out} < T_0\\
-            \end{cases}
-
-            \forall i \in \text{merge inlets}
-
-            \dot{E}_\mathrm{bus} = \text{not defined (nan)}
-        """
-        self.E_P = 0
-        self.E_F = 0
-        if self.outl[0].T.val_SI > T0:
-            for i in self.inl:
-                if i.T.val_SI < self.outl[0].T.val_SI:
-                    if i.T.val_SI >= T0:
-                        self.E_P += i.m.val_SI * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                    else:
-                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
-                        self.E_F += i.Ex_physical
-                else:
-                    self.E_F += i.m.val_SI * (
-                        i.ex_physical - self.outl[0].ex_physical)
-        elif self.outl[0].T.val_SI == T0:
-            self.E_P = np.nan
-            for i in self.inl:
-                self.E_F += i.Ex_physical
-        else:
-            for i in self.inl:
-                if i.T.val_SI > self.outl[0].T.val_SI:
-                    if i.T.val_SI >= T0:
-                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
-                        self.E_F += i.Ex_physical
-                    else:
-                        self.E_P += i.m.val_SI * (
-                            self.outl[0].ex_physical - i.ex_physical)
-                else:
-                    self.E_F += i.m.val_SI * (
-                        i.ex_physical - self.outl[0].ex_physical)
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

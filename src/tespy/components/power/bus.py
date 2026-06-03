@@ -10,76 +10,71 @@ available from its original location tespy/components/power/bus.py
 SPDX-License-Identifier: MIT
 """
 
-from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.components.energy._bus import _EnergyBus
 
 
 @component_registry
-class PowerBus(Component):
+class PowerBus(_EnergyBus):
     """
     A PowerBus can hold any number incoming and outgoing power flows.
 
     For example, it can be used to model single shaft gas turbine systems or to
     calculate the net power generation of a rankine cycle plant
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.power.bus.PowerBus.energy_balance_func`
-
-    Inlets/Outlets
-
-    - None
-
-    PowerConnection inlets/outlets
-
-    - specify number of inlets with :code:`num_in`: 'power_in1', ...
-    - specify number of outlets with :code:`num_out` 'power_out1', ...
-
-    Image
-
-    .. image:: /api/_images/PowerBus.svg
-       :alt: flowsheet of the power bus
+    .. image:: /api/_images/components/PowerBus.svg
+       :alt: flowsheet of the powerbus
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/PowerBus_darkmode.svg
-       :alt: flowsheet of the power bus
+    .. image:: /api/_images/components/PowerBus_darkmode.svg
+       :alt: flowsheet of the powerbus
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Power inlets: power_in1, power_in2, ... (variable, count set by :code:`num_in`)
+    - Power outlets: power_out1, power_out2, ... (variable, count set by :code:`num_out`)
+
+    Mandatory Equations
+    -------------------
+
+    - energy balance over all inflows and outflows: :py:meth:`energy_balance_func <tespy.components.energy._bus._EnergyBus.energy_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_in : int
+        Number of inlets.
+
+    num_out : int
+        Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_in : float
-        Number of inlets
-
-    num_out : float
-        Number of outlets
 
     Example
     -------
@@ -89,10 +84,10 @@ class PowerBus(Component):
     >>> from tespy.components import PowerSource, PowerSink, PowerBus
     >>> from tespy.connections import PowerConnection
     >>> from tespy.networks import Network
-    >>> import os
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
 
     We can add a PowerSource representing the grid and three PowerSink
@@ -121,49 +116,15 @@ class PowerBus(Component):
     >>> round(e1.E.val_SI) == 60000
     True
     """
-
-    def powerinlets(self):
-        return [f"power_in{i + 1}" for i in range(self.num_in.val)]
-
-    def poweroutlets(self):
-        return [f"power_out{i + 1}" for i in range(self.num_out.val)]
-
-    def get_parameters(self):
+    @classmethod
+    def port_schema(cls):
         return {
-            "num_in": dc_simple(val=0, description="number of inlets"),
-            "num_out": dc_simple(val=0, description="number of outlets")
+            "inlets": {"type": "fixed", "ports": []},
+            "outlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "variable", "parameter": "num_in", "pattern": "power_in{n}", "min": 1},
+            "poweroutlets": {"type": "variable", "parameter": "num_out", "pattern": "power_out{n}", "min": 1},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
         }
 
-    def get_mandatory_constraints(self):
-        return {
-            "energy_balance_constraint": dc_cmc(**{
-                "func": self.energy_balance_func,
-                "dependents": self.energy_balance_dependents,
-                "num_eq_sets": 1,
-                "description": "energy balance over all inflows and outflows"
-            })
-        }
-
-    def energy_balance_func(self):
-        r"""
-        Equation for energy balance of the component
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation
-
-            .. math::
-
-                0=\sum_{i} \dot E_\text{i} - \sum_{o} \dot E_\text{o}\\
-                \forall i \in \text{inlets}, o \in \text{outlets}
-        """
-        residual = 0
-        for i in self.power_inl:
-            residual += i.E.val_SI
-        for o in self.power_outl:
-            residual -= o.E.val_SI
-        return residual
-
-    def energy_balance_dependents(self):
-        return [c.E for c in self.power_inl + self.power_outl]
+    _energy_port = "power"

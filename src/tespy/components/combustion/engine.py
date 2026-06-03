@@ -391,28 +391,24 @@ class CombustionEngine(CombustionChamber):
             'power_constraints': dc_cmc(**{
                 'func': self.tiP_char_func,
                 'dependents': self.tiP_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to power generation relation"
             }),
             'heat1_constraints': dc_cmc(**{
                 'func': self.Q1_char_func,
                 'dependents': self.Q1_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 1 heat generation relation"
             }),
             'heat2_constraints': dc_cmc(**{
                 'func': self.Q2_char_func,
                 'dependents': self.Q2_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 2 heat generation relation"
             }),
             'heatloss_constraints': dc_cmc(**{
                 'func': self.Qloss_char_func,
                 'dependents': self.Qloss_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heat dissipation relation"
             }),

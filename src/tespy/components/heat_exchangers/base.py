@@ -27,7 +27,7 @@ from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
-
+from tespy.tools.units import _UNITS
 
 @component_registry
 class HeatExchanger(Component):
@@ -1308,6 +1308,8 @@ class HeatExchanger(Component):
             Cumulated heat transfer over sections, temperature at steps hot
             side, temperature at steps cold side, heat transfer per section,
             logarithmic temperature per section
+        -------
+        The heat, temperature & temperature_difference are converted in user specified units
         """
         steps = self._assign_steps()
         Q_sections = self._get_Q_cumsum_steps(steps)
@@ -1316,4 +1318,11 @@ class HeatExchanger(Component):
         td_log_per_section = self._calc_td_log_per_section(
             T_steps_hot, T_steps_cold, postprocess
         )
+
+        Q_sections = _UNITS.ureg.Quantity(Q_sections, "W").m_as(self.Q.unit)
+        Q_per_section = _UNITS.ureg.Quantity(Q_per_section, "W").m_as(self.Q.unit)
+        T_steps_hot = _UNITS.ureg.Quantity(T_steps_hot, "K").m_as(self.inl[0].T.unit)
+        T_steps_cold = _UNITS.ureg.Quantity(T_steps_cold, "K").m_as(self.inl[0].T.unit)
+        td_log_per_section = _UNITS.ureg.Quantity(td_log_per_section, "delta_degC").m_as(self.td_log.unit)
+        
         return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section

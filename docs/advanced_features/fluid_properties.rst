@@ -346,6 +346,12 @@ isentropic change of pressure for an ideal gas.
     ...     def T_ps(self, p, s):
     ...         return newton(self.s_pT, lambda p, T: self.cp_pT(p, T) / T, s, p)
     ...
+    ...     def s_ph(self, p, h):
+    ...         return self.s_pT(p, self.T_ph(p, h))
+    ...
+    ...     def h_ps(self, p, s):
+    ...         return self.h_pT(p, self.T_ps(p, s))
+    ...
     ...     def isentropic(self, p_1, h_1, p_2):
     ...         T_1 = self.T_ph(p_1, h_1)
     ...         cp = self.cp_pT(p_1, T_1)

@@ -331,6 +331,9 @@ class Compressor(Turbomachine):
             self.outl[0].h,
         ]
 
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set
+
     def convergence_check(self):
         r"""
         Perform a convergence check.

@@ -23,6 +23,7 @@ from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import TESPyComponentError
 
 
@@ -403,6 +404,29 @@ class PolynomialCompressor(DisplacementMachine):
     @staticmethod
     def powerinlets():
         return ["power"]
+
+    def _isentropic_equation_is_set(self):
+        return self.eta_s_group.is_set or self.eta_s_poly_group.is_set
+
+    def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
+        i, o = self.inl[0], self.outl[0]
+        fluid = single_fluid(i.fluid_data)
+        if fluid is None:
+            return
+        wrapper = i.fluid.wrapper[fluid]
+        try:
+            s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
+            wrapper.h_ps(o.p.val_SI, s_in)
+        except ValueError:
+            if i.h.is_var:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
+            elif i.p.is_var:
+                i.p.set_reference_val_SI(o.p.val_SI * 0.9)
+            elif o.p.is_var:
+                o.p.set_reference_val_SI(i.p.val_SI * 1.1)
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()

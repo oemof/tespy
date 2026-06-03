@@ -155,6 +155,9 @@ class Turbine(Turbomachine):
     88.6
     """
 
+    _p_in_adj = 1 / 0.9   # expand: i.p just above o.p
+    _p_out_adj = 0.9       # expand: o.p just below i.p
+
     @staticmethod
     def poweroutlets():
         return ["power"]
@@ -394,6 +397,9 @@ class Turbine(Turbomachine):
                 ) - inl.h.val_SI
             )
         )
+
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set
 
     def convergence_check(self):
         r"""

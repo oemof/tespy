@@ -164,6 +164,9 @@ class SteamTurbine(Turbine):
     0.84
     """
 
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set or self.eta_s_dry_group.is_set
+
     def get_parameters(self):
 
         params = super().get_parameters()

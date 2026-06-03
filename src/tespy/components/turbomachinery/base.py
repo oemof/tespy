@@ -173,6 +173,8 @@ class Turbomachine(Component):
         ]
 
     def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
         i, o = self.inl[0], self.outl[0]
         fluid = single_fluid(i.fluid_data)
         if fluid is None:
@@ -182,10 +184,9 @@ class Turbomachine(Component):
             s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
             wrapper.h_ps(o.p.val_SI, s_in)
         except ValueError:
-            if i.h.is_var:
-                i.h.set_reference_val_SI(
-                    wrapper.h_pT(i.p.val_SI, wrapper._T_max * 0.95)
-                )
+            if i.h.is_var and self._p_out_adj > 1:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
             elif i.p.is_var:
                 i.p.set_reference_val_SI(o.p.val_SI * self._p_in_adj)
             elif o.p.is_var:

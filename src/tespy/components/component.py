@@ -965,6 +965,9 @@ class Component:
     def convergence_check(self):
         return
 
+    def _isentropic_equation_is_set(self):
+        return False
+
     def _adjust_to_property_limits(self):
         return
 

@@ -254,9 +254,7 @@ class FuelCell(Component):
         constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
-                'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
-                'constant_deriv': True,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),
@@ -272,9 +270,7 @@ class FuelCell(Component):
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "energy balance equation of the reactor"
             }),

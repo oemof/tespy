@@ -284,9 +284,7 @@ class WaterElectrolyzer(Component):
         constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
-                'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
-                'constant_deriv': True,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),

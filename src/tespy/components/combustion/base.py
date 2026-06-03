@@ -195,7 +195,6 @@ class CombustionChamber(Component):
             ),
             "ti": dc_cp(
                 min_val=0,
-                deriv=self.ti_deriv,
                 func=self.ti_func,
                 dependents=self.ti_dependents,
                 num_eq_sets=1,
@@ -221,9 +220,7 @@ class CombustionChamber(Component):
         return {
             "mass_flow_constraints": dc_cmc(**{
                 "func": self.mass_flow_func,
-                "deriv": self.mass_flow_deriv,
                 "dependents": self.mass_flow_dependents,
-                "constant_deriv": True,
                 "num_eq_sets": 1,
                 "description": "mass flow balance over all inflows and outflows"
             }),
@@ -235,14 +232,12 @@ class CombustionChamber(Component):
             "stoichiometry_constraints": dc_cmc(**{
                 "func": self.stoichiometry_func,
                 "dependents": self.stoichiometry_dependents,
-                "constant_deriv": False,
                 "num_eq_sets": 1,
                 "description": "constraints for stoichiometry of the reaction"
             }),
             "energy_balance_constraints": dc_cmc(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
-                "constant_deriv": False,
                 "num_eq_sets": 1,
                 "description": "constraint for energy balance"
             })
@@ -444,23 +439,6 @@ class CombustionChamber(Component):
         """
         inl, outl = self._get_combustion_connections()
         return inl[0].m.val_SI + inl[1].m.val_SI - outl[0].m.val_SI
-
-    def mass_flow_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate the partial derivatives for all mass flow balance equations.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix with partial derivatives for the fluid equations.
-        """
-        inl, outl = self._get_combustion_connections()
-        for i in inl:
-            if i.m.is_var:
-                self.jacobian[k, i.m.J_col] = 1
-
-        if outl[0].m.is_var:
-            self.jacobian[k, outl[0].m.J_col] = -1
 
     def mass_flow_dependents(self):
         inl, outl = self._get_combustion_connections()
@@ -790,37 +768,6 @@ class CombustionChamber(Component):
                 0 = \dot{m}_{fuel} \cdot LHV - ti
         """
         return self._calc_ti() - self.ti.val_SI
-
-    def ti_deriv(self, increment_filter, k, dependents=None):
-        """
-        Calculate partial derivatives of thermal input function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of equation in Jacobian matrix.
-        """
-        inl, outl = self._get_combustion_connections()
-        for i in inl:
-            if i.m.is_var:
-                deriv = 0
-                for f in self.fuel_list:
-                    deriv += i.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
-                self.jacobian[k, i.m.J_col] = deriv
-            for f in (self.fuel_list & i.fluid.is_var):
-                self.jacobian[k, i.fluid.J_col[f]] = i.m.val_SI * self.fuels[f]["LHV"]
-
-        o = outl[0]
-        if o.m.is_var:
-            deriv = 0
-            for f in self.fuel_list:
-                deriv -= o.fluid.val.get(f, 0) * self.fuels[f]["LHV"]
-            self.jacobian[k, o.m.J_col] = deriv
-        for f in (self.fuel_list & o.fluid.is_var):
-            self.jacobian[k, o.fluid.J_col[f]] = - o.m.val_SI * self.fuels[f]["LHV"]
 
     def ti_dependents(self):
         inl, outl = self._get_combustion_connections()

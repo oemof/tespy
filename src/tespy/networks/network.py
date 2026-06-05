@@ -37,6 +37,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -305,7 +306,7 @@ class Network:
         quantity = "mass_flow"
         unit = self.units.default[quantity]
         self._m_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.m_range_SI = self.m_range.to(SI_UNITS[quantity]).magnitude
+        self.m_range_SI = self.m_range.m_as(SI_UNITS[quantity])
 
     def _get_m_range(self):
         return self._m_range
@@ -315,7 +316,7 @@ class Network:
         quantity = "pressure"
         unit = self.units.default[quantity]
         self._p_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.p_range_SI = self.p_range.to(SI_UNITS[quantity]).magnitude
+        self.p_range_SI = self.p_range.m_as(SI_UNITS[quantity])
 
     def _get_p_range(self):
         return self._p_range
@@ -325,7 +326,7 @@ class Network:
         quantity = "enthalpy"
         unit = self.units.default[quantity]
         self._h_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.h_range_SI = self.h_range.to(SI_UNITS[quantity]).magnitude
+        self.h_range_SI = self.h_range.m_as(SI_UNITS[quantity])
 
     def _get_h_range(self):
         return self._h_range
@@ -1692,7 +1693,7 @@ class Network:
                         param.ref.delta_SI = self.units.ureg.Quantity(
                             param.ref.delta,
                             unit
-                        ).to(SI_UNITS[param.quantity]).magnitude
+                        ).m_as(SI_UNITS[param.quantity])
                     else:
                         param.set_SI_from_val(self.units)
         msg = (
@@ -3389,7 +3390,9 @@ class Network:
             _converged = _converged and cp.check_parameter_bounds()
             # this thing could be somewhere else
             for key, value in cp.parameters.items():
-                if isinstance(value, dc_prop):
+                if isinstance(value, dc_cap):
+                    value.set_val_from_SI(self.units)
+                elif isinstance(value, dc_prop):
                     result = value._get_val_from_SI(self.units)
                     if (
                         value.is_set

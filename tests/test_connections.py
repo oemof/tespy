@@ -117,7 +117,7 @@ class TestConnections:
 
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["temperature_difference"]
-        ).to(SI_UNITS["temperature_difference"]).magnitude
+        ).m_as(SI_UNITS["temperature_difference"])
         assert round(delta_SI, 4) == round(c2.T_ref.ref.delta_SI, 4)
 
         T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
@@ -151,7 +151,7 @@ class TestConnections:
         self.nw.solve('design')
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["mass_flow"]
-        ).to(SI_UNITS["mass_flow"]).magnitude
+        ).m_as(SI_UNITS["mass_flow"])
         assert round(delta_SI, 4) == round(c2.m_ref.ref.delta_SI, 4)
 
         m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)

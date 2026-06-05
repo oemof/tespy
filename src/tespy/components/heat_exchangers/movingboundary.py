@@ -265,13 +265,14 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> round(c1.T.val, 1)
     50.0
 
-    We can also see the temperature differences in all sections of the heat
-    exchanger. Since the water vapor is cooled, condensed and then subcooled,
-    while the air does not change phase, three sections will form:
+    After solving, section data is available directly via the component
+    attributes :code:`T_hot_sections`, :code:`T_cold_sections`,
+    :code:`Q_sections`, :code:`Q_per_section` and :code:`lmtd_per_section`.
+    Since the water vapor is cooled, condensed and then subcooled while the
+    air does not change phase, three sections will form:
 
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections.round(2).tolist()
     [5.0, 19.75, 10.11, 25.0]
 
     We can see that the lowest delta T is the first one. This is the delta T
@@ -288,9 +289,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> [round(float(dT), 2) for dT in delta_T_between_sections]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections.round(2).tolist()
     [9.88, 14.8, 5.0, 19.88]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the

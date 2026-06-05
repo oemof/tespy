@@ -10,8 +10,6 @@ tespy/components/heat_exchangers/sectioned.py
 
 SPDX-License-Identifier: MIT
 """
-import math
-
 import numpy as np
 from scipy.optimize import brentq
 
@@ -21,7 +19,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
@@ -278,14 +275,14 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(c1.T.val, 1)
     50.0
 
-    We can also see the temperature differences in all sections of the heat
-    exchanger. Since the water vapor is cooled, condensed and then subcooled,
-    while the air does not change phase, three sections will form:
+    After solving, section data is available directly via the component
+    attributes :code:`T_hot_sections`, :code:`T_cold_sections`,
+    :code:`Q_sections`, :code:`Q_per_section` and :code:`lmtd_per_section`.
+    Since the water vapor is cooled, condensed and then subcooled while the
+    air does not change phase, three sections will form:
 
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[:6]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections[:6].round(2).tolist()
     [5.0, 16.8, 19.75, 19.6, 19.4, 19.2]
 
     We can see that the lowest delta T is the first one. This is the delta T
@@ -302,10 +299,8 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[:6]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections[:6].round(2).tolist()
     [9.88, 14.8, 14.68, 14.48, 14.28, 14.08]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
@@ -533,7 +528,9 @@ class SectionedHeatExchanger(HeatExchanger):
                 func=self.UA_func,
                 dependents=self.UA_dependents,
                 quantity="heat_transfer_coefficient",
-                description="sum of UA values of all sections of heat exchanger"
+                description="sum of UA values of all sections of heat exchanger",
+                calc=self._calc_UA_from_sections,
+                calc_deps=[]
             ),
             'UA_char': dc_gcc(
                 elements=['UA_char1', 'UA_char2'],
@@ -572,7 +569,9 @@ class SectionedHeatExchanger(HeatExchanger):
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
                 quantity="temperature_difference",
-                description="equation for minimum pinch"
+                description="equation for minimum pinch",
+                calc=self._calc_td_pinch,
+                calc_deps=[]
             )
         })
         return params
@@ -787,7 +786,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
                 0 = UA - \sum UA_{i}
         """
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0.0:
             # Invalid pinch: _calc_td_log_per_section clips negative td to
@@ -826,7 +825,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
@@ -904,7 +903,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 + alpha_ratio * area_ratio * m_ratio_r ** -re_exp_r
             )
         )
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
@@ -923,6 +922,12 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].p,
             self.outl[1].h
         ]
+
+    def _calc_UA_from_sections(self):
+        return float(sum(self.Q_per_section.val_SI / self.lmtd_per_section.val_SI))
+
+    def _calc_td_pinch(self):
+        return float(min(self.T_hot_sections.val_SI - self.T_cold_sections.val_SI))
 
     def calc_td_pinch(self, T_steps_hot, T_steps_cold):
         """Calculate the pinch point temperature difference
@@ -962,16 +967,6 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].p,
             self.outl[1].h
         ]
-
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        sections = self.calc_sections()
-        self.UA.val_SI = self.calc_UA(sections)
-        self.td_pinch.val_SI = self.calc_td_pinch(sections[1], sections[2])
-        self.lmtd.val_SI = abs(self.Q.val_SI) / self.UA.val_SI
-        self.td_log.val_SI = self.lmtd.val_SI
-
 
 def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):
     r"""Method to identify the step corresponding to a saturation line assuming

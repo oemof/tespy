@@ -11,6 +11,7 @@ tespy/components/heat_exchangers/base.py
 SPDX-License-Identifier: MIT
 """
 import math
+import warnings
 
 import numpy as np
 
@@ -25,6 +26,7 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
 
@@ -444,7 +446,12 @@ class HeatExchanger(Component):
                 quantity="efficiency",
                 description="maximum heat exchanger effectiveness",
                 calc=self._calc_eff_max, calc_deps=['eff_hot', 'eff_cold']
-            )
+            ),
+            'Q_sections': dc_cap(quantity="heat"),
+            'T_hot_sections': dc_cap(quantity="temperature"),
+            'T_cold_sections': dc_cap(quantity="temperature"),
+            'Q_per_section': dc_cap(quantity="heat"),
+            'lmtd_per_section': dc_cap(quantity="temperature_difference"),
         }
 
     def get_mandatory_constraints(self):
@@ -556,8 +563,7 @@ class HeatExchanger(Component):
     def _calc_ttd_min(self):
         return min(self.ttd_u.val_SI, self.ttd_l.val_SI)
 
-    def _calc_td_log(self):
-        """Postprocessing method for logarithmic temperature difference"""
+    def _calc_lmtd_from_ttd(self):
         ttd_u = self.ttd_u.val_SI
         ttd_l = self.ttd_l.val_SI
         if ttd_u < 0 or ttd_l < 0:
@@ -569,7 +575,7 @@ class HeatExchanger(Component):
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
     def _calc_UA(self):
-        return -self.Q.val_SI / self._calc_td_log()
+        return -self.Q.val_SI / self._calc_lmtd_from_ttd()
 
     def _calc_lmtd(self):
         if self.UA.val_SI == 0:
@@ -1266,7 +1272,7 @@ class HeatExchanger(Component):
         return T_steps_hot, T_steps_cold
 
     @staticmethod
-    def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
+    def _calc_lmtd_per_section(T_steps_hot, T_steps_cold, postprocess=False):
         """Calculate the logarithmic temperature difference values per section
         of heat exchanged.
 
@@ -1298,22 +1304,56 @@ class HeatExchanger(Component):
             for i in range(len(td_at_steps) - 1)
         ])
 
-    def calc_sections(self, postprocess=True):
-        """Calculate the sections of the heat exchanger. For the base class,
-        these are only points at the edges
+    def calc_parameters(self):
+        self._store_sections()
+        super().calc_parameters()
 
-        Returns
-        -------
-        tuple
-            Cumulated heat transfer over sections, temperature at steps hot
-            side, temperature at steps cold side, heat transfer per section,
-            logarithmic temperature per section
+    def _calc_sections_SI(self, postprocess=True):
+        """Compute section data in SI units. Used internally during solving
+        and as the basis for :py:meth:`calc_sections`.
         """
         steps = self._assign_steps()
         Q_sections = self._get_Q_cumsum_steps(steps)
         T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
         Q_per_section = np.diff(Q_sections)
-        td_log_per_section = self._calc_td_log_per_section(
+        lmtd_per_section = self._calc_lmtd_per_section(
             T_steps_hot, T_steps_cold, postprocess
         )
-        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
+        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, lmtd_per_section
+
+    def _store_sections(self):
+        """Compute section data and store results as
+        :py:class:`ComponentArrayProperties <tespy.tools.data_containers.ComponentArrayProperties>`
+        attributes. Each attribute exposes :code:`.val` in network units and
+        :code:`.val_SI` in SI units.
+
+        Attributes set
+        --------------
+        Q_sections, T_hot_sections, T_cold_sections, Q_per_section,
+        lmtd_per_section
+        """
+        Q_si, T_hot_si, T_cold_si, Q_per_si, lmtd_si = self._calc_sections_SI(postprocess=True)
+        self.Q_sections.val_SI = Q_si
+        self.T_hot_sections.val_SI = T_hot_si
+        self.T_cold_sections.val_SI = T_cold_si
+        self.Q_per_section.val_SI = Q_per_si
+        self.lmtd_per_section.val_SI = lmtd_si
+
+    def calc_sections(self, postprocess=True):
+        r"""
+        .. deprecated::
+            Use the component attributes :code:`Q_sections`, :code:`T_hot_sections`,
+            :code:`T_cold_sections`, :code:`Q_per_section`, :code:`lmtd_per_section`
+            instead. These are populated automatically after each solve. The return
+            value of this method will be removed in a future version.
+        """
+        warnings.warn(
+            f"The return value of {self.__class__.__name__}.calc_sections() is deprecated. "
+            "Access section data via the component attributes Q_sections, T_hot_sections, "
+            "T_cold_sections, Q_per_section, lmtd_per_section instead. Each attribute "
+            "exposes .val (network units) and .val_SI (SI units). The return value will "
+            "be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._calc_sections_SI(postprocess=postprocess)

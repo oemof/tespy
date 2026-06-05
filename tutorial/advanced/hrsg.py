@@ -70,13 +70,12 @@ pamb = 1.013
 
 c1.set_attr(fluid={"water": 1}, T=480, p=88.5, m=200)
 
-extraction_mass_flow = 160 # t/h
-c11.set_attr(m=extraction_mass_flow)
 c7.set_attr(x=0, T=Tamb + 18)
 
+extraction_mass_flow = 160 # t/h
 process_steam_pressure = 13
 process_steam_superheating = 10
-c11.set_attr(td_dew=process_steam_superheating, p=process_steam_pressure)
+c11.set_attr(td_dew=process_steam_superheating, p=process_steam_pressure, m=extraction_mass_flow)
 c12.set_attr(p=pamb)
 
 condensate_return_fraction = 0.75

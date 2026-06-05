@@ -1,8 +1,12 @@
 # %%[sec_1]
 from tespy.networks import Network
 
-nw = Network(
-    T_unit="C", p_unit="bar", h_unit="kJ / kg", m_unit="t / h"
+nw = Network()
+nw.units.set_defaults(
+    temperature="°C",
+    pressure="bar",
+    enthalpy="kJ / kg",
+    mass_flow="t / h"
 )
 # %%[sec_2]
 from tespy.components import Merge
@@ -37,17 +41,17 @@ splitter_2 = Splitter("condensate split")
 from tespy.connections import Connection
 
 
-c1 = Connection(live_steam, "out1", extraction_turbine, "in1", label="1")
-c2 = Connection(extraction_turbine, "out1", splitter_1, "in1", label="2")
-c3 = Connection(splitter_1, "out2", merge_1, "in2", label="3")
+c1 = Connection(live_steam, "out1", extraction_turbine, "in1", label="01")
+c2 = Connection(extraction_turbine, "out1", splitter_1, "in1", label="02")
+c3 = Connection(splitter_1, "out2", merge_1, "in2", label="03")
 
-c4 = Connection(splitter_1, "out1", conditioning_valve, "in1", label="4")
-c5 = Connection(conditioning_valve, "out1", condensing_turbine, "in1", label="5")
-c6 = Connection(condensing_turbine, "out1", condenser, "in1", label="6")
-c7 = Connection(condenser, "out1", splitter_2, "in1", label="7")
-c8 = Connection(splitter_2, "out1", condensate_pump, "in1", label="8")
+c4 = Connection(splitter_1, "out1", conditioning_valve, "in1", label="04")
+c5 = Connection(conditioning_valve, "out1", condensing_turbine, "in1", label="05")
+c6 = Connection(condensing_turbine, "out1", condenser, "in1", label="06")
+c7 = Connection(condenser, "out1", splitter_2, "in1", label="07")
+c8 = Connection(splitter_2, "out1", condensate_pump, "in1", label="08")
 
-c9 = Connection(splitter_2, "out2", steam_cond_pump, "in1", label="9")
+c9 = Connection(splitter_2, "out2", steam_cond_pump, "in1", label="09")
 c10 = Connection(steam_cond_pump,"out1", merge_1,"in1", label="10")
 c11 = Connection(merge_1, "out1",process_steam,"in1", label="11")
 
@@ -67,12 +71,12 @@ pamb = 1.013
 c1.set_attr(fluid={"water": 1}, T=480, p=88.5, m=200)
 
 extraction_mass_flow = 160 # t/h
-c3.set_attr(m=extraction_mass_flow)
+c11.set_attr(m=extraction_mass_flow)
 c7.set_attr(x=0, T=Tamb + 18)
 
 process_steam_pressure = 13
 process_steam_superheating = 10
-c11.set_attr(Td_bp=process_steam_superheating, p=process_steam_pressure)
+c11.set_attr(td_dew=process_steam_superheating, p=process_steam_pressure)
 c12.set_attr(p=pamb)
 
 condensate_return_fraction = 0.75
@@ -87,11 +91,6 @@ condenser.set_attr(pr=1)
 conditioning_valve.set_attr(pr=0.85)
 condensate_pump.set_attr(eta_s=0.7)
 steam_cond_pump.set_attr(eta_s=0.7)
-
-nw.solve("design")
-
-c3.set_attr(m=None)
-c11.set_attr(m=extraction_mass_flow)
 
 nw.solve("design")
 
@@ -142,13 +141,13 @@ c29 = Connection(merge_3, "out1", to_hp_cond, "in1", label="29")
 nw.add_conns(c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29)
 # %%[sec_7]
 c16.set_attr(p=2.3, T=55)
-c17.set_attr(T=100, p0=2.3)
+c17.set_attr(T=100)
 c20.set_attr(x=.05)
 c21.set_attr(m=0.1)
 
 c24.set_attr(p=88.5)
-c26.set_attr(T=116, p0=88.5)
-c27.set_attr(T=231, p0=88.5)
+c26.set_attr(T=116)
+c27.set_attr(T=231)
 c28.set_attr(m=0)
 
 lp_feed_pump.set_attr(eta_s=0.7)
@@ -199,7 +198,11 @@ c42 = Connection(hp_s_2, "out1", extraction_turbine, "in1", label="42")
 
 nw.add_conns(c29, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c40, c41, c42)
 # %%[sec_9]
-from tespy.connections import Bus
+from tespy.components import Generator
+from tespy.components import Motor
+from tespy.components import PowerBus
+from tespy.components import PowerSink
+from tespy.connections import PowerConnection
 
 
 c31.set_attr(T=290, p0=88.5)
@@ -214,16 +217,36 @@ hp_condenser.set_attr(pr1=1, pr2=1)
 hp_eco_3.set_attr(pr=1)
 hp_s_2.set_attr(pr=1)
 
-power_output = Bus("power output")
-power_output.add_comps(
-    {"comp": extraction_turbine, "base": "component", "char": 0.97},
-    {"comp": condensing_turbine, "base": "component", "char": 0.97},
-    {"comp": condensate_pump, "base": "bus", "char": 0.97},
-    {"comp": steam_cond_pump, "base": "bus", "char": 0.97},
-    {"comp": lp_feed_pump, "base": "bus", "char": 0.97},
-    {"comp": hp_feed_pump, "base": "bus", "char": 0.97}
-)
-nw.add_busses(power_output)
+generator_et = Generator("extraction turbine generator")
+generator_ct = Generator("condensing turbine generator")
+motor_cp = Motor("condensate pump motor")
+motor_scp = Motor("steam cond pump motor")
+motor_lfp = Motor("lp feed pump motor")
+motor_hfp = Motor("hp feed pump motor")
+power_bus = PowerBus("power output", num_in=2, num_out=5)
+net_power_output = PowerSink("net power output")
+
+e1 = PowerConnection(extraction_turbine, "power", generator_et, "power_in")
+e2 = PowerConnection(generator_et, "power_out", power_bus, "power_in1")
+e3 = PowerConnection(condensing_turbine, "power", generator_ct, "power_in")
+e4 = PowerConnection(generator_ct, "power_out", power_bus, "power_in2")
+e5 = PowerConnection(power_bus, "power_out1", motor_cp, "power_in")
+e6 = PowerConnection(motor_cp, "power_out", condensate_pump, "power")
+e7 = PowerConnection(power_bus, "power_out2", motor_scp, "power_in")
+e8 = PowerConnection(motor_scp, "power_out", steam_cond_pump, "power")
+e9 = PowerConnection(power_bus, "power_out3", motor_lfp, "power_in")
+e10 = PowerConnection(motor_lfp, "power_out", lp_feed_pump, "power")
+e11 = PowerConnection(power_bus, "power_out4", motor_hfp, "power_in")
+e12 = PowerConnection(motor_hfp, "power_out", hp_feed_pump, "power")
+e13 = PowerConnection(power_bus, "power_out5", net_power_output, "power")
+nw.add_conns(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13)
+
+generator_et.set_attr(eta=0.97)
+generator_ct.set_attr(eta=0.97)
+motor_cp.set_attr(eta=0.97)
+motor_scp.set_attr(eta=0.97)
+motor_lfp.set_attr(eta=0.97)
+motor_hfp.set_attr(eta=0.97)
 
 nw.solve("design")
 nw.print_results()
@@ -260,8 +283,8 @@ nw.add_conns(c19, c20, c25, c26, c27, c30, c31, c34, c35, c39, c40, c41, c42)
 
 c20.set_attr(x=.05)
 c26.set_attr(T=116)
-c27.set_attr(T=231, p0=88.5)
-c31.set_attr(T=290, p0=88.5)
+c27.set_attr(T=231)
+c31.set_attr(T=290)
 c33.set_attr(m=2)
 c35.set_attr(x=0.05)
 c38.set_attr(x=0)

@@ -128,7 +128,7 @@ class SimpleHeatExchanger(Component):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
         :code:`temperature_difference`.
 
     local_design : bool
@@ -381,7 +381,7 @@ class SimpleHeatExchanger(Component):
             ),
             'lmtd': dc_cp(
                 min_val=0, is_result=True, quantity="temperature_difference",
-                description="effective logarithmic mean temperature difference |Q|/UA",
+                description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
             'UA_char': dc_cc(

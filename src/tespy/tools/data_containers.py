@@ -749,6 +749,13 @@ class FluidProperties(_NumEqMixin, DataContainer):
 class ComponentArrayProperties(DataContainer):
     """Data container for array-valued component result properties.
 
+    .. note::
+
+        This class is currently intended for result-only use. Instances are
+        populated automatically by the network after each solve and cannot
+        meaningfully be set by the user. The API of this class may change in
+        future versions.
+
     Attributes
     ----------
     val_SI : numpy.ndarray
@@ -773,6 +780,9 @@ class ComponentArrayProperties(DataContainer):
             "is_set": False,
             "num_eq_sets": 0,
         }
+
+    def accept(self, value):
+        pass
 
     def set_val_from_SI(self, units):
         if self.val_SI is None:

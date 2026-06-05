@@ -27,7 +27,9 @@ New Features
   properties. It exposes :code:`.val_SI` (SI units) and :code:`.val`
   (network user units, populated by the network after each solve via
   :code:`set_val_from_SI`), following the same unit-routing pattern as
-  :py:class:`~tespy.tools.data_containers.ComponentProperties`
+  :py:class:`~tespy.tools.data_containers.ComponentProperties`.
+  This class is currently intended for result-only use and cannot be set by
+  the user. Its API may change in future versions
   (`PR #1001 <https://github.com/oemof/tespy/pull/1001>`__).
 
 Other Changes

@@ -874,7 +874,7 @@ class Component:
                     if f"{key}_unit" in data:
                         value = _UNITS.ureg.Quantity(
                             data[key], data[f"{key}_unit"]
-                        ).to(SI_UNITS[dc.quantity]).magnitude
+                        ).m_as(SI_UNITS[dc.quantity])
                     else:
                         value = data[key]
                     self.get_attr(key).design = float(value)

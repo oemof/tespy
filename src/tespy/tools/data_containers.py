@@ -651,12 +651,12 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_SI_from_val(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-        self.val_SI = self._val.to(SI_UNITS[self.quantity]).magnitude
+        self.val_SI = self._val.m_as(SI_UNITS[self.quantity])
 
     def set_SI_from_val0(self, units):
         if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-        self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
+        self.val_SI = self._val0.m_as(SI_UNITS[self.quantity])
 
     def _get_val_from_SI(self, units):
         if not self._val_is_quantity:
@@ -779,7 +779,7 @@ class ComponentArrayProperties(DataContainer):
             return
         self.val = units.ureg.Quantity(
             self.val_SI, SI_UNITS[self.quantity]
-        ).to(units.default[self.quantity]).magnitude
+        ).m_as(units.default[self.quantity])
 
 
 class ComponentProperties(FluidProperties):

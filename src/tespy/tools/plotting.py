@@ -225,7 +225,7 @@ def get_heatexchanger_secondary_Ts(nw, connection_label):
                 for p, h in zip(p_range, h_range)
             ]),
             "K"
-        ).to(c.T.unit).magnitude
+        ).m_as(c.T.unit)
         label_inflow = connection_in.label
         label_outflow = connection_out.label
         other_points[wrapper][label_inflow] = {"T": T_range[0]}
@@ -244,7 +244,7 @@ def get_heatexchanger_secondary_Ts(nw, connection_label):
                 for p, h in zip(p_range, h_range)
             ]),
             "J/(kgK)"
-        ).to(c.s.unit).magnitude
+        ).m_as(c.s.unit)
 
         if isinstance(component, ParallelFlowHeatExchanger):
             other_points[wrapper][label_inflow]["s"] = s_range[0]

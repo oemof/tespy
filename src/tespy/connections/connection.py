@@ -397,7 +397,7 @@ class ConnectionBase:
             param = self.get_attr(var)
             state[var] = units.ureg.Quantity(
                 float(data[var]), unit
-            ).to(SI_UNITS[param.quantity]).magnitude
+            ).m_as(SI_UNITS[param.quantity])
         return state
 
     def _set_design_params(self, data, units):

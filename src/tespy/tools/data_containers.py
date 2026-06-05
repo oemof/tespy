@@ -746,6 +746,42 @@ class FluidProperties(_NumEqMixin, DataContainer):
     is_var = property(get_is_var, set_is_var)
 
 
+class ComponentArrayProperties(DataContainer):
+    """Data container for array-valued component result properties.
+
+    Attributes
+    ----------
+    val_SI : numpy.ndarray
+        Values in SI units.
+
+    val : numpy.ndarray
+        Values in the network's user-specified unit. Populated by the network
+        after each solve via :py:meth:`set_val_from_SI`.
+
+    quantity : str
+        Physical quantity type (e.g. :code:`"heat"`, :code:`"temperature"`).
+    """
+
+    @staticmethod
+    def attr():
+        return {
+            "val": None,
+            "val_SI": None,
+            "quantity": None,
+            "structure_matrix": None,
+            "func": None,
+            "is_set": False,
+            "num_eq_sets": 0,
+        }
+
+    def set_val_from_SI(self, units):
+        if self.val_SI is None:
+            return
+        self.val = units.ureg.Quantity(
+            self.val_SI, SI_UNITS[self.quantity]
+        ).to(units.default[self.quantity]).magnitude
+
+
 class ComponentProperties(FluidProperties):
 
     @staticmethod

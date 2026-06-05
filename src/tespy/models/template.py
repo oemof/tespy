@@ -265,10 +265,9 @@ class ModelTemplate():
             fig = ax.get_figure()
 
         heatex = self.nw.get_comp(heatexchanger_label)
-        heat, T_hot, T_cold, _, _ = heatex.calc_sections()
 
-        ax.plot(heat, T_hot, "o-", color="red")
-        ax.plot(heat, T_cold, "o-", color="blue")
+        ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, "o-", color="red")
+        ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, "o-", color="blue")
 
         if save_dir:
             fig.savefig(f"{save_dir}/qt_diagram.svg", bbox_inches="tight")

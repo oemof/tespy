@@ -37,6 +37,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -3389,7 +3390,9 @@ class Network:
             _converged = _converged and cp.check_parameter_bounds()
             # this thing could be somewhere else
             for key, value in cp.parameters.items():
-                if isinstance(value, dc_prop):
+                if isinstance(value, dc_cap):
+                    value.set_val_from_SI(self.units)
+                elif isinstance(value, dc_prop):
                     result = value._get_val_from_SI(self.units)
                     if (
                         value.is_set

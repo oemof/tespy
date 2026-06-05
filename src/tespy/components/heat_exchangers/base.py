@@ -18,6 +18,7 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -26,7 +27,6 @@ from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
 
